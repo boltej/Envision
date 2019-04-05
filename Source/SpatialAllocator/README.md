@@ -1,0 +1,1 @@
+## SpatialAllocator plugin for Envision
