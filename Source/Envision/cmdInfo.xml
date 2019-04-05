@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+
+<commands>
+  <!--Mckenzie -->
+  <export layer="\envision\studyareas\WW2100\idu.shp"     query="COMID &gt;= 23770000 and COMID &lt;= 23779999" output="\envision\studyareas\ww2100\mckenzie\idu.shp"/>
+  <!-- <export layer="\envision\studyareas\WW2100\streams.shp" query="COMID &gt;= 23770000 and COMID &lt;= 23779999" output="\envision\studyareas\ww2100\mckenzie\streams.shp"/> -->
+</commands>
