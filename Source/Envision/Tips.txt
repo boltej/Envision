@@ -1,0 +1,18 @@
+Welcome to <b>Envision</b>.  This is the first tip in the tips file.  This is the welcome tip, and will only be shown once.
+;
+You can display the pop-up menu by clicking the right mouse button.  The pop-up menu contains commands specific to the window where you clicked.
+;
+You can browse the Envision home page on the World Wide Web.  The address for the Envision home page is: <a href='http://envision.bioe.orst.edu'> http://envision.bioe.orst.edu</a>
+;
+You can close a dialog box by pressing the 'ESC' key.
+;
+You can interrupt loading a coverage file by hitting the 'ESC' key.  But, be sure not to save the resulting shape/dbf file to the original location!
+;
+You can write your own plug-ins for Envision using the Envision SDK.  See <a href='http://envision.bioe.orst.edu'> http://envision.bioe.orst.edu</a> to download the SDK.
+;
+A very useful way to understand what is happening in an individual IDU is to right-click on the IDU at the end of a run and select "Show Deltas for this site".  You probably want to turn on all the checkboxes in the lower left of the resulting dialog box (these are used to filter the deltas).  This will show you exactly what happened to the IDU, and the order that it happened in.
+;
+You can report bugs in Envision at See <a href='http://bugtracker.bioe.orst.edu'> http://bugtracker.bioe.orst.edu</a>.
+;
+You can toggle the Output Window by hitting <Ctrl>-0 (The control key and the 'O' key)
+;
