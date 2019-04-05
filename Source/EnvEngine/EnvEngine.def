@@ -1,0 +1,11 @@
+; EnvEngine.def : Declares the module parameters for the DLL.
+
+LIBRARY
+
+EXPORTS
+    ; Explicit exports can go here
+
+;EnvInitEngine  @1
+;EnvLoadProject @2
+;EnvRunScenario  @3
+;EnvCloseEngine @4
