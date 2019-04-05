@@ -1,0 +1,672 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Template|Win32">
+      <Configuration>Template</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Template|x64">
+      <Configuration>Template</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2A08AFB9-CB91-4FAE-B06C-573238E74E8D}</ProjectGuid>
+    <RootNamespace>Envision</RootNamespace>
+    <SccProjectName>
+    </SccProjectName>
+    <SccAuxPath>
+    </SccAuxPath>
+    <SccLocalPath>
+    </SccLocalPath>
+    <SccProvider>
+    </SccProvider>
+    <Keyword>MFCProj</Keyword>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>NotSet</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Template|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>NotSet</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>NotSet</CharacterSet>
+    <PlatformToolset>v141</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
+    <PlatformToolset>v141</PlatformToolset>
+    <UseOfMfc>Dynamic</UseOfMfc>
+    <CharacterSet>NotSet</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Template|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
+    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
+    <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">.\3rdParty\OSG\bin\osgPlugins-2.8.3;.\3rdParty\OSG\3rdParty\x86\bin;.\3rdParty\OSG\bin;$(ExecutablePath)</ExecutablePath>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Template|x64'">$(SolutionDir)$(Platform)\$(Configuration)\x64\</OutDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Midl>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <ValidateAllParameters>true</ValidateAllParameters>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\ultimategrid;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_AFXDLL;_DEBUG;</PreprocessorDefinitions>
+      <MinimalRebuild>
+      </MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <OpenMPSupport>true</OpenMPSupport>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>libs.lib;envwinlibs.lib;envengine.lib;glew32.lib;glu32.lib;opengl32.lib;msdasc.lib;ugmfcd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX86</TargetMachine>
+      <StackReserveSize>10000000</StackReserveSize>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Midl>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\ultimategrid;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_WIN64;_AFXDLL;_DEBUG;</PreprocessorDefinitions>
+      <MinimalRebuild>
+      </MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <OpenMPSupport>false</OpenMPSupport>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>EnvLibs.lib;envwinlibs.lib;envengine.lib;glew32.lib;glu32.lib;opengl32.lib;msdasc.lib;ugmfc64d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <TargetMachine>MachineX64</TargetMachine>
+      <ShowProgress>LinkVerboseLib</ShowProgress>
+      <StackReserveSize>10000000</StackReserveSize>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <ValidateAllParameters>true</ValidateAllParameters>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\ultimategrid;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_AFXDLL;NDEBUG</PreprocessorDefinitions>
+      <MinimalRebuild>
+      </MinimalRebuild>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <OpenMPSupport>true</OpenMPSupport>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>libs.lib;envwinlibs.lib;envengine.lib;glew32.lib;glu32.lib;opengl32.lib;msdasc.lib;libs.lib;ugmfc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX86</TargetMachine>
+      <StackReserveSize>10000000</StackReserveSize>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Midl>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MkTypLibCompatible>false</MkTypLibCompatible>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\ultimategrid;</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_WIN64;_AFXDLL;NDEBUG</PreprocessorDefinitions>
+      <MinimalRebuild>
+      </MinimalRebuild>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <OpenMPSupport>true</OpenMPSupport>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0409</Culture>
+      <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ResourceCompile>
+    <Link>
+      <AdditionalDependencies>EnvLibs.lib;envwinlibs.lib;envengine.lib;glew32.lib;glu32.lib;opengl32.lib;msdasc.lib;ugmfc64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <SubSystem>Windows</SubSystem>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <TargetMachine>MachineX64</TargetMachine>
+      <StackReserveSize>10000000</StackReserveSize>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
+    <ClCompile>
+      <OpenMPSupport>false</OpenMPSupport>
+      <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_AFXDLL;LIBSAPI=__declspec( dllimport );</PreprocessorDefinitions>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\ultimategrid;</AdditionalIncludeDirectories>
+      <MinimalRebuild />
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>libs.lib;envwinlibs.lib;envengine.lib;glew32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <StackReserveSize>10000000</StackReserveSize>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Template|x64'">
+    <ClCompile>
+      <OpenMPSupport>false</OpenMPSupport>
+      <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_WIN64;_AFXDLL;LIBSAPI=__declspec( dllimport );</PreprocessorDefinitions>
+      <MultiProcessorCompilation>
+      </MultiProcessorCompilation>
+      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\ultimategrid;</AdditionalIncludeDirectories>
+      <MinimalRebuild />
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>EnvLibs.lib;envwinlibs.lib;envengine.lib;glew32.lib;glu32.lib;opengl32.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <StackReserveSize>10000000</StackReserveSize>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="ActiveWnd.cpp" />
+    <ClCompile Include="Actordlg.cpp" />
+    <ClCompile Include="AddDbColDlg.cpp" />
+    <ClCompile Include="AddResultDlg.cpp" />
+    <ClCompile Include="AnalyticsPanel.cpp" />
+    <ClCompile Include="AnalyticsViewer.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|x64'">false</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="BasemapDlg.cpp" />
+    <ClCompile Include="camera.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="ChangeTypeDlg.cpp" />
+    <ClCompile Include="ConstraintsDlg.cpp" />
+    <ClCompile Include="ConvertDlg.cpp" />
+    <ClCompile Include="DeltaExportDlg.cpp" />
+    <ClCompile Include="DeltaViewer.cpp" />
+    <ClCompile Include="AreaQueryDlg.cpp" />
+    <ClCompile Include="AreaSummaryDlg.cpp" />
+    <ClCompile Include="DatabaseInfoDlg.cpp" />
+    <ClCompile Include="DataGrid.cpp" />
+    <ClCompile Include="DataPane.cpp" />
+    <ClCompile Include="DataPanel.cpp" />
+    <ClCompile Include="DeltaReport.cpp" />
+    <ClCompile Include="EnvDoc.cpp" />
+    <ClCompile Include="Envision.cpp" />
+    <ClCompile Include="EnvisionAPI.cpp" />
+    <ClCompile Include="envmsg.cpp" />
+    <ClCompile Include="EnvView.cpp" />
+    <ClCompile Include="EvaluatorLearnDlg.cpp" />
+    <ClCompile Include="EvaluatorLearning.cpp" />
+    <ClCompile Include="FieldCalculatorDlg.cpp" />
+    <ClCompile Include="FieldInfoDlg.cpp" />
+    <ClCompile Include="FindDataDlg.cpp" />
+    <ClCompile Include="GlobalConstraintsDlg.cpp" />
+    <ClCompile Include="GoalSpaceWnd.cpp" />
+    <ClCompile Include="HistogramCDF.cpp" />
+    <ClCompile Include="HistogramDlg.cpp" />
+    <ClCompile Include="IniFileEditor.cpp" />
+    <ClCompile Include="InputPanel.cpp" />
+    <ClCompile Include="IntersectDlg.cpp" />
+    <ClCompile Include="LinearDensityDlg.cpp" />
+    <ClCompile Include="LoadDlg.cpp" />
+    <ClCompile Include="LulcEditor.cpp" />
+    <ClCompile Include="LulcInfoDialog.cpp" />
+    <ClCompile Include="LulcTransitionResultsWnd.cpp" />
+    <ClCompile Include="MainFrm.cpp" />
+    <ClCompile Include="MapPanel.cpp" />
+    <ClCompile Include="MergeDlg.cpp" />
+    <ClCompile Include="MultirunHistogramPlotWnd.cpp" />
+    <ClCompile Include="MultiSandboxDlg.cpp" />
+    <ClCompile Include="NetworkTopologyDlg.cpp" />
+    <ClCompile Include="NewIniFileDlg.cpp" />
+    <ClCompile Include="NewPolicyDlg.cpp" />
+    <ClCompile Include="OptionsDlg.cpp" />
+    <ClCompile Include="OutcomeConstraintsDlg.cpp" />
+    <ClCompile Include="OutcomeEditor.cpp" />
+    <ClCompile Include="PointSet.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="PolEditor.cpp" />
+    <ClCompile Include="PolicyAppPlot.cpp" />
+    <ClCompile Include="PolicyColorDlg.cpp" />
+    <ClCompile Include="PolQueryDlg.cpp" />
+    <ClCompile Include="PopulateAdjacencyDlg.cpp" />
+    <ClCompile Include="PopulateDistanceDlg.cpp" />
+    <ClCompile Include="PPIniActors.cpp" />
+    <ClCompile Include="PPIniBasic.cpp" />
+    <ClCompile Include="PPIniLayers.cpp" />
+    <ClCompile Include="PPIniMetagoals.cpp" />
+    <ClCompile Include="PPIniModels.cpp" />
+    <ClCompile Include="PPIniProcesses.cpp" />
+    <ClCompile Include="PPIniSettings.cpp" />
+    <ClCompile Include="PPMetaGoals.cpp" />
+    <ClCompile Include="PPNewIniFinish.cpp" />
+    <ClCompile Include="PPNewIniStep1.cpp" />
+    <ClCompile Include="PPNewIniStep2.cpp" />
+    <ClCompile Include="PPNewIniStep3.cpp" />
+    <ClCompile Include="PPPolicyBasic.cpp" />
+    <ClCompile Include="PPPolicyConstraints.cpp" />
+    <ClCompile Include="PPPolicyObjScores.cpp" />
+    <ClCompile Include="PPPolicyOutcomes.cpp" />
+    <ClCompile Include="PPPolicyResults.cpp" />
+    <ClCompile Include="PPPolicyScenarios.cpp" />
+    <ClCompile Include="PPPolicySiteAttr.cpp" />
+    <ClCompile Include="PPRunActors.cpp" />
+    <ClCompile Include="PPRunData.cpp" />
+    <ClCompile Include="PPRunMain.cpp" />
+    <ClCompile Include="PPRunModels.cpp" />
+    <ClCompile Include="PPRunPolicies.cpp" />
+    <ClCompile Include="PPRunSetup.cpp" />
+    <ClCompile Include="ReclassDlg.cpp" />
+    <ClCompile Include="RemoveDBColsDlg.cpp" />
+    <ClCompile Include="ResultsGraphWnd.cpp" />
+    <ClCompile Include="ResultsMapWnd.cpp" />
+    <ClCompile Include="ResultsPanel.cpp" />
+    <ClCompile Include="ResultsTree.cpp" />
+    <ClCompile Include="ResultsWnd.cpp" />
+    <ClCompile Include="RtViewPanel.cpp" />
+    <ClCompile Include="RtViewWnd.cpp" />
+    <ClCompile Include="Sandbox.cpp" />
+    <ClCompile Include="SandboxDlg.cpp" />
+    <ClCompile Include="SaveProjectDlg.cpp" />
+    <ClCompile Include="SaveToDlg.cpp" />
+    <ClCompile Include="SaveXmlOptionsDlg.cpp" />
+    <ClCompile Include="ScenarioEditor.cpp" />
+    <ClCompile Include="ScenarioGridDlg.cpp" />
+    <ClCompile Include="ScenarioWizard.cpp" />
+    <ClCompile Include="SelectActor.cpp" />
+    <ClCompile Include="SelectIduDiag.cpp" />
+    <ClCompile Include="SelectTableDlg.cpp" />
+    <ClCompile Include="SensitivityDlg.cpp" />
+    <ClCompile Include="ShaderMgr.cpp">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="SpatialIndexDlg.cpp" />
+    <ClCompile Include="SplashDlg.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="TextToIdDlg.cpp" />
+    <ClCompile Include="TipDlg.cpp" />
+    <ClCompile Include="TrajectorySpaceWnd.cpp" />
+    <ClCompile Include="ugctelps.cpp" />
+    <ClCompile Include="UpdateDlg.cpp" />
+    <ClCompile Include="VideoRecorderDlg.cpp" />
+    <ClCompile Include="Visualizer.cpp" />
+    <ClCompile Include="WebServices\soapC.cpp" />
+    <ClCompile Include="WebServices\soapEnvWebServiceSoapProxy.cpp" />
+    <ClCompile Include="WebServices\stdsoap2.cpp" />
+    <ClCompile Include="WizRun.cpp" />
+    <ClCompile Include="UltimateToolbox\OXLayoutManager.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ActiveWnd.h" />
+    <ClInclude Include="Actordlg.h" />
+    <ClInclude Include="AddDbColDlg.h" />
+    <ClInclude Include="AddResultDlg.h" />
+    <ClInclude Include="AnalyticsPanel.h" />
+    <ClInclude Include="AnalyticsViewer.h" />
+    <ClInclude Include="BasemapDlg.h" />
+    <ClInclude Include="camera.h" />
+    <ClInclude Include="ChangeTypeDlg.h" />
+    <ClInclude Include="ConstraintsDlg.h" />
+    <ClInclude Include="ConvertDlg.h" />
+    <ClInclude Include="DeltaExportDlg.h" />
+    <ClInclude Include="DeltaViewerEx.h" />
+    <ClInclude Include="AreaQueryDlg.h" />
+    <ClInclude Include="AreaSummaryDlg.h" />
+    <ClInclude Include="ClassifyLayerDlg.h" />
+    <ClInclude Include="DatabaseInfoDlg.h" />
+    <ClInclude Include="DataGrid.h" />
+    <ClInclude Include="DataPane.h" />
+    <ClInclude Include="DataPanel.h" />
+    <ClInclude Include="DeltaReport.h" />
+    <ClInclude Include="DeltaViewer.h" />
+    <ClInclude Include="EnvDoc.h" />
+    <ClInclude Include="Envision.h" />
+    <ClInclude Include="EnvisionAPI.h" />
+    <ClInclude Include="envmsg.h" />
+    <ClInclude Include="EnvView.h" />
+    <ClInclude Include="EvaluatorLearnDlg.h" />
+    <ClInclude Include="EvaluatorLearning.h" />
+    <ClInclude Include="ExportDataDlg.h" />
+    <ClInclude Include="FieldCalculatorDlg.h" />
+    <ClInclude Include="FieldInfoDlg.h" />
+    <ClInclude Include="FindDataDlg.h" />
+    <ClInclude Include="GLErrStream.hpp" />
+    <ClInclude Include="GlobalConstraintsDlg.h" />
+    <ClInclude Include="GoalSpaceWnd.h" />
+    <ClInclude Include="HistogramCDF.h" />
+    <ClInclude Include="HistogramDlg.h" />
+    <ClInclude Include="IniFileEditor.h" />
+    <ClInclude Include="InputPanel.h" />
+    <ClInclude Include="IntersectDlg.h" />
+    <ClInclude Include="LinearDensityDlg.h" />
+    <ClInclude Include="LoadDlg.h" />
+    <ClInclude Include="LulcEditor.h" />
+    <ClInclude Include="LulcInfoDialog.h" />
+    <ClInclude Include="LulcTransitionResultsWnd.h" />
+    <ClInclude Include="MainFrm.h" />
+    <ClInclude Include="MapPanel.h" />
+    <ClInclude Include="MergeDlg.h" />
+    <ClInclude Include="MultirunHistogramPlotWnd.h" />
+    <ClInclude Include="MultiSandboxDlg.h" />
+    <ClInclude Include="NetworkTopologyDlg.h" />
+    <ClInclude Include="NewIniFileDlg.h" />
+    <ClInclude Include="NewPolicyDlg.h" />
+    <ClInclude Include="OptionsDlg.h" />
+    <ClInclude Include="OutcomeConstraintsDlg.h" />
+    <ClInclude Include="OutcomeEditor.h" />
+    <ClInclude Include="PointSet.h" />
+    <ClInclude Include="PolEditor.h" />
+    <ClInclude Include="PolicyAppPlot.h" />
+    <ClInclude Include="PolicyColorDlg.h" />
+    <ClInclude Include="PolQueryDlg.h" />
+    <ClInclude Include="PopulateAdjacencyDlg.h" />
+    <ClInclude Include="PopulateDistanceDlg.h" />
+    <ClInclude Include="PPIniActors.h" />
+    <ClInclude Include="PPIniBasic.h" />
+    <ClInclude Include="PPIniLayers.h" />
+    <ClInclude Include="PPIniMetagoals.h" />
+    <ClInclude Include="PPIniModels.h" />
+    <ClInclude Include="PPIniProcesses.h" />
+    <ClInclude Include="PPIniSettings.h" />
+    <ClInclude Include="PPMetaGoals.h" />
+    <ClInclude Include="PPNewIniFinish.h" />
+    <ClInclude Include="PPNewIniStep1.h" />
+    <ClInclude Include="PPNewIniStep2.h" />
+    <ClInclude Include="PPNewIniStep3.h" />
+    <ClInclude Include="PPPolicyBasic.h" />
+    <ClInclude Include="PPPolicyConstraints.h" />
+    <ClInclude Include="PPPolicyObjScores.h" />
+    <ClInclude Include="PPPolicyOutcomes.h" />
+    <ClInclude Include="PPPolicyResults.h" />
+    <ClInclude Include="PPPolicyScenarios.h" />
+    <ClInclude Include="PPPolicySiteAttr.h" />
+    <ClInclude Include="PPRunActors.h" />
+    <ClInclude Include="PPRunData.h" />
+    <ClInclude Include="PPRunMain.h" />
+    <ClInclude Include="PPRunModels.h" />
+    <ClInclude Include="PPRunPolicies.h" />
+    <ClInclude Include="PPRunSetup.h" />
+    <ClInclude Include="ReclassDlg.h" />
+    <ClInclude Include="RemoveDBColsDlg.h" />
+    <ClInclude Include="Resource.h" />
+    <ClInclude Include="ResultsGraphWnd.h" />
+    <ClInclude Include="ResultsMapWnd.h" />
+    <ClInclude Include="ResultsPanel.h" />
+    <ClInclude Include="ResultsTree.h" />
+    <ClInclude Include="ResultsWnd.h" />
+    <ClInclude Include="RtViewPanel.h" />
+    <ClInclude Include="RtViewWnd.h" />
+    <ClInclude Include="Sandbox.h" />
+    <ClInclude Include="SandboxDlg.h" />
+    <ClInclude Include="SaveProjectDlg.h" />
+    <ClInclude Include="SaveToDlg.h" />
+    <ClInclude Include="SaveXmlOptionsDlg.h" />
+    <ClInclude Include="ScenarioEditor.h" />
+    <ClInclude Include="ScenarioGridDlg.h" />
+    <ClInclude Include="ScenarioWizard.h" />
+    <ClInclude Include="SelectActor.h" />
+    <ClInclude Include="SelectIduDiag.h" />
+    <ClInclude Include="SelectTableDlg.h" />
+    <ClInclude Include="SensitivityDlg.h" />
+    <ClInclude Include="ShaderMgr.h" />
+    <ClInclude Include="SiteAttrDlg.h" />
+    <ClInclude Include="SpatialIndexDlg.h" />
+    <ClInclude Include="SplashDlg.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="TextToIdDlg.h" />
+    <ClInclude Include="TipDlg.h" />
+    <ClInclude Include="TrajectorySpaceWnd.h" />
+    <ClInclude Include="ugctelps.h" />
+    <ClInclude Include="UpdateDlg.h" />
+    <ClInclude Include="VideoRecorderDlg.h" />
+    <ClInclude Include="Visualizer.h" />
+    <ClInclude Include="WebServices\soapEnvWebServiceSoapProxy.h" />
+    <ClInclude Include="WebServices\soapH.h" />
+    <ClInclude Include="WebServices\soapStub.h" />
+    <ClInclude Include="WebServices\stdsoap2.h" />
+    <ClInclude Include="WizardDlg.h" />
+    <ClInclude Include="Wizrun.h" />
+    <ClInclude Include="Logbook\Logbook.h" />
+    <ClInclude Include="Logbook\LogbookFile.h" />
+    <ClInclude Include="Logbook\LogbookGUI.h" />
+    <ClInclude Include="Logbook\LogbookGUIItem.h" />
+    <ClInclude Include="Logbook\ThreadObject.h" />
+    <ClInclude Include="UltimateToolbox\OXDllExt.h" />
+    <ClInclude Include="UltimateToolbox\OXLayoutManager.h" />
+    <ClInclude Include="UltimateToolbox\UTB64Bit.h" />
+    <ClInclude Include="GsTL\univariate_stats\build_cdf.h" />
+    <ClInclude Include="GsTL\cdf\categ_non_param_cdf.h" />
+    <ClInclude Include="GsTL\cdf.h" />
+    <ClInclude Include="GsTL\cdf\cdf_basics.h" />
+    <ClInclude Include="GsTL\cdf\gaussian_cdf.h" />
+    <ClInclude Include="GsTL\utils\gstl_error_messages.h" />
+    <ClInclude Include="GsTL\utils\helper_functions.h" />
+    <ClInclude Include="GsTL\math\indicator_coding.h" />
+    <ClInclude Include="GsTL\cdf\interpolators.h" />
+    <ClInclude Include="GsTL\math\math_functions.h" />
+    <ClInclude Include="GsTL\cdf\non_param_cdf.h" />
+    <ClInclude Include="GsTL\cdf\non_param_pdf.h" />
+    <ClInclude Include="GsTL\math\random_number_generators.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="res\fieldInfoDlg.bmp" />
+    <None Include="UltimateToolbox\OXLayoutManager.inl" />
+    <None Include="GsTL\Debug\BuildLog.htm">
+      <DeploymentContent>true</DeploymentContent>
+    </None>
+    <None Include="res\analysis_large.bmp" />
+    <None Include="res\analysis_small.bmp" />
+    <None Include="res\button_end.bmp" />
+    <None Include="res\button_pause.bmp" />
+    <None Include="res\button_rewind.bmp" />
+    <None Include="res\button_start.bmp" />
+    <None Include="res\button_start_left.bmp" />
+    <None Include="res\button_stop.bmp" />
+    <None Include="res\buttons.bmp" />
+    <None Include="res\cancel.bmp" />
+    <None Include="res\datalarge.bmp" />
+    <None Include="res\datasmall.bmp" />
+    <None Include="res\end.bmp" />
+    <None Include="res\Envision.ico" />
+    <None Include="res\Envision.rc2" />
+    <None Include="res\envision_splash.bmp" />
+    <None Include="res\envision_splash.png" />
+    <None Include="res\envision_v4_splash.bmp" />
+    <None Include="res\EnvisionDoc.ico" />
+    <None Include="res\filelarge - Copy.bmp" />
+    <None Include="res\filelarge.bmp" />
+    <None Include="res\filesmall - Copy.bmp" />
+    <None Include="res\filesmall.bmp" />
+    <None Include="res\icon1.ico" />
+    <None Include="res\litebulb.bmp" />
+    <None Include="res\lulc.gif" />
+    <None Include="res\main.bmp" />
+    <None Include="res\maplarge.bmp" />
+    <None Include="res\mapmall.bmp" />
+    <None Include="res\output_wnd.ico" />
+    <None Include="res\output_wnd_hc.ico" />
+    <None Include="res\pause.bmp" />
+    <None Include="res\play.bmp" />
+    <None Include="res\Policy_book.png" />
+    <None Include="res\resultsArrange.bmp" />
+    <None Include="res\resultsArrangeSmall.bmp" />
+    <None Include="res\rewind.bmp" />
+    <None Include="res\rewind.ico" />
+    <None Include="res\rtviews_large.bmp" />
+    <None Include="res\rtviews_small.bmp" />
+    <None Include="res\Toolbar.bmp" />
+    <None Include="res\Toolbar256.bmp" />
+    <None Include="res\writelarge.bmp" />
+    <None Include="res\writesmall.bmp" />
+    <None Include="Envision.reg" />
+    <None Include="ReadMe.txt" />
+    <None Include="WebServices\EnvWebServiceSoap.nsmap" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Envision.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="res\bitmap3.bmp" />
+    <Image Include="res\bitmap6.bmp" />
+    <Image Include="res\envision7a.bmp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+  <ProjectExtensions>
+    <VisualStudio>
+      <UserProperties RESOURCE_FILE="Envision.rc" />
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>

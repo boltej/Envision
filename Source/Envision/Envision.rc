@@ -1,0 +1,3125 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#ifndef APSTUDIO_INVOKED
+#include "targetver.h"
+#endif
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#ifndef APSTUDIO_INVOKED\r\n"
+    "#include ""targetver.h""\r\n"
+    "#endif\r\n"
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#include ""res\\Envision.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""         // Standard components\r\n"
+    "#include ""afxprint.rc""       // printing/print preview resources\r\n"
+    "#if !defined(_AFXDLL)\r\n"
+    "#include ""afxribbon.rc""              // MFC ribbon and control bar resources\r\n"
+    "#endif\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "res\\Envision.ico"
+
+IDR_EnvisionTYPE        ICON                    "res\\EnvisionDoc.ico"
+
+IDI_OUTPUT_WND          ICON                    "res\\output_wnd.ico"
+
+IDI_OUTPUT_WND_HC       ICON                    "res\\output_wnd_hc.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Bitmap
+//
+
+IDR_MAINFRAME           BITMAP                  "res\\Toolbar.bmp"
+
+IDR_MAINFRAME_256       BITMAP                  "res\\Toolbar256.bmp"
+
+IDB_MAIN                BITMAP                  "res\\main.bmp"
+
+IDB_FILELARGE           BITMAP                  "res\\filelarge.bmp"
+
+IDB_FILESMALL           BITMAP                  "res\\filesmall.bmp"
+
+IDB_WRITELARGE          BITMAP                  "res\\writelarge.bmp"
+
+IDB_WRITESMALL          BITMAP                  "res\\writesmall.bmp"
+
+IDB_BUTTONS             BITMAP                  "res\\buttons.bmp"
+
+IDB_SPLASH              BITMAP                  "res\\envision_splash.bmp"
+
+IDB_MAPLARGE            BITMAP                  "res\\maplarge.bmp"
+
+IDB_MAPSMALL            BITMAP                  "res\\mapmall.bmp"
+
+IDB_DATASMALL           BITMAP                  "res\\datasmall.bmp"
+
+IDB_DATALARGE           BITMAP                  "res\\datalarge.bmp"
+
+IDB_ANALYSIS_SMALL      BITMAP                  "res\\analysis_small.bmp"
+
+IDB_ANALYSIS_LARGE      BITMAP                  "res\\analysis_large.bmp"
+
+IDB_PAUSE               BITMAP                  "res\\pause.bmp"
+
+IDB_PLAY                BITMAP                  "res\\play.bmp"
+
+IDB_REWIND              BITMAP                  "res\\rewind.bmp"
+
+IDB_LIGHTBULB           BITMAP                  "res\\litebulb.bmp"
+
+IDB_RESULTS_LARGE       BITMAP                  "res\\resultsArrange.bmp"
+
+IDB_RESULTS_SMALL       BITMAP                  "res\\resultsArrangeSmall.bmp"
+
+IDB_RTVIEWS_LARGE       BITMAP                  "res\\rtviews_large.bmp"
+
+IDB_RTVIEWS_SMALL       BITMAP                  "res\\rtviews_small.bmp"
+
+IDB_FIELDINFOEDITOR     BITMAP                  "res\\fieldInfoDlg.bmp"
+
+IDB_SPLASH7             BITMAP                  "res\\envision7a.bmp"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Toolbar
+//
+
+IDR_MAINFRAME TOOLBAR 16, 16
+BEGIN
+    BUTTON      ID_FILE_NEW
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_SAVE
+    SEPARATOR
+    BUTTON      ID_EDIT_CUT
+    BUTTON      ID_EDIT_COPY
+    BUTTON      ID_EDIT_PASTE
+    SEPARATOR
+    BUTTON      ID_FILE_PRINT
+    BUTTON      ID_APP_ABOUT
+END
+
+IDR_MAINFRAME_256 TOOLBAR 16, 16
+BEGIN
+    BUTTON      ID_FILE_NEW
+    BUTTON      ID_FILE_OPEN
+    BUTTON      ID_FILE_SAVE
+    SEPARATOR
+    BUTTON      ID_EDIT_CUT
+    BUTTON      ID_EDIT_COPY
+    BUTTON      ID_EDIT_PASTE
+    SEPARATOR
+    BUTTON      ID_FILE_PRINT
+    BUTTON      ID_APP_ABOUT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Menu
+//
+
+IDR_MAINFRAME MENU
+BEGIN
+    POPUP "&File"
+    BEGIN
+        MENUITEM "&New\tCtrl+N",                ID_FILE_NEW
+        MENUITEM "&Open...\tCtrl+O",            ID_FILE_OPEN
+        MENUITEM "&Save\tCtrl+S",               ID_FILE_SAVE
+        MENUITEM "Save &As...",                 ID_FILE_SAVE_AS
+        MENUITEM SEPARATOR
+        MENUITEM "&Print...\tCtrl+P",           ID_FILE_PRINT
+        MENUITEM "Print Pre&view",              ID_FILE_PRINT_PREVIEW
+        MENUITEM "P&rint Setup...",             ID_FILE_PRINT_SETUP
+        MENUITEM SEPARATOR
+        MENUITEM "Recent File",                 ID_FILE_MRU_FILE1, GRAYED
+        MENUITEM SEPARATOR
+        MENUITEM "E&xit",                       ID_APP_EXIT
+    END
+    POPUP "&Edit"
+    BEGIN
+        MENUITEM "&Undo\tCtrl+Z",               ID_EDIT_UNDO
+        MENUITEM SEPARATOR
+        MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
+    END
+    POPUP "&View"
+    BEGIN
+        MENUITEM "&Status Bar",                 ID_VIEW_STATUS_BAR
+        POPUP "&Application Look"
+        BEGIN
+            MENUITEM "Windows &2000",               ID_VIEW_APPLOOK_WIN_2000
+            MENUITEM "Office &XP",                  ID_VIEW_APPLOOK_OFF_XP
+            MENUITEM "&Windows XP",                 ID_VIEW_APPLOOK_WIN_XP
+            MENUITEM "Office 200&3",                ID_VIEW_APPLOOK_OFF_2003
+            MENUITEM "Visual Studio.NET 200&5",     ID_VIEW_APPLOOK_VS_2005
+            POPUP "Office 200&7"
+            BEGIN
+                MENUITEM "&Blue Style",                 ID_VIEW_APPLOOK_OFF_2007_BLUE
+                MENUITEM "B&lack Style",                ID_VIEW_APPLOOK_OFF_2007_BLACK
+                MENUITEM "&Silver Style",               ID_VIEW_APPLOOK_OFF_2007_SILVER
+                MENUITEM "&Aqua Style",                 ID_VIEW_APPLOOK_OFF_2007_AQUA
+            END
+        END
+    END
+    POPUP "&Help"
+    BEGIN
+        MENUITEM "&About Envision...",          ID_APP_ABOUT
+        MENUITEM SEPARATOR
+        MENUITEM "&Update Envision to Latest Version", ID_HELP_UPDATEENVISION
+    END
+END
+
+IDR_POPUP_EDIT MENU
+BEGIN
+    POPUP "Edit"
+    BEGIN
+        MENUITEM "Cu&t\tCtrl+X",                ID_EDIT_CUT
+        MENUITEM "&Copy\tCtrl+C",               ID_EDIT_COPY
+        MENUITEM "&Paste\tCtrl+V",              ID_EDIT_PASTE
+    END
+END
+
+IDR_WINDOWS_MENU MENU
+BEGIN
+    MENUITEM "&New Window",                 ID_WINDOW_NEW
+END
+
+IDR_THEME_MENU MENU
+BEGIN
+    MENUITEM "Office 2007 (&Blue Style)",   ID_VIEW_APPLOOK_OFF_2007_BLUE
+    MENUITEM "Office 2007 (B&lack Style)",  ID_VIEW_APPLOOK_OFF_2007_BLACK
+    MENUITEM "Office 2007 (&Silver Style)", ID_VIEW_APPLOOK_OFF_2007_SILVER
+    MENUITEM "Office 2007 (&Aqua Style)",   ID_VIEW_APPLOOK_OFF_2007_AQUA
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Accelerator
+//
+
+IDR_MAINFRAME ACCELERATORS
+BEGIN
+    "N",            ID_FILE_NEW,            VIRTKEY, CONTROL
+    "O",            ID_FILE_OPEN,           VIRTKEY, CONTROL
+    "S",            ID_FILE_SAVE,           VIRTKEY, CONTROL
+    "P",            ID_FILE_PRINT,          VIRTKEY, CONTROL
+    "Z",            ID_EDIT_UNDO,           VIRTKEY, CONTROL
+    "X",            ID_EDIT_CUT,            VIRTKEY, CONTROL
+    "C",            ID_EDIT_COPY,           VIRTKEY, CONTROL
+    "V",            ID_EDIT_PASTE,          VIRTKEY, CONTROL
+    VK_BACK,        ID_EDIT_UNDO,           VIRTKEY, ALT
+    VK_DELETE,      ID_EDIT_CUT,            VIRTKEY, SHIFT
+    VK_INSERT,      ID_EDIT_COPY,           VIRTKEY, CONTROL
+    VK_INSERT,      ID_EDIT_PASTE,          VIRTKEY, SHIFT
+    VK_F6,          ID_NEXT_PANE,           VIRTKEY 
+    VK_F6,          ID_PREV_PANE,           VIRTKEY, SHIFT
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_ABOUTBOX DIALOGEX 0, 0, 218, 118
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "About ENVISION"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    ICON            IDR_MAINFRAME,IDC_STATIC,11,17,20,20
+    LTEXT           "ENVISION Version 6.0",IDC_STATIC,40,10,119,8,SS_NOPREFIX
+    LTEXT           "Copyright (C) 2009-2014",IDC_STATIC,40,25,119,8
+    DEFPUSHBUTTON   "OK",IDOK,178,7,32,14,WS_GROUP
+    EDITTEXT        IDC_EDITABOUT,21,73,166,16,ES_AUTOHSCROLL
+END
+
+IDD_CLASSIFYLAYER DIALOGEX 0, 0, 249, 291
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Classify Layer"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "General",IDC_STATIC,7,7,180,153
+    RTEXT           "Color Ramp:",IDC_STATIC,27,28,39,8
+    COMBOBOX        IDC_COLORRAMP,67,27,108,98,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Classify on:",IDC_STATIC,9,46,55,8
+    COMBOBOX        IDC_DATAFIELD,67,45,109,121,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Number of Bins:",IDC_STATIC,15,84,51,8
+    EDITTEXT        IDC_BINCOUNT,66,81,24,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Spin1",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,89,81,10,14
+    CONTROL         "Use Unique Values",IDC_UNIQUEVALUES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,107,82,76,10
+    PUSHBUTTON      "Generate Bins based on information above",IDC_GENERATEBINS,16,138,167,14
+    GROUPBOX        "Bin Details...",IDC_STATIC,7,172,235,115
+    CONTROL         "List1",IDC_BINLIST,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_EDITLABELS | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,15,187,221,96
+    DEFPUSHBUTTON   "OK",IDOK,192,11,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,192,28,50,14
+    RTEXT           "Field Type:",IDC_STATIC,68,60,35,8
+    LTEXT           "unknown",IDC_FIELDTYPE,107,60,68,8
+    CONTROL         "Specify Minimum Value:",IDC_SPECMINVAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,103,91,10
+    EDITTEXT        IDC_MIN,112,101,47,14,ES_AUTOHSCROLL
+    CONTROL         "Specify Maximum Value:",IDC_SPECMAXVAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,118,93,10
+    EDITTEXT        IDC_MAX,111,117,47,14,ES_AUTOHSCROLL
+END
+
+IDD_SAVECOLS DIALOGEX 0, 0, 251, 202
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Save Database Columns"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,194,23,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,194,40,50,14
+    LTEXT           "Select the database table column(s) you want to save:",IDC_STATIC,7,9,161,8
+    LISTBOX         IDC_COLSTOSAVE,7,21,180,130,LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Table:",IDC_STATIC,7,180,21,8
+    EDITTEXT        IDC_TABLE,29,179,158,14,ES_AUTOHSCROLL
+    LTEXT           "DB:",IDC_STATIC,15,162,12,8
+    EDITTEXT        IDC_DATABASE,29,161,158,14,ES_AUTOHSCROLL
+END
+
+IDD_RUN DIALOGEX 0, 0, 263, 191
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION | WS_TABSTOP
+CAPTION "Basic Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "iterations",IDC_ITERATIONSLABEL,128,15,45,12
+    EDITTEXT        IDC_ITERATIONS,88,13,28,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,114,13,11,14
+    CONTROL         "&Update Display Views during model run",IDC_DYNAMICUPDATEVIEWS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,49,139,10
+    LTEXT           "For &Multiple runs, run",IDC_STATIC,12,15,72,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,7,38,245,1
+    CONTROL         "Reset Random Numbers after each run (provides repeatability)",IDC_USEINITIALSEED,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,81,224,10
+    CONTROL         "&Update Main IDU Map during model run",IDC_DYNAMICUPDATEMAP,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,65,141,10
+    CONTROL         "Export IDU coverage during run",IDC_EXPORTMAP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,96,118,10
+    LTEXT           "Output Interval:",IDC_LABELINTERVAL,147,97,54,8
+    EDITTEXT        IDC_INTERVAL,202,95,28,14,ES_AUTOHSCROLL | ES_NUMBER,WS_EX_LEFTSCROLLBAR
+    CONTROL         "",IDC_SPININTERVAL,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,228,94,10,14
+    LTEXT           "yrs",IDC_LABELYRS,242,98,11,8
+    CONTROL         "Export Model Outputs CSV at the end of each run",IDC_EXPORTOUTPUT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,150,175,10
+    CONTROL         "Include Bitmaps for the following fields:",IDC_EXPORTBMPS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,114,141,10
+    EDITTEXT        IDC_FIELDLIST,164,112,87,14,ES_AUTOHSCROLL
+    LTEXT           "Pixel Size:",IDC_PIXELSIZE_LABEL,128,131,33,8
+    EDITTEXT        IDC_PIXELSIZE,165,129,40,14,ES_AUTOHSCROLL
+    LTEXT           "map units       ",IDC_MAPUNITS_LABEL,211,131,46,8
+END
+
+IDD_POLICYRESULTS DIALOGEX 0, 0, 518, 296
+STYLE DS_SETFONT | WS_CHILD | WS_CAPTION
+CAPTION "Policy Results "
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "<< &Previous Cell",IDC_PREVCELL,143,278,64,14
+    PUSHBUTTON      "&Next Cell >>",IDC_NEXTCELL,213,278,64,14
+    PUSHBUTTON      "&Flash Current Cell",IDC_FLASHCELL,283,278,64,14
+    CONTROL         "",IDC_RESULTS,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOSORTHEADER | WS_TABSTOP,4,8,507,266,WS_EX_CLIENTEDGE
+END
+
+IDD_RUNSETUP DIALOGEX 0, 0, 250, 179
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Model Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_MODELS,9,24,234,64,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Check all Evaluative Models that you want to include in this run...",IDC_STATIC,10,12,230,8
+    LISTBOX         IDC_APS,8,110,234,64,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Check all Autonomous Processes that you want to include in this run...",IDC_STATIC,8,99,234,8
+END
+
+IDD_DIALOGBAR DIALOGEX 0, 0, 16, 264
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Slider1",IDC_THRESHOLD,"msctls_trackbar32",TBS_VERT | TBS_BOTH | TBS_NOTICKS | WS_TABSTOP,3,5,12,237
+    CTEXT           "Static",IDC_THRESHOLDVALUE,2,242,13,11,SS_SUNKEN
+END
+
+IDD_VIEW3D DIALOGEX 0, 0, 301, 155
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "3D Viewing Parameters"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,243,11,50,14
+    PUSHBUTTON      "Close",IDCANCEL,243,28,50,14
+    GROUPBOX        "Eye Position...",IDC_STATIC,7,9,113,66
+    RTEXT           "&X:",IDC_STATIC,18,26,11,8
+    EDITTEXT        IDC_XEYE,31,24,78,14,ES_AUTOHSCROLL
+    RTEXT           "&Y:",IDC_STATIC,18,41,11,8
+    EDITTEXT        IDC_YEYE,31,40,78,14,ES_AUTOHSCROLL
+    RTEXT           "&Z:",IDC_STATIC,18,57,11,8
+    EDITTEXT        IDC_ZEYE,31,56,78,14,ES_AUTOHSCROLL
+    RTEXT           "X:",IDC_STATIC,127,25,22,8
+    EDITTEXT        IDC_XCENTER,154,23,73,14,ES_AUTOHSCROLL
+    RTEXT           "Y:",IDC_STATIC,127,42,22,8
+    EDITTEXT        IDC_YCENTER,154,39,73,14,ES_AUTOHSCROLL
+    RTEXT           "Z:",IDC_STATIC,127,58,22,8
+    EDITTEXT        IDC_ZCENTER,154,56,73,14,ES_AUTOHSCROLL
+    GROUPBOX        "View Center...",IDC_STATIC,124,9,114,66
+    RTEXT           "X:",IDC_STATIC,10,99,22,8
+    EDITTEXT        IDC_XUP,37,97,73,14,ES_AUTOHSCROLL
+    RTEXT           "Y:",IDC_STATIC,10,116,22,8
+    EDITTEXT        IDC_YUP,37,113,73,14,ES_AUTOHSCROLL
+    RTEXT           "Z:",IDC_STATIC,10,132,22,8
+    EDITTEXT        IDC_ZUP,37,130,73,14,ES_AUTOHSCROLL
+    GROUPBOX        "Up Vector...",IDC_STATIC,7,81,113,67
+    RTEXT           "&Field of View:",IDC_STATIC,128,97,47,8
+    EDITTEXT        IDC_FOV,176,96,22,14,ES_AUTOHSCROLL
+    GROUPBOX        "Other Parameters...",IDC_STATIC,124,81,115,67
+    LTEXT           "degrees",IDC_STATIC,203,97,27,8
+    CONTROL         "Draw in &3D",IDC_3D,"Button",BS_AUTORADIOBUTTON | WS_GROUP,136,119,48,10
+    CONTROL         "Draw in &2D",IDC_2D,"Button",BS_AUTORADIOBUTTON,136,132,48,10
+    PUSHBUTTON      "&Apply",IDC_APPLY,244,86,50,14
+    PUSHBUTTON      "&Defaults",IDC_DEFAULTS,244,103,50,14
+END
+
+IDD_SELECTACTOR DIALOGEX 0, 0, 137, 95
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select Actor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,13,25,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,73,25,50,14
+    COMBOBOX        IDC_ACTORS,5,8,123,85,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_ACTOR DIALOGEX 0, 0, 383, 299
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Actor Specification"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Actor Type",IDC_STATIC,11,9,296,87
+    CONTROL         "&No Actors (disables Actor decision-making)",IDC_NOACTORS,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,21,25,150,10
+    CONTROL         "Base Actors on &Weights defined in the IDU coverage",IDC_IDU_WTS,
+                    "Button",BS_AUTORADIOBUTTON,21,39,183,10
+    CONTROL         "Base Actors on Actor &Group ID stored in the ACTOR field in the IDU coverage",IDC_IDU_GROUPS,
+                    "Button",BS_AUTORADIOBUTTON,21,53,270,10
+    CONTROL         "Base Actors on Actor Groups defined by a spatial &query to the IDU coverage",IDC_FROMQUERY,
+                    "Button",BS_AUTORADIOBUTTON,21,67,264,10
+    CONTROL         "Use a single &uniform Actor based on the Actor group defined below.",IDC_UNIFORM,
+                    "Button",BS_AUTORADIOBUTTON,21,81,228,10
+    RTEXT           "Actor Groups:",IDC_LABELACTORS,14,107,50,8
+    COMBOBOX        IDC_ACTORS,67,105,244,110,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&<<",IDC_PREV,314,105,16,13
+    PUSHBUTTON      "&>>",IDC_NEXT,332,105,17,13
+    PUSHBUTTON      "&Add New",IDC_ADD,153,120,50,14
+    PUSHBUTTON      "&Copy",IDC_COPY,208,120,50,14
+    PUSHBUTTON      "&Delete",IDC_DELETE,261,120,50,14
+    GROUPBOX        "Basic Properties...",IDC_LABELBASIC,14,138,361,69
+    RTEXT           "Name: ",IDC_LABELNAME,18,156,53,8
+    EDITTEXT        IDC_NAME,74,153,236,14,ES_AUTOHSCROLL
+    RTEXT           "Query String: ",IDC_LABELQUERY,17,174,53,8
+    EDITTEXT        IDC_QUERY,73,171,237,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Define Query...",IDC_DEFINEQUERY,313,171,62,14
+    RTEXT           "Group ID: ",IDC_LABELID,25,191,47,8
+    EDITTEXT        IDC_ID,75,188,28,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,103,188,10,14
+    RTEXT           "Decision Frequency (years):",IDC_LABELFREQ,116,191,105,8
+    EDITTEXT        IDC_FREQ,226,188,23,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,248,188,10,14
+    GROUPBOX        "Objectives...",IDC_LABELOBJECTIVES,14,218,361,75
+    LISTBOX         IDC_OBJECTIVES,25,233,110,53,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Objective &Weight",IDC_LABELSLIDER,146,237,83,8
+    LTEXT           "-3",IDC_STATIC,145,252,8,8
+    LTEXT           "0",IDC_STATIC,250,251,8,8
+    LTEXT           "3",IDC_STATIC,357,250,8,8
+    CONTROL         "Slider1",IDC_WTSLIDER,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,140,263,225,24,WS_EX_STATICEDGE
+    DEFPUSHBUTTON   "OK",IDOK,313,12,62,14
+    PUSHBUTTON      "Cancel",IDCANCEL,313,28,62,14
+    PUSHBUTTON      "&Apply",IDC_APPLY,313,83,62,14
+    PUSHBUTTON      "Export as &XML...",IDC_EXPORT,313,44,62,14
+END
+
+IDD_POLICYBASIC DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "",IDC_STATIC,7,8,381,284
+    CONTROL         "This effect of this policy persists for a period after application",IDC_PERSISTCHECK,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,12,22,210,10
+    LTEXT           "Minimum (yrs):",IDC_MINLABEL,31,37,48,8
+    EDITTEXT        IDC_PERSISTENCEMIN,80,35,32,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Maximum (yrs):",IDC_MAXLABEL,119,38,50,8
+    EDITTEXT        IDC_PERSISTENCEMAX,171,35,32,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "This policy is a &scheduled policy (must specify a start date)",IDC_ISSCHEDULED,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,61,205,11
+    CONTROL         "This policy &excludes other policies from being applied at the same site",IDC_EXCLUSIVE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,82,234,11
+    CONTROL         "This policy is &mandatory",IDC_MANDATORY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,252,22,93,11
+    CONTROL         "Use Start Date:",IDC_USESTARTDATE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,252,60,63,10
+    CONTROL         "Use End Date:",IDC_USEENDDATE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,252,82,64,10
+    EDITTEXT        IDC_STARTDATE,319,59,44,12,ES_AUTOHSCROLL | ES_NUMBER
+    EDITTEXT        IDC_ENDDATE,319,81,44,12,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "Co&lor: ",IDC_STATIC,268,100,22,8
+    CONTROL         "",IDC_COLOR,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,292,99,18,11
+    PUSHBUTTON      "&Set Color",IDC_SETCOLOR,313,98,49,13
+    LTEXT           "Access Control:",IDC_STATIC,14,122,51,8
+    CONTROL         "Share this policy with other users",IDC_ISSHARED,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,82,122,122,10
+    CONTROL         "Allow other users to modify this policy",IDC_ISEDITABLE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,223,122,137,10
+    LTEXT           "Na&rrative",IDC_STATIC,13,145,31,8
+    EDITTEXT        IDC_NARRATIVE,13,157,366,123,ES_MULTILINE | ES_WANTRETURN | WS_VSCROLL
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,11,138,374,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,10,116,376,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,5,5,383,1
+    LTEXT           "Percent Compliance:",IDC_STATIC,266,38,66,8
+    EDITTEXT        IDC_COMPLIANCE,335,36,28,14,ES_AUTOHSCROLL
+    LTEXT           "%",IDC_STATIC,367,38,8,8
+END
+
+IDD_POLICYSCORES DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "",IDC_STATIC,5,6,375,282
+    CTEXT           "Goal",IDC_LABEL,15,13,107,8
+    CTEXT           "Effectiveness",IDC_GLOBALEFF,138,13,214,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,12,25,347,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDVERT,132,32,1,206
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDVERT,8,4,355,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,5,5,358,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,11,257,347,1
+    LTEXT           "Preferential Selection  (Map Expression, -3 to 3, blank for none):",IDC_STATIC,13,266,208,8
+    EDITTEXT        IDC_PREFERENCE,225,262,131,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Compute Effectiveness scores for this policy",IDC_COMPUTESCORES,149,239,210,14
+    CONTROL         "",IDC_SCOREFRAME,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,13,31,114,208
+END
+
+IDD_PPVEGDATA DIALOGEX 0, 0, 243, 77
+STYLE DS_SETFONT | WS_CHILD | WS_CAPTION | WS_SYSMENU
+CAPTION "LULC Data"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Select Column containing detailed land use classes",IDC_STATIC,7,37,154,8
+    COMBOBOX        IDC_COLUMNS,167,35,69,97,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Populate LULC Fields",IDC_POPLULC,144,56,92,14
+    LTEXT           "This page populates the land use fields based on a column in the cell databases containing detiled land use information.  ",IDC_STATIC,7,7,204,23
+END
+
+IDD_RUNDATA DIALOGEX 0, 0, 262, 74
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Data to Collect"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Model Options...",-1,7,7,248,58
+    CONTROL         "Collect Landscape Goal Evaluation Score Trajectories",IDC_COLLECTLANDSCAPESCOREDATA,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,24,186,10
+    CONTROL         "Collect Actor Objective Weight Trends",IDC_COLLECTACTORDATA,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,24,47,211,10
+    CONTROL         "",-1,"Static",SS_ETCHEDHORZ,20,40,227,1
+END
+
+IDD_LULCINFO DIALOGEX 0, 0, 178, 342
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "LULC Info"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "LULC A",IDC_STATIC,9,7,24,8
+    LTEXT           "LULC C",IDC_STATIC,88,7,24,8
+    LTEXT           "LULC B",IDC_STATIC,49,7,23,8
+    EDITTEXT        IDC_LULCA,7,21,30,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LULCB,46,21,30,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_LULCC,85,21,30,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_LULCTREECTRL,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_TABSTOP,7,43,154,84,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "Expand",IDC_EXPAND,124,21,40,14
+END
+
+IDD_RUNPOLICIES DIALOGEX 0, 0, 262, 209
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_CAPTION
+CAPTION "Policies"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_POLICIES,7,23,248,133,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Check all policies that you want to include in this run...",IDC_STATIC,10,12,221,8
+    PUSHBUTTON      "Select &All",IDC_SELECTALL,12,161,114,14
+    PUSHBUTTON      "Select &None",IDC_SELECTNONE,136,161,114,14
+    CONTROL         "Show &My Policies",IDC_SHOWMYPOLICIES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,180,71,10
+    CONTROL         "Show &Shared Policies",IDC_SHOWSHAREDPOLICIES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,11,193,85,10
+END
+
+IDD_RUNACTORS DIALOGEX 0, 0, 262, 171
+STYLE DS_SETFONT | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Actors"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Setup Options...",IDC_STATIC,7,7,248,139
+    CONTROL         "Use &Current Actors",IDC_CURRENT,"Button",BS_AUTORADIOBUTTON | WS_GROUP,15,23,75,10
+    CONTROL         "&Uniform Values",IDC_UNIFORM,"Button",BS_AUTORADIOBUTTON,15,58,66,10
+    CONTROL         "&Random Values",IDC_RANDOM,"Button",BS_AUTORADIOBUTTON,15,88,66,10
+    LTEXT           "ENVISION will use whatever actors are currently defined",IDC_STATIC,97,23,144,18
+    LTEXT           "Specify this option to generate a population of Actors that all have the same initial value weights.",IDC_STATIC,98,51,153,25
+    LTEXT           "Specify this option to generate a population of Actors that have random initial value weights",IDC_STATIC,98,85,143,27
+    RTEXT           "Number of Actors to Generate:",IDC_STATIC,15,126,97,8
+    EDITTEXT        IDC_COUNT,116,124,42,14,ES_AUTOHSCROLL | ES_NUMBER
+    PUSHBUTTON      "Generate Actors",IDC_GENERATE,165,123,78,14
+    PUSHBUTTON      "&View Current Actors...",IDC_VIEWCURRENT,77,150,101,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,15,46,226,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,15,116,226,1
+END
+
+IDD_RUNMETAGOALS DIALOGEX 0, 0, 262, 219
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "MetaGoals"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    SCROLLBAR       IDC_SCROLLBAR,247,32,10,91,SBS_VERT
+    LTEXT           "Select the weight of each metagoal below.  A ""high"" value indicates a preference for this goal; a ""low"" value deemphasizes this goal.",IDC_STATIC,6,7,243,19
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,4,26,253,1
+    RTEXT           "Self Interest",IDC_STATIC,34,178,49,8
+    RTEXT           "Altruism",IDC_STATIC,50,160,32,8
+    GROUPBOX        "How should actors weight their decisions?",IDC_STATIC,7,143,251,73
+    CONTROL         "",IDC_SLIDERSELF,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,84,171,159,21
+    PUSHBUTTON      "&Balance Goals",IDC_BALANCE,204,125,54,14
+    LTEXT           "Static",IDC_LABEL,6,35,19,8
+    CONTROL         "",IDC_SLIDERALTRUISM,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,84,152,159,21
+    RTEXT           "Policy Preference",IDC_STATIC,15,198,67,8
+    CONTROL         "",IDC_SLIDERPOLICYPREF,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,83,190,159,21
+END
+
+IDD_EXPORTDATADIALOG DIALOGEX 0, 0, 191, 146
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Export Data"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,134,7,50,14
+    LISTBOX         IDC_DATALIST,7,19,115,81,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select Data to Export:",IDC_STATIC,7,7,72,8
+    LTEXT           "Select Delimiter:",IDC_STATIC,7,106,52,8
+    COMBOBOX        IDC_DELIMITERCOMBO,34,116,61,53,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Export",IDC_EXPORTBUTTON,134,29,50,14
+END
+
+IDD_RUNMODELS DIALOGEX 0, 0, 262, 187
+STYLE DS_SETFONT | WS_CHILD | WS_CAPTION
+CAPTION "Models"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_MODELS,7,23,248,133,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Check all Evaluative Models that you want to include in this run...",IDC_STATIC,10,12,206,8
+    PUSHBUTTON      "Select &All",IDC_SELECTALL,12,161,114,14
+    PUSHBUTTON      "Select &None",IDC_SELECTNONE,136,161,114,14
+END
+
+IDD_POLICYACTORS DIALOGEX 0, 0, 315, 185
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION " Actors"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Select which Actors can use which policies",-1,10,7,292,8
+    LTEXT           "Static",IDC_STATICBOX,11,23,296,154,NOT WS_VISIBLE
+END
+
+IDD_PPCLIENTSESSION DIALOGEX 0, 0, 364, 318
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_CAPTION
+CAPTION "Client Mode"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Connection... ",IDC_STATIC,7,7,347,75
+    PUSHBUTTON      "&Disconnect From Host",IDC_DISCONNECT,256,42,88,14
+    PUSHBUTTON      "&Ping Server",IDC_PINGSERVER,255,60,90,14
+    GROUPBOX        "Messages...",IDC_STATIC,7,91,349,220
+    EDITTEXT        IDC_MESSAGES,15,107,332,94,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
+    PUSHBUTTON      "&Connect to Host",IDC_CONNECT,256,24,88,14
+    LTEXT           "Port:",IDC_STATIC,58,65,17,8
+    EDITTEXT        IDC_PORT,78,61,66,14,ES_AUTOHSCROLL
+    RTEXT           "&Name: ",IDC_STATIC,20,26,24,8
+    EDITTEXT        IDC_NAME,48,24,96,14,ES_AUTOHSCROLL
+    RTEXT           "&Host IP: ",IDC_STATIC,16,44,29,8
+    EDITTEXT        IDC_HOSTIP,48,43,96,14,ES_AUTOHSCROLL
+    RTEXT           "&Message: ",IDC_STATIC,20,214,34,8
+    EDITTEXT        IDC_MESSAGE,54,212,242,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Send",IDC_SEND,302,213,46,14
+END
+
+IDD_PPHOSTSESSION DIALOGEX 0, 0, 364, 318
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_CAPTION
+CAPTION "Host Mode"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Connected Users... ",IDC_STATIC,7,7,246,155
+    LISTBOX         IDC_USERS,15,23,127,132,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Disconnect User",IDC_DISCONNECT,156,103,88,14
+    PUSHBUTTON      "Disconnect &All Users",IDC_DISCONNECTALL,156,122,88,14
+    PUSHBUTTON      "&Ping All Users",IDC_PINGALL,156,141,88,14
+    GROUPBOX        "Messages...",IDC_STATIC,7,170,350,141
+    EDITTEXT        IDC_MESSAGES,15,183,332,120,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
+    PUSHBUTTON      "&Start Server",IDC_STARTSESSION,156,24,88,14
+    LTEXT           "Port:",IDC_STATIC,157,46,17,8
+    EDITTEXT        IDC_PORT,177,42,66,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Sto&p Server",IDC_STOPSESSION,156,60,88,14
+END
+
+IDD_DELTAVIEWEREX DIALOGEX 0, 0, 537, 343
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Delta List Viewer"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Run",IDC_STATIC,8,8,14,8
+    CONTROL         "",IDC_TREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_TRACKSELECT | WS_BORDER | WS_HSCROLL | WS_TABSTOP,6,22,100,107
+    LISTBOX         IDC_FIELDS,6,132,100,116,LBS_SORT | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Selected IDUs Only",IDC_SELIDUONLY,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,7,272,98,15
+    PUSHBUTTON      "Change Selection",IDC_SELECTIDUBTN,5,288,99,16
+    PUSHBUTTON      "Summary Report",IDC_SUMMARY,5,306,99,16
+    CONTROL         "",IDC_LISTVIEW,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_OWNERDATA | WS_BORDER | WS_TABSTOP,110,0,426,343,WS_EX_CLIENTEDGE
+    DEFPUSHBUTTON   "Close",IDOK,5,324,99,16
+    COMBOBOX        IDC_RUN,23,6,81,103,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Select All",IDC_SELECTALLFIELDS,6,251,45,14
+    PUSHBUTTON      "Select None",IDC_UNSELECTALLFIELDS,58,251,45,14
+    CONTROL         "",IDC_BAR,"Static",SS_ETCHEDHORZ,6,269,99,1
+END
+
+IDD_DISTANCEDLG DIALOGEX 0, 0, 503, 235
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Populate Distances"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Calculate distance from every point or the edge of polygons in the target (typically IDU) layer",IDC_STATIC,7,9,225,17
+    COMBOBOX        IDC_PDD_TARGETLAYER,22,31,216,63,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "using the points/polyons in the target layer specified by the following query (leave blank for ALL)",IDC_QUERYLABEL2,22,49,212,21
+    EDITTEXT        IDC_QUERYTARGET,22,71,215,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,92,229,1
+    LTEXT           "to points, lines, or polygon edges in (source) layer",IDC_STATIC,7,99,162,8
+    COMBOBOX        IDC_PDD_SOURCELAYER,22,111,166,53,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Browse...",IDC_BROWSE,190,110,48,14
+    LTEXT           "using the points/lines/polygons in the source layer specified by the following query (leave blank for ALL)",IDC_QUERYLABEL,22,128,203,21
+    EDITTEXT        IDC_QUERYSOURCE,22,148,216,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,173,229,1
+    LTEXT           "and populate the following field in the target layer with the resulting data.",IDC_STATIC,7,183,238,8
+    COMBOBOX        IDC_PDD_TARGETFIELD,24,193,153,134,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Calculate",IDC_PDD_CALCULATE,387,215,50,14
+    PUSHBUTTON      "E&xit",IDC_PDD_EXIT,444,215,50,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,210,487,1
+    GROUPBOX        "Options",IDC_STATIC,260,8,234,190
+    CONTROL         "Populate the following target layer field with the INDEX of the nearest source layer point/polygon/line",IDC_POPULATENEARESTINDEX,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,271,22,215,19
+    COMBOBOX        IDC_PDD_INDEXFIELD,289,43,153,134,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Instead of Distances, populate target field with the number of polygons that are within a specified threshold distance of the source layer polygons.",IDC_POPULATECOUNT,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,270,147,219,31
+    LTEXT           "Threshold Distance:",IDC_STATIC,292,180,64,8
+    EDITTEXT        IDC_DISTANCE,360,178,40,14,ES_AUTOHSCROLL | WS_DISABLED
+    LTEXT           "",IDC_STATUSTEXT,7,217,110,8
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,125,215,150,14
+    CONTROL         "Populate the following target layer with the VALUE of the nearest source layer point/polygon/line",IDC_POPULATENEARESTVALUE,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,271,70,215,19
+    COMBOBOX        IDC_PDD_VALUEFIELD,289,92,153,134,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Use the following source layer field for the value to use:",IDC_STATIC,289,114,180,8
+    COMBOBOX        IDC_PDD_SOURCEVALUEFIELD,316,125,153,134,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_POLICYAPPPLOT DIALOGEX 0, 0, 327, 250
+STYLE DS_SETFONT | WS_CHILD | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME | WS_GROUP | WS_TABSTOP
+CAPTION "Policy Applications"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    COMBOBOX        IDC_PA_EFFECTIVENESS,88,7,97,137,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_PA_TOLERANCE,298,7,25,80,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_PA_PLOTFRAME,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,0,23,327,226
+    LTEXT           "Show Policies relevent to:",IDC_PA_STATIC1,1,9,84,8
+    LTEXT           "Include Policy if effectiveness >=",IDC_PA_STATIC2,190,9,104,8
+END
+
+IDD_NEWPOLICY DIALOGEX 0, 0, 271, 97
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Policy Description"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Enter a name for this policy",IDC_STATIC,9,13,88,8
+    EDITTEXT        IDC_DESCRIPTION,7,24,257,12,ES_AUTOHSCROLL
+    CONTROL         "This policy will be used by &Actors",IDC_ACTORPOLICY,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,7,43,120,10
+    CONTROL         "This policy will apply globally at a &scheduled time",IDC_SCHEDULEDPOLICY,
+                    "Button",BS_AUTORADIOBUTTON,7,57,169,10
+    DEFPUSHBUTTON   "OK",IDOK,83,75,50,14,WS_GROUP
+    PUSHBUTTON      "Cancel",IDCANCEL,143,75,50,14
+END
+
+IDD_SITEATTR DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Site Attribute &Query",IDC_STATIC,13,14,66,8
+    EDITTEXT        IDC_QUERY,11,24,372,76,ES_MULTILINE | ES_AUTOVSCROLL | WS_VSCROLL
+    LTEXT           "Syntax: <Field1> <op> <Value1> {and|or} <Field2> <op> <Value2>...  Precedence can be enforced by including Field/Value pairs in parentheses.  Inline comments are enclosed in braces { }",IDC_STATIC,13,106,268,27
+    LTEXT           "Example: (Lulc_A = 3 {Agriculture} or Lulc_A = 4 {Forest}) and Area > 1000 {meters}",IDC_STATIC,13,153,342,12
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,13,165,365,1
+    LTEXT           "&Field",IDC_STATIC,13,190,16,8
+    COMBOBOX        IDC_FIELDS,12,199,102,112,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Operator",IDC_STATIC,121,190,30,8
+    COMBOBOX        IDC_OPERATORS,119,199,57,80,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Value",IDC_STATIC,181,190,18,8
+    COMBOBOX        IDC_VALUES,180,199,203,111,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "static",IDC_DESCRIPTION,11,220,279,67,SS_SUNKEN
+    PUSHBUTTON      "&Add",IDC_ADD,298,217,87,14
+    PUSHBUTTON      "A&nd",IDC_AND,298,232,38,14
+    PUSHBUTTON      "O&r",IDC_OR,347,232,38,14
+    PUSHBUTTON      "&Spatial Operators...",IDC_SPATIALOPS,298,247,87,14
+    PUSHBUTTON      "Update Map",IDC_UPDATE,298,272,87,14
+    GROUPBOX        "",IDC_STATIC,6,7,386,288
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,8,5,383,1
+    LTEXT           "Map Layer:",IDC_STATIC,15,173,37,8
+    COMBOBOX        IDC_LAYERS,53,172,123,80,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "<<< Optionally specify layer (default is IDU layer)",IDC_STATIC,183,174,172,11
+    PUSHBUTTON      "&Check Syntax",IDC_CHECK,313,105,71,14
+    LTEXT           "Applies to:",IDC_SITES,168,14,212,8
+END
+
+IDD_USER DIALOGEX 0, 0, 376, 318
+STYLE DS_SETFONT | WS_POPUP | WS_VISIBLE | WS_BORDER
+FONT 9, "Microsoft Sans Serif", 400, 0, 0x0
+BEGIN
+    LTEXT           "Your Name: ",IDC_STATIC,2,189,43,10
+    EDITTEXT        IDC_NAME,2,199,70,12,ES_AUTOHSCROLL
+    LTEXT           "Project File to Use: ",IDC_STATIC,75,189,64,10
+    COMBOBOX        IDC_FILE,75,199,258,98,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Browse Existing Projects...",IDC_OPEN,2,215,105,18
+    DEFPUSHBUTTON   "Open",IDOK,337,196,35,17
+    PUSHBUTTON      "Create New Project...",IDC_NEW,110,215,77,18
+    PUSHBUTTON      "Exit",IDCANCELBUTTON,337,216,35,18
+    CONTROL         IDB_SPLASH7,IDC_STATIC,"Static",SS_BITMAP,0,0,376,186
+    LTEXT           "This program is free software; you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation; either version 2 of the License, or (at your option) any later version.",IDC_STATIC,8,242,364,28
+    LTEXT           "This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.",IDC_STATIC,8,268,364,28
+    LTEXT           "Copyright 2012 - Oregon State University",IDC_STATIC,8,297,364,14
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME | SS_SUNKEN,4,237,367,1
+END
+
+IDD_SANDBOXDLG DIALOGEX 0, 0, 231, 198
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sandbox Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "&Apply",IDOK,174,7,50,16
+    PUSHBUTTON      "&Close",IDCANCEL,174,26,50,16
+    LTEXT           "&Years To Run:",IDC_STATIC,7,9,47,8
+    EDITTEXT        IDC_YEARSTORUNEDIT,74,7,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Percent &Coverage:",IDC_STATIC,7,29,63,8
+    EDITTEXT        IDC_PERCENTCOVERAGEEDIT,74,26,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "&Metagoals to Include",IDC_STATIC,7,45,67,8
+    LISTBOX         IDC_METAGOALS,7,55,217,136,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_ADDMAPVIEW DIALOGEX 0, 0, 238, 94
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select Map Layer to Add"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,66,73,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,123,73,50,14
+    LTEXT           "Available Layers...",IDC_STATIC,7,7,61,8
+    COMBOBOX        IDC_LAYERS,5,17,226,70,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_VIEWBAR DIALOGEX 0, 0, 815, 19
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Setup...",IDC_SETUP,262,3,41,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDVERT,350,3,1,14
+    PUSHBUTTON      "Delete",IDC_DELETE,398,3,41,14
+    PUSHBUTTON      "Add",IDC_ADD,354,3,41,14
+    PUSHBUTTON      "New Run",IDC_NEWRUN,306,3,41,14
+    PUSHBUTTON      "Maximize",IDC_MAXMIN,442,3,41,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDVERT,486,3,1,14
+    PUSHBUTTON      "Export",IDC_EXPORTDATA,489,3,41,14
+END
+
+IDD_VULNERABILITY DIALOGEX 0, 0, 365, 135
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Variant/Invariant Vulnerability Analysis Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,98,114,65,14
+    PUSHBUTTON      "Cancel",IDCANCEL,172,114,64,14
+    LTEXT           "Query to define initial (FROM) condition",IDC_STATIC,9,11,127,8
+    EDITTEXT        IDC_FROMQUERY,8,21,282,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Query Builder...",IDC_FROMQUERYBUILDER,293,21,65,14
+    LTEXT           "Query to define final (TO) condition",IDC_STATIC,9,41,114,8
+    EDITTEXT        IDC_TOQUERY,8,51,282,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Query Builder...",IDC_TOQUERYBUILDER,293,51,65,14
+    LTEXT           "Spatial Container for Analysis",IDC_STATIC,9,78,95,8
+    EDITTEXT        IDC_SPATIALCONTAINER,8,88,282,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Query Builder...",IDC_SPCONTQUERYBUILDER,293,88,65,14
+END
+
+IDD_FIELDCHOOSER DIALOGEX 0, 0, 91, 120
+STYLE DS_SETFONT | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_COLUMNLIST,4,3,81,113,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_MERGE DIALOGEX 0, 0, 389, 393
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Merge Databases"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Target Database to merge to (typically, this is the IDU coverage):",IDC_STATIC,7,7,212,8
+    COMBOBOX        IDC_LAYERS,7,16,358,63,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "External Database to Merge.  If specifying a spatial join, this must be a shape file.",IDC_STATIC,9,37,264,8
+    EDITTEXT        IDC_DATABASE,7,48,303,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...",IDC_BROWSE,314,48,50,14
+    LTEXT           "Fields to Merge",IDC_STATIC,7,68,50,8
+    LISTBOX         IDC_FIELDS,7,78,133,281,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "&Automatically overwrite existing columns with the same name",IDC_OVERWRITE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,155,342,213,10
+    CONTROL         "Merge by matching the following attributes (Attribute Join):",IDC_ATTR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,154,90,206,10
+    LTEXT           "Target Layer:",IDC_STATIC,173,106,45,8
+    COMBOBOX        IDC_TARGETFIELD,225,105,110,97,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Merge Layer:",IDC_STATIC,175,122,44,8
+    COMBOBOX        IDC_SOURCEFIELD,225,121,110,97,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Merge based on Centroid Proximity (Spatial Join)",IDC_SPATIAL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,155,164,171,10
+    LTEXT           "Threshold Distance: ",IDC_STATIC,177,180,66,8
+    EDITTEXT        IDC_THRESHOLD,245,177,40,14,ES_AUTOHSCROLL
+    CONTROL         "Populate Target Layer Column with Merge Layer data",IDC_POPTARGETLAYER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,155,220,187,10
+    CONTROL         "Populate External (Merge) Layer with Index of the Target layer",IDC_POPTARGETINDEX,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,155,271,219,10
+    CONTROL         "Populate Target Layer with index of External (Merge) layer",IDC_POPMERGEINDEX,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,155,307,205,10
+    DEFPUSHBUTTON   "&Merge",IDOK,278,367,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,330,367,50,14
+    LTEXT           "Merge Layer Column to Populate:",IDC_STATIC,175,287,108,8
+    COMBOBOX        IDC_MERGEINDEXFIELD,289,285,83,97,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Target Layer Column to Populate:",IDC_STATIC,179,323,109,8
+    COMBOBOX        IDC_TARGETINDEXFIELD,290,321,83,97,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Static",IDC_STATUS,7,369,174,8
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | WS_BORDER,187,367,87,14
+    GROUPBOX        "Attribute Join",IDC_STATIC,149,74,231,67
+    GROUPBOX        "Spatial Join",IDC_STATIC,147,146,233,51
+    GROUPBOX        "Specify Actions",IDC_STATIC,147,204,233,156
+    LTEXT           "Target Layer Column to Populate:",IDC_STATIC,175,237,109,8
+    COMBOBOX        IDC_TARGETFIELDTOPOPULATE,288,235,83,97,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add Field...",IDC_ADDFIELD,287,250,84,14
+END
+
+IDD_ADDDBCOL DIALOGEX 0, 0, 267, 97
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Add Database Column"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,210,58,50,14
+    RTEXT           "&Name of field to add:",IDC_STATIC,28,40,68,8
+    EDITTEXT        IDC_NAME,101,38,77,14,ES_AUTOHSCROLL
+    RTEXT           "Field &Type:",IDC_STATIC,60,59,36,8
+    COMBOBOX        IDC_TYPE,101,55,77,49,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Width:",IDC_STATIC,74,74,22,8
+    EDITTEXT        IDC_WIDTH,101,70,40,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Add",IDC_ADD,210,38,50,14
+    LTEXT           "Layer: ",IDC_STATIC,15,13,24,8
+    COMBOBOX        IDC_LAYERS,39,10,219,101,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_VARDIST DIALOGEX 0, 0, 342, 235
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Scenario Variable Distribution"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,7,198,55,14
+    PUSHBUTTON      "Cancel",IDCANCEL,7,214,55,14
+    LTEXT           "&Distribution Type",IDC_STATIC,10,9,55,8
+    COMBOBOX        IDC_COMBO1,7,19,56,92,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Location",IDC_LABELLOCATION,10,44,55,8
+    EDITTEXT        IDC_LOCATION,7,54,56,14,ES_AUTOHSCROLL
+    LTEXT           "Scale",IDC_LABELSCALE,9,75,54,8
+    EDITTEXT        IDC_SCALE,7,84,56,14,ES_AUTOHSCROLL
+    LTEXT           "Shape",IDC_LABELSHAPE,10,103,54,8
+    EDITTEXT        IDC_SHAPE,7,113,56,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Update",IDC_UPDATE,7,138,56,14
+    LTEXT           "Static",IDC_PLOTFRAME,68,7,267,222,WS_BORDER
+END
+
+IDD_AREA_WT DIALOGEX 0, 0, 173, 100
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Area-Weight IDU field"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Run",IDOK,29,79,50,14
+    PUSHBUTTON      "Exit",IDCANCEL,88,79,50,14
+    LTEXT           "Field to Weight",IDC_STATIC,7,15,58,10
+    COMBOBOX        IDC_FIELDTOWEIGHT,7,24,154,17,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Link Field (Identifies original source polygons)",IDC_STATIC,7,43,154,10
+    COMBOBOX        IDC_LINKFIELD,7,53,154,17,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_MULTISANDBOXDLG DIALOGEX 0, 0, 395, 217
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sandbox Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "&Apply",IDOK,338,7,50,16
+    PUSHBUTTON      "&Close",IDCANCEL,338,26,50,16
+    LTEXT           "&Years To Run:",IDC_STATIC,7,9,47,8
+    EDITTEXT        IDC_YEARSTORUNEDIT,74,7,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Percent &Coverage:",IDC_STATIC,7,29,63,8
+    EDITTEXT        IDC_PERCENTCOVERAGEEDIT,74,26,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LISTBOX         IDC_POLICIES,180,55,208,136,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Metagoals to Include",IDC_STATIC,7,45,67,8
+    LISTBOX         IDC_METAGOALS,7,55,162,136,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Policies to include",IDC_STATIC,182,45,67,8
+    PUSHBUTTON      "Select &All",IDC_SELECTALL,218,196,50,14
+    PUSHBUTTON      "Select &None",IDC_SELECTNONE,272,196,50,14
+END
+
+IDD_EVAL_MODEL_LEARN_DLG DIALOGEX 0, 0, 544, 313
+STYLE DS_SETFONT | DS_MODALFRAME | DS_NOFAILCREATE | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Evaluative Model Learning"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,247,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,301,7,50,14
+    LISTBOX         IDC_LB_IDD_EVAL_MODEL_LEARN_DLG,369,218,168,88,LBS_SORT | LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_LC_IDD_EVAL_MODEL_LEARN_DLG,"SysListView32",LVS_LIST | LVS_SHOWSELALWAYS | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,14,37,337,269
+    LTEXT           "Select Scenarios Providing Policies",IDC_STATIC,371,206,142,8
+    LTEXT           "Select Policies Included in Spanning Set",IDC_STATIC,113,23,186,9
+    LTEXT           "Conceptually choose a spanning set of policies and sandbox them all.  Accumulate statistics for evaluative model scores, and use those statistics to enhance the model behavior.  The Envision.ini file will be updated as well as the EnvEvaluator.",IDC_STATIC,367,159,154,42
+    LISTBOX         IDC_LB_MODELS_IDD_EVAL_MODEL_LEARN_DLG,363,30,174,125,LBS_SORT | LBS_MULTIPLESEL | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select Models that will Learn ",IDC_STATIC,364,15,173,12
+END
+
+IDD_SETPOLICYCOLORS DIALOGEX 0, 0, 164, 138
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Set Policy Colors"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,32,109,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,88,109,50,14
+    LTEXT           "&Red:",IDC_STATIC,16,37,16,8
+    COMBOBOX        IDC_RED,34,36,115,66,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Green:",IDC_STATIC,10,54,23,8
+    COMBOBOX        IDC_GREEN,34,53,115,78,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Blue:",IDC_STATIC,15,70,17,8
+    COMBOBOX        IDC_BLUE,34,69,115,70,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Indicate below which goal you'd like the specified color to map to.",IDC_STATIC,16,8,137,24
+END
+
+IDD_AREAQUERY DIALOGEX 0, 0, 218, 90
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Area Query View"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,161,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,161,24,50,14
+    LTEXT           "Specify Database Field to view",IDC_STATIC,9,12,99,8
+    COMBOBOX        IDC_FIELDS,7,23,129,58,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Specify a value to include in the query:",IDC_STATIC,8,47,126,8
+    EDITTEXT        IDC_VALUE,7,58,128,14,ES_AUTOHSCROLL
+END
+
+IDD_SELECTIDU DIALOGEX 0, 0, 165, 205
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select IDUs"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,108,184,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,55,184,50,14
+    PUSHBUTTON      "Add Current Delta's IDU",IDC_ADDCURRENTIDU,6,148,86,14
+    EDITTEXT        IDC_IDUTEXT,48,166,43,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Add IDU",IDC_ADDIDUTEXT,96,166,62,14
+    LTEXT           "Selected IDUs",IDC_STATIC,6,7,46,8
+    PUSHBUTTON      "Remove",IDC_REMOVEIDU,96,148,61,14
+    CONTROL         "",IDC_IDULIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,6,16,152,130
+END
+
+IDD_FIELDINFO DIALOGEX 0, 0, 608, 342
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Field Information Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Field Information File:",IDC_STATIC,7,9,70,8
+    COMBOBOX        IDC_FILES,78,7,256,69,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,7,24,592,1,WS_EX_STATICEDGE
+    LTEXT           "Available Fields (NO Field information):",IDC_STATIC,10,27,124,8
+    LISTBOX         IDC_FIELDS,7,37,129,200,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | LBS_EXTENDEDSEL | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Field Information...",IDC_STATIC,304,32,295,128
+    RTEXT           "Label:",IDC_STATIC,315,53,20,8
+    EDITTEXT        IDC_LABEL,338,50,252,14,ES_AUTOHSCROLL
+    LTEXT           "Description:",IDC_STATIC,316,69,39,8
+    EDITTEXT        IDC_DESC,315,79,274,20,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "Static",IDC_TYPE,8,330,285,8
+    GROUPBOX        "Flags...",IDC_STATIC,5,266,292,57
+    CONTROL         "Use In Site Attributes",IDC_SITEATTR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,280,83,10
+    CONTROL         "Use In Outcomes",IDC_OUTCOMES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,292,68,10
+    CONTROL         "Use in Decadal Maps",IDC_DECADALMAPS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,307,81,10
+    CONTROL         "Show In Results",IDC_RESULTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,147,280,67,10
+    CONTROL         "Include when saving IDU Database",IDC_EXPORT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,147,292,128,10
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,95,312,20,1,WS_EX_STATICEDGE
+    RTEXT           "Year Interval:",IDC_STATIC,119,308,46,8
+    EDITTEXT        IDC_YEARINTERVAL,165,306,27,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN4,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,189,305,11,14
+    GROUPBOX        "Attribute Values...",IDC_STATIC,304,169,296,166
+    CONTROL         "Use Quantity Bins",IDC_USEQUANTITYBINS,"Button",BS_AUTORADIOBUTTON,317,186,73,10
+    CONTROL         "Use Category Bins",IDC_USECATEGORYBINS,"Button",BS_AUTORADIOBUTTON,317,200,75,10
+    CONTROL         "",IDC_STATIC,"Static",SS_BLACKFRAME,389,191,12,1,WS_EX_STATICEDGE
+    RTEXT           "Min:",IDC_STATIC,407,187,14,8
+    EDITTEXT        IDC_MIN,421,185,35,14,ES_AUTOHSCROLL
+    RTEXT           "Max:",IDC_STATIC,461,187,17,8
+    EDITTEXT        IDC_MAX,479,185,37,14,ES_AUTOHSCROLL
+    RTEXT           "Bin Count:",IDC_STATIC,523,187,34,8
+    EDITTEXT        IDC_COUNT,559,185,29,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,585,185,11,14
+    RTEXT           "Colors:",IDC_STATIC,450,204,24,8
+    COMBOBOX        IDC_COLORS,479,202,54,107,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Generate",IDC_ADDALL,541,222,49,17
+    PUSHBUTTON      "Add...",IDC_ADD,541,246,50,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,541,264,50,14
+    PUSHBUTTON      "Remove All",IDC_REMOVEALL,541,280,50,14
+    PUSHBUTTON      "Move Up",IDC_MOVEUP,541,299,50,14
+    PUSHBUTTON      "Move Down",IDC_MOVEDOWN,541,315,50,14
+    CONTROL         "",IDC_ATTRIBUTES,"Static",SS_BLACKFRAME,315,222,219,110
+    DEFPUSHBUTTON   "OK",IDOK,347,7,54,14
+    PUSHBUTTON      "Cancel",IDCANCEL,405,7,52,14
+    PUSHBUTTON      "Import &XML...",IDC_LOAD,473,7,62,14
+    PUSHBUTTON      "Export As &XML...",IDC_SAVE,537,7,62,14
+    LTEXT           "Source:",IDC_STATIC,317,103,26,8
+    EDITTEXT        IDC_SOURCE,315,111,274,21,ES_MULTILINE | ES_AUTOHSCROLL | ES_WANTRETURN
+    LTEXT           "Submenu: ",IDC_STATIC,317,146,35,8
+    COMBOBOX        IDC_SUBMENU,355,143,187,85,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add Submenu...",IDC_ADDSUBMENU,175,240,96,18
+    PUSHBUTTON      ">>",IDC_ADDFIELDINFO,139,121,21,19
+    PUSHBUTTON      "<<",IDC_REMOVEFIELDINFO,139,143,21,19
+    LTEXT           "Fields WITH Field information:",IDC_STATIC,165,27,96,8
+    CONTROL         "",IDC_FIELDTREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,163,36,134,201
+    LTEXT           "Double-click a Field to define Field Information for that Field...",IDC_STATIC,8,240,129,19
+END
+
+IDD_ADJACENCY DIALOGEX 0, 0, 245, 174
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Populate Adjacent Polygons"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Find polygons in this (source) layer",IDC_STATIC,7,14,225,12
+    COMBOBOX        IDC_PAP_SOURCELAYER,22,31,216,63,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "and populate adjacency in this target layer",IDC_STATIC,7,49,138,8
+    COMBOBOX        IDC_PAP_TARGETLAYER,22,63,216,53,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "using the polyons in the target layer specified by the following query (leave blank for ALL)",IDC_QUERYLABEL,7,82,227,21
+    EDITTEXT        IDC_QUERY,22,102,153,14,ES_AUTOHSCROLL
+    LTEXT           "and populate this field in the target layer",IDC_STATIC,7,123,132,8
+    COMBOBOX        IDC_PAP_TARGETFIELD,22,135,153,134,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "with the index of the adjacent polygons in the source layer.",IDC_STATIC,7,152,192,8
+    PUSHBUTTON      "&Calculate",IDC_PDD_CALCULATE,188,110,50,14
+    PUSHBUTTON      "E&xit",IDC_PDD_EXIT,188,128,50,14
+END
+
+IDD_POLICYEDITOR DIALOGEX 0, 0, 420, 370
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Policy Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Policies",IDC_STATIC,7,7,53,8
+    COMBOBOX        IDC_POLICIES,7,16,319,331,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&<",IDC_PREV,329,15,15,14
+    PUSHBUTTON      "&>",IDC_NEXT,344,15,15,14
+    PUSHBUTTON      "Show Less",IDC_SHOWHIDE,360,15,44,14
+    CONTROL         "",IDC_TAB,"SysTabControl32",0x0,7,32,405,314
+    PUSHBUTTON      "Add &New...",IDC_ADDNEW,4,351,45,14
+    PUSHBUTTON      "&Copy...",IDC_COPY,50,351,35,14
+    PUSHBUTTON      "&Delete",IDC_DELETE,86,351,35,14
+    PUSHBUTTON      "Edit &Field Information...",IDC_EDITFIELDINFO,122,351,92,14
+    PUSHBUTTON      "Import...",IDC_IMPORT,215,351,46,14
+    PUSHBUTTON      "Save...",IDC_SAVE,262,351,49,14
+    PUSHBUTTON      "Cancel",IDCANCEL,312,351,52,14
+    DEFPUSHBUTTON   "OK",IDOK,365,351,50,14
+END
+
+IDD_INIBASIC DIALOGEX 0, 0, 400, 280
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,7,383,1
+    RTEXT           "Policies:",IDC_STATIC,10,13,26,8
+    PUSHBUTTON      "Import Policies...",IDC_BROWSEDATABASE,317,15,72,15
+    RTEXT           "Scenarios:",IDC_STATIC,10,138,34,8
+    PUSHBUTTON      "Import Scenarios...",IDC_BROWSESCENARIOS,317,136,72,15
+    RTEXT           "LULC Tree:",IDC_STATIC,11,200,36,8
+    PUSHBUTTON      "Import LULC Tree...",IDC_BROWSELULCTREE,317,198,72,15
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,130,383,1
+    LTEXT           "There are currently %i policies defined for this project.",IDC_POLICIES,50,14,265,12
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,192,383,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,255,383,1
+    PUSHBUTTON      "Edit Policies...",IDC_RUNPOLICYEDITOR,316,34,72,14
+    PUSHBUTTON      "Edit Scenarios...",IDC_RUNSCENARIOEDITOR,317,155,72,14
+    PUSHBUTTON      "Edit LULC Tree...",IDC_RUNLULCEDITOR,317,218,72,14
+    LTEXT           "You can add/remove/edit policies by selecting the <Edit Policies> button.  You can import an XML-based policy file exported from Envision by selecting the <Import Policies> button.",IDC_STATIC,50,33,250,26
+    LTEXT           "There are currently %i scenarios defined for this project.",IDC_SCENARIOS,50,139,258,12
+    LTEXT           "You can add/remove/edit scenarios by selecting the <Edit Scenarios> button.  You can import an XML-based scenario file exported from Envision by selecting the <Import Scenarios> button.",IDC_STATIC,50,158,248,26
+    LTEXT           "There are currently %i levels and %i land use classes defined for this project.",IDC_LULCTREE,50,200,261,18
+    LTEXT           "You can add/remove/edit land use/land cover classes by selecting the <Edit LULC Tree> button.  You can import an XML-based LULC file exported from Envision by selecting the <Import LULC Tree> button.",IDC_STATIC,50,225,256,26
+    RTEXT           "Actors:",IDC_STATIC,10,75,24,8
+    PUSHBUTTON      "Import Actors...",IDC_BROWSEACTORS,317,73,72,15
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,67,383,1
+    PUSHBUTTON      "Edit Actors...",IDC_RUNACTOREDITOR,317,93,72,14
+    LTEXT           "There are currently %i Actor Groups defined for this project.",IDC_ACTORS,50,76,258,12
+    LTEXT           "You can add/remove/edit Actor definition by selecting the <Edit Actors> button.  You can import an XML-based actor file exported from Envision by selecting the <Import Actors> button.",IDC_STATIC,50,95,248,26
+END
+
+IDD_INIACTORS DIALOGEX 0, 0, 400, 280
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Actor Setup...",IDC_STATIC,7,11,386,262
+    CONTROL         "Define Actors based on LULC classes",IDC_ENVDB,"Button",BS_AUTORADIOBUTTON | WS_GROUP,16,27,133,10
+    CONTROL         "Define Actors based on the ACTOR field in the ID coverage",IDC_IDU,
+                    "Button",BS_AUTORADIOBUTTON,16,65,205,10
+    CONTROL         "Use a Single, Uniform Actor",IDC_SINGLE,"Button",BS_AUTORADIOBUTTON,15,102,103,10
+    CONTROL         "Disable Actor Decision-making",IDC_NONE,"Button",BS_AUTORADIOBUTTON,15,162,111,10
+    LTEXT           "Use Actor characteristics defined in the project file.  One Actor is created for each IDU.   The spatial distribution of Actors is determined by the LULC attributes defined for each Actor class.",IDC_STATIC,27,40,317,24
+    PUSHBUTTON      "Edit...",IDC_EDITACTORDB,353,43,36,14
+    LTEXT           "Use Actor characteristics defined in the project file.  One Actor is created for each IDU.   The spatial distribution of Actors is determined by the ACTOR field in the IDU database.",IDC_STATIC,27,78,321,22
+    PUSHBUTTON      "Edit...",IDC_EDITACTORDB2,353,78,36,14
+    LTEXT           "This method disables the use of Actors and Actor decision-making.  No policies (other than scheduled policies) will be applied.  Autonomous processes will still run, however.",IDC_STATIC,26,175,362,21
+    LTEXT           "Set the actor values for each self-interested goal.  These values range from -3 to +3, with negative values indicating low preference, and positive values indicating high preference.",IDC_STATIC,26,116,157,40
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,7,7,386,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,7,196,386,1
+    RTEXT           "Actor Associations:",IDC_STATIC,16,250,62,8
+    CONTROL         "Associate based on a common attribute",IDC_ASSOCATTR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,84,249,150,10
+    CONTROL         "Associate based on value cluster",IDC_ASSOCVALUES,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,234,249,121,10
+    CONTROL         "Associate neighbors",IDC_ASSOCNEIGHBORS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,84,260,80,10
+    CONTROL         "Disable Associations",IDC_ASSOCNONE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,234,260,80,10
+    CONTROL         "",IDC_PLACEHOLDER,"Static",SS_BLACKFRAME,186,102,202,65
+    LTEXT           "Use the following in Decision-making:",IDC_STATIC,18,202,118,8
+    CONTROL         "Altruism",IDC_USEALTRUISM,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,139,202,41,10
+    CONTROL         "Actor Values",IDC_USEACTORVALUES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,182,202,56,10
+    CONTROL         "Policy Preferences",IDC_USEPOLICYPREFS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,239,202,75,10
+    CONTROL         "Utility",IDC_USEUTILITY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,314,202,34,10
+    LTEXT           "Policy Selection: ",IDC_STATIC,17,217,54,8
+    CONTROL         "Use Probalistic Selection",IDC_USEPROBABILISTIC,"Button",BS_AUTORADIOBUTTON | WS_GROUP,77,217,93,10
+    CONTROL         "Always Pick Highest Scoring Policy",IDC_USEMAX,"Button",BS_AUTORADIOBUTTON,185,217,124,10
+END
+
+IDD_INILAYERS DIALOGEX 0, 0, 400, 280
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Map Layers to Include...",IDC_STATIC,7,11,386,249
+    PUSHBUTTON      "Browse...",IDC_BROWSELAYERS,329,58,56,15
+    CONTROL         "Include Data",IDC_INCLUDEDATA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,301,110,57,10
+    CONTROL         "",IDC_COLOR,"Static",SS_BLACKFRAME,203,88,23,14
+    PUSHBUTTON      "&Add New Layer...",IDC_ADDLAYER,11,234,70,14
+    PUSHBUTTON      "Remove",IDC_REMOVELAYER,85,234,52,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,7,7,386,1
+    LISTBOX         IDC_LAYERS,13,27,123,199,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Label:",IDC_STATIC,144,29,20,8
+    EDITTEXT        IDC_LABELLAYER,167,25,220,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Set Color...",IDC_SETCOLOR,231,88,50,14
+    RTEXT           "Path:",IDC_STATIC,145,46,18,8
+    EDITTEXT        IDC_PATHLAYER,167,43,219,14,ES_AUTOHSCROLL
+    RTEXT           "Outline Color:",IDC_STATIC,154,91,45,8
+    EDITTEXT        IDC_RECORDS,165,109,39,14,ES_AUTOHSCROLL
+    RTEXT           "Load",IDC_STATIC,147,111,16,8
+    LTEXT           "Records (-1 for all)",IDC_STATIC,209,111,61,8
+    RTEXT           "Coverage Type:",IDC_STATIC,146,71,53,8
+    CONTROL         "Shape",IDC_SHAPE,"Button",BS_AUTORADIOBUTTON | WS_GROUP,209,70,36,10
+    CONTROL         "Grid",IDC_GRID,"Button",BS_AUTORADIOBUTTON,250,70,29,10
+    PUSHBUTTON      "Browse...",IDC_BROWSEFIELDINFO,323,232,56,15
+    PUSHBUTTON      "Edit Field Info...",IDC_RUNFIELDEDITOR,173,232,72,14
+    LTEXT           "Field Information files are Xml files that defines the field attributes for a coverage.  Typically, there is one field information file for each spatial database (coverage).",IDC_STATIC,158,153,224,31
+    LTEXT           "If the field information file has the same name as the coverage (with a .xml extension), it is automatically loaded with the coverage and does not need to be included here.",IDC_STATIC,156,186,224,30
+    EDITTEXT        IDC_PATHFIELDINFO,173,216,207,14,ES_AUTOHSCROLL
+    LTEXT           "Path:",IDC_STATIC,155,218,18,8
+    GROUPBOX        "Field Information File",IDC_STATIC,148,132,238,123
+END
+
+IDD_INIMODELS DIALOGEX 0, 0, 400, 280
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Evaluative Models to Include...",IDC_STATIC,7,11,386,262
+    PUSHBUTTON      "Browse...",IDC_BROWSE,345,59,43,15
+    PUSHBUTTON      "Add",IDC_ADD,23,162,51,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,78,162,52,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,7,383,1
+    LISTBOX         IDC_MODELS,14,25,123,135,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Label:",IDC_STATIC,144,29,20,8
+    EDITTEXT        IDC_LABEL,167,26,221,14,ES_AUTOHSCROLL
+    RTEXT           "Path:",IDC_STATIC,145,46,18,8
+    EDITTEXT        IDC_PATH,167,43,221,14,ES_AUTOHSCROLL
+    CONTROL         "Does this process reserve a column in the IDU database?",IDC_USECOL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,169,136,198,10
+    RTEXT           "Field Name:",IDC_STATIC,289,148,38,8
+    EDITTEXT        IDC_FIELD,331,146,58,14,ES_AUTOHSCROLL
+    RTEXT           "Initialization String:",IDC_STATIC,156,165,62,8
+    EDITTEXT        IDC_INITSTR,220,163,169,14,ES_AUTOHSCROLL
+    RTEXT           "ID:",IDC_STATIC,152,62,11,8
+    EDITTEXT        IDC_ID,168,60,39,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "Show in All Results",IDC_SHOWINRESULTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,169,81,75,10
+    CONTROL         "Show where unscaled results can be shown",IDC_SHOWUNSCALED,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,169,109,155,10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,7,179,386,1
+    CONTROL         "Define Raw Score -> Scaled Score Transfer Function",IDC_CDF,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,13,185,184,10
+    CONTROL         "",IDC_PLACEHOLDER,"Static",SS_BLACKFRAME,130,199,246,56
+    RTEXT           "Min. Raw Score",IDC_LABELMIN,14,203,50,8
+    EDITTEXT        IDC_MIN,66,201,39,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "Max. Raw Score:",IDC_LABELMAX,9,220,56,8
+    EDITTEXT        IDC_MAX,66,218,39,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "Raw Score Units:",IDC_LABELUNITS,10,238,56,8
+    EDITTEXT        IDC_UNITS,66,235,39,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "+3",IDC_STATIC,118,199,10,8
+    RTEXT           "-3",IDC_STATIC,118,246,8,8
+    RTEXT           "Raw Score",IDC_RAWSCORELABEL,229,257,35,8
+    CTEXT           "",IDC_RAWSCOREMINLABEL,116,258,31,8
+    CTEXT           "",IDC_RAWSCOREMAXLABEL,358,258,31,8
+END
+
+IDD_INIEDITOR DIALOGEX 0, 0, 432, 349
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Envision Project File Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,375,328,50,14
+    PUSHBUTTON      "Save",IDC_SAVE,5,328,50,14
+    PUSHBUTTON      "Save As...",IDC_SAVEAS,58,328,50,14
+    CONTROL         "",IDC_TAB,"SysTabControl32",0x0,7,24,418,300
+    LTEXT           "File: ",IDC_PATH,7,8,417,11,SS_SUNKEN
+END
+
+IDD_POLICYOUTCOME DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "&Outcome List Specification (List View) - use buttons below to edit Outcome Lists",IDC_STATIC,11,106,271,10
+    PUSHBUTTON      "Add New Outcome List...",IDC_ADD,129,211,106,14
+    LTEXT           "Syntax: OutcomeList:Probability  - where OutcomeList is a list of <Field1> = <Value1> pairs delimited by and's.  Inline comments are enclosed in braces { }",IDC_STATIC,14,233,347,20
+    LTEXT           "Example: Lulc_C = 5 and Conserv=1:45",IDC_STATIC,13,255,344,11
+    LTEXT           "For buffering: Buffer( <distance>, <query to buffer from>, <outcome inside buffer>, <outcome outside buffer>) ",IDC_STATIC,13,269,344,17
+    GROUPBOX        "",IDC_STATIC,5,8,383,280
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,5,5,383,1
+    LISTBOX         IDC_OUTCOMELIST,10,119,371,89,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_HSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_OUTCOME,10,26,371,66,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN | WS_VSCROLL | WS_HSCROLL
+    PUSHBUTTON      "Edit Outcome List...",IDC_EDIT,24,211,99,14
+    PUSHBUTTON      "Delete Outcome List",IDC_DELETE,241,211,104,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,11,101,281,1
+    LTEXT           "Outcome List Specification (Text Editor View) - for editing Outcome Lists manually",IDC_STATIC,11,15,294,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,11,228,370,1
+    PUSHBUTTON      "Update List View",IDC_UPDATE,298,94,83,14
+END
+
+IDD_OUTCOMEEDITOR DIALOGEX 0, 0, 440, 235
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Outcome Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Outcome Specification",IDC_STATIC,15,13,72,8
+    PUSHBUTTON      "Add an Additional Result",IDC_ADD,12,193,93,14
+    GROUPBOX        "",IDC_STATIC,7,3,425,209
+    LISTBOX         IDC_RESULTS,13,68,194,120,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Results from this outcome.",IDC_STATIC,14,58,86,8
+    LTEXT           "Result Probability:",IDC_STATIC,213,68,59,8
+    EDITTEXT        IDC_PROBABILITY,275,66,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "percent",IDC_STATIC,318,68,26,8
+    PUSHBUTTON      "Delete this Result",IDC_DELETE,110,193,98,14
+    PUSHBUTTON      "OK",IDOK,327,215,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,382,215,50,14
+    EDITTEXT        IDC_OUTCOME,13,22,409,25,ES_MULTILINE
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,15,53,409,1
+    CONTROL         "Expire after",IDC_EXPIRE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,105,52,10
+    CONTROL         "Persist this outcome for ",IDC_PERSIST,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,141,87,10
+    CONTROL         "Delay the application of this outcome for",IDC_DELAY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,189,142,10
+    GROUPBOX        "Directives",IDC_STATIC,214,85,210,122
+    EDITTEXT        IDC_EXPIREPERIOD,276,103,24,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,298,102,10,14
+    LTEXT           "years, then replace the field",IDC_L1EXPIRE,308,105,106,8
+    LTEXT           "with the following attribute:",IDC_L2EXPIRE,233,120,90,8
+    EDITTEXT        IDC_ATTR,325,118,90,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_PERSISTPERIOD,310,140,24,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,332,140,10,14
+    LTEXT           "years",IDC_L1PERSIST,340,141,21,8
+    LTEXT           "This prevents any other outcome from being applied to this field for this IDU during the persistence period",IDC_L2PERSIST,233,156,183,19
+    EDITTEXT        IDC_DELAYPERIOD,365,188,24,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN3,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,387,187,10,14
+    LTEXT           "years",IDC_L1DELAY,394,189,21,8
+    PUSHBUTTON      "Constraints...",IDC_CONSTRAINTS,241,215,58,14
+END
+
+IDD_ADDRESULT DIALOGEX 0, 0, 359, 239
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Add Result"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "",IDC_STATIC,7,4,287,220
+    CONTROL         "Specify a Result Field/Value pair to add...",IDC_FIELD,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,17,17,149,10
+    CONTROL         "",IDC_BUFFER,"Button",BS_AUTORADIOBUTTON,18,113,11,10
+    CONTROL         "",IDC_ADDPOINT,"Button",BS_AUTORADIOBUTTON,18,131,11,10
+    CONTROL         "",IDC_INCREMENT,"Button",BS_AUTORADIOBUTTON,18,149,11,10
+    CONTROL         "",IDC_EXPAND,"Button",BS_AUTORADIOBUTTON,18,168,11,10
+    COMBOBOX        IDC_FIELDS,30,43,115,153,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_VALUES,159,43,122,150,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    EDITTEXT        IDC_BUFFEREDIT,30,110,254,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ADDPOINTEDIT,30,128,254,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_INCREMENTEDIT,29,146,254,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_EXPANDEDIT,30,164,254,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "OK",IDOK,300,15,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,300,33,50,14
+    LTEXT           "static",IDC_FIELDDESCRIPTION,30,60,255,26,SS_SUNKEN
+    LTEXT           "static",IDC_FUNCTIONDESCRIPTION,30,187,252,31,SS_SUNKEN
+    LTEXT           "&Field",IDC_STATIC,30,34,16,8
+    LTEXT           "&Value",IDC_STATIC,159,31,18,8
+    LTEXT           "=",IDC_STATIC,146,45,8,8
+    LTEXT           " Or Specify a Function:",IDC_STATIC,16,99,74,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,27,92,254,1
+END
+
+IDD_CONTROLPANEL DIALOGEX 0, 0, 150, 100
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_CAPTION | WS_SYSMENU
+EXSTYLE WS_EX_TOPMOST
+CAPTION "Control Panel"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "Create/Edit a Scenario",IDC_EDITSCENARIO,"Button",BS_COMMANDLINK | WS_TABSTOP,7,7,136,25
+    CONTROL         "Create/Edit a Policy",IDC_EDITPOLICY,"Button",BS_COMMANDLINK | WS_TABSTOP,7,37,136,25
+    CONTROL         "Run an Analysis",IDC_RUN,"Button",BS_COMMANDLINK | WS_TABSTOP,7,68,136,25
+END
+
+IDD_SCENARIOEDITOR DIALOGEX 0, 0, 560, 450
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Scenario Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    COMBOBOX        IDC_SCENARIOS,50,7,223,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add",IDC_ADD,280,7,43,14
+    PUSHBUTTON      "Delete",IDC_DELETE,327,7,40,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,28,544,1
+    LTEXT           "Name:",IDC_STATIC,17,36,22,8
+    EDITTEXT        IDC_NAME,40,34,231,14,ES_AUTOHSCROLL
+    LTEXT           "Originator:",IDC_STATIC,281,37,36,8
+    EDITTEXT        IDC_ORIGINATOR,319,35,129,14,ES_AUTOHSCROLL
+    CONTROL         "Default Scenario?",IDC_DEFAULT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,455,36,72,10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,55,544,1
+    GROUPBOX        "Scenario Parameter Settings ",IDC_STATIC,7,91,282,117
+    GROUPBOX        "Decision Weights ",IDC_STATIC,17,110,262,68
+    RTEXT           "Policy Preference Scores:",IDC_STATIC,24,156,89,8
+    CONTROL         "",IDC_SLIDERPOLICYPREF,"msctls_trackbar32",TBS_AUTOTICKS | TBS_TOP | WS_TABSTOP,114,149,127,19,WS_EX_TRANSPARENT
+    EDITTEXT        IDC_POLICYPREF,243,154,28,14,ES_AUTOHSCROLL
+    LTEXT           "Landscape Model Evaluation Frequency:",IDC_STATIC,19,188,130,8
+    EDITTEXT        IDC_EVALFREQ,151,186,28,14,ES_AUTOHSCROLL
+    LTEXT           "years",IDC_STATIC,183,188,19,8
+    GROUPBOX        "Model Settings",IDC_STATIC,7,219,283,228
+    CONTROL         "",IDC_MODELVARS,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_SHOWSELALWAYS | WS_BORDER | WS_HSCROLL | WS_TABSTOP,12,235,184,170
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,204,255,76,1
+    CONTROL         "Model Variable Values",IDC_STATIC,"Static",SS_LEFTNOWORDWRAP | WS_GROUP,206,259,70,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,204,271,76,1
+    CONTROL         "Use Default Value",IDC_USEDEFAULTVALUE,"Button",BS_AUTORADIOBUTTON,204,278,73,10
+    CONTROL         "Use Specified Value",IDC_USESPECIFIEDVALUE,"Button",BS_AUTORADIOBUTTON,204,295,78,10
+    LTEXT           "Distribution Type:",IDC_LABELDISTRIBUTION,217,310,58,8
+    COMBOBOX        IDC_DISTRIBUTION,216,319,64,85,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Location:",IDC_LABELLOCATION,206,338,31,8
+    EDITTEXT        IDC_LOCATION,239,336,41,14,ES_AUTOHSCROLL
+    RTEXT           "Scale:",IDC_LABELSCALE,208,356,29,8
+    EDITTEXT        IDC_SCALE,240,353,40,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,204,374,76,1
+    LTEXT           "Description",IDC_DESCRIPTION,12,410,270,30,SS_SUNKEN
+    PUSHBUTTON      "Save...",IDC_SAVE,443,7,52,14
+    DEFPUSHBUTTON   "Close",IDOK,499,7,50,14
+    GROUPBOX        "Policies To Include...",IDC_STATIC,298,92,255,355
+    LISTBOX         IDC_POLICIES,306,105,240,334,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,211,117,1,39
+    LTEXT           "Define the importance of Policy Preference Scores.  Note: Weights for Landscape Feedbacks and Actor Values are defined by each Actor type",IDC_STATIC,28,125,229,20
+    PUSHBUTTON      "Grid View...",IDC_GRIDVIEW,370,7,50,14
+    LTEXT           "Scenarios:",IDC_STATIC,13,8,34,8
+    LTEXT           "Description:",IDC_STATIC,13,61,39,8
+    EDITTEXT        IDC_SCNDESCRIPTION,54,58,496,30,ES_MULTILINE | ES_AUTOHSCROLL
+END
+
+IDD_SELECTTABLE DIALOGEX 0, 0, 258, 210
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Select Table"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,201,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,201,24,50,14
+    LTEXT           "Select the Table you wish to use",IDC_STATIC,7,7,104,8
+    LISTBOX         IDC_LIST1,7,19,187,184,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_CALCULATEFIELD DIALOGEX 0, 0, 351, 232
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Calculate a Field"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Apply",IDOK,294,62,43,14
+    PUSHBUTTON      "Close",IDCANCEL,288,211,50,14
+    LTEXT           "Specify Layer:",IDC_STATIC,12,12,47,8
+    COMBOBOX        IDC_LAYERS,60,11,140,51,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Specify Field:",IDC_STATIC,206,14,44,8
+    COMBOBOX        IDC_FIELDS,252,11,87,169,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LISTBOX         IDC_FIELDS1,14,111,134,109,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Fields ",IDC_STATIC,7,99,149,126
+    GROUPBOX        "Operators",IDC_STATIC,287,100,49,106
+    LISTBOX         IDC_OPERATORS,294,113,35,87,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Formula",IDC_STATIC,7,50,337,32
+    EDITTEXT        IDC_FORMULA,18,62,271,14,ES_AUTOHSCROLL
+    GROUPBOX        "Functions",IDC_STATIC,164,100,115,125
+    LISTBOX         IDC_FUNCTIONS,172,111,99,109,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Specify Query to indicate which polys/points to set (leave blank for all):",IDC_STATIC,20,32,229,8
+    EDITTEXT        IDC_QUERY,252,30,87,14,ES_AUTOHSCROLL
+END
+
+IDD_REMOVEDBCOL DIALOGEX 0, 0, 243, 225
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Remove Database Columns"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Columns to Delete",-1,7,36,59,8
+    LISTBOX         IDC_FIELDS,7,47,172,171,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "Remove",IDOK,186,49,50,14
+    PUSHBUTTON      "Close",IDCANCEL,186,68,50,14
+    LTEXT           "ENVISION Database to Remove Columns From",-1,7,7,149,8
+    COMBOBOX        IDC_LAYERS,7,16,229,63,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_IDUINFO DIALOGEX 0, 0, 267, 268
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Database Information"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,210,250,50,14
+    RTEXT           "Name:",IDC_STATIC,12,9,23,8
+    RTEXT           "Path:",IDC_STATIC,14,26,21,8
+    EDITTEXT        IDC_NAME,38,7,222,14,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_PATH,37,24,223,14,ES_AUTOHSCROLL | ES_READONLY
+    CONTROL         "",IDC_FIELDS,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,51,253,196
+    LTEXT           "Fields",IDC_STATIC,9,42,19,8
+    PUSHBUTTON      "Save...",IDC_SAVE,151,250,50,14
+END
+
+IDD_COMPARERUNRESULTS DIALOGEX 0, 0, 314, 234
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Compare Run Results"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,205,213,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,257,213,50,14
+    LTEXT           "Available Datasets",IDC_STATIC,36,15,60,8
+    LISTBOX         IDC_AVAILABLE,6,25,140,184,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Datasets to Compare",IDC_STATIC,205,14,69,8
+    LISTBOX         IDC_USE,169,26,138,184,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      ">",IDC_ADD,150,60,16,14
+    PUSHBUTTON      ">>",IDC_ADDALL,150,84,16,14
+    PUSHBUTTON      "<",IDC_REMOVE,150,112,16,14
+    PUSHBUTTON      "<<",IDC_REMOVEALL,150,136,16,14
+END
+
+IDD_REACHTREE DIALOGEX 0, 0, 389, 353
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Network Tree Topology Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,260,328,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,313,328,51,14
+    LTEXT           "This panel allows for the generation of reach topology for linear networks.  It requires a vector coverage that it uses to assemble topology from.",IDC_STATIC,7,7,367,21
+    LTEXT           "The topology is assembled by specification of To and/or From nodes in the network coverage data or by looking for overlapping vertices",IDC_STATIC,7,26,365,21
+    LTEXT           "Select the network coverage to use:",IDC_STATIC,7,51,118,8
+    COMBOBOX        IDC_LAYERS,129,49,236,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Use Attribute Method",IDC_USEATTR,"Button",BS_AUTORADIOBUTTON,11,75,85,10
+    CONTROL         "Use Vertex Matching Method",IDC_USEVERTICES,"Button",BS_AUTORADIOBUTTON,124,75,108,10
+    GROUPBOX        "",IDC_STATIC,8,84,374,86
+    RTEXT           "Node ID column:",IDC_LABELNODE,34,154,54,8
+    COMBOBOX        IDC_COLNODE,96,152,87,94,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "TO Node column:",IDC_LABELTONODE,23,99,56,8
+    COMBOBOX        IDC_COLTONODE,86,98,110,77,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Tree ID column:",IDC_LABELTREEID,31,214,52,8
+    COMBOBOX        IDC_COLTREEID,86,212,107,76,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,12,69,370,1
+    PUSHBUTTON      "Generate Topology",IDC_GENERATE,260,296,105,19
+    RTEXT           "Order column:",IDC_LABELORDER2,210,214,46,8
+    COMBOBOX        IDC_COLORDER2,264,211,111,76,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Populate Order Column in Network Coverage",IDC_POPULATEORDER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,210,198,159,10
+    LTEXT           "# of roots generated:",IDC_LABELROOTSGENERATED,10,307,133,8
+    LTEXT           "# of non-branched reaches:",IDC_LABELSINGLENODEREACHES,10,318,143,8
+    LTEXT           "# of phantom nodes generated:",IDC_LABELPHANTOMSGENERATED,10,329,143,8
+    CONTROL         "Populate TreeID column in Network coverage",IDC_POPULATETREEID,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,198,160,10
+    CONTROL         "Does the 'To' field refer to another column in the network database?  If so, specify the column below",IDC_USEEDGEID,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,16,118,347,15
+    LTEXT           "'To' records may optionally contain record indexes - in that case, leave the above checkbox unchecked.",IDC_LABELEDGEID,31,135,341,14
+    GROUPBOX        "Specify Additional Fields to Populate...",IDC_STATIC,8,177,374,110
+    RTEXT           "Reach Index column:",IDC_LABELREACHINDEX,25,255,68,8
+    COMBOBOX        IDC_COLREACHINDEX,96,252,107,76,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Populate Reach Index column in IDU coverage",IDC_POPULATEREACHINDEX,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,238,164,10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,16,232,358,1
+    RTEXT           "Flow Direction Grid:",IDC_LABELFLOWGRID,30,271,63,8
+    EDITTEXT        IDC_FLOWDIRGRID,96,269,231,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BROWSE,329,268,50,14
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,146,291,101,14
+    LTEXT           "",IDC_PROGRESSTEXT,10,294,121,8
+END
+
+IDD_WIZARD DIALOGEX 0, 0, 316, 286
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Envision "
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Cancel",IDCANCEL,193,265,116,14
+    CONTROL         "Explore the current IDU Coverage",IDC_EXPLORE_IDU_COVERAGE,
+                    "Button",BS_COMMANDLINK | WS_TABSTOP,7,20,295,25
+    CONTROL         "Set up or modify the IDU Database",IDC_SETUP_IDU_DB,
+                    "Button",BS_COMMANDLINK | WS_TABSTOP,7,64,295,25
+    CONTROL         "Create/Edit Policies",IDC_EDIT_POLICIES,"Button",BS_COMMANDLINK | WS_TABSTOP,7,113,295,25
+    CONTROL         "Create/Edit Scenarios",IDC_EDIT_SCENARIOS,"Button",BS_COMMANDLINK | WS_TABSTOP,7,140,295,25
+    CONTROL         "Run a Scenario",IDC_RUN_SCENARIO,"Button",BS_COMMANDLINK | WS_TABSTOP,7,175,295,25
+    CONTROL         "Create/Edit an Envision Project",IDC_CREATE_PROJECT,
+                    "Button",BS_COMMANDLINK | WS_TABSTOP,7,203,295,25
+    LTEXT           "What would you like to do?",IDC_STATIC,7,7,87,8
+    LTEXT           "Show the IDU map and associated attributes",IDC_STATIC,43,48,144,8
+    LTEXT           "Modify the database structure, populate database fields, and perform other database tasks",IDC_STATIC,43,94,237,17
+END
+
+IDD_INISETTINGS DIALOGEX 0, 0, 400, 280
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,7,383,1
+    GROUPBOX        "Application-Specific Variables",IDC_STATIC,7,187,384,83
+    CONTROL         "Load Shared Policies",IDC_LOADSHAREDPOLICIES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,32,81,10
+    CONTROL         "Enable Debugging Mode",IDC_DEBUG,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,55,90,10
+    CONTROL         "Enable Periodic Export of Maps",IDC_MAPOUTPUTS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,83,112,10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,36,103,9,1
+    RTEXT           "Interval (yrs)",IDC_LABELINTERVAL,47,99,44,8
+    EDITTEXT        IDC_INTERVAL,93,96,30,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,121,96,11,14
+    CONTROL         "Disable Buffer Functions from Subdividing Polygons",IDC_NOBUFFER,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,18,120,179,10
+    LTEXT           "Default Simulation Period (yrs):",IDC_STATIC,20,143,100,8
+    EDITTEXT        IDC_DEFAULTPERIOD,123,140,32,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,154,139,10,14
+    GROUPBOX        "Standard Settings...",IDC_STATIC,7,15,384,166
+    LTEXT           "Check this to enable all shared policies (created by other users) in your input file;  Uncheck to use only those policies you have defined.",IDC_STATIC,142,33,245,19
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,98,37,38,1
+    LTEXT           "Debugging Mode enables additional output messages whenever problems are encountered and is useful during the project implementation phase;  it should be turned of when the project is released.",IDC_STATIC,142,55,245,26
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,109,59,27,1
+    LTEXT           "Causes shape files of mapped outputs to be written to disk at the specified interval.  This can significantly slow down performance and should be enabled only if periodic output is needed for analysis.",IDC_STATIC,142,84,245,26
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,131,88,6,1
+    LTEXT           "Prevents 'Buffer' outcome commands from subdividing polygons - this will substantially improve performance but buffer outcomes will be applied to the entire polygon, not just the the buffered portion. ",IDC_STATIC,218,120,166,43
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,195,125,16,1
+    PUSHBUTTON      "Add",IDC_ADD,334,206,50,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,334,223,50,14
+    CONTROL         "Custom1",IDC_GRID,"MFCGridCtrl",WS_TABSTOP,15,200,309,63
+    LTEXT           "Map &Units:",IDC_STATIC,20,160,35,8
+    COMBOBOX        IDC_MAPUNITS,58,158,98,57,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_LULCEDITOR DIALOGEX 0, 0, 317, 290
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "LULC Hierarchy Editor"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Lulc Tree:",IDC_STATIC,9,7,32,8
+    CONTROL         "",IDC_LULCTREECTRL,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | TVS_LINESATROOT | TVS_EDITLABELS | TVS_SHOWSELALWAYS | WS_HSCROLL | WS_TABSTOP,7,17,229,224,WS_EX_CLIENTEDGE
+    PUSHBUTTON      "E&xpand",IDC_EXPAND,243,82,66,17
+    PUSHBUTTON      "Export as &XML...",IDC_EXPORT,243,158,66,17
+    LTEXT           "Attribute Value:",IDC_STATICID,12,268,52,8
+    EDITTEXT        IDC_ID,65,266,39,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Label:",IDC_STATICLABEL,10,249,20,8
+    EDITTEXT        IDC_LABEL,31,247,203,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Add Node",IDC_ADD,243,111,66,17
+    PUSHBUTTON      "&Remove Node",IDC_REMOVE,243,130,66,17
+    DEFPUSHBUTTON   "OK",IDOK,243,18,66,17
+    PUSHBUTTON      "Cancel",IDCANCEL,243,38,66,17
+    CONTROL         "MfcButton1",IDC_MFCBUTTON1,"MfcButton",WS_TABSTOP,0,0,50,14
+END
+
+IDD_DATAPANEL DIALOGEX 0, 0, 420, 246
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 0, 0, 0x0
+BEGIN
+    RTEXT           "Data Sources:",IDC_DSLABEL,9,9,46,8
+    COMBOBOX        IDC_DATASOURCES,63,7,124,140,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Start Editing",IDC_EDIT,188,7,50,14
+    PUSHBUTTON      "Find",IDC_SEARCH,239,7,30,14
+    PUSHBUTTON      "Query",IDC_QUERY,271,7,33,14
+    PUSHBUTTON      "Refresh",IDC_REFRESH,301,7,33,14
+    PUSHBUTTON      "Save",IDC_SAVE,333,7,37,14
+    PUSHBUTTON      "Save As...",IDC_SAVEAS,372,6,41,14
+    LTEXT           "Static",IDC_GRID,7,30,406,209,WS_BORDER
+END
+
+IDD_TIPOFTHEDAY DIALOGEX 0, 0, 280, 158
+STYLE DS_SETFONT | DS_MODALFRAME | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Tip of the Day"
+FONT 8, "MS Shell Dlg", 0, 0, 0x1
+BEGIN
+    LTEXT           "IDC_SIDE",IDC_SIDE,8,8,36,122
+    LTEXT           "IDC_LIGHTBULB",IDC_LIGHTBULB,16,16,20,20
+    LTEXT           "IDC_HEADER",IDC_HEADER,44,8,228,36
+    LTEXT           "IDC_TIPSTRING",IDC_TIPSTRING,44,44,228,86
+    DEFPUSHBUTTON   "&Close",IDOK,223,138,50,14
+    PUSHBUTTON      ">>",IDC_NEXTTIP,142,138,18,15
+    PUSHBUTTON      "<<",IDC_PREVTIP,120,138,18,15
+    CONTROL         "&Show tips at startup",IDC_STARTUP,"Button",BS_AUTOCHECKBOX | BS_TOP | WS_TABSTOP,9,140,79,12
+END
+
+IDD_FINDDATA DIALOGEX 0, 0, 299, 147
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_VISIBLE | WS_CAPTION | WS_SYSMENU
+CAPTION "Search Dataset"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    RTEXT           "&Search for the following:",IDC_STATIC,7,9,80,8
+    EDITTEXT        IDC_FINDSTRING,93,7,199,14,ES_AUTOHSCROLL
+    RTEXT           "&Replace with:",IDC_REPLACELABEL,42,28,44,8
+    EDITTEXT        IDC_REPLACESTRING,93,26,199,14,ES_AUTOHSCROLL
+    GROUPBOX        "Search Settings:",IDC_FRAME,6,46,286,78
+    CONTROL         "Match &Case",IDC_MATCH_CASE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,17,61,53,10
+    CONTROL         "Match &Entire Value",IDC_MATCH_ENTIRE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,80,61,75,10
+    CONTROL         "Search &Up",IDC_SEARCH_UP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,162,61,49,10
+    CONTROL         "Find &All Matches",IDC_FINDALL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,61,67,10
+    CONTROL         "Search Only &This Column:",IDC_SEARCH_THIS,"Button",BS_AUTORADIOBUTTON,16,78,97,10
+    CONTROL         "Search Currently &Selected Column only",IDC_SEARCH_SELECTED,
+                    "Button",BS_AUTORADIOBUTTON,16,94,140,10
+    CONTROL         "Search &All Columns",IDC_SEARCH_ALL,"Button",BS_AUTORADIOBUTTON,16,110,76,10
+    COMBOBOX        IDC_FIELDS,114,78,174,57,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "<< Show Less",IDC_MORE_LESS,6,128,59,14
+    DEFPUSHBUTTON   "&Find",IDOK,98,128,69,14
+    DEFPUSHBUTTON   "Find and &Replace",IDC_REPLACE,170,128,69,14
+    PUSHBUTTON      "&Close",IDCANCEL,242,128,50,14
+END
+
+IDD_OPTIONS DIALOGEX 0, 0, 321, 212
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Envision Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "General Setup",IDC_STATIC,7,7,235,41
+    CONTROL         "Show Tips at &Startup",IDC_SHOWTIPS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,25,83,10
+    GROUPBOX        "Add-In's",IDC_STATIC,7,54,307,151,0,WS_EX_TRANSPARENT
+    LISTBOX         IDC_LIST,21,85,277,92,LBS_NOINTEGRALHEIGHT | NOT WS_BORDER | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "",IDC_TAB,"SysTabControl32",0x0,15,69,289,112
+    PUSHBUTTON      "Add...",IDC_ADD,197,185,50,14
+    PUSHBUTTON      "Remove",IDC_DELETE,251,185,50,14
+    DEFPUSHBUTTON   "OK",IDOK,264,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,264,23,50,14
+    CONTROL         "Check for Updates at Startup",IDC_CHECKFORUPDATES,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,113,25,110,10
+END
+
+IDD_PROPPAGE_MEDIUM DIALOGEX 0, 0, 210, 154
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Property Page"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+END
+
+IDD_NEWINI_STEP1 DIALOGEX 0, 0, 235, 190
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "New Project Wizard - Step 1"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "Welcome to  Envision's New Project Wizard.",IDC_STATIC,7,7,140,8
+    LTEXT           "This Wizard will lead you through a series of step to set up a basic project.  Before you start, you should have created a basic Shapefile to serve as the starting point for your Integrated Decision Unit (IDU) coverage.",IDC_STATIC,7,25,213,38
+    LTEXT           "Let's start with the name of this project.  This will be used as the name of the Project (.envx) file for storing settings, input files, and other required information.",IDC_STATIC,9,70,209,23
+    EDITTEXT        IDC_FILE,7,118,221,14,ES_AUTOHSCROLL
+    LTEXT           "Project Name:",IDC_STATIC,7,108,46,8
+    LTEXT           "Folder to store project files:",IDC_STATIC,7,144,90,8
+    EDITTEXT        IDC_PATH,7,154,221,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse",IDC_BROWSE,178,169,50,14
+END
+
+IDD_NEWINI_STEP2 DIALOGEX 0, 0, 235, 156
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "New Project Wizard - Step 2"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "The next step is to specify a Shape file (GIS polygon overage) that will define the Integrated Decision Units (IDU's) for this project.",-1,7,7,221,24
+    LTEXT           "Hit the <Browse> button below to locate the IDU Shape file.",-1,7,52,209,23
+    EDITTEXT        IDC_FILE,7,106,221,14,ES_AUTOHSCROLL
+    LTEXT           "IDU Shape File:",-1,7,96,50,8
+    PUSHBUTTON      "Browse...",IDC_BROWSE,178,124,50,14
+END
+
+IDD_NEWINI_FINISH DIALOGEX 0, 0, 235, 156
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "New Project Wizard - Finish"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "That's all that's required to get started.",IDC_STATIC,7,7,127,8
+    LTEXT           "You can specifiy additional settings, set up actors, add additional shape layers, and manage plug-in evaluative models and autonomous processes using Envision's built-in Project Editor.  It's available on the <Home> tab, in the <Setup> panel.",IDC_STATIC,7,92,213,40
+    LTEXT           "This wizard sets up a basic project with default settings. ",IDC_STATIC,7,26,199,13
+    CONTROL         "Run the Project Editor when this wizard finishes.",IDC_RUNINIEDITOR,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,139,171,10
+    LTEXT           "Default Files",IDC_FILES,7,40,206,39
+END
+
+IDD_NEWINI_STEP3 DIALOGEX 0, 0, 235, 156
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "New Project Wizard - Step 3"
+FONT 8, "MS Shell Dlg", 400, 0, 0x0
+BEGIN
+    LTEXT           "The next step is to define a policy file.",IDC_STATIC,7,7,123,8
+    LTEXT           "The policy file is an XML file that will store policy definitions.  If you have an existing policy file, you can specify it below.  If not, just specify a path and filename to create, and Envision will create an empty policy file.",IDC_STATIC,7,25,213,38
+    LTEXT           "Hit the <Browse> button below to locate and existing policy file, or specify the path for a new file to create..",IDC_STATIC,9,70,209,23
+    EDITTEXT        IDC_FILE,7,106,221,14,ES_AUTOHSCROLL
+    LTEXT           "Policy File:",IDC_STATIC,7,96,34,8
+    PUSHBUTTON      "Browse...",IDC_BROWSE,178,124,50,14
+END
+
+IDD_SPATIALINDEX DIALOGEX 0, 0, 316, 159
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Create Spatial Index"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Create the Spatial Index",IDOK,153,138,102,14
+    PUSHBUTTON      "Cancel",IDCANCEL,259,138,50,14
+    LTEXT           "The IDU layer does not currently have an associated spatial index.  A spatial index is a file that contains information about spatial relationship in the coverage.  Envision uses this to speed up tasks that employ spatial operators.",IDC_STATIC,7,23,302,24
+    LTEXT           "No appropriate spatial index was found for the IDU coverage.",IDC_STATIC,7,7,302,14
+    LTEXT           "Envision can create a spatial index for this coverage.  Depending on the size of the coverage, this can take a substantial amount of time, often several hours.  However, it is highly recommended that you create this index.",IDC_STATIC,7,56,302,24
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,7,138,137,14
+    LTEXT           "You can specify the maximum distance represented in the spatial index.  Larger numbers allow the index to represent larger distances accurately.  Specify the maximum distance to be represented below.",IDC_STATIC,7,89,289,26
+    EDITTEXT        IDC_MAXDISTANCE,223,112,86,12,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Maximum Distance:",IDC_STATIC,159,114,62,8
+END
+
+IDD_INIPROCESSES DIALOGEX 0, 0, 400, 280
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Autonomous Processes...",-1,7,11,385,135
+    CONTROL         "",-1,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,7,383,1
+    PUSHBUTTON      "Browse...",IDC_BROWSEAPS,331,61,55,15
+    PUSHBUTTON      "Add",IDC_ADDAPS,24,125,51,14
+    PUSHBUTTON      "Remove",IDC_REMOVEAPS,78,125,52,14
+    LISTBOX         IDC_APS,14,25,123,96,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Label:",-1,144,32,20,8
+    EDITTEXT        IDC_LABEL,167,30,221,14,ES_AUTOHSCROLL
+    RTEXT           "Path:",-1,146,49,18,8
+    EDITTEXT        IDC_PATH,167,46,221,14,ES_AUTOHSCROLL
+    EDITTEXT        IDC_ID,168,63,39,14,ES_AUTOHSCROLL | ES_NUMBER
+    RTEXT           "ID:",-1,152,65,11,8
+    RTEXT           "Timing:",-1,141,82,24,8
+    CONTROL         "Pre-year",IDC_PREYEAR,"Button",BS_AUTORADIOBUTTON | WS_GROUP,169,82,44,10
+    CONTROL         "Post-year",IDC_POSTYEAR,"Button",BS_AUTORADIOBUTTON,225,82,47,10
+    CONTROL         "Does this process reserve a column in the IDU database?",IDC_USECOL,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,169,98,198,10
+    RTEXT           "Field Name:",IDC_LABELFIELD,275,111,38,8
+    EDITTEXT        IDC_FIELD,315,109,68,14,ES_AUTOHSCROLL
+    RTEXT           "Initialization String:",-1,143,129,62,8
+    EDITTEXT        IDC_INITINFO,207,127,178,14,ES_AUTOHSCROLL
+END
+
+IDD_HISTOGRAM DIALOGEX 0, 0, 557, 352
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Histogram Generation"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Expression to Evaluate:",IDC_STATIC,8,13,77,8
+    EDITTEXT        IDC_EXPR,7,24,167,14,ES_AUTOHSCROLL
+    LTEXT           "Available Fields",IDC_STATIC,7,52,50,8
+    LISTBOX         IDC_FIELDS,6,62,169,172,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Category Field (Optional):",IDC_STATIC,9,241,84,8
+    COMBOBOX        IDC_CATEGORIES,6,251,169,74,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Values:",IDC_STATIC,12,272,24,8
+    COMBOBOX        IDC_ATTR,40,270,134,55,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Number of bins to use:",IDC_STATIC,47,290,74,8
+    EDITTEXT        IDC_BINCOUNT,123,288,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,162,288,10,14
+    CONTROL         "Constrain to the following areas:",IDC_USEQUERY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,302,166,13
+    EDITTEXT        IDC_QUERY,7,316,165,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_PLACEHOLDER,"Static",SS_BLACKFRAME,184,7,366,299
+    LTEXT           "Mean:",IDC_STATIC,188,333,21,8
+    EDITTEXT        IDC_MEAN,211,331,41,14,ES_AUTOHSCROLL
+    LTEXT           "Area Wtd Mean:",IDC_STATIC,256,333,54,8
+    EDITTEXT        IDC_AREAWTMEAN,309,331,39,14,ES_AUTOHSCROLL
+    LTEXT           "Std Dev:",IDC_STATIC,359,334,29,8
+    EDITTEXT        IDC_STDDEV,390,331,38,14,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "Save as Xml...",IDC_SAVE,437,331,60,14
+    PUSHBUTTON      "Close",IDCANCEL,500,331,50,14
+    LTEXT           "No histogram available - no observations matching the specified criteria exist...",IDC_NOTEXT,241,80,254,8
+    PUSHBUTTON      "Update",IDC_BUTTON1,123,41,50,14
+    CONTROL         "Show Histogram",IDC_RADIO1,"Button",BS_AUTORADIOBUTTON | WS_GROUP,279,310,67,10
+    CONTROL         "Show Plot",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,355,310,47,10
+    LTEXT           "---",IDC_OBSERVATIONS,8,334,166,8
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,185,324,365,2
+END
+
+IDD_DELTAREPORT DIALOGEX 0, 0, 316, 184
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Delta List Summary Report"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,259,163,50,14
+    LTEXT           "Error Summary (not run yet)",IDC_STATIC,7,28,287,8
+    LTEXT           "Static",IDC_COUNT,7,7,137,8
+    LTEXT           "Static",IDC_MEMORY,176,7,125,8
+    CONTROL         "",IDC_ERRORLIST,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | LVS_NOSORTHEADER | WS_BORDER | WS_TABSTOP,7,38,302,120
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,7,163,164,14
+    PUSHBUTTON      "Check Errors",IDC_CHECKERRORS,174,163,57,14
+END
+
+IDD_LOAD DIALOGEX 0, 0, 267, 65
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Load Module"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,210,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,210,25,50,14
+    LTEXT           "Name:",IDC_STATIC,7,9,22,8
+    EDITTEXT        IDC_NAME,31,7,174,14,ES_AUTOHSCROLL
+    LTEXT           "Path:",IDC_STATIC,10,31,18,8
+    EDITTEXT        IDC_PATH,32,28,174,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...",IDC_BROWSE,157,44,50,14
+END
+
+IDD_POLICYOBJSCORES DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Scores and Criteria",IDC_STATIC,5,10,388,154
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,10,293,383,1
+    CONTROL         "",IDC_SCOREFRAME,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,13,42,373,100
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDVERT,8,4,355,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,5,5,388,1
+    LTEXT           "Indicate below the utility of this policy at addressing the specified goal (-3 to +3 scale ).  Criteria are spatial queries that determines where on the landscape the score is applicable.",IDC_STATIC,13,23,365,18
+    PUSHBUTTON      "&Add",IDC_ADD,229,145,57,14
+    PUSHBUTTON      "&Remove Current",IDC_REMOVE,290,145,74,14
+    GROUPBOX        "Modifiers",IDC_STATIC,5,169,388,118
+    CONTROL         "",IDC_MODFRAME,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,13,197,373,69
+    LTEXT           "Modifiers adjust the computed score for special circumstances or for specific scenarios.",IDC_STATIC,14,184,278,8
+    PUSHBUTTON      "A&dd",IDC_MODADD,226,269,60,14
+    PUSHBUTTON      "Remove &Current",IDC_MODREMOVE,290,269,74,14
+END
+
+IDD_POLQUERYBUILDER DIALOGEX 0, 0, 379, 196
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Query Builder"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,321,19,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,322,39,50,14
+    LTEXT           "Specify Query:",IDC_STATIC,10,7,49,8
+    EDITTEXT        IDC_QUERY,7,18,304,14,ES_AUTOHSCROLL
+    COMBOBOX        IDC_FIELDS,7,101,93,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Operator",IDC_STATIC,108,90,30,8
+    COMBOBOX        IDC_OPERATORS,104,101,44,80,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Value",IDC_STATIC,154,90,18,8
+    COMBOBOX        IDC_VALUES,152,101,169,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "static",IDC_DESCRIPTION,10,124,266,57,SS_SUNKEN
+    PUSHBUTTON      "&Add",IDC_ADD,325,100,46,14
+    PUSHBUTTON      "A&nd",IDC_AND,286,118,38,14
+    PUSHBUTTON      "O&r",IDC_OR,326,118,46,14
+    LTEXT           "&Field",IDC_STATIC,11,89,16,8
+    LTEXT           "Syntax: <Field1> <op> <Value1> {and|or} <Field2> <op> <Value2>...  Precedence can be enforced by including Field/Value pairs in parentheses.  Inline comments are enclosed in braces { }",IDC_STATIC,10,35,297,29
+    LTEXT           "Example: (Lulc_A = 3 {Agriculture} or Lulc_A = 4 {Forest}) and Area > 1000 {meters}",IDC_STATIC,11,66,311,18
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,7,83,363,1
+    PUSHBUTTON      "&Spatial Operators...",IDC_SPATIALOPS,285,135,87,14
+    PUSHBUTTON      "",IDC_QUERYVIEWER,8,185,8,7
+END
+
+IDD_SAVEXMLOPTIONS DIALOGEX 0, 0, 304, 135
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Save Xml Options"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "The policies for this session were loaded from an external file, not from the project (envx) file directly.  Do want to save any policy changes to an external file?",IDC_STATIC,7,7,282,28
+    CONTROL         "Don't save changes",IDC_NOSAVE,"Button",BS_AUTORADIOBUTTON | WS_GROUP,17,37,79,10
+    CONTROL         "Save to the Project (.envx) file",IDC_SAVEPRJ,"Button",BS_AUTORADIOBUTTON,17,53,115,10
+    CONTROL         "Save to an external file",IDC_SAVEEXTERNAL,"Button",BS_AUTORADIOBUTTON,17,69,91,10
+    EDITTEXT        IDC_FILE,28,82,212,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...",IDC_BROWSE,245,82,50,14
+    DEFPUSHBUTTON   "Continue Saving Project File",IDOK,172,114,123,14
+END
+
+IDD_AREASUMMARY DIALOGEX 0, 0, 414, 297
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Field Area Summary"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Update",IDOK,298,276,51,14
+    PUSHBUTTON      "Close",IDCANCEL,357,276,50,14
+    RTEXT           "Field:",IDC_STATIC,11,8,25,11
+    COMBOBOX        IDC_FIELDS,41,7,366,224,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Static",IDC_PLACEHOLDER,7,25,400,223,WS_BORDER
+    LTEXT           "Constraint to (Query):",IDC_STATIC,7,257,73,8
+    EDITTEXT        IDC_QUERY,84,256,323,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Save As...",IDC_SAVEAS,240,276,50,14
+END
+
+IDD_LINEDENSITY DIALOGEX 0, 0, 297, 205
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Populate Linear Feature Density"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Linear Feature Network",IDC_STATIC,7,7,283,72
+    LTEXT           "Linear Feature Layer to Compute Density From:",IDC_STATIC,19,23,154,8
+    COMBOBOX        IDC_TOLAYER,17,34,209,73,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&Browse...",IDC_BROWSE,232,33,50,14
+    CONTROL         "Restrict Linear Network using the folllowing query:",IDC_USETOQUERY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,56,177,10
+    EDITTEXT        IDC_TOQUERY,192,55,90,14,ES_AUTOHSCROLL,WS_EX_ACCEPTFILES
+    GROUPBOX        "IDU Coverage",IDC_STATIC,7,89,283,59
+    LTEXT           "Field in IDU Coverage to Populate:",IDC_STATIC,17,107,112,8
+    COMBOBOX        IDC_FIELD,129,104,153,58,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Restrict IDU's using the folllowing query:",IDC_USETHISQUERY,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,125,145,10
+    EDITTEXT        IDC_THISQUERY,157,123,125,14,ES_AUTOHSCROLL,WS_EX_ACCEPTFILES
+    LTEXT           "Radial Distance from IDU to include in Density Calculations:",IDC_STATIC,16,161,189,8
+    EDITTEXT        IDC_DISTANCE,209,159,41,14,ES_AUTOHSCROLL
+    LTEXT           "Static",IDC_UNITS,254,161,19,8
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",WS_BORDER,7,184,146,14
+    DEFPUSHBUTTON   "Populate Field",IDOK,161,184,74,14
+    PUSHBUTTON      "&Close",IDCANCEL,240,184,50,14
+END
+
+IDD_RASTERIZE DIALOGEX 0, 0, 316, 183
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Rasterize Layer"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,205,162,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,259,162,50,14
+    LTEXT           "Layer to Rasterize:",IDC_STATIC,7,17,62,8
+    COMBOBOX        IDC_LAYER,72,16,176,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Load...",IDC_LOAD,259,16,50,14
+    GROUPBOX        "Options ",IDC_STATIC,7,35,302,114
+    CONTROL         "8-bit",IDC_8BIT,"Button",BS_AUTORADIOBUTTON,22,52,31,10
+    CONTROL         "32-bit",IDC_RADIO2,"Button",BS_AUTORADIOBUTTON,61,52,35,10
+END
+
+IDD_SCENARIOGRID DIALOGEX 0, 0, 423, 279
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Cross-Scenario Setup Comparison"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,311,258,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,366,258,50,14
+    CONTROL         "",IDC_PLACEHOLDER,"Static",SS_BLACKFRAME,7,7,409,250
+END
+
+IDD_TEXT_TO_ID DIALOGEX 0, 0, 231, 321
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Extract Unique IDs from Text Field"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Target Database to populate",IDC_STATIC,7,7,94,8
+    COMBOBOX        IDC_LAYERS,7,16,207,63,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Specify below the text field to convert and the corresponding ID field to populate",IDC_STATIC,7,36,215,20
+    LTEXT           "Text Field to Convert:",IDC_STATIC,10,69,72,8
+    COMBOBOX        IDC_TEXTFIELD,84,67,129,97,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "ID Field to Populate:",IDC_STATIC,14,86,66,8
+    COMBOBOX        IDC_IDFIELD,84,85,129,97,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Mapping",IDC_STATIC,13,105,28,8
+    CONTROL         "",IDC_ATTR,"Static",SS_BLACKFRAME,12,117,203,148
+    DEFPUSHBUTTON   "&Extract IDs",IDOK,30,295,76,14
+    PUSHBUTTON      "Close",IDCANCEL,112,295,68,14
+    CONTROL         "Create Field Info for ID Field",IDC_CREATEFIELDINFO,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,271,107,10
+END
+
+IDD_INTERSECT DIALOGEX 0, 0, 427, 353
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Intersect Coverages"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Target Layer to Populate (typically, this is the IDU Coverage)",IDC_STATIC,7,14,197,8
+    COMBOBOX        IDC_TARGETLAYER,7,26,190,79,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Field in Target Layer to populate:",IDC_STATIC,225,28,108,8
+    COMBOBOX        IDC_TARGETFIELD,336,26,78,91,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Polygon Layer to Intersect with the Target Layer",IDC_STATIC,7,51,158,8
+    COMBOBOX        IDC_INTERSECTLAYER,7,65,177,66,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "...",IDC_BROWSE,186,65,16,14
+    LTEXT           "Field in Intersect Layer to merge into Target Layer:",IDC_STATIC,214,63,121,22
+    COMBOBOX        IDC_MERGEFIELD,339,62,78,111,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Constrain to the following areas (spatial query, leave blank for all)",IDC_STATIC,7,102,413,33
+    EDITTEXT        IDC_QUERY,13,116,341,14,ES_AUTOHSCROLL
+    GROUPBOX        "Populate Target Field using...",IDC_STATIC,7,146,413,50
+    CONTROL         "&Majority Rules",IDC_MAJORITY,"Button",BS_AUTORADIOBUTTON | WS_GROUP,19,163,61,10
+    CONTROL         "&Sum of the attributes",IDC_SUM,"Button",BS_AUTORADIOBUTTON,19,177,84,10
+    CONTROL         "&Average of the attributes",IDC_AVERAGE,"Button",BS_AUTORADIOBUTTON,137,163,98,10
+    CONTROL         "Create Percentage Fields (name xxx0, xxx1, ..., xxxN)",IDC_PERCENTFIELDS,
+                    "Button",BS_AUTORADIOBUTTON,137,177,194,10
+    GROUPBOX        "Rasterizer Specifications....",IDC_STATIC,7,204,413,76
+    LTEXT           "Grid size:",IDC_STATIC,14,225,30,8
+    EDITTEXT        IDC_GRIDSIZE,45,223,24,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "units",IDC_UNITS,72,225,85,8
+    LTEXT           "Required Memory:",IDC_MEMORY,15,242,216,8
+    LTEXT           "Status",IDC_STATUS,9,335,173,8
+    CONTROL         "",IDC_PROGRESS,"msctls_progress32",PBS_SMOOTH | WS_BORDER,195,332,109,14
+    DEFPUSHBUTTON   "Run",IDOK,316,332,50,14
+    PUSHBUTTON      "Close",IDCANCEL,370,332,50,14
+    PUSHBUTTON      "Builder",IDC_QUERYBUILDER,362,116,50,14
+    CONTROL         "Save Source Raster (BMP):",IDC_SAVESOURCE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,292,103,10
+    EDITTEXT        IDC_SOURCERASTERPATH,115,290,276,14,ES_AUTOHSCROLL
+    CONTROL         "Save Index Raster (BMP):",IDC_SAVEINDEX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,310,99,10
+    EDITTEXT        IDC_INDEXRASTERPATH,115,308,276,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "...",IDC_BROWSESOURCEBMP,397,290,16,14
+    PUSHBUTTON      "...",IDC_BROWSEINDEXBMP,397,307,16,14
+    PUSHBUTTON      "...",IDC_BROWSERNDX,399,221,16,14
+    CONTROL         "Save Index (RNDX) file after generating index",IDC_SAVERNDX,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,254,241,163,10
+    EDITTEXT        IDC_SOURCERASTERPATH2,251,221,146,14,ES_AUTOHSCROLL
+    CONTROL         "Use Index (RNDX) file:",IDC_USERNDX,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,163,223,85,10
+    LTEXT           "Rasterize in parts:  For large coverage at high resolution, break the map into the following parts: ",IDC_STATIC,16,261,312,8
+    EDITTEXT        IDC_ROWS,329,259,18,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "rows X",IDC_STATIC,352,261,22,8
+    EDITTEXT        IDC_COLS,376,259,18,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "cols",IDC_STATIC,397,261,13,8
+END
+
+IDD_POLICY_SCENARIOS DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LISTBOX         IDC_SCENARIOS,7,28,386,265,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Scenarios this Policy is used in",IDC_STATIC,7,15,96,8
+END
+
+IDD_CONSTRAINTS DIALOGEX 0, 0, 335, 206
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Constraints Manager"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,278,164,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,278,180,50,14
+    LTEXT           "Constraints...",IDC_STATIC,7,7,46,8
+    LISTBOX         IDC_CONSTRAINTS,7,18,264,176,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add",IDC_ADD,278,17,50,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,278,33,50,14
+    PUSHBUTTON      "Edit...",IDC_EDIT,278,50,50,14
+END
+
+IDD_SAVETO DIALOGEX 0, 0, 327, 106
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Save To..."
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,116,85,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,171,85,50,14
+    LTEXT           "You can save %s for this session only, or you can save these %s to disk to retain them for future runs.  Indicate below how you want to save these %s:",IDC_TEXT,7,7,313,18
+    CONTROL         "Save %s for this session",IDC_SAVE_THIS_SESSION,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,31,140,10
+    CONTROL         "Save %s to Disk",IDC_SAVE_TO_FILE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,7,46,141,10
+    LTEXT           "Location:",IDC_STATIC,19,60,30,8
+    EDITTEXT        IDC_PATH,52,58,210,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...",IDC_BROWSE,270,58,50,14
+END
+
+IDD_DELTAEXPORT DIALOGEX 0, 0, 376, 275
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Delta List Export"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Export",IDOK,262,254,50,14
+    PUSHBUTTON      "Close",IDCANCEL,316,254,50,14
+    LTEXT           "Run to Export",IDC_STATIC,7,8,46,8
+    LISTBOX         IDC_RUNS,7,19,61,249,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Specify fields to include",IDC_STATIC,85,23,76,8
+    LISTBOX         IDC_FIELDS,83,34,124,189,LBS_SORT | LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "&All",IDC_ALL,95,227,47,14
+    PUSHBUTTON      "&None",IDC_NONE,151,227,50,14
+    GROUPBOX        "Options",IDC_STATIC,77,7,292,241
+    CONTROL         "Selected IDU's only",IDC_SELECTEDONLY,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,219,36,77,10
+    LTEXT           "Start Year (0 for start of run):",IDC_STATIC,220,94,98,8
+    EDITTEXT        IDC_STARTYEAR,323,92,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "End Year (-1 for end of run):",IDC_STATIC,220,114,93,8
+    EDITTEXT        IDC_ENDYEAR,323,111,40,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "&Include Duplicate Deltas",IDC_INCLUDEDUPLICATES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,219,52,93,10
+    CONTROL         "Limit Dates to the Range specified below",IDC_SELECTEDDATES,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,219,77,145,10
+    LTEXT           "For the selected field, limit to deltas with the following values (specify a comma-separated list):",IDC_STATIC,219,138,150,27
+    CONTROL         "Starting Value:",IDC_USESTARTVALUE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,165,61,15
+    EDITTEXT        IDC_STARTVALUES,287,165,74,14,ES_AUTOHSCROLL
+    CONTROL         "Ending Value:",IDC_USEENDVALUE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,222,183,61,15
+    EDITTEXT        IDC_ENDVALUES,287,183,74,14,ES_AUTOHSCROLL
+    LTEXT           "IDU ID Field (leave blank for offset):",IDC_STATIC,219,215,118,8
+    COMBOBOX        IDC_IDUFIELD,253,225,107,30,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+END
+
+IDD_CHANGETYPE DIALOGEX 0, 0, 264, 134
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Change Database Column Data Type"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Close",IDCANCEL,211,113,50,14
+    RTEXT           "&Field:",IDC_STATIC,18,31,18,8
+    RTEXT           "New Field &Type:",IDC_STATIC,10,62,52,8
+    COMBOBOX        IDC_TYPE,65,59,113,49,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Width (String fields only):",IDC_STATIC,40,80,82,8
+    EDITTEXT        IDC_WIDTH,130,78,48,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Change",IDOK,210,58,50,14
+    LTEXT           "Layer: ",IDC_STATIC,15,13,24,8
+    COMBOBOX        IDC_LAYERS,39,10,219,101,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    COMBOBOX        IDC_FIELD,40,27,219,101,CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Static",IDC_CURRENTTYPE,42,46,218,8
+    RTEXT           "Format:",IDC_STATIC,64,115,26,8
+    EDITTEXT        IDC_FORMAT,91,113,46,14,ES_AUTOHSCROLL
+    CONTROL         "Enable Format Control (Floating point to String only)",IDC_USEFORMAT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,39,100,183,10
+END
+
+IDD_INIMETAGOALS DIALOGEX 0, 0, 400, 280
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Add",IDC_ADD,23,254,51,14
+    PUSHBUTTON      "Remove",IDC_REMOVE,78,254,52,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,9,7,383,1
+    LISTBOX         IDC_METAGOALS,14,87,123,163,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Name:",IDC_STATIC,144,91,22,8
+    EDITTEXT        IDC_LABEL,167,88,221,14,ES_AUTOHSCROLL
+    CONTROL         "Use in Actor Self-interested decision-making",IDC_SELFISH,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,169,112,156,10
+    CONTROL         "Use in Actor Altruistic decision-making",IDC_ALTRUISTIC,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,169,168,136,10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,7,68,386,1
+    GROUPBOX        "Metagoals used in Actor Decision-making",IDC_STATIC,7,11,386,262
+    LTEXT           "Actor weights defined in this dimension will be compared to Policy Intentions to inform policy selection.  Corresponding policy intentions must be defined for each policy.",IDC_STATIC,180,127,188,30
+    LTEXT           "Actor weights defined in this dimension will be compared to landscape feedbacks reporting scarcity to inform policy selection.  There must be a corresponding evaluative model available.",IDC_STATIC,180,183,188,38
+    LTEXT           "Model Corresponding to this Metagoal:",IDC_STATICMODEL,180,223,124,8
+    COMBOBOX        IDC_MODELS,180,234,171,82,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Metagoals",IDC_STATIC,15,76,34,8
+    LTEXT           "Metagoals are used to define dimensions of actor decision-making.  There are two fundamental types of metagoals: 1) those reflecting actor self-interest, their tendency to select policies reponsive to these goals, and ",IDC_STATIC,13,31,370,20
+    LTEXT           "2) those reflecting actor altruism, their tendency to select policies response to scarcity in landscape feedbacks.",IDC_STATIC,14,48,370,20
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ | SS_SUNKEN,10,26,381,1
+END
+
+IDD_RECLASS DIALOGEX 0, 0, 191, 258
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Reclass - Reclassify data"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Reclassify",IDOK,121,213,64,17
+    PUSHBUTTON      "Close",IDCANCEL,121,234,64,17
+    LTEXT           "Layer to reclass:",IDC_STATIC,8,8,54,8
+    COMBOBOX        IDC_LAYER,65,7,119,98,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Field to reclass:",IDC_STATIC,10,29,51,8
+    COMBOBOX        IDC_FIELD,64,27,120,192,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Reclass Values - specify as <Original Value>,<Reclass Value> pairs, one pair per line.  Values in a pair should be separated by a comma. Example:  2,7 replaces all '2's in the field with '7'.",IDC_STATIC,11,52,165,37
+    PUSHBUTTON      "Extract Values",IDC_EXTRACT,121,119,64,17
+    EDITTEXT        IDC_RECLASSVALUES,7,91,108,160,ES_MULTILINE | ES_AUTOVSCROLL | ES_AUTOHSCROLL | ES_WANTRETURN
+    PUSHBUTTON      "Load From File...",IDC_LOADFROMFILE,121,140,64,17
+END
+
+IDD_SAVEPROJECT DIALOGEX 0, 0, 316, 296
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Save Project (Envx) file"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Project File (.envx) location:",IDC_STATIC,17,14,92,8
+    EDITTEXT        IDC_ENVXFILE,15,26,240,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "&Browse...",IDC_BROWSEENVX,259,26,50,14
+    GROUPBOX        "Land Use/Land Covery Hierarchy Information",IDC_STATIC,7,55,302,65
+    CONTROL         "Store in Project File",IDC_LULC_USEENVX,"Button",BS_AUTORADIOBUTTON | WS_GROUP,19,67,78,10
+    CONTROL         "Store in External XML file",IDC_LULC_USEXML,"Button",BS_AUTORADIOBUTTON,19,82,95,10
+    EDITTEXT        IDC_LULCFILE,28,95,225,14,ES_AUTOHSCROLL | WS_GROUP
+    PUSHBUTTON      "&Browse...",IDC_BROWSELULC,256,95,50,14
+    GROUPBOX        "Policy Information",IDC_STATIC,7,126,302,65
+    CONTROL         "Store in Project File",IDC_POLICY_USEENVX,"Button",BS_AUTORADIOBUTTON | WS_GROUP,19,141,78,10
+    CONTROL         "Store in External XML file",IDC_POLICY_USEXML,"Button",BS_AUTORADIOBUTTON,19,155,95,10
+    EDITTEXT        IDC_POLICYFILE,28,168,224,14,ES_AUTOHSCROLL | WS_GROUP
+    PUSHBUTTON      "&Browse...",IDC_BROWSEPOLICY,255,168,50,14
+    GROUPBOX        "Scenario Information",IDC_STATIC,7,197,302,65
+    CONTROL         "Store in Project File",IDC_SCENARIO_USEENVX,"Button",BS_AUTORADIOBUTTON,19,215,78,10
+    CONTROL         "Store in External XML file",IDC_SCENARIO_USEXML,"Button",BS_AUTORADIOBUTTON,19,229,95,10
+    EDITTEXT        IDC_SCENARIOFILE,28,242,224,14,ES_AUTOHSCROLL | WS_GROUP
+    PUSHBUTTON      "&Browse...",IDC_BROWSESCENARIO,255,242,50,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,270,302,1
+    DEFPUSHBUTTON   "OK",IDOK,205,275,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,259,275,50,14
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,47,302,1
+    CONTROL         "Don't overwrite when saving Project File",IDC_LULC_NOSAVE,
+                    "Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,150,82,145,10
+    CONTROL         "Don't overwrite when saving Project File",IDC_POLICY_NOSAVE,
+                    "Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,150,155,145,10
+    CONTROL         "Don't overwrite when saving Project File",IDC_SCENARIO_NOSAVE,
+                    "Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,150,229,145,10
+END
+
+IDD_POLICYCONSTRAINTS DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,5,0,383,1
+    GROUPBOX        "",IDC_STATIC,7,8,381,286
+    LTEXT           "Constraints provide a mechanism for limiting the adoption and application of policies based on global constraints. ",IDC_STATIC,13,16,371,11
+    LTEXT           "Constraints for this Policy are defined below.  Each Policy Constraint must reference a Global Constraint.",IDC_STATIC,13,28,368,9
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,11,39,374,1
+    LTEXT           "Policy Constraints",IDC_GC_LABEL2,14,43,58,8
+    LISTBOX         IDC_POLICYCONSTRAINTS,13,55,268,38,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add New Policy Constraint",IDC_ADDPOLICYCONSTRAINT,287,54,95,17,BS_MULTILINE
+    PUSHBUTTON      "Delete Policy Constraint",IDC_DELETEPOLICYCONSTRAINT,287,73,94,16,BS_MULTILINE
+    LTEXT           "Associated Global Constraint:",IDC_GC_LABEL,13,102,95,8
+    COMBOBOX        IDC_GCCOMBO,112,100,170,84,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Edit Global Constraints...",IDC_ADDGLOBALCONSTRAINT,288,98,94,17,BS_MULTILINE
+    GROUPBOX        "Lookup Table Information (Used only if cost information is defined in an external table)",IDC_STATIC,15,122,364,85
+    LTEXT           "Lookup Table Query String:  The lookup string should be of the form: ",IDC_STATIC,32,136,249,11
+    LTEXT           "<table file name>|<field1>=<value1>;<field2>=<value2>... ",IDC_STATIC,51,146,259,11
+    LTEXT           "Note that up to four field/value pairs can be specified, separated by semicolons)",IDC_STATIC,31,157,271,14
+    LTEXT           "If a lookup table is not used, values for initial costs and mainenance costs can be specifed directly below.",IDC_STATIC,29,171,342,12
+    EDITTEXT        IDC_LOOKUPTABLE,25,185,348,14,ES_AUTOHSCROLL
+    GROUPBOX        """Costs"" ",IDC_STATIC,15,211,363,50
+    RTEXT           "Initial Cost:",IDC_INITCOST_LABEL,20,227,41,8
+    EDITTEXT        IDC_INITIALCOST,65,224,42,14,ES_AUTOHSCROLL
+    RTEXT           "Annual Maintenance Cost:",IDC_MAINTENANCECOST_LABEL,112,227,91,8
+    EDITTEXT        IDC_MAINTENANCECOST,206,225,40,14,ES_AUTOHSCROLL
+    RTEXT           "Duration:",IDC_DURATION_LABEL,270,229,35,8
+    EDITTEXT        IDC_DURATION,309,226,33,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "years",IDC_YEAR_LABEL,347,228,19,8
+    LTEXT           "Cost Basis:",IDC_STATIC,27,247,36,8
+    CONTROL         "Value is per Unit Area",IDC_UNIT_AREA,"Button",BS_AUTORADIOBUTTON | WS_GROUP,75,246,85,10
+    CONTROL         "Value is an absolute quantity",IDC_ABSOLUTE,"Button",BS_AUTORADIOBUTTON,164,246,108,10
+    LTEXT           "For Resource-Limit global constraints, Policy Constraints define an initial cost, and optionally, an annual maintenance cost and duration, associated with a policy application.",IDC_STATIC,17,263,365,18
+    LTEXT           "For Maximum Area and Maximum Application Count global constraints, cost information is not required.",IDC_STATIC,17,282,372,10
+END
+
+IDD_OUTCOMECONSTRAINTS DIALOGEX 0, 0, 400, 300
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,5,0,383,1
+    LTEXT           "Constraints provide a mechanism for limiting the adoption and application of policies based on global constraints (applied cummulatively across potentially multiple policies). ",IDC_STATIC,15,7,371,17
+    LTEXT           "Global Constraints - these specify constraints that can by applied to sets of 1 or more policies.",IDC_STATIC,13,34,302,8,SS_NOPREFIX
+    LISTBOX         IDC_GLOBALCONSTRAINTS,11,45,201,64,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add New Global Constraint",IDC_ADDGC,11,112,99,13
+    PUSHBUTTON      "Delete Global Constraint",IDC_DELETEGC,114,112,99,13
+    GROUPBOX        "Type",IDC_STATIC,223,68,157,55
+    CONTROL         "Resource Limit",IDC_RESOURCE_LIMIT,"Button",BS_AUTORADIOBUTTON | WS_GROUP,234,82,62,10
+    CONTROL         "Maximum Area",IDC_MAX_AREA,"Button",BS_AUTORADIOBUTTON,234,96,63,10
+    CONTROL         "Maximum Application Count",IDC_MAX_COUNT,"Button",BS_AUTORADIOBUTTON,234,109,103,10
+    RTEXT           "Maximum Annual Value:",IDC_MAXVALUE_LABEL,217,55,91,8
+    EDITTEXT        IDC_MAXANNUALVALUE,312,53,68,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,10,129,376,1
+    LTEXT           "Constraints for this Outcome are defined below.  Each Outcome Constraint must reference one of the Global Constraints defined above.",IDC_STATIC,14,134,368,19
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,11,154,374,1
+    LISTBOX         IDC_POLICYCONSTRAINTS,11,162,201,59,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add New Outcome Constraint",IDC_ADDPOLICYCONSTRAINT,11,224,99,13
+    PUSHBUTTON      "Delete Outcome Constraint",IDC_DELETEPOLICYCONSTRAINT,113,224,99,13
+    LTEXT           "Global Constraint associated with this outcome",IDC_GC_LABEL,228,163,150,8
+    COMBOBOX        IDC_GCCOMBO,225,173,157,84,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Initial Cost:",IDC_INITCOST_LABEL,221,192,91,8
+    EDITTEXT        IDC_INITIALCOST,316,190,63,14,ES_AUTOHSCROLL
+    RTEXT           "Annual Maintenance Cost:",IDC_MAINTENANCECOST_LABEL,222,209,91,8
+    EDITTEXT        IDC_MAINTENANCECOST,316,206,63,14,ES_AUTOHSCROLL
+    RTEXT           "Maintenance Cost Duration:",IDC_DURATION_LABEL,222,225,91,8
+    EDITTEXT        IDC_DURATION,316,222,44,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "years",IDC_YEAR_LABEL,362,224,19,8
+    GROUPBOX        """Cost"" Basis",IDC_STATIC,223,247,157,42
+    CONTROL         "Value is per Unit Area",IDC_UNIT_AREA,"Button",BS_AUTORADIOBUTTON | WS_GROUP,233,262,85,10
+    CONTROL         "Value is an absolute quantity",IDC_ABSOLUTE,"Button",BS_AUTORADIOBUTTON,233,275,108,10
+    GROUPBOX        "",IDC_STATIC,7,27,381,267
+    LTEXT           "For Resource-Limit global constraints, Outcome Constraints define an initial cost, and optionally, an annual maintenance cost and duration, associated with an outcome application",IDC_STATIC,13,242,203,26
+    LTEXT           "For Maximum Area and Maximum Application Count global constraints, cost information is not required.",IDC_STATIC,12,272,204,16
+END
+
+IDD_GLOBALCONSTRAINTS DIALOGEX 0, 0, 401, 143
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+CAPTION "Global Constraints"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Constraints provide a mechanism for limiting the adoption and application of policies based on global constraints. ",-1,15,7,371,11
+    GROUPBOX        "",-1,7,19,381,100
+    LTEXT           "Global Constraints - these specify constraints that can by applied to sets of 1 or more policies.",-1,13,26,302,8,SS_NOPREFIX
+    LISTBOX         IDC_GLOBALCONSTRAINTS,11,37,201,54,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add New Global Constraint",IDC_ADDGC,11,95,99,15
+    PUSHBUTTON      "Delete Global Constraint",IDC_DELETEGC,114,95,99,15
+    RTEXT           "Maximum Annual Value:",IDC_MAXVALUE_LABEL,217,42,91,8
+    EDITTEXT        IDC_MAXANNUALVALUE,312,40,68,14,ES_AUTOHSCROLL
+    GROUPBOX        "Type",-1,223,55,157,53
+    CONTROL         "Resource Limit",IDC_RESOURCE_LIMIT,"Button",BS_AUTORADIOBUTTON | WS_GROUP,234,69,62,10
+    CONTROL         "Maximum Area",IDC_MAX_AREA,"Button",BS_AUTORADIOBUTTON,234,82,63,10
+    CONTROL         "Maximum Application Count",IDC_MAX_COUNT,"Button",BS_AUTORADIOBUTTON,234,94,103,10
+    DEFPUSHBUTTON   "OK",IDOK,283,124,50,14
+    DEFPUSHBUTTON   "Cancel",IDOK3,339,124,50,14
+END
+
+IDD_DELTAVIEWER DIALOGEX 0, 0, 480, 274
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+CAPTION "Delta List Viewer"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Run",IDC_STATIC,9,8,14,8
+    LISTBOX         IDC_RUNS,7,18,55,91,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Selected IDUs: n",IDC_IDUCOUNT,1,113,65,11
+    PUSHBUTTON      "Change Selection",IDC_SELECTIDUBTN,1,128,66,14
+    PUSHBUTTON      "Summary Report",IDC_SUMMARY,1,143,66,14
+    CONTROL         "Selected IDUs Only",IDC_SELIDUONLY,"Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,4,159,60,15
+    CONTROL         "&Policies",IDC_POLICIES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,174,39,10
+    CONTROL         "&LULC",IDC_LULC,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,186,32,10
+    CONTROL         "&Eval Models",IDC_EVALMODEL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,198,53,10
+    CONTROL         "&AutoProcesses",IDC_AUTOPROCESS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,210,59,10
+    CONTROL         "&Other",IDC_OTHER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,4,222,35,10
+    CONTROL         "",IDC_LISTVIEW,"SysListView32",LVS_REPORT | LVS_SINGLESEL | LVS_ALIGNLEFT | LVS_OWNERDATA | WS_BORDER | WS_TABSTOP,68,7,405,267,WS_EX_CLIENTEDGE
+    DEFPUSHBUTTON   "OK",IDOK,7,259,50,14
+END
+
+IDD_VIDEORECORDER DIALOGEX 0, 0, 357, 228
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Video Recording Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Available Recordable Windows",IDC_STATIC,7,8,98,8
+    LISTBOX         IDC_WINDOWS,7,43,143,178,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Recorder Properties",IDC_STATIC,161,15,189,189
+    RTEXT           "Frame rate: ",IDC_FRAMERATELABEL,181,37,41,8
+    EDITTEXT        IDC_FRAMERATE,223,35,26,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN1,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,246,35,10,14
+    RTEXT           "Capture Quality: ",IDC_CAPTUREQUALITYLABEL,166,57,56,8
+    EDITTEXT        IDC_QUALITY,223,55,26,14,ES_AUTOHSCROLL | ES_NUMBER
+    CONTROL         "",IDC_SPIN2,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,245,55,10,14
+    CONTROL         "Capture a frame at the specified interval:",IDC_CAPTUREINTERVAL,
+                    "Button",BS_AUTOCHECKBOX | BS_MULTILINE | WS_TABSTOP,168,88,149,13
+    EDITTEXT        IDC_INTERVAL,201,103,38,14,ES_AUTOHSCROLL
+    LTEXT           "milliseconds",IDC_MILLISECONDSLABEL,243,105,38,8
+    CONTROL         "Capture a frame whenever the window is updated",IDC_ONUPDATE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,167,123,176,10
+    DEFPUSHBUTTON   "Close",IDOK,300,207,50,14
+    CONTROL         "",IDC_PATH,"MfcEditBrowse",WS_BORDER | WS_TABSTOP | 0x80,166,180,177,14
+    LTEXT           "Path  for captured AVI file",IDC_PATHLABEL,168,170,84,8
+    LTEXT           "frame/second",IDC_SECONDSLABEL,258,37,45,8
+    LTEXT           "percent",IDC_PERCENTLABEL,259,57,26,8
+    CONTROL         "Let the application manage capturing frames",IDC_APPLICATION,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,168,145,182,10
+END
+
+IDD_CONVERTCOVERAGE DIALOGEX 0, 0, 316, 269
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Convert Coverage"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Import",IDC_STATIC,7,7,302,104
+    CONTROL         "Import Hexgrid Polygons from points",IDC_HEXFROMPOINTS,
+                    "Button",BS_AUTORADIOBUTTON | WS_GROUP,19,24,133,10
+    CONTROL         "Generate Point CSV from polygon Centroids",IDC_CENTROIDS_CSV,
+                    "Button",BS_AUTORADIOBUTTON,19,181,155,10
+    CONTROL         "Generate Voroini Polygons",IDC_VOROINI,"Button",BS_AUTORADIOBUTTON,19,203,100,10
+    LTEXT           "Input CSV file with hex centerpoints:",IDC_LABEL_HEXCSVFILE,38,39,118,8
+    EDITTEXT        IDC_HEXCSV_INPUT,161,37,96,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse...",IDC_BROWSEHEXCSV,261,37,43,14
+    LTEXT           "X Column:",IDC_LABEL_XCOL,37,59,33,8
+    COMBOBOX        IDC_XCOL,70,57,64,131,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Y Column:",IDC_LABEL_YCOL,142,60,33,8
+    COMBOBOX        IDC_YCOL,176,58,65,132,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Spacing:",IDC_LABEL_RADIUS,248,59,28,8
+    EDITTEXT        IDC_HEXRADIUS,276,57,29,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,16,77,283,1
+    LTEXT           "Input Layer: ",IDC_STATIC,20,143,43,8
+    COMBOBOX        IDC_LAYERS,65,140,193,69,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Browse...",IDC_BROWSE,263,139,42,14
+    CONTROL         "Copy layer data to the Output File",IDC_COPYDATA,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,65,156,126,10
+    CONTROL         "Add Output Layer to Map",IDC_ADDTOMAP,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,200,156,97,10
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,17,175,283,1
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,17,197,283,1
+    DEFPUSHBUTTON   "OK",IDOK,205,248,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,259,248,50,14
+    GROUPBOX        "Export",IDC_STATIC,7,125,302,120
+END
+
+IDD_UPDATE DIALOGEX 0, 0, 325, 217
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Envision Update"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Get the Update",IDOK,174,62,70,18
+    PUSHBUTTON      "Not Now...",IDCANCEL,246,62,72,17
+    LTEXT           "An update to Envision is available.  ",IDC_UPDATETEXT,9,10,294,19
+    LTEXT           "Your Version...",IDC_VERSION,10,32,300,24
+    CONTROL         "Don't automatically check for updates.  (You can re-enable this in your Envision 'Settings')",IDC_DISABLE,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,95,302,10
+    LTEXT           "Installed Study Areas",IDC_STATIC,7,116,70,8
+    CONTROL         "",IDC_STUDYAREAS,"SysListView32",LVS_REPORT | LVS_ALIGNLEFT | WS_BORDER | WS_TABSTOP,7,126,311,84
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,86,311,2
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDHORZ,7,110,311,2
+END
+
+IDD_SENSITIVITY DIALOGEX 0, 0, 447, 365
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Sensitivity Analysis Settings"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Run",IDOK,390,19,50,14
+    PUSHBUTTON      "Close",IDCANCEL,390,36,50,14
+    GROUPBOX        "Sensitivity Analysis Settings",IDC_STATIC,6,11,377,92
+    LTEXT           "Default Perturbation (percent): ",IDC_STATIC,16,33,103,8
+    EDITTEXT        IDC_PERTURBATION,119,30,18,14,ES_AUTOHSCROLL
+    LTEXT           "Output File:",IDC_STATIC,36,57,39,8
+    CONTROL         "",IDC_OUTPUT,"MfcEditBrowse",WS_BORDER | WS_TABSTOP | 0x80,78,54,296,14
+    GROUPBOX        "Sensitivity Variables to Include",IDC_STATIC,6,113,434,245
+    LISTBOX         IDC_VARS,16,142,414,96,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Policies",IDC_STATIC,18,246,24,8
+    LISTBOX         IDC_POLICIES,15,256,416,96,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Baseline Scenario:",IDC_STATIC,17,80,59,8
+    COMBOBOX        IDC_SCENARIOS,79,79,294,82,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Model Inputs",IDC_STATIC,18,132,42,8
+    CONTROL         "Include Interactions between Inputs",IDC_INTERACTIONS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,151,33,133,10
+END
+
+IDD_BASEMAP DIALOGEX 0, 0, 319, 296
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Basemap Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Basemap Source:",IDC_STATIC,12,13,56,8
+    CONTROL         "From Local Disk:",IDC_USELOCAL,"Button",BS_AUTORADIOBUTTON,17,38,65,10
+    CONTROL         "From Web Map Server:",IDC_USEWMS,"Button",BS_AUTORADIOBUTTON,16,110,90,10
+    GROUPBOX        "",IDC_STATIC,6,24,303,53
+    EDITTEXT        IDC_LOCALPATH,87,35,214,14,ES_AUTOHSCROLL
+    PUSHBUTTON      "Browse Local Disk",IDC_BROWSE,195,54,105,14
+    GROUPBOX        "",IDC_STATIC,5,91,304,181
+    EDITTEXT        IDC_WMSPATH,109,108,190,14,ES_AUTOHSCROLL
+    LTEXT           "Web Map Servers:",IDC_STATIC,30,142,60,8
+    LISTBOX         IDC_WMSLIST,27,153,272,40,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add Web Map Server...",IDC_ADDWMS,197,196,101,14
+    LTEXT           "Available Layers:",IDC_STATIC,29,215,56,8
+    LISTBOX         IDC_WMSLAYERS,27,226,271,40,LBS_SORT | LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,192,280,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,248,280,50,14
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 5,0,0,1
+ PRODUCTVERSION 5,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904b0"
+        BEGIN
+            VALUE "FileDescription", "ENVISION"
+            VALUE "FileVersion", "4, 0, 0, 1"
+            VALUE "InternalName", "ENVISION"
+            VALUE "LegalCopyright", "Copyright (C) 2007"
+            VALUE "OriginalFilename", "ENVISION.EXE"
+            VALUE "ProductName", "ENVISION Application"
+            VALUE "ProductVersion", "5, 0, 0, 1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1200
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog Info
+//
+
+IDD_FIELDINFO DLGINIT
+BEGIN
+    IDC_COLORS, 0x403, 6, 0
+0x694d, 0x6578, 0x0064, 
+    IDC_COLORS, 0x403, 4, 0
+0x6552, 0x0064, 
+    IDC_COLORS, 0x403, 6, 0
+0x7247, 0x6565, 0x006e, 
+    IDC_COLORS, 0x403, 5, 0
+0x6c42, 0x6575, "\000" 
+    IDC_COLORS, 0x403, 5, 0
+0x7247, 0x7961, "\000" 
+    IDC_COLORS, 0x403, 13, 0
+0x6953, 0x676e, 0x656c, 0x4320, 0x6c6f, 0x726f, "\000" 
+    IDC_COLORS, 0x403, 12, 0
+0x7254, 0x6e61, 0x7073, 0x7261, 0x6e65, 0x0074, 
+    IDC_COLORS, 0x403, 11, 0
+0x6c42, 0x6575, 0x472d, 0x6572, 0x6e65, "\000" 
+    IDC_COLORS, 0x403, 9, 0
+0x6c42, 0x6575, 0x522d, 0x6465, "\000" 
+    IDC_COLORS, 0x403, 10, 0
+0x6552, 0x2d64, 0x7247, 0x6565, 0x006e, 
+    IDC_COLORS, 0x403, 15, 0
+0x6552, 0x2064, 0x4928, 0x766e, 0x7265, 0x6574, 0x2964, "\000" 
+    IDC_COLORS, 0x403, 16, 0
+0x7247, 0x6565, 0x286e, 0x6e49, 0x6576, 0x7472, 0x6465, 0x0029, 
+    IDC_COLORS, 0x403, 15, 0
+0x6c42, 0x6575, 0x4928, 0x766e, 0x7265, 0x6574, 0x2964, "\000" 
+    IDC_COLORS, 0x403, 15, 0
+0x7247, 0x7961, 0x4928, 0x766e, 0x7265, 0x6574, 0x2964, "\000" 
+    0
+END
+
+IDD_INISETTINGS DLGINIT
+BEGIN
+    IDC_MAPUNITS, 0x403, 7, 0
+0x656d, 0x6574, 0x7372, "\000" 
+    IDC_MAPUNITS, 0x403, 5, 0
+0x6566, 0x7465, "\000" 
+    IDC_MAPUNITS, 0x403, 14, 0
+0x6f6e, 0x2074, 0x7073, 0x6365, 0x6669, 0x6569, 0x0064, 
+    0
+END
+
+IDD_LULCEDITOR DLGINIT
+BEGIN
+    IDC_MFCBUTTON1, 0x37c, 369, 0
+0x4d3c, 0x4346, 0x7542, 0x7474, 0x6e6f, 0x535f, 0x7974, 0x656c, 0x343e, 
+0x2f3c, 0x464d, 0x4243, 0x7475, 0x6f74, 0x5f6e, 0x7453, 0x6c79, 0x3e65, 
+0x4d3c, 0x4346, 0x7542, 0x7474, 0x6e6f, 0x415f, 0x7475, 0x736f, 0x7a69, 
+0x3e65, 0x4146, 0x534c, 0x3c45, 0x4d2f, 0x4346, 0x7542, 0x7474, 0x6e6f, 
+0x415f, 0x7475, 0x736f, 0x7a69, 0x3e65, 0x4d3c, 0x4346, 0x7542, 0x7474, 
+0x6e6f, 0x545f, 0x6f6f, 0x746c, 0x7069, 0x3c3e, 0x4d2f, 0x4346, 0x7542, 
+0x7474, 0x6e6f, 0x545f, 0x6f6f, 0x746c, 0x7069, 0x3c3e, 0x464d, 0x4243, 
+0x7475, 0x6f74, 0x5f6e, 0x7546, 0x6c6c, 0x6554, 0x7478, 0x6f54, 0x6c6f, 
+0x543e, 0x5552, 0x3c45, 0x4d2f, 0x4346, 0x7542, 0x7474, 0x6e6f, 0x465f, 
+0x6c75, 0x546c, 0x7865, 0x5474, 0x6f6f, 0x3e6c, 0x4d3c, 0x4346, 0x7542, 
+0x7474, 0x6e6f, 0x435f, 0x7275, 0x6f73, 0x5472, 0x7079, 0x3e65, 0x3131, 
+0x2f3c, 0x464d, 0x4243, 0x7475, 0x6f74, 0x5f6e, 0x7543, 0x7372, 0x726f, 
+0x7954, 0x6570, 0x3c3e, 0x464d, 0x4243, 0x7475, 0x6f74, 0x5f6e, 0x6d49, 
+0x6761, 0x5465, 0x7079, 0x3e65, 0x3c38, 0x4d2f, 0x4346, 0x7542, 0x7474, 
+0x6e6f, 0x495f, 0x616d, 0x6567, 0x7954, 0x6570, 0x3c3e, 0x464d, 0x4243, 
+0x7475, 0x6f74, 0x5f6e, 0x6d49, 0x6761, 0x4f65, 0x546e, 0x706f, 0x463e, 
+0x4c41, 0x4553, 0x2f3c, 0x464d, 0x4243, 0x7475, 0x6f74, 0x5f6e, 0x6d49, 
+0x6761, 0x4f65, 0x546e, 0x706f, 0x3c3e, 0x464d, 0x4243, 0x7475, 0x6f74, 
+0x5f6e, 0x6d49, 0x6761, 0x4f65, 0x526e, 0x6769, 0x7468, 0x463e, 0x4c41, 
+0x4553, 0x2f3c, 0x464d, 0x4243, 0x7475, 0x6f74, 0x5f6e, 0x6d49, 0x6761, 
+0x4f65, 0x526e, 0x6769, 0x7468, "\076" 
+    0
+END
+
+IDD_VIDEORECORDER DLGINIT
+BEGIN
+    IDC_PATH, 0x37c, 42, 0
+0x4d3c, 0x4346, 0x6445, 0x7469, 0x7242, 0x776f, 0x6573, 0x4d5f, 0x646f, 
+0x3e65, 0x3c31, 0x4d2f, 0x4346, 0x6445, 0x7469, 0x7242, 0x776f, 0x6573, 
+0x4d5f, 0x646f, 0x3e65, 
+    0
+END
+
+IDD_SENSITIVITY DLGINIT
+BEGIN
+    IDC_OUTPUT, 0x37c, 42, 0
+0x4d3c, 0x4346, 0x6445, 0x7469, 0x7242, 0x776f, 0x6573, 0x4d5f, 0x646f, 
+0x3e65, 0x3c31, 0x4d2f, 0x4346, 0x6445, 0x7469, 0x7242, 0x776f, 0x6573, 
+0x4d5f, 0x646f, 0x3e65, 
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_ABOUTBOX, DIALOG
+    BEGIN
+    END
+
+    IDD_RUN, DIALOG
+    BEGIN
+    END
+
+    IDD_POLICYRESULTS, DIALOG
+    BEGIN
+    END
+
+    IDD_RUNSETUP, DIALOG
+    BEGIN
+    END
+
+    IDD_ACTOR, DIALOG
+    BEGIN
+    END
+
+    IDD_POLICYBASIC, DIALOG
+    BEGIN
+    END
+
+    IDD_POLICYSCORES, DIALOG
+    BEGIN
+    END
+
+    IDD_PPVEGDATA, DIALOG
+    BEGIN
+    END
+
+    IDD_RUNDATA, DIALOG
+    BEGIN
+    END
+
+    IDD_RUNMETAGOALS, DIALOG
+    BEGIN
+    END
+
+    IDD_POLICYACTORS, DIALOG
+    BEGIN
+    END
+
+    IDD_DELTAVIEWEREX, DIALOG
+    BEGIN
+    END
+
+    IDD_DISTANCEDLG, DIALOG
+    BEGIN
+    END
+
+    IDD_NEWPOLICY, DIALOG
+    BEGIN
+    END
+
+    IDD_SITEATTR, DIALOG
+    BEGIN
+    END
+
+    IDD_USER, DIALOG
+    BEGIN
+        BOTTOMMARGIN, 311
+    END
+
+    IDD_ADDDBCOL, DIALOG
+    BEGIN
+    END
+
+    IDD_FIELDINFO, DIALOG
+    BEGIN
+        , 71, 600
+    END
+
+    IDD_POLICYEDITOR, DIALOG
+    BEGIN
+    END
+
+    IDD_INIBASIC, DIALOG
+    BEGIN
+    END
+
+    IDD_INILAYERS, DIALOG
+    BEGIN
+    END
+
+    IDD_INIMODELS, DIALOG
+    BEGIN
+    END
+
+    IDD_POLICYOUTCOME, DIALOG
+    BEGIN
+    END
+
+    IDD_OUTCOMEEDITOR, DIALOG
+    BEGIN
+    END
+
+    IDD_SCENARIOEDITOR, DIALOG
+    BEGIN
+    END
+
+    IDD_LULCEDITOR, DIALOG
+    BEGIN
+    END
+
+    IDD_OPTIONS, DIALOG
+    BEGIN
+    END
+
+    IDD_DELTAREPORT, DIALOG
+    BEGIN
+    END
+
+    IDD_LOAD, DIALOG
+    BEGIN
+    END
+
+    IDD_POLICYOBJSCORES, DIALOG
+    BEGIN
+    END
+
+    IDD_POLQUERYBUILDER, DIALOG
+    BEGIN
+    END
+
+    IDD_SAVEXMLOPTIONS, DIALOG
+    BEGIN
+    END
+
+    IDD_TEXT_TO_ID, DIALOG
+    BEGIN
+    END
+
+    IDD_INTERSECT, DIALOG
+    BEGIN
+    END
+
+    IDD_SAVETO, DIALOG
+    BEGIN
+    END
+
+    IDD_DELTAEXPORT, DIALOG
+    BEGIN
+        , 71, 369
+    END
+
+    IDD_CHANGETYPE, DIALOG
+    BEGIN
+    END
+
+    IDD_INIMETAGOALS, DIALOG
+    BEGIN
+    END
+
+    IDD_RECLASS, DIALOG
+    BEGIN
+        , 71, 184
+    END
+
+    IDD_SAVEPROJECT, DIALOG
+    BEGIN
+        , 71, 309
+    END
+
+    IDD_POLICYCONSTRAINTS, DIALOG
+    BEGIN
+    END
+
+    IDD_OUTCOMECONSTRAINTS, DIALOG
+    BEGIN
+    END
+
+    IDD_GLOBALCONSTRAINTS, DIALOG
+    BEGIN
+    END
+
+    IDD_DELTAVIEWER, DIALOG
+    BEGIN
+    END
+
+    IDD_VIDEORECORDER, DIALOG
+    BEGIN
+        , 71, 350
+    END
+
+    IDD_CONVERTCOVERAGE, DIALOG
+    BEGIN
+        , 71, 309
+    END
+
+    IDD_UPDATE, DIALOG
+    BEGIN
+        , 71, 318
+    END
+
+    IDD_SENSITIVITY, DIALOG
+    BEGIN
+        , 71, 440
+    END
+
+    IDD_BASEMAP, DIALOG
+    BEGIN
+        , 71, 312
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_USER AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_TIP_FILE_MISSING    "Tips file missing:\r\n\r\n%s"
+    IDS_WELCOME             "Welcome"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_DIDYOUKNOW          "Did you know..."
+END
+
+STRINGTABLE
+BEGIN
+    IDR_MAINFRAME           "Envision\n\nEnvision\n\n\nEnvision.Document\nEnvision.Document"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_APP_TITLE       "Envision"
+    AFX_IDS_IDLEMESSAGE     "Ready"
+END
+
+STRINGTABLE
+BEGIN
+    ID_INDICATOR_EXT        "EXT"
+    ID_INDICATOR_CAPS       "CAP"
+    ID_INDICATOR_NUM        "NUM"
+    ID_INDICATOR_SCRL       "SCRL"
+    ID_INDICATOR_OVR        "OVR"
+    ID_INDICATOR_REC        "REC"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_NEW             "Create a new document\nNew"
+    ID_FILE_OPEN            "Open an existing document\nOpen"
+    ID_FILE_CLOSE           "Close the active document\nClose"
+    ID_FILE_SAVE            "Save the active document\nSave"
+    ID_FILE_SAVE_AS         "Save the active document with a new name\nSave As"
+    ID_FILE_PAGE_SETUP      "Change the printing options\nPage Setup"
+    ID_FILE_PRINT_SETUP     "Change the printer and printing options\nPrint Setup"
+    ID_FILE_PRINT           "Print the active document\nPrint"
+    ID_FILE_PRINT_DIRECT    "Print the active document using current options\nQuick Print"
+    ID_FILE_PRINT_PREVIEW   "Display full pages\nPrint Preview"
+END
+
+STRINGTABLE
+BEGIN
+    ID_APP_ABOUT            "Display program information, version number and copyright\nAbout"
+    ID_APP_EXIT             "Quit the application; prompts to save documents\nExit"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_MRU_FILE1       "Open this document"
+    ID_FILE_MRU_FILE2       "Open this document"
+    ID_FILE_MRU_FILE3       "Open this document"
+    ID_FILE_MRU_FILE4       "Open this document"
+    ID_FILE_MRU_FILE5       "Open this document"
+    ID_FILE_MRU_FILE6       "Open this document"
+    ID_FILE_MRU_FILE7       "Open this document"
+    ID_FILE_MRU_FILE8       "Open this document"
+    ID_FILE_MRU_FILE9       "Open this document"
+    ID_FILE_MRU_FILE10      "Open this document"
+    ID_FILE_MRU_FILE11      "Open this document"
+    ID_FILE_MRU_FILE12      "Open this document"
+    ID_FILE_MRU_FILE13      "Open this document"
+    ID_FILE_MRU_FILE14      "Open this document"
+    ID_FILE_MRU_FILE15      "Open this document"
+    ID_FILE_MRU_FILE16      "Open this document"
+END
+
+STRINGTABLE
+BEGIN
+    ID_NEXT_PANE            "Switch to the next window pane\nNext Pane"
+    ID_PREV_PANE            "Switch back to the previous window pane\nPrevious Pane"
+END
+
+STRINGTABLE
+BEGIN
+    ID_WINDOW_SPLIT         "Split the active window into panes\nSplit"
+END
+
+STRINGTABLE
+BEGIN
+    ID_EDIT_CLEAR           "Erase the selection\nErase"
+    ID_EDIT_CLEAR_ALL       "Erase everything\nErase All"
+    ID_EDIT_COPY            "Copy the selection and put it on the Clipboard\nCopy"
+    ID_EDIT_CUT             "Cut the selection and put it on the Clipboard\nCut"
+    ID_EDIT_FIND            "Find the specified text\nFind"
+    ID_EDIT_PASTE           "Insert Clipboard contents\nPaste"
+    ID_EDIT_REPEAT          "Repeat the last action\nRepeat"
+    ID_EDIT_REPLACE         "Replace specific text with different text\nReplace"
+    ID_EDIT_SELECT_ALL      "Select the entire document\nSelect All"
+    ID_EDIT_UNDO            "Undo the last action\nUndo"
+    ID_EDIT_REDO            "Redo the previously undone action\nRedo"
+END
+
+STRINGTABLE
+BEGIN
+    ID_VIEW_TOOLBAR         "Show or hide the toolbar\nToggle ToolBar"
+    ID_VIEW_STATUS_BAR      "Show or hide the status bar\nToggle Status Bar"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCSIZE          "Change the window size"
+    AFX_IDS_SCMOVE          "Change the window position"
+    AFX_IDS_SCMINIMIZE      "Reduce the window to an icon"
+    AFX_IDS_SCMAXIMIZE      "Enlarge the window to full size"
+    AFX_IDS_SCNEXTWINDOW    "Switch to the next document window"
+    AFX_IDS_SCPREVWINDOW    "Switch to the previous document window"
+    AFX_IDS_SCCLOSE         "Close the active window and prompts to save the documents"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_SCRESTORE       "Restore the window to normal size"
+    AFX_IDS_SCTASKLIST      "Activate Task List"
+END
+
+STRINGTABLE
+BEGIN
+    AFX_IDS_PREVIEW_CLOSE   "Close print preview mode\nCancel Preview"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_STATUS_PANE1        "Pane 1"
+    IDS_STATUS_PANE2        "Pane 2"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_RIBBON_FILE         "File"
+    IDS_RIBBON_NEW          "&New"
+    IDS_RIBBON_OPEN         "&Open..."
+    IDS_RIBBON_SAVE         "&Save"
+    IDS_RIBBON_SAVEAS       "Save &As..."
+    IDS_RIBBON_PRINT        "Print"
+    IDS_RIBBON_PRINT_LABEL  "Preview and print the document"
+    IDS_RIBBON_PRINT_QUICK  "&Quick Print"
+    IDS_RIBBON_PRINT_PREVIEW "Print Pre&view"
+    IDS_RIBBON_PRINT_SETUP  "Print Set&up"
+    IDS_RIBBON_CLOSE        "&Close"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_RIBBON_RECENT_DOCS  "Recent Documents"
+    IDS_RIBBON_EXIT         "E&xit"
+    IDS_RIBBON_HOME         "&Home"
+    IDS_RIBBON_CLIPBOARD    "Clipboard\nd"
+    IDS_RIBBON_PASTE        "Paste\nv"
+    IDS_RIBBON_CUT          "Cut\nx"
+    IDS_RIBBON_COPY         "Copy\nc"
+    IDS_RIBBON_SELECTALL    "Select All\na"
+    IDS_RIBBON_WINDOW       "Window\nw"
+    IDS_RIBBON_WINDOWS      "Windows\ni"
+    IDS_RIBBON_STYLE        "Style"
+    IDS_RIBBON_STYLE_TIP    "Modify Visual Style"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_RIBBON_STYLE_DESC   "Choose one of the Office 2007 themes"
+    IDS_RIBBON_STATUSBAR    "Status Bar"
+    IDS_RIBBON_VIEW         "View"
+END
+
+STRINGTABLE
+BEGIN
+    IDS_EDIT_MENU           "Edit"
+END
+
+STRINGTABLE
+BEGIN
+    ID_FILE_SAVEDATABASE    "Saves the current IDU Database\nSave IDU Database"
+END
+
+STRINGTABLE
+BEGIN
+    ID_SAVE_SHAPEFILE       "Save IDU Shape File Features and Data\nSave IDU Shape File"
+    ID_EXPORT_ACTORS        "Export the current Actor descriptions to an XML file\nExport &Actors"
+    ID_EXPORT_POLICIES      "Export the current Policy descriptions to an XML file\nExport &Policies"
+    ID_EXPORT_POLICIESASHTML 
+                            "Save the policies as an HTML document that can be viewed in a web browser\nSave Policies as &HTML"
+    ID_EXPORT_LULC          "Export the current Land Use/Land Cover descriptions to an XML file\nExport &LULC"
+    ID_EXPORT_SCENARIOS     "Export the current Scenario descriptions to an XML file\nExport &Scenarios"
+    ID_IMPORT_POLICIES      "Import the current Policy descriptions to an XML file\nImport &Policies"
+    ID_IMPORT_ACTORS        "Import the current Actor descriptions to an XML file\nImport &Actors"
+    ID_IMPORT_LULC          "Import the current Land Use/Land Cover descriptions to an XML file\nImport &LULC"
+END
+
+STRINGTABLE
+BEGIN
+    ID_IMPORT_SCENARIOS     "Import the current Scenario descriptions to an XML file\nImport &Scenarios"
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#include "res\Envision.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"         // Standard components
+#include "afxprint.rc"       // printing/print preview resources
+#if !defined(_AFXDLL)
+#include "afxribbon.rc"              // MFC ribbon and control bar resources
+#endif
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
