@@ -1,0 +1,375 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>15.0</VCProjectVersion>
+    <ProjectGuid>{E3502523-3A54-4A72-AC75-A59C944AD9C1}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>EnvLibs</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.17763.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <CharacterSet>NotSet</CharacterSet>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v141</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>NotSet</CharacterSet>
+    <UseOfMfc>Dynamic</UseOfMfc>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <LinkIncremental>true</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <LinkIncremental>false</LinkIncremental>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;_DEBUG;ENVLIBS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>.\;</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeaderFile>EnvLibs.h</PrecompiledHeaderFile>
+      <MinimalRebuild />
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WINDOWS;WIN32;_WIN64;BUILD_LIBS;_AFXDLL;_DEBUG</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>.\;</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PrecompiledHeaderFile>EnvLibs.h</PrecompiledHeaderFile>
+      <MinimalRebuild />
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>WIN32;NDEBUG;ENVLIBS_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>.\;</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <ShowIncludes>false</ShowIncludes>
+      <PrecompiledHeaderFile>EnvLibs.h</PrecompiledHeaderFile>
+      <MinimalRebuild />
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <SDLCheck>true</SDLCheck>
+      <PreprocessorDefinitions>_WINDOWS;WIN32;_WIN64;BUILD_LIBS;_AFXDLL;_NDEBUG</PreprocessorDefinitions>
+      <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>.\;</AdditionalIncludeDirectories>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <ShowIncludes>false</ShowIncludes>
+      <PrecompiledHeaderFile>EnvLibs.h</PrecompiledHeaderFile>
+      <MinimalRebuild />
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="AlgLib\AlgLib.h" />
+    <ClInclude Include="AlgLib\alglibinternal.h" />
+    <ClInclude Include="AlgLib\alglibmisc.h" />
+    <ClInclude Include="AlgLib\ap.h" />
+    <ClInclude Include="ARRAY.HPP" />
+    <ClInclude Include="AttrIndex.h" />
+    <ClInclude Include="BasicQuadTree.h" />
+    <ClInclude Include="BFILE.HPP" />
+    <ClInclude Include="BIN.H" />
+    <ClInclude Include="BitArray.h" />
+    <ClInclude Include="CacheManager.h" />
+    <ClInclude Include="COLORS.HPP" />
+    <ClInclude Include="CompressedRow2DArray.h" />
+    <ClInclude Include="CONTAINR.HPP" />
+    <ClInclude Include="DataAggregator.h" />
+    <ClInclude Include="DATAOBJ.H" />
+    <ClInclude Include="DATE.HPP" />
+    <ClInclude Include="DBTABLE.H" />
+    <ClInclude Include="DDataObj.h" />
+    <ClInclude Include="Delta.h" />
+    <ClInclude Include="DeltaArray.h" />
+    <ClInclude Include="DirPlaceholder.h" />
+    <ClInclude Include="DMatrix.h" />
+    <ClInclude Include="DOIndex.h" />
+    <ClInclude Include="EnvLibs.h" />
+    <ClInclude Include="EnvString.h" />
+    <ClInclude Include="EXTENTS.HPP" />
+    <ClInclude Include="FDATAOBJ.H" />
+    <ClInclude Include="FMATRIX.HPP" />
+    <ClInclude Include="GDALWrapper.h" />
+    <ClInclude Include="GEOMETRY.HPP" />
+    <ClInclude Include="GeoSpatialDataObj.h" />
+    <ClInclude Include="HighResTime.h" />
+    <ClInclude Include="Histogram.h" />
+    <ClInclude Include="HistogramArray.h" />
+    <ClInclude Include="IDATAOBJ.H" />
+    <ClInclude Include="IMATRIX.HPP" />
+    <ClInclude Include="IndexedDataObj.h" />
+    <ClInclude Include="InfluenceNetwork.h" />
+    <ClInclude Include="IntegrationBlock.h" />
+    <ClInclude Include="LULCTREE.H" />
+    <ClInclude Include="MAP.h" />
+    <ClInclude Include="MapExprEngine.h" />
+    <ClInclude Include="Maplayer.h" />
+    <ClInclude Include="misc.h" />
+    <ClInclude Include="MovingWindow.h" />
+    <ClInclude Include="mtparser\MTException.h" />
+    <ClInclude Include="mtparser\MTGlobalString.h" />
+    <ClInclude Include="mtparser\MTParser.h" />
+    <ClInclude Include="mtparser\MTParserCompiler.h" />
+    <ClInclude Include="mtparser\MTParserDefFuncs.h" />
+    <ClInclude Include="mtparser\MTParserDefOps.h" />
+    <ClInclude Include="mtparser\MTParserExcepStrEng.h" />
+    <ClInclude Include="mtparser\MTParserException.h" />
+    <ClInclude Include="mtparser\MTParserLocalizer.h" />
+    <ClInclude Include="mtparser\MTParserMacroFunc.h" />
+    <ClInclude Include="mtparser\MTParserPrivate.h" />
+    <ClInclude Include="mtparser\MTParserPublic.h" />
+    <ClInclude Include="mtparser\MTParserRegistrar.h" />
+    <ClInclude Include="mtparser\MTSearchFile.h" />
+    <ClInclude Include="mtparser\MTTools.h" />
+    <ClInclude Include="mtparser\MTUnicodeANSIDefs.h" />
+    <ClInclude Include="NetworkTree.h" />
+    <ClInclude Include="Path.h" />
+    <ClInclude Include="PathManager.h" />
+    <ClInclude Include="PolyBuffer.h" />
+    <ClInclude Include="PolyClipper.h" />
+    <ClInclude Include="PolyEdgeIndex.h" />
+    <ClInclude Include="PolyGridLookups.h" />
+    <ClInclude Include="PolyGridMapper.h" />
+    <ClInclude Include="PolyPtMapper.h" />
+    <ClInclude Include="PrimeNumber.h" />
+    <ClInclude Include="PropertyList.h" />
+    <ClInclude Include="PtrArray.h" />
+    <ClInclude Include="Qgrammar.h" />
+    <ClInclude Include="QueryEngine.h" />
+    <ClInclude Include="RANDOM.HPP" />
+    <ClInclude Include="reachtree.h" />
+    <ClInclude Include="Report.h" />
+    <ClInclude Include="SERIAL.HPP" />
+    <ClInclude Include="shapefil.h" />
+    <ClInclude Include="SpatialIndex.h" />
+    <ClInclude Include="SplitPath.h" />
+    <ClInclude Include="SriRandomPath.h" />
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="stdstring.h" />
+    <ClInclude Include="STRARRAY.HPP" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="TARRAY.HPP" />
+    <ClInclude Include="TDLIST.HPP" />
+    <ClInclude Include="tinystr.h" />
+    <ClInclude Include="tinyxml.h" />
+    <ClInclude Include="tixml.h" />
+    <ClInclude Include="TMATRIX.HPP" />
+    <ClInclude Include="TPARRAY.HPP" />
+    <ClInclude Include="Typedefs.h" />
+    <ClInclude Include="UNITCONV.H" />
+    <ClInclude Include="Vdata.h" />
+    <ClInclude Include="Vdataobj.h" />
+    <ClInclude Include="VoronoiDiagramGenerator.h" />
+    <ClInclude Include="XNamedColors.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AlgLib\AlgLib.cpp" />
+    <ClCompile Include="AlgLib\alglibinternal.cpp" />
+    <ClCompile Include="AlgLib\alglibmisc.cpp" />
+    <ClCompile Include="AlgLib\ap.cpp" />
+    <ClCompile Include="AlgLib\integration.cpp" />
+    <ClCompile Include="AlgLib\interpolation.cpp" />
+    <ClCompile Include="AlgLib\linalg.cpp" />
+    <ClCompile Include="AlgLib\optimization.cpp" />
+    <ClCompile Include="AlgLib\solvers.cpp" />
+    <ClCompile Include="AlgLib\specialfunctions.cpp" />
+    <ClCompile Include="Array.cpp" />
+    <ClCompile Include="AttrIndex.cpp" />
+    <ClCompile Include="BasicQuadTree.cpp" />
+    <ClCompile Include="Bin.cpp" />
+    <ClCompile Include="BitArray.cpp" />
+    <ClCompile Include="CacheManager.cpp" />
+    <ClCompile Include="DataAggregator.cpp" />
+    <ClCompile Include="Dataobj.cpp" />
+    <ClCompile Include="Date.cpp" />
+    <ClCompile Include="dbfopen.cpp" />
+    <ClCompile Include="Dbtable.cpp" />
+    <ClCompile Include="DDataObj.cpp" />
+    <ClCompile Include="Delta.cpp" />
+    <ClCompile Include="DeltaArray.cpp" />
+    <ClCompile Include="DirPlaceholder.cpp" />
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="DMatrix.cpp" />
+    <ClCompile Include="DOIndex.cpp" />
+    <ClCompile Include="EnvLibs.cpp" />
+    <ClCompile Include="fdataobj.cpp" />
+    <ClCompile Include="fmatrix.cpp" />
+    <ClCompile Include="GDALWrapper.cpp" />
+    <ClCompile Include="Geometry.cpp" />
+    <ClCompile Include="GeoSpatialDataObj.cpp" />
+    <ClCompile Include="HighResTime.cpp" />
+    <ClCompile Include="HistogramArray.cpp" />
+    <ClCompile Include="Idataobj.cpp" />
+    <ClCompile Include="IndexedDataObj.cpp" />
+    <ClCompile Include="InfluenceNetwork.cpp" />
+    <ClCompile Include="IntegrationBlock.cpp" />
+    <ClCompile Include="LulcTree.cpp" />
+    <ClCompile Include="Map.cpp" />
+    <ClCompile Include="MapExprEngine.cpp" />
+    <ClCompile Include="Maplayer.cpp" />
+    <ClCompile Include="misc.cpp" />
+    <ClCompile Include="MovingWindow.cpp" />
+    <ClCompile Include="mtparser\MTParser.cpp" />
+    <ClCompile Include="mtparser\MTParserCompiler.cpp" />
+    <ClCompile Include="mtparser\MTParserExcepStrEng.cpp" />
+    <ClCompile Include="mtparser\MTParserLocalizer.cpp" />
+    <ClCompile Include="mtparser\MTParserMacroFunc.cpp" />
+    <ClCompile Include="mtparser\MTParserRegistrar.cpp" />
+    <ClCompile Include="mtparser\MTSearchFile.cpp" />
+    <ClCompile Include="mtparser\MTTools.cpp" />
+    <ClCompile Include="mtparser\MTUnicodeANSIDefs.cpp" />
+    <ClCompile Include="NetworkTree.cpp" />
+    <ClCompile Include="Path.cpp" />
+    <ClCompile Include="PathManager.cpp" />
+    <ClCompile Include="PolyBuffer.cpp" />
+    <ClCompile Include="PolyClipper.cpp" />
+    <ClCompile Include="PolyEdgeIndex.cpp" />
+    <ClCompile Include="PolyGridLookups.cpp" />
+    <ClCompile Include="PolyGridMapper.cpp" />
+    <ClCompile Include="PolyPtMapper.cpp" />
+    <ClCompile Include="PrimeNumber.cpp" />
+    <ClCompile Include="PropertyList.cpp" />
+    <ClCompile Include="Qgrammar.cpp" />
+    <ClCompile Include="QueryEngine.cpp" />
+    <ClCompile Include="randgen\Rand.cpp" />
+    <ClCompile Include="randgen\RandExp.cpp" />
+    <ClCompile Include="randgen\Randln.cpp" />
+    <ClCompile Include="randgen\Randnorm.cpp" />
+    <ClCompile Include="randgen\Randunif.cpp" />
+    <ClCompile Include="randgen\Randweib.cpp" />
+    <ClCompile Include="ReachTree.cpp" />
+    <ClCompile Include="Report.cpp" />
+    <ClCompile Include="SpatialIndex.cpp" />
+    <ClCompile Include="SplitPath.cpp" />
+    <ClCompile Include="SriRandomPath.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+    <ClCompile Include="Strarray.cpp" />
+    <ClCompile Include="tinystr.cpp" />
+    <ClCompile Include="tinyxml.cpp" />
+    <ClCompile Include="tinyxmlerror.cpp" />
+    <ClCompile Include="tinyxmlparser.cpp" />
+    <ClCompile Include="tixml.cpp" />
+    <ClCompile Include="Vdata.cpp" />
+    <ClCompile Include="Vdataobj.cpp" />
+    <ClCompile Include="VoronoiDiagramGenerator.cpp" />
+    <ClCompile Include="voronoi_main.cpp" />
+    <ClCompile Include="XNamedColors.cpp" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

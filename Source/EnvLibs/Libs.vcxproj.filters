@@ -1,0 +1,660 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Source Files\MTParser">
+      <UniqueIdentifier>{d836ef83-e72f-4716-b655-d85e0df69e09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\RandGen">
+      <UniqueIdentifier>{a8085c93-de72-4c5e-a7fe-e8e4f60cc7fa}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Header Files\MTParser">
+      <UniqueIdentifier>{c9058026-e451-4bbd-a29d-57b269dd3428}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\RandGen">
+      <UniqueIdentifier>{8233bd26-f991-4e2d-8f8f-fe0fdfa61ab2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Header Files\AlgLib">
+      <UniqueIdentifier>{cbae446e-9e6a-4348-990b-ee2c059608b5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\AlgLib">
+      <UniqueIdentifier>{7fdae43c-96dc-4ecc-99ce-22d1f1204e52}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="Array.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AttrIndex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BasicQuadTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Bin.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="BitArray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="CubicSpline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Dataobj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Date.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dbfopen.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Dbtable.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dllmain.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="fdataobj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Geometry.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HighResTime.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="HistogramArray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Idataobj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LulcTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Map.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Maplayer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NetworkTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Path.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PolyBuffer.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PolyClipper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PolyEdgeIndex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Qgrammar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="QueryEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ReachTree.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SpatialIndex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SplitPath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SriRandomPath.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Strarray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tinystr.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxmlerror.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tinyxmlparser.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="tixml.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Vdata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Vdataobj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="XNamedColors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTParser.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTParserCompiler.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTParserExcepStrEng.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTParserLocalizer.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTParserMacroFunc.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTParserRegistrar.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTSearchFile.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTTools.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="mtparser\MTUnicodeANSIDefs.cpp">
+      <Filter>Source Files\MTParser</Filter>
+    </ClCompile>
+    <ClCompile Include="randgen\Rand.cpp">
+      <Filter>Source Files\RandGen</Filter>
+    </ClCompile>
+    <ClCompile Include="randgen\Randln.cpp">
+      <Filter>Source Files\RandGen</Filter>
+    </ClCompile>
+    <ClCompile Include="randgen\Randnorm.cpp">
+      <Filter>Source Files\RandGen</Filter>
+    </ClCompile>
+    <ClCompile Include="randgen\Randunif.cpp">
+      <Filter>Source Files\RandGen</Filter>
+    </ClCompile>
+    <ClCompile Include="randgen\Randweib.cpp">
+      <Filter>Source Files\RandGen</Filter>
+    </ClCompile>
+    <ClCompile Include="fmatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Report.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="randgen\RandExp.cpp">
+      <Filter>Source Files\RandGen</Filter>
+    </ClCompile>
+    <ClCompile Include="IntegrationBlock.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DataAggregator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MapExprEngine.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GeoSpatialDataObj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PolyGridLookups.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="misc.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DOIndex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PrimeNumber.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PathManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\ap.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\integration.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\interpolation.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\linalg.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\optimization.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\solvers.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\specialfunctions.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\AlgLib.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\alglibinternal.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="AlgLib\alglibmisc.cpp">
+      <Filter>Source Files\AlgLib</Filter>
+    </ClCompile>
+    <ClCompile Include="CacheManager.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="ado2.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="GDALWrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DirPlaceholder.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PropertyList.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DeltaArray.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Delta.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PolyPtMapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InfluenceNetwork.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PolyGridMapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DDataObj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="DMatrix.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="MovingWindow.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="IndexedDataObj.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Libs.def">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="ReadMe.txt" />
+    <None Include="qgrammar.y">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="qgrammar.bat">
+      <Filter>Source Files</Filter>
+    </None>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ARRAY.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AttrIndex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BasicQuadTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BFILE.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BIN.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="BitArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="COLORS.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CONTAINR.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="CubicSpline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DATAOBJ.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DATE.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DBTABLE.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="EXTENTS.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FDATAOBJ.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FMATRIX.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GEOMETRY.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HighResTime.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Histogram.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="HistogramArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IDATAOBJ.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IMATRIX.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="libs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LULCTREE.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MAP.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Maplayer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NetworkTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Path.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolyBuffer.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolyClipper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolyEdgeIndex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Qgrammar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="QueryEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RANDOM.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="reachtree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SERIAL.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="shapefil.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SpatialIndex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SplitPath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SriRandomPath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="STRARRAY.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TARRAY.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TDLIST.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tinystr.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tinyxml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="tixml.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TMATRIX.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="TPARRAY.HPP">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Typedefs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="UNITCONV.H">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Vdata.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Vdataobj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XHTMLStatic.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="XNamedColors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTException.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTGlobalString.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParser.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserCompiler.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserDefFuncs.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserDefOps.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserExcepStrEng.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserException.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserLocalizer.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserMacroFunc.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserPrivate.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserPublic.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTParserRegistrar.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTSearchFile.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTTools.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="mtparser\MTUnicodeANSIDefs.h">
+      <Filter>Header Files\MTParser</Filter>
+    </ClInclude>
+    <ClInclude Include="randgen\Rand.hpp">
+      <Filter>Header Files\RandGen</Filter>
+    </ClInclude>
+    <ClInclude Include="randgen\Randln.hpp">
+      <Filter>Header Files\RandGen</Filter>
+    </ClInclude>
+    <ClInclude Include="randgen\Randnorm.hpp">
+      <Filter>Header Files\RandGen</Filter>
+    </ClInclude>
+    <ClInclude Include="randgen\Randunif.hpp">
+      <Filter>Header Files\RandGen</Filter>
+    </ClInclude>
+    <ClInclude Include="randgen\Randweib.hpp">
+      <Filter>Header Files\RandGen</Filter>
+    </ClInclude>
+    <ClInclude Include="PtrArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Report.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="randgen\RandExp.h">
+      <Filter>Header Files\RandGen</Filter>
+    </ClInclude>
+    <ClInclude Include="CompressedRow2DArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolyGridLookups.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IntegrationBlock.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GDALWrapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DataAggregator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MapExprEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="GeoSpatialDataObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="misc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DOIndex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PrimeNumber.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PathManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\AlgLib.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\alglibinternal.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\alglibmisc.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\ap.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\integration.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\interpolation.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\linalg.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\optimization.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\solvers.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="AlgLib\specialfunctions.h">
+      <Filter>Header Files\AlgLib</Filter>
+    </ClInclude>
+    <ClInclude Include="CacheManager.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ado2.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DirPlaceholder.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PropertyList.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stdstring.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DeltaArray.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Delta.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Notifier.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolyPtMapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="InfluenceNetwork.h">
+      <Filter>Resource Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PolyGridMapper.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DDataObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="DMatrix.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="MovingWindow.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="IndexedDataObj.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

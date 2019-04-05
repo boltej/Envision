@@ -1,0 +1,6 @@
+; Libs.def : Declares the module parameters for the DLL.
+
+LIBRARY      "Libs"
+
+EXPORTS
+    ; Explicit exports can go here
