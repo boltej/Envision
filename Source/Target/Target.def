@@ -1,0 +1,15 @@
+; Target.def : Declares the module parameters for the DLL.
+
+LIBRARY      "Target"
+
+EXPORTS
+    ; Explicit exports can go here
+APInit  @1
+APInitRun	@2
+APRun   @3
+APEndRun @4
+APSetup	@5
+APInputVar @6
+APOutputVar @7
+APGetConfig @8
+APSetConfig @9
