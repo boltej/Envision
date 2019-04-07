@@ -1,0 +1,446 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "EnvWinLib_resource.h"
+
+#define APSTUDIO_READONLY_SYMBOLS
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 2 resource.
+//
+#include "afxres.h"
+
+/////////////////////////////////////////////////////////////////////////////
+#undef APSTUDIO_READONLY_SYMBOLS
+
+/////////////////////////////////////////////////////////////////////////////
+// English (United States) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE LANG_ENGLISH, SUBLANG_ENGLISH_US
+#pragma code_page(1252)
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "EnvWinLib_resource.h\0"
+END
+
+2 TEXTINCLUDE 
+BEGIN
+    "#include ""afxres.h""\r\n"
+    "\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "#define _AFX_NO_SPLITTER_RESOURCES\r\n"
+    "#define _AFX_NO_OLE_RESOURCES\r\n"
+    "#define _AFX_NO_TRACKER_RESOURCES\r\n"
+    "#define _AFX_NO_PROPERTY_RESOURCES\r\n"
+    "\r\n"
+    "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
+    "LANGUAGE 9, 1\r\n"
+    "#pragma code_page(1252)\r\n"
+    "#include ""res\\EnvWinLibs.rc2""  // non-Microsoft Visual C++ edited resources\r\n"
+    "#include ""afxres.rc""     // Standard components\r\n"
+    "#endif\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,1
+ PRODUCTVERSION 1,0,0,1
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x4L
+ FILETYPE 0x2L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "040904e4"
+        BEGIN
+            VALUE "CompanyName", "Oregon State University"
+            VALUE "FileDescription", "Libs"
+            VALUE "FileVersion", "5.1.0.1"
+            VALUE "InternalName", "libs.dll"
+            VALUE "LegalCopyright", "(c) Oregon State University.  All rights reserved."
+            VALUE "OriginalFilename", "libs.dll"
+            VALUE "ProductName", "Libs"
+            VALUE "ProductVersion", "5.1.0.1"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x409, 1252
+    END
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_LIB_MAPLAYERPROPS DIALOGEX 0, 0, 317, 346
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Map Layer Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    RTEXT           "Layer Name:",IDC_STATIC,11,10,40,8
+    EDITTEXT        IDC_LIB_LAYER,54,8,199,14,ES_AUTOHSCROLL
+    GROUPBOX        "Basic Attributes...",IDC_STATIC,7,55,300,73
+    RTEXT           "File:",IDC_STATIC,10,35,18,8
+    EDITTEXT        IDC_LIB_LFILE,32,33,214,14,ES_AUTOHSCROLL | ES_READONLY
+    RTEXT           "Type:",IDC_STATIC,11,68,19,8
+    LTEXT           "Static",IDC_LIB_LTYPE,35,69,82,8
+    RTEXT           "#Features:",IDC_STATIC,8,81,40,8
+    LTEXT           "Static",IDC_LIB_FEATURES,53,81,31,8
+    GROUPBOX        "Display Attributes",IDC_STATIC,7,138,301,66
+    CONTROL         "&Visible",IDC_LIB_VISIBLE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,155,37,10
+    CONTROL         "Show Polygon &Outlines",IDC_LIB_SHOWOUTLINES,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,169,85,10
+    RTEXT           "Outline Color:",IDC_STATIC,190,170,45,8
+    CONTROL         "",IDC_LIB_OUTLINECOLOR,"Button",BS_OWNERDRAW | WS_TABSTOP,241,167,63,15
+    DEFPUSHBUTTON   "OK",IDOK,261,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,261,24,50,14
+    CONTROL         "Width varies according to attribute",IDC_LIB_VARWIDTH,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,15,184,124,10
+    PUSHBUTTON      "Edit Field Information...",IDC_LIB_LEDITFIELDINFO,214,310,93,14
+    RTEXT           "#Fields:",IDC_STATIC,15,94,33,8
+    LTEXT           "Static",IDC_LIB_FIELDS,54,94,31,8
+    LTEXT           "Width:",IDC_STATIC,129,170,22,8
+    EDITTEXT        IDC_LIB_LWIDTH,151,168,27,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_LIB_LSPIN1,"msctls_updown32",UDS_SETBUDDYINT | UDS_ALIGNRIGHT | UDS_AUTOBUDDY | UDS_ARROWKEYS,168,169,10,14
+    PUSHBUTTON      "Edit Label Information...",IDC_LIB_EDITLABELINFO,122,310,87,14
+    GROUPBOX        "Field Properties",IDC_STATIC,8,214,300,57
+    LTEXT           "Field: ",IDC_STATIC,21,227,20,8
+    COMBOBOX        IDC_LIB_FIELDCOMBO,43,225,121,78,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Add",IDC_LIB_ADDFIELD,169,225,40,14
+    PUSHBUTTON      "Remove",IDC_LIB_REMOVEFIELD,211,225,36,14
+    LTEXT           "Type: ",IDC_STATIC,45,249,21,8
+    COMBOBOX        IDC_LIB_TYPE,69,247,95,100,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Width:",IDC_STATIC,175,249,22,8
+    EDITTEXT        IDC_LIB_WIDTH,200,246,27,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Decimals:",IDC_STATIC,231,249,32,8
+    EDITTEXT        IDC_LIB_DECIMALS,267,246,27,14,ES_AUTOHSCROLL | ES_NUMBER
+    LTEXT           "Extents:",IDC_LIB_EXTENTS2,14,115,282,8
+    LTEXT           "Transparency: ",IDC_STATIC,10,288,48,8
+    CONTROL         "",IDC_LIB_TRANSPARENCY,"msctls_trackbar32",TBS_AUTOTICKS | TBS_BOTH | WS_TABSTOP,59,279,171,25
+    EDITTEXT        IDC_LIB_TRANSPARENCY_VALUE,231,284,24,14,ES_AUTOHSCROLL
+    LTEXT           "percent",IDC_STATIC,259,286,25,8
+    PUSHBUTTON      "Change Order",IDC_LIB_REORDERCOLS,249,225,53,14
+    LTEXT           "Total Area:",IDC_STATIC,164,70,40,8
+    LTEXT           "Static",IDC_LIB_TOTALAREA,204,70,78,8
+    LTEXT           "Avg. Area:",IDC_STATIC,166,82,37,8
+    LTEXT           "Static",IDC_LIB_AVERAGEAREA,206,82,78,8
+    LTEXT           "Area Range:",IDC_STATIC,161,94,45,8
+    LTEXT           "Static",IDC_LIB_AREARANGE,208,94,96,8
+END
+
+IDD_LIB_S3D_DATA_SET_PROPS DIALOGEX 0, 0, 166, 273
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION
+CAPTION "Data Set Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Data Set",IDC_STATIC,71,7,29,8
+    COMBOBOX        IDC_LIB_DATA_SET_COMBO,7,16,152,156,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    GROUPBOX        "Line Properties",IDC_STATIC,7,37,151,49
+    LTEXT           "Width",IDC_STATIC,24,52,20,8
+    COMBOBOX        IDC_LIB_LINE_SIZE_COMBO,47,50,45,135,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Color",IDC_STATIC,26,71,18,8
+    CONTROL         "",IDC_LIB_COLOR_STATIC_LINES,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,48,68,44,13
+    PUSHBUTTON      "Set Color...",IDC_LIB_SET_COLOR_BUTTON_LINES,97,67,50,14
+    GROUPBOX        "Point Properties",IDC_STATIC,7,95,152,75
+    LTEXT           "Size",IDC_STATIC,29,116,14,8
+    COMBOBOX        IDC_LIB_POINT_SIZE_COMBO,47,114,45,135,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Color",IDC_STATIC,26,135,18,8
+    CONTROL         "",IDC_LIB_COLOR_STATIC,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,48,133,44,13
+    PUSHBUTTON      "Set Color...",IDC_LIB_SET_COLOR_BUTTON,96,132,50,14
+    LTEXT           "Point Type",IDC_STATIC,10,153,35,8
+    COMBOBOX        IDC_LIB_POINT_TYPE_COMBO,49,152,105,99,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Preview",IDC_STATIC,15,181,26,8
+    CONTROL         "",IDC_LIB_PREVIEW_STATIC,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,48,180,65,66
+    PUSHBUTTON      "Cancel",IDCANCEL,8,252,48,14
+    DEFPUSHBUTTON   "OK",IDOK,111,252,48,14
+    PUSHBUTTON      "Update",IDC_LIB_UPDATEPLOT,60,252,48,14
+END
+
+IDD_LIB_PLOTSETUP DIALOGEX 0, 0, 240, 159
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Labels...",-1,7,3,226,89,WS_GROUP
+    RTEXT           "&Caption:",-1,20,21,39,9,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_CAPTION,60,20,118,12,ES_AUTOHSCROLL
+    RTEXT           "&Title:",-1,22,39,37,9,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_TITLE,60,38,118,12,ES_AUTOHSCROLL
+    RTEXT           "X &Axis Label:",-1,14,57,45,9,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_XAXIS,60,56,118,12,ES_AUTOHSCROLL
+    RTEXT           "Y Axis &Label:",-1,14,75,45,9,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_YAXIS,60,74,118,12,ES_AUTOHSCROLL
+    GROUPBOX        "Grid...",-1,7,100,94,48,WS_GROUP
+    CONTROL         "Show &Horizontal",IDC_LIB_SHOWHORZ,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,118,70,10
+    CONTROL         "Show &Vertical",IDC_LIB_SHOWVERT,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,16,132,70,10
+    GROUPBOX        "Frame Style...",-1,112,101,121,47,WS_GROUP
+    CONTROL         "&Grooved",IDC_LIB_GROOVED,"Button",BS_AUTORADIOBUTTON,120,118,39,10
+    CONTROL         "&Raised",IDC_LIB_RAISED,"Button",BS_AUTORADIOBUTTON,176,120,39,10
+    CONTROL         "&Sunken",IDC_LIB_SUNKEN,"Button",BS_AUTORADIOBUTTON,120,131,39,10
+    PUSHBUTTON      "Font...",IDC_LIB_FONTTITLE,183,38,43,14
+    PUSHBUTTON      "Font...",IDC_LIB_FONTXAXIS,183,56,43,14
+    PUSHBUTTON      "Font...",IDC_LIB_FONTYAXIS,183,74,43,14
+END
+
+IDD_LIB_PLOTAXES DIALOGEX 0, 0, 240, 159
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Axes Setup"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Scale...",IDC_STATIC,7,34,226,44,WS_GROUP
+    CTEXT           "Minimum",IDC_LIB_SCALEMINLABEL,28,49,37,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_SCALEMIN,16,59,59,12,ES_AUTOHSCROLL
+    CTEXT           "Maximum",IDC_LIB_SCALEMAXLABEL,90,49,37,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_SCALEMAX,79,59,59,12,ES_AUTOHSCROLL
+    CONTROL         "&Auto Scale",IDC_LIB_AUTOSCALE,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,151,60,61,10
+    GROUPBOX        "Tick Marks...",IDC_STATIC,7,85,226,61,WS_GROUP
+    CTEXT           "Major Increment",IDC_LIB_TICMAJORLABEL,14,104,64,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_TICMAJOR,16,114,59,12,ES_AUTOHSCROLL
+    CTEXT           "Minor Increment",IDC_LIB_TICMINORLABEL,78,104,59,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_TICMINOR,79,114,59,12,ES_AUTOHSCROLL
+    CONTROL         "&Auto Increment",IDC_LIB_AUTOINCR,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,147,115,61,10
+    RTEXT           "Decimals:",IDC_STATIC,15,133,36,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_TICDECIMALS,52,130,18,12,ES_AUTOHSCROLL
+    COMBOBOX        IDC_LIB_AXIS,34,12,199,59,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Axis:",IDC_STATIC,15,14,17,8
+END
+
+IDD_LIB_PLOTLINES DIALOGEX 0, 0, 240, 159
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_CHILD | WS_DISABLED | WS_CAPTION
+CAPTION "Markers and Lines"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    GROUPBOX        "Line Information...",1004,7,8,231,144
+    LISTBOX         IDC_LIB_LINE,8,24,99,92,LBS_OWNERDRAWFIXED | LBS_HASSTRINGS | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Label:",IDC_STATIC,130,29,20,8
+    EDITTEXT        IDC_LIB_LINELABEL,153,27,80,12,ES_AUTOHSCROLL
+    RTEXT           "Color:",IDC_STATIC,171,45,20,8,NOT WS_GROUP
+    COMBOBOX        IDC_LIB_LINECOLOR,195,43,38,76,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Line Style:",IDC_STATIC,155,59,36,8,NOT WS_GROUP
+    COMBOBOX        IDC_LIB_LINESTYLE,195,57,38,76,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Line Width:",IDC_STATIC,147,73,44,8,NOT WS_GROUP
+    COMBOBOX        IDC_LIB_LINEWIDTH,195,71,38,76,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Marker Symbol:",IDC_STATIC,137,87,54,8,NOT WS_GROUP
+    COMBOBOX        IDC_LIB_MARKER,195,85,38,76,CBS_DROPDOWNLIST | CBS_OWNERDRAWFIXED | WS_VSCROLL | WS_TABSTOP
+    RTEXT           "Marker Increment:",IDC_STATIC,129,101,62,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_MARKERINCR,195,99,38,12,ES_AUTOHSCROLL
+    CONTROL         "Show Line",IDC_LIB_SHOWLINE,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,10,138,58,10
+    CONTROL         "Show Marker",IDC_LIB_SHOWMARKER,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,10,124,58,10
+    RTEXT           "Legend Text Height:",IDC_STATIC,123,117,69,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_LEGENDHEIGHT,196,115,38,12,ES_AUTOHSCROLL
+    CONTROL         "Smooth Curve",IDC_LIB_SMOOTH,"Button",BS_AUTOCHECKBOX | WS_GROUP | WS_TABSTOP,74,138,58,10
+    RTEXT           "Tension: ",IDC_LIB_TENSIONLABEL,137,139,34,8,NOT WS_GROUP
+    EDITTEXT        IDC_LIB_TENSION,171,137,28,12,ES_AUTOHSCROLL
+END
+
+IDD_LIB_MAPLABELS DIALOGEX 0, 0, 316, 119
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Map Labels"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Map Layer:",IDC_STATIC,13,20,37,8
+    COMBOBOX        IDC_LIB_LLAYERS,53,18,248,105,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    CONTROL         "Show Labels",IDC_LIB_SHOWLABELS,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,19,51,55,10
+    LTEXT           "Label Field:",IDC_LIB_LABEL_FIELDS,98,51,37,8
+    COMBOBOX        IDC_LIB_FIELDS,138,49,121,105,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Font:",IDC_STATIC,115,70,18,8
+    LTEXT           "Sample",IDC_LIB_FONTSAMPLE,139,70,120,21,WS_BORDER
+    PUSHBUTTON      "Set Font...",IDC_LIB_SETFONT,264,70,44,20
+    DEFPUSHBUTTON   "OK",IDOK,205,98,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,259,98,50,14
+END
+
+IDD_LIB_ERRORREPORT DIALOGEX 0, 0, 273, 119
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Error Report"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,196,91,61,17
+    LTEXT           "Static",IDC_LIB_MSG,7,9,258,68
+    CONTROL         "Direct future reports to the output window",IDC_LIB_OUTPUT,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,86,157,10
+    CONTROL         "Don't show these messages in the future",IDC_LIB_NOMSGS,
+                    "Button",BS_AUTOCHECKBOX | WS_TABSTOP,14,102,147,10
+END
+
+IDD_LIB_CELLPROPERTIES DIALOGEX 0, 0, 271, 302
+STYLE DS_SETFONT | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU | WS_THICKFRAME
+EXSTYLE WS_EX_TOOLWINDOW
+CAPTION "Cell Properties"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    PUSHBUTTON      "Flash Cell",IDC_LIB_FLASHCELL,0,288,71,14
+    PUSHBUTTON      "<< &Previous Cell",IDC_LIB_PREVCELL,121,288,71,14
+    PUSHBUTTON      "&Next Cell >>",IDC_LIB_NEXTCELL,194,288,77,14
+    CONTROL         "",IDC_LIB_GRID_FRAME,"Static",SS_BLACKFRAME | NOT WS_VISIBLE,0,0,271,286
+END
+
+IDD_LIB_NAME DIALOGEX 0, 0, 316, 29
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | DS_CENTERMOUSE | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "New"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    LTEXT           "Name:",IDC_STATIC,7,9,22,8
+    EDITTEXT        IDC_LIB_NAME,39,7,157,15,ES_AUTOHSCROLL
+    DEFPUSHBUTTON   "OK",IDOK,205,7,50,15
+    PUSHBUTTON      "Cancel",IDCANCEL,259,7,50,15
+END
+
+IDD_LIB_SORTCOLS DIALOGEX 0, 0, 222, 305
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Field Sorter"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "OK",IDOK,161,22,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,161,39,50,14
+    LISTBOX         IDC_LIB_FIELDS,7,21,150,277,LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Select one or more fields and drag them to their new position...",IDC_STATIC,7,7,204,8
+END
+
+IDD_LIB_QUERYBUILDER DIALOGEX 0, 0, 426, 294
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Query Builder"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Run Query",IDC_LIB_QBRUN,367,41,50,18
+    PUSHBUTTON      "Close",IDOK,367,60,50,18
+    LTEXT           "Specify Query",IDC_STATIC,10,31,46,8
+    COMBOBOX        IDC_LIB_QBFIELDS,7,202,93,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Operator",IDC_STATIC,108,191,30,8
+    COMBOBOX        IDC_LIB_QBOPERATORS,104,202,44,80,CBS_DROPDOWN | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "&Value",IDC_STATIC,154,191,18,8
+    COMBOBOX        IDC_LIB_QBVALUES,152,202,207,80,CBS_DROPDOWN | CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "",IDC_LIB_QBDESCRIPTION,10,225,305,57,SS_SUNKEN
+    PUSHBUTTON      "&Add",IDC_LIB_QBADD,366,201,46,14
+    PUSHBUTTON      "A&nd",IDC_LIB_QBAND,322,224,42,14
+    PUSHBUTTON      "O&r",IDC_LIB_QBOR,367,224,46,14
+    LTEXT           "&Field",IDC_STATIC,11,190,16,8
+    LTEXT           "Query Syntax: <Field1> <op> <Value1> {and|or} <Field2> <op> <Value2>...  Precedence can be enforced by including Field/Value pairs in parentheses.  Inline comments are enclosed in braces { }",IDC_STATIC,10,145,400,20
+    LTEXT           "Example: (Lulc_A = 3 {Agriculture} or Lulc_A = 4 {Forest}) and Area > 1000 {meters}",IDC_STATIC,9,169,392,18
+    CONTROL         "",IDC_STATIC,"Static",SS_ETCHEDFRAME,7,184,403,1
+    PUSHBUTTON      "&Spatial Operators...",IDC_LIB_QBSPATIALOPS,322,241,91,14
+    CONTROL         "Run Globally",IDC_LIB_QBRUNGLOBAL,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,324,261,55,10
+    CONTROL         "Clear Previous Selection",IDC_LIB_QBCLEARPREV,"Button",BS_AUTOCHECKBOX | WS_TABSTOP,324,273,93,10
+    PUSHBUTTON      "",IDC_LIB_QBQUERYVIEWER,9,285,8,7
+    EDITTEXT        IDC_LIB_QBQUERY,7,42,353,57,ES_MULTILINE | ES_AUTOHSCROLL
+    COMBOBOX        IDC_LIB_QBHISTORY,7,117,410,128,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Query History",IDC_STATIC,10,106,46,8
+    LTEXT           "Layer to Query: ",IDC_STATIC,7,9,54,8
+    COMBOBOX        IDC_LIB_QBLAYER,64,8,295,61,CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "Cancel",IDCANCEL,368,80,50,18
+END
+
+IDD_LIB_SPATIALOPERATORS DIALOGEX 0, 0, 264, 171
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Spatial Operators"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    CONTROL         "NextTo( <query> )",IDC_LIB_NEXTTO,"Button",BS_AUTORADIOBUTTON | WS_GROUP,13,20,78,10
+    CONTROL         "NextToArea( <query> )",IDC_LIB_NEXTTOAREA,"Button",BS_AUTORADIOBUTTON,13,34,93,10
+    CONTROL         "Within( <query>. <distance> )",IDC_LIB_WITHIN,"Button",BS_AUTORADIOBUTTON,13,47,117,10
+    CONTROL         "WithinArea( <query>. <distance>. <threshold %area> )",IDC_LIB_WITHINAREA,
+                    "Button",BS_AUTORADIOBUTTON,13,61,201,10
+    LTEXT           "Static",IDC_LIB_COMMENT,7,97,250,62,0,WS_EX_CLIENTEDGE
+    DEFPUSHBUTTON   "OK",IDOK,207,7,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,207,24,50,14
+    LTEXT           "Distance:",IDC_LIB_DISTANCELABEL,14,82,31,8
+    EDITTEXT        IDC_LIB_DISTANCE,48,79,40,14,ES_AUTOHSCROLL
+    LTEXT           "Threshold Areas (decimal):",IDC_LIB_AREALABEL,97,82,86,8
+    EDITTEXT        IDC_LIB_AREA,184,79,35,14,ES_AUTOHSCROLL
+END
+
+IDD_LIB_QUERYVIEWER DIALOGEX 0, 0, 383, 359
+STYLE DS_SETFONT | DS_MODALFRAME | DS_FIXEDSYS | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Query Viewer"
+FONT 8, "MS Shell Dlg", 400, 0, 0x1
+BEGIN
+    DEFPUSHBUTTON   "Compile",IDOK,326,8,50,14
+    PUSHBUTTON      "Close",IDCANCEL,326,24,50,14
+    LTEXT           "Query:",IDC_STATIC,7,10,24,8
+    EDITTEXT        IDC_LIB_QVQUERY,33,8,288,14,ES_AUTOHSCROLL
+    CONTROL         "",IDC_LIB_QVTREE,"SysTreeView32",TVS_HASBUTTONS | TVS_HASLINES | WS_BORDER | WS_HSCROLL | WS_TABSTOP,7,41,369,162
+    LTEXT           "Result",IDC_STATIC,8,30,21,8
+    EDITTEXT        IDC_DEBUGINFO,7,208,369,146,ES_MULTILINE | ES_AUTOHSCROLL | ES_READONLY | WS_VSCROLL
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_LIB_QUERYBUILDER, DIALOG
+    BEGIN
+    END
+
+    IDD_LIB_QUERYVIEWER, DIALOG
+    BEGIN
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_LIB_QUERYVIEWER AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+#endif    // English (United States) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+#define _AFX_NO_SPLITTER_RESOURCES
+#define _AFX_NO_OLE_RESOURCES
+#define _AFX_NO_TRACKER_RESOURCES
+#define _AFX_NO_PROPERTY_RESOURCES
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
+LANGUAGE 9, 1
+#pragma code_page(1252)
+#include "res\EnvWinLibs.rc2"  // non-Microsoft Visual C++ edited resources
+#include "afxres.rc"     // Standard components
+#endif
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
