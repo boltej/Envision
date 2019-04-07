@@ -1,0 +1,69 @@
+<?xml version='1.0' encoding='utf-8' ?>
+
+<policies>
+
+
+	<policy 
+		id='1' 
+		name='Ag Conversion to Rural Res' 
+		originator='' 
+		persistMin='-1' 
+		persistMax='-1' 
+		scheduled='0' 
+		mandatory='0' 
+		compliance='0.9' 
+		exclusive='0' 
+		startDate='-1' 
+		endDate='-1'
+		use='1' 
+		color='255,255,255' 
+		shared='1' 
+		editable='1' >
+		<siteAttr>LULC_A = 2 {Agriculture} and NextTo( ZONE=3 {RR} )</siteAttr>
+		<outcomes>
+			<outcome probability='0.500' >
+        ZONE=3{RR} and LULC_C=22 {low density developed}
+      </outcome>
+		</outcomes>
+
+		<narrative>
+      This policy looks for lands that are current in an agricultural use that are
+      next to rural residential zone areas, and converts some of these to RR zoning
+    </narrative>
+		<scores>
+		</scores>
+	</policy>
+
+	<policy 
+		id='2' 
+		name='Forest Conversion to Rural Res' 
+		originator='' 
+		persistMin='-1' 
+		persistMax='-1' 
+		scheduled='0' 
+		mandatory='0' 
+		compliance='0.9' 
+		exclusive='0' 
+		startDate='-1' 
+		endDate='-1'
+		use='1' 
+		color='255,255,255' 
+		shared='1' 
+		editable='1' >
+		<siteAttr>LULC_A = 4 {Forest} and NextTo(ZONE=3 {RR})</siteAttr>
+		<outcomes>
+			<outcome probability='0.100' >
+        ZONE=3{RR} and LULC_C=22 {low density developed}
+			</outcome>
+		</outcomes>
+
+		<narrative>
+      This policy looks for lands that are current in a forest use that are
+      next to rural residential zone areas, and converts some of these to RR zoning
+
+    </narrative>
+		<scores>
+		</scores>
+	</policy>
+
+</policies>

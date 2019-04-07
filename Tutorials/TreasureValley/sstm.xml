@@ -1,0 +1,16 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!--  Transition Class defintions for ALPS -->
+
+<transitions col="LULC_C">
+
+   <trans start="5200000" end="4300000"  period="1"   prob="10"  />  <!-- Shrub-scrub to Mixed Forest -->
+   <trans start="4300000" end="5200000"  period="1"   prob="2"   />  <!-- Mixed Forest to Shrub Scrub -->
+   <trans start="7100000" end="5200000"  period="1"   prob="20"  />  <!-- Grassland/Herbaceous to Schrub Scrub  -->
+   <trans start="5200000" end="7100000"  period="1"   prob="2"   />  <!-- Shrub Scrub to Grassland/Herbaceous -->
+   <trans start="4210000" end="4220000"  period="20"   prob="100" /> <!-- Evergreen 0-20 to 20-40  -->
+   <trans start="4220000" end="4230000"  period="20"   prob="100" /> <!-- Evergreen 20-40 to 40-80  -->
+   <trans start="4230000" end="4240000"  period="40"   prob="100" /> <!-- Evergreen 40-80 to over 80  -->
+
+</transitions>
+

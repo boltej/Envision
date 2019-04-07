@@ -1,0 +1,296 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- <flow_model> defines a model
+        Attributes include:
+        name:      Name of the model. (optional)
+        time_step: Time step at which all modeled components are synchronized.  This should be at least as large
+                   as the largest component time step specfified in the component tags below. (required)
+        init_catchment_cols:  flag indicating how Flow should build catchments:
+        ..build_catchments_method:  flag indicating how Flow should build catchments:
+                   0 = build catchments based on a field specified in the <catchment> 'catchID_col' attribute.
+                   1 = build catchments from the aggregate queries defined in the <catchment> 'catch_agg_cols' attribute
+                       and populate the catchmentID_col with unique catchment IDs,
+                   (optional, default is "1" )
+                   
+        join_col:  catchment coverage column name containing the join information for connecting catchments and reaches.
+                   (required, typically COMID)
+        update_display: Update the map with Results from the Hydrology model?  0: no update, 1: update each year, 2: update each flow timestep
+                   (optional, default="2"
+       
+       TO DISABLE SIMPLIFICATION
+           1) Set 'catchment_join_col' to COMID
+           2) Set 'stream_join_col' to COMID
+           3) Set 'catchment_agg_cols' to COMID
+           4) remove any 'simplify_xxx' attributes from <flow_model>
+           
+       TO BUILD A SIMPLIFIED REPRESENTATION
+           1) disable simplication as per instructions above
+           2) Copy the COMID values to FLOWID for both the IDU and Stream coverage (Note - use Arc, Envision appears buggy for this)
+           3) SAVE both coverages.
+           4) Set 'catchment_join_col' to FLOWID
+           5) Set 'stream_join_col' to FLOWID
+           6) Set 'catchment_agg_cols' to FLOWID
+           7) Add any 'simplify_xxx' attributes to <flow_model>
+           8) Launch Envision.  After flow initializes, save the IDU and Stream coverages.  THe FLOWID field will be modified in both coverages.
+           
+       TO USE THE SIMPLIFIED REPRESENTATION
+           1) Set 'catchment_join_col' to FLOWID
+           2) Set 'stream_join_col' to FLOWID
+           3) Set 'catchment_agg_cols' to FLOWID
+           4) remove any 'simplify_xxx' attributes from <flow_model>
+
+
+       To turn off simplification, remove the <streams> 'query' etc attributes.
+            simplify_query="ORDER > 1" 
+            simplify_min_area="1000000000" 
+            simplify_max_area="10000000000"
+-->
+
+  <flow_model name="TreasureValleyflow"
+              time_step="1"
+              build_catchments_method="1"
+              catchment_join_col ="COMID"
+              stream_join_col="COMID"
+              check_mass_balance="0"
+              max_processors="8"
+              update_display="2"
+              initial_conditions="TV.IC"
+              daily_idu_output="0"
+              annual_idu_output="0"
+              daily_reach_output="0"
+              annual_reach_output="0">
+    
+  <!-- <catchment> specifies how to construct catchment structures for the model.
+        Attributes include:
+        layer:     Name of the layer used to construct catchments from (in the envx file).
+                   This is generally the IDU layer. (optional, defaults to first layer)
+        query:     Subset of the layer used to create catchments.  If empty or not present,
+                   the entire layer is used. (optional)
+        area_col:  column name containing the area of the polygon. (optional, defaults to "AREA")
+        catchmentID_col:  column name containing the catchmentID identifying unique catchments, generated
+                   during the aggregation process. This column will be added to the layer if it doesn't
+                   already exist.  (optional - defaults to CATCH_ID)
+        hruID_col: column name containing the hruID identifying unique catchments, generated during the
+                   aggregation process. This column will be added to the layer if it doesn't
+                   already exist. (optional - defaults to HRU_ID)
+        catch_agg_cols:  Comma-separated list of column names used to identify unique combinations of attribute values
+                   during the catchment aggregation process.  (required)
+        hru_agg_cols:  Comma-separated list of column names used to identify unique combinations of attribute values
+                   during the hru aggregation process.  (required)
+        soil_layers: integer identifying number of HRU soil layers to use (optional, defaults to 1)
+        snow_layers: integer identifying number of HRU snow layers to use (optional, defaults to 0)
+        veg_layers:  integer identifying number of HRU vegetation layers to use (optional, defaults to 0)
+        layer_names: colon-separated list of layer names used to describe HRU layers for plotting purposes.
+                    the sum of soil_layers+snow_layers+veg_layers should be equal to the number of names (optional)
+        init_water_content:  initial soil water content (m3/m3) - (optional, defaults to 0.5)        
+  -->
+   <catchments layer="IDU"
+             query=""
+             area_col="AREA"
+             elev_col="ELEVATION"
+             catchmentID_col="CATCHID"
+             hruID_col="HRU_ID"
+             catchment_agg_cols="COMID"
+             hru_agg_cols="LULC_B, Elevation"
+             soil_layers="6" snow_layers="0" veg_layers="0"
+             layer_names="SnowPack:Melt:UnirrigatedSoil:IrrigatedSoil:ShallowGround:DeepGround"
+             init_water_content="0.3"/>
+
+  <!-- <stream>
+      Attributes include:
+      layer:        Name of the layer used to construct catchments from (in the envx file). (required)
+      query:        Subset of the layer used to create reaches.  If empty or not present, the entire layer is used. (optional)
+      order_col:    Column name to populate with stream order info.  If the column doesn't exist in the stream coverage, it will
+                    be added. (optional - defaults to nothing, no stream oreder info is generated.)      
+      subnodeLength: max length between subnodes (length units corresponding to the coverage) (optional, defaults to 0, which
+                    allocates one subnode per reach.
+      wd_ratio:     default value for width/depth ratio for reach segments. (optional, defaults to 
+      method:       solution method, euler, rk4, rkf, kinematic, external.  Note external implies fluxes are
+                    processed by the plugin, not the framework.  (optional, defaults to 10)
+      stepsize:     timestep used to solve the instream routing equations. (optional, defaults to 1 day)
+ -->
+  <!--  <streams layer="Streams" subnode_length="1000" order_col="ORDER"  /> -->
+  <streams layer="Streams"
+           order_col="STR_ORDER"
+           subnode_length="1000"  />
+
+  <!-- <global_methods>
+    Attributes include:
+    reach_routing:         reach routing solution method, one of 'euler', 'rk4', 'rkf', 'kinematic', or an 
+                           externally defined method. Externally defined methods should be of the form:
+                           'path:entrypointname'. Note external implies fluxes are processed by the plugin, 
+                           not the framework. (optional, defaults to "kinematic")
+    horizontal_exchange:   solution method for lateral exchange between reaches and corresponding HRU Layers; internal options 
+                           include 'linear_reservoir'.  Externally defined methods should be of the form:
+                           'path:entrypointname'. (optional, defaults to "linear_reservoir")
+    hru_vertical_exchange: solution method for vertical movement of water between HRULayers; internal options 
+                           include 'brooks_corey'.  Externally defined methods should be of the form:
+                           'path:entrypointname'. (optional, defaults to "brooks_corey") 
+  -->
+
+  <global_methods >
+    <reach_routing name="Reach Routing" method="kinematic" query=""/>
+    <lateral_exchange name="Lateral Exchange" method="none" query=""/>
+    <hru_vertical_exchange name="Vertical Exchange" method="none" query="" />
+    
+    <external name="HBV" method="fn=hbv.dll:HBV_Global" use="1" timing="1+16"/>
+ 
+    <evap_trans name="All" method="fao56" use="1"
+                 query="LULC_B &gt;-1"
+                 lulc_col="LULC_B"
+                 soil_col="GEO"
+                 crop_table="agrimet_crop_coefficients.csv"
+                 soil_table="hbv.csv"
+                 irrig_loss_factor="0.5"
+                 latitude="43"
+                 longitude="116">
+      <layers>
+        <layer layer_distributions="(3,1)" query="LULC_A = 8"/>
+        <layer layer_distributions="(2,1)" />
+      </layers>
+    </evap_trans>
+    
+    <!--The ratio = 1 flag will remove water from the indicated layers in proportion to the amount of water in the layers
+     even though the percentages are indicated as 0.  The calculation of the percentages removed are done at run time
+     For example: "(2,1), (4, 0), (5,0)" ratio="1"  will remove water out of all three layers: 2, 4, and 5, in proportion, removing the higher 
+     percentage out of the layer with the highest percentage of the total amount in all 3 layers-->
+     <!--
+      <flux name="InflowToLuckyPeak" use="1"
+        source_domain="reach"
+        source_query="COMID = 23382293"
+        value_type="file"
+        value="InflowToReservoirs_Discharge.csv"
+        value_domain="sources"
+        dynamic="1"
+        withdrawal_cutoff_coeff ="0.3"
+	/>
+-->
+
+    <!--<flux name="AssumedConsumption" use="1"
+                 join_col="TempCOMID_"
+                 source_domain="reach"
+                 sink_domain="catchment"
+                 source_query="COMID = 23382131"
+                 sink_query="COMID>0 and COMID != 23382131"
+                 value_domain="sink"
+                 value_type="file"
+                 value="AssumedConsumption1.csv"
+                 dynamic="1"
+                 withdrawal_cutoff_coeff ="0.9"
+            >
+      <layers>
+        <layer layer_distributions="(3,0.3), (4, 0.5), (5,0.2)"/>
+      </layers>
+    </flux>-->
+
+  </global_methods>
+
+
+ 
+  <!-- <climates>
+    Attributes include:
+    precip:         include the path to the NETCDF grids for both precipitation and temperature
+                    The path should include the base name for the NETCDF files, but FLOW will add
+                    "_YEAR.nc" to each.  ELEMENT must be either "prcp" or "temp". Each file must 
+                    have a separate band for each day of the year it represents.
+                    Units:  precipitation in mm/d, temperature degrees C
+  -->
+    
+    <scenarios default="0">
+      <scenario name="Station Data" id="0">
+        <climate type="climate_station_data" path="BoiseClimate.csv" elev="823" />
+      </scenario>
+    </scenarios>
+    
+    <!-- The alternative below is for loading spatially explicit climate datasts (netCDF format)
+    <scenarios default="0">
+      <scenario name="Status Quo" id="0">
+        <climate type="c"   path="Climate_Reference\TV_pr_Order"     var_name="precipitation_amount" />
+        <climate type="tmax"     path="Climate_Reference\TV_tmmx_C_Order"     var_name="air_temperature"  />
+        <climate type="tmin"     path="Climate_Reference\TV_tmmn_C_Order"     var_name="air_temperature"  />
+        <climate type="humidity" path="Climate_Reference\TV_sph_Order"    var_name="specific_humidity"    />
+        <climate type="solrad"   path="Climate_Reference\TV_srad_Order"   var_name="surface_downwelling_shortwave_flux_in_air"   />
+        <climate type="windspd"  path="Climate_Reference\TV_vs_Order"    var_name="wind_speed"    />
+        <climate type="tavg"     path="Climate_Reference\TV_tavg_C_Order"   var_name="air_temperature"    />
+      </scenario>
+   </scenarios>
+-->
+    
+
+    <!--
+    specifies table inputs.
+      name:   name for table, this MUST correspond to a field in the IDU coverage
+      source: path to  csv file containing values and label headers
+      type:   'float' - all values are real, 'int' - all values are integer, 'var' - variable type (only float currently supported)
+    -->
+  <tables>
+    <table name="HBV" description="HBV Parameters" col="Geo" source="hbv.csv" type="float" />
+    
+  </tables>
+    <!--<table name="HBVSnow" description="HBV Parameters" col="LAI" source="hbvSnow.csv" type="float" />-->
+
+  <!--
+    specifies parameter estimation techniques.
+     <parameterEstimation>
+      estimateParameters:  This is actually an exposed variable.  To set it to false, change in the Envision-Scenarios dialog
+      numberOfRuns:  Flow will run this number of simulations prior to ending
+      numberOfYears: The number of years in each model run
+      saveResultsEvery: The model will write results to the disk after this many runs.  
+      
+      <parameter>
+      table:   name for table, this MUST correspond to a field in the IDU coverage
+      name:    name of the parameter. This MUST correspond to a parameter name outlined in the referenced table.
+      distributeSpatially:  true if the parameter varies in space (a multiplier will be sampled) otherwise, the parameter value will be sample
+      parameterEstimation estimateParameters="true" numberOfRuns="10000" numberOfYears="3" saveResultsEvery="1" randomSeed="2" nsThreshold="-1000"
+      According to Seibert (1997), CFR and CWH can be held constant in most studies. Estimation of Parameter Uncertainty in the HBV Model 
+       <parameterEstimation estimateParameters="true" numberOfRuns="1000" numberOfYears="4" saveResultsEvery="1" randomSeed="1" nsThreshold="-10000">
+    -->
+    <parameterEstimation estimateParameters="true" numberOfRuns="1000" numberOfYears="4" saveResultsEvery="3" randomSeed="1" nsThreshold="-1000">
+      <parameter table="HBV" name="TT"    value="0"  minValue="-2" maxValue="2"   distributeSpatially="false" />
+     
+      <parameter table="HBV" name="SFCF"  value="1.25"  minValue="0.5" maxValue="3"   distributeSpatially="false" />
+      <parameter table="HBV" name="FC" value="250"  minValue="50" maxValue="500"   distributeSpatially="false" />
+     
+      <parameter table="HBV" name="BETA" value="2"  minValue="1" maxValue="6"   distributeSpatially="false" />
+      <parameter table="HBV" name="PERC" value="0.6"  minValue="0.1" maxValue="10.0"   distributeSpatially="false" />
+      <parameter table="HBV" name="UZL" value="30"  minValue="10" maxValue="500"   distributeSpatially="false" />
+      <parameter table="HBV" name="K0" value="0.4"  minValue="0.1" maxValue="1"   distributeSpatially="false" />
+      <parameter table="HBV" name="K1" value="0.1"  minValue="0.01" maxValue="1"   distributeSpatially="false" />
+      <parameter table="HBV" name="K2" value="0.01"  minValue="0.0001" maxValue="0.1"   distributeSpatially="false" />
+     
+      <parameter table="HBV" name="RAIN" 	value="2"   	minValue="2" maxValue="6"  distributeSpatially="false" />
+      <parameter table="HBV" name="SNOW" 	value="-2"  	minValue="-2" maxValue="-1" distributeSpatially="false" />
+      <parameter table="HBV" name="SFCFCORRECTION" 	value="0"  	minValue="0" maxValue="1.2" distributeSpatially="false" />
+      
+    </parameterEstimation>
+
+<!-- 
+    name:     name assigned to variable
+    query:    query constraining calculations
+    value:    expression to be evaulated.  Can be any mathematical expression using IDU field names or
+               internally defined variables, including:
+                "hruVolMelt"     - HRU Melt Volume
+                "hruVolSwe"      - HRU SWE Volume
+                "hruPrecip"      - HRU Total Precip
+                "hruRainfall"    - HRU Total Rainfall
+                "hruSnowfall"    - HRU Total Snowfall
+                "hruAirTemp"     - HRU Air Temp (C)
+                "hruET"          - HRU ET
+                "hruCumPET"      - HRU Cumulutive PET
+                "hruCumET"       - HRU Cumulutive ET
+                "hruCumP"        - HRU Cumulutive P
+                "obs"            - 
+    type:    calculation type, one of "sum", "areaWtMean" or "pctArea".  For pctArea, the "value" expression is ignored.
+    domain:  target of calculation, one of "idu", "hru", "layer", "reach"    
+    -->
+    <outputs>
+      <!-- 
+    <output_group name="Near Snake Discharge">
+      <output in_use="1" name="Near Snake" query="COMID = 23410565" value="reachOutflow" type="sum" domain="reach"  />
+    </output_group>
+   -->
+    </outputs>
+
+  <video_capture use='0' frameRate='30'>
+  </video_capture>
+</flow_model>

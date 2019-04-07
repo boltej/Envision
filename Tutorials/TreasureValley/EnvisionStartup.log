@@ -1,0 +1,53 @@
+Loading layer D:\Envision\Tutorials\TreasureValley\AdaCanIDU.shp
+Loaded layer D:\Envision\Tutorials\TreasureValley\AdaCanIDU.shp: 84 (84) columns, 29132 rows
+Loading map layer: AdaCanIDU.shp
+Loading layer D:\Envision\Tutorials\TreasureValley\Streams.shp
+Loaded layer D:\Envision\Tutorials\TreasureValley\Streams.shp: 47 (47) columns, 844 rows
+Loading map layer: Streams.shp
+Loading layer D:\Envision\Tutorials\TreasureValley\MajorHwys.shp
+Loaded layer D:\Envision\Tutorials\TreasureValley\MajorHwys.shp: 1 (1) columns, 198 rows
+Loading map layer: MajorHwys.shp
+Loading model: Sync (sync.dll)
+Loaded Model Sync (sync.dll)
+Loading model: Time Since Disturbance (trigger.dll)
+Loaded Model Time Since Disturbance (trigger.dll)
+Loading model: Population (Target.dll)
+Loaded Model Population (Target.dll)
+Loading model: Flow (Flow.dll)
+Loaded Model Flow (Flow.dll)
+Loading model: DynamicVeg (DynamicVeg.dll)
+Loaded Model DynamicVeg (DynamicVeg.dll)
+Loading model: Fire (SpatialAllocator.dll)
+Loaded Model Fire (SpatialAllocator.dll)
+Loading model: Modeler (modeler.dll)
+Loaded Model Modeler (modeler.dll)
+PolicyManager: Input file 'Policies.xml' not found - no policies will be loaded
+Loaded 0 policies from D:\Envision\Tutorials\TreasureValley\TreasureValley.envx
+Loaded 1 actors from D:\Envision\Tutorials\TreasureValley\TreasureValley.envx
+Initializing Sync
+Failed to open file
+Initialization completed for Sync
+Initializing Time Since Disturbance
+Initialization completed for Time Since Disturbance
+Initializing Population
+Adding column [POP_CAPDENS] to layer 'IDU'
+Target Population loaded 0 reports, 4 constants, 1 allocation sets, 0 preferences with a total of 12 allocations
+
+Starting Population: 2.12141e+06, Capacity: 3.20775e+06, Available: 1.22395e+06, Over Capacity: 42239.1
+
+Starting Population: 2.12141e+06, Capacity: 3.20775e+06, Available: 1.22395e+06, Over Capacity: 42239.1
+
+Initialization completed for Population
+Initializing Modeler
+Modeler: Input file 'Modeler.xml' not found - this process will be disabled
+Initialization completed for Modeler
+Loading Scenarios
+A Policy (Harvest Older Trees on Federal Lands, ID: 0) was referenced by a scenario that does not exist in the current policy set.  It will be removed next time you save the scenario.
+A Policy (Harvest Hardwood and Reestablish Conifer, ID: 1) was referenced by a scenario that does not exist in the current policy set.  It will be removed next time you save the scenario.
+A Policy (Ag Conversion to Rural Res, ID: 2) was referenced by a scenario that does not exist in the current policy set.  It will be removed next time you save the scenario.
+A Policy (Forest Conversion to Rural Res, ID: 3) was referenced by a scenario that does not exist in the current policy set.  It will be removed next time you save the scenario.
+Scenario variable [DynamicVeg.MC1 MC1_output] in  is not a valid scenario variable... ignoring
+There was a problem loading one or more scenarios.  See the Message Tab for details.
+Loaded 1 scenarios from D:\Envision\Tutorials\TreasureValley\TreasureValley.envx
+Compiling Policies
+Done loading D:\Envision\Tutorials\TreasureValley\TreasureValley.envx

@@ -1,0 +1,71 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+ NOTE:  ORDER IS IMPORTANT AND MUST MATCH ID's in the correspondign INI File!
+ 
+ evalType  : specifies how this evaluation is made.  One of the following (required)
+               HIGH - want to maximize the area within the range defined by the bounds (low values indicate scarcity)
+               LOW  - want to minimize the area within the range defined by the bounds (high values indicate scarcity)
+ 
+ method    : specifies how the calcualtion is made.  One of the following (required)
+               AREAWTMEAN - compute an area-weighted mean value
+               
+ lowerBound: the lower bound for this attribute, expressed in total area or percent area, depending on the valueof the "area" attribute (required)
+ upperBound: the upper bound for this attribute, expressed in total area or percent area, depending on the valueof the "area" attribute (required)
+ 
+ 
+ Autonomous Processes
+ <auto_process>   
+   name (required)     name of model
+   id   (required)     id specified in ENVX file
+   col  (optional)     database field name for process to populate
+   value (optional)    computed value to populate into database
+   query (optional)    spatial query limiting scope of computation
+   constraints (optional)
+   useDelta  (optional) instead of iterating through map, iterate though delta array.   In this case
+                        usedelta must contain one or more field=value pairs, separated by semicolons, to look for in the delta array.
+                        If a query is specified, it also must be satisifed for the model to run on an IDU cell.
+ </auto_process>
+-->
+
+<modeler>
+   <!-- HexSim Lite implementation for Spotted owls-->
+   <eval_model name='Habitat' id='100' col='Habitat' query="LULC_A=4 {Forest} or LULC_A=3 {Other Vegetation}" 
+               value ="HabScore" eval_type="HIGH" lower_bound="0" upper_bound="100" eval_method="AREAWTMEAN" >
+      <lookup name='HabScore' attr_col='LULC_C' default='0'>
+         <!-- Grassland/Herbaceous -->
+         <map attr_val='7100000'  value='50' />
+         <!-- Shrub/Scrub -->
+         <map attr_val='5200000'  value='80' />
+         <!-- Deciduous Forest -->
+         <map attr_val='41'  value='20' />
+         <!-- Evergreen Forest (0-20yr) -->
+         <map attr_val='4210000'  value='20' />
+         <!-- Evergreen Forest (20-40yr) -->
+         <map attr_val='4220000'  value='10' />
+         <!-- Evergreen Forest (40-80yr) -->
+         <map attr_val='4230000'  value='6' />
+         <!-- Evergreen Forest (over 80yr) -->
+         <map attr_val='4240000'  value='2' />
+         <!-- Mixed Forest -->
+         <map attr_val='4300000'  value='20' />
+      </lookup>
+   </eval_model>
+   
+   <auto_process name="Report" id="101" >
+
+      <output name="Grassland/Herbaceous (ha)"         query="LULC_C = 7100000" type="sum" value="AREA/10000" />
+      <output name="Shrub/Scrub (ha)"                  query="LULC_C = 5200000" type="sum" value="AREA/10000" />
+      <output name="Evergreen Forest (0-20yr) (ha)"    query="LULC_C = 4210000" type="sum" value="AREA/10000" />
+      <output name="Evergreen Forest (20-40yr) (ha)"   query="LULC_C = 4220000" type="sum" value="AREA/10000" />
+      <output name="Evergreen Forest (40-80yr) (ha)"   query="LULC_C = 4230000" type="sum" value="AREA/10000" />
+      <output name="Evergreen Forest (over 80yr) (ha)" query="LULC_C = 4240000" type="sum" value="AREA/10000" />
+      <output name="Mixed Forest (ha)"                 query="LULC_C = 4300000" type="sum" value="AREA/10000" />
+   </auto_process>
+
+</modeler>
+
+
+
+
+

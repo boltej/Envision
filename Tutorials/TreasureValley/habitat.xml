@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+=========== <sppHabMatrix ==============
+col    = idu field name for veg class information
+lookup = name of file (csv) containing lookup information for species X habitat scores
+-->
+
+<sppHabMatrix lulc_col="LULC_C" output_col="WILDLIFE" habitat_table="test.csv" >
+   <!-- 
+  =========== <species> ==============
+  default_use = species usage, options are: 'all', 'none'
+  -->
+   <species default_use="none">
+     <!-- 
+   =========== <specie> ==============
+   name        = scientific name
+   common_name = common nameuse=use = species usage, options are: 'all', 'none', 'list' (includes those specified in specie tag
+   include     = 0 => exclude from the collection, 1 => include in the selection
+   col         = field name to populate (nothing populated if not present or -1)
+   -->
+     <specie include="1" name="Necturus maculosus"       common_name="Mudpuppy" col="MUDPUPPY" />
+     <specie include="1" name="Ambystoma jeffersonianum" common_name="Jefferson's Salamander" />
+     <specie include="1" name="Ambystoma laterale"       common_name="Blue-spotted Salamander" />
+
+   </species>
+
+   <habitats>
+     <habitat_use code="R" weight="1" name="Reproduction" />
+     <habitat_use code="F" weight="1" name="Feeding"      />
+     <habitat_use code="C" weight="1" name="Cover"        />
+     <habitat_use code="W" weight="1" name="Wintering"    />
+     <habitat_use code="L" weight="1" name="Loafing"      />
+     <habitat_use code="S" weight="1" name="Staging"      />
+   </habitats>
+
+   <lulc_mappings>
+      <!-- 
+      == <lulc_mapping> - map an lulc class to a column in the habitat score file ==
+      -->
+     <lulc_map lulc="1" habitat="Developed"     />
+     <lulc_map lulc="2" habitat="Agriculture"   />
+     <lulc_map lulc="3" habitat="OtherVeg"     />
+     <lulc_map lulc="4" habitat="Forest"        />
+     <lulc_map lulc="6" habitat="Wetlands"    />
+
+   </lulc_mappings>
+</sppHabMatrix>
+

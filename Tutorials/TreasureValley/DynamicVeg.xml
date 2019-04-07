@@ -1,0 +1,67 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!--
+Set "dynamic_update" to "1" for dynamic site index and pvt over time.
+Set "dynamic_update" to "0" for static  site index and pvt over time.
+
+dynamic (1) will use every year of data for the selected site index and pvt input files, and increase in step
+with current time step.
+
+Static (0) will use the first year of data for the selected site index and pvt input files, 
+for all time steps. 
+-->
+
+<pvt dynamic_update="1">
+  <!--
+  transition deltas is a binary switch that when set equal to 1 will create an attribute
+  in the IDU layer named "VEGTRANTYPE" during Init.  During run time a delta will be
+  sent to the delta array everytime DynamicVeg implements a LULC_C transition. If set 
+  equal to 0, nothing will happen
+  
+  Delta array values:
+  0 - is the default set before a run
+  1 - Successional AGECLASS deterministic transition
+  2 - Successional probabilistic transition
+  3 - Disturbance transition
+  -->
+  <transition_deltas id="0"/>
+
+  <!--if either the AGECLASS or TSD attributes in the IDU layer need to be
+      initialized before first Envision time step, then set equal to 1.  If 
+      set equal to 0, then it is assumed that the user has initialized these 
+      attributes with another method
+      
+      if 1 is set for age_class_initializer, then AGECLASS will be intialized in the IDU layer
+      with a uniformally distributed random AGECLASS value between the STARTAGE and 
+      ENDAGE in the Deterministic Lookup file.
+      
+      if 1 is set for tsd_initializer, then TSD will be intialized in the IDU layer
+      by the following equation.  Values for this equation are found in the Probability
+      lookup table. Random TSD is calcualted based on a uniform distribution between TSD
+      and TSDMAX.
+        TSD = (random AGECLASS) - MINAGE     as found in determinsitic lookup table-->
+  <initializers>
+
+    <initializer
+      age_class_initializer="0"
+      tsd_initializer="0"
+      />
+
+  </initializers>
+
+
+
+  <vegtransfiles>
+
+    <vegtransfile
+      probability_filename="tv_probability_transition_lookup.csv"     
+      deterministic_filename="tv_deterministic_transition_lookup.csv"
+      probMultiplier_filename=""
+      />
+
+  </vegtransfiles>
+
+</pvt>
+
+
+

@@ -1,0 +1,39 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+
+<reporter>
+  <!-- constants used in the reported equations -->
+   <const name='m2perAcre' value='4046.86' />
+   <const name="AcrePerM2" value="0.00024711" />
+   <const name="m2PerHa" value="10000" />
+   <const name="mPerMile" value="1609.34" />
+   <const name="mPermm" value="0.001" />
+
+  <!-- define an output group. Reporter will create an output file for each group -->
+   <output_group name="Population">
+     <output name="Total Population"  query="1" value="POPDENS*AREA" type="sum"  />
+     <output name="Available Capacity (pct)"  query="1" value="P_POP_AVAI" type="areawtmean"  />
+   </output_group>
+
+  <output_group name="Population by Zone" stratify_by="ZONE"  >
+    <output name="Total Population"  query="1" value="POPDENS*AREA" type="sum"  />
+    <output name="Available Capacity (%)"  query="1" value="P_POP_AVAI" type="areawtmean"  />
+  </output_group>
+
+  <output_group name="Vegetation" stratify_by="LULC_C=[5200000,4300000,7100000,5200000,4210000,4220000,4230000,4240000]" >
+    <output name="Area (ha)"  query="1" value="AREA/m2PerHa" type="sum"  />
+  </output_group>
+
+  <output_group name="Loss of Ag and Forest Land" >
+    <output name="Ag Area (ha)"  query="LULC_A=2" value="AREA/m2PerHa" type="sum"  />
+    <output name="Forest Area (ha)"  query="LULC_A=4" value="AREA/m2PerHa" type="sum"  />
+    <output name="Rural Residential Zone Area (ha)"  query="ZONE=3" value="AREA/m2PerHa" type="sum"  />
+  </output_group>
+
+  <output_group name="Fire" >
+    <output name="Surface Fires (ha)"              query="DISTURB=20" value="AREA/m2PerHa" type="sum"  />
+    <output name="Mixed Severity-Low Fires (ha)"   query="DISTURB=21" value="AREA/m2PerHa" type="sum"  />
+    <output name="Mixed Severity-High Fires (ha)"  query="DISTURB=22" value="AREA/m2PerHa" type="sum"  />
+    <output name="Stand-replacing Fires (ha)"      query="DISTURB=23" value="AREA/m2PerHa" type="sum"  />
+  </output_group>
+</reporter>
