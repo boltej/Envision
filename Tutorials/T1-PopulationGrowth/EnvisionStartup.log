@@ -1,0 +1,30 @@
+Loading layer \Envision\Tutorials\TreasureValley\AdaCanIDU.shp
+Loaded layer \Envision\Tutorials\TreasureValley\AdaCanIDU.shp: 84 (84) columns, 29132 rows
+Loading map layer: \Envision\Tutorials\TreasureValley\AdaCanIDU.shp
+Loading layer \Envision\Tutorials\TreasureValley\Streams.shp
+Loaded layer \Envision\Tutorials\TreasureValley\Streams.shp: 47 (47) columns, 844 rows
+Loading map layer: Streams.shp
+Loading layer \Envision\Tutorials\TreasureValley\MajorHwys.shp
+Loaded layer \Envision\Tutorials\TreasureValley\MajorHwys.shp: 1 (1) columns, 198 rows
+Loading map layer: MajorHwys.shp
+Loading model: Population (Target.dll)
+Loaded Model Population (Target.dll)
+Loading model: Report (Reporter.dll)
+Loaded Model Report (Reporter.dll)
+Loaded 0 policies from D:\Envision\Tutorials\T1-PopulationGrowth\TreasureValleyEx1.envx
+Loaded 1 actors from D:\Envision\Tutorials\T1-PopulationGrowth\TreasureValleyEx1.envx
+Initializing Population
+Adding column [POP_CAPDENS] to layer 'IDU'
+   Target Population loaded 0 reports, 4 constants, 1 allocation sets, 0 preferences with a total of 12 allocations
+
+   Starting Population: 2.12141e+06, Capacity: 3.20775e+06, Available: 1.22395e+06, Over Capacity: 42239.1
+
+Initialization completed for Population
+Initializing Report
+Reporter: Loaded Output Group 'Population' (2 outputs)
+Reporter: Loaded Output Group 'Population by Zone' (2 outputs)
+Initialization completed for Report
+Loading Scenarios
+Loaded 1 scenarios from D:\Envision\Tutorials\T1-PopulationGrowth\TreasureValleyEx1.envx
+Compiling Policies
+Done loading D:\Envision\Tutorials\T1-PopulationGrowth\TreasureValleyEx1.envx

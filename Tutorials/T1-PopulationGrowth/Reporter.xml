@@ -1,0 +1,23 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+
+<reporter>
+  <!-- constants used in the reported equations -->
+   <const name='m2perAcre' value='4046.86' />
+   <const name="AcrePerM2" value="0.00024711" />
+   <const name="m2PerHa" value="10000" />
+   <const name="mPerMile" value="1609.34" />
+   <const name="mPermm" value="0.001" />
+
+  <!-- define an output group. Reporter will create an output file for each group -->
+   <output_group name="Population">
+     <output name="Total Population"  query="1" value="POPDENS*AREA" type="sum"  />
+     <output name="Available Capacity (pct)"  query="1" value="P_POP_AVAI" type="areawtmean"  />
+   </output_group>
+
+  <output_group name="Population by Zone" stratify_by="ZONE"  >
+    <output name="Total Population"  query="1" value="POPDENS*AREA" type="sum"  />
+    <output name="Available Capacity (%)"  query="1" value="P_POP_AVAI" type="areawtmean"  />
+  </output_group>
+
+</reporter>

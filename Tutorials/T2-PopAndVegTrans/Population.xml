@@ -1,0 +1,70 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+Target specifies a landscape variable whose total value across the landscape 
+is represented as a trajectory, described as a rate or as a time series, and
+a set of "allocations" that describe a target distribution surface in terms of 
+underlying spatial attributes.
+     
+An "allocation" consists of a spatial query defining the landscape region where
+the allocation is targeted, and a target equation that describes, in dimensionless,
+relative terms, the portion of the total target allocated to that region. Attributes
+of an allocation include:
+  name:       a string describing the allocation (e.g. "population center")
+  query:      a spatial query (using Envision spatial query syntax) define where this allocation 
+              is located in teh underlying IDU coverage
+  value:      a mathematical expression (supporting IDU field references) that returns a relative
+              value of the future target surface.
+  multiplier: (optional) a floating point value that scales up (>1) or down (0-1) the value expression
+
+Note that if allocation queries (regions) overlap, the one specified FIRST has
+precedence over successive allocations.
+     
+Multiple allocation scenarios can be described for a given target by specifying
+multiple <allocations> blocks, each with a unique "id" (integer) and "name" attribute.
+
+NOTE:  capCol, availCol contains absolute numbers, not per area numbers
+       pctAvail = decimal percent
+       computed "value" is per unit area.  It is used to populate capCol, but is put on an absolute basis first (capCol = value * AREA )
+-->
+
+<target_process>
+
+  <target name="Population" method="rateLinear" value="0.025" col="POPDENS"  capCol='POP_CAP' availCol='POP_AVAIL' pctAvailCol='P_POP_AVAI' capDensCol='POP_CAPDENS' estimate_params='0'>
+
+<!--
+  <report id='1' name='Portion of Growth Added Within UGB' query='UGB &gt; 0' />
+  <report id='2' name='Portion of Growth Added Outside UGB' query='UGB = 0' />
+-->
+  <const name="peoplePerDU" value="2.3" />
+
+  <!-- density multipliers for each scenario -->
+  <const name='kSQ' value ='1.0' />
+  <const name='kCG' value ='2.0' />
+  <const name='kUG' value ='0.5' />
+
+  <!-- 
+  Status Quo Scenario:  Capacity stays similar to present
+  -->
+  
+  <allocation_set id="0" name="Status Quo">
+     <capacity name="RuralResidential"              query='ZONE=3'  value="kSQ*0.5*peoplePerDU/4047"  multiplier="1.0" />
+     <capacity name="Residential Very Low Density"  query='ZONE=2'  value="kSQ*2*peoplePerDU/4047"    multiplier="1.0" />
+     <capacity name="Residential Low Density"       query='ZONE=6'  value="kSQ*4*peoplePerDU/4047"    multiplier="1.0" />
+     <capacity name="Residential Med-Low Density"   query='ZONE=4'  value="kSQ*6*peoplePerDU/4047"    multiplier="1.0" />
+     <capacity name="Residential Med Density"       query='ZONE=20' value="kSQ*8*peoplePerDU/4047"    multiplier="1.0" />
+     <capacity name="Residential Med High Density"  query='ZONE=9'  value="kSQ*12*peoplePerDU/4047"    multiplier="1.0" />
+     <capacity name="Residential High Density"      query='ZONE=10' value="kSQ*20*peoplePerDU/4047"    multiplier="1.0" />
+     <capacity name="Agriculture"                   query='ZONE=54 or ZONE_B=19' value="kSQ*0.5*peoplePerDU/4047"  multiplier="1.0" />
+     <capacity name="No Zone/Agricultural"         query='ZONE=1 and LULC_B=82' value="kSQ*0.5*peoplePerDU/4047"   multiplier="1.0" />
+    <capacity name="No Zone/Developed-Low"         query='ZONE=1 and LULC_B=22' value="kSQ*4*peoplePerDU/4047"   multiplier="1.0" />
+    <capacity name="No Zone/Developed-Med"         query='ZONE=1 and LULC_B=23' value="kSQ*9*peoplePerDU/4047"   multiplier="1.0" />
+     <capacity name="No Zone/Developed-High"        query='ZONE=1 and LULC_B=24' value="kSQ*16*peoplePerDU/4047"   multiplier="1.0" />
+
+     <!--   <preference name="Near Major Highways" query='D_MAJORHWY &lt;= 1000' value="10" target="0" /> -->
+  </allocation_set>
+
+</target>
+
+</target_process>
+

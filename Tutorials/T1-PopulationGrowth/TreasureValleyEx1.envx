@@ -1,0 +1,377 @@
+<?xml version='1.0' encoding='utf-8' ?>
+
+<Envision ver='6.0'>
+
+<!--
+==========================================================================================================
+                               S E T T I N G S 
+==========================================================================================================
+ actorInitMethod: Specifies how acters are initialized
+    0 = no actors
+    1 = based on weights specified in the IDU coverage
+    2 = based on groups defined in the ACTOR field in the IDU coverage
+    3 = based on a spatial querys defined for the actor groups
+    4 = use a single, uniform actor
+    5 = generate random actors (not fully supported at this time
+ 
+ actorAssociations:    0=disable, 1=enable 
+ loadSharedPolicies:   0=disable, 1=enable shared policies 
+ debug:                0=use debug mode, 1=no debug mode 
+ startYear:            0= ignore, otherwise specific start year (e.g. 2012) 
+ logMsgLevel:          0=log everything, 1=log critical events, 2= log nothing 
+ noBuffering:          0=disable polygon subdivision during Buffer(), 1=enable subdivision 
+ multiRunDecadalMapsModulus: output frequency (years) for maps during multiruns 
+ defaultPeriod:        default simulation period (years) 
+ multiRunInterations:  default number of runs in a multirun 
+ dynamicUpdate:        flag indicating whether display should be updated dynamically 0=no update,1=update views,2=update main map, 3=update both 
+ spatialIndexDistance: distance to build spatialindex to speed up spatial operation.  0=disable, gt 0 = distance to use
+ areaCutoff:           minimum area of a polygon at which a label will be shown 
+ deltaAllocationSize:  'chunk' size for allocating deltas.  0=auto 
+ actorDecisionElements: flag specifying what elements actors consider during decision-making. 
+             It is the sum of: 
+                1 = self interest 
+                2 = altruism 
+                4 = global policy preference 
+                8 = utility 
+               16 = network assocations 
+ actorDecisionMethod:   1=probablistic, 2=always select policy with max score 
+ policyPreferenceWt:    weight (0-1) reflecting importance of global policy preferences during actor decision-making. 
+ shuffleActorPolys:     1=randomize actor poly traversal order, 0=fixed order. 
+ parallel:              1=run models/processes in parallel, 0=serial.  Default=0 
+ collectPolicyData:     0=don't collect policy application data during runs, 1=do  Default=1 
+ exportMapInterval:     default map export interval during a run (years), -1 = don't export 
+ exportBmpPixelSize:    cell size (map coords) for exporting BMPs of field(s) specified below, -1=don't export BMPs 
+ exportBmpCols:         comma-separated list of field name(s) to export in bmp exports, empty=use active field 
+ exportOutputs:         0=don't export model outputs, 1 = export model outputs at end of run 
+ exportDelta:           0=don't export delta array, 1 = export delta array at end of run 
+ exportDeltaCols:       comma-separated list of field name(s) to export in bmp exports, empty=export all fields 
+ dynamicActors:         0=don't allow dynamic actor, 1=allow dynmaic actors 
+ policyPreferenceWt:    0-1 value, default = 0.33 
+ shuffleActorPolys:     1=randomize IDU oreder during actor decision-making, 0=don't randomize 
+ parallel:              1=run plugins in parallel, 0=run in series 
+ addReturnsToBudget:    1=add negative costs to budget, 0=ignore negative cost in budgeting 
+ collectPolicyData:     1=collect detailed usage data on policy application (slower), 0=don't (faster) 
+ exportMaps:            1=export maps at the interval specified in 'exportMapInterval' attribute,0=don't (default) 
+ exportMapInterval:     Positive value=frequency with which maps get exported during a run, <=0 disables export 
+ exportBmpPixelSize:    integer value for the size of a pixel in an exported bitmap; <=0 disables bitmap export 
+ exportBmpCols:         comma-separated list of fields in the IDU database to generate export maps from 
+ exportOutputs:         1=export CSV files of run data during a run, 0=don't export run data 
+ exportDeltas:          1=export CSV files of run deltas during a run, 0=don't export run deltas 
+ exportDeltaCols:       comma-separated list of fields to include in delta exports, empty=export all 
+ discardMultiRunDeltas: 1=during multiruns, don't retain deltas between runs, 0=retain deltas during multiruns (memory intensive!) 
+ path:                  comma-separated list of paths to search for relative file specification seearches; blank=only default paths are searched 
+==========================================================================================================
+-->
+
+<settings
+	actorInitMethod            ='4' 
+	actorAssociations          ='0'  
+	loadSharedPolicies         ='1' 
+	debug                      ='0' 
+	startYear                  ='2006' 
+	logMsgLevel                ='0' 
+	noBuffering                ='0' 
+	multiRunDecadalMapsModulus ='10' 
+	defaultPeriod              ='25' 
+	multiRunIterations         ='25' 
+	dynamicUpdate              ='15' 
+	spatialIndexDistance       ='500' 
+	areaCutoff                 ='0' 
+	deltaAllocationSize        ='320000' 
+	actorDecisionElements      ='7' 
+	actorDecisionMethod        ='1' 
+	dynamicActors              ='0' 
+	policyPreferenceWt         ='0.333333' 
+	shuffleActorPolys          ='0' 
+	parallel                   ='0' 
+	addReturnsToBudget         ='0' 
+	collectPolicyData          ='0' 
+	exportMapInterval          ='-1' 
+	exportBmpPixelSize         ='0' 
+	exportBmpCols              ='' 
+	exportOutputs              ='0' 
+	exportDeltas               ='0' 
+	exportDeltaCols            ='' 
+	discardMultiRunDeltas      ='1' 
+	path                       ='' 
+	mapUnits                   ='meters' 
+/>
+
+<!--
+=====================================================================================================
+                                   L A Y E R S -
+=====================================================================================================
+type:         0=shape, 1=grid 
+includeData:  0=no (load geometry only), 1-load data as well as geometry 
+color:        Red, Green Blue triplet 
+records:      -1=all, any other number loads the first N records only 
+initField:    field name for field to dispaly initial, leave blank for default 
+fieldInfoFile: path to xml file contain field info descriptors - blank if <shapefilename.xml> 
+labelField:   IDU column name that contains labels ('' for no labels) 
+labelFont:    face name of font (e.g. 'Arial' used to draw label 
+labelSize:    size (in map units) used to draw labels 
+labelColor:   color (as 'r,g,b') used for labels, e.g. red is '255,0,0' 
+labelQuery:   spatial query indicating which IDU's shold be labeled ('' for all) 
+=====================================================================================================
+--> 
+<layers> 
+	<layer 
+		name         ='IDU' 
+		path         ='\Envision\Tutorials\TreasureValley\AdaCanIDU.shp' 
+		type         ='0' 
+		includeData  ='1' 
+		color        ='0,0,0' 
+		records      ='-1' 
+		initField    ='LULC_B' 
+		fieldInfoFile='\Envision\Tutorials\TreasureValley\IDU.xml' 
+	/>
+   
+   
+	<layer 
+		name         ='Streams' 
+		path         ='Streams.shp' 
+		type         ='0' 
+		includeData  ='1' 
+		color        ='0,0,155' 
+		records      ='-1' 
+		initField    ='GNIS_NAME' 
+		fieldInfoFile='' 
+	/>
+
+   <layer
+		name         ='Major Highways'
+		path         ='MajorHwys.shp'
+		type         ='0'
+		includeData  ='1'
+		color        ='0,0,0'
+		records      ='-1'
+		initField    =''
+    labelField   ='ST_NAME'
+    labelFont    ='Arial'
+    labelSize    ='120'
+    labelColor   ='0,0,0'
+    labelQuery   =''
+		fieldInfoFile=''
+	/>
+</layers> 
+
+<!--
+==================================================================================================
+                                  V I S U A L I Z E R S 
+==================================================================================================
+
+name:          string indicatind name of visualizer
+path:          path to the visualizer DLL
+id:            unique integer identifier for this visualizer 
+use:           0=don't use this process, 1=use this visualizer 
+type:          1=Input, 2=RunTime, 4 = postrun - may be or'd together
+initInfo:      visualizer -specific string passed to model at initialization
+
+ ALL FIELDS EXCEPT [initInfo] and [name] MUST BE NON-WHITESPACE.
+
+==================================================================================================
+-->
+<visualizers> 
+
+</visualizers>
+
+<!--
+==================================================================================================
+                                  Z O O M S 
+==================================================================================================
+
+name:          string indicating name of zoom
+left, top, right, bottom:  real-world coords for view - xMin, yMax, xMax, yMin
+
+==================================================================================================
+-->
+<zooms> 
+</zooms> 
+<!--
+==================================================================================================
+                                  M O D E L S 
+==================================================================================================
+ Note that a single DLL can contain multiple models, each must be specified on 
+     it's own line.  NOTE:  Once specified, the modelID should not be changed, since the model may use
+     this ID internally.
+
+id:            unique integer identifier for this model 
+freq:          number indicating how often to run this model, 0=always run
+use:           0=don't use this process, 1=use this model 
+
+showInResults: 0=don't show anywhere
+               1=show everywhere
+               2=show where unscaled (beyond [-3..3]) can be shown.
+fieldName:  name of field in the IDU coverage reserved by this model, blank if not field reserved
+initInfo:   model-specific string passed to model at initialization
+dependencies: comma-separated list of names of models this model is dependent on
+initRunOnStartup: causes InitRun() to be invoked after initial loading if set to 1, 0=not invoked
+
+ ALL FIELDS EXCEPT [initInfo] and [name] MUST BE NON-WHITESPACE.
+
+==================================================================================================
+-->
+<evaluators> 
+
+</evaluators>
+
+<!--
+===================================================================================
+                      A U T O N O M O U S   P R O C E S S E S 
+===================================================================================
+id:         unique integer identifier for this process 
+use:        0=don't use this process, 1=use this process 
+freq:       number indicating how often to run this process, 0=always run
+timing:     0=run before eval models, 1=run after eval models 
+sandbox:    1=use this process when running sandbox evaluations, 0=ignore during sandboxing 
+fieldName:  name of field in the IDU coverage reserved by this process, blank if not field reserved
+initInfo:   model-specific string passed to process at initialization
+dependencies: comma-separated list of names of models this model is dependent on
+initRunOnStartup: causes InitRun() to be invoked after initial loading if set to 1, 0=not invoked
+===================================================================================
+-->
+<models>
+
+
+ <model 
+		name         ='Population' 
+		path         ='Target.dll' 
+		id           ='0' 
+		use          ='1' 
+		timing       ='0' 
+		initInfo     ='Population.xml' 
+	/>
+
+
+   <model
+		name         ='Report'
+		path         ='Reporter.dll'
+		id           ='101'
+		use          ='1'
+		timing       ='1'
+		initInfo     ='Reporter.xml'
+	/>
+
+
+</models>
+
+
+<!--
+===================================================================================
+                  A P P L I C A T I O N   V A R I A B L E S  
+===================================================================================
+<app_vars> 
+<app_var name='myname' description='' col='myField' timing='3' /> 
+</app_vars> 
+- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -  
+name:          name of app variable (no spaces) (required)
+description:   description of variable (required)
+value:         expression to evaluate. exclude this if a plugin will manage this AppVar (optional)
+col:           field name to populate (optional) - implies this is a local variable.  Leave empty for global variables 
+timing:        0=no autoupdate.  The value is constant, or a plugin controls this value.
+               1=evaluate at the beginning of a time step only
+               2=evaluate at the end of a time step only
+               3=evaluate both at the beginning and end of a time step.
+===================================================================================
+-->
+<app_vars>
+</app_vars>
+
+
+<!--
+===================================================================================
+                      L U L C   T R E E 
+===================================================================================
+-->
+
+<lulcTree file='lulc.xml' />
+
+<!--
+===================================================================================
+                      M E T A G O A L S 
+===================================================================================
+name:    name of this metagoal 
+model:   name of associated eval model, if used in altruistic decision-making. 
+         this must correspond to entry in the <models> section.
+decisionUse:   0=don't use in decision,
+               1=use in actor self-interest (value) decision only
+               2=use in altruistic decision only
+               3=use in both
+===================================================================================
+-->
+<metagoals>
+</metagoals>
+
+
+<!--
+===================================================================================
+                      P O L I C I E S 
+===================================================================================
+-->
+
+<policies />
+
+<!--
+===================================================================================
+                      A C T O R S 
+===================================================================================
+id:           unique identifier for this actor group (required) 
+name:         name of this actor group (required)
+originator:   name of person defining this group (optional) 
+decisionFreq: frequency (years) that the actor group makes decisions (required) 
+decisionElements: see definition under <settings> above 
+query:        query string for query-defined actors (required if actor initialization method=3, ignored otherwise) 
+valueStdDev:  standard deviation of actor values for this actor group (default=0 is not specified) 
+landscapeFeedbackWt: value between 0 and 1 indicating relative weighting of altruistic decision-making (default = 0.5 if not specified) 
+actorValueWt: value between 0 and 1 indicating relative weighting of self-interested decision-making (default = 0.5 if not specified) 
+utilityWt: value between 0 and 1 indicating relative weighting of utility (must define a utility function plugin!) default = 0.0 if not specified) 
+socialNetworkWt: value between 0 and 1 indicating relative weighting of social network influences (must define a social network!) default = 0.0 if not specified) 
+===================================================================================
+-->
+
+<actors default='0'>
+
+	<actor id='0' name='Uniform Actor' 
+		originator='' 
+		decisionFreq='2' 
+		decisionElements='7' 
+		query='' 
+		valueStdDev='0' 
+		landscapeFeedbackWt='0.500000' 
+		actorValueWt='0.500000' 
+		utilityWt='0.000000' 
+		socialNetworkWt='0.000000' >
+		<goal_scores>
+		</goal_scores>
+	</actor>
+
+</actors>
+
+<!--
+===================================================================================
+                      S C E N A R I O S 
+===================================================================================
+-->
+
+<scenarios default='0'>
+	<scenario name='Status Quo' 
+		originator='' 
+		isEditable='1' 
+		isShared='1' 
+		policyPreferenceWt='0.333333' 
+		evalModelFreq='1'>
+		<description>
+			
+		</description>
+		<policies>
+		</policies>
+		<vars>
+			<var vtype='8' inUse='0' name='Population.Allocation Scenario' value='0.000000' />
+			<var vtype='8' inUse='0' name='Population.Growth Rate' value='0.080000' />
+			<var vtype='1' inUse='0' name='Decision Elements' value='7.000000' />
+		</vars>
+	</scenario>
+
+	</scenarios>
+
+</Envision>
