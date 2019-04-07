@@ -1,0 +1,19 @@
+{
+  "projects": [
+    {
+      "name": "Treasure Valley",
+      "path": "d:/Envision/Tutorials/T3-AddingPolicies/TreasureValleyEx3.envx",
+      "imageURL": "http://envweb.bee.oregonstate.edu/Images/TreasureValley.jpg"
+    },
+    {
+      "name": "Earth Futures",
+      "path": "d:/Envision/Tutorials/T3-AddingPolicies/TreasureValleyEx3.envx",
+      "imageURL": "http://envweb.bee.oregonstate.edu/Images/Earth.png"
+    },
+    {
+      "name": "Kings Canyon, CA",
+      "path": "d:/Envision/Tutorials/T3-AddingPolicies/TreasureValleyEx3.envx",
+      "imageURL": "http://envweb.bee.oregonstate.edu/Images/KingsCanyon.jpg"
+    }
+  ]
+}
