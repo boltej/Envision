@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<spatial_allocator area_col="AREA" method="score priority" shuffle_idus="1">
+
+  <!-- Note:  Valid Disturbance codes are:
+   NO_DISTURBANCE=0,
+   HARVEST = 1,
+   THINNING = 2,
+   PARTIAL_HARVEST = 3,
+   RESTORATION = 4,
+   PLANTATION = 5,
+   SELECTION_HARVEST = 6,
+   DEVELOPED_TO_MIXED = 11,
+   DEVELOPED_TO_WOODLAND = 12,
+   DEVELOPED_TO_SAVANNA = 13,
+   SURFACE_FIRE = 20,
+   LOW_SEVERITY_FIRE = 21,
+   HIGH_SEVERITY_FIRE = 22,
+   STAND_REPLACING_FIRE = 23,
+   PRESCRIBED_SURFACE_FIRE = 29,
+   PRESCRIBED_LOW_SEVERITY_FIRE = 30,
+   PRESCRIBED_HIGH_SEVERITY_FIRE = 31,
+   PRESCRIBED_STAND_REPLACING_FIRE = 32,
+-->
+   
+  <allocation_set name="Fire" col="DISTURB" use="1" >
+
+     <allocation name="Low Severity Fire" id="21" target_source="timeseries" 
+             target_values="(1990,5000000),(2050,7000000)"
+             expand_query="LULC_A=4 {Forest} or LULC_A=3 {Other Veg}" expand_area="3000000" >
+        <constraint name="Forest Land" query="LULC_A=4 {Forest} or LULC_A=3 {Other Veg}" />        
+        <preference name="global" query="LULC_A=3 {Other Veg}" weight="0.1" />
+     </allocation>
+
+     <allocation name="Stand replacing Fire" id="23" target_source="timeseries" target_values="(1990,7000000),(2050,9000000)"
+             expand_query="LULC_A=4 {Forest} or LULC_A=3 {Other Veg}" expand_area="3000000" >
+        <constraint name="Forest Land" query="LULC_A=4 {Forest}" />
+        <preference name="global" query="LULC_A=4 {Forest}" weight="0.1" />
+    </allocation>
+    
+  </allocation_set>
+
+</spatial_allocator>

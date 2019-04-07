@@ -1,0 +1,48 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+Sync specifies a set of mappings between variables in one column to variables in another column.
+<sync method=? />
+  method:  "useDelta" (default) or "useMap"
+  
+   * <?xml version="1.0" encoding="utf-8"?>
+   *
+   * <sync method="useDelta" >  <<<<<< corresponds to a SyncProcess
+   *   <sync_map source_col="LULC_A" target_col="STANDCLASS" >   <<<<< corresinds to a SyncMap
+   *      <map source_value="1">         <<<<< corresponds to a SyncArray
+   *         <outcome target_value="4" probability="20" />     <<<< Corresponds to a SYNC
+   *         <outcome target_value="5" probability="80" />
+   *      </map>
+   *   </sync_map>
+   * </sync>
+-->
+<sync method="useMap" >
+
+   <!-- this map looks for disturbances and flips them to there negative
+        values at the begining of a step -->
+  <sync_map source_col="DISTURB" target_col="DISTURB" >
+    
+    <map source_value="21" >
+      <outcome target_value="-21" probability="100" />
+    </map>
+
+     <map source_value="23" >
+        <outcome target_value="-23" probability="100" />
+     </map>
+
+  </sync_map>
+
+   <!-- this map looks for disturbances and sets the time since disturbance to 0 -->
+   <sync_map source_col="DISTURB" target_col="TSD" >
+
+      <map source_value="21" >
+         <outcome target_value="0" probability="100" />
+      </map>
+
+      <map source_value="23" >
+         <outcome target_value="0" probability="100" />
+      </map>
+
+   </sync_map>
+
+</sync>

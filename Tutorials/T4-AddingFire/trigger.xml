@@ -1,0 +1,8 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+
+<triggers>
+   <trigger query="DISTURB &lt; 0" >
+      <outcome target_col="TSD" target_value="TSD+1" probability="100" />
+   </trigger>
+</triggers>
