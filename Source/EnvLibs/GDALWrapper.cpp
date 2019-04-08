@@ -26,7 +26,7 @@ Copywrite 2012 - Oregon State University
 #include "GDALWrapper.h"
 #include "Maplayer.h"
 #include "Report.h"
-#include "GDAL\release-1600-x64\include\cpl_conv.h"
+#include "GDAL\include\cpl_conv.h"
 #include <math.h>
 #include <cstdlib>
 #include <Path.h>
