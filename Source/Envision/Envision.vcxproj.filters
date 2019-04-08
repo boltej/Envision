@@ -282,9 +282,6 @@
     <ClCompile Include="WizRun.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="UltimateToolbox\OXLayoutManager.cpp">
-      <Filter>Source Files\UltimateToolbox</Filter>
-    </ClCompile>
     <ClCompile Include="LinearDensityDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -398,6 +395,9 @@
     </ClCompile>
     <ClCompile Include="EvaluatorLearning.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\UltimateToolbox\OXLayoutManager.cpp">
+      <Filter>Source Files\UltimateToolbox</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

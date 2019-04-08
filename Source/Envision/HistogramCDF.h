@@ -25,7 +25,7 @@ Copywrite 2012 - Oregon State University
 #include <vector>
 #include <memory>
 
-#include "GsTL/cdf.h"
+#include <GsTL/cdf.h>
 
 using std::auto_ptr;
 using std::string;

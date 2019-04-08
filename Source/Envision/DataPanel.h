@@ -20,7 +20,7 @@ Copywrite 2012 - Oregon State University
 #pragma once
 
 #include "datagrid.h"
-#include "UltimateToolbox\OXLayoutManager.h"
+#include "..\UltimateToolbox\OXLayoutManager.h"
 #include "afxwin.h"
 #include "FindDataDlg.h"
 
