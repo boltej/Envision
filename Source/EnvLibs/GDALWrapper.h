@@ -21,13 +21,14 @@ Copywrite 2012 - Oregon State University
 #include "EnvLibs.h"
 
 #ifndef NO_MFC
-#include "../../GDAL/release-1600-x64/include/cpl_minixml.h"
-#include "../../GDAL/release-1600-x64/include/ogr_api.h"
+
+#include "GDAL/release-1600-x64/include/cpl_minixml.h"
+#include "GDAL/release-1600-x64/include/ogr_api.h"
 //#include "../GDAL/release-1600-x64/include/ogr_spatialref.h" 
-#include "../../GDAL/release-1600-x64/include/gdal.h"
-#include "../../GDAL/release-1600-x64/include/ogr_srs_api.h"
-#include "../../GDAL/release-1600-x64/include/gdal_alg.h"
-#include "../../GDAL/release-1600-x64/include/gdalwarper2.h"
+#include "GDAL/release-1600-x64/include/gdal.h"
+#include "GDAL/release-1600-x64/include/ogr_srs_api.h"
+#include "GDAL/release-1600-x64/include/gdal_alg.h"
+#include "GDAL/release-1600-x64/include/gdalwarper2.h"
 #else
 
 #include <gdal/cpl_minixml.h>

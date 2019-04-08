@@ -1,0 +1,9 @@
+.vs/
+StudyAreas/
+Debug/
+Release/
+*.log
+*.obj
+*.exe
+*.tlog
+*.pch
