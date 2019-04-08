@@ -122,7 +122,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\UltimateGrid;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\UltimateGrid;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_AFXDLL;_DEBUG;</PreprocessorDefinitions>
       <MinimalRebuild>
       </MinimalRebuild>
@@ -157,7 +157,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\UltimateGrid;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\UltimateGrid;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_WIN64;_AFXDLL;_DEBUG;</PreprocessorDefinitions>
       <MinimalRebuild>
       </MinimalRebuild>
@@ -194,7 +194,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\UltimateGrid;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\UltimateGrid;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_AFXDLL;NDEBUG</PreprocessorDefinitions>
       <MinimalRebuild>
       </MinimalRebuild>
@@ -232,7 +232,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\UltimateGrid;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\UltimateGrid;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_WIN64;_AFXDLL;NDEBUG</PreprocessorDefinitions>
       <MinimalRebuild>
       </MinimalRebuild>
@@ -267,7 +267,7 @@
       <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_AFXDLL;LIBSAPI=__declspec( dllimport );</PreprocessorDefinitions>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\UltimateGrid;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\UltimateGrid;</AdditionalIncludeDirectories>
       <MinimalRebuild />
     </ClCompile>
     <Link>
@@ -281,7 +281,7 @@
       <PreprocessorDefinitions>BUILD_ENVISION;USE_ENGINE;_WINDOWS;WIN32;_WIN64;_AFXDLL;LIBSAPI=__declspec( dllimport );</PreprocessorDefinitions>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
-      <AdditionalIncludeDirectories>.\;..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\UltimateGrid;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;.\UltimateGrid;</AdditionalIncludeDirectories>
       <MinimalRebuild />
     </ClCompile>
     <Link>

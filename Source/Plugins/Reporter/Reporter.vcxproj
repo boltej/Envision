@@ -97,7 +97,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\EnvEngine;..\EnvLibs;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvEngine;..\..\EnvLibs;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_AFXEXT;ENV_IMPORT;__EXPORT__=__declspec( dllexport ) ;_DEBUG;_AFXEXT;ENV_EXPORT;__EXPORT__=__declspec( dllexport ) ;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>
       </MinimalRebuild>
@@ -130,7 +130,7 @@
     </Midl>
     <ClCompile>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>..\EnvEngine;..\EnvLibs;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvEngine;..\..\EnvLibs;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_AFXEXT;ENV_IMPORT;__EXPORT__=__declspec( dllexport ) ;_DEBUG;_AFXEXT;ENV_EXPORT;__EXPORT__=__declspec( dllexport ) ;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>
       </MinimalRebuild>
@@ -163,7 +163,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\EnvEngine;..\EnvLibs;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvEngine;..\..\EnvLibs;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_AFXEXT;ENV_IMPORT;__EXPORT__=__declspec( dllexport ) ;NDEBUG;_AFXEXT;ENV_IMPORT;__EXPORT__=__declspec( dllexport ) ;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
@@ -198,7 +198,7 @@
     <ClCompile>
       <Optimization>MaxSpeed</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <AdditionalIncludeDirectories>..\EnvEngine;..\EnvLibs;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvEngine;..\..\EnvLibs;</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_AFXEXT;ENV_IMPORT;__EXPORT__=__declspec( dllexport ) ;NDEBUG;_AFXEXT;ENV_IMPORT;__EXPORT__=__declspec( dllexport ) ;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
