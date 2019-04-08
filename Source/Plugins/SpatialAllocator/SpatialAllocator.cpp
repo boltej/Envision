@@ -31,7 +31,7 @@ Copywrite 2012 - Oregon State University
 #include <PathManager.h>
 #include <fstream>
 #include <iostream>
-#include <EnvEngine/EnvModel.h>
+#include <EnvModel.h>
 #include <stdio.h>
 
 

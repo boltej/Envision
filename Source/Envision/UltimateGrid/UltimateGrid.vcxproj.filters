@@ -120,6 +120,9 @@
     <ClCompile Include="UGXPThemes.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="ugctelps.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -225,6 +228,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="ugxpthemes.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="ugctelps.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

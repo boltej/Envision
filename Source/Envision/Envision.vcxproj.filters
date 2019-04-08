@@ -276,9 +276,6 @@
     <ClCompile Include="TrajectorySpaceWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="ugctelps.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="WizRun.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -396,7 +393,7 @@
     <ClCompile Include="EvaluatorLearning.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\UltimateToolbox\OXLayoutManager.cpp">
+    <ClCompile Include="UltimateToolbox\OXLayoutManager.cpp">
       <Filter>Source Files\UltimateToolbox</Filter>
     </ClCompile>
   </ItemGroup>

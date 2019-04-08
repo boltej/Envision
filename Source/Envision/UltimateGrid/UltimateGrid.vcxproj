@@ -220,6 +220,7 @@
     <ClCompile Include="UGCelTyp.cpp" />
     <ClCompile Include="UGCnrBtn.cpp" />
     <ClCompile Include="UGCTarrw.cpp" />
+    <ClCompile Include="ugctelps.cpp" />
     <ClCompile Include="UGCtrl.cpp" />
     <ClCompile Include="UGDLType.cpp" />
     <ClCompile Include="UGDrgDrp.cpp" />
@@ -256,6 +257,7 @@
     <ClInclude Include="ugceltyp.h" />
     <ClInclude Include="UGCnrBtn.h" />
     <ClInclude Include="UGCTarrw.h" />
+    <ClInclude Include="ugctelps.h" />
     <ClInclude Include="UGCtrl.h" />
     <ClInclude Include="ugdefine.h" />
     <ClInclude Include="UGDLType.h" />

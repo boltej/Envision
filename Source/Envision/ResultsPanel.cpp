@@ -45,7 +45,7 @@ Copywrite 2012 - Oregon State University
 
 #include <scatterwnd.h>
 #include <dynamicscatterwnd.h>
-#include <MultirunHistogramPlotWnd.h>
+#include "MultirunHistogramPlotWnd.h"
 #include <datatable.h>
 #include <map.h>
 #include <unitconv.h>

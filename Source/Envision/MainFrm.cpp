@@ -37,7 +37,7 @@ Copywrite 2012 - Oregon State University
 #include "MainFrm.h"
 #include "EnvDoc.h"
 #include "EnvView.h"
-#include <ActiveWnd.h>
+#include "ActiveWnd.h"
 #include <EnvModel.h>
 #include <Scenario.h>
 #include "ScenarioEditor.h"

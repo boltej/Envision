@@ -27,7 +27,8 @@ Copywrite 2012 - Oregon State University
 #include <PtrArray.h>
 #include <RANDOM.HPP>
 #include <FDATAOBJ.H>
-#include "EnvEngine/EnvConstants.h"
+#include <EnvConstants.h>
+
 
 #define _EXPORT __declspec( dllexport )
 

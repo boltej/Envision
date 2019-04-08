@@ -37,8 +37,8 @@ Copywrite 2012 - Oregon State University
 #include <unitconv.h>
 #include <math.h>
 #include <FDATAOBJ.H>
-#include <EnvEngine\envcontext.h>
-#include <EnvEngine\envmodel.h>
+#include <envcontext.h>
+#include <envmodel.h>
 #include <limits.h>
 
 

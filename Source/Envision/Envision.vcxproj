@@ -436,7 +436,6 @@
     <ClCompile Include="TextToIdDlg.cpp" />
     <ClCompile Include="TipDlg.cpp" />
     <ClCompile Include="TrajectorySpaceWnd.cpp" />
-    <ClCompile Include="ugctelps.cpp" />
     <ClCompile Include="UpdateDlg.cpp" />
     <ClCompile Include="VideoRecorderDlg.cpp" />
     <ClCompile Include="Visualizer.cpp" />
@@ -444,7 +443,7 @@
     <ClCompile Include="WebServices\soapEnvWebServiceSoapProxy.cpp" />
     <ClCompile Include="WebServices\stdsoap2.cpp" />
     <ClCompile Include="WizRun.cpp" />
-    <ClCompile Include="..\UltimateToolbox\OXLayoutManager.cpp" />
+    <ClCompile Include="UltimateToolbox\OXLayoutManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ActiveWnd.h" />

@@ -112,7 +112,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfcd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
@@ -144,7 +144,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
@@ -179,7 +179,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64d.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
@@ -212,7 +212,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
@@ -264,12 +264,6 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Target.rc" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Libs\Libs.vcxproj">
-      <Project>{49235715-6a6e-44b6-a9b1-a2b7f30efbda}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

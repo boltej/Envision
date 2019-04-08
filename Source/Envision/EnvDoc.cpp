@@ -89,9 +89,9 @@ Copywrite 2012 - Oregon State University
 #include <iomanip>
 #include <path.h>
 #include <folderdlg.h>
-#include <TextToIdDlg.h>
-#include <IntersectDlg.h>
-#include <ReclassDlg.h>
+#include "TextToIdDlg.h"
+#include "IntersectDlg.h"
+#include "ReclassDlg.h"
 #include <tixml.h>
 #include <time.h>
 #include <sys/types.h>
