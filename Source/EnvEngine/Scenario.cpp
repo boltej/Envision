@@ -1059,7 +1059,7 @@ int ScenarioManager::LoadXml( TiXmlNode *pScenarios, bool appendToExisting )
                {
                if (_tcsicmp(vtype, _T("system"))==0)
                   pInfo->vtype = V_SYSTEM;
-               if (_tcsicmp(vtype, _T("scenario")) == 0)
+               else if (_tcsicmp(vtype, _T("scenario")) == 0)
                   pInfo->vtype = V_SYSTEM;
                else if (_tcsicmp(vtype, _T("metagoal")) == 0)
                   pInfo->vtype = V_META;
