@@ -16,9 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
-    <None Include="SpatialAllocator.def">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="res\SpatialAllocator.rc2">
       <Filter>Resource Files</Filter>
     </None>

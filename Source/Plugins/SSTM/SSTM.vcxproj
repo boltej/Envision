@@ -197,7 +197,6 @@
   <ItemGroup>
     <None Include="ReadMe.txt" />
     <None Include="res\SSTM.rc2" />
-    <None Include="SSTM.def" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">

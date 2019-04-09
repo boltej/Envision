@@ -215,7 +215,7 @@ Output::Output()
 , m_cumValue( 0 )
 , m_queryArea( 0 )
 , m_count( 0 )
-//, m_pMapExprEngine( NULL )
+, m_pMapExprEngine( NULL )
 , m_pMapExpr( NULL )
 , m_pGroup( NULL )
    { }

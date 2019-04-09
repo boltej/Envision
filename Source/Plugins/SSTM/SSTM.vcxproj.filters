@@ -16,9 +16,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
-    <None Include="SSTM.def">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="res\SSTM.rc2">
       <Filter>Resource Files</Filter>
     </None>

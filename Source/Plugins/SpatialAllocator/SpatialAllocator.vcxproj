@@ -202,7 +202,6 @@
   <ItemGroup>
     <None Include="ReadMe.txt" />
     <None Include="res\SpatialAllocator.rc2" />
-    <None Include="SpatialAllocator.def" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AllocBasicPP.cpp" />

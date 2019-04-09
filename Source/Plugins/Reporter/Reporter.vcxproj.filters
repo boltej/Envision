@@ -26,9 +26,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Reporter.def">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="res\Reporter.rc2">
       <Filter>Resource Files</Filter>
     </None>
