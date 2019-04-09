@@ -365,7 +365,6 @@ public:
 };
 
 
-
 //-----------------------------------------------------------------------------
 //---------------------------- H R U L A Y E R   ------------------------------
 /// Represents the fundamental unit of calculation for upslope regions.  An HRU
@@ -414,7 +413,7 @@ public:
    static MTDOUBLE m_mvWC;
    static MTDOUBLE m_mvWDepth;
    static MTDOUBLE m_mvESV;
-
+   
 public:
    HRUPool( HRU *pHRU );
    HRUPool( HRUPool &l ) { *this=l; }
@@ -511,22 +510,20 @@ public:
 
    Catchment *m_pCatchment;        // (memory managed in FlowModel::m_catchmentArray)
    
-   static PtrArray< PoolInfo > m_poolInfoArray;     // just templates, actual pools are in m_poolArray
+   // static PtrArray< PoolInfo > m_poolInfoArray;     // just templates, actual pools are in m_poolArray
 
    PtrArray< HRUPool > m_poolArray;          // (memory managed locally)
    CArray< HRU*, HRU* > m_neighborArray;     // (memory managed by FlowModel::m_hruArray)
    CUIntArray m_polyIndexArray;
 
-   // the following static members hold value for model variables
+   // the following static members hold values for model variables
    static MTDOUBLE m_mvDepthMelt;  // volume of water in snow
    static MTDOUBLE m_mvDepthSWE;   // volume of ice in snow
    static MTDOUBLE m_mvCurrentPrecip;
    static MTDOUBLE m_mvCurrentRainfall;
    static MTDOUBLE m_mvCurrentSnowFall;
-
    static MTDOUBLE m_mvCurrentRecharge;
    static MTDOUBLE m_mvCurrentGwFlowOut;
-
    static MTDOUBLE m_mvCurrentAirTemp;
 	static MTDOUBLE m_mvCurrentMinTemp;
    static MTDOUBLE m_mvCurrentMaxTemp;
@@ -544,11 +541,10 @@ public:
    static MTDOUBLE m_mvCumRecharge;
    static MTDOUBLE m_mvCumGwFlowOut;
 
-
 public:
-   int GetPoolCount( void ) { return (int) m_poolArray.GetSize(); }
-   HRUPool *GetPool( int i ) { return m_poolArray[ i ]; }
-   int AddPools( /* int pools, float initWaterContent, float initTemperature,*/ bool grid );
+   int GetPoolCount( FlowModel *pFlowModel ) { return (int) m_poolArray.GetSize(); }
+   HRUPool *GetPool( FlowModel *pFlowModel, int i ) { return m_poolArray[ i ]; }
+   int AddPools( FlowModel *pFlowModel,  /* int pools, float initWaterContent, float initTemperature,*/ bool grid );
    //int AddLayers( int soilLayerCount, int snowLayerCount, int vegLayerCount, float initWaterContent, float initTemperature, bool grid );
 
 };
@@ -773,7 +769,7 @@ public:
    CString m_ressimRuleOutputFilename;     //Active rules
    
 
-   bool ProcessRulePriorityTable( EnvModel*);
+   bool ProcessRulePriorityTable( EnvModel*, FlowModel*);
 	void InitializeReservoirVolume(float volume) { m_volume = volume; }
    
    PtrArray< ZoneInfo > m_zoneInfoArray;              // (memory managed here)
@@ -786,14 +782,14 @@ protected:
    Reach *m_pFlowfromUpstreamReservoir;   // For testing with ResSIM.  2s reservoir (Foster and Lookout) (memory managed in FlowModel::m_reachArray)
                                           // have upstream inputs from other reservoirs.  This points to the stream
                                           // reaches containing those inflow (just upstream).
-   void InitDataCollection( void );
+   void InitDataCollection( FlowModel *pFlowModel );
    void CollectData();
    
    float GetPoolElevationFromVolume();
    float GetPoolVolumeFromElevation(float elevation);
    float GetTargetElevationFromRuleCurve( int dayOfYear );
    float GetBufferZoneElevation( int dayOfYear );
-   float GetResOutflow( Reservoir *pRes, int dayOfYear);
+   float GetResOutflow( FlowModel *pFlowModel, Reservoir *pRes, int dayOfYear);
 	float GetResOutflow(Reservoir *pRes, int doy, LPCTSTR filename);
    float AssignReservoirOutletFlows( Reservoir *pRes, float outflow );
    void  UpdateMaxGateOutflows( Reservoir *pRes, float currentPoolElevation );
@@ -828,7 +824,6 @@ protected:
 };
 
 
-
 class ControlPoint
 {
 public:
@@ -856,9 +851,6 @@ public:
 
    bool InUse( void ) { return m_pReach != NULL; }
 };
-
-
-
 
 
 class ReachSampleLocation
@@ -914,7 +906,7 @@ public:
    float m_totalQueryArea;    // total area satisfied by the query, 
 
    bool Init( EnvContext* );
-   bool InitStream( MapLayer* );
+   bool InitStream( FlowModel *pFlowModel, MapLayer* );
 
    int m_number;
    int m_esvNumber;
@@ -1036,7 +1028,7 @@ public:
 };
 
 
-class FLOWAPI FlowModel
+class FLOWAPI FlowModel : public EnvModelProcess
 {
 friend class FlowProcess;
 friend class HRU;
@@ -1050,11 +1042,12 @@ public:
    ~FlowModel();
 
 protected:
-   int m_id;
    FlowContext m_flowContext;
 
+   PtrArray< PoolInfo > m_poolInfoArray;     // just templates, actual pools are in m_poolArray
+
 public:
-   bool Init( EnvContext* );
+   bool Init( EnvContext*, LPCTSTR initStr);
    bool InitRun( EnvContext* );
    bool Run( EnvContext*  );
    bool EndRun( EnvContext* );
@@ -1065,6 +1058,8 @@ public:
    bool EndYear  ( FlowContext* );
    // manage global methods
    //void RunGlobalMethods( void );          
+
+   bool LoadXml(LPCTSTR filename, EnvContext *pContext);
 
    Reach *GetReachFromStreamIndex( int index ) { return (Reach*) m_reachTree.GetReachNodeFromPolyIndex( index ); }
    Reach *GetReachFromNode( ReachNode *pNode );
@@ -1078,7 +1073,7 @@ public:
    int AddHRU( HRU *pHRU, Catchment *pCatchment ) { m_hruArray.Add( pHRU ); pCatchment->m_hruArray.Add( pHRU ); pHRU->m_pCatchment = pCatchment; return (int) m_hruArray.GetSize(); }
    int GetHRUCount( void ) { return (int)m_hruArray.GetSize(); }
 
-   int GetHRUPoolCount( void ) { return (int) HRU::m_poolInfoArray.GetSize(); }
+   int GetHRUPoolCount( void ) { return (int) m_poolInfoArray.GetSize(); }
    //int GetHRULayerCount( void ) { return m_soilLayerCount + m_vegLayerCount + m_snowLayerCount; }
    HRU *GetHRU(int i) {return m_hruArray[i];}
    
@@ -1671,10 +1666,14 @@ public:
    bool  m_useRecorder;
    CArray< int > m_vrIDArray;
    //int   m_frameRate;
+
+public:
+   int m_maxProcessors;
+   int m_processorsUsed;
 };
 
 
-
+/*
 class FLOWAPI FlowProcess : public EnvModelProcess
 {
 public:
@@ -1702,7 +1701,7 @@ public:
    int m_maxProcessors;
    int m_processorsUsed;
 };
-
+*/
 
 
 /*

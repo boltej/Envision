@@ -34,7 +34,6 @@ class FlowModel;
 class HRU;
 class Catchment; 
 class StateVar;
-class FlowProcess;
 //class ResConstraint;
 
 /*! \file */
@@ -201,13 +200,13 @@ public:
         pHRU( NULL ), pHRUPool( NULL ), 
         pReach( NULL ), reachSubnodeIndex( -1 ), iduIndex( -1 ),
         pFlux( NULL ), pFluxInfo( NULL ), pFlowModel( NULL ), timing( 0 ), 
-        svArray( NULL ), svCount( 0 ), initInfo( NULL ), pFlowProcess( NULL ) { }
+        svArray( NULL ), svCount( 0 ), initInfo( NULL ) { }
 
    FlowContext( FlowContext &fc ) { *this = fc; }
    
    FlowContext &operator=( FlowContext &fc ) { pEnvContext = fc.pEnvContext; time = fc.time; timeStep = fc.timeStep;
          dayOfYear = fc.dayOfYear; pHRU = fc.pHRU; pHRUPool = fc.pHRUPool; pReach = fc.pReach; reachSubnodeIndex = fc.reachSubnodeIndex;
-         iduIndex = fc.iduIndex; pFlux = fc.pFlux, pFluxInfo = fc.pFluxInfo; pFlowModel = fc.pFlowModel; pFlowProcess = fc.pFlowProcess;
+         iduIndex = fc.iduIndex; pFlux = fc.pFlux, pFluxInfo = fc.pFluxInfo; pFlowModel = fc.pFlowModel; 
          timing = fc.timing; svArray = fc.svArray; svCount = fc.svCount; initInfo = fc.initInfo; 
          return *this; }
 
@@ -226,7 +225,6 @@ public:
    Flux      *pFlux;       // memory managed elsewhere
    FluxInfo  *pFluxInfo;   // memory managed elsewhere
    FlowModel *pFlowModel;  // memory managed elsewhere
-   FlowProcess *pFlowProcess;
 
    int        timing;      // timing = 1   - called during Init();
                            // timing = 2   - called during InitRun();

@@ -179,7 +179,7 @@
       <AdditionalIncludeDirectories>$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64.lib;</AdditionalDependencies>
+      <AdditionalDependencies>EnvLibs.lib;Envision.lib;EnvEngine.lib;ugmfc64d.lib;</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)$(Platform)\$(Configuration)</AdditionalLibraryDirectories>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
