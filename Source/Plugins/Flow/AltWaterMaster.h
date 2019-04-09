@@ -46,7 +46,7 @@ enum IrrigationState
 class AltWaterMaster
 {
 public:
-	AltWaterMaster(WaterAllocation *pWaterAllocation);
+	AltWaterMaster(FlowModel *pFlowModel, WaterAllocation *pWaterAllocation);
 	~AltWaterMaster(void);
 
 	// Timing methods
@@ -112,12 +112,14 @@ public:
 	float    m_pctIDUPOUIntersection;      // percentage of an IDU that is intersected by an water right's place of use (%)
 	int      m_dynamicWRAppropriationDate; // Dynamic water right appropriation date.  If set to -1, then equals year of run
 
+
 	WaterAllocation *m_pWaterAllocation;   // pointer to the containing class
 
 protected:
 	CMap< Reach*, Reach*, WaterRight*, WaterRight* > m_wrMap; // used to lookup water right from reach	PtrArray< WaterRight > m_podArray;
    PtrArray< WaterRight > m_podArray;
 
+   FlowModel *m_pFlowModel;
 	FlowContext *m_flowContext;
 
 	//containers for input data files

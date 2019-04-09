@@ -109,5 +109,3 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       int m_bldgsRepaired;
       int m_bldgsBeingRepaired;
    };
-
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new AcuteHazards; }

@@ -125,7 +125,7 @@ bool ExternalMethod::EndRun ( FlowContext *pFlowContext )      // end of an Envi
 
 
 
-ExternalMethod *ExternalMethod::LoadXml( TiXmlElement *pXmlMethod, LPCTSTR filename )
+ExternalMethod *ExternalMethod::LoadXml( TiXmlElement *pXmlMethod, LPCTSTR filename, FlowModel *pFlowModel)
    {
    if ( pXmlMethod == NULL )
       return NULL;
@@ -133,7 +133,7 @@ ExternalMethod *ExternalMethod::LoadXml( TiXmlElement *pXmlMethod, LPCTSTR filen
    LPTSTR name=NULL, path=NULL, method=NULL, timing=NULL;
    bool use = true;
    
-   ExternalMethod *pMethod = new ExternalMethod( _T("External Method") );
+   ExternalMethod *pMethod = new ExternalMethod( pFlowModel, _T("External Method") );
    
    XML_ATTR methodAttrs[] = {
       // attr                 type          address                     isReq  checkCol

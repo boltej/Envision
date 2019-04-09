@@ -31,9 +31,6 @@ Copywrite 2012 - Oregon State University
 #define new DEBUG_NEW
 #endif
 
-extern FlowProcess *gpFlow;
-extern FlowModel   *gpModel;
-
 
 bool HruVertExchange::Step( FlowContext *pFlowContext )
    {   
@@ -59,13 +56,13 @@ bool HruVertExchange::Step( FlowContext *pFlowContext )
 
 bool HruVertExchange::SetGlobalHruVertFluxesBrooksCorey( void )
    {
-   int catchmentCount = gpModel->GetCatchmentCount();
-   int hruLayerCount = gpModel->GetHRUPoolCount();
+   int catchmentCount = m_pFlowModel->GetCatchmentCount();
+   int hruLayerCount  = m_pFlowModel->GetHRUPoolCount();
 
    // iterate through catchments/hrus/hrulayers, calling fluxes as needed
    for ( int i=0; i < catchmentCount; i++ )
       {
-      Catchment *pCatchment = gpModel->GetCatchment( i );
+      Catchment *pCatchment = m_pFlowModel->GetCatchment( i );
       int hruCount = pCatchment->GetHRUCount();
 
       for ( int h=0; h < hruCount; h++ )
@@ -89,9 +86,9 @@ bool HruVertExchange::SetGlobalHruVertFluxesBrooksCorey( void )
    }
 
 
-HruVertExchange *HruVertExchange::LoadXml( TiXmlElement *pXmlHruVertExchange, LPCTSTR filename )
+HruVertExchange *HruVertExchange::LoadXml( TiXmlElement *pXmlHruVertExchange, LPCTSTR filename, FlowModel *pFlowModel)
    {
-   HruVertExchange *pHruVertExch = new HruVertExchange( _T("Vertical Exchange") );  // defaults to GM_NONE
+   HruVertExchange *pHruVertExch = new HruVertExchange(pFlowModel, _T("Vertical Exchange") );  // defaults to GM_NONE
 
    if ( pXmlHruVertExchange == NULL )
       return pHruVertExch;

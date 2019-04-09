@@ -118,6 +118,7 @@ enum FLUX_DOMAIN
 class GlobalMethod
 {
 public:
+   FlowModel *m_pFlowModel;
    CString m_name;
    int m_use;
    int m_timing; 
@@ -151,7 +152,7 @@ public:
 
    virtual bool SetTimeStep( float stepSize ) { return true; }
 
-   GlobalMethod( LPCTSTR name, GM_METHOD method ) : m_name( name ), m_method( method ), m_pQuery( NULL ),
+   GlobalMethod( FlowModel *pFlowModel, LPCTSTR name, GM_METHOD method ) : m_pFlowModel(pFlowModel), m_name( name ), m_method( method ), m_pQuery( NULL ),
       m_use( true ), m_timing( 0 ), m_id( m_nextID ), m_runTime( 0 ), m_extFnDLL( 0 ), m_extFn( NULL ) { m_nextID++; }
 
    virtual ~GlobalMethod( void ) { if ( m_extFnDLL > 0 ) AfxFreeLibrary( m_extFnDLL );  }
@@ -208,7 +209,7 @@ class ReachRouting : public GlobalMethod
 {
 // valid methods include: GM_EULER, GM_RK4, GM_RKF, GM_KINEMATIC
 public:
-    ReachRouting( LPCTSTR name ) : GlobalMethod( name, GM_KINEMATIC ), m_reachTimeStep( 1.0f ) {  m_timing = GMT_REACH; }
+    ReachRouting( FlowModel *pFlowModel, LPCTSTR name ) : GlobalMethod( pFlowModel, name, GM_KINEMATIC ), m_reachTimeStep( 1.0f ) {  m_timing = GMT_REACH; }
 
    virtual bool Step( FlowContext *pFlowContext );
 
@@ -217,7 +218,7 @@ public:
 
    virtual bool SetMethod(GM_METHOD method) { if (method != GM_EULER && method != GM_RK4 && method != GM_RKF && method != GM_KINEMATIC && method != GM_EXTERNAL && method != GM_2KW) return false;  m_method = method; return true; }
 
-   static ReachRouting* LoadXml( TiXmlElement *pXmlReachRouting, LPCTSTR filename );
+   static ReachRouting* LoadXml( TiXmlElement *pXmlReachRouting, LPCTSTR filename, FlowModel* );
 
 public:
    float m_reachTimeStep;
@@ -250,13 +251,13 @@ class LateralExchange : public GlobalMethod
 {
 // valid types include: GM_NONE, GM_LINEAR_RESERVOIR
 public:
-   LateralExchange( LPCTSTR name ) : GlobalMethod( name, GM_NONE ) { m_timing=GMT_CATCHMENT; }
+   LateralExchange( FlowModel *pFlowModel, LPCTSTR name ) : GlobalMethod( pFlowModel, name, GM_NONE ) { m_timing=GMT_CATCHMENT; }
    
    virtual bool Step( FlowContext* );
 
    virtual bool SetMethod( GM_METHOD method ) { if ( method != GM_NONE && method != GM_LINEAR_RESERVOIR && method != GM_EXTERNAL ) return false;  m_method = method; return true; }
    
-   static LateralExchange* LoadXml( TiXmlElement *pXmlLatExch, LPCTSTR path );
+   static LateralExchange* LoadXml( TiXmlElement *pXmlLatExch, LPCTSTR path, FlowModel* );
    
 protected:
    bool SetGlobalHruToReachExchangesLinearRes( void );
@@ -267,13 +268,13 @@ class HruVertExchange : public GlobalMethod
 {
 // valid types include: GM_NONE, GM_LINEAR_RESERVOIR
 public:
-   HruVertExchange( LPCTSTR name ) : GlobalMethod( name, GM_NONE ) { m_timing = GMT_CATCHMENT; }
+   HruVertExchange(FlowModel *pFlowModel, LPCTSTR name ) : GlobalMethod(pFlowModel, name, GM_NONE ) { m_timing = GMT_CATCHMENT; }
 
    virtual bool Step( FlowContext* );
 
    virtual bool SetMethod( GM_METHOD method ) { if ( method != GM_NONE && method != GM_BROOKS_COREY && method != GM_EXTERNAL ) return false;  m_method = method; return true; }
    
-   static HruVertExchange* LoadXml( TiXmlElement *pXmlVertExch, LPCTSTR path );
+   static HruVertExchange* LoadXml( TiXmlElement *pXmlVertExch, LPCTSTR path, FlowModel* );
    
 protected:
    bool SetGlobalHruVertFluxesBrooksCorey( void );
@@ -284,13 +285,13 @@ class GroundWater : public GlobalMethod
 {
 // valid types include: GM_NONE, GM_MODFLOW
 public:
-    GroundWater( LPCTSTR name ) : GlobalMethod( name, GM_NONE ) { m_timing = GMT_CATCHMENT; }
+    GroundWater(FlowModel *pFlowModel, LPCTSTR name ) : GlobalMethod(pFlowModel,name, GM_NONE ) { m_timing = GMT_CATCHMENT; }
 
    virtual bool Step( FlowContext* );
 
    virtual bool SetMethod( GM_METHOD method ) { if ( method != GM_NONE && method != GM_MODFLOW && method != GM_EXTERNAL ) return false;  m_method = method; return true; }
    
-   static GroundWater* LoadXml( TiXmlElement *pXmlGW, LPCTSTR path );
+   static GroundWater* LoadXml( TiXmlElement *pXmlGW, LPCTSTR path, FlowModel* );
    
 protected:
    //bool SetGlobalHruVertFluxesBrooksCorey( void );
@@ -302,8 +303,7 @@ protected:
 class EvapTrans : public GlobalMethod
 {
 public:
-   EvapTrans( LPCTSTR name ); // : GlobalMethod( name, GM_PENMAN_MONTIETH ) { }
- //  m_pEvapTrans(NULL) { }
+   EvapTrans( FlowModel*, LPCTSTR name );
    ~EvapTrans( void );
 
    // Run() sets MaxET, AET values in the IDUs
@@ -456,7 +456,7 @@ protected:
 class DailyUrbanWaterDemand : public GlobalMethod
 {
 public:
-	DailyUrbanWaterDemand(LPCTSTR name); // : GlobalMethod( name, GM_PENMAN_MONTIETH ) { }
+	DailyUrbanWaterDemand(FlowModel*, LPCTSTR name); // : GlobalMethod( name, GM_PENMAN_MONTIETH ) { }
 	~DailyUrbanWaterDemand(void);
 
 	// Run() sets MaxET, AET values in the IDUs
@@ -471,7 +471,7 @@ public:
 	virtual bool SetMethod(GM_METHOD method) { m_method = GM_URBAN_DEMAND_DY; return true; }
 
 	bool CalcDailyUrbanWaterDemand(FlowContext *pFlowContext);
-	static DailyUrbanWaterDemand *LoadXml(TiXmlElement *pXmlDailyUrbWaterDmd, MapLayer *pIDULayer, LPCTSTR filename);
+	static DailyUrbanWaterDemand *LoadXml(TiXmlElement *pXmlDailyUrbWaterDmd, MapLayer *pIDULayer, LPCTSTR filename, FlowModel *pFlowModel);
 	//-------------------------------------------------------------------  
 	//------- urban water demand ----------------------------------------
 	//-------------------------------------------------------------------  
@@ -510,7 +510,7 @@ public:
    //CString m_pouTablePath;
 
 public:
-   WaterAllocation( LPCTSTR name, GM_METHOD method ) : GlobalMethod( name, method ),
+   WaterAllocation( FlowModel *pFlowModel, LPCTSTR name, GM_METHOD method ) : GlobalMethod( pFlowModel, name, method ),
       m_pWaterMaster( NULL ), m_pAltWM( NULL ) { m_timing = GMT_CATCHMENT; }
 
    ~WaterAllocation( void );
@@ -527,7 +527,7 @@ public:
 
    virtual bool SetMethod( GM_METHOD method ) { if ( method != GM_EXTERNAL && method != GM_NONE && method != GM_WATER_RIGHTS && method != GM_EXPR_ALLOCATOR && method != GM_ALTWM ) { m_method=GM_NONE; return false; } m_method=method; return true; }
 
-   static WaterAllocation *LoadXml( TiXmlElement *pXmlMethod, LPCTSTR path );  
+   static WaterAllocation *LoadXml( TiXmlElement *pXmlMethod, LPCTSTR path, FlowModel *pFlowModel );  
 
 protected:
    bool RunWaterRights( FlowContext* );
@@ -555,7 +555,7 @@ public:
 class FluxExpr : public GlobalMethod
 {
 public:
-   FluxExpr( LPCTSTR name );
+   FluxExpr(FlowModel *pFlowModel, LPCTSTR name );
 
    ~FluxExpr( void );
 
@@ -570,7 +570,7 @@ public:
 
    virtual bool SetMethod( GM_METHOD method ) { if ( method != GM_FLUX_EXPR ) return false; m_method=method; return true; }
 
-   static FluxExpr *LoadXml( TiXmlElement *pXmlEvapTrans, FlowModel*, MapLayer*, LPCTSTR path );
+   static FluxExpr *LoadXml( TiXmlElement *pXmlEvapTrans, MapLayer*, LPCTSTR path, FlowModel*);
 
 protected:
    PtrArray< FluxSourceSink > m_ssArray;
@@ -661,7 +661,7 @@ protected:
 class ExternalMethod : public GlobalMethod
 {
 public:
-   ExternalMethod( LPCTSTR name ) : GlobalMethod( name, GM_EXTERNAL ) { }
+   ExternalMethod(FlowModel *pFlowModel, LPCTSTR name ) : GlobalMethod(pFlowModel, name, GM_EXTERNAL ) { }
 
    virtual bool Init     ( FlowContext* );      // start of Envision session
    virtual bool InitRun  ( FlowContext* );      // start of an Envision Run
@@ -676,7 +676,7 @@ public:
 
    virtual bool SetMethod( GM_METHOD method ) { if ( method == GM_EXTERNAL || method == GM_NONE ) { m_method=method; return true; } return false; }
 
-   static ExternalMethod *LoadXml( TiXmlElement *pXmlMethod, LPCTSTR path );
+   static ExternalMethod *LoadXml( TiXmlElement *pXmlMethod, LPCTSTR path, FlowModel* );
 
 };
 

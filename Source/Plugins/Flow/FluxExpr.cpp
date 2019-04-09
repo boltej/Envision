@@ -27,11 +27,9 @@ Copywrite 2012 - Oregon State University
 #include <Maplayer.h>
 #include <UNITCONV.H>
 
-extern FlowProcess *gpFlow;
 
-
-FluxExpr::FluxExpr( LPCTSTR name )
-   : GlobalMethod( name, GM_FLUX_EXPR )
+FluxExpr::FluxExpr( FlowModel *pFlowModel, LPCTSTR name)
+   : GlobalMethod(pFlowModel, name, GM_FLUX_EXPR )
    , m_isDynamic( false )
    , m_fluxType( FT_NONE )
    , m_sourceDomain( FD_UNDEFINED )
@@ -119,6 +117,8 @@ FluxExpr::~FluxExpr(void)
 
 bool FluxExpr::Init( FlowContext *pFlowContext )
    {
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
+
    MapLayer *pLayer = (MapLayer*) pFlowContext->pEnvContext->pMapLayer;
 
    // must have a source layer
@@ -250,7 +250,7 @@ bool FluxExpr::Init( FlowContext *pFlowContext )
 
    // for cross-run comparisons
    label.Format( "%s - Annual Avg Flux, m3 per year)", (LPCSTR) m_name );
-   gpFlow->AddOutputVar(label, m_annDailyAvgFlux, ""); 
+   pFlowModel->AddOutputVar(label, m_annDailyAvgFlux, "");
    
    // set up data obj for daily fluxes
    m_pDailyFluxData = new FDataObj( 4, 0 );
@@ -262,7 +262,7 @@ bool FluxExpr::Init( FlowContext *pFlowContext )
    m_pDailyFluxData->SetLabel( 2, "Daily Satisfied Demand (m3 per day)" );    // m_dailySatisfiedDemand
    m_pDailyFluxData->SetLabel( 3, "Daily Unsatisfied Demand (m3 per day)" );  // m_dailyUnsatifiedDemand
 
-   gpFlow->AddOutputVar( label, m_pDailyFluxData, "" );
+   pFlowModel->AddOutputVar( label, m_pDailyFluxData, "" );
 
    label.Format( "%s - Cumulative Flux Components", (LPCSTR) m_name );
    m_pCumFluxData = new FDataObj( 4, 0 );
@@ -273,7 +273,7 @@ bool FluxExpr::Init( FlowContext *pFlowContext )
    m_pCumFluxData->SetLabel( 2, "Cumulative Satisfied Demand (m3)" );       // m_dailySatisfiedDemand
    m_pCumFluxData->SetLabel( 3, "Cumulative Unsatisfied Demand (m3)" );     // m_dailyUnsatifiedDemand
 
-   gpFlow->AddOutputVar( label, m_pCumFluxData, "" );
+   pFlowModel->AddOutputVar( label, m_pCumFluxData, "" );
 
    return true;
    }
@@ -345,6 +345,8 @@ bool FluxExpr::StartStep( FlowContext *pFlowContext )
 // called every step (possibly multiple times)
 bool FluxExpr::Step( FlowContext *pFlowContext )
    {
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
+
    m_stepCount++;
 
    // reset mapped outputs
@@ -765,7 +767,7 @@ bool FluxExpr::EndYear(FlowContext *pFlowContext)
 
          yearToDateFlux *= ( MM_PER_M / area );  // mm/day
          if (!pFlowContext->pFlowModel->m_estimateParameters)
-            gpFlow->UpdateIDU( pFlowContext->pEnvContext, i, m_colAnnualOutput, yearToDateFlux, ADD_DELTA );
+            pFlowContext->pFlowModel->UpdateIDU( pFlowContext->pEnvContext, i, m_colAnnualOutput, yearToDateFlux, ADD_DELTA );
          }
       }
 
@@ -787,7 +789,7 @@ bool FluxExpr::EndYear(FlowContext *pFlowContext)
    }
 
 
-FluxExpr *FluxExpr::LoadXml( TiXmlElement *pXmlFluxExpr, FlowModel *pModel, MapLayer *pIDULayer, LPCTSTR filename )
+FluxExpr *FluxExpr::LoadXml( TiXmlElement *pXmlFluxExpr, MapLayer *pIDULayer, LPCTSTR filename, FlowModel *pModel)
    {
    if ( pXmlFluxExpr == NULL )
      return NULL;
@@ -838,7 +840,7 @@ FluxExpr *FluxExpr::LoadXml( TiXmlElement *pXmlFluxExpr, FlowModel *pModel, MapL
      return NULL;
      }
    
-   FluxExpr *pFluxExpr = new FluxExpr( name );
+   FluxExpr *pFluxExpr = new FluxExpr(pModel, name );
 	// set layer distributions
 	pFluxExpr->m_pLayerDists = new PoolDistributions;
    if ( layerDist != NULL )

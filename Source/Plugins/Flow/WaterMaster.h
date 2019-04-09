@@ -199,7 +199,7 @@ public:
 		, m_stepRequest(0.0f), m_lastDOYShortage(0)
 	{ }
 
-	// member variables
+
 	int m_idu;                  // which IDU is this associated with
 
 	WR_USE m_use;
@@ -269,7 +269,7 @@ public:
 class WaterMaster
 {
 public:
-	WaterMaster(WaterAllocation *pWaterAllocation);
+	WaterMaster(FlowModel *pFlowModel, WaterAllocation *pWaterAllocation);
 	~WaterMaster(void);
 
 	// Timing methods
@@ -342,11 +342,11 @@ public:
 	WaterAllocation *m_pWaterAllocation;   // pointer to the containing class
 
 protected:
-	
+   FlowModel *m_pFlowModel;
+   FlowContext *m_flowContext;
+
 	CMap< Reach*, Reach*, WaterRight*, WaterRight* > m_wrMap; // used to lookup water right from reach
 	PtrArray< WaterRight > m_podArray;
-
-	FlowContext *m_flowContext;
 
 	//containers for input data files
 	VDataObj m_pouDb; // Point of Use (POU) data object

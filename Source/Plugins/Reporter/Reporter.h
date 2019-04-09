@@ -205,8 +205,8 @@ public:
    float     m_queryArea;
    int       m_count;
 
-   MapExprEngine *m_pMapExprEngine; // memory managed by Reporter
-   MapExpr  *m_pMapExpr;
+   ///MapExprEngine *m_pMapExprEngine; // memory managed by Reporter
+   MapExpr  *m_pMapExpr;   // memory managed elsewhere
    OutputGroup *m_pGroup;   // if in a group, NULL if not
 
 public:
@@ -264,10 +264,10 @@ protected:
 
    //MapExprEngine *m_pMapExprEngine;
    // MpaExprEngine array - one for each layer referenced in the input file
-   PtrArray< MapExprEngine > m_mapExprEngineArray;
+   //PtrArray< MapExprEngine > m_mapExprEngineArray;
    CArray< int, int > m_colAreaArray;
 
-   MapExprEngine *FindMapExprEngine( MapLayer *pLayer );
+   //MapExprEngine *FindMapExprEngine( MapLayer *pLayer );
    Constant    *FindConstant( LPCTSTR name );
    OutputGroup *FindOutputGroup( LPCTSTR name );
 
@@ -296,13 +296,14 @@ protected:
 extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new Reporter; }
 
 
-
-inline
-MapExprEngine *Reporter::FindMapExprEngine( MapLayer *pLayer )
-   {
-   for ( int i=0; i < (int) m_mapExprEngineArray.GetSize(); i++ )
-      if ( m_mapExprEngineArray[i]->GetMapLayer() == pLayer )
-         return m_mapExprEngineArray[i];
-
-   return NULL;
-   }
+///
+///inline
+///MapExprEngine *Reporter::FindMapExprEngine( MapLayer *pLayer )
+///   {
+///   for ( int i=0; i < (int) m_mapExprEngineArray.GetSize(); i++ )
+///      if ( m_mapExprEngineArray[i]->GetMapLayer() == pLayer )
+///         return m_mapExprEngineArray[i];
+///
+///   return NULL;
+///   }
+///

@@ -42,13 +42,11 @@ Copywrite 2012 - Oregon State University
 
 using namespace alglib_impl;
 
-extern FlowProcess *gpFlow;
-extern FlowModel   *gpModel;
-
 int SortWrData(const void *e0, const void *e1);
 
-WaterMaster::WaterMaster(WaterAllocation *pWaterAllocation)
+WaterMaster::WaterMaster(FlowModel *pFlowModel, WaterAllocation *pWaterAllocation)
 : m_pWaterAllocation(pWaterAllocation)
+, m_pFlowModel(pFlowModel)
 , m_typesInUse(0)
 , m_colDemand(-1)							// desired demand (m3/sec)
 , m_colWaterUse(-1)						// actual use
@@ -253,8 +251,8 @@ WaterMaster::WaterMaster(WaterAllocation *pWaterAllocation)
 , m_colWRShutOff(-1)                // WR irrigation unsatisfied irrigaton request in IDU layer.  1=level, 2=level , 0=request met
 , m_dynamicWRAppropriationDate(-1)  // Dynamic water right appropriation date.  If set to -1, then equals year of run
 { 
- gpFlow->AddInputVar( _T("Dynamic Water Right type"), m_dynamicWRType, _T("0=default, 1=allAgBelowReservoir ") );
- gpFlow->AddInputVar( _T("Regulation type"), m_regulationType, _T("0=default, 1=suspendJuniors") ); 
+m_pFlowModel->AddInputVar( _T("Dynamic Water Right type"), m_dynamicWRType, _T("0=default, 1=allAgBelowReservoir ") );
+m_pFlowModel->AddInputVar( _T("Regulation type"), m_regulationType, _T("0=default, 1=suspendJuniors") ); 
 }
 
 WaterMaster::~WaterMaster(void)
@@ -493,13 +491,13 @@ bool WaterMaster::Init(FlowContext *pFlowContext)
 	m_iduWastedIrr_Dy.SetSize(iduCount);	
 	m_iduExceededIrr_Dy.SetSize(iduCount);
 
-	gpFlow->AddOutputVar(_T("number of IDUs with Water Right Shut Off level one"), m_nSWLevelOneIrrWRSO, _T("Number of IDUs with Water Right conflict level one"));
-	gpFlow->AddOutputVar(_T("number of IDUs with Water Right Shut Off level two"), m_nSWLevelTwoIrrWRSO, _T("Number of IDUs with Water Right conflict level two"));
-	gpFlow->AddOutputVar(_T("Area of POUs with Water Right Shut Off level one (acres)"), m_pouSWAreaLevelOneIrrWRSO, _T("Area of POUs with Water Right conflict level one (acres)"));
-	gpFlow->AddOutputVar(_T("Area of POUs with Water Right Shut Off level two (acres)"), m_pouSWAreaLevelTwoIrrWRSO, _T("Area of POUs with Water Right conflict level two (acres)"));
-	gpFlow->AddOutputVar(_T("Area of IDUs with Water Right Shut Off level one (acres)"), m_iduSWAreaLevelOneIrrWRSO, _T("Area of IDUs with Water Right conflict level one (acres)"));
-	gpFlow->AddOutputVar(_T("Area of IDUs with Water Right Shut Off level two (acres)"), m_iduSWAreaLevelTwoIrrWRSO, _T("Area of IDUs with Water Right conflict level two (acres)"));
-	gpFlow->AddOutputVar(_T("Area-weighted Days/Year Max Rate Exceeded (days)"), m_daysPerYrMaxRateExceeded, "");
+	m_pFlowModel->AddOutputVar(_T("number of IDUs with Water Right Shut Off level one"), m_nSWLevelOneIrrWRSO, _T("Number of IDUs with Water Right conflict level one"));
+	m_pFlowModel->AddOutputVar(_T("number of IDUs with Water Right Shut Off level two"), m_nSWLevelTwoIrrWRSO, _T("Number of IDUs with Water Right conflict level two"));
+	m_pFlowModel->AddOutputVar(_T("Area of POUs with Water Right Shut Off level one (acres)"), m_pouSWAreaLevelOneIrrWRSO, _T("Area of POUs with Water Right conflict level one (acres)"));
+	m_pFlowModel->AddOutputVar(_T("Area of POUs with Water Right Shut Off level two (acres)"), m_pouSWAreaLevelTwoIrrWRSO, _T("Area of POUs with Water Right conflict level two (acres)"));
+	m_pFlowModel->AddOutputVar(_T("Area of IDUs with Water Right Shut Off level one (acres)"), m_iduSWAreaLevelOneIrrWRSO, _T("Area of IDUs with Water Right conflict level one (acres)"));
+	m_pFlowModel->AddOutputVar(_T("Area of IDUs with Water Right Shut Off level two (acres)"), m_iduSWAreaLevelTwoIrrWRSO, _T("Area of IDUs with Water Right conflict level two (acres)"));
+	m_pFlowModel->AddOutputVar(_T("Area-weighted Days/Year Max Rate Exceeded (days)"), m_daysPerYrMaxRateExceeded, "");
 	
 	// surface water irrigation data obj
 	m_iduSWUnAllocatedArray.SetSize(iduCount);
@@ -524,7 +522,7 @@ bool WaterMaster::Init(FlowContext *pFlowContext)
 	m_iduWastedIrr_Yr.SetSize(iduCount);
 	m_iduExceededIrr_Yr.SetSize(iduCount);
 
-	gpFlow->AddOutputVar(_T("Area of surface water irrigation (acres)"), m_SWIrrAreaYr, _T("Area of surface water irrigation (acres)"));
+	m_pFlowModel->AddOutputVar(_T("Area of surface water irrigation (acres)"), m_SWIrrAreaYr, _T("Area of surface water irrigation (acres)"));
 
 	// Ground water irrigation data obj
 	m_iduGWUnAllocatedArray.SetSize(iduCount);
@@ -543,7 +541,7 @@ bool WaterMaster::Init(FlowContext *pFlowContext)
 	m_reachDaysInConflict.SetSize(reachCount);
 	m_dailyConflictCnt.SetSize(reachCount);
 
-	gpFlow->AddOutputVar(_T("Area of ground water irrigation (acres)"), m_GWIrrAreaYr, _T("Area of ground water irrigation (acres)"));
+	m_pFlowModel->AddOutputVar(_T("Area of ground water irrigation (acres)"), m_GWIrrAreaYr, _T("Area of ground water irrigation (acres)"));
 
 	//WaterMaster Daily Metrics
 	this->m_dailyMetrics.SetName(_T("Daily WaterMaster Metrics"));
@@ -569,7 +567,7 @@ bool WaterMaster::Init(FlowContext *pFlowContext)
    this->m_dailyMetrics.SetLabel(18, _T("Wasted Irrigation Water Rights (m3 per sec per day)"));   // m_wastedWaterRateDy
    this->m_dailyMetrics.SetLabel(19, _T("Excess irrigation water (mm per day)"));   // m_exceededWaterRateDy
 	this->m_dailyMetrics.SetLabel(20, _T("Potentially Irrigated Irrigation Request (mm per day)"));   // m_IrrWaterRequestDy
-	gpFlow->AddOutputVar(_T("Daily WaterMaster Metrics"), &m_dailyMetrics, _T("Daily WaterMaster Metrics"));
+	m_pFlowModel->AddOutputVar(_T("Daily WaterMaster Metrics"), &m_dailyMetrics, _T("Daily WaterMaster Metrics"));
 
 	//WaterMaster Annual Metrics
 	this->m_annualMetrics.SetName(_T("Annual WaterMaster Metrics"));
@@ -589,7 +587,7 @@ bool WaterMaster::Init(FlowContext *pFlowContext)
 	this->m_annualMetrics.SetLabel(12, _T("Irrigation request non-appropriated days (acre-ft per year)")); //m_demandOutsideBegEndDates
 	this->m_annualMetrics.SetLabel(13, _T("Inadequate flow length weighted reaches (meters per year)"));//m_irrLenWtReachConflictYr
 	this->m_annualMetrics.SetLabel(14, _T("Unsatisfied in-stream regulatory demand (m3 per second per year)"));// m_unSatInstreamDemand
-	gpFlow->AddOutputVar(_T("Annual WaterMaster Metrics"), &m_annualMetrics, _T("Annaul WaterMaster Metrics"));
+	m_pFlowModel->AddOutputVar(_T("Annual WaterMaster Metrics"), &m_annualMetrics, _T("Annaul WaterMaster Metrics"));
 
 	if ( m_debug )
 		{
@@ -608,7 +606,7 @@ bool WaterMaster::Init(FlowContext *pFlowContext)
 		this->m_annualMetricsDebug.SetLabel(9, _T("Other crops area > maxDuty (acres)")); //29 m_anGTmaxDutyArea29
 		this->m_annualMetricsDebug.SetLabel(10, _T("A clover IDU where > maxDuty ")); //23 m_pastureIDUGTmaxDuty
 		this->m_annualMetricsDebug.SetLabel(11, _T("A clover IDU area where > maxDuty ")); //23 m_pastureIDUGTmaxDutyArea
-		gpFlow->AddOutputVar(_T("Annual WaterMaster Metrics Debug"), &m_annualMetricsDebug, _T("Annaul WaterMaster Metrics Debug"));
+		m_pFlowModel->AddOutputVar(_T("Annual WaterMaster Metrics Debug"), &m_annualMetricsDebug, _T("Annaul WaterMaster Metrics Debug"));
 
 		//WaterMaster Daily Metrics Debug
 		this->m_dailyMetricsDebug.SetName(_T("Daily WaterMaster Metrics Debug")); 
@@ -623,7 +621,7 @@ bool WaterMaster::Init(FlowContext *pFlowContext)
 		this->m_dailyMetricsDebug.SetLabel(7, _T("Clover area > maxPOD (acres)")); //27 m_dyGTmaxPodArea27
 		this->m_dailyMetricsDebug.SetLabel(8, _T("Hay area > maxPOD (acres)")); //28 m_dyGTmaxPodArea28
 		this->m_dailyMetricsDebug.SetLabel(9, _T("Other crops area > maxPOD (acres)")); //29	m_dyGTmaxPodArea29
-		gpFlow->AddOutputVar(_T("Daily WaterMaster Metrics Debug"), &m_dailyMetricsDebug, _T("Daily WaterMaster Metrics Debug"));
+		m_pFlowModel->AddOutputVar(_T("Daily WaterMaster Metrics Debug"), &m_dailyMetricsDebug, _T("Daily WaterMaster Metrics Debug"));
 		}
 		
 	char units = _T('m');
@@ -2210,7 +2208,7 @@ bool WaterMaster::EndStep(FlowContext *pFlowContext)
 		pIDULayer->m_readOnly=false;
 		if ( irrDecision == 1)
 			pIDULayer->SetData(idu, m_colIrrRequestDy, irrRequest);
-				//gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrRequestDy, iduIrrRequest, ADD_DELTA); //acre - feet per day
+				//m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrRequestDy, iduIrrRequest, ADD_DELTA); //acre - feet per day
 		pIDULayer->m_readOnly=true;
 
 		if (alglib::fp_eq(deficit, 0.0))
@@ -2521,11 +2519,11 @@ bool WaterMaster::EndYear(FlowContext *pFlowContext)
 		       {
 				 if ( m_iduSWIrrWRSOIndex[idu] == 1 )
 					 {					 
-				    gpFlow->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShortG, 1 );
+				    m_pFlowModel->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShortG, 1 );
 					 }
 				 if (m_iduSWIrrWRSOIndex[idu] == 2)
 					 {
-				    gpFlow->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShortG, 2 );
+				    m_pFlowModel->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShortG, 2 );
 					 }
 		       }
          }
@@ -2554,10 +2552,10 @@ bool WaterMaster::EndYear(FlowContext *pFlowContext)
 		   if ( m_colWRShutOffMun != -1 )
 		       {
 			    if ( m_iduSWMunWRSOIndex[idu] == 1 )
-				    gpFlow->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShutOffMun, 1 );
+				    m_pFlowModel->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShutOffMun, 1 );
 
 			    if ( m_iduSWMunWRSOIndex[idu] == 2 )
-				    gpFlow->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShutOffMun, 2 );
+				    m_pFlowModel->AddDelta( pFlowContext->pEnvContext, idu, m_colWRShutOffMun, 2 );
 		       }
          }
 
@@ -2641,10 +2639,10 @@ bool WaterMaster::EndYear(FlowContext *pFlowContext)
 						if ( pctIDUarea < m_pctIDUPOUIntersection ) continue; // 60.00 needs to be replaced by .xml entry  Action item
 						
 						if ( pRight->m_useCode == WRU_IRRIGATION )
-							gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrUseOrCancel, 1, ADD_DELTA );
+							m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrUseOrCancel, 1, ADD_DELTA );
 						
 						if ( pRight->m_useCode == WRU_MUNICIPAL )
-							gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colMunUseOrCancel, 1, ADD_DELTA );
+							m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colMunUseOrCancel, 1, ADD_DELTA );
 						
 						} // for IDUs in POU getting canceled
 					} // if canceling water right
@@ -2692,25 +2690,25 @@ bool WaterMaster::EndYear(FlowContext *pFlowContext)
 		if ( daysInGrowingSeason != 0 )
 			m_aveTotDailyIrr[idu] = totDyIrrAcft / daysInGrowingSeason; // acre-feet
 
-      gpFlow->UpdateIDU( pFlowContext->pEnvContext, idu, m_colAllocatedIrrigation, totDyIrrmmDy, ADD_DELTA );
-		gpFlow->UpdateIDU( pFlowContext->pEnvContext, idu, m_colAllocatedIrrigationAf, totDyIrrAcft, ADD_DELTA );
+      m_pFlowModel->UpdateIDU( pFlowContext->pEnvContext, idu, m_colAllocatedIrrigation, totDyIrrmmDy, ADD_DELTA );
+		m_pFlowModel->UpdateIDU( pFlowContext->pEnvContext, idu, m_colAllocatedIrrigationAf, totDyIrrAcft, ADD_DELTA );
 
 		float iduMunValue = m_iduSWMuniArrayYr[idu] + m_iduGWMuniArrayYr[idu] ; // m3/sec
 
 		float iduMunValueAcFt = iduMunValue * SEC_PER_DAY / M3_PER_ACREFT; // acre-ft
 				
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colUnsatIrrigationAf, totUnsatIrrAcft, ADD_DELTA );
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colSWUnsatIrrigationAf, swUnsatIrrAcft, ADD_DELTA );
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colGWUnsatIrrigationAf, gwUnsatIrrAcft, ADD_DELTA );		 
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colAllocatedmunicipal, iduMunValueAcFt, ADD_DELTA );
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colSWAllocatedIrrigationAf, swDyIrrAcft, ADD_DELTA );
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colGWAllocatedIrrigationAf, gwDyIrrAcft, ADD_DELTA );
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrRequestYr, m_iduIrrWaterRequestYr[idu], ADD_DELTA ) ;
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colMaxTotDailyIrr, m_maxTotDailyIrr[idu], ADD_DELTA ) ;
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colaveTotDailyIrr, m_aveTotDailyIrr[idu], ADD_DELTA ) ;
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colWastedIrrYr, wastedIrrWaterAcft, ADD_DELTA ) ;
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colExcessIrrYr, excessIrrWaterAcft, ADD_DELTA ) ;
-		gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrExceedMaxDutyYr, isMaxDutyExceeded, ADD_DELTA );
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colUnsatIrrigationAf, totUnsatIrrAcft, ADD_DELTA );
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colSWUnsatIrrigationAf, swUnsatIrrAcft, ADD_DELTA );
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colGWUnsatIrrigationAf, gwUnsatIrrAcft, ADD_DELTA );		 
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colAllocatedmunicipal, iduMunValueAcFt, ADD_DELTA );
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colSWAllocatedIrrigationAf, swDyIrrAcft, ADD_DELTA );
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colGWAllocatedIrrigationAf, gwDyIrrAcft, ADD_DELTA );
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrRequestYr, m_iduIrrWaterRequestYr[idu], ADD_DELTA ) ;
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colMaxTotDailyIrr, m_maxTotDailyIrr[idu], ADD_DELTA ) ;
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colaveTotDailyIrr, m_aveTotDailyIrr[idu], ADD_DELTA ) ;
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colWastedIrrYr, wastedIrrWaterAcft, ADD_DELTA ) ;
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colExcessIrrYr, excessIrrWaterAcft, ADD_DELTA ) ;
+		m_pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colIrrExceedMaxDutyYr, isMaxDutyExceeded, ADD_DELTA );
 
 		if (m_iduGWIrrArrayYr[idu] > 0.0f)
 			m_GWIrrAreaYr += iduAreaAc; // acre
@@ -3376,7 +3374,7 @@ bool WaterMaster::ExtremeResWaterRights(FlowContext *pFlowContext, float radius)
 						AddWaterRight( pFlowContext, neighbors[p], streamLayerComid ); // Action Item 1984 needs xml input variable
 
 						if ( m_debug )
-							gpFlow->UpdateIDU( pFlowContext->pEnvContext, neighbors[p], colAddExResWR, 1, ADD_DELTA );
+							m_pFlowModel->UpdateIDU( pFlowContext->pEnvContext, neighbors[p], colAddExResWR, 1, ADD_DELTA );
 
 						} // endif have not seen this IDU				
 					} // endif no water right exist and is ag

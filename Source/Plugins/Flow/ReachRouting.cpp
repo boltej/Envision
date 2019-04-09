@@ -27,10 +27,6 @@ Copywrite 2012 - Oregon State University
 #include <UNITCONV.H>
 #include <omp.h>
 
-extern FlowProcess *gpFlow;
-extern FlowModel *gpModel;
-
-
 
 bool ReachRouting::Step( FlowContext *pFlowContext )
    {         
@@ -48,7 +44,7 @@ bool ReachRouting::Step( FlowContext *pFlowContext )
       case GM_EULER:
       case GM_RK4:
       case GM_RKF:
-         gpModel->m_reachBlock.Integrate( gpModel->m_currentTime, gpModel->m_currentTime+this->m_reachTimeStep, GetReachDerivatives, pFlowContext );  // NOTE: GetReachDerivatives does not work
+         m_pFlowModel->m_reachBlock.Integrate( m_pFlowModel->m_currentTime, m_pFlowModel->m_currentTime+this->m_reachTimeStep, GetReachDerivatives, pFlowContext );  // NOTE: GetReachDerivatives does not work
          return true;
 
       case GM_KINEMATIC:
@@ -71,14 +67,14 @@ bool ReachRouting::SolveReach2KW(FlowContext *pFlowContext)
    {
    pFlowContext->Reset();
 
-   int reachCount = gpModel->GetReachCount();
+   int reachCount = m_pFlowModel->GetReachCount();
 
    clock_t start = clock();
 
    // basic idea - for each Reach, estimate it's outflow bases on lateral flows and any fluxes
    for (int i = 0; i < reachCount; i++)
       {
-      Reach *pReach = gpModel->GetReach(i);     // Note: these are guaranteed to be non-phantom
+      Reach *pReach = m_pFlowModel->GetReach(i);     // Note: these are guaranteed to be non-phantom
 
       ReachNode *pN = (ReachNode*)pReach;
 
@@ -107,7 +103,7 @@ bool ReachRouting::SolveReach2KW(FlowContext *pFlowContext)
 
    clock_t finish = clock();
    double duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   gpModel->m_reachFluxFnRunTime += (float)duration;
+   m_pFlowModel->m_reachFluxFnRunTime += (float)duration;
 
    return true;
 }
@@ -116,14 +112,14 @@ bool ReachRouting::SolveReachKinematicWave( FlowContext *pFlowContext )
    {
    pFlowContext->Reset();
 
-   int reachCount = gpModel->GetReachCount();
+   int reachCount = m_pFlowModel->GetReachCount();
 
    clock_t start = clock();
 
    // basic idea - for each Reach, estimate it's outflow bases on lateral flows and any fluxes
    for ( int i=0; i < reachCount; i++ )
       {
-      Reach *pReach = gpModel->GetReach( i );     // Note: these are guaranteed to be non-phantom
+      Reach *pReach = m_pFlowModel->GetReach( i );     // Note: these are guaranteed to be non-phantom
     
       ReachNode *pN = (ReachNode*) pReach;
 
@@ -149,7 +145,7 @@ bool ReachRouting::SolveReachKinematicWave( FlowContext *pFlowContext )
 
    clock_t finish = clock();
    double duration = (float)(finish - start) / CLOCKS_PER_SEC;   
-   gpModel->m_reachFluxFnRunTime += (float) duration;   
+   m_pFlowModel->m_reachFluxFnRunTime += (float) duration;   
 
    return true;
    }
@@ -322,7 +318,7 @@ float ReachRouting::GetReachOutflow( ReachNode *pReachNode )   // recursive!!! f
       }
    else
       {
-      Reach *pReach = gpModel->GetReachFromNode( pReachNode );
+      Reach *pReach = m_pFlowModel->GetReachFromNode( pReachNode );
 
       if ( pReach != NULL )
          return pReach->GetDischarge();
@@ -349,13 +345,13 @@ float ReachRouting::GetLateralSVInflow(Reach *pReach, int sv)
       { 
       ReachSubnode *pNode1 = (ReachSubnode*)pReach->m_pLeft->m_subnodeArray[0];
       inflow+=pNode1->GetExtraSvFluxValue(sv)/*pReach->m_pLeft->GetSubnodeCount();//kg/d*/;
-      lateralInflow += GetLateralInflow(gpModel->GetReachFromNode(pReach->m_pLeft))*pReach->m_subnodeArray.GetSize();//m3/d
+      lateralInflow += GetLateralInflow(m_pFlowModel->GetReachFromNode(pReach->m_pLeft))*pReach->m_subnodeArray.GetSize();//m3/d
       }
    if (pReach->m_pRight)
       { 
       ReachSubnode *pNode2 = (ReachSubnode*)pReach->m_pRight->m_subnodeArray[0];
       inflow += pNode2->GetExtraSvFluxValue(sv) /* *pReach->m_pRight->GetSubnodeCount();//kg/d*/;
-      lateralInflow += GetLateralInflow(gpModel->GetReachFromNode(pReach->m_pRight))*pReach->m_subnodeArray.GetSize();//m3/d
+      lateralInflow += GetLateralInflow(m_pFlowModel->GetReachFromNode(pReach->m_pRight))*pReach->m_subnodeArray.GetSize();//m3/d
       }
 
    float conc = 0;
@@ -392,7 +388,7 @@ float ReachRouting::GetReachSVOutflow( ReachNode *pReachNode, int sv )   // recu
       }
    else
       {
-      Reach *pReach = gpModel->GetReachFromNode( pReachNode );
+      Reach *pReach = m_pFlowModel->GetReachFromNode( pReachNode );
       ReachSubnode *pNode = (ReachSubnode*) pReach->m_subnodeArray[ 0 ]; 
 
       if ( pReach != NULL && pNode->m_volume>0.0f)
@@ -456,7 +452,7 @@ void ReachRouting::GetReachDerivatives( double time, double timeStep, int svCoun
    // compute derivative values for reachs based on any associated subnode fluxes
    int reachCount = (int) pModel->m_reachArray.GetSize();
 
-   omp_set_num_threads( gpFlow->m_processorsUsed );
+   omp_set_num_threads( pModel->m_processorsUsed );
    #pragma omp parallel for firstprivate( flowContext )
    for ( int i=0; i < reachCount; i++ )
       {
@@ -498,9 +494,9 @@ void ReachRouting::GetReachDerivatives( double time, double timeStep, int svCoun
    }
 
 
-ReachRouting *ReachRouting::LoadXml( TiXmlElement *pXmlReachRouting, LPCTSTR filename )
+ReachRouting *ReachRouting::LoadXml( TiXmlElement *pXmlReachRouting, LPCTSTR filename, FlowModel *pFlowModel)
    {
-   ReachRouting *pRouting = new ReachRouting( _T("Reach Routing") );  // defaults to GM_KINEMATIC
+   ReachRouting *pRouting = new ReachRouting(pFlowModel, _T("Reach Routing") );  // defaults to GM_KINEMATIC
 
    LPTSTR method = NULL;
    LPTSTR query = NULL;   // ignored for now

@@ -31,9 +31,6 @@ Copywrite 2012 - Oregon State University
 #define new DEBUG_NEW
 #endif
 
-extern FlowProcess *gpFlow;
-extern FlowModel   *gpModel;
-
 
 bool LateralExchange::Step( FlowContext *pFlowContext )
    {
@@ -59,13 +56,13 @@ bool LateralExchange::Step( FlowContext *pFlowContext )
 
 bool LateralExchange::SetGlobalHruToReachExchangesLinearRes( void )
    {
-   int catchmentCount = gpModel->GetCatchmentCount(); // (int) m_catchmentArray.GetSize();
-   int hruLayerCount = gpModel->GetHRUPoolCount();
+   int catchmentCount = m_pFlowModel->GetCatchmentCount(); // (int) m_catchmentArray.GetSize();
+   int hruLayerCount = m_pFlowModel->GetHRUPoolCount();
 
    // iterate through catchments/hrus/hrulayers, calling fluxes as needed
    for ( int i=0; i < catchmentCount; i++ )
       {
-      Catchment *pCatchment = gpModel->GetCatchment( i ); //m_catchmentArray[ i ];
+      Catchment *pCatchment = m_pFlowModel->GetCatchment( i ); //m_catchmentArray[ i ];
       ASSERT( pCatchment != NULL );
 
       int hruCount = pCatchment->GetHRUCount();
@@ -93,9 +90,9 @@ bool LateralExchange::SetGlobalHruToReachExchangesLinearRes( void )
    }
 
 
-LateralExchange *LateralExchange::LoadXml( TiXmlElement *pXmlLateralExchange, LPCTSTR filename )
+LateralExchange *LateralExchange::LoadXml( TiXmlElement *pXmlLateralExchange, LPCTSTR filename, FlowModel *pFlowModel)
    {
-   LateralExchange *pLatExch = new LateralExchange( _T("Lateral Exchange") );  // defaults to GMT_NONE
+   LateralExchange *pLatExch = new LateralExchange(pFlowModel, _T("Lateral Exchange") );  // defaults to GMT_NONE
 
    if ( pXmlLateralExchange == NULL )
       return pLatExch;

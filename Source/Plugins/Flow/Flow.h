@@ -542,8 +542,8 @@ public:
    static MTDOUBLE m_mvCumGwFlowOut;
 
 public:
-   int GetPoolCount( FlowModel *pFlowModel ) { return (int) m_poolArray.GetSize(); }
-   HRUPool *GetPool( FlowModel *pFlowModel, int i ) { return m_poolArray[ i ]; }
+   int GetPoolCount() { return (int) m_poolArray.GetSize(); }
+   HRUPool *GetPool( int i ) { return m_poolArray[ i ]; }
    int AddPools( FlowModel *pFlowModel,  /* int pools, float initWaterContent, float initTemperature,*/ bool grid );
    //int AddLayers( int soilLayerCount, int snowLayerCount, int vegLayerCount, float initWaterContent, float initTemperature, bool grid );
 

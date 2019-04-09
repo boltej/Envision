@@ -30,15 +30,15 @@ Copywrite 2012 - Oregon State University
 
 using namespace std;
 
-extern FlowProcess *gpFlow;
+//extern FlowProcess *gpFlow;
 
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
-DailyUrbanWaterDemand::DailyUrbanWaterDemand(LPCTSTR name)
-: GlobalMethod(name, GM_URBAN_DEMAND_DY)
+DailyUrbanWaterDemand::DailyUrbanWaterDemand(FlowModel *pFlowModel, LPCTSTR name)
+: GlobalMethod(pFlowModel,name, GM_URBAN_DEMAND_DY)
 , m_colDailyUrbanDemand(-1)// Calculated Daily Urband Water Demand m3/day
 , m_colH2OResidnt(-1)		// Annual Residential Demand ccf/day/acre
 , m_colH2OIndComm(-1)		// Annual Industrial & commercial Demand ccf/day/acre
@@ -95,7 +95,7 @@ bool DailyUrbanWaterDemand::Init(FlowContext *pFlowContext)
 	this->m_timeSeriesMunDemandSummaries.SetLabel(7, _T("Daily Newberg Water Demand Summary (ccf/day)"));
 	this->m_timeSeriesMunDemandSummaries.SetLabel(8, _T("Daily Woodburn Water Demand Summary (ccf/day)"));
 
-	gpFlow->AddOutputVar(_T("Daily Urban Water Demand Summary"), &m_timeSeriesMunDemandSummaries, "");
+	pFlowContext->pFlowModel->AddOutputVar(_T("Daily Urban Water Demand Summary"), &m_timeSeriesMunDemandSummaries, "");
 
 	return TRUE;
 }
@@ -234,7 +234,7 @@ bool DailyUrbanWaterDemand::CalcDailyUrbanWaterDemand(FlowContext *pFlowContext)
 	return TRUE;
 }
 
-DailyUrbanWaterDemand *DailyUrbanWaterDemand::LoadXml(TiXmlElement *pXmlDailyUrbWaterDmd, MapLayer *pIDULayer, LPCTSTR filename)
+DailyUrbanWaterDemand *DailyUrbanWaterDemand::LoadXml(TiXmlElement *pXmlDailyUrbWaterDmd, MapLayer *pIDULayer, LPCTSTR filename, FlowModel *pFlowModel)
 {
 	if (pXmlDailyUrbWaterDmd == NULL)
 		return NULL;
@@ -260,7 +260,7 @@ DailyUrbanWaterDemand *DailyUrbanWaterDemand::LoadXml(TiXmlElement *pXmlDailyUrb
 		return NULL;
 	}
 
-	DailyUrbanWaterDemand *pDayUrbDemand = new DailyUrbanWaterDemand(name);
+	DailyUrbanWaterDemand *pDayUrbDemand = new DailyUrbanWaterDemand(pFlowModel, name);
 
 	if (method != NULL)
 	{

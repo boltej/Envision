@@ -29,9 +29,6 @@ Copywrite 2012 - Oregon State University
 #include <UNITCONV.H>
 #include <omp.h>
 
-extern FlowProcess *gpFlow;
-extern FlowModel *gpModel;
-
 
 WaterAllocation::~WaterAllocation( void )
    {
@@ -257,7 +254,7 @@ bool WaterAllocation::RunExprAllocator( FlowContext* )
 
 
 // Note: this method is static
-WaterAllocation *WaterAllocation::LoadXml( TiXmlElement *pXmlWaterAllocation, LPCTSTR filename )
+WaterAllocation *WaterAllocation::LoadXml( TiXmlElement *pXmlWaterAllocation, LPCTSTR filename, FlowModel *pFlowModel)
    {
    CString method;
    bool ok = ::TiXmlGetAttr( pXmlWaterAllocation, _T("method"), method, _T(""), true );
@@ -265,7 +262,7 @@ WaterAllocation *WaterAllocation::LoadXml( TiXmlElement *pXmlWaterAllocation, LP
    if ( ! ok )
       return NULL;
 
-   WaterAllocation *pMethod = new WaterAllocation( _T("Allocation"), GM_NONE );
+   WaterAllocation *pMethod = new WaterAllocation(pFlowModel, _T("Allocation"), GM_NONE );
 
    ASSERT( method.IsEmpty() == false );
 
@@ -275,7 +272,7 @@ WaterAllocation *WaterAllocation::LoadXml( TiXmlElement *pXmlWaterAllocation, LP
       case _T('w'):   // water_rights
          {
          pMethod->SetMethod( GM_WATER_RIGHTS );
-         WaterMaster *pWM = new WaterMaster( pMethod );
+         WaterMaster *pWM = new WaterMaster( pFlowModel, pMethod );
          pWM->LoadXml( pMethod, pXmlWaterAllocation, filename );
          pMethod->m_pWaterMaster = pWM;
          }
@@ -285,7 +282,7 @@ WaterAllocation *WaterAllocation::LoadXml( TiXmlElement *pXmlWaterAllocation, LP
       case _T('a'):   // alt water_rights
          {
          pMethod->SetMethod( GM_ALTWM );
-         AltWaterMaster *pAWM = new AltWaterMaster( pMethod );
+         AltWaterMaster *pAWM = new AltWaterMaster(pFlowModel, pMethod );
          pAWM->LoadXml( pMethod, pXmlWaterAllocation, filename );
          pMethod->m_pAltWM = pAWM;
          }

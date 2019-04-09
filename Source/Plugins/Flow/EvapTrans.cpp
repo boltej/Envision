@@ -36,8 +36,7 @@ Copywrite 2012 - Oregon State University
 
 using namespace std;
 
-extern FlowProcess *gpFlow;
-
+//extern FlowProcess *gpFlow;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -46,8 +45,8 @@ extern FlowProcess *gpFlow;
 #define EPSILON  0.00000001
 #define FP_EQUAL(a, b)             (fabs(a-b) <= EPSILON)
 
-EvapTrans::EvapTrans(LPCTSTR name)
-   : GlobalMethod(name, GM_NONE)
+EvapTrans::EvapTrans(FlowModel *pFlowModel, LPCTSTR name)
+   : GlobalMethod(pFlowModel, name, GM_NONE)
    , m_ETEq(this)                                                  // the type of ET equation to use for calculation of the reference ET (ASCE, FAO56, Penn_Mont, Kimb_Penn, Hargreaves)
    , m_flowContext(NULL)                                           // pointer to flowContext to inform ETEquation
    , m_pCropTable(NULL)                                            // pointer to Crop table (.csv) holding crop coefficents
@@ -159,6 +158,8 @@ bool EvapTrans::Init(FlowContext *pFlowContext)
    // compile query
    GlobalMethod::Init(pFlowContext);
 
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
+
    if (m_method != GM_PENMAN_MONTIETH && m_method != GM_BAIER_ROBERTSON)
       {
       // DEBUGGING: use to output reference ET for a particular HRU
@@ -170,10 +171,10 @@ bool EvapTrans::Init(FlowContext *pFlowContext)
 
       gpFlow->AddOutputVar(_T("Daily ReferenceET Summary"), m_pDailyReferenceET, "");*/
 
-      gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, this->m_colStartGrowSeason, _T("PLANTDATE"), TYPE_INT, CC_AUTOADD);
-      gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, this->m_colEndGrowSeason, _T("HARVDATE"), TYPE_INT, CC_AUTOADD);
+      pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, this->m_colStartGrowSeason, _T("PLANTDATE"), TYPE_INT, CC_AUTOADD);
+      pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, this->m_colEndGrowSeason, _T("HARVDATE"), TYPE_INT, CC_AUTOADD);
 
-      int hruCount = pFlowContext->pFlowModel->GetHRUCount();
+      int hruCount = pFlowModel->GetHRUCount();
 
       /*m_hruT30OldestIndexArray.SetSize( hruCount );
       m_hruIsT30FilledArray.SetSize( hruCount );*/
@@ -195,29 +196,27 @@ bool EvapTrans::Init(FlowContext *pFlowContext)
 
       if (m_method == GM_KIMBERLY_PENNMAN)
          {
-         gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAgrimetStationID, _T("AgStaID"), TYPE_LONG, CC_MUST_EXIST);
-         gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colYieldReduction, _T("YieldReduc"), TYPE_LONG, CC_AUTOADD);            // TODO: make EvapTrans tag option
+         pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAgrimetStationID, _T("AgStaID"), TYPE_LONG, CC_MUST_EXIST);
+         pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colYieldReduction, _T("YieldReduc"), TYPE_LONG, CC_AUTOADD);            // TODO: make EvapTrans tag option
          }
       }
 
    // Evapotranspiration and Soil Moisture IDU attributes calculated 
-   gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colDailyET, _T("ET_DAY"), TYPE_FLOAT, CC_AUTOADD);
-   gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colDailyMaxET, _T("MAX_ET_DAY"), TYPE_FLOAT, CC_AUTOADD);
-   gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAnnAvgET, _T("ET_YR"), TYPE_FLOAT, CC_AUTOADD);
-   gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAnnAvgMaxET, _T("MAX_ET_YR"), TYPE_FLOAT, CC_AUTOADD);
-   gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colDailySoilMoisture, _T("SM_DAY"), TYPE_FLOAT, CC_AUTOADD);
-   gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIDUIndex, _T("IDU_INDEX"), TYPE_INT, CC_MUST_EXIST);
-   //gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIrrigation, _T("IRRIGATION"), TYPE_INT, CC_MUST_EXIST);
-   //gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIduSoilID, _T("SoilID"), TYPE_LONG, CC_AUTOADD);
+   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colDailyET, _T("ET_DAY"), TYPE_FLOAT, CC_AUTOADD);
+   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colDailyMaxET, _T("MAX_ET_DAY"), TYPE_FLOAT, CC_AUTOADD);
+   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAnnAvgET, _T("ET_YR"), TYPE_FLOAT, CC_AUTOADD);
+   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAnnAvgMaxET, _T("MAX_ET_YR"), TYPE_FLOAT, CC_AUTOADD);
+   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colDailySoilMoisture, _T("SM_DAY"), TYPE_FLOAT, CC_AUTOADD);
+   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIDUIndex, _T("IDU_INDEX"), TYPE_INT, CC_MUST_EXIST);
+   //pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIrrigation, _T("IRRIGATION"), TYPE_INT, CC_MUST_EXIST);
+   //pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIduSoilID, _T("SoilID"), TYPE_LONG, CC_AUTOADD);
 
-
-
-     // IDU attributes needed for Penman-Monteith reference ET calculation
+   // IDU attributes needed for Penman-Monteith reference ET calculation
    if (m_method == GM_PENMAN_MONTIETH)
       {
-      gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colLAI, _T("LAI"), TYPE_FLOAT, CC_MUST_EXIST);
-      gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAgeClass, _T("AGECLASS"), TYPE_INT, CC_MUST_EXIST);
-      gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colHeight, _T("height"), TYPE_FLOAT, CC_MUST_EXIST);
+      pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colLAI, _T("LAI"), TYPE_FLOAT, CC_MUST_EXIST);
+      pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAgeClass, _T("AGECLASS"), TYPE_INT, CC_MUST_EXIST);
+      pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colHeight, _T("height"), TYPE_FLOAT, CC_MUST_EXIST);
       }
 
    return true;
@@ -242,7 +241,7 @@ bool EvapTrans::StartYear(FlowContext *pFlowContext)
    {
    GlobalMethod::StartYear(pFlowContext);  // this inits the m_hruQueryStatusArray to 0;
 
-   FlowModel *pModel = pFlowContext->pFlowModel;
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
    MapLayer  *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 
    int iduCount = (int)pFlowContext->pEnvContext->pMapLayer->GetRecordCount();
@@ -254,10 +253,10 @@ bool EvapTrans::StartYear(FlowContext *pFlowContext)
       m_iduAnnAvgMaxETArray[i] = 0.0f;
       m_iduSeasonalAvgETArray[i] = 0.0f;
       m_iduSeasonalAvgMaxETArray[i] = 0.0f;
-      if (!pModel->m_estimateParameters)
+      if (!pFlowModel->m_estimateParameters)
          {
-         gpFlow->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgET, m_iduAnnAvgETArray[i], ADD_DELTA);         // mm/year
-         gpFlow->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgMaxET, m_iduAnnAvgMaxETArray[i], ADD_DELTA);   // mm/year
+         pFlowModel->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgET, m_iduAnnAvgETArray[i], ADD_DELTA);         // mm/year
+         pFlowModel->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgMaxET, m_iduAnnAvgMaxETArray[i], ADD_DELTA);   // mm/year
          }
       }
 
@@ -272,9 +271,9 @@ bool EvapTrans::StartYear(FlowContext *pFlowContext)
    // write planting dates to map
    if (m_pCropTable)
       {
-      for (int h = 0; h < pModel->GetHRUCount(); h++)
+      for (int h = 0; h < pFlowModel->GetHRUCount(); h++)
          {
-         HRU *pHRU = pModel->GetHRU(h);
+         HRU *pHRU = pFlowModel->GetHRU(h);
 
          for (int i = 0; i < (int)pHRU->m_polyIndexArray.GetSize(); i++)
             {
@@ -294,10 +293,10 @@ bool EvapTrans::StartYear(FlowContext *pFlowContext)
                   harvestDate = this->m_phruCropEndGrowingSeasonArray->Get(h, row);
                   }
 
-               if (!pModel->m_estimateParameters)
+               if (!pFlowModel->m_estimateParameters)
                   {
-                  gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colStartGrowSeason, startDate, ADD_DELTA);
-                  gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, m_colEndGrowSeason, harvestDate, ADD_DELTA);
+                  pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colStartGrowSeason, startDate, ADD_DELTA);
+                  pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colEndGrowSeason, harvestDate, ADD_DELTA);
                   }
                }
             }
@@ -473,7 +472,7 @@ bool EvapTrans::EndStep(FlowContext *pFlowContext)
 
 bool EvapTrans::EndYear(FlowContext *pFlowContext)
    {
-   FlowModel *pModel = pFlowContext->pFlowModel;
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
    MapLayer  *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 
    int iduCount = (int)pFlowContext->pEnvContext->pMapLayer->GetRecordCount();
@@ -483,10 +482,10 @@ bool EvapTrans::EndYear(FlowContext *pFlowContext)
    for (int i = 0; i < iduCount; i++)
       {
       //  m_iduAnnAvgETArray[ i ] /*/= m_runCount*/;   // runcount =365*4  // mm/day
-      if (!pModel->m_estimateParameters)
+      if (!pFlowModel->m_estimateParameters)
          {
-         gpFlow->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgET, m_iduAnnAvgETArray[i], ADD_DELTA);         // mm/year
-         gpFlow->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgMaxET, m_iduAnnAvgMaxETArray[i], ADD_DELTA);   // mm/year
+         pFlowModel->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgET, m_iduAnnAvgETArray[i], ADD_DELTA);         // mm/year
+         pFlowModel->UpdateIDU(pFlowContext->pEnvContext, i, m_colAnnAvgMaxET, m_iduAnnAvgMaxETArray[i], ADD_DELTA);   // mm/year
 
          float yieldFraction = 1.0f;
 
@@ -511,7 +510,7 @@ bool EvapTrans::EndYear(FlowContext *pFlowContext)
 
          if (yieldFraction < 0.0f) yieldFraction = 1.0f;
          if (yieldFraction > 1.0f) yieldFraction = 0.0f;
-         if (m_colYieldReduction > 0) gpFlow->UpdateIDU(pFlowContext->pEnvContext, i, m_colYieldReduction, yieldFraction, ADD_DELTA);     // fraction
+         if (m_colYieldReduction > 0) pFlowModel->UpdateIDU(pFlowContext->pEnvContext, i, m_colYieldReduction, yieldFraction, ADD_DELTA);     // fraction
          }
       }
 
@@ -600,6 +599,7 @@ void EvapTrans::CalculateCGDD(FlowContext *pFlowContext, HRU *pHRU, float baseTe
 // Returns a cumulative GDD for a single day
 void EvapTrans::CalculateCGDD(FlowContext *pFlowContext, HRU *pHRU, float baseTemp, int doy, bool isCorn, float &cGDD)
    {
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
 
    float tMean = 0.0f;
    float tMin = 0.0f;
@@ -615,8 +615,8 @@ void EvapTrans::CalculateCGDD(FlowContext *pFlowContext, HRU *pHRU, float baseTe
    // determine cGDD for corn
    if (isCorn)
       {
-      pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, doy, tMax);
-      pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, doy, tMin);
+      pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, doy, tMax);
+      pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, doy, tMin);
       val1 = min(tMax, 30);
       val2 = min(tMin, 30);
 
@@ -625,7 +625,7 @@ void EvapTrans::CalculateCGDD(FlowContext *pFlowContext, HRU *pHRU, float baseTe
    // determine cGDD for crops other than corn
    else
       {
-      pFlowContext->pFlowModel->GetHRUClimate(CDT_TMEAN, pHRU, doy, tMean);
+      pFlowModel->GetHRUClimate(CDT_TMEAN, pHRU, doy, tMean);
       cGDD += max((tMean - baseTemp), 0.0f);
       }
    }
@@ -634,6 +634,8 @@ void EvapTrans::CalculateCGDD(FlowContext *pFlowContext, HRU *pHRU, float baseTe
 // The tables are overpopulated
 bool EvapTrans::FillLookupTables(FlowContext* pFlowContext)
    {
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
+
    if (m_pCropTable)
       {
       MapLayer  *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
@@ -655,7 +657,7 @@ bool EvapTrans::FillLookupTables(FlowContext* pFlowContext)
 #pragma omp parallel for 
       for (int hruIndex = 0; hruIndex < hruCount; hruIndex++)
          {
-         HRU *pHRU = pFlowContext->pFlowModel->GetHRU(hruIndex);
+         HRU *pHRU = pFlowModel->GetHRU(hruIndex);
          float t30 = -273.0f;
          float p7 = 0.0f;
          float precipThreshold = 1000.0f;
@@ -849,8 +851,8 @@ bool EvapTrans::FillLookupTables(FlowContext* pFlowContext)
                      CString label = _T("CGGD_") + lulc;
                      PCTSTR CGGDColName = (PCTSTR)label;
                      int colCGDD = -1;
-                     gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, colCGDD, CGGDColName, TYPE_INT, CC_AUTOADD);
-                     gpFlow->UpdateIDU(pFlowContext->pEnvContext, idu, colCGDD, cGDDArray.at(row), ADD_DELTA); // degree C days  
+                     pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, colCGDD, CGGDColName, TYPE_INT, CC_AUTOADD);
+                     pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, colCGDD, cGDDArray.at(row), ADD_DELTA); // degree C days  
                      } // end idus in hru
                   } // end useGDD
                } // end row
@@ -1195,6 +1197,7 @@ void EvapTrans::GetHruET(FlowContext *pFlowContext, HRU *pHRU, int hruIndex)
 
    // NOTE: Alternative to elevMean would be the model's m_climateStationElev, if it is ever exposed to the model.
 
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
    MapLayer *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 
    //  HRU *pHRU = m_pCurrHru;
@@ -1331,7 +1334,7 @@ void EvapTrans::GetHruET(FlowContext *pFlowContext, HRU *pHRU, int hruIndex)
                            if (potentialHeatUnits != 0.0f)
                               cGDDFraction = cGDD / potentialHeatUnits;
 
-                           gpFlow->CheckCol(pFlowContext->pEnvContext->pMapLayer, colCGDD, _T("FracCGDD_D"), TYPE_FLOAT, CC_AUTOADD);
+                           pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, colCGDD, _T("FracCGDD_D"), TYPE_FLOAT, CC_AUTOADD);
                            pIDULayer->SetData(idu, colCGDD, cGDDFraction); // degree C days
                            }
 
@@ -1532,6 +1535,7 @@ void EvapTrans::GetHruET(FlowContext *pFlowContext, HRU *pHRU, int hruIndex)
 
 void EvapTrans::GetHruET(FlowContext *pFlowContext, HRU *pHRU, int hruIndex, bool isGrid)
    {
+   FlowModel *pFlowModel = pFlowContext->pFlowModel;
    MapLayer *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
    int doy = pFlowContext->dayOfYear;     // zero-based
    float referenceET = 0.0F;
@@ -1734,7 +1738,7 @@ EvapTrans *EvapTrans::LoadXml(TiXmlElement *pXmlEvapTrans, MapLayer *pIDULayer, 
       return NULL;
       }
 
-   EvapTrans *pEvapTrans = new EvapTrans(name);
+   EvapTrans *pEvapTrans = new EvapTrans(pFlowModel, name);
 
    pEvapTrans->m_pLayerDists = new PoolDistributions();
    pEvapTrans->m_pLayerDists->ParsePools(pXmlEvapTrans, pIDULayer, filename);

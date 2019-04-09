@@ -76,10 +76,10 @@
     <ClCompile Include="DailyurbanWaterDemand.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="AltWaterMaster.cpp">
+    <ClCompile Include="PoolDistributions.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="PoolDistributions.cpp">
+    <ClCompile Include="AltWaterMaster.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

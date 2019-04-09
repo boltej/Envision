@@ -246,7 +246,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="AcuteHazards.def" />
     <None Include="res\AcuteHazards.rc2" />
   </ItemGroup>
   <ItemGroup>

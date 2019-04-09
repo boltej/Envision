@@ -26,9 +26,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="AcuteHazards.def">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="res\AcuteHazards.rc2">
       <Filter>Resource Files</Filter>
     </None>
