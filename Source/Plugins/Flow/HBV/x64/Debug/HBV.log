@@ -1,4 +1,0 @@
-﻿  dllmain.cpp
-  LINK : C:\Envision.git\trunk\Source\x64\Debug\HBV.dll not found or not built by the last incremental link; performing full link
-     Creating library C:\Envision.git\trunk\Source\x64\Debug\HBV.lib and object C:\Envision.git\trunk\Source\x64\Debug\HBV.exp
-  HBV.vcxproj -> C:\Envision.git\trunk\Source\x64\Debug\HBV.dll
