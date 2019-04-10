@@ -1,0 +1,9 @@
+﻿  stdafx.cpp
+  EnvExtension.cpp
+  HBV.cpp
+  dllmain.cpp
+     Creating library C:\Envision\src\Release\HBV.lib and object C:\Envision\src\Release\HBV.exp
+  Generating code
+  All 267 functions were compiled because no usable IPDB/IOBJ from previous compilation was found.
+  Finished generating code
+  HBV.vcxproj -> C:\Envision\src\Release\HBV.dll

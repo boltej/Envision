@@ -1,0 +1,43 @@
+; HBV.def : Declares the module parameters for the DLL.
+
+LIBRARY
+
+EXPORTS
+    ; Explicit exports can go here
+
+
+; models
+HBV_Basic @1
+HBV_WithIrrigation @2
+HBV_WithQuickflow @3
+HBV_WithRadiationDrivenSnow @4
+
+; deprecated models - don't use these!
+HBV_Global @5
+HBV_Agriculture @6
+
+; horizontal_exchange, vertical_exchange handlers
+HBV_Horizontal @8
+HBV_Vertical @9
+
+; deprecated exchange handlers - don't use these!
+; HBV_VerticalwSnow @10
+; HBV_HorizontalwSnow @11
+
+; flux handlers
+ETFluxHandler @12
+PrecipFluxHandler @13
+SnowFluxHandler @14
+RunoffFluxHandler @15
+UplandFluxHandler @16
+RuninFluxHandler @17
+N_Deposition_FluxHandler @18
+N_ET_FluxHandler @19
+PrecipFluxHandlerNoSnow @20
+
+; state variable handlers
+N_Transformations @21
+
+; miscellaneous
+StreamTempReg @22
+;CalcDailyUrbanWater @23
