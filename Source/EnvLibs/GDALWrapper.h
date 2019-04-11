@@ -22,12 +22,12 @@ Copywrite 2012 - Oregon State University
 
 #ifndef NO_MFC
 
-#include "GDAL/include/cpl_minixml.h"
-#include "GDAL/include/ogr_api.h"
-#include "GDAL/include/gdal.h"
-#include "GDAL/include/ogr_srs_api.h"
-#include "GDAL/include/gdal_alg.h"
-#include "GDAL/include/gdalwarper2.h"
+#include "../../GDAL/include/cpl_minixml.h"
+#include "../../GDAL/include/ogr_api.h"
+#include "../../GDAL/include/gdal.h"
+#include "../../GDAL/include/ogr_srs_api.h"
+#include "../../GDAL/include/gdal_alg.h"
+#include "../../GDAL/include/gdalwarper2.h"
 #else
 
 #include <gdal/cpl_minixml.h>
