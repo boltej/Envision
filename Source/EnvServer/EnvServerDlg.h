@@ -13,57 +13,6 @@
 
 void Notify(EM_NOTIFYTYPE, INT_PTR, INT_PTR, INT_PTR);
 
-enum STATUS { ST_INITIALIZED, ST_PROJECTLOADED, ST_RUNNING, ST_PAUSED, ST_STOPPED };
-
-//--------------------------------------------------------------------
-// An EnvisionInstance represents one instance of an Envision Model.
-// It supports functionality for a) loading, and b) running an Envision
-// model, managing the interface between the REST services and the
-// Envision API.
-// When loading and running an Envision model, each function is run 
-// on its own thread.
-//--------------------------------------------------------------------
-
-class EnvisionInstance
-   {
-   friend class CEnvServerDlg;
-
-   public:
-      CString m_projectFile;  // envx associated with this instance
-      EnvModel *m_pEnvModel;  // EnvEngine instance ptr (NULL until model loaded)
-      int m_scenario;         // zero-based (-1=run all)
-      int m_simulationLength;
-
-      time_t m_start;   // start time;
-      shared_ptr<Session> m_pEventSession;  // EventSource session
-
-   protected:
-      int m_id;   // unique identifier (incrementing m_count)
-      std::thread *m_pThread;  //  currently execting thread
-      STATUS m_status; 
-      time_t m_stop;
-      double m_duration;   // seconds
-
-      static int m_instanceCount;
-
-   // API Entry points
-   public:
-      int LoadProject(LPCTSTR envxFile );  // Runs ::EnvLoadProject
-      int RunScenario(int scenario, int simulationLength);      // Runs ::EnvRunScenario()
-
-   // Thread functions.
-   protected:
-      int _RunScenarioThreadFn();
-      int _LoadProjectThreadFn();
-
-   public:
-      EnvisionInstance();
-      ~EnvisionInstance();
-
-      int GetID() { return m_id;  }
-      
-      void Join();
-   };
 
 
 // CEnvServerDlg dialog
@@ -82,24 +31,18 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);	// DDX/DDV support
 
 public:
-   EnvisionInstance *AddInstance(); // , int scenario);// , const shared_ptr<Session>&);  // note scenario is zero-based, -1 to run all
+  void AddInstance(EnvisionInstance*);
    //int LoadProject(EnvisionInstance*, LPCTSTR);
 
 
-   int AddSession(LPCTSTR sessionID);
-   void RemoveSession(LPCTSTR sessionID);
-
-   EnvModel *GetEnvModelFromSession(const shared_ptr<Session> &);
-   const shared_ptr<Session> & GetSessionFromEnvModel(EnvModel*);
-
-   EnvisionInstance *GetEnvisionInstanceFromModelID(int modelID);
+   int AddSession(int sessionID, LPCTSTR clientURL);
+   void RemoveSession(int sessionID);
 
    void OnEnvInstanceFinished(EnvisionInstance *pInst);
    void Log(LPCTSTR msg);
 // Implementation
 protected:
-   PtrArray<EnvisionInstance> m_instArray;
-
+ 
    // Dialog stuff
 	HICON m_hIcon;
 

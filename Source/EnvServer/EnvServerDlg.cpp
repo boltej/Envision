@@ -293,22 +293,14 @@ HCURSOR CEnvServerDlg::OnQueryDragIcon()
 
 
 
-EnvisionInstance *CEnvServerDlg::AddInstance() // LPCTSTR projectFile) // , int scenario) // , const shared_ptr<Session> &pSession)
+void CEnvServerDlg::AddInstance(EnvisionInstance *pInst) // LPCTSTR projectFile) // , int scenario) // , const shared_ptr<Session> &pSession)
    {
-   EnvisionInstance *pInst = new EnvisionInstance;
-   
-   //pInst->m_pSession = pSession;   // pInst has a shared ptr to the Session
-   m_instArray.Add(pInst);
-
-   //nsPath::CPath path( projectFile );
-   
    TCHAR buf[64];
    ctime_s(buf, 64, &pInst->m_start);
 
    CString label;
    label.Format("Envsion Instance %i STARTED %s", pInst->GetID(), buf);
    m_instances.AddString(label);
-   return pInst;
    }
 
 ////int CEnvServerDlg::LoadProject(EnvisionInstance *pInst, LPCTSTR envxFile )
@@ -320,35 +312,6 @@ EnvisionInstance *CEnvServerDlg::AddInstance() // LPCTSTR projectFile) // , int 
 ////   }
 
 
-EnvModel *CEnvServerDlg::GetEnvModelFromSession(const shared_ptr<Session> &pSession)
-   {
-   for (int i = 0; i < m_instArray.GetSize(); i++)
-      if (m_instArray[i]->m_pEventSession == pSession)
-         return m_instArray[i]->m_pEnvModel;
-
-   return NULL;
-   }
-
-const shared_ptr<Session> &CEnvServerDlg::GetSessionFromEnvModel(EnvModel *pEnvModel)
-   {
-   for (int i = 0; i < m_instArray.GetSize(); i++)
-      if (m_instArray[i]->m_pEnvModel == pEnvModel)
-         return m_instArray[i]->m_pEventSession;
-
-   TRACE("ERROR: unable to find Session ptr");
-   return NULL;
-   }
-
-EnvisionInstance *CEnvServerDlg::GetEnvisionInstanceFromModelID(int modelID)
-   {
-   for (int i = 0; i < this->m_instArray.GetCount(); i++)
-      {
-      if (m_instArray[i]->GetID() == modelID)
-         return m_instArray[i];
-      }
-
-   return NULL;
-   }
 
 
 ////////////////////////////////////////////////
@@ -380,20 +343,12 @@ void CEnvServerDlg::OnBnClickedStart()
       return;
       }
    
-   AddInstance();   //_projectFile, 0); // , NULL);// m_scenario.GetCurSel() - 1);
+   //AddInstance();   //_projectFile, 0); // , NULL);// m_scenario.GetCurSel() - 1);
    }
 
 
 void CEnvServerDlg::OnClose()
    {
-   // Before the dialog closes, join all the threads to ensure the dialog
-   // is still running while the threads finish.
-   for (int i = 0; i < this->m_instArray.GetSize(); i++)
-      {
-      EnvisionInstance *pInst = this->m_instArray[i];
-      pInst->Join();
-      }
-
    CDialogEx::OnClose();
    }
 
@@ -437,20 +392,33 @@ void CEnvServerDlg::OnEnvInstanceFinished(EnvisionInstance *pInst)
    }
 
 
-int CEnvServerDlg::AddSession(LPCTSTR sessionID)
+int CEnvServerDlg::AddSession( int sessionID, LPCTSTR clientURL)
    {
-   //if ( m_sessions.FindString(-1, sessionID) < 0 )
-   //   return m_sessions.AddString(sessionID);
-   //
-   return -1;
+   CString msg;
+   msg.Format("Session %i (%s)", sessionID, clientURL);
+   return m_sessions.AddString(msg);
    }
 
-void CEnvServerDlg::RemoveSession(LPCTSTR sessionID)
+void CEnvServerDlg::RemoveSession(int sessionID)
    {
-   int index = m_sessions.FindString(-1, sessionID);
+   int count = m_sessions.GetCount();
 
-   if (index >= 0)
-      m_sessions.DeleteString(index);
+   CString value;
+   for (int i = 0; i < count; i++)
+      {
+      m_sessions.GetText(i, value);
+
+      TCHAR *p = value.GetBuffer();
+      
+      while (!isdigit(*p)) p++;
+
+      int _sessionID = atoi(p);
+      if (sessionID == _sessionID)
+         {
+         m_sessions.DeleteString(i);
+         break;
+         }
+      }
    }
 
 /////////////////////////////////////////////

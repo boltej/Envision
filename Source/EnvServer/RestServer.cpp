@@ -81,9 +81,36 @@ string readFile(const string &fileName);
 extern RestServer restServer;
 
 
+EnvisionInstance *RestServer::AddModelInstance()
+   {
+   EnvisionInstance *pInst = new EnvisionInstance;
+
+   //pInst->m_pSession = pSession;   // pInst has a shared ptr to the Session
+   m_instArray.Add(pInst);
+
+   //nsPath::CPath path( projectFile );
+
+   TCHAR buf[64];
+   ctime_s(buf, 64, &pInst->m_start);
+
+   gpMainWnd->AddInstance(pInst);
+   return pInst;
+   }
+
+void RestServer::EndSession(int sessionID)
+   {
+   RestSession *pSession = m_sessionsMap[sessionID];
+   if (pSession)
+      delete pSession;
+
+   m_sessionsMap.erase(sessionID);
+   gpMainWnd->RemoveSession(sessionID);
+   }
+
+
 int RestServer::Close()
    {
-   //m_listener.close();
+   // shut down the REST interface
    for (int i = 0; i < m_threads.GetCount(); i++)
       {
       RestThread *pRT = m_threads[i];
@@ -104,10 +131,25 @@ int RestServer::Close()
          }
       }
    m_threads.RemoveAll();
+   
+   // Before deleting, join all the threads to ensure the dialog
+   // is still running while the threads finish.
+   for (int i = 0; i < this->m_instArray.GetSize(); i++)
+      {
+      EnvisionInstance *pInst = this->m_instArray[i];
+      pInst->Join();
+      }
+
+   // delete any remaining sessions
+   std::map<int, RestSession*>::iterator it = m_sessionsMap.begin();
+   while (it != m_sessionsMap.end())
+      {
+      RestSession *pSession = it->second;
+      delete pSession;
+      }
 
    return 0;
    }
-
 
 int RestServer::StartThread()
    {
@@ -119,7 +161,37 @@ int RestServer::StartThread()
     
    return (int) m_threads.GetCount();
    }
-   
+
+EnvModel *RestServer::GetEnvModelFromSession(const shared_ptr<Session> &pSession)
+   {
+   for (int i = 0; i < m_instArray.GetSize(); i++)
+      if (m_instArray[i]->m_pEventSession == pSession)
+         return m_instArray[i]->m_pEnvModel;
+
+   return NULL;
+   }
+
+const shared_ptr<Session> &RestServer::GetSessionFromEnvModel(EnvModel *pEnvModel)
+   {
+   for (int i = 0; i < m_instArray.GetSize(); i++)
+      if (m_instArray[i]->m_pEnvModel == pEnvModel)
+         return m_instArray[i]->m_pEventSession;
+
+   TRACE("ERROR: unable to find Session ptr");
+   return NULL;
+   }
+
+EnvisionInstance *RestServer::GetEnvisionInstanceFromModelID(int modelID)
+   {
+   for (int i = 0; i < this->m_instArray.GetCount(); i++)
+      {
+      if (m_instArray[i]->GetID() == modelID)
+         return m_instArray[i];
+      }
+
+   return NULL;
+   }
+
 
 // note: we run the service on it's own thread so it doesn't interfer with the GUI
 void ThreadMainFunction(RestThread *pRT)
@@ -236,69 +308,113 @@ void ThreadMainFunction(RestThread *pRT)
    }
 
 
+// init-session:
+// QueryString: none
+// Request Body: none
+// Response Body: sessionID int (sent as a string)
 void InitSessionHandler(const shared_ptr< Session > pSession)
    {
-   string sessionID = format("S_INIT_%i", RestServer::m_nextSessionID++);
-   pSession->set_id(sessionID);
+   string url = pSession->get_origin();
+   int sessionID = restServer.InitSession(url);
 
-   // add an entry for this sessionID in the map of sessions;
-   restServer.m_sessionsMap[sessionID] = NULL;
+   string _sessionID = format("%i", sessionID);
+   pSession->set_id(_sessionID);
 
-   //gpMainWnd->AddSession(sessionID.c_str());
+   gpMainWnd->AddSession(sessionID, url.c_str());
    
-   string data = format( "EnvAPI Initialized|%s", sessionID.c_str() );
+   string data = format( "EnvAPI Initialized | Session ID:%i", sessionID );
    gpMainWnd->Log(data.c_str());
-   
-   pSession->close(OK, data,
+
+   pSession->close(OK, _sessionID,
       { { "Content-type", "application/x-www-form-urlencoded"},
         { "Access-Control-Allow-Origin","*" }
       });
    }
+
+// load-project
+// QueryString: SessionID, Prj (project path)
+// Request Body: none
+// Response Body: "Loading Envision Project|ID"
 
 void LoadProjectHandler(const shared_ptr< Session > pSession)
    {
    // the body of the request should contain a string with the envx file to load
    const auto request = pSession->get_request();
 
-   int content_length = request->get_header("Content-Length", 0);
+   //string _sessionID = request->get_query_parameter("SessionID");
+   //int sessionID = atoi(_sessionID.c_str());
 
-   // get the body of the request, which contains the name of the 
-   // project file and scenario to run
-   pSession->fetch(content_length, [](const shared_ptr< Session > pSession, const Bytes & body)
+   string project = request->get_query_parameter("Prj");
+
+   nsPath::CPath envxFile(project.c_str());
+
+   // is the content a valid project file?
+   if (envxFile.GetLength() > 5 && envxFile.GetExtension().CompareNoCase("envx") == 0)
       {
-      CString _body;
-      _body.Format("%.*s", (int)body.size(), body.data());
+      // yes, so launch an Envision Instance with that project
+      EnvisionInstance *pInst = restServer.AddModelInstance(); // sets the inst ID
+      pInst->LoadProject(envxFile);   // launched on a thread, DOESN'T set session
+      // NOTE - the above should return quickly since it launches it's own thread
+      // Bad if it doesn't - CHECK THIS!!!!
+      CString msg;
+      msg.Format("LoadProject: loading %s, InstanceID=%i", (LPCTSTR)envxFile, pInst->GetID());
+      gpMainWnd->Log(msg);
 
-      int pos = 0;
-      CString sessionID = _body.Tokenize("|", pos);
+      string data = format("Loading Envision Project|%i", pInst->GetID());
 
-      CString envxFile = _body.Tokenize("|", pos);
-      nsPath::CPath _envxFile(envxFile);
-
-      CString scn = _body.Tokenize("|\n", pos);
-      int _scn = atoi((LPCTSTR)scn);
-
-      // is the content a valid project file?
-      if (envxFile.GetLength() > 5 && _envxFile.GetExtension().CompareNoCase("envx") == 0)
-         {
-         // yes, so launch an Envision Instance with that project
-         EnvisionInstance *pInst = gpMainWnd->AddInstance(); // sets the inst ID
-         pInst->LoadProject(envxFile);   // launched on a thread, DOESN'T set session
-         // NOTE - the above should return quickly since it launches it's own thread
-         // Bad if it doesn't - CHECK THIS!!!!
-
-         CString msg;
-         msg.Format("LoadProject: loading %s, InstanceID=%i", (LPCTSTR)envxFile, pInst->GetID());
-         gpMainWnd->Log(msg);
-
-         string data = format("Loading Envision Project|%i", pInst->GetID());
-
-         pSession->close(OK, data,
-            { { "Content-type", "application/x-www-form-urlencoded"},
-              { "Access-Control-Allow-Origin","*" }
-            });
-         }
-      });
+      pSession->close(OK, data,
+         { { "Content-type", "application/x-www-form-urlencoded"},
+           { "Access-Control-Allow-Origin","*" }
+         });
+      }  // end of: if ( valid project file ) 
+   else
+      {
+      CString msg("Unrecognized project:");
+      msg += envxFile;
+      pSession->close(BAD_REQUEST, (LPCTSTR) msg,
+         { { "Content-type", "application/x-www-form-urlencoded"},
+           { "Access-Control-Allow-Origin","*" }
+         });
+      }
+/////   // int content_length = request->get_header("Content-Length", 0);
+/////
+/////   // get the body of the request, which contains the name of the 
+/////   // project file and scenario to run
+/////   pSession->fetch(content_length, [](const shared_ptr< Session > pSession, const Bytes & body)
+/////      {
+/////      CString _body;
+/////      _body.Format("%.*s", (int)body.size(), body.data());
+/////
+/////      int pos = 0;
+/////      CString sessionID = _body.Tokenize("|", pos);
+/////
+/////      CString envxFile = _body.Tokenize("|", pos);
+/////      nsPath::CPath _envxFile(envxFile);
+/////
+/////      CString scn = _body.Tokenize("|\n", pos);
+/////      int _scn = atoi((LPCTSTR)scn);
+/////
+/////      // is the content a valid project file?
+/////      if (envxFile.GetLength() > 5 && _envxFile.GetExtension().CompareNoCase("envx") == 0)
+/////         {
+/////         // yes, so launch an Envision Instance with that project
+/////         EnvisionInstance *pInst = gpMainWnd->AddInstance(); // sets the inst ID
+/////         pInst->LoadProject(envxFile);   // launched on a thread, DOESN'T set session
+/////         // NOTE - the above should return quickly since it launches it's own thread
+/////         // Bad if it doesn't - CHECK THIS!!!!
+/////
+/////         CString msg;
+/////         msg.Format("LoadProject: loading %s, InstanceID=%i", (LPCTSTR)envxFile, pInst->GetID());
+/////         gpMainWnd->Log(msg);
+/////
+/////         string data = format("Loading Envision Project|%i", pInst->GetID());
+/////
+/////         pSession->close(OK, data,
+/////            { { "Content-type", "application/x-www-form-urlencoded"},
+/////              { "Access-Control-Allow-Origin","*" }
+/////            });
+/////         }
+/////      });
    }
 
 void GetProjectsHandler(const shared_ptr< Session > pSession)
@@ -323,7 +439,7 @@ void GetOutputVarsHandler(const shared_ptr< Session > pSession)
    string modelID = request->get_query_parameter("ModelID");
    int _modelID = atoi(modelID.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -374,7 +490,7 @@ void GetScenariosHandler(const shared_ptr< Session > pSession)
    string modelID = request->get_query_parameter("ModelID");
    int _modelID = atoi(modelID.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -428,7 +544,7 @@ void GetPluginsHandler(const shared_ptr< Session > pSession)
    string modelID = request->get_query_parameter("ModelID");
    int _modelID = atoi(modelID.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -520,7 +636,7 @@ void GetPoliciesHandler(const shared_ptr< Session > pSession)
    string scenarioIndex = request->get_query_parameter("Scenario");
    int _scenarioIndex = atoi(scenarioIndex.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -589,7 +705,7 @@ void SetPoliciesHandler(const shared_ptr< Session > pSession)
    string modelID = request->get_query_parameter("ModelID");
    int _modelID = atoi(modelID.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -608,7 +724,7 @@ void SetPoliciesHandler(const shared_ptr< Session > pSession)
                string modelID = request->get_query_parameter("ModelID");
                int _modelID = atoi(modelID.c_str());
 
-               EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+               EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
                EnvModel *pEnvModel = pInst->m_pEnvModel;
 
                string scenarioIndex = request->get_query_parameter("Scenario");
@@ -674,7 +790,7 @@ void GetAppVarsHandler(const shared_ptr< Session > pSession)
    string scenarioIndex = request->get_query_parameter("Scenario");
    int _scenarioIndex = atoi(scenarioIndex.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -759,7 +875,7 @@ void SetAppVarsHandler(const shared_ptr< Session > pSession)
    string modelID = request->get_query_parameter("ModelID");
    int _modelID = atoi(modelID.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -778,7 +894,7 @@ void SetAppVarsHandler(const shared_ptr< Session > pSession)
                string modelID = request->get_query_parameter("ModelID");
                int _modelID = atoi(modelID.c_str());
 
-               EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+               EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
                EnvModel *pEnvModel = pInst->m_pEnvModel;
 
                string scenarioIndex = request->get_query_parameter("Scenario");
@@ -844,7 +960,7 @@ void GetConfigHandler(const shared_ptr< Session > pSession)
    string modelID = request->get_query_parameter("ModelID");
    int _modelID = atoi(modelID.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -909,7 +1025,7 @@ void SetConfigHandler(const shared_ptr< Session > pSession)
          string modelID = request->get_query_parameter("ModelID");
          int _modelID = atoi(modelID.c_str());
 
-         EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+         EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
          if (pInst != NULL)
             {
@@ -973,7 +1089,7 @@ void RunScenarioHandler(const shared_ptr< Session > pSession)
    string simulationLength = request->get_query_parameter("Period");
    int _simulationLength = atoi(simulationLength.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
 
    if (pInst != NULL)
       {
@@ -1007,7 +1123,7 @@ void RestServer::SendServerEvent(EM_NOTIFYTYPE type, INT_PTR param, INT_PTR extr
       case -1:
          {
          EnvModel *pEnvModel = (EnvModel*)modelPtr;
-         const shared_ptr<Session> &pSession = gpMainWnd->GetSessionFromEnvModel(pEnvModel);
+         const shared_ptr<Session> &pSession = restServer.GetSessionFromEnvModel(pEnvModel);
 
          string body;
          switch (type)
@@ -1181,7 +1297,15 @@ void RestServer::SendServerEvent(EM_NOTIFYTYPE type, INT_PTR param, INT_PTR extr
    }
 
 
-// format: ?ModelID=mID&Start=start&End=end&Fields=f0|f1|...|fend
+// QueryString:
+//     ModelID - integer
+//     Datasets=ds
+//     Start
+//     End
+//     Fields=f0|f1|...|fend (optional, default=all)
+// Request Body:
+// ResponseBody:
+//
 
 void GetDataHandler(const shared_ptr< Session > pSession)
    {
@@ -1190,7 +1314,7 @@ void GetDataHandler(const shared_ptr< Session > pSession)
    string modelID = request->get_query_parameter("ModelID");
    int _modelID = atoi(modelID.c_str());
 
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
   
    if (pInst == NULL)
       {
@@ -1204,6 +1328,30 @@ void GetDataHandler(const shared_ptr< Session > pSession)
       
       return;
       }
+
+   // DM_TYPES
+   // DT_EVAL_SCORES = 0,     // landscape goal scores trajectories
+   // DT_EVAL_RAWSCORES,      // landscape goal scores trajectories (raw scores)
+   // DT_MODEL_OUTPUTS,       // output variables from eval and autonous process models, + App vars
+   // DT_ACTOR_WTS,           // actor group data
+   // DT_ACTOR_COUNTS,        // actor counts by actor group
+   // DT_POLICY_SUMMARY,      // policy summary information (only initial areas)
+   // DT_GLOBAL_CONSTRAINTS,  // Global Constraints summary outputs
+   // DT_POLICY_STATS,        // info on policy stats (intrumentation)
+   // DT_SOCIAL_NETWORK,      // info on social network outpus
+   // DT_LAST
+
+   DM_TYPE dmType = DT_MODEL_OUTPUTS;  // default is not specified
+
+   string _dmType = request->get_query_parameter("Dataset");
+   if (_dmType.compare("GlobalConstraints") == 0)
+      dmType = DT_GLOBAL_CONSTRAINTS;
+   else if (_dmType.compare("PolicyStats") == 0)
+      dmType = DT_POLICY_STATS;
+   // add more as needed.
+
+
+
 
    // have valid model ID, query it for data
    string start = request->get_query_parameter("Start");
@@ -1241,7 +1389,7 @@ void GetDataHandler(const shared_ptr< Session > pSession)
       for (int i = 0; i < fieldCount; i++)
          {
          // field will be "model name.fieldname"
-         DataObj *pDataObj = pEnvModel->m_pDataManager->GetDataObj(DT_MODEL_OUTPUTS, -1);
+         DataObj *pDataObj = pEnvModel->m_pDataManager->GetDataObj(dmType, -1);
          ASSERT(pDataObj != NULL);
 
          int doFieldCount = pDataObj->GetColCount();
@@ -1304,18 +1452,22 @@ void GetDataHandler(const shared_ptr< Session > pSession)
      
 void CloseSessionHandler(const shared_ptr< Session > pSession)
    {
-   string sessionID = pSession->get_id();
+   string _sessionID = pSession->get_id();
+   int sessionID = atoi(_sessionID.c_str());
 
-   // add an entry for this sessionID in the map of sessions;
-   restServer.m_sessionsMap[sessionID] = NULL;
+   // remove entry for this sessionID from the map of sessions;
+   //restServer.m_sessionsMap[sessionID] = NULL;
 
-   gpMainWnd->RemoveSession(sessionID.c_str());
+   restServer.EndSession(sessionID);
+   restServer.m_sessionsMap.erase(sessionID);
+
+   gpMainWnd->RemoveSession(sessionID);
 
    CString msg;
-   msg.Format("Close Session: Session ID=%s", sessionID.c_str());
+   msg.Format("Close Session: Session ID=%i", sessionID);
    gpMainWnd->Log(msg);
 
-   string data = format("EnvAPI Session %s closed", sessionID.c_str());
+   string data = format("EnvAPI Session %i closed", sessionID);
    pSession->close(OK, data,
       { { "Content-type", "application/x-www-form-urlencoded"},
         { "Access-Control-Allow-Origin","*" }
@@ -1335,7 +1487,7 @@ void RegisterEventSrc(const shared_ptr< Session > pSession)
    
    // Note: EnvisionInstances get created in LoadProjectHandler, so
    // EventSources must be created after a project is loaded
-   EnvisionInstance *pInst = gpMainWnd->GetEnvisionInstanceFromModelID(_modelID);
+   EnvisionInstance *pInst = restServer.GetEnvisionInstanceFromModelID(_modelID);
    
    if (pInst != NULL)
       {
