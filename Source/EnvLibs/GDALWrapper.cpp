@@ -114,8 +114,6 @@ GDALWrapper::~GDALWrapper( void )
 
 bool GDALWrapper::Init( void )
    {
-
-
   #if defined( _WIN64 )
    m_hInst = ::AfxLoadLibrary("gdal18.dll");
   #else

@@ -731,44 +731,57 @@ void CEnvView::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
    // this is to debug whatever
    if ( ctrl && lsChar == 'R' )
       {
-      MapLayer *pPtLayer = gpCellLayer->GetMapPtr()->GetLayer("2002 Dune Toe Line");
-      MapLayer *pCellLayer = gpCellLayer->GetMapPtr()->GetLayer("CellType");
-      int btCol = pPtLayer->GetFieldCol("BEACHTYPE");
+      ///RandLogNormal r(10, 5, 1);
+      ///
+      ///FILE *fp = fopen("d:/randtest.csv", "w");
+      ///
+      ///for (int i = 0; i < 10000; i++)
+      ///   {
+      ///   double v = r.RandValue();
+      ///   fprintf(fp, "%f\n", (float)v);
+      ///   }
+      ///
+      ///fclose(fp);
 
-      for (int i = 0; i < pPtLayer->GetRecordCount(); i++)
-         {
-         int beachType = 0;
-         pPtLayer->GetData(i, btCol, beachType);
 
-         if (beachType != 9)
-            {
-            REAL x, y;
-            pPtLayer->GetPointCoords(i, x, y);
-
-            // get grid row from celltype for this dunept
-            int row, col;
-            pCellLayer->GetGridCellFromCoord(x, y, row, col);
-
-            for (int j = 0; j < pCellLayer->GetColCount(); j++)
-               {
-               int cellType = 0;
-               pCellLayer->GetData(row, j, cellType);
-
-               if (cellType >= 0)
-                  {
-                  pCellLayer->SetData(row, j, 1);  // type=CT_BEACH
-                  break;
-                  }
-               }
-            }
-         }   
-      
-      CString path = "\\Envision\\StudyAreas\\GraysHarbor\\CellType3.asc";
-      bool ok = pCellLayer->SaveGridFile(path);  
-
-      CString msg;
-      msg.Format("%i:   Grid - rows=%i, cols=%i", ok?1:0, pCellLayer->GetRowCount(), pCellLayer->GetColCount());
-      Report::Log(msg);
+      //MapLayer *pPtLayer = gpCellLayer->GetMapPtr()->GetLayer("2002 Dune Toe Line");
+      //MapLayer *pCellLayer = gpCellLayer->GetMapPtr()->GetLayer("CellType");
+      //int btCol = pPtLayer->GetFieldCol("BEACHTYPE");
+      //
+      //for (int i = 0; i < pPtLayer->GetRecordCount(); i++)
+      //   {
+      //   int beachType = 0;
+      //   pPtLayer->GetData(i, btCol, beachType);
+      //
+      //   if (beachType != 9)
+      //      {
+      //      REAL x, y;
+      //      pPtLayer->GetPointCoords(i, x, y);
+      //
+      //      // get grid row from celltype for this dunept
+      //      int row, col;
+      //      pCellLayer->GetGridCellFromCoord(x, y, row, col);
+      //
+      //      for (int j = 0; j < pCellLayer->GetColCount(); j++)
+      //         {
+      //         int cellType = 0;
+      //         pCellLayer->GetData(row, j, cellType);
+      //
+      //         if (cellType >= 0)
+      //            {
+      //            pCellLayer->SetData(row, j, 1);  // type=CT_BEACH
+      //            break;
+      //            }
+      //         }
+      //      }
+      //   }   
+      //
+      //CString path = "\\Envision\\StudyAreas\\GraysHarbor\\CellType3.asc";
+      //bool ok = pCellLayer->SaveGridFile(path);  
+      //
+      //CString msg;
+      //msg.Format("%i:   Grid - rows=%i, cols=%i", ok?1:0, pCellLayer->GetRowCount(), pCellLayer->GetColCount());
+      //Report::Log(msg);
       }
 
 	CView::OnKeyDown(nChar, nRepCnt, nFlags);
