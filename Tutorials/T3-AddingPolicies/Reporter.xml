@@ -14,13 +14,13 @@
      <output name="Total Population"  query="1" value="POPDENS*AREA" type="sum"  />
      <output name="Available Capacity (pct)"  query="1" value="P_POP_AVAI" type="areawtmean"  />
    </output_group>
-
+  
   <output_group name="Population by Zone" stratify_by="ZONE"  >
     <output name="Total Population"  query="1" value="POPDENS*AREA" type="sum"  />
     <output name="Available Capacity (%)"  query="1" value="P_POP_AVAI" type="areawtmean"  />
   </output_group>
 
-  <output_group name="Vegetation" stratify_by="LULC_C=[5200000,4300000,7100000,5200000,4210000,4220000,4230000,4240000]" >
+  <output_group name="Vegetation" stratify_by="LULC_C=[5200000,4300000,7100000,4210000,4220000,4230000,4240000]" >
     <output name="Area (ha)"  query="1" value="AREA/m2PerHa" type="sum"  />
   </output_group>
 

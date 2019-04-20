@@ -1031,6 +1031,53 @@ int EnvModel::GetOutputVarCount( int flag )
    }
 
 
+MODEL_VAR *EnvModel::FindModelVar(LPCTSTR name, int &flag)
+   {
+   int count = 0;
+
+   // flag:  1=aps, 2=eval models, 3=both
+   if (flag & OVT_MODEL)
+      {
+      for (int i = 0; i < GetModelProcessCount(); i++)
+         {
+         EnvModelProcess *pInfo = GetModelProcessInfo(i);
+
+         if (pInfo->m_use)
+            {
+            MODEL_VAR *pVar = pInfo->FindOutputVar(name);;
+
+            if (pVar != nullptr)
+               {
+               flag = OVT_MODEL;
+               return pVar;
+               }
+            }
+         }
+      }
+
+   if (flag & OVT_EVALUATOR)
+      {
+      for (int i = 0; i < GetEvaluatorCount(); i++)
+         {
+         EnvEvaluator *pInfo = GetEvaluatorInfo(i);
+
+         if (pInfo->m_use)
+            {
+            MODEL_VAR *pVar = pInfo->FindOutputVar(name);;
+
+            if (pVar != nullptr)
+               {
+               flag = OVT_EVALUATOR;
+               return pVar;
+               }
+            }
+         }
+      }
+
+   return nullptr;
+   }
+
+
 int EnvModel::GetOutputVarLabels(int flag, std::vector<std::string> &labels)
    {
    // flag:  1=aps, 2=eval models, 3=both
@@ -1050,8 +1097,27 @@ int EnvModel::GetOutputVarLabels(int flag, std::vector<std::string> &labels)
                MODEL_VAR &mv = modelVarArray[j];
                if (mv.pVar != NULL)
                   {
-                  // exclude data objs?
-                  if ((flag & OVT_PDATAOBJ) || (mv.type != TYPE_PDATAOBJ))
+                  if (mv.type == TYPE_PDATAOBJ)
+                     {
+                     // exclude data objs?
+                     if (flag & OVT_PDATAOBJ) 
+                        {
+                        // get individual columns from the dataobj
+                        DataObj *pDataObj = (DataObj*) mv.pVar;
+
+                        int cols = pDataObj->GetColCount();
+                        for (int col = 1; col < cols; col++)  // first column is time, so ignore it
+                           {
+                           std::string label(pInfo->m_name);
+                           label += ".";
+                           label += mv.name;
+                           label += ":";
+                           label += pDataObj->GetLabel(col);
+                           labels.push_back(label);
+                           }
+                        }
+                     }
+                  else // not a data obj
                      {
                      std::string label(pInfo->m_name);
                      label += ".";

@@ -931,7 +931,7 @@ int DbTable::LoadDataDBF( LPCTSTR path )
    if ( m_pData != NULL )
       delete m_pData;
 
-   m_pData = new VDataObj;
+   m_pData = new VDataObj(U_UNDEFINED);
    m_pData->SetSize( cols, 0 );
    m_fieldInfoArray.SetSize( cols );
    //database.top();
@@ -1166,7 +1166,7 @@ int DbTable::LoadDataCSV( LPCTSTR path )
    if ( m_pData != NULL )
       delete m_pData;
 
-   m_pData = new VDataObj;
+   m_pData = new VDataObj(U_UNDEFINED);
    m_pData->ReadAscii( path, ',' );
 
    int cols = m_pData->GetColCount();
@@ -1535,15 +1535,15 @@ int DbTable::AddField( LPCTSTR name, TYPE type, int width, int decimals, bool ad
          switch( m_dotType )
             {
             case DOT_INT:
-               m_pData = new IDataObj;
+               m_pData = new IDataObj(U_UNDEFINED);
                break;
 
             case DOT_VDATA:
-               m_pData = new VDataObj;
+               m_pData = new VDataObj(U_UNDEFINED);
                break;
                
             case DOT_FLOAT:
-               m_pData = new FDataObj;
+               m_pData = new FDataObj(U_UNDEFINED);
                break;
                
             default:

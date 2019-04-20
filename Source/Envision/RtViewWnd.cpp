@@ -186,7 +186,7 @@ bool RtMap::InitWindow( void )
    //   cols = 2;
 
    LPCTSTR fieldname = pSourceLayer->GetFieldLabel( m_col );
-   VDataObj *pData = new VDataObj( cols, rows );
+   VDataObj *pData = new VDataObj( cols, rows, U_UNDEFINED );
    pData->SetLabel( 0, fieldname );
 
    if ( cols > 1 )

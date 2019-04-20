@@ -265,6 +265,21 @@ AltWaterMaster::AltWaterMaster( FlowModel *pFlowModel, WaterAllocation *pWaterAl
 , m_colET_YR(-1)
 , m_colHRU_ID(-1)
 , m_basin_discharge_accumulator_m3(0.f)
+, m_pouDb(U_UNDEFINED)
+, m_podDb(U_UNDEFINED)
+, m_dynamicWRDb(U_UNDEFINED)
+, m_timeSeriesUnallUnsatIrrSummaries(U_DAYS)
+, m_timeSeriesSWIrrSummaries(U_DAYS)
+, m_timeSeriesSWIrrAreaSummaries(U_DAYS)
+, m_timeSeriesSWMuniSummaries(U_DAYS)
+, m_timeSeriesGWIrrSummaries(U_DAYS)
+, m_timeSeriesGWIrrAreaSummaries(U_DAYS)
+, m_timeSeriesGWMuniSummaries(U_DAYS)
+, m_dailyMetrics(U_DAYS)
+, m_annualMetrics(U_YEARS)
+, m_dailyMetricsDebug(U_DAYS)
+, m_annualMetricsDebug(U_YEARS)
+, m_QuickCheckMetrics(U_YEARS)
 { 
 m_pFlowModel->AddInputVar( "Dynamic Water Right type", m_dynamicWRType, "0=default, 1=allAgBelowReservoir " );
 m_pFlowModel->AddInputVar( "Regulation type", m_regulationType, "0=default, 1=suspendJuniors" ); 
@@ -3915,7 +3930,7 @@ int AltWaterMaster:: GetNearestReach(FlowContext *pFlowContext, int idu, CArray<
 
 	MapLayer* pStreamLayer = (MapLayer*)pFlowContext->pFlowModel->m_pStreamLayer;
 	
-	GeoSpatialDataObj geoSpatialObj;
+	GeoSpatialDataObj geoSpatialObj(U_UNDEFINED);
 
 	GDALWrapper gdal;
 
@@ -3978,7 +3993,7 @@ bool AltWaterMaster::AddWaterRight(FlowContext *pFlowContext, int idu, int strea
 
    GDALWrapper gdal;
 
-   GeoSpatialDataObj geoSpatialObj;
+   GeoSpatialDataObj geoSpatialObj(U_UNDEFINED);
 
    // if the value specified in the .xml file is -1, then appropriation year is current year.
    if (m_dynamicWRAppropriationDate = -1)
@@ -4160,7 +4175,7 @@ bool AltWaterMaster::ExportDistPodComid(FlowContext *pFlowContext, char unit)
 
 	GDALWrapper gdal;
 
-	GeoSpatialDataObj geoSpatialObj;
+	GeoSpatialDataObj geoSpatialObj(U_UNDEFINED);
 
 	MapLayer *pStreamLayer = (MapLayer*)pFlowContext->pFlowModel->m_pStreamLayer;
 

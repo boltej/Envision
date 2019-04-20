@@ -3,17 +3,20 @@
     {
       "name": "Treasure Valley",
       "path": "d:/Envision/Tutorials/T3-AddingPolicies/TreasureValleyEx3.envx",
-      "imageURL": "http://envweb.bee.oregonstate.edu/Images/TreasureValley.jpg"
+      "imageURL": "http://envweb.bee.oregonstate.edu/Images/TreasureValley.jpg",
+      "datasets": [ "ModelOutputs" ]
     },
     {
       "name": "Earth Futures",
       "path": "d:/Envision/Tutorials/T3-AddingPolicies/TreasureValleyEx3.envx",
-      "imageURL": "http://envweb.bee.oregonstate.edu/Images/Earth.png"
+      "imageURL": "http://envweb.bee.oregonstate.edu/Images/Earth.png",
+      "datasets": [ "ModelOutputs" ]
     },
     {
       "name": "Kings Canyon, CA",
-      "path": "d:/Envision/Tutorials/T3-AddingPolicies/TreasureValleyEx3.envx",
-      "imageURL": "http://envweb.bee.oregonstate.edu/Images/KingsCanyon.jpg"
+      "path": "d:/Envision/StudyAreas/Kings/kings.envx",
+      "imageURL": "http://envweb.bee.oregonstate.edu/Images/KingsCanyon.jpg",
+      "datasets": [ "ModelOutputs", "Water_Components" ]
     }
   ]
 }

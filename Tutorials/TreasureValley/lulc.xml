@@ -9,7 +9,7 @@
 		<lulc id='4' name='Forest' />
 		<lulc id='5' name='Barren' />
 		<lulc id='6' name='Wetlands' />
-		<lulc id='7' name='Water/Snow/Ice' />
+		<lulc id='7' name='Water-Snow-Ice' />
 	</classification>
 
 	<classification name='LULC_B' col='LULC_B' level='2'>
@@ -17,18 +17,18 @@
 		<lulc id='22' parentID='1' name='Developed Low-Intensity' />
 		<lulc id='23' parentID='1' name='Developed Medium-Intensity' />
 		<lulc id='24' parentID='1' name='Developed High-Intensity' />
-		<lulc id='81' parentID='2' name='Pasture/Hay' />
+		<lulc id='81' parentID='2' name='Pasture-Hay' />
 		<lulc id='82' parentID='2' name='Cultivated Crops' />
-		<lulc id='52' parentID='3' name='Shrub/Scrub' />
-		<lulc id='71' parentID='3' name='Grassland/Herbaceous' />
+		<lulc id='52' parentID='3' name='Shrub-Scrub' />
+		<lulc id='71' parentID='3' name='Grassland-Herbaceous' />
 		<lulc id='41' parentID='4' name='Deciduous Forest' />
 		<lulc id='42' parentID='4' name='Evergreen Forest' />
 		<lulc id='43' parentID='4' name='Mixed Forest' />
-		<lulc id='31' parentID='5' name='Barren Land (Rock/Sand/Clay)' />
+		<lulc id='31' parentID='5' name='Barren Land (Rock-Sand-Clay)' />
 		<lulc id='90' parentID='6' name='Woody Wetlands' />
 		<lulc id='95' parentID='6' name='Emergent Herbaceous Wetlands' />
-		<lulc id='11' parentID='7' name='Open Water ' />
-		<lulc id='12' parentID='7' name='Perennial Ice/Snow' />
+		<lulc id='11' parentID='7' name='Open Water' />
+		<lulc id='12' parentID='7' name='Perennial Ice-Snow' />
 	</classification>
 
 	<classification name='LULC_C' col='LULC_C' level='3'>
@@ -36,21 +36,21 @@
 		<lulc id='22' parentID='22' name='Developed Low-Intensity' />
 		<lulc id='23' parentID='23' name='Developed Medium-Intensity' />
 		<lulc id='24' parentID='24' name='Developed High-Intensity' />
-		<lulc id='81' parentID='81' name='Pasture/Hay' />
+		<lulc id='81' parentID='81' name='Pasture-Hay' />
 		<lulc id='82' parentID='82' name='Cultivated Crops' />
-		<lulc id='5200000' parentID='52' name='Shrub/Scrub' />
-		<lulc id='7100000' parentID='71' name='Grassland/Herbaceous' />
+		<lulc id='5200000' parentID='52' name='Shrub-Scrub' />
+		<lulc id='7100000' parentID='71' name='Grassland-Herbaceous' />
 		<lulc id='41' parentID='41' name='Deciduous Forest' />
 		<lulc id='4210000' parentID='42' name='Evergreen Forest (0-20yr)' />
 		<lulc id='4220000' parentID='42' name='Evergreen Forest (20-40yr)' />
 		<lulc id='4230000' parentID='42' name='Evergreen Forest (40-80yr)' />
 		<lulc id='4240000' parentID='42' name='Evergreen Forest (over 80yr)' />
 		<lulc id='4300000' parentID='43' name='Mixed Forest' />
-		<lulc id='31' parentID='31' name='Barren Land (Rock/Sand/Clay)' />
+		<lulc id='31' parentID='31' name='Barren Land (Rock-Sand-Clay)' />
 		<lulc id='90' parentID='90' name='Woody Wetlands' />
 		<lulc id='95' parentID='95' name='Emergent Herbaceous Wetlands' />
-		<lulc id='11' parentID='11' name='Open Water ' />
-		<lulc id='12' parentID='12' name='Perennial Ice/Snow' />
+		<lulc id='11' parentID='11' name='Open Water' />
+		<lulc id='12' parentID='12' name='Perennial Ice-Snow' />
 	</classification>
 
 </lulcTree>

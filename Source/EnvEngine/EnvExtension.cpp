@@ -180,6 +180,22 @@ bool EnvExtension::DefineVar( bool input, int index, LPCTSTR name, void *pVar, T
       }
    }
 
+MODEL_VAR *EnvExtension::FindOutputVar(LPCTSTR name)
+   {
+   MODEL_VAR *modelVarArray = NULL;
+   int varCount = m_outputVars.GetSize();
+
+   for (int j = 0; j < varCount; j++)
+      {
+      MODEL_VAR &mv = m_outputVars[j];
+      if (mv.name == name && mv.pVar != NULL)
+         return  &mv;
+      }
+
+   return nullptr;
+   }
+
+
 
 INT_PTR EnvExtension::AddDelta( EnvContext *pContext, int idu, int col, VData newValue )
    {

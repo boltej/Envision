@@ -652,7 +652,7 @@ protected:
 	int	  m_mostJuniorWR;												// the year of the most junior water right
 	int     m_mostSeniorWR;												// the year of the most senior water right
 	int     m_dynamicWRType;									      // input variable index
-	GeoSpatialDataObj *m_myGeo = new GeoSpatialDataObj;
+	GeoSpatialDataObj *m_myGeo = new GeoSpatialDataObj(U_UNDEFINED);
 
 	// Debug metrics
 	float m_dyGTmaxPodArea21;											// vineyards and tree farms area > maxPOD(acres)"); //21

@@ -1770,7 +1770,7 @@ bool GraphWnd::MakeDataLocal( void )
    int cols = int( m_lineArray.GetSize() + 1 );  // +1 for x data
    int rows = xCol.pDataObj->GetRowCount();
 
-   pLocDataObj = new FDataObj( cols, 0 );  //rows );
+   pLocDataObj = new FDataObj( cols, 0, U_UNDEFINED );  //rows );
 
    if ( pLocDataObj == NULL )
       return false;

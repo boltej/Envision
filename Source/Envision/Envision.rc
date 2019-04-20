@@ -133,7 +133,7 @@ IDB_RTVIEWS_SMALL       BITMAP                  "res\\rtviews_small.bmp"
 
 IDB_FIELDINFOEDITOR     BITMAP                  "res\\fieldInfoDlg.bmp"
 
-IDB_SPLASH7             BITMAP                  "res\\envision7a.bmp"
+IDB_SPLASH7             BITMAP                  "res\\envision9.bmp"
 
 
 /////////////////////////////////////////////////////////////////////////////

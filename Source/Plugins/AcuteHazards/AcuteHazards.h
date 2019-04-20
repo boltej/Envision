@@ -42,7 +42,7 @@ class AHEvent
 
       FDataObj m_hazData;  // results table
 
-      AHEvent() : m_status(AHS_PRE_EVENT), m_pAHModel(nullptr) {}
+      AHEvent() : m_status(AHS_PRE_EVENT), m_pAHModel(nullptr), m_hazData(U_UNDEFINED) {}
 
       bool Run(EnvContext *pEnvContext);
       bool Propagate(EnvContext *pEnvContext);

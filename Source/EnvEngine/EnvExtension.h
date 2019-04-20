@@ -100,6 +100,9 @@ class ENVAPI EnvExtension
       int AddOutputVar( LPCTSTR name, bool   &var, LPCTSTR description, int flags=0 ) { return AddVar( false, name, &var, TYPE_BOOL,    MD_CONSTANT, VData( var ), VData(), VData(),  description, flags ); }
       int AddOutputVar( LPCTSTR name, DataObj*var, LPCTSTR description, int flags=0 ) { return AddVar( false, name, var,  TYPE_PDATAOBJ, MD_CONSTANT, VData( var ), VData(), VData(), description, flags ); }
 
+      MODEL_VAR *FindOutputVar(LPCTSTR name);
+
+
       // call this if you HAVE allocated variables in the constructor
       bool DefineVar( bool input, int index, LPCTSTR name, void *pVar, TYPE type, MODEL_DISTR distType, VData paramLocation, VData paramScale, VData paramShape, LPCTSTR desc );
       // overrides

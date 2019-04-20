@@ -53,6 +53,8 @@ HistogramDlg::HistogramDlg(CWnd* pParent /*=NULL*/)
    , m_constrain(FALSE)
    , m_query(_T(""))
    , m_expr(_T(""))
+   , m_histoData( U_UNDEFINED )
+   , m_data( U_UNDEFINED)
    { }
 
 

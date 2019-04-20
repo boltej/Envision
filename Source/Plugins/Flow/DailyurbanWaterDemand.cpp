@@ -53,8 +53,7 @@ DailyUrbanWaterDemand::DailyUrbanWaterDemand(FlowModel *pFlowModel, LPCTSTR name
 , m_iduMcminWaterDmdDy(-1)	 // UGB 39 Mcmin daily urban water demand ccf/day
 , m_iduNewbrWaterDmdDy(-1)	 // UGB 47 Newbr daily urban water demand ccf/day
 , m_iduWoodbWaterDmdDy(-1)	 // UGB 71 Woodb daily urban water demand ccf/day
-
-
+, m_timeSeriesMunDemandSummaries(U_DAYS)
 {
 	this->m_timing = GMT_START_STEP;
 }

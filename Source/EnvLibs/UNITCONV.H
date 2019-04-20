@@ -29,6 +29,15 @@ Copywrite 2012 - Oregon State University
 
 #include "EnvLibs.h"
 
+
+enum UNIT_TYPE { UT_UNDEFINED, UT_LENGTH, UT_AREA, UT_VOLUME, UT_FORCE, UT_MASS };
+
+enum UNIT_MEASURE { U_UNDEFINED,
+   U_SECONDS, U_MINUTES, U_HOURS, U_DAYS, U_YEARS, 
+   U_IN, U_FT, U_YD, U_MILE, 
+   U_CM, U_M, U_KM };
+
+
 //-- length -------------------------------------------------------
 const float M_PER_KM    =      1000.0f      ;
 const float MM_PER_M    =      1000.0f      ;    // millimeters per meter

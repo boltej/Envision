@@ -24,7 +24,9 @@ Copywrite 2012 - Oregon State University
 
 void LogMsgProc( LPCTSTR msg, REPORT_ACTION, REPORT_TYPE );
 void StatusMsgProc( LPCTSTR msg );
-int PopupMsgProc(  LPCTSTR hdr, LPCTSTR msg, int flags );
+int PopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extra);
+void EnvSetLLMapTextProc(LPCTSTR text);
+void EnvRedrawMapProc();
 
 
 enum ENV_REPORTING_LEVEL

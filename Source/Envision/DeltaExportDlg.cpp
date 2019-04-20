@@ -205,7 +205,7 @@ void DeltaExportDlg::OnOK()
    int fieldCount = m_fields.GetCount();
 
    //CString ext = path.GetExtension();
-   VDataObj data( 3, 0 );
+   VDataObj data( 3, 0, U_UNDEFINED);
 
    bool includeAllFields = true;
 

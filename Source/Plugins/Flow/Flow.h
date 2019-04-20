@@ -1175,7 +1175,7 @@ protected:
    void UpdateAprilDeltas( EnvContext*  );
    void GetMaxSnowPack(EnvContext*);
    void UpdateYearlyDeltas( EnvContext*  );
-   bool RedrawMap( EnvContext* );
+   //bool RedrawMap( EnvContext* );
    bool ResetFluxValuesForStep( EnvContext* );
    bool ResetCumulativeYearlyValues();
    bool ResetCumulativeWaterYearValues();

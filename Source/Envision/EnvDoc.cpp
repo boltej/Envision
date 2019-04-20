@@ -98,6 +98,7 @@ Copywrite 2012 - Oregon State University
 #include <sys/stat.h>
 
 #include <GeoSpatialDataObj.h>
+#include "EnvisionAPI.h"
 
 //#include "WebServices\soapEnvWebServiceSoapProxy.h"
 //#include "WebServices\EnvWebServiceSoap.nsmap"
@@ -121,6 +122,8 @@ extern ResultsPanel *gpResultsPanel;
 extern ActorManager *gpActorManager;
 
 extern CEnvApp theApp;
+extern ENVSETTEXT_PROC envSetLLMapTextProc;
+extern ENVREDRAWMAP_PROC envRedrawMapProc;
 
 
 #ifdef _DEBUG
@@ -368,9 +371,12 @@ bool CEnvDoc::InitDoc( void )
    gpModel = &m_model;
    gpModel->SetNotifyProc( NotifyProc, 0 );
 
-   Report::logMsgProc = LogMsgProc;
+   Report::logMsgProc    = LogMsgProc;
    Report::statusMsgProc = StatusMsgProc;
-   Report::popupMsgProc    = PopupMsgProc;
+   Report::popupMsgProc  = PopupMsgProc;
+
+   ::envSetLLMapTextProc = EnvSetLLMapTextProc;
+   ::envRedrawMapProc = EnvRedrawMapProc;
 
    return true;
    }

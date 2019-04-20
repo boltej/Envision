@@ -141,7 +141,7 @@ void ConvertDlg::OnBnClickedBrowsehexcsv()
       {
       CString path = dlg.GetPathName();
 
-      VDataObj input;
+      VDataObj input(U_UNDEFINED);
       int rows = input.ReadAscii( path, ',' );
 
       if ( rows <= 0 )
@@ -184,7 +184,7 @@ bool ConvertDlg::GenerateHexFromPoints()
       return false;
       }
 
-   VDataObj input;
+   VDataObj input(U_UNDEFINED);
    int hexCount = input.ReadAscii( m_hexCSVInputFile );
    
    int xCol = m_xCols.GetCurSel();
@@ -318,7 +318,7 @@ bool ConvertDlg::GenerateCentroidsFromLayer()
    Map *pMap = gpView->m_mapPanel.m_pMap;
    MapLayer *pLayer = pMap->GetLayer( layer );
 
-   VDataObj output;
+   VDataObj output(U_UNDEFINED);
    GetCentroids( pLayer, &output );
 
    CString filename( dlg.GetPathName() );
@@ -346,7 +346,7 @@ bool ConvertDlg::GenerateVoroiniFromLayer()
    Map *pMap = gpView->m_mapPanel.m_pMap;
    MapLayer *pLayer = pMap->GetLayer( layer );
 
-   VDataObj output;
+   VDataObj output(U_UNDEFINED);
 
    GetCentroids( pLayer, &output );
 

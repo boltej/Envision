@@ -61,6 +61,7 @@ INLayer::INLayer( INLayer &sl )
    , m_interiorNodeArray( sl.m_interiorNodeArray )
    , m_outputNodeArray( sl.m_outputNodeArray )
    , m_connectionArray( sl.m_connectionArray )
+   , m_layerData(U_UNDEFINED)
    {
    // build map
    for ( int i = 0; i < GetInputNodeCount(); i++ )
@@ -798,7 +799,7 @@ float INNode::GetInputSignal()
     : m_pInfluenceNetwork(pNet)
     , m_use(true)
     , m_activationIterations(0)
-    , m_layerData(3, 0)
+    , m_layerData(3, 0, U_UNDEFINED)
     { 
     m_layerData.SetName( "IN Layer Data" );
     m_layerData.SetLabel(0, "Step");

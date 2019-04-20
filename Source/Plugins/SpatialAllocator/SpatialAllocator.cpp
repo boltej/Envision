@@ -249,7 +249,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
    if ( m_pTargetData != NULL )
       delete m_pTargetData;
 
-   m_pTargetData = new FDataObj( 2, 0 );   // two cols, zero rows
+   m_pTargetData = new FDataObj( 2, 0, U_YEARS );   // two cols, zero rows
 
    //if ( m_targetLocation.GetLength() > 0 )
    //   {
@@ -875,7 +875,7 @@ SpatialAllocator::SpatialAllocator()
 , m_pRandUnif(NULL)
 , m_totalArea(0)
 , m_runNumber( -1 )
-, m_outputData()
+, m_outputData(U_YEARS)
 , m_collectExpandStats(false)
 , m_pExpandStats(NULL)
    { }
@@ -1045,7 +1045,7 @@ void SpatialAllocator::InitAllocSetData( void )
       int col = 0;
       CString label( "AllocationSet-" );
       label += pAllocSet->m_name;
-      pAllocSet->m_pOutputData = new FDataObj( cols, 0 );
+      pAllocSet->m_pOutputData = new FDataObj( cols, 0, U_YEARS );
       pAllocSet->m_pOutputData->SetName( label );
       pAllocSet->m_pOutputData->SetLabel( col++, "Time" );
 

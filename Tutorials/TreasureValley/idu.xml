@@ -77,10 +77,10 @@ label:  readable field description
 				<attr value="23" color="(225,50,50)" label="Medium-Intensity Developed" />
 				<attr value="22" color="(255,100,100)" label="Low-Intensity Developed" />
 				<attr value="21" color="(221,255,40)" label="Developed Open Space" />
-				<attr value="81" color="(120,55,0)" label="Pasture/Hay" />
+				<attr value="81" color="(120,55,0)" label="Pasture-Hay" />
 				<attr value="82" color="(127,20,0)" label="Cultivated Crops" />
 				<attr value="71" color="(225,200,50)" label="Grassland/Herbaceous" />
-				<attr value="52" color="(200,180,50)" label="Shrub/Scrub" />
+				<attr value="52" color="(200,180,50)" label="Shrub-Scrub" />
 				<attr value="41" color="(175,200,0)" label="Deciduous Forest" />
 				<attr value="42" color="(75,250,0)" label="Evergreen Forest" />
 				<attr value="43" color="(101,175,50)" label="Mixed Forest" />
@@ -115,10 +115,10 @@ label:  readable field description
 				<attr value="23" color="(225,50,50)" label="Medium-Intensity Developed" />
 				<attr value="22" color="(255,100,100)" label="Low-Intensity Developed" />
 				<attr value="21" color="(221,255,40)" label="Developed Open Space" />
-				<attr value="81" color="(150,50,0)" label="Pasture/Hay" />
+				<attr value="81" color="(150,50,0)" label="Pasture-Hay" />
 				<attr value="82" color="(127,20,0)" label="Cultivated Crops" />
-				<attr value="7100000" color="(225,200,50)" label="Grassland/Herbaceous" />
-				<attr value="5200000" color="(200,180,50)" label="Shrub/Scrub" />
+				<attr value="7100000" color="(225,200,50)" label="Grassland-Herbaceous" />
+				<attr value="5200000" color="(200,180,50)" label="Shrub-Scrub" />
 				<attr value="41" color="(175,200,0)" label="Deciduous Forest" />
 				<attr value="4210000" color="(75,185,0)" label="Evergreen Forest (0-20yr)" />
 				<attr value="4220000" color="(75,205,0)" label="Evergreen Forest (20-40yr)" />

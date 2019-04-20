@@ -59,14 +59,14 @@ class  LIBSAPI FDataObj : public DataObj
 
    public:
       //-- constructor --//
-      FDataObj( void );   
+      FDataObj( UNIT_MEASURE m );  // U_UNDEFINED   
             
-      FDataObj( int cols, int allocRows );  // by dimension (must Append())
-      FDataObj( int cols, int allocRows, float initialValue );
-      FDataObj( int col, int allocRows, STATSFLAG* );
+      FDataObj( int cols, int allocRows, UNIT_MEASURE m);  // by dimension (must Append())
+      FDataObj( int cols, int allocRows, float initialValue, UNIT_MEASURE m);
+      FDataObj( int col, int allocRows, STATSFLAG*, UNIT_MEASURE m);
 
       //-- converstion ctor -- copies form arg, data, which is row-by-row in memory --//
-      FDataObj( const FloatMatrix::type_data * data, int cols, int allocRows );
+      FDataObj( const FloatMatrix::type_data * data, int cols, int allocRows, UNIT_MEASURE m );
 
       //-- copy constructor --//
       FDataObj( FDataObj& ) ;

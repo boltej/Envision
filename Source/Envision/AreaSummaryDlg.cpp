@@ -63,7 +63,7 @@ END_MESSAGE_MAP()
 
 void AreaSummaryDlg::OnBnClickedSaveas()
    {
-   VDataObj table( 4, m_grid.GetNumberRows() );
+   VDataObj table( 4, m_grid.GetNumberRows(), U_UNDEFINED );
 
    table.AddLabel( _T("Attribute") ); 
    table.AddLabel( _T("Area") ); 

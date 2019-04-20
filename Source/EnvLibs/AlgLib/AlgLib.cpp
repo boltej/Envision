@@ -21,7 +21,8 @@
 
 int ALRadialBasisFunction3D::CreateFromCSV( LPCTSTR inputFile )
    {
-   FDataObj inputData;
+   FDataObj inputData (U_UNDEFINED);
+
    if ( inputData.ReadAscii( inputFile ) < 0 )
       return -1;
 

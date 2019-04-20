@@ -50,14 +50,14 @@ class  LIBSAPI DDataObj : public DataObj
 
    public:
       //-- constructor --//
-      DDataObj( void );   
+      DDataObj(UNIT_MEASURE m);
             
-      DDataObj( int cols, int allocRows );  // by dimension (must Append())
-      DDataObj( int cols, int allocRows, double initialValue );
-      DDataObj( int col, int allocRows, STATSFLAG* );
+      DDataObj( int cols, int allocRows, UNIT_MEASURE m);  // by dimension (must Append())
+      DDataObj( int cols, int allocRows, double initialValue, UNIT_MEASURE m);
+      DDataObj( int col, int allocRows, STATSFLAG*, UNIT_MEASURE m);
 
       //-- converstion ctor -- copies form arg, data, which is row-by-row in memory --//
-      DDataObj( const DoubleMatrix::type_data * data, int cols, int allocRows );
+      DDataObj( const DoubleMatrix::type_data * data, int cols, int allocRows, UNIT_MEASURE m);
 
       //-- copy constructor --//
       DDataObj( DDataObj& ) ;

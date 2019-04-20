@@ -168,5 +168,7 @@ class RestServer
 
       PtrArray<EnvisionInstance> m_instArray;
 
+      CStringArray m_datasetsArray;
+
    };
 

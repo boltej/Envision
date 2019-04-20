@@ -51,22 +51,22 @@ Copywrite 2012 - Oregon State University
 //-- constructors
 //-------------------------------------------------------------------
 
-VDataObj::VDataObj( void )
-   : DataObj(),
+VDataObj::VDataObj( UNIT_MEASURE m )
+   : DataObj(m),
      matrix  ()     
    { }
 
 
 //-------------------------------------------------------------------
-VDataObj::VDataObj( VDataObj &dataObj )
-   : DataObj( dataObj ),
+VDataObj::VDataObj( VDataObj &dataObj)
+   : DataObj( dataObj),
      matrix  ( dataObj.matrix )     
    { }
 
 
 //-------------------------------------------------------------------
-VDataObj::VDataObj( int _cols, int _rows )
-   : DataObj( _cols, _rows ),
+VDataObj::VDataObj( int _cols, int _rows, UNIT_MEASURE m)
+   : DataObj( _cols, _rows, m ),
      matrix( _rows, _cols )
    { }
 

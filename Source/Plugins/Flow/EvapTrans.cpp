@@ -189,9 +189,9 @@ bool EvapTrans::Init(FlowContext *pFlowContext)
 
 
         // Create and initialize the planting and harvest doy and cumulative gorwing degree days since planting lookup tables
-      m_phruCropStartGrowingSeasonArray = new IDataObj(hruCount, m_cropCount, 999);
-      m_phruCropEndGrowingSeasonArray = new IDataObj(hruCount, m_cropCount, -999);
-      m_phruCurrCGDDArray = new FDataObj(hruCount, m_cropCount, 0.0f);
+      m_phruCropStartGrowingSeasonArray = new IDataObj(hruCount, m_cropCount, 999, U_UNDEFINED);
+      m_phruCropEndGrowingSeasonArray = new IDataObj(hruCount, m_cropCount, -999, U_UNDEFINED);
+      m_phruCurrCGDDArray = new FDataObj(hruCount, m_cropCount, 0.0f, U_UNDEFINED);
 
 
       if (m_method == GM_KIMBERLY_PENNMAN)
@@ -1867,7 +1867,7 @@ EvapTrans *EvapTrans::LoadXml(TiXmlElement *pXmlEvapTrans, MapLayer *pIDULayer, 
 
          // read in Station Coefficients Table
          pEvapTrans->m_stationTablePath = tmpPath;
-         pEvapTrans->m_pStationTable = new FDataObj;
+         pEvapTrans->m_pStationTable = new FDataObj(U_UNDEFINED);
          pEvapTrans->m_stationCount = pEvapTrans->m_pStationTable->ReadAscii(tmpPath, _T(','));
 
          if (pEvapTrans->m_stationCount <= 0)
@@ -1917,7 +1917,7 @@ EvapTrans *EvapTrans::LoadXml(TiXmlElement *pXmlEvapTrans, MapLayer *pIDULayer, 
 
       // read in CropTable
       pEvapTrans->m_cropTablePath = tmpPath;
-      pEvapTrans->m_pCropTable = new VDataObj;
+      pEvapTrans->m_pCropTable = new VDataObj(U_UNDEFINED);
       pEvapTrans->m_cropCount = pEvapTrans->m_pCropTable->ReadAscii(tmpPath, _T(','));
 
       if (pEvapTrans->m_cropCount <= 0)
@@ -2016,7 +2016,7 @@ EvapTrans *EvapTrans::LoadXml(TiXmlElement *pXmlEvapTrans, MapLayer *pIDULayer, 
 
       int colCount = pEvapTrans->m_cropCount + 1;
       int rowCount = 21;
-      pEvapTrans->m_pLandCoverCoefficientLUT = new FDataObj(colCount, rowCount);
+      pEvapTrans->m_pLandCoverCoefficientLUT = new FDataObj(colCount, rowCount, U_UNDEFINED);
 
       float percentile;
       for (int i = 0; i < rowCount; i++)
@@ -2076,7 +2076,7 @@ EvapTrans *EvapTrans::LoadXml(TiXmlElement *pXmlEvapTrans, MapLayer *pIDULayer, 
 
    // read in SoilTable
    pEvapTrans->m_soilTablePath = soilTablePath;
-   pEvapTrans->m_pSoilTable = new FDataObj;
+   pEvapTrans->m_pSoilTable = new FDataObj(U_UNDEFINED);
    int soilCount = pEvapTrans->m_pSoilTable->ReadAscii(tmpPath, _T(','));
 
    if (soilCount <= 0)

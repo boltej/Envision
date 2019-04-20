@@ -39,6 +39,9 @@ extern ActorManager  *gpActorManager;
 extern ScenarioManager *gpScenarioManager;
 extern CEnvView      *gpView;
 
+ENVSETTEXT_PROC envSetLLMapTextProc = nullptr;
+ENVREDRAWMAP_PROC envRedrawMapProc = nullptr;
+
 DELTA & GetDelta( DeltaArray *da, INT_PTR index )  { return da->GetAt( index ); }
 
 int ApplyDeltaArray( void ) { return gpModel->ApplyDeltaArray( gpCellLayer ); }
@@ -148,25 +151,17 @@ int EnvEndVideoCapture( int vrID )
 
 void EnvSetLLMapText( LPCTSTR text )
    {
-   gpMapPanel->UpdateLLText( text );
+   if (envSetLLMapTextProc != nullptr)
+      envSetLLMapTextProc(text); // gpMapPanel->UpdateLLText(text);
    }
 
-void EnvRedrawMap( void )
-   {
-   if ( gpMapPanel )
-      {
-      CDC *dc = gpMapPanel->m_pMapWnd->GetDC();
-      gpMapPanel->m_pMapWnd->DrawMap(*dc);
-      gpMapPanel->m_pMapWnd->ReleaseDC(dc);
 
-      // yield control to other processes
-      MSG  msg;
-      while( PeekMessage( &msg, NULL, NULL, NULL , PM_REMOVE ) )
-         {
-         TranslateMessage(&msg); 
-         DispatchMessage(& msg); 
-         }
-      }
+
+
+void EnvRedrawMap(void)
+   {
+   if (envRedrawMapProc != nullptr)
+      envRedrawMapProc(); 
    }
 
 int EnvRunQueryBuilderDlg( LPTSTR qbuffer, int bufferSize )

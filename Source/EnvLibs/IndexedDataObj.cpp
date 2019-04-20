@@ -23,15 +23,15 @@ int IndexedDataObj::Create(LPCTSTR path, TYPE type, int indexCol/*=0*/)
    switch (type)
       {
       case TYPE_INT:
-         m_pDataObj = new IDataObj;
+         m_pDataObj = new IDataObj(U_UNDEFINED);
          break;
 
       case TYPE_FLOAT:
-         m_pDataObj = new FDataObj;
+         m_pDataObj = new FDataObj(U_UNDEFINED);
          break;
 
       case TYPE_VDATA:
-         m_pDataObj = new VDataObj;
+         m_pDataObj = new VDataObj(U_UNDEFINED);
          break;
 
       default:

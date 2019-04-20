@@ -55,7 +55,10 @@ enum REPORT_TYPE
    RT_WARNING = 2,  // warning msgs
    RT_ERROR   = 3,  // error msgs
    RT_FATAL   = 4,  // fatal error msgs
-   RT_SYSTEM  = 5   // system error msgs
+   RT_SYSTEM  = 5,  // system error msgs
+   RT_OK      = 6,
+   RT_YESNO   = 7,
+   RT_BALLOON = 8
    };
 
 
@@ -69,7 +72,7 @@ enum REPORT_ACTION
 
 typedef void (*LOGMSG_PROC   )( LPCTSTR msg,  REPORT_ACTION action, REPORT_TYPE type );
 typedef void (*STATUSMSG_PROC)( LPCTSTR msg );
-typedef int  (*POPUPMSG_PROC )( LPCTSTR header, LPCTSTR msg, int flags );
+typedef int  (*POPUPMSG_PROC )( LPCTSTR msg, LPCTSTR header, REPORT_TYPE type, int flags, int extra );
 
 
 class LIBSAPI Report
@@ -101,7 +104,7 @@ public:
 private:
    // these do most to the work
    static int LogMsg     (LPCTSTR msg, REPORT_ACTION action, REPORT_TYPE type );
-   static int PopupMsg   (LPCTSTR msg, REPORT_TYPE type, LPCTSTR hdr = _T("\0"), int flags = MB_OK);
+   static int PopupMsg   (LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extra);
 
 public:
    // status messages
@@ -116,16 +119,16 @@ public:
    static int  LogSystemError(LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE ) { return LogMsg(msg, action, RT_SYSTEM); }
 
    // popup messages
-   // these have default implementations on Windows, undefined on *nix
-   static int  YesNoMsg      (LPCTSTR msg, LPCTSTR hdr = _T("\0"));
-   static int  OKMsg         (LPCTSTR msg, LPCTSTR hdr = _T("\0"));
-   static int  BalloonMsg    (LPCTSTR msg, REPORT_TYPE type=RT_INFO, int duration=5000);
-   static int  InfoMsg       (LPCTSTR msg, LPCTSTR hdr = _T("Info"), int flags = MB_OK) { return PopupMsg(msg, RT_INFO, hdr, flags); }
-   static int  WarningMsg    (LPCTSTR msg, LPCTSTR hdr = _T("Warning"), int flags = MB_OK) { return PopupMsg(msg, RT_WARNING, hdr, flags); }
-   static int  FatalMsg      (LPCTSTR msg, LPCTSTR hdr = _T("Fatal Error"), int flags = MB_OK) { return PopupMsg(msg, RT_FATAL, hdr, flags); }
-   static int  ErrorMsg      (LPCTSTR msg, LPCTSTR hdr = _T("Error"), int flags = MB_OK) { return PopupMsg(msg, RT_ERROR, hdr, flags); }
-   static int  SystemErrorMsg( LONG s_err, LPCTSTR __msg=_T( "\0"),  LPCTSTR hdr=_T("\0"), int flags=MB_OK );
- 
+   static int  YesNoMsg(LPCTSTR msg, LPCTSTR hdr = _T("\0"))                                   { return PopupMsg(msg, hdr,  RT_YESNO, MB_YESNO | MB_ICONQUESTION, 0); }
+   static int  OKMsg(LPCTSTR msg, LPCTSTR hdr = _T("\0"))                                      { return PopupMsg(msg, hdr, RT_OK, MB_OK, 0); }
+   static int  BalloonMsg    (LPCTSTR msg, int duration=5000)                                  { return PopupMsg(msg, NULL, RT_BALLOON, MB_OK, duration); }
+   static int  InfoMsg       (LPCTSTR msg, LPCTSTR hdr = _T("Info"), int flags = MB_OK)        { return PopupMsg(msg, hdr, RT_INFO, flags, 0); }
+   static int  WarningMsg    (LPCTSTR msg, LPCTSTR hdr = _T("Warning"), int flags = MB_OK)     { return PopupMsg(msg, hdr, RT_WARNING, flags, 0); }
+   static int  FatalMsg      (LPCTSTR msg, LPCTSTR hdr = _T("Fatal Error"), int flags = MB_OK) { return PopupMsg(msg, hdr, RT_FATAL, flags, 0); }
+   static int  ErrorMsg      (LPCTSTR msg, LPCTSTR hdr = _T("Error"), int flags = MB_OK)       { return PopupMsg(msg, hdr, RT_ERROR, flags, 0); }
+   static int  SystemErrorMsg( LONG s_err, LPCTSTR msg=_T( "\0"), LPCTSTR hdr=_T("\0"), int flags=MB_OK ) { return PopupMsg(msg, hdr, RT_SYSTEM, flags, s_err); }
+
+
    static int OpenFile( LPCTSTR filename );
    static int CloseFile( void );
    static int WriteFile( LPCTSTR );

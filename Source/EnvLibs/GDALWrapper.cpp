@@ -41,7 +41,7 @@ using namespace std;
 
 #define pi 3.14159265358979323846
 #define BUFSIZE 4096
-const double PI       =	pi;
+//const double PI       =	pi;
 const double deg2rad  =	PI/180;
 const double rad2deg  =	180/PI;
 const double k0       =	0.9996;

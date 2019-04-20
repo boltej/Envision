@@ -47,11 +47,11 @@ const int DO_ALLOCINCREMENT = 20;
 //-- constructors
 //-------------------------------------------------------------------
 
-DataObj::DataObj( void )
-   : m_dataCols( 0 ),
-     m_labelArray()
-   {
-   }
+DataObj::DataObj( UNIT_MEASURE m /*=UM_UNDEFINED*/ )
+   : m_dataCols( 0 )
+   , m_labelArray()
+   , m_primaryAxisUnit( m )
+   { }
 
 
 //-------------------------------------------------------------------
@@ -59,6 +59,7 @@ DataObj::DataObj( DataObj &dataObj )
    : m_dataCols( dataObj.m_dataCols )
    {
    this->m_name = dataObj.m_name;     // m_name associated with data object
+   this->m_primaryAxisUnit = dataObj.m_primaryAxisUnit;
 
    for ( int i=0; i < dataObj.m_labelArray.GetSize(); i++ )
       this->m_labelArray.Add( dataObj.m_labelArray[ i ] );
@@ -66,9 +67,10 @@ DataObj::DataObj( DataObj &dataObj )
 
 
 //-------------------------------------------------------------------
-DataObj::DataObj( int _cols, int _rows )
-   : m_dataCols( _cols ),
-     m_labelArray()     
+DataObj::DataObj( int _cols, int _rows, UNIT_MEASURE m /*=U_UNDEFINED*/ )
+   : m_dataCols( _cols )
+   , m_labelArray()     
+   , m_primaryAxisUnit( m )
    {
    for ( int i=0; i < _cols; i++ )
       m_labelArray.Add( "None");

@@ -56,9 +56,9 @@ class LIBSAPI IDataObj : public DataObj
 
    public:
       //-- constructor --//
-      IDataObj( void );   
-      IDataObj( int cols, int allocRows );  // by dimension (must Append())
-      IDataObj( int cols, int allocRows, int initValue );  
+      IDataObj(UNIT_MEASURE m);
+      IDataObj( int cols, int allocRows, UNIT_MEASURE m);  // by dimension (must Append())
+      IDataObj( int cols, int allocRows, int initValue, UNIT_MEASURE m);
 
       //-- copy constructor --//
       IDataObj( IDataObj& ) ;

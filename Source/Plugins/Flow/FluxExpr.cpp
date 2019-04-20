@@ -195,7 +195,7 @@ bool FluxExpr::Init( FlowContext *pFlowContext )
 
       case VT_TIMESERIES:
          {
-         m_pValueData = new FDataObj( 2, 0 );
+         m_pValueData = new FDataObj( 2, 0, U_YEARS );
          // parse value as pairs of time series
          TCHAR *values = new TCHAR[ this->m_expr.GetLength()+2 ];
          memset( values, 0, (this->m_expr.GetLength()+2) * sizeof( TCHAR ) );
@@ -221,7 +221,7 @@ bool FluxExpr::Init( FlowContext *pFlowContext )
          break;
 
       case VT_FILE:
-         m_pValueData = new FDataObj;
+         m_pValueData = new FDataObj(U_YEARS);
          CString path;
          PathManager::FindPath( m_expr, path );
          m_pValueData->ReadAscii( path );
@@ -253,7 +253,7 @@ bool FluxExpr::Init( FlowContext *pFlowContext )
    pFlowModel->AddOutputVar(label, m_annDailyAvgFlux, "");
    
    // set up data obj for daily fluxes
-   m_pDailyFluxData = new FDataObj( 4, 0 );
+   m_pDailyFluxData = new FDataObj( 4, 0, U_DAYS );
    label.Format( "%s - Daily Flux Components", (LPCSTR) m_name );
    m_pDailyFluxData->SetName( label );
    m_pDailyFluxData->SetLabel( 0, "Time (days)" );
@@ -265,7 +265,7 @@ bool FluxExpr::Init( FlowContext *pFlowContext )
    pFlowModel->AddOutputVar( label, m_pDailyFluxData, "" );
 
    label.Format( "%s - Cumulative Flux Components", (LPCSTR) m_name );
-   m_pCumFluxData = new FDataObj( 4, 0 );
+   m_pCumFluxData = new FDataObj( 4, 0, U_DAYS );
    m_pCumFluxData->SetName( label );
    m_pCumFluxData->SetLabel( 0, "Time (days)" );
 

@@ -47,8 +47,8 @@ Copywrite 2012 - Oregon State University
 //-- constructors
 //-------------------------------------------------------------------
 
-DDataObj::DDataObj( void )
-   : DataObj(),
+DDataObj::DDataObj(UNIT_MEASURE m)
+   : DataObj(m),
      matrix  (),
      statArray()
    { }
@@ -63,8 +63,8 @@ DDataObj::DDataObj( DDataObj &dataObj )
 
 
 //-------------------------------------------------------------------
-DDataObj::DDataObj( int _cols, int _rows )
-   : DataObj( _cols, _rows ),
+DDataObj::DDataObj( int _cols, int _rows, UNIT_MEASURE m)
+   : DataObj( _cols, _rows,m ),
      matrix  ( _rows, _cols ),     
      statArray()
    {
@@ -74,8 +74,8 @@ DDataObj::DDataObj( int _cols, int _rows )
    return;
    }
 
-DDataObj::DDataObj( int _cols, int _rows, double initialValue )
-   : DataObj( _cols, _rows ),
+DDataObj::DDataObj( int _cols, int _rows, double initialValue, UNIT_MEASURE m)
+   : DataObj( _cols, _rows, m ),
      matrix  ( _rows, _cols, initialValue ),     
      statArray()
    {
@@ -85,8 +85,8 @@ DDataObj::DDataObj( int _cols, int _rows, double initialValue )
    return;
    }
 
-DDataObj::DDataObj( const DoubleMatrix::type_data * data, int _cols, int _rows )
-: DataObj( _cols, _rows ),
+DDataObj::DDataObj( const DoubleMatrix::type_data * data, int _cols, int _rows, UNIT_MEASURE m)
+: DataObj( _cols, _rows, m ),
   matrix  ( data, _rows, _cols ),     
   statArray()
    {
@@ -104,8 +104,8 @@ DDataObj::DDataObj( const DoubleMatrix::type_data * data, int _cols, int _rows )
 //-- stats constructor
 //-------------------------------------------------------------------
 
-DDataObj::DDataObj( int _cols, int _rows, STATSFLAG *statFlagArray )
-   : DataObj( _cols, _rows ),
+DDataObj::DDataObj( int _cols, int _rows, STATSFLAG *statFlagArray, UNIT_MEASURE m)
+   : DataObj( _cols, _rows, m ),
      matrix  ( _rows, _cols ),
      statArray()
    {

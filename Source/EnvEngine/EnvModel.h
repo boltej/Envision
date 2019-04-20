@@ -713,6 +713,7 @@ class ENVAPI EnvModel
       int GetOutputVarCount( int flag );              // See OVT_xxxx enums
       MODEL_VAR &GetInputVar ( int flag, int i );     // See OVT_xxxx enums
       MODEL_VAR &GetOutputVar( int flag, int i );     // See OVT_xxxx enums
+      MODEL_VAR *FindModelVar(LPCTSTR name, int &flag);
 
       //int GetOutputVarLabels(int flag, CStringArray &labels);
       // 1=aps, 2=eval models, 3=both, 4=appvars, 7=all

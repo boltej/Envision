@@ -35,6 +35,8 @@ Copywrite 2012 - Oregon State University
 #include "EnvLibs.h"
 #include "TARRAY.HPP"
 
+#include <unitconv.h>
+
 
 #include "Vdata.h"
 #include "STRARRAY.HPP"
@@ -48,6 +50,7 @@ Copywrite 2012 - Oregon State University
 const UINT  DO_ALLOCERROR  = 0xFFFE;
 
 enum DO_TYPE { DOT_VDATA, DOT_FLOAT, DOT_INT, DOT_DOUBLE, DOT_GEOSPATIAL, DOT_NULL, DOT_OTHER };
+
 
 // CheckCol() flags (can be OR'd together)
 enum 
@@ -97,11 +100,12 @@ class  LIBSAPI  DataObj
 
    public:
       CString m_path;              // path of loaded file
-      
+      UNIT_MEASURE m_primaryAxisUnit;   // x data unit (e.g. U_YEARS)
+
    public:
       //-- constructor --//
-      DataObj( void );
-      DataObj( int cols, int allocRows );  // by dimension (must Append())
+      DataObj(UNIT_MEASURE m);  // =U_UNDEFINED );
+      DataObj(int cols, int allocRow, UNIT_MEASURE m); // = U_UNDEFINED);  // by dimension (must Append())
       
       //-- copy constructor --//
       DataObj( DataObj& );   
@@ -167,6 +171,19 @@ class  LIBSAPI  DataObj
       virtual UINT    GetAsUInt  ( int col, int row  ) = 0;
       virtual bool    GetAsBool  ( int col, int row  ) = 0;
       //virtual TCHAR   GetAsChar  ( int col, int row  ) = 0;
+
+      // get a particular time range from a column of data
+      // start, end are INCLUSIVE and represent years
+      bool SubsetData(int col, int start, int end, CArray<float, float> &data)
+         {
+         data.RemoveAll();
+         data.SetSize(end - start + 1);
+         int index = 0;
+         for (int i = start; i <= end; i++)
+            data[index++] = this->GetAsFloat(col, i);
+
+         return true;
+         }
 
       //-- column labels --//
       int     GetCol( LPCTSTR  colLabel );

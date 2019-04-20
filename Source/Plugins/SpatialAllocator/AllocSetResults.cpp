@@ -38,7 +38,7 @@ AllocSetResults::AllocSetResults(CWnd* pParent /*=NULL*/)
    : CDialog(AllocSetResults::IDD, pParent)
    //, MapWndContainer()
    , m_pAllocSet( NULL)
-   , m_saRunData( 5, 0 )
+   , m_saRunData( 5, 0, U_UNDEFINED )
    {
    m_saRunData.SetLabel(0, "IDU");
    m_saRunData.SetLabel(1, "Score");

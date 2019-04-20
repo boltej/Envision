@@ -41,8 +41,8 @@ using namespace std;
 #define   dNAD83_ConUS   23
 #define   dWGS84      27
 
-GeoSpatialDataObj::GeoSpatialDataObj(void)
-   : DataObj()
+GeoSpatialDataObj::GeoSpatialDataObj(UNIT_MEASURE m)
+   : DataObj(m)
    , m_datasetH(0)
    , m_hDriver(0)
    , m_hBand(0)

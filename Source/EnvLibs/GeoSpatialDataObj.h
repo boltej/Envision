@@ -53,7 +53,7 @@ using namespace std;
 class LIBSAPI GeoSpatialDataObj : public DataObj
 {
 public:
-	  GeoSpatialDataObj (void);
+	  GeoSpatialDataObj (UNIT_MEASURE m);
 	
 	   //LPCTSTR variable="" for no varible name
 	  bool Open(LPCTSTR filename , LPCTSTR variable);

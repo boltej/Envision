@@ -78,7 +78,7 @@ void _StatusMsgProc(LPCTSTR msg)
    }
 
 // called whenever a Report message is invoked (e.g. Report::Log();
-int _PopupMsgProc(LPCTSTR hdr, LPCTSTR msg, int flags)
+int _PopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extra)
    {
    std::cout << hdr << ": " << msg << std::endl;
    return 0;

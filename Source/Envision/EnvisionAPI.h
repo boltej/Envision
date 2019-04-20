@@ -43,6 +43,10 @@ Copywrite 2012 - Oregon State University
 #endif
 
 
+typedef void(*ENVSETTEXT_PROC)(LPCTSTR text);
+typedef void(*ENVREDRAWMAP_PROC)();
+
+
 #ifdef __cplusplus
 extern "C" {  // only need to export C interface if used by C++ source code
 #endif

@@ -26,7 +26,6 @@ Copywrite 2012 - Oregon State University
 #include <MapExprEngine.h>
 #include <PtrArray.h>
 #include <RANDOM.HPP>
-#include <FDATAOBJ.H>
 #include <EnvConstants.h>
 
 

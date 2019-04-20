@@ -1307,7 +1307,7 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
             pTarget->m_targetValues = value;
 
             ASSERT( pTarget->m_pTargetData == NULL );
-            pTarget->m_pTargetData = new FDataObj( 2, 0 );
+            pTarget->m_pTargetData = new FDataObj( 2, 0, U_YEARS );
 
             TCHAR *targetValues = new TCHAR[ lstrlen( value ) + 2 ];
             lstrcpy( targetValues, value );

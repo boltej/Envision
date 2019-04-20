@@ -3535,7 +3535,7 @@ int MapLayer::ConvertToPoly( bool addToMap, bool classify )
    int cols = this->GetColCount();
 
    DO_TYPE doType = this->m_pDbTable->GetDOType();
-   VDataObj *pData = new VDataObj(3, rows*cols); 
+   VDataObj *pData = new VDataObj(3, rows*cols, U_UNDEFINED); 
    
    pData->SetLabel(0, "Value");
    pData->SetLabel(1, "Row");
@@ -3645,17 +3645,17 @@ int MapLayer::CreateGrid(int rows, int cols, REAL xLLCorner,REAL yLLCorner, REAL
    switch (type)
       {
       case DOT_INT:
-         m_pData = new IDataObj(cols, rows);
+         m_pData = new IDataObj(cols, rows, U_UNDEFINED);
          _type = TYPE_INT;
          break;
 
       case DOT_FLOAT:
-         m_pData = new FDataObj(cols, rows);
+         m_pData = new FDataObj(cols, rows, U_UNDEFINED);
          _type = TYPE_FLOAT;
          break;
 
       default:
-         m_pData = new VDataObj(cols, rows);
+         m_pData = new VDataObj(cols, rows, U_UNDEFINED);
          _type = TYPE_STRING;
          break;
       }
@@ -3897,7 +3897,7 @@ int MapLayer::LoadGridBIL(LPCTSTR filename)
       }
 
    // allocate data object
-   m_pData = new IDataObj(nCols, nRows);
+   m_pData = new IDataObj(nCols, nRows, U_UNDEFINED);
    double xLLCorner = ulxMap - xDim / 2;
    double yLLCorner = ulyMap - (nRows - 1)*yDim - yDim / 2;
 
@@ -4060,11 +4060,11 @@ int MapLayer::LoadGridFLT(LPCTSTR filename, DO_TYPE type)
    switch (type)
       {
       case DOT_INT:
-         m_pData = new IDataObj(nCols, nRows);
+         m_pData = new IDataObj(nCols, nRows, U_UNDEFINED);
          break;
 
       case DOT_FLOAT:
-         m_pData = new FDataObj(nCols, nRows);
+         m_pData = new FDataObj(nCols, nRows, U_UNDEFINED);
          break;
 
       default:
@@ -4173,15 +4173,15 @@ int MapLayer::LoadGridAscii(LPCTSTR filename, DO_TYPE type, int maxLineWidth/*=-
    switch (type)
       {
       case DOT_INT:
-         m_pData = new IDataObj(nCols, nRows);
+         m_pData = new IDataObj(nCols, nRows, U_UNDEFINED);
          break;
 
       case DOT_FLOAT:
-         m_pData = new FDataObj(nCols, nRows);
+         m_pData = new FDataObj(nCols, nRows, U_UNDEFINED);
          break;
 
       case DOT_VDATA:
-         m_pData = new VDataObj(nCols, nRows);
+         m_pData = new VDataObj(nCols, nRows, U_UNDEFINED);
          break;
 
       default:
@@ -4965,15 +4965,15 @@ DataObj *MapLayer::CreateDataTable(int rows, int cols, DO_TYPE type /*= DOT_VDAT
    switch (type)
       {
       case DOT_INT:
-         m_pData = new IDataObj(cols, rows);
+         m_pData = new IDataObj(cols, rows, U_UNDEFINED);
          break;
 
       case DOT_FLOAT:
-         m_pData = new FDataObj(cols, rows);
+         m_pData = new FDataObj(cols, rows, U_UNDEFINED);
          break;
 
       default:
-         m_pData = new VDataObj(cols, rows);
+         m_pData = new VDataObj(cols, rows, U_UNDEFINED);
          break;
       }
 
@@ -5479,7 +5479,7 @@ int MapLayer::LoadDataDBF(LPCTSTR databaseName, int extraCols /* =0 */, int reco
    if (m_pData != NULL)
       delete m_pData;
 
-   m_pData = new VDataObj;  // by dimension (must Append())
+   m_pData = new VDataObj(U_UNDEFINED);  // by dimension (must Append())
    m_pData->SetSize(INT_PTR(cols + extraCols), 0);
    m_pDbTable = new DbTable(m_pData); // make a corresponding DbTable and attach to this data object
    //m_pDbTable->SetFieldInfoSize( cols + extraCols  );
@@ -6286,7 +6286,7 @@ int MapLayer::InitData(int cols, int rows, float value)
       data[i].fltVal = value;
       }
 
-   m_pData = new VDataObj(cols, 0);   // create a new data object to store data
+   m_pData = new VDataObj(cols, 0, U_UNDEFINED);   // create a new data object to store data
 
    for (int i = 0; i < rows; i++)
       m_pData->AppendRow(data, cols);       // add as many rows as needecd

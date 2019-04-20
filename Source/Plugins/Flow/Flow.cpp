@@ -789,9 +789,9 @@ void Reservoir::InitDataCollection(FlowModel *pFlowModel)
    if (m_pResData == NULL)
       {
       if (m_reservoirType == ResType_CtrlPointControl)
-         m_pResData = new FDataObj(4, 0);
+         m_pResData = new FDataObj(4, 0, U_DAYS);
       else
-         m_pResData = new FDataObj(8, 0);
+         m_pResData = new FDataObj(8, 0, U_DAYS);
 
       ASSERT(m_pResData != NULL);
       }
@@ -842,7 +842,7 @@ void Reservoir::InitDataCollection(FlowModel *pFlowModel)
 
    if (m_pResSimFlowCompare == NULL)
       {
-      m_pResSimFlowCompare = new FDataObj(7, 0);
+      m_pResSimFlowCompare = new FDataObj(7, 0, U_DAYS);
       ASSERT(m_pResSimFlowCompare != NULL);
       }
 
@@ -860,7 +860,7 @@ void Reservoir::InitDataCollection(FlowModel *pFlowModel)
 
    if (m_pResSimRuleCompare == NULL)
       {
-      m_pResSimRuleCompare = new VDataObj(7, 0);
+      m_pResSimRuleCompare = new VDataObj(7, 0, U_DAYS);
       ASSERT(m_pResSimRuleCompare != NULL);
       }
 
@@ -1992,7 +1992,7 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    GlobalMethodManager::Init(&m_flowContext);
 
    // add output variables:
-   m_pTotalFluxData = new FDataObj(7, 0);
+   m_pTotalFluxData = new FDataObj(7, 0, U_YEARS);
    m_pTotalFluxData->SetName("Global Flux Summary");
    m_pTotalFluxData->SetLabel(0, "Year");
    m_pTotalFluxData->SetLabel(1, "Annual Total ET (acre-ft)");
@@ -2029,7 +2029,7 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
       ASSERT(pGroup->m_pDataObj == NULL);
       if (moCount > 0)
          {
-         pGroup->m_pDataObj = new FDataObj(moCount + 1, 0);
+         pGroup->m_pDataObj = new FDataObj(moCount + 1, 0, U_DAYS);
          pGroup->m_pDataObj->SetName(pGroup->m_name);
          pGroup->m_pDataObj->SetLabel(0, "Time");
 
@@ -2216,9 +2216,7 @@ bool FlowModel::InitRun(EnvContext *pEnvContext)
             for (int j = 0; j < (int)pScenario->m_climateInfoArray.GetSize(); j++)//different climate parameters
                {
                ClimateDataInfo *pInfo = pScenario->m_climateInfoArray[j];
-
-
-               GeoSpatialDataObj *pObj = new GeoSpatialDataObj;
+               GeoSpatialDataObj *pObj = new GeoSpatialDataObj(U_UNDEFINED);
                pObj->InitLibraries();
                pInfo->m_pNetCDFDataArray.Add(pObj);
                }
@@ -3598,7 +3596,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
          WriteDataToMap(pEnvContext);
 
       if (m_mapUpdate == 2 && !m_estimateParameters)
-         RedrawMap(pEnvContext);
+         ::EnvRedrawMap(); //RedrawMap(pEnvContext);
 
       if (m_useRecorder && !m_estimateParameters)
          {
@@ -3619,7 +3617,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
    if (m_mapUpdate == 1 && !m_estimateParameters)
       {
       WriteDataToMap(pEnvContext);
-      RedrawMap(pEnvContext);
+      ::EnvRedrawMap();   // RedrawMap(pEnvContext);
       }
 
    CloseClimateData();
@@ -4262,7 +4260,7 @@ bool FlowModel::InitReservoirControlPoints(EnvModel *pEnvModel)
       if (pControl->m_pReach != NULL)
          {
          ASSERT(pControl->m_pResAllocation == NULL);
-         pControl->m_pResAllocation = new FDataObj(int(pControl->m_influencedReservoirsArray.GetSize()), 0);
+         pControl->m_pResAllocation = new FDataObj(int(pControl->m_influencedReservoirsArray.GetSize()), 0, U_UNDEFINED);
 
          //load table for control point constraints 
          LoadTable(pEnvModel, this->m_path + pControl->m_dir + pControl->m_controlPointFileName, (DataObj**) &(pControl->m_pControlPointConstraintsTable), 0);
@@ -4876,6 +4874,8 @@ float FlowModel::EstimateReachOutflow( Reach *pReach, int subnode, float timeSte
 //   }
 
 
+/* deprecated
+
 bool FlowModel::RedrawMap(EnvContext *pEnvContext)
    {
    //WriteDataToMap(pEnvContext);
@@ -4989,20 +4989,9 @@ bool FlowModel::RedrawMap(EnvContext *pEnvContext)
 
    ::EnvRedrawMap();
 
-   //CDC *dc = m_pMap->GetDC();
-   //m_pMap->DrawMap(*dc);
-   //m_pMap->ReleaseDC(dc);
-   //// yield control to other processes
-   //MSG  msg;
-   //while( PeekMessage( &msg, NULL, NULL, NULL , PM_REMOVE ) )
-   //   {
-   //   TranslateMessage(&msg); 
-   //   DispatchMessage(& msg); 
-   //   }
-
    return true;
    }
-
+   */
 
 void FlowModel::UpdateYearlyDeltas(EnvContext *pEnvContext)
    {
@@ -5854,7 +5843,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
    int foundHRUs = 0;
    float minElev = 1E10;
 
-   m_pHruGrid = new IDataObj(m_pGrid->GetColCount(), m_pGrid->GetRowCount());
+   m_pHruGrid = new IDataObj(m_pGrid->GetColCount(), m_pGrid->GetRowCount(), U_UNDEFINED);
 
    for (int i = 0; i < m_pGrid->GetRowCount(); i++)
       {
@@ -7571,12 +7560,12 @@ int FlowModel::LoadTable(EnvModel *pEnvModel, LPCTSTR filename, DataObj** pDataO
    switch (type)
       {
       case 0:
-         *pDataObj = new FDataObj;
+         *pDataObj = new FDataObj(U_UNDEFINED);
          ASSERT(*pDataObj != NULL);
          break;
 
       case 1:
-         *pDataObj = new VDataObj;
+         *pDataObj = new VDataObj(U_UNDEFINED);
          ASSERT(*pDataObj != NULL);
          break;
 
@@ -8582,7 +8571,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
                // if not a weather station, allocate a geospatial data object
                if ( cdtype[0] != 'c' )
-                  pInfo->m_pNetCDFData = new GeoSpatialDataObj;
+                  pInfo->m_pNetCDFData = new GeoSpatialDataObj(U_UNDEFINED);
 
                pInfo->m_useDelta = pXmlClimate->Attribute(_T("delta")) ? true : false;
                if (pInfo->m_useDelta)
@@ -9044,18 +9033,18 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
             if (*type == _T('v'))
                {
-               pDataObj = new VDataObj;
-               pInitDataObj = new VDataObj;
+               pDataObj = new VDataObj(U_UNDEFINED);
+               pInitDataObj = new VDataObj(U_UNDEFINED);
                }
             else if (*type == _T('i'))
                {
-               pDataObj = new IDataObj;
-               pInitDataObj = new IDataObj;
+               pDataObj = new IDataObj(U_UNDEFINED);
+               pInitDataObj = new IDataObj(U_UNDEFINED);
                }
             else
                {
-               pDataObj = new FDataObj;
-               pInitDataObj = new FDataObj;
+               pDataObj = new FDataObj(U_UNDEFINED);
+               pInitDataObj = new FDataObj(U_UNDEFINED);
                }
 
             CString path;
@@ -9286,7 +9275,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                      }
                   else
                      {
-                     pOutput->m_pDataObjObs = new FDataObj;
+                     pOutput->m_pDataObjObs = new FDataObj(U_UNDEFINED);
                      //CString inFile;
                      //inFile.Format(_T("%s%s"),pModel->m_path,obs);    // m_path is not slash-terminated
                      int rows = -1;
@@ -9676,16 +9665,16 @@ bool FlowModel::InitializeParameterEstimationSampleArray(void)
          if (pGroup->GetAt(i)->m_pDataObjObs != NULL)
             {
             moCount++;
-            FDataObj *pErrorStatData = new FDataObj(7, 0);
+            FDataObj *pErrorStatData = new FDataObj(7, 0, U_UNDEFINED);
             // FDataObj *pParameterData = new FDataObj((int)m_parameterArray.GetSize(),0);
-            FDataObj *pDischargeData = new FDataObj(1, 1);
+            FDataObj *pDischargeData = new FDataObj(1, 1, U_UNDEFINED);
             // m_mcOutputTables.Add(pParameterData);
             m_mcOutputTables.Add(pErrorStatData);
             m_mcOutputTables.Add(pDischargeData);
             }
          }
       }
-   m_pParameterData = new FDataObj((int)m_parameterArray.GetSize() + 1, 0);
+   m_pParameterData = new FDataObj((int)m_parameterArray.GetSize() + 1, 0, U_UNDEFINED);
    m_pParameterData->SetLabel(0, _T("RunNumber"));
    for (int j = 0; j < (int)m_parameterArray.GetSize(); j++)
       {
@@ -10383,7 +10372,7 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
    int meas = 0;
    int offset = 0;
    int n = pData->GetRowCount();
-   FDataObj *pDataGrouped = new FDataObj(3, 0, 0.0f);     // MEMORY LEAK!!!!!!
+   FDataObj *pDataGrouped = new FDataObj(3, 0, 0.0f, U_UNDEFINED);     // MEMORY LEAK!!!!!!
    float obsMean = 0.0f, predMean = 0.0f, obsMeanL = 0.0f, predMeanL = 0.0f;
    int firstSample = int( 100 / m_timeStep );
    for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values                                       // might be unacceptable due to initial conditions...
@@ -10457,6 +10446,9 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
       nsLN = (float)(1.0f - (errorSumLN / errorSumDenomLN));
       ve = (float)ve_numerator / ve_denominator;
    }
+
+   delete pDataGrouped;
+
    return ns;
 }
 
@@ -10467,11 +10459,10 @@ void FlowModel::GetNashSutcliffeGrouped(float ns)
    float _ns = 1.0f; float _nsLN = 1.0f;
    float *data = new float[m_reachMeasuredDataArray.GetSize()];
    int offset = 0;
-   FDataObj *pDataGrouped = new FDataObj;
+   FDataObj *pDataGrouped = new FDataObj(U_UNDEFINED);
    for (int l = 0; l < (int)m_reachMeasuredDataArray.GetSize(); l++)
    {
       FDataObj *pData = m_reachMeasuredDataArray.GetAt(l);
-
 
       int n = pData->GetRowCount();
       float obsMean = 0.0f, predMean = 0.0f;
@@ -10512,7 +10503,6 @@ void FlowModel::GetNashSutcliffeGrouped(float ns)
          }
       }
 
-
       double errorSum = 0.0f, errorSumDenom = 0.0f, errorSumLN = 0.0f, errorSumDenomLN = 0.0f, r2Denom1 = 0.0f, r2Denom2 = 0.0f;
       n = pDataGrouped->GetRowCount();
       for (int row = 0; row < n; row++)
@@ -10538,7 +10528,10 @@ void FlowModel::GetNashSutcliffeGrouped(float ns)
       ns = _ns;
    }
    delete[] data;
+   delete pDataGrouped;
 }
+
+
 void FlowModel::GetNashSutcliffe(float *ns)
    {
    int meas = 0;
@@ -10598,7 +10591,7 @@ int FlowModel::ReadClimateStationData(ClimateDataInfo *pInfo, LPCSTR filename)
    if (pInfo->m_pStationData != NULL)  // is there already a climate data obj?
       delete pInfo->m_pStationData;
 
-   pInfo->m_pStationData = new FDataObj;   // create a new one
+   pInfo->m_pStationData = new FDataObj(U_DAYS);   // create a new one
    ASSERT(pInfo->m_pStationData != NULL);
 
    CString path;

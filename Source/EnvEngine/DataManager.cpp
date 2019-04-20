@@ -147,7 +147,7 @@ DataObj *DataManager::GetMultiRunDataObj( DM_MULTITYPE type, int run /*=-1*/ )
 
 
 // get a particular time range from a column of data
-// start, end are INCLUSIVE
+// start, end are INCLUSIVE and represent years
 bool DataManager::SubsetData(DM_TYPE type, int run, int col, int start, int end, CArray<float, float> &data)
    {
    DataObj *pData = GetDataObj(type, run);
@@ -215,7 +215,7 @@ bool DataManager::CreateDataObjects()
       {
       Report::StatusMsg( "Creating data objects...Landscape scores" );
 
-      FDataObj *pEvalScoresData = new FDataObj( resultsCount+1, rows );
+      FDataObj *pEvalScoresData = new FDataObj( resultsCount+1, rows, U_YEARS );
       pEvalScoresData->SetName( "Landscape Evaluative Statistics (Scaled)" );
       pEvalScoresData->SetLabel( 0, "Time (years)" );
       for ( int i=0; i < resultsCount; i++ )
@@ -227,7 +227,7 @@ bool DataManager::CreateDataObjects()
       m_currentDataObjs[ DT_EVAL_SCORES ] = pEvalScoresData;
       m_dataObjs[ DT_EVAL_SCORES ].Add( pEvalScoresData );
 
-      FDataObj *pRawScoresData = new FDataObj( resultsCount+1, rows );
+      FDataObj *pRawScoresData = new FDataObj( resultsCount+1, rows, U_YEARS);
       pRawScoresData->SetName( "Landscape Evaluative Statistics (Raw Scores)" );
       pRawScoresData->SetLabel( 0, "Time (years)" );
       for ( int i=0; i < resultsCount; i++ )
@@ -257,7 +257,7 @@ bool DataManager::CreateDataObjects()
       {
       Report::StatusMsg( "Creating data objects...Output Variables" );
 
-      VDataObj *m_pModelOutputsData = new VDataObj( totalOutputCount+1, rows );
+      VDataObj *m_pModelOutputsData = new VDataObj( totalOutputCount+1, rows, U_YEARS );
       m_pModelOutputsData->SetName( "ModelOutput" );
       m_pModelOutputsData->SetLabel( 0, "Year" );
       int col = 1;
@@ -340,7 +340,7 @@ bool DataManager::CreateDataObjects()
 
       // the data object stored will have "valueCount" columns for each actor group, and a row for each year
       int groupCount = m_pEnvModel->m_pActorManager->GetActorGroupCount();
-      FDataObj *pActorWtData = new FDataObj( valueCount*groupCount+1, rows );
+      FDataObj *pActorWtData = new FDataObj( valueCount*groupCount+1, rows, U_YEARS);
       pActorWtData->SetName( "Actor Value Trajectories" );
       pActorWtData->SetLabel( 0, "Time (years)" );
       int col = 1;
@@ -367,7 +367,7 @@ bool DataManager::CreateDataObjects()
 
       //  actor counts      
       Report::StatusMsg( "Creating data objects...Actor Counts" );
-      FDataObj *pActorCountData = new FDataObj( groupCount+1, rows );
+      FDataObj *pActorCountData = new FDataObj( groupCount+1, rows, U_YEARS);
       pActorCountData->SetName( "Actor Counts" );
       pActorCountData->SetLabel( 0, "Time (years)" );
       col = 1;
@@ -390,7 +390,7 @@ bool DataManager::CreateDataObjects()
    //Report::StatusMsg( "Creating data objects...Policy summaries" );
 
    int policyCount = m_pEnvModel->m_pPolicyManager->GetPolicyCount();
-   VDataObj *pPolicySummaryData = new VDataObj( 8, policyCount );
+   VDataObj *pPolicySummaryData = new VDataObj( 8, policyCount, U_UNDEFINED );
    pPolicySummaryData->SetName( "Policy Results Summary" );
    //pPolicySummaryData->SetLabel( 0, "Policy Name" );
    //pPolicySummaryData->SetLabel( 1, "Policy Index" );
@@ -435,7 +435,7 @@ bool DataManager::CreateDataObjects()
 
    // global Constraints
    int gcCount = m_pEnvModel->m_pPolicyManager->GetGlobalConstraintCount();
-   FDataObj *pGCData = new FDataObj( (gcCount*4)+1, rows );
+   FDataObj *pGCData = new FDataObj( (gcCount*4)+1, rows, U_YEARS);
    pGCData->SetName( "Global Constraints Summary" );
    pGCData->SetLabel( 0, "Time (years)" );
    int col = 1;
@@ -463,7 +463,7 @@ bool DataManager::CreateDataObjects()
    m_dataObjs[ DT_GLOBAL_CONSTRAINTS ].Add( pGCData );
 
    //----- policy stats -----------------------------
-   FDataObj *pPolicyStatsData = new FDataObj( (policyCount*6)+1, rows );
+   FDataObj *pPolicyStatsData = new FDataObj( (policyCount*6)+1, rows, U_YEARS);
    pPolicyStatsData->SetName( "Policy Stats" );
    pPolicyStatsData->SetLabel( 0, "Time (years)" );
    col = 1;
@@ -505,7 +505,7 @@ bool DataManager::CreateDataObjects()
       {
       int layerCount  = m_pEnvModel->m_pSocialNetwork->GetLayerCount();
       int metricCount = m_pEnvModel->m_pSocialNetwork->GetMetricCount();
-      pSocialNetworkData = new FDataObj( 1+layerCount*metricCount, rows );
+      pSocialNetworkData = new FDataObj( 1+layerCount*metricCount, rows, U_YEARS);
       pSocialNetworkData->SetName( "Social Network Metrics" );
       pSocialNetworkData->SetLabel( 0, "Time (years)" );
       col = 1;
@@ -1084,7 +1084,7 @@ bool DataManager::CreateMultiRunDataObjects()
    int resultsCount = this->m_pEnvModel->GetResultsCount();
 
    //--------------- landscape scores for each goal -------------
-   FDataObj *pData = new FDataObj( resultsCount+1, rows );
+   FDataObj *pData = new FDataObj( resultsCount+1, rows, U_UNDEFINED);
    pData->SetName( "Multirun Landscape Evaluative Statistics" );
    pData->SetLabel( 0, "Run" );
    for ( int i=0; i < resultsCount; i++ )
@@ -1097,7 +1097,7 @@ bool DataManager::CreateMultiRunDataObjects()
    m_multiRunDataObjs[ DT_MULTI_EVAL_SCORES ].Add( pData );
 
    //-------------- landscape raw scores for each goal -----------
-   pData = new FDataObj( resultsCount+1, rows );
+   pData = new FDataObj( resultsCount+1, rows, U_UNDEFINED );
    pData->SetName( "Multirun Landscape Evaluative Statistics (Raw)" );
    pData->SetLabel( 0, "Run" );
    for ( int i=0; i < resultsCount; i++ )
@@ -1115,7 +1115,7 @@ bool DataManager::CreateMultiRunDataObjects()
    ASSERT( pScenario != NULL );
 
    int varCount = pScenario->GetScenarioVarCount( int( V_META | V_MODEL | V_AP ), false );
-   pData = new FDataObj( varCount+1, rows );
+   pData = new FDataObj( varCount+1, rows, U_UNDEFINED );
    pData->SetName( "Multirun Scenario Settings" );
    pData->SetLabel( 0, "Run" );
    for ( int i=0; i < varCount; i++ )
@@ -1225,7 +1225,7 @@ FDataObj *DataManager::CalculateLulcTrends( int level, int run /*=-1*/)
    // allocate a data object
    int lulcCount = this->m_pEnvModel->m_lulcTree.GetNodeCount( level );
 
-   FDataObj *pData = new FDataObj( lulcCount+1, years+1 ); // +1 for values at the end of the last year
+   FDataObj *pData = new FDataObj( lulcCount+1, years+1, U_YEARS); // +1 for values at the end of the last year
    pData->SetName( label );
    pData->SetLabel( 0, "Time (years)" );
 
@@ -1842,7 +1842,7 @@ FDataObj *DataManager::CalculateEvalFreq( int multiRun /*= -1*/ )
    const int binCount = 12;
 
    // create a dataobj for the histogram
-   FDataObj *pData = new FDataObj( resultsCount+1, binCount, 0.0f );
+   FDataObj *pData = new FDataObj( resultsCount+1, binCount, 0.0f, U_UNDEFINED );
    pData->SetLabel( 0, "Bin" );
    for ( int i=0; i < resultsCount; i++ )
       {
@@ -1917,7 +1917,7 @@ IDataObj *DataManager::CalculatePolicyApps( int run /*= -1*/ )
    int policyCount = m_pEnvModel->m_pPolicyManager->GetPolicyCount();
 
    // allocate a data object
-   IDataObj *pData = new IDataObj( policyCount+1, years );
+   IDataObj *pData = new IDataObj( policyCount+1, years, U_YEARS);
    pData->SetName( "Actor Policy Application Rates" );
    pData->SetLabel( 0, "Time (years)" );
    for ( int i=0; i < policyCount; i++ )
@@ -1999,7 +1999,7 @@ FDataObj *DataManager::CalculatePolicyEffectivenessTrendDynamic( int modelIndexX
    int policyCount = m_pEnvModel->m_pPolicyManager->GetPolicyCount();
 
    // allocate a data object (2 columns, with a row for each year)
-   FDataObj *pData = new FDataObj( 2, years );
+   FDataObj *pData = new FDataObj( 2, years, U_YEARS);
    pData->SetName( "Policy Effectiveness Trend" );
    pData->SetLabel( 0, this->m_pEnvModel->GetEvaluatorInfo( modelIndexX )->m_name );
    pData->SetLabel( 1, this->m_pEnvModel->GetEvaluatorInfo( modelIndexY )->m_name );
@@ -2103,7 +2103,7 @@ FDataObj *DataManager::CalculatePolicyEffectivenessTrendStatic( int run /*= -1*/
    // move map back to starting conditions
    UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer );
 
-   FDataObj *pData = new FDataObj( goalCount+1, years );
+   FDataObj *pData = new FDataObj( goalCount+1, years, U_YEARS);
    pData->SetName( "Policy Effectiveness Trend" );
    pData->SetLabel( 0, "Year" );
    for ( int i=0; i < goalCount; i++ )
@@ -2225,7 +2225,7 @@ VDataObj *DataManager::CalculatePolicySummary( int run /*= -1*/ )
    int usedPolicyCount = pScenario->GetPolicyCount( true );
 
    // allocate a data object
-   VDataObj *pData = new VDataObj( colCount, usedPolicyCount );
+   VDataObj *pData = new VDataObj( colCount, usedPolicyCount, U_UNDEFINED );
    pData->SetName( "Policy Results Summary" );
    pData->SetLabel( 0, "Policy" );
    pData->SetLabel( 1, "Applied Count" );
@@ -2470,7 +2470,7 @@ VDataObj *DataManager::CalculatePolicyByActorArea( int run /* = -1 */ )
    int actors = m_pEnvModel->m_pActorManager->GetActorGroupCount();
    
    // allocate a data object
-   VDataObj *pData = new VDataObj( actors+1, policies );
+   VDataObj *pData = new VDataObj( actors+1, policies, U_UNDEFINED );
    pData->SetName( "Policies By Actor Summary (Area)" );
    
    pData->SetLabel( 0, "Policy" );
@@ -2544,7 +2544,7 @@ VDataObj *DataManager::CalculatePolicyByActorCount( int run /* = -1 */ )
    int actors = m_pEnvModel->m_pActorManager->GetActorGroupCount();
    
    // allocate a data object
-   VDataObj *pData = new VDataObj( actors+1, policies );
+   VDataObj *pData = new VDataObj( actors+1, policies, U_UNDEFINED );
    pData->SetName( "Policies By Actor Summary (Count)" );
    
    pData->SetLabel( 0, "Policy" );
@@ -2630,7 +2630,7 @@ FDataObj *DataManager::CalculateTrendsWeightedByLulcA( int trendCol, double scal
    if ( includeTotal )
       cols++;
 
-   FDataObj *pData = new FDataObj( cols, years+1, 0.0f ); 
+   FDataObj *pData = new FDataObj( cols, years+1, 0.0f, U_YEARS);
    CString name;
    name = this->m_pEnvModel->m_pIDULayer->GetFieldLabel( trendCol );
    name += " Trends by LULC A Class";
@@ -2822,7 +2822,7 @@ VDataObj *DataManager::CalculateEvalScoresByLulcA( int year, int run /*=-1*/ )
       }
 
    // set data object labels with LULC_A classes
-   VDataObj *pData = new VDataObj( cols, evalModelCount ); 
+   VDataObj *pData = new VDataObj( cols, evalModelCount, U_UNDEFINED ); 
    pData->SetName( _T("Evaluative Scores by LULC_A Class") );
    pData->SetLabel( 0, "Evaluative Model" );
    for ( int i=0; i < lulcCount; i++ )
@@ -2946,7 +2946,7 @@ FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 
    ASSERT( pDeltaArray != NULL );
    ASSERT( lulcCount > 0 );
 
-   FDataObj *pData = new FDataObj( lulcCount, lulcCount );
+   FDataObj *pData = new FDataObj( lulcCount, lulcCount, U_UNDEFINED );
    pData->SetName( "Lulc Transition Table" );
 
    int lulcCol;
@@ -3097,7 +3097,7 @@ FDataObj *DataManager::CalculateFreqTable( FDataObj *pSourceData, int binCount, 
    // new data object will have a column for each column in the original dataobj, and a row for each bin
 
    // create a dataobj for the histogram
-   FDataObj *pData = new FDataObj( cols+1, binCount, 0.0f );
+   FDataObj *pData = new FDataObj( cols+1, binCount, 0.0f, U_UNDEFINED );
    CString name( pSourceData->GetName() );
    name += " - Frequency Table";
    pData->SetName( name );
@@ -3602,7 +3602,7 @@ bool DataManager::LoadRun( LPCTSTR fileName )
    for ( int i=0; i<DT_LAST; i++ )
       {
       ASSERT( m_currentDataObjs[i] == NULL );
-      FDataObj *pData = new FDataObj;
+      FDataObj *pData = new FDataObj( U_YEARS );
       LoadDataObj( fp, *pData );
       m_currentDataObjs[i] = pData;
       int r = (int) m_dataObjs[ i ].Add( pData );
@@ -4032,7 +4032,7 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
    Report::StatusMsg( "Import multirun datasets..." );
 
    // first, get the multirun dataobjs and read from the specified directory
-   FDataObj *pData = new FDataObj;
+   FDataObj *pData = new FDataObj(U_YEARS);
    pData->SetName( "Multirun Landscape Evaluative Statistics" );
    strcpy_s(filename, _MAX_PATH, path);
    strcat_s(filename,  _MAX_PATH, "Multirun Landscape Evaluative Statistics.dat" );
@@ -4041,7 +4041,7 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
    m_currentMultiRunDataObjs[ DT_MULTI_EVAL_SCORES ] = pData;
 
    // multirun raw scores
-   pData = new FDataObj;
+   pData = new FDataObj(U_YEARS);
    pData->SetName( "Multirun Landscape Evaluative Statistics (Raw)" );
    strcpy_s(filename, _MAX_PATH, path);
    strcat_s(filename,  _MAX_PATH, "Multirun Landscape Evaluative Statistics (Raw).dat" );
@@ -4050,7 +4050,7 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
    m_currentMultiRunDataObjs[ DT_MULTI_EVAL_RAWSCORES ] = pData;
 
    // scenario settings  
-   pData = new FDataObj;
+   pData = new FDataObj(U_YEARS);
    pData->SetName( "Multirun Scenario Settings" );
    strcpy_s( filename,  _MAX_PATH, path);
    strcat_s( filename,  _MAX_PATH, "Multirun Scenario Settings.dat" );
@@ -4118,14 +4118,14 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
 
       // 1) Landscape Eval Statistics
       runPath.Format( "%sRun_%i\\Landscape Evaluative Statistics.dat", path, run );
-      pData = new FDataObj;
+      pData = new FDataObj(U_YEARS);
       pData->SetName( "Landscape Evaluative Statistics" );
       pData->ReadAscii( runPath, '\t' );
       m_currentDataObjs[ DT_EVAL_SCORES ] = pData;
       m_dataObjs[ DT_EVAL_SCORES ].Add( pData );
 
       runPath.Format( "%sRun_%i\\Landscape Evaluative Statistics (Raw).dat", path, run );
-      pData = new FDataObj;
+      pData = new FDataObj(U_YEARS);
       pData->SetName( "Landscape Evaluative Statistics (Raw)" );
       pData->ReadAscii( runPath, '\t' );
       m_currentDataObjs[ DT_EVAL_RAWSCORES ] = pData;
@@ -4133,7 +4133,7 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
 
       // 2) Actor Value Trajectories
       runPath.Format( "%sRun_%i\\Actor Value Trajectories.dat", path, run );
-      pData = new FDataObj;
+      pData = new FDataObj(U_YEARS);
       pData->SetName( "Actor Value Trajectories" );
       pData->ReadAscii( runPath, '\t' );
       m_currentDataObjs[ DT_ACTOR_WTS ] = pData;
@@ -4141,7 +4141,7 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
 
       // 3) Policy Initial Area Results Summary
       runPath.Format( "%sRun_%i\\Policy Initial Area Results Summary.dat", path, run );
-      pData = new FDataObj;
+      pData = new FDataObj(U_YEARS);
       pData->SetName( "Policy Initial Area Results Summary" );
       pData->ReadAscii( runPath, '\t' );
       m_currentDataObjs[ DT_POLICY_SUMMARY ] = pData;
@@ -4149,7 +4149,7 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
 
       // 4) Global Constraints
       runPath.Format( "%sRun_%i\\Global Constraints Summary.dat", path, run );
-      pData = new FDataObj;
+      pData = new FDataObj(U_YEARS);
       pData->SetName( "Global Constraints Summary" );
       pData->ReadAscii( runPath, '\t' );
       m_currentDataObjs[ DT_GLOBAL_CONSTRAINTS ] = pData;
@@ -4157,7 +4157,7 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
 
       // 5) Policy Stats
       runPath.Format( "%sRun_%i\\Policy Stats.dat", path, run );
-      pData = new FDataObj;
+      pData = new FDataObj(U_YEARS);
       pData->SetName( "Policy Stats" );
       pData->ReadAscii( runPath, '\t' );
       m_currentDataObjs[ DT_POLICY_STATS ] = pData;

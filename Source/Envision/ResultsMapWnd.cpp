@@ -215,7 +215,7 @@ int ResultsMapWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
    //if ( m_overlayCol >= 0 )  // is there an overlay column?
    //   cols = 2;
 
-   VDataObj *pData = new VDataObj( cols, rows );
+   VDataObj *pData = new VDataObj( cols, rows, U_UNDEFINED );
    pData->SetLabel( 0, pInfo->fieldname );
 
    if ( cols > 1 )

@@ -308,7 +308,7 @@ bool Reporter::Init( EnvContext *pEnvContext, LPCTSTR initStr )
       if ( pOutput->IsStratified() )
          {
          CString label;
-         label.Format( "%s by %s [stratified]", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
+         label.Format( "%s by %s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
 
          ASSERT( pOutput->m_pStratifyData != NULL );
 
@@ -337,7 +337,7 @@ bool Reporter::Init( EnvContext *pEnvContext, LPCTSTR initStr )
             varCount++;
             }
       
-      pGroup->m_pData = new FDataObj( cols, 0 );
+      pGroup->m_pData = new FDataObj( cols, 0, U_YEARS );
       pGroup->m_pData->SetName( pGroup->m_name );
       pGroup->m_pData->SetLabel( 0, "Year");
       
@@ -359,7 +359,7 @@ bool Reporter::Init( EnvContext *pEnvContext, LPCTSTR initStr )
       if ( pGroup->IsStratified() )
          {
          CString label;
-         label.Format( "%s by %s [stratified]", (LPCTSTR) pGroup->m_name, (LPCTSTR) pGroup->m_stratifyField );
+         label.Format( "%s by %s", (LPCTSTR) pGroup->m_name, (LPCTSTR) pGroup->m_stratifyField );
          AddOutputVar( label, NULL, "" );
 
          for ( int k=0; k < (int) pGroup->m_outputArray.GetSize(); k++ )
@@ -372,7 +372,7 @@ bool Reporter::Init( EnvContext *pEnvContext, LPCTSTR initStr )
             if ( pOutput->m_pStratifyData != NULL )  // collecting summarized data?
                {
                CString label;
-               label.Format( "%s by %s [stratified]", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField ); 
+               label.Format( "%s by %s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField ); 
                AddOutputVar( label, pOutput->m_pStratifyData, "", 1 );
                }
             }
@@ -1220,7 +1220,7 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
                int cols = 1 + pOutput->GetStratifiedAttrCount();        // time + slot for each attribute
                
                ASSERT( cols > 1 );
-               pOutput->m_pStratifyData = new FDataObj( cols, 0 );
+               pOutput->m_pStratifyData = new FDataObj( cols, 0, U_YEARS);
                pOutput->m_stratifiedValues.SetSize( pOutput->GetStratifiedAttrCount() );
          
                CString name;
@@ -1259,7 +1259,7 @@ bool BuildPivotTable( Output *pOutput )
    if ( pOutput->IsStratified() )
       cols += 2;
 
-   pOutput->m_pPivotData = new VDataObj( cols, 0 );
+   pOutput->m_pPivotData = new VDataObj( cols, 0, U_UNDEFINED);
 
    CString name;
    if ( pOutput->IsStratified() )
@@ -1301,7 +1301,7 @@ bool BuildGroupPivotTable( OutputGroup *pGroup )
    if ( useSummaries )
       cols += 2;
 
-   pGroup->m_pPivotData = new VDataObj( cols, 0);
+   pGroup->m_pPivotData = new VDataObj( cols, 0, U_UNDEFINED);
    
    CString name;
    if ( useSummaries )

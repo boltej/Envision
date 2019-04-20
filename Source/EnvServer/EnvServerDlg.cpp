@@ -71,13 +71,19 @@ void SvrLogMsgProc(LPCTSTR msg, REPORT_ACTION, REPORT_TYPE type)
 
 void SvrStatusMsgProc(LPCTSTR msg)
    {
-   std::cout << "Status: " << msg << std::endl;
+   std::string _msg = "Status: ";
+   _msg += msg;
+
+   gpMainWnd->Log(_msg.c_str());
    }
 
 // called whenever a Report message is invoked (e.g. Report::Log();
-int SvrPopupMsgProc(LPCTSTR hdr, LPCTSTR msg, int flags)
+int SvrPopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extra)
    {
-   std::cout << hdr << ": " << msg << std::endl;
+   std::string _msg = "Message: ";
+   _msg += msg;
+
+   gpMainWnd->Log(_msg.c_str());
    return 0;
    }
 

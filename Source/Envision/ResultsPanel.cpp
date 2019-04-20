@@ -1711,7 +1711,7 @@ void ResultsPanel::AddCrossRunGraph( ResultNode *pNode ) //RESULT_TYPE type, int
          int rows = pRunData->GetRowCount();
          int col  = pRunData->GetCol( pModel->m_name );
 
-         FDataObj *pDataObj = new FDataObj( runCount+1, rows );
+         FDataObj *pDataObj = new FDataObj( runCount+1, rows, U_YEARS);
          pDataObj->SetLabel( 0, "Time (years)" );
 
          RUN_INFO &ri = gpModel->m_pDataManager->GetRunInfo( 0 );
@@ -1764,7 +1764,7 @@ void ResultsPanel::AddCrossRunGraph( ResultNode *pNode ) //RESULT_TYPE type, int
          int rows = pRunData->GetRowCount();    // number of years in run
          int col  = (int) extra;
 
-         FDataObj *pDataObj = new FDataObj( runCount+1, rows );
+         FDataObj *pDataObj = new FDataObj( runCount+1, rows, U_YEARS);
          pDataObj->SetLabel( 0, "Time (years)" );
 
          RUN_INFO &ri = gpModel->m_pDataManager->GetRunInfo( 0 );

@@ -45,28 +45,28 @@ Copywrite 2012 - Oregon State University
 //-- constructors
 //-------------------------------------------------------------------
 
-IDataObj::IDataObj( void )
-   : DataObj(),
+IDataObj::IDataObj(UNIT_MEASURE m)
+   : DataObj(m),
      matrix  ()
    { }
 
 
 //-------------------------------------------------------------------
-IDataObj::IDataObj( IDataObj &dataObj )
-   : DataObj( dataObj ),
+IDataObj::IDataObj( IDataObj &dataObj)
+   : DataObj( dataObj),
      matrix  ( dataObj.matrix )
    { }
 
 
 //-------------------------------------------------------------------
-IDataObj::IDataObj( int _cols, int _rows )
-   : DataObj( _cols, _rows ),
+IDataObj::IDataObj( int _cols, int _rows, UNIT_MEASURE m)
+   : DataObj( _cols, _rows, m ),
      matrix  ( _rows, _cols )
    { }
 
 
-IDataObj::IDataObj( int _cols, int _rows, int initValue )
-   : DataObj( _cols, _rows ),
+IDataObj::IDataObj( int _cols, int _rows, int initValue, UNIT_MEASURE m)
+   : DataObj( _cols, _rows, m ),
      matrix  ( _rows, _cols, initValue )
    { }
 

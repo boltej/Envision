@@ -36,7 +36,8 @@ ColumnTrace::ColumnTrace( EnvModel *pModel, int column, int run /*= -1*/, const 
    m_rows( -1 ),
    m_currentYear( 0 ),
    m_maxYear( -1 ),
-   m_pDeltaArray( NULL )
+   m_pDeltaArray( NULL ),
+   m_column(U_UNDEFINED)
    {
    ASSERT(pModel != NULL);
    ASSERT(pModel->m_pIDULayer );

@@ -64,6 +64,9 @@ Developer::Developer()
 , m_currUxScenarioID( 0 )
 , m_pCurrentUxScenario( NULL )
 , m_startPop( -1 )
+, m_nDUData( U_UNDEFINED )      // for each uga + totals
+, m_newDUData( U_UNDEFINED )
+
 { }
 
 

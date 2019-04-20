@@ -332,7 +332,9 @@ void InitSessionHandler(const shared_ptr< Session > pSession)
    }
 
 // load-project
-// QueryString: SessionID, Prj (project path)
+// QueryString: 
+//    SessionID,
+//    Prj = project path, from project.json
 // Request Body: none
 // Response Body: "Loading Envision Project|ID"
 
@@ -352,6 +354,38 @@ void LoadProjectHandler(const shared_ptr< Session > pSession)
    if (envxFile.GetLength() > 5 && envxFile.GetExtension().CompareNoCase("envx") == 0)
       {
       // yes, so launch an Envision Instance with that project
+
+      // process projects.json file
+      restServer.m_datasetsArray.RemoveAll();
+
+      string json = readFile(string("/envision/source/EnvServer/projects.json"));
+
+      std::size_t found = json.find(project);
+      if (found != std::string::npos)
+         {
+         found = json.find("datasets", found);
+         if (found != std::string::npos)
+            {
+            std::size_t start = json.find('[', found);
+            std::size_t end = json.find(']', start);
+            // at this point, we should have [ "csv0", "csv1" .... ]
+            string strArray = json.substr(start+1, end-start-1);
+
+            // parse it
+            CStringArray dsNameArray;
+            int dsCount = ::Tokenize(strArray.c_str(), ",", dsNameArray);
+
+            // strip out whitespace, quotes
+            for (int i = 0; i < dsCount; i++)
+               {
+               CString dsName = dsNameArray.GetAt(i);
+               dsName.Trim(" '\"");
+               restServer.m_datasetsArray.Add(dsName);
+               }
+            }
+         }
+      // done parsing projects.json 
+      // launch an Envision Instance with the specified project envx file
       EnvisionInstance *pInst = restServer.AddModelInstance(); // sets the inst ID
       pInst->LoadProject(envxFile);   // launched on a thread, DOESN'T set session
       // NOTE - the above should return quickly since it launches it's own thread
@@ -366,6 +400,7 @@ void LoadProjectHandler(const shared_ptr< Session > pSession)
          { { "Content-type", "application/x-www-form-urlencoded"},
            { "Access-Control-Allow-Origin","*" }
          });
+
       }  // end of: if ( valid project file ) 
    else
       {
@@ -448,7 +483,7 @@ void GetOutputVarsHandler(const shared_ptr< Session > pSession)
       if (pEnvModel != NULL)
          {
          vector<string> labels;
-         int varCount = pEnvModel->GetOutputVarLabels(OVT_MODEL|OVT_EVALUATOR|OVT_APPVAR,labels);// return a response without closing the underlying socket connection
+         int varCount = pEnvModel->GetOutputVarLabels(OVT_MODEL|OVT_EVALUATOR|OVT_APPVAR|OVT_PDATAOBJ,labels);// return a response without closing the underlying socket connection
 
          // convert to JSON
          string json("{ \"labels\":[");
@@ -1300,12 +1335,15 @@ void RestServer::SendServerEvent(EM_NOTIFYTYPE type, INT_PTR param, INT_PTR extr
 // QueryString:
 //     ModelID - integer
 //     Datasets=ds
-//     Start
-//     End
+//     Start - initial year (inclusive)
+//     End - final year (inclusive - if same as start, get one years of data)
 //     Fields=f0|f1|...|fend (optional, default=all)
 // Request Body:
-// ResponseBody:
-//
+// ResponseBody: json
+//     { "data":[ { label0:[[x0,y0],...,[xn,yn]] },
+//                { label1:[[x0,y0],...,[xn,yn]] },
+//                { label2:[[x0,y0],...,[xn,yn]] }
+//     }
 
 void GetDataHandler(const shared_ptr< Session > pSession)
    {
@@ -1329,29 +1367,14 @@ void GetDataHandler(const shared_ptr< Session > pSession)
       return;
       }
 
-   // DM_TYPES
-   // DT_EVAL_SCORES = 0,     // landscape goal scores trajectories
-   // DT_EVAL_RAWSCORES,      // landscape goal scores trajectories (raw scores)
-   // DT_MODEL_OUTPUTS,       // output variables from eval and autonous process models, + App vars
-   // DT_ACTOR_WTS,           // actor group data
-   // DT_ACTOR_COUNTS,        // actor counts by actor group
-   // DT_POLICY_SUMMARY,      // policy summary information (only initial areas)
-   // DT_GLOBAL_CONSTRAINTS,  // Global Constraints summary outputs
-   // DT_POLICY_STATS,        // info on policy stats (intrumentation)
-   // DT_SOCIAL_NETWORK,      // info on social network outpus
-   // DT_LAST
-
    DM_TYPE dmType = DT_MODEL_OUTPUTS;  // default is not specified
-
-   string _dmType = request->get_query_parameter("Dataset");
-   if (_dmType.compare("GlobalConstraints") == 0)
-      dmType = DT_GLOBAL_CONSTRAINTS;
-   else if (_dmType.compare("PolicyStats") == 0)
-      dmType = DT_POLICY_STATS;
-   // add more as needed.
-
-
-
+   ////
+   ////string _dmType = request->get_query_parameter("Dataset");
+   ////if (_dmType.compare("GlobalConstraints") == 0)
+   ////   dmType = DT_GLOBAL_CONSTRAINTS;
+   ////else if (_dmType.compare("PolicyStats") == 0)
+   ////   dmType = DT_POLICY_STATS;
+   ////// add more as needed.
 
    // have valid model ID, query it for data
    string start = request->get_query_parameter("Start");
@@ -1366,6 +1389,7 @@ void GetDataHandler(const shared_ptr< Session > pSession)
    EnvModel *pEnvModel = pInst->m_pEnvModel;
    ASSERT(pEnvModel != NULL);
 
+   // get specified output datasets
    if (request->has_query_parameter("Fields"))
       {
       fields = request->get_query_parameter("Fields");
@@ -1374,71 +1398,115 @@ void GetDataHandler(const shared_ptr< Session > pSession)
    else
       {
       vector<string> labels;   // Note: excludes DataObj-type output vars
-      fieldCount = pEnvModel->GetOutputVarLabels(OVT_MODEL|OVT_EVALUATOR|OVT_APPVAR, labels);  //7=get all (aps, evals, appvars)
+      fieldCount = pEnvModel->GetOutputVarLabels(OVT_MODEL|OVT_EVALUATOR|OVT_APPVAR|OVT_PDATAOBJ, labels);  //7=get all (aps, evals, appvars)
       for (int i = 0; i < fieldCount; i++)
          _fields.Add(labels[i].c_str());
       }
 
    // at this point, _fields contains an array of field name strings
    // create a dataobj with cols=fields, rows= requested time interval
-   int rows = _end - _start + 1;
-   FDataObj dataObj(fieldCount, rows);  // cols, rows
+
+   // start constructing JSON
+   string json("{\"data\":[");
 
    if (fieldCount > 0)
       {
+      // get the model output databobj
+      DataObj *pDataObj = pEnvModel->m_pDataManager->GetDataObj(dmType, -1);
+      ASSERT(pDataObj != NULL);
+
       for (int i = 0; i < fieldCount; i++)
          {
-         // field will be "model name.fieldname"
-         DataObj *pDataObj = pEnvModel->m_pDataManager->GetDataObj(dmType, -1);
-         ASSERT(pDataObj != NULL);
+         // field will be: "model name.fieldname" for regular variables, 
+         //                "model name.dataObjName:dataObjCol" for dataobj-based variables
+         CString field = _fields.GetAt(i);
 
-         int doFieldCount = pDataObj->GetColCount();
-         ASSERT(fieldCount <= doFieldCount);
+         json += "{\"" + field + "\":["; // ready to start adding points  Get the data next.
 
-         int col = pDataObj->GetCol(_fields[i]);
-         ASSERT(col >= 0);
+         // is the field in a related dataobj?
+         // if so, field will be ModelName.DataObjName:FieldName
+         int colon = field.Find(':');
+         if (colon > 0)
+            {
+            // yes, so we need to get the underlying data obj
+            int dot = field.Find('.');
 
-         CArray<float, float> data;
-         pEnvModel->m_pDataManager->SubsetData(DT_MODEL_OUTPUTS, /*run*/ -1, col, _start, _end, data);
+            CString modelName = field.Mid(0, dot);
+            CString doName = field.Mid(dot + 1, colon - dot - 1);
+            CString fieldName = field.Mid(colon + 1);
 
-         dataObj.SetLabel(i, _fields[i]);
-         for (int j = 0; j < rows; j++)
-            dataObj.Set(i, j, data[j]);
-         }
-      }
+            EnvProcess *pInfo = (EnvProcess*)pEnvModel->FindModelProcessInfo(modelName);
 
-   // have requested data, return it to the client as JSON
-   // { { "f0 label": [d0,d1,d2] },
-   //             ...
-   //   { "fn label": [d0,d1,d2] } }
-   
-   // convert to JSON
-   string json("{ \"data\":[");
-   
-   for (int i = 0; i < fieldCount; i++)
-      {
-      //json += "{ \"";
-      //json += (LPCTSTR)_fields[i];
-      //json += "\":[";
-      json += "[";
-      for (int j = 0; j < rows; j++)
-         {
-         string value = format("%f", dataObj.GetAsFloat(i, j));
-         json += value;
+            if (pInfo == NULL)
+               pInfo = (EnvProcess*)pEnvModel->FindEvaluatorInfo(modelName);
 
-         if (j != rows - 1)
-            json += ",";
-         }
+            ASSERT(pInfo != NULL);
 
-      //json += "]}";
-      json += "]";
+            // have correct plugin, find dataobj
+            MODEL_VAR *pVar = pInfo->FindOutputVar(doName);
+            ASSERT(pVar != nullptr);
+            ASSERT(pVar->type == TYPE_PDATAOBJ);
 
-      if (i != fieldCount - 1)
-         json += ",";
-      else
-         json += "]}";
-      }
+            DataObj *pDOVar = (DataObj*)pVar->pVar;
+            int col = pDOVar->GetCol(fieldName);
+            ASSERT(col >= 0);
 
+            // is this annual or daily data?
+            UNIT_MEASURE m = pDOVar->m_primaryAxisUnit;
+
+            int rowStart = _start;
+            int rowEnd = _end;
+            if (m == U_DAYS)
+               {
+               rowStart *= 365;
+               rowEnd = (rowEnd * 365) + 365;
+               }
+
+            CArray<float, float> times, data;
+            pDOVar->SubsetData(0, rowStart, rowEnd, times);
+            pDOVar->SubsetData(col, rowStart, rowEnd, data);
+
+            // have data, write to json string
+            int count = times.GetSize();
+            for (int j = 0; j < count; j++)
+               {
+               json += format("[%f,%f]", times[j], data[j]);
+               if (j < count - 1)
+                  json += ',';
+               else
+                  json += "]";
+               }
+            }
+         else
+            {
+            int col = pDataObj->GetCol(field);
+            ASSERT(col >= 0);
+
+            CArray<float, float> times, data;
+            pEnvModel->m_pDataManager->SubsetData(DT_MODEL_OUTPUTS, /*run*/ -1, 0, _start, _end, times);
+            pEnvModel->m_pDataManager->SubsetData(DT_MODEL_OUTPUTS, /*run*/ -1, col, _start, _end, data);
+
+            // have data, write to json string
+            int count = times.GetSize();
+            for (int j = 0; j < count; j++)
+               {
+               json += format("[%f,%f]", times[j], data[j]);
+               if (j < count - 1)
+                  json += ',';
+               else
+                  json += "]";
+               }
+            }
+
+         json += "}";  // close label dictionary entry
+
+         // data written, add comma if not last record
+         if (i < fieldCount - 1)
+            json += ',';
+         }  // end of: for each field
+      }  // end of: if ( fieldCount > 0 )
+
+   json += "]}";
 
    CString msg;
    msg.Format("GetData: Fields %s for InstanceID %i, EnvModelID: %I64d", fields.c_str(), pInst->GetID(), (INT_PTR)pInst->m_pEnvModel);

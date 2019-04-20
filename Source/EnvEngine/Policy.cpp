@@ -589,7 +589,7 @@ PolicyConstraint::PolicyConstraint( Policy *pPolicy, LPCTSTR name, CBASIS basis,
             path.Append( filename );
             }            
 
-         VDataObj *pData = new VDataObj;
+         VDataObj *pData = new VDataObj(U_UNDEFINED);
          int count = pData->ReadAscii( path );
 
          if ( count <= 0 )

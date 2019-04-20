@@ -87,7 +87,7 @@ int MultirunHistogramPlotWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
    m_resultCombo.AddString( "--Show All--" );
 
    // create a dataobj for the histogram
-   FDataObj *pData = new FDataObj( resultsCount+1, binCount, 0.0f );
+   FDataObj *pData = new FDataObj( resultsCount+1, binCount, 0.0f, U_UNDEFINED);
    pData->SetLabel( 0, "Bin" );
    for ( int i=0; i < resultsCount; i++ )
       {
@@ -253,7 +253,7 @@ void MultirunHistogramPlotWnd::ComputeFrequencies( std::vector<float> xVector, i
    std::vector< double > centers = histogram.GetCenterContainers();
    std::vector< UINT   > freqs   = histogram.GetHistogram();  //GetNormalizedHistogram();
 
-   FDataObj dataObj( 2, binCount, 0.0f );
+   FDataObj dataObj( 2, binCount, 0.0f, U_UNDEFINED);
 
    for ( int i=0; i < binCount; i++ )
       {
