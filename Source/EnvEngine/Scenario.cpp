@@ -1046,61 +1046,62 @@ int ScenarioManager::LoadXml( TiXmlNode *pScenarios, bool appendToExisting )
 
                Report::LogWarning( msg );
                loadSuccess = false;
-               continue;
-               }
-         
-            pInfo->inUse = inUse ? true : false;
-
-            if (::isdigit(vtype[0]))
-               {
-               pInfo->vtype = (VTYPE) atoi(vtype);
                }
             else
                {
-               if (_tcsicmp(vtype, _T("system"))==0)
-                  pInfo->vtype = V_SYSTEM;
-               else if (_tcsicmp(vtype, _T("scenario")) == 0)
-                  pInfo->vtype = V_SYSTEM;
-               else if (_tcsicmp(vtype, _T("metagoal")) == 0)
-                  pInfo->vtype = V_META;
-               else if (_tcsicmp(vtype, _T("evaluator")) == 0)
-                  pInfo->vtype = V_MODEL;
-               else if (_tcsicmp(vtype, _T("model")) == 0)
-                  pInfo->vtype = V_AP;
-               else if (_tcsicmp(vtype, _T("appvar")) == 0)
-                  pInfo->vtype = V_APPVAR;
-               else
-                  pInfo->vtype = V_UNKNOWN;
-               }
+               pInfo->inUse = inUse ? true : false;
 
-            if (distType != NULL)
-               {
-               if (isdigit(distType[0]))
-                  pInfo->distType = (MODEL_DISTR)atoi(distType);
+               if (::isdigit(vtype[0]))
+                  {
+                  pInfo->vtype = (VTYPE)atoi(vtype);
+                  }
                else
-                  switch (tolower(distType[0]))
-                     {
-                     case 'n':   pInfo->distType = MD_NORMAL;  break;
-                     case 'u':   pInfo->distType = MD_UNIFORM; break;
-                     case 'l':   pInfo->distType = MD_LOGNORMAL; break;
-                     case 'w':   pInfo->distType = MD_WEIBULL; break;
-                     case 'c':   pInfo->distType = MD_CONSTANT; break;
-                     default:
-                       {
-                        CString msg;
-                        msg.Format("Invalid scenario type encountered reading scenario variable '%s'.  This variable will treated as a constant.", name);
-                        pInfo->inUse = false;
+                  {
+                  if (_tcsicmp(vtype, _T("system")) == 0)
+                     pInfo->vtype = V_SYSTEM;
+                  else if (_tcsicmp(vtype, _T("scenario")) == 0)
+                     pInfo->vtype = V_SYSTEM;
+                  else if (_tcsicmp(vtype, _T("metagoal")) == 0)
+                     pInfo->vtype = V_META;
+                  else if (_tcsicmp(vtype, _T("evaluator")) == 0)
+                     pInfo->vtype = V_MODEL;
+                  else if (_tcsicmp(vtype, _T("model")) == 0)
+                     pInfo->vtype = V_AP;
+                  else if (_tcsicmp(vtype, _T("appvar")) == 0)
+                     pInfo->vtype = V_APPVAR;
+                  else
+                     pInfo->vtype = V_UNKNOWN;
+                  }
+
+               if (distType != NULL)
+                  {
+                  if (isdigit(distType[0]))
+                     pInfo->distType = (MODEL_DISTR)atoi(distType);
+                  else
+                     switch (tolower(distType[0]))
+                        {
+                        case 'n':   pInfo->distType = MD_NORMAL;  break;
+                        case 'u':   pInfo->distType = MD_UNIFORM; break;
+                        case 'l':   pInfo->distType = MD_LOGNORMAL; break;
+                        case 'w':   pInfo->distType = MD_WEIBULL; break;
+                        case 'c':   pInfo->distType = MD_CONSTANT; break;
+                        default:
+                           {
+                           CString msg;
+                           msg.Format("Invalid scenario type encountered reading scenario variable '%s'.  This variable will treated as a constant.", name);
+                           pInfo->inUse = false;
+                           }
                         }
-                     }
-               }
+                  }
 
-            if ( pInfo->distType == MD_CONSTANT && pXmlVarNode->Attribute( "value" ) != NULL ) // constant????
-               pInfo->paramLocation = value;
-            else
-               {
-               pInfo->paramScale    = (float) paramScale;
-               pInfo->paramLocation = (float) paramLocation;
-               pInfo->paramShape    = (float) paramShape;
+               if (pInfo->distType == MD_CONSTANT && pXmlVarNode->Attribute("value") != NULL) // constant????
+                  pInfo->paramLocation = value;
+               else
+                  {
+                  pInfo->paramScale = (float)paramScale;
+                  pInfo->paramLocation = (float)paramLocation;
+                  pInfo->paramShape = (float)paramShape;
+                  }
                }
 
             pXmlVarNode = pXmlVarNode->NextSiblingElement("var");

@@ -1158,7 +1158,7 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
             default:
                {
                CString msg;
-               msg.Format( "Reporter: Unrecognized 'type' attribute for output '%s'- must be 'sum', 'pctArea' or 'areaWtMean'.  This output will be ignored...", (LPCTSTR) pOutput->m_name );
+               msg.Format( "Reporter: Unrecognized 'type' attribute for output '%s'- must be 'sum', 'pctArea', 'mean', or 'areaWtMean'.  This output will be ignored...", (LPCTSTR) pOutput->m_name );
 
                Report::LogError( msg );
                pOutput->m_use = false;

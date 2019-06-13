@@ -104,7 +104,7 @@ bool AHEvent::Run(EnvContext *pEnvContext)
    char cwd[512];
    _getcwd(cwd, 512);
 
-   _chdir("d:/Envision/studyAreas/OrCoast/Hazus");
+   _chdir("/Envision/studyAreas/OrCoast/Hazus");
       
    CString code;
    code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
@@ -203,7 +203,9 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    colInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
    colInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
    colInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
+   colInfos.Add(new HazDataColInfo{ "DS",  -1 });
 
+   // find the CSV column associated with each statistic type
    for (int i = 0; i < colInfos.GetSize(); i++)
       {
       HazDataColInfo *pInfo =  colInfos[i];
@@ -213,36 +215,45 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       }
 
    // iterate through IDUs' populating data on hazard states as needed
+   enum HAZARD_METRIC_INDEX { HMI_P_DS0, HMI_REP_TIME_MU0, HMI_REP_TIME_STD0, HMI_REP_COST_DR0, HMI_HAB_0, HMI_DS };
    int currentYear = pEnvContext->currentYear;
 
-   enum HAZARD_METRIC_INDEX { HMI_P_DS0, HMI_REP_TIME_MU0, HMI_REP_TIME_STD0, HMI_REP_COST_DR0, HMI_HAB_0 };
-   
+   // we'll start with damage state
    for (int idu = 0; idu < idus; idu++)
       {
-      // determine damage state
-      float randVal = (float) m_pAHModel->m_randUniform.RandValue();
+      // OLD WAY
+      //////  // determine damage state by rolling a dice and seeing where that puts this round
+      //////  float randVal = (float) m_pAHModel->m_randUniform.RandValue();
+      //////  
+      //////  float cumPDS = 0;
+      //////  int bin = 0;
+      //////  // iterate through probability bins, checking to see if the dice landed in this bin
+      //////  int startHazCol = colInfos[HMI_P_DS0]->col;
+      //////  const int bins = 5;
+      //////  for (bin=0; bin < bins; bin++)
+      //////     {
+      //////     // get the damage probability for this state from the hazard data CSV
+      //////     float pDS = m_hazData.Get(startHazCol+ bin, idu);
+      //////     cumPDS += pDS;
+      //////  
+      //////     if (randVal <= cumPDS)
+      //////        break;
+      //////     }
+      //////  
+      //////  if (bin == 5)
+      //////     bin--;
+      //////  
+      //////  // indicate the building is damaged in the IDU layer by setting BLDGDAMAGE field to 0-4 damage index
+      //////  int damageIndex = bin;  // 0-4
+      int damageIndex = m_hazData.Get(colInfos[HMI_DS]->col, idu);
 
-      float cumPDS = 0;
-      int i = 0;
-      for (i=0; i < 5; i++)
-         {
-         float pDS = m_hazData.Get(colInfos[HMI_P_DS0]->col+i, idu);
-         cumPDS += pDS;
-
-         if (randVal <= cumPDS)
-            break;
-         }
-
-      if (i == 5)
-         i--;
-
-      // indicate the building is damaged
-      int damageIndex = i;  // 0-4
+      
       m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamage, damageIndex, ADD_DELTA);
 
       // get time to restore building
       float mean = m_hazData.Get(colInfos[HMI_REP_TIME_MU0]->col+damageIndex, idu);
 
+      // was the building damaged? Then set repair time in IDUs
       if (damageIndex > 0)
          {
          float std = m_hazData.Get(colInfos[HMI_REP_TIME_STD0]->col+damageIndex, idu);
@@ -272,7 +283,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
             } 
          
          // habitable
-         randVal = (float) m_pAHModel->m_randUniform.RandValue();
+         float randVal = (float) m_pAHModel->m_randUniform.RandValue();
          float pHab = m_hazData.Get(colInfos[HMI_HAB_0]->col + damageIndex, idu);
 
          int habitable = (randVal >= pHab) ? 0 : 1;    
@@ -365,14 +376,17 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 bool AcuteHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    {
    // reset annual output variables
-   //m_annualRepairCosts = 0;
    m_nUninhabitableStructures = 0;
    m_nDamaged2 = 0;
    m_nDamaged3 = 0;
    m_nDamaged4 = 0;
    m_nDamaged5 = 0;
+   m_nDamaged = 0;
    m_bldgsRepaired = 0;
    m_bldgsBeingRepaired = 0;
+
+   for (int i = 0; i < m_events.GetSize(); i++)
+      m_events[i]->m_status = AHS_PRE_EVENT;
 
    return TRUE;
    }
@@ -382,7 +396,6 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
    int currentYear = pEnvContext->currentYear;
    
    // reset annual output variables
-   //m_annualRepairCosts = 0;
    m_nUninhabitableStructures = 0;
    m_nDamaged  = 0;
    m_nDamaged2 = 0;

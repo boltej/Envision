@@ -1,0 +1,88 @@
+
+                          LPJ-GUESS 4.0.1 Release Notes
+                          ===========================
+
+These are the most important changes you'll notice when switching from
+LPJ-GUESS 3.0 to 4.0. Apart from this, numerous bugfixes, adjustments and
+technical improvements have been made. 
+For a full history, refer to the Subversion history.
+
+* Change of forcing dataset and change to center-gridcell coordinates.
+  - Change of forcing dataset from CRU to CRU-NCEP, with resulting changes to 
+    FastArchive header files, and to input model.
+  - Longitude/latitude coordinates in gridlists and data files should now assumed 
+    to refer to gridcell centre, instead of south-west corner.
+  - Values in CRU_NCEP FastArchive files stored as decimal numbers at suitable 
+    precision.
+  - Interim CRU_NCEP dataset for 1901-2015 substituted with CRU precipitation 
+    for all but the last year due to issues with currently available release 
+    of CRU-NCEP. Care is advised in interpretation of simulation results for
+    2015 due to a potential discontinuity in precipitation at the start of this 
+    year. 
+  - For reasons of subversion code storage, the file name cru_TS30.cpp was kept, 
+    although the forcing data is no longer CRU TS.
+ 
+* Support for multiple land cover fractions and land use in each gridcell 
+  including croplands, pastures, managed forests in addition to climate-driven 
+  potential vegetation (PNV) as in earlier model versions. Net and gross land 
+  cover change are supported as alternatives, switchable from the instruction 
+  file (see guessdoc.doc). Available management options: cropland (detailed 
+  sowing, harvest, irrigation, rotations, tillage, residue management and, for 
+  the C-N version, also N-fertiliser amendment functions), pasture (yearly 
+  cutting), managed forest (continuous cover forestry).
+  - Crop PFT's differ from PNV PFT's in that they have: sowing, 
+    daily allocation (separate versions with and without N limitation) with 
+    phenology coupled to leaf development, irrigation, harvest, and tillage.
+  - Basic functionality for pasture and managed forest (harvest).
+  - Crop phenology and allocation has separate functions for simulations with and 
+    without nitrogen limitation. When running with landcover and the C-only version,
+    include the crop_c.ins file instead of crop_n.ins, and replace land-use files.
+  - Stand type definition in instruction file for different land cover/management 
+    types, specifying establishment rules (e.g. PFT selections), irrigation, 
+    covercrop, forestry harvest type (continuous or clearcut) and rotations.
+  - Management type definition in instruction file used for stand types with 
+    rotations.
+  - Monitoring of C and N balance for each year and over the historic simulation 
+    period. If there are any imbalances, a warning will be written to the log-file. 
+  - Litter transfer to soil on same day as phenological turnover for crop PFT's.
+
+* C to N ratios for root and sapwood are now effectively fixed at prescribed PFT 
+  target values, instead of varying in proportion to change in leaf C:N.
+  
+* Temperate needleleaved evergreen tree (TeNE) PFT enabled by default in the 
+  global.ins instruction file.
+
+* Calendar years instead of simulation years appear in output by default. Change 
+  by replacing date.get_calendar_year() with date.year on line 37 of 
+  CommonOutput::outannual (commonoutput.cpp).
+
+* New version of the LPJ-GUESS Windows Shell, with reinstated 3D visualisation of 
+  vegetation structure removed in version 3.0. 64-bit (x64) compilation of the  
+  model as a Windows dynamic-link library (DLL) is required. 
+
+* Soil texture now supports grid cell-specific sand, silt and clay fractions 
+  (specified in driver.cpp). Fractions were derived based on texture classes 
+  (Sitch et al. 2003) in soil triangle (except for organic soil, where global 
+  values from the fixed sand, silt and clay fractions, as e.g. in v3.0, were 
+  kept). Revert to fixed sand, silt and clay fractions  by adding the line 
+  "textured_soil 0" to the instruction files file to use fixed values from 
+  Parton et al.(1993)).
+  
+* The benchmarks euroflux and euroflux_globalpfts are currently being updated,
+  and are consequently temporarily removed from the release package. (They are 
+  however kept in the code repository for repository reasons: users downloading 
+  from the svn code repository should remove the catalogues before running the
+  benchmark suite.)
+  
+* The release version 4.0.1 contains bugfixes to release version 4.0. Mainly:
+  Nitrogen pools are now being balanced when running in carbon-only mode.
+  Bugfix for bug introduced in release version 4.0 causing RCP-scenario to start 
+  one decade too late.
+  Addition of missing crop-functional-types BVOC parameters.
+
+Enquiries to Johan.Nord@nateko.lu.se.
+
+Further information available at
+http://web.nateko.lu.se/lpj-guess
+
+

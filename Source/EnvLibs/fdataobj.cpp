@@ -46,6 +46,13 @@ Copywrite 2012 - Oregon State University
 //
 //-- constructors
 //-------------------------------------------------------------------
+FDataObj::FDataObj()
+   : DataObj(U_UNDEFINED),
+   matrix(),
+   statArray()
+   {
+   }
+
 
 FDataObj::FDataObj(UNIT_MEASURE m)
    : DataObj(m),

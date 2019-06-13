@@ -1303,14 +1303,24 @@ void MapWindow::DrawLayer_Gdiplus( CDC &dc, MapLayer *pLayer, bool initMapping /
                   if ( value != pLayer->GetNoDataValue() )
                      {                                   
                      Bin *pBin = pLayer->GetDataBin( USE_ACTIVE_COL, value );
-                     if ( pBin != NULL )
-                     {
-                        /* Gdiplus::Color c;
-                        c.SetFromCOLORREF( pBin->m_color );*/
-                         Gdiplus::Color c(alpha, GetRValue(pBin->m_color), GetGValue(pBin->m_color), GetBValue(pBin->m_color));
-                         Gdiplus::SolidBrush solidBrush( c );
-                         graphics.FillRectangle(&solidBrush, x0, y0, x1-x0, y1-y0);
-                     }
+                     if (pBin != NULL)
+                        {
+                        if (pBin->m_transparency > 0)
+                           {
+                           //int _alpha = -255 * pBin->m_transparency / 100 + 255;  // return a number between 0 (transparent) and 255 (opaque)
+                           //Gdiplus::Color c(alpha, GetRValue(pBin->m_color), GetGValue(pBin->m_color), GetBValue(pBin->m_color));
+                           //Gdiplus::SolidBrush solidBrush(c);
+                           //graphics.FillRectangle(&solidBrush, x0, y0, x1 - x0, y1 - y0);
+                           }
+                        else
+                           {
+                           /* Gdiplus::Color c;
+                           c.SetFromCOLORREF( pBin->m_color );*/
+                           Gdiplus::Color c(alpha, GetRValue(pBin->m_color), GetGValue(pBin->m_color), GetBValue(pBin->m_color));
+                           Gdiplus::SolidBrush solidBrush(c);
+                           graphics.FillRectangle(&solidBrush, x0, y0, x1 - x0, y1 - y0);
+                           }
+                        }
                      }
                   }
                }

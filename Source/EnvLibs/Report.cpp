@@ -44,14 +44,15 @@ void Report::StatusMsg(LPCTSTR msg)
    }
 
 
-
-
 int Report::LogMsg(LPCTSTR _msg, REPORT_ACTION action, REPORT_TYPE type)
    {
    if (logMsgProc)
+      logMsgProc(_msg, action, type);
+
+   if (m_pFile != NULL)
       {
       std::string msg;
-      
+
       switch (type)
          {
          case RT_INFO:
@@ -84,10 +85,7 @@ int Report::LogMsg(LPCTSTR _msg, REPORT_ACTION action, REPORT_TYPE type)
             msg = _msg;
          }
 
-      logMsgProc(msg.c_str(), action, type);
-
-      if (m_pFile != NULL)
-         WriteFile(msg.c_str());
+      WriteFile(msg.c_str());
 
       return 0;
       }

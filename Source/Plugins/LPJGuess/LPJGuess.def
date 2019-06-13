@@ -1,0 +1,15 @@
+; LPJGuess.def : Declares the module parameters for the DLL.
+
+EXPORTS
+    ; Explicit exports can go here
+
+GetExtInfo @1
+
+APInit  @2
+APInitRun	@3
+APRun   @4
+APEndRun @5
+APSetup	@6
+APInputVar @7
+APOutputVar @8
+

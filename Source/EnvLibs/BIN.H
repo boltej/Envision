@@ -77,7 +77,7 @@ class  LIBSAPI Bin
       void SetLabel( LPCTSTR label ) { m_label = label; }
       void SetDefaultLabel( TYPE type, LPCTSTR format, BPOS, BOOL showCount, BOOL singleValue, LPCTSTR units=NULL );
 
-      void SetTransparency( int transparency ) { m_transparency = transparency; }  // 0=opaque, 255=transparent
+      void SetTransparency( int transparency ) { m_transparency = transparency; }  // 0=opaque, 100=transparent
       void SetColor( COLORREF );    // creates an appropriate solid brush
    };
 

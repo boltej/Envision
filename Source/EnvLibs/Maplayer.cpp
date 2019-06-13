@@ -3693,6 +3693,9 @@ int MapLayer::CreateGrid(int rows, int cols, REAL xLLCorner,REAL yLLCorner, REAL
    m_name = "Grid";
    m_path = "Grid.grd";
 
+   // add ONE binarray
+   m_binArrayArray.Init(1);
+
    // do default grid classification
    if (classify && m_pMap)
       {
@@ -6573,6 +6576,9 @@ void MapLayer::SetBins(int col, float binMin, float binMax, int binCount, TYPE t
       pBinArray = GetBinArray(col, true);
    else
       pBinArray = pExtBinArray;
+
+   //if (pBinArray == NULL)
+   //   pBinArray = new BinArray;
 
    //-- resize the existing array to the new size.  Note:  If the old
    //   BinArray is shorter than the new array, extra elements will not

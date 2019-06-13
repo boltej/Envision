@@ -156,13 +156,12 @@ void EnvSetLLMapText( LPCTSTR text )
    }
 
 
-
-
 void EnvRedrawMap(void)
    {
    if (envRedrawMapProc != nullptr)
       envRedrawMapProc(); 
    }
+
 
 int EnvRunQueryBuilderDlg( LPTSTR qbuffer, int bufferSize )
    {
@@ -177,6 +176,7 @@ int EnvRunQueryBuilderDlg( LPTSTR qbuffer, int bufferSize )
 
    return retVal;
    }
+
 
 //int EnvStandardizeOutputFilename( LPTSTR filename, LPTSTR pathAndFilename, int maxLength )
 //   {

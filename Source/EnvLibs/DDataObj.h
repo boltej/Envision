@@ -50,8 +50,9 @@ class  LIBSAPI DDataObj : public DataObj
 
    public:
       //-- constructor --//
+      DDataObj();
       DDataObj(UNIT_MEASURE m);
-            
+
       DDataObj( int cols, int allocRows, UNIT_MEASURE m);  // by dimension (must Append())
       DDataObj( int cols, int allocRows, double initialValue, UNIT_MEASURE m);
       DDataObj( int col, int allocRows, STATSFLAG*, UNIT_MEASURE m);

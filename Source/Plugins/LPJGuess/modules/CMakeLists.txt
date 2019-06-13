@@ -1,0 +1,46 @@
+set(headers 
+  canexch.h 
+  driver.h 
+  growth.h 
+  soilwater.h 
+  somdynam.h 
+  vegdynam.h 
+  landcover.h 
+  bvoc.h 
+  q10.h 
+  globalco2file.h
+  ncompete.h
+  commonoutput.h
+  miscoutput.h
+  spinupdata.h
+  demoinput.h
+  cfinput.h
+  management.h
+  cropallocation.h
+  cropsowing.h
+  cropphenology.h
+  )
+
+set(source  
+  canexch.cpp 
+  driver.cpp 
+  growth.cpp 
+  demoinput.cpp 
+  soilwater.cpp 
+  somdynam.cpp 
+  landcover.cpp 
+  vegdynam.cpp 
+  bvoc.cpp
+  globalco2file.cpp
+  ncompete.cpp
+  commonoutput.cpp
+  miscoutput.cpp
+  spinupdata.cpp
+  cfinput.cpp
+  management.cpp
+  cropallocation.cpp
+  cropsowing.cpp
+  cropphenology.cpp
+  )
+
+include(add_guess_sources)
