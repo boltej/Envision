@@ -36,7 +36,7 @@ Copywrite 2012 - Oregon State University
 
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new SyncProcessCollection; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new SyncProcessCollection; }
 
 
 RandUniform rn( 0.0, 1.0, 1 );

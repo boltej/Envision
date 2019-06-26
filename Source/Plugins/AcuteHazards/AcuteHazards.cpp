@@ -25,7 +25,7 @@
 #endif
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new AcuteHazards; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new AcuteHazards; }
 
 void CaptureException();
 

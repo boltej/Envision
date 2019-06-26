@@ -87,7 +87,7 @@ COSTS CoastalHazards::m_costs;
 //=====================================================================================================
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new CoastalHazards; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new CoastalHazards; }
 
 
 

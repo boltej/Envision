@@ -1544,6 +1544,9 @@ bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, L
       return false;
       }
 
+   pEnvModel->m_envContext.id = id;
+
+
    FACTORYFN factory = (FACTORYFN)PROC_ADDRESS(hDLL, "Factory");
 
    if (!factory)

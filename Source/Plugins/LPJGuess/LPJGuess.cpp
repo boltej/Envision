@@ -11,7 +11,7 @@
 #endif
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new LPJGuess; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new LPJGuess; }
 
 
 // constructor

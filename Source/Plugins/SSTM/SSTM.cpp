@@ -28,7 +28,7 @@ Copywrite 2012 - Oregon State University
 #endif
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new SimpleSTM; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new SimpleSTM; }
 
 
 

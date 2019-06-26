@@ -62,9 +62,9 @@ Copywrite 2012 - Oregon State University
 #define new DEBUG_NEW
 #endif
 
+#define _EXPORT __declspec( dllexport )
 
-extern "C" FLOWAPI EnvExtension* Factory() { return (EnvExtension*) new FlowModel; }
-
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new FlowModel; }
 
 
 MTDOUBLE HRU::m_mvDepthMelt = 0;  // volume of water in snow

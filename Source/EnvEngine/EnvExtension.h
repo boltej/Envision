@@ -23,6 +23,9 @@ Copywrite 2012 - Oregon State University
 #include "EnvContext.h"
 #include <maplayer.h>
 
+#define _EXPORT __declspec( dllexport )
+
+
 enum { ADD_DELTA=1, SET_DATA=2, FORCE_UPDATE=4 };
 
 // Envision extension types

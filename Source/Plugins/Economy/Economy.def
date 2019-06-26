@@ -1,0 +1,11 @@
+; Economy.def : Declares the module parameters for the DLL.
+
+LIBRARY      "Economy"
+
+EXPORTS
+    ; Explicit exports can go here
+GetExtInfo @1
+
+APInit  @2
+APRun   @3
+

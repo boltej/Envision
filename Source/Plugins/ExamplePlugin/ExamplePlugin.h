@@ -39,5 +39,5 @@ class _EXPORT ExampleModel : public  EnvModelProcess
    };
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new ExampleModel; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new ExampleModel; }
 

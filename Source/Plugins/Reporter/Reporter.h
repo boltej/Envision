@@ -293,7 +293,7 @@ protected:
 };
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new Reporter; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new Reporter; }
 
 
 

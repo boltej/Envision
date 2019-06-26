@@ -1,0 +1,12 @@
+; TerrBiodiv.def : Declares the module parameters for the DLL.
+
+LIBRARY      "TerrBiodiv"
+
+EXPORTS
+    ; Explicit exports can go here
+GetExtInfo @1
+
+EMInit    @2
+EMInitRun @3
+EMRun   @4
+EMOutputVar @5

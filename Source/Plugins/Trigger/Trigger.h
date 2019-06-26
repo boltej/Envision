@@ -127,5 +127,5 @@ protected:
 };
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new TriggerProcessCollection; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new TriggerProcessCollection; }
 

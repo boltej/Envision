@@ -1,0 +1,21 @@
+; COCNH.def : Declares the module parameters for the DLL.
+
+LIBRARY
+
+EXPORTS
+    ; Explicit exports can go here
+GetExtInfo @1
+
+APInit  @2
+APInitRun	@3
+APRun   @4
+APInputVar  @5
+APOutputVar  @6
+
+;EMInit    @9
+;EMInitRun   @10
+;EMRun   @11
+;EMEndRun  @12
+;EMSetup  @13
+;EMInputVar  @14
+;EMOutputVar  @15

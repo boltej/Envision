@@ -314,4 +314,4 @@ protected:
 };
 
 
-extern "C" _EXPORT EnvExtension* Factory() { return (EnvExtension*) new Developer; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new Developer; }
