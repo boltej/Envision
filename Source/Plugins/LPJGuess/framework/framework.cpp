@@ -6,7 +6,7 @@
 /// $Date: 2016-12-08 18:24:04 +0100 (Thu, 08 Dec 2016) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "config.h"
 #include "framework.h"
 #include "commandlinearguments.h"
@@ -149,7 +149,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 }
 
 
-int framework(const CommandLineArguments& args) {
+int framework(FlowContext *pFlowContext,const CommandLineArguments& args) {
 
 	// The 'mission control' of the model, responsible for maintaining the
 	// primary model data structures and containing all explicit loops through

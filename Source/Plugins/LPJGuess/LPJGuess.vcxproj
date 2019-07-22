@@ -29,7 +29,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
-    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <WholeProgramOptimization>false</WholeProgramOptimization>
     <CharacterSet>NotSet</CharacterSet>
     <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
@@ -49,7 +49,8 @@
     <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LinkIncremental>false</LinkIncremental>
+    <LinkIncremental>true</LinkIncremental>
+    <TargetExt>.dll</TargetExt>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -88,13 +89,20 @@
     <ClCompile>
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;NDEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;..\..\Envision</AdditionalIncludeDirectories>
-      <MinimalRebuild />
+      <IntrinsicFunctions>false</IntrinsicFunctions>
+      <SDLCheck>
+      </SDLCheck>
+      <PreprocessorDefinitions>WIN32;__EXPORT__=__declspec( dllimport );_WINDOWS;NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;..\..\Envision;framework;libraries\gutil;libraries\plib;libraries\guessnc;modules;cru\guessio</AdditionalIncludeDirectories>
+      <MinimalRebuild>false</MinimalRebuild>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <InlineFunctionExpansion>Disabled</InlineFunctionExpansion>
+      <WholeProgramOptimization>false</WholeProgramOptimization>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+      <CompileAs>CompileAsCpp</CompileAs>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -102,8 +110,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>c:\Python37\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;Envision.lib</AdditionalDependencies>
+      <AdditionalLibraryDirectories>c:\Python37\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;Envision.lib;Flow.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -118,8 +126,32 @@
       <Command>
       </Command>
     </PreBuildEvent>
+    <ProjectReference>
+      <LinkLibraryDependencies>false</LinkLibraryDependencies>
+    </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="framework\archive.cpp" />
+    <ClCompile Include="framework\commandlinearguments.cpp" />
+    <ClCompile Include="framework\externalinput.cpp" />
+    <ClCompile Include="framework\framework.cpp" />
+    <ClCompile Include="framework\guess.cpp" />
+    <ClCompile Include="framework\guessserializer.cpp" />
+    <ClCompile Include="framework\guessstring.cpp" />
+    <ClCompile Include="framework\indata.cpp" />
+    <ClCompile Include="framework\inputmodule.cpp" />
+    <ClCompile Include="framework\outputchannel.cpp" />
+    <ClCompile Include="framework\outputmodule.cpp" />
+    <ClCompile Include="framework\parallel.cpp" />
+    <ClCompile Include="framework\parameters.cpp" />
+    <ClCompile Include="framework\partitionedmapserializer.cpp" />
+    <ClCompile Include="framework\shell.cpp" />
+    <ClCompile Include="libraries\guessnc\cftime.cpp" />
+    <ClCompile Include="libraries\guessnc\cfvariable.cpp" />
+    <ClCompile Include="libraries\guessnc\guessnc.cpp" />
+    <ClCompile Include="libraries\gutil\gutil.cpp" />
+    <ClCompile Include="libraries\plib\plib.cpp" />
+    <ClCompile Include="libraries\plib\recursivefilereader.cpp" />
     <ClCompile Include="LPJGuess.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
@@ -129,22 +161,90 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
       </PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="modules\bvoc.cpp" />
+    <ClCompile Include="modules\canexch.cpp" />
+    <ClCompile Include="modules\cfinput.cpp" />
+    <ClCompile Include="modules\commonoutput.cpp" />
+    <ClCompile Include="modules\cropallocation.cpp" />
+    <ClCompile Include="modules\cropphenology.cpp" />
+    <ClCompile Include="modules\cropsowing.cpp" />
+    <ClCompile Include="modules\demoinput.cpp" />
+    <ClCompile Include="modules\driver.cpp" />
+    <ClCompile Include="modules\globalco2file.cpp" />
+    <ClCompile Include="modules\growth.cpp" />
+    <ClCompile Include="modules\landcover.cpp" />
+    <ClCompile Include="modules\management.cpp" />
+    <ClCompile Include="modules\miscoutput.cpp" />
+    <ClCompile Include="modules\ncompete.cpp" />
+    <ClCompile Include="modules\soilwater.cpp" />
+    <ClCompile Include="modules\somdynam.cpp" />
+    <ClCompile Include="modules\spinupdata.cpp" />
+    <ClCompile Include="modules\vegdynam.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="LPJGuess.def" />
     <None Include="res\LPJGuess.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="framework\archive.h" />
+    <ClInclude Include="framework\commandlinearguments.h" />
+    <ClInclude Include="framework\config.h" />
+    <ClInclude Include="framework\externalinput.h" />
+    <ClInclude Include="framework\framework.h" />
+    <ClInclude Include="framework\guess.h" />
+    <ClInclude Include="framework\guesscontainer.h" />
+    <ClInclude Include="framework\guessmath.h" />
+    <ClInclude Include="framework\guessserializer.h" />
+    <ClInclude Include="framework\guessstring.h" />
+    <ClInclude Include="framework\indata.h" />
+    <ClInclude Include="framework\inputmodule.h" />
+    <ClInclude Include="framework\outputchannel.h" />
+    <ClInclude Include="framework\outputmodule.h" />
+    <ClInclude Include="framework\parallel.h" />
+    <ClInclude Include="framework\parameters.h" />
+    <ClInclude Include="framework\partitionedmapserializer.h" />
+    <ClInclude Include="framework\shell.h" />
+    <ClInclude Include="libraries\guessnc\cf.h" />
+    <ClInclude Include="libraries\guessnc\cftime.h" />
+    <ClInclude Include="libraries\guessnc\cfvariable.h" />
+    <ClInclude Include="libraries\guessnc\guessnc.h" />
+    <ClInclude Include="libraries\gutil\gutil.h" />
+    <ClInclude Include="libraries\plib\plib.h" />
+    <ClInclude Include="libraries\plib\recursivefilereader.h" />
     <ClInclude Include="LPJGuess.h" />
+    <ClInclude Include="modules\bvoc.h" />
+    <ClInclude Include="modules\canexch.h" />
+    <ClInclude Include="modules\cfinput.h" />
+    <ClInclude Include="modules\commonoutput.h" />
+    <ClInclude Include="modules\cropallocation.h" />
+    <ClInclude Include="modules\cropphenology.h" />
+    <ClInclude Include="modules\cropsowing.h" />
+    <ClInclude Include="modules\demoinput.h" />
+    <ClInclude Include="modules\driver.h" />
+    <ClInclude Include="modules\globalco2file.h" />
+    <ClInclude Include="modules\growth.h" />
+    <ClInclude Include="modules\landcover.h" />
+    <ClInclude Include="modules\management.h" />
+    <ClInclude Include="modules\miscoutput.h" />
+    <ClInclude Include="modules\ncompete.h" />
+    <ClInclude Include="modules\q10.h" />
+    <ClInclude Include="modules\soilwater.h" />
+    <ClInclude Include="modules\somdynam.h" />
+    <ClInclude Include="modules\spinupdata.h" />
+    <ClInclude Include="modules\vegdynam.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="LPJGuess.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="modules\CMakeLists.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

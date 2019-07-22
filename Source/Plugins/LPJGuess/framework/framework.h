@@ -8,7 +8,7 @@
 
 #ifndef LPJ_GUESS_FRAMEWORK_H
 #define LPJ_GUESS_FRAMEWORK_H
-
+class FlowContext;
 class CommandLineArguments;
 
 /// The 'mission control' of the model
@@ -20,6 +20,6 @@ class CommandLineArguments;
  *  \param args The command line arguments, sent in from main
  *
  */
-int framework(const CommandLineArguments& args);
+int framework(FlowContext *pFlowContext/*, const CommandLineArguments& args*/);
 
 #endif // LPJ_GUESS_FRAMEWORK_H

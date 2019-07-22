@@ -13,18 +13,25 @@
 #ifndef LPJ_GUESS_GUESSMATH_H
 #define LPJ_GUESS_GUESSMATH_H
 
+
+
 #include <assert.h>
 #include "archive.h"
+#include "unitconv.h"
 
 #define _USE_MATH_DEFINES
 #include <cmath>
 
-#ifndef M_PI
-double const PI = 4 * atan(1.0);
-#else
-double const PI = M_PI;
-#undef M_PI
+
+
+#ifdef max
+#undef max
 #endif
+
+#ifdef min
+#undef min
+#endif
+
 const double DEGTORAD = PI / 180.;
 
 inline bool negligible(double dval, int limit = 0) {

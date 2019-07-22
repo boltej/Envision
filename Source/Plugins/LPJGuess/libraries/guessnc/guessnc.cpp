@@ -1,3 +1,4 @@
+#include "stdafx.h"
 #ifdef HAVE_NETCDF
 
 #include "guessnc.h"

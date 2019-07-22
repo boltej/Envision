@@ -6,7 +6,7 @@
 /// $Date: 2017-04-05 15:04:09 +0200 (Wed, 05 Apr 2017) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "config.h"
 #include "commonoutput.h"
 #include "parameters.h"

@@ -14,6 +14,14 @@
 #ifndef LPJ_GUESS_DRIVER_H
 #define LPJ_GUESS_DRIVER_H
 
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
 #include "guess.h"
 #include <limits>
 

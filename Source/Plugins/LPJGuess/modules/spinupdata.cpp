@@ -5,7 +5,7 @@
 /// $Date: 2016-12-08 18:24:04 +0100 (Thu, 08 Dec 2016) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "config.h"
 #include "spinupdata.h"
 #include "shell.h"

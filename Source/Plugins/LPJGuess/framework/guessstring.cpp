@@ -6,7 +6,7 @@
 /// $Date: 2014-02-13 10:31:34 +0100 (Thu, 13 Feb 2014) $
 ///
 ////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "config.h"
 #include "guessstring.h"
 #include <cctype>

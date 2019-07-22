@@ -6,7 +6,7 @@
 /// $Date: 2015-04-09 18:40:34 +0200 (Thu, 09 Apr 2015) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "config.h"
 #include "miscoutput.h"
 #include "parameters.h"

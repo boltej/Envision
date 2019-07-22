@@ -10,6 +10,8 @@
 // mpi.h needs to be the first include (or specifically, before stdio.h),
 // due to a bug in the MPI-2 standard (both stdio.h and the C++ MPI API
 // defines SEEK_SET, SEEK_CUR and SEEK_SET(!))
+#include "stdafx.h"
+
 #ifdef HAVE_MPI
 #include <mpi.h>
 #endif

@@ -7,7 +7,7 @@
 /// $Date: 2013-04-30 11:05:01 +0200 (Tue, 30 Apr 2013) $
 ///
 ///////////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "config.h"
 #include "ncompete.h"
 #include "guessmath.h"

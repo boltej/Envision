@@ -9,7 +9,7 @@
 /// $Date: 2013-10-10 10:20:33 +0200 (Thu, 10 Oct 2013) $
 ///
 ////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "partitionedmapserializer.h"
 #include <sstream>
 

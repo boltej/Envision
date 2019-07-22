@@ -4,7 +4,7 @@
 ///
 /// $Date: 2011-05-04 14:13:45 +0200 (Wed, 04 May 2011) $
 ///////////////////////////////////////////////////////////////////////////////////////
-
+#include "stdafx.h"
 #include "recursivefilereader.h"
 #include <stdexcept>
 

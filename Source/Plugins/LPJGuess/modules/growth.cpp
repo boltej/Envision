@@ -32,7 +32,7 @@
 // Modules should be structured so as to be fully portable between models (frameworks).
 // When porting between frameworks, the only change required should normally be in the
 // "#include" directive referring to the framework header file.
-
+#include "stdafx.h"
 #include "config.h"
 #include "growth.h"
 #include "canexch.h"
