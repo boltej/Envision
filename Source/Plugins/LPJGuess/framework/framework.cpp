@@ -149,7 +149,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 }
 
 
-int framework(FlowContext *pFlowContext,const CommandLineArguments& args) {
+int framework(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file /*,const CommandLineArguments& args*/) {
 
 	// The 'mission control' of the model, responsible for maintaining the
 	// primary model data structures and containing all explicit loops through
@@ -157,7 +157,7 @@ int framework(FlowContext *pFlowContext,const CommandLineArguments& args) {
 
 	using std::auto_ptr;
 
-	const char* input_module_name = args.get_input_module();
+//	const char* input_module_name = args.get_input_module();
 
 	auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
 
@@ -166,7 +166,7 @@ int framework(FlowContext *pFlowContext,const CommandLineArguments& args) {
 
 	// Read the instruction file to obtain PFT static parameters and
 	// simulation settings
-	read_instruction_file(args.get_instruction_file());
+	read_instruction_file(instruction_file/*args.get_instruction_file()*/);
 
 	// Initialise input/output
 

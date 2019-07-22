@@ -19,7 +19,7 @@ protected:
 	int m_col_cfmax;
 	FDataObj *m_pClimateData;
 	// initialization
-	bool Init(FlowContext *pFlowContext, LPCTSTR);
+
 	bool InitRun(FlowContext *pFlowContext, bool useInitialSeed);
 	bool Run(FlowContext *pFlowContext);		// IDU UGB from IDU layer
 
@@ -29,7 +29,7 @@ public:
 	//------ models -----------------------------------------------------
 	//-------------------------------------------------------------------
 //	float Framework(FlowContext *pFlowContext);          // formerly HBV_Global
-
+	bool Init_Guess(FlowContext *pFlowContext, LPCTSTR);
 
 
 };

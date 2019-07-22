@@ -18,9 +18,9 @@
 #undef max
 #endif
 
-#ifdef min
-#undef min
-#endif
+//#ifdef min
+//#undef min
+//#endif
 
 #include "guess.h"
 #include <limits>

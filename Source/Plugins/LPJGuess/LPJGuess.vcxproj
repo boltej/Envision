@@ -58,8 +58,8 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;_DEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;..\..\Envision</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;__EXPORT__=__declspec( dllimport );_WINDOWS;NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;..\..\Envision;framework;libraries\gutil;libraries\plib;libraries\guessnc;modules;cru\guessio</AdditionalIncludeDirectories>
       <MinimalRebuild />
     </ClCompile>
     <Link>
@@ -67,7 +67,7 @@
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
       <AdditionalLibraryDirectories>c:\Python37\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;Envision.lib</AdditionalDependencies>
+      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;Envision.lib;Flow.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>

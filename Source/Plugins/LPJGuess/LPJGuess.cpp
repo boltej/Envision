@@ -23,11 +23,13 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) n
   // }
 
 // override API Methods
-bool LPJGuess::Init(FlowContext *pFlowContext, LPCTSTR initStr)
+bool LPJGuess::Init_Guess(FlowContext *pFlowContext, LPCTSTR initStr)
    {
 	//need to pass name of *.ins file. {insfile="C:\\LPJ_GUESS\\input\\global_cru.ins" help=false parallel=false ...}	CommandLineArguments
+	//int argc=2, char* argv[]
+   //CommandLineArguments args(arg.argc, arg.argv);
+	framework(pFlowContext, "CRU_NCEP", "\\input\\global_cru.ins");
 
-   framework(pFlowContext);
    return TRUE;
    }
 

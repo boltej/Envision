@@ -17,6 +17,14 @@
 #include "plib.h"
 #include <map>
 
+#ifdef max
+#undef max
+#endif
+
+#ifdef min
+#undef min
+#endif
+
 // Definitions of parameters defined globally in parameters.h,
 // for documentation, see parameters.h
 

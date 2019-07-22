@@ -20,6 +20,6 @@ class CommandLineArguments;
  *  \param args The command line arguments, sent in from main
  *
  */
-int framework(FlowContext *pFlowContext/*, const CommandLineArguments& args*/);
+int framework(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file/*, const CommandLineArguments& args*/);
 
 #endif // LPJ_GUESS_FRAMEWORK_H

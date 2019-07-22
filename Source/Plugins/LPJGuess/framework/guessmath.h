@@ -24,13 +24,13 @@
 
 
 
-#ifdef max
-#undef max
-#endif
+//#ifdef max
+//#undef max
+//#endif
 
-#ifdef min
-#undef min
-#endif
+//#ifdef min
+//#undef min
+//#endif
 
 const double DEGTORAD = PI / 180.;
 
@@ -184,7 +184,7 @@ public:
 	}
 
 	/// Returns the maximum of the stored values
-	T max() const {
+	T maxi() const {
 		T result = -999999.0;
 
 		const size_t nvalues = size();
@@ -197,7 +197,7 @@ public:
 	}
 
 	/// Returns the minimum of the stored values
-	T min() const {
+	T mini() const {
 		T result = 999999.0;
 
 		const size_t nvalues = size();

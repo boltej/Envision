@@ -14,7 +14,13 @@
 #include <stdio.h>
 #include <limits>
 #include "gutil.h"
+#ifdef max
+#undef max
+#endif
 
+#ifdef min
+#undef min
+#endif
 namespace {
 
 // Constant to indicate that the file hasn't been properly loaded
