@@ -233,7 +233,7 @@ int framework(FlowContext *pFlowContext, const char* input_module_name, const ch
 		// day of the simulation. Function getclimate returns false if last year
 		// has already been simulated for this grid cell
 
-		while (input_module->getclimate(gridcell)) {
+		while (input_module->getclimate(gridcell, pFlowContext)) {
 
 			// START OF LOOP THROUGH SIMULATION DAYS
 

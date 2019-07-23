@@ -14,6 +14,7 @@
 #include "driver.h"
 #include "outputchannel.h"
 #include <stdio.h>
+#include <..\Plugins\Flow\Flow.h>
 
 REGISTER_INPUT_MODULE("demo", DemoInput)
 
@@ -301,7 +302,7 @@ void DemoInput::getlandcover(Gridcell& gridcell) {
 	landcover_input.get_land_transitions(gridcell);
 }
 
-bool DemoInput::getclimate(Gridcell& gridcell) {
+bool DemoInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 
 	// See base class for documentation about this function's responsibilities
 

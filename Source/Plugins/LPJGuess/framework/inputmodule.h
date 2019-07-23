@@ -14,7 +14,7 @@
 #include <string>
 
 class Gridcell;
-
+class FlowContext;
 /// Base class from which any input module must inherit
 /** An input module supplies LPJ-GUESS with the forcing data it needs. The
  *  InputModule base class is an abstract class, meaning it only defines
@@ -83,7 +83,7 @@ public:
 	 *  day. Irrespective of the BVOC settings, climate.dtr variable is not required in 
 	 *  diurnal mode.
 	 */
-	virtual bool getclimate(Gridcell& gridcell) = 0;
+	virtual bool getclimate(Gridcell& gridcell, FlowContext *pFlowContext) = 0;
 
 	/// Obtains land transitions for one year
 	virtual void getlandcover(Gridcell& gridcell) = 0;

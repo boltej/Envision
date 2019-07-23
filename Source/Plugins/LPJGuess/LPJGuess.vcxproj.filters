@@ -31,6 +31,12 @@
     <Filter Include="Source Files\libraries\plib">
       <UniqueIdentifier>{c5ef26a7-902f-48b8-b6f0-0ba4f9cb1598}</UniqueIdentifier>
     </Filter>
+    <Filter Include="cru">
+      <UniqueIdentifier>{089df895-66df-45bb-b112-6689a1b2229c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="cru\guessio">
+      <UniqueIdentifier>{ce5f94d9-884f-4801-81e8-17619383149d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="LPJGuess.cpp">
@@ -161,6 +167,15 @@
     </ClCompile>
     <ClCompile Include="modules\vegdynam.cpp">
       <Filter>Source Files\modules</Filter>
+    </ClCompile>
+    <ClCompile Include="cru\guessio\cru_ts30.cpp">
+      <Filter>cru\guessio</Filter>
+    </ClCompile>
+    <ClCompile Include="cru\guessio\cruinput.cpp">
+      <Filter>cru\guessio</Filter>
+    </ClCompile>
+    <ClCompile Include="cru\guessio\lamarquendep.cpp">
+      <Filter>cru\guessio</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -318,6 +333,36 @@
     </ClInclude>
     <ClInclude Include="modules\vegdynam.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\cru_ts30.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\cruinput.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\cruncep_1901_2015.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\cruncep_1901_2015misc.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\GlobalNitrogenDeposition.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP26.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP45.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP60.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP85.h">
+      <Filter>cru\guessio</Filter>
+    </ClInclude>
+    <ClInclude Include="cru\guessio\lamarquendep.h">
+      <Filter>cru\guessio</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

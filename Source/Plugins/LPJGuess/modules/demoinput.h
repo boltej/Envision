@@ -24,6 +24,8 @@
  *
  *  \see InputModule for more documentation about writing input modules.
  */
+
+class FlowContext;
 class DemoInput : public InputModule {
 public:
 
@@ -43,7 +45,7 @@ public:
 	bool getgridcell(Gridcell& gridcell);
 
 	/// See base class for documentation about this function's responsibilities
-	bool getclimate(Gridcell& gridcell);
+	bool getclimate(Gridcell& gridcell, FlowContext *pFlowContext);
 
 	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);

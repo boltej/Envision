@@ -22,7 +22,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v141</PlatformToolset>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <UseOfMfc>Dynamic</UseOfMfc>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
@@ -57,19 +57,20 @@
       <PrecompiledHeader>Use</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <SDLCheck>true</SDLCheck>
-      <PreprocessorDefinitions>WIN32;__EXPORT__=__declspec( dllimport );_WINDOWS;NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <SDLCheck>
+      </SDLCheck>
+      <PreprocessorDefinitions>WIN32;_WINDOWS;__EXPORT__=__declspec( dllimport ); NDEBUG;_AFXEXT;_CRT_SECURE_NO_WARNINGS;_SCL_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;..\..\Envision;framework;libraries\gutil;libraries\plib;libraries\guessnc;modules;cru\guessio</AdditionalIncludeDirectories>
-      <MinimalRebuild />
+      <MinimalRebuild>false</MinimalRebuild>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>c:\Python37\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;Envision.lib;Flow.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
+      <ModuleDefinitionFile>.\LPJGuess.def</ModuleDefinitionFile>
+      <AdditionalLibraryDirectories>$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;Flow.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
@@ -108,8 +109,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <ModuleDefinitionFile>
-      </ModuleDefinitionFile>
+      <ModuleDefinitionFile>LPJGuess.def</ModuleDefinitionFile>
       <AdditionalLibraryDirectories>c:\Python37\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName);%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;Envision.lib;Flow.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;comdlg32.lib;advapi32.lib</AdditionalDependencies>
     </Link>
@@ -131,6 +131,9 @@
     </ProjectReference>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="cru\guessio\cruinput.cpp" />
+    <ClCompile Include="cru\guessio\cru_ts30.cpp" />
+    <ClCompile Include="cru\guessio\lamarquendep.cpp" />
     <ClCompile Include="framework\archive.cpp" />
     <ClCompile Include="framework\commandlinearguments.cpp" />
     <ClCompile Include="framework\externalinput.cpp" />
@@ -190,6 +193,16 @@
     <None Include="res\LPJGuess.rc2" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cru\guessio\cruinput.h" />
+    <ClInclude Include="cru\guessio\cruncep_1901_2015.h" />
+    <ClInclude Include="cru\guessio\cruncep_1901_2015misc.h" />
+    <ClInclude Include="cru\guessio\cru_ts30.h" />
+    <ClInclude Include="cru\guessio\GlobalNitrogenDeposition.h" />
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP26.h" />
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP45.h" />
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP60.h" />
+    <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP85.h" />
+    <ClInclude Include="cru\guessio\lamarquendep.h" />
     <ClInclude Include="framework\archive.h" />
     <ClInclude Include="framework\commandlinearguments.h" />
     <ClInclude Include="framework\config.h" />

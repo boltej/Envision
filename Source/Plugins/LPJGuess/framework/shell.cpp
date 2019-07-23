@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <memory>
+#include <EnvModel.h>
 
 namespace {
 
@@ -103,12 +104,14 @@ CommandLineShell::~CommandLineShell() {
 
 void CommandLineShell::fail(const char* message) {
 	log_message(xtring(message)+"\n");
+	Report::Log(message);
 	exit(99);
 }
 
 void CommandLineShell::log_message(const char* message) {
 	fprintf(stdout,"%s", message);
 	fprintf(logfile,"%s", message);
+	Report::Log(message);
 	fflush(logfile);
 }
 

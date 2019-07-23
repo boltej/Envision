@@ -1,7 +1,9 @@
 ; LPJGuess.def : Declares the module parameters for the DLL.
 
+LIBRARY
+
 EXPORTS
     ; Explicit exports can go here
 
-Init_Guess @1
+Init_Guess @25
 
