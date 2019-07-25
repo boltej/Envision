@@ -70,8 +70,8 @@ DllMain(HINSTANCE hInstance, DWORD dwReason, LPVOID lpReserved)
 
 
 // Models
-extern "C" bool PASCAL EXPORT Init_Guess(FlowContext *pFlowContext, LPCTSTR);
-
+extern "C" bool PASCAL EXPORT Guess_Standalone(FlowContext *pFlowContext, LPCTSTR);
+extern "C" bool PASCAL EXPORT Guess_Flow(FlowContext *pFlowContext, LPCTSTR);
 
 /////////////////////////////////////////////////////////////////////////////////////////////
 // IMPLEMENTATIONS
@@ -79,8 +79,8 @@ extern "C" bool PASCAL EXPORT Init_Guess(FlowContext *pFlowContext, LPCTSTR);
 
 
 // Model implementation
-bool PASCAL Init_Guess(FlowContext *pFlowContext,  LPCTSTR initStr) { return theModel->Init_Guess(pFlowContext, initStr); }
-
+bool PASCAL Guess_Standalone(FlowContext *pFlowContext,  LPCTSTR initStr) { return theModel->Guess_Standalone(pFlowContext, initStr); }
+bool PASCAL Guess_Flow(FlowContext *pFlowContext, LPCTSTR initStr) { return theModel->Guess_Flow(pFlowContext, initStr); }
 
 
 

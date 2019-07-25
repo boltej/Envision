@@ -3,6 +3,7 @@
 #include <framework.h>
 class FlowContext;
 class Reach;
+class Gridcell;
 
 
 class LPJGuess
@@ -29,7 +30,8 @@ public:
 	//------ models -----------------------------------------------------
 	//-------------------------------------------------------------------
 //	float Framework(FlowContext *pFlowContext);          // formerly HBV_Global
-	bool Init_Guess(FlowContext *pFlowContext, LPCTSTR);
-
-
+	bool Guess_Standalone(FlowContext *pFlowContext, LPCTSTR initStr);
+	bool Guess_Flow(FlowContext *pFlowContext, bool useInitialSeed);
+	bool Init_Guess(FlowContext *pFlowContext,  const char* input_module_name, const char* instruction_file);
+	bool Run_Guess(FlowContext *pFlowContext, LPCTSTR initStr);
 };
