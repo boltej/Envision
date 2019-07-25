@@ -192,7 +192,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
             // add this gridcell to this HRU's grid cell array
             m_hruGridCells[h]->Add(gridCellIndex);
 
-            m_gridCellHRUArray.Add(pHRU);
+			m_gridCellHRUArray.Add(pHRU);
             }
 		   }
       gridCellIndex++;
@@ -223,15 +223,51 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, LPCTSTR initStr)
 	   {
 		HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
 
-      int gridCellCount = m_hruGridCells[h]->GetSize();
+        int gridCellCount = m_hruGridCells[h]->GetSize();
 
 		for (int i = 0; i < gridCellCount; i++)
 		   {
-			//Gridcell *pGridcell = new Gridcell;
+			// Call input/output to obtain climate, insolation and CO2 for this
+			// day of the simulation. Function getclimate returns false if last year
+			// has already been simulated for this grid cell
+
+			Gridcell gridcell = m_hruGridCells[h][i];//?? need to have access to each gridcell.  
+		//	while (input_module->getclimate(gridcell, pFlowContext)) {
+
+				// START OF LOOP THROUGH SIMULATION DAYS
+
+				simulate_day(gridcell, input_module.get());
+
+				output_modules.outdaily(gridcell);
+
+				if (date.islastday && date.islastmonth) {
+					// LAST DAY OF YEAR
+					// Call output module to output results for end of year
+					// or end of simulation for this grid cell
+					output_modules.outannual(gridcell);
+
+					gridcell.balance.check_year(gridcell);
+
+					// Time to save state?
+					if (date.year == state_year - 1 && save_state) {
+						serializer->serialize_gridcell(gridcell);
+					}
+
+					// Check whether to abort
+					if (abort_request_received()) {
+						return 99;
+					}
+				}
+
+				// Advance timer to next simulation day
+				date.next();
+
+				// End of loop through simulation days
+			}	//while (getclimate())
+
+			gridcell.balance.check_period(gridcell);
 		   }
 		//Assume each HRU has a array of pointers to guess gridcells
 		//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
-
-	   }
    return TRUE;
    }
