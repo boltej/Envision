@@ -137,34 +137,37 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
-		Gridcell gridcell;
+		Gridcell *pGridcell = new Gridcell;
 		
       // Call input module to obtain latitude and driver data for this grid cell.
-		if (!input_module->getgridcell(gridcell))
+		if (!input_module->getgridcell(*pGridcell))
          {
+         delete pGridcell;
 			break;
 		   }
 
+      m_gridCellArray.Add(pGridcell);
+
+
 		// Initialise certain climate and soil drivers
-		gridcell.climate.initdrivers(gridcell.get_lat());
+      pGridcell->climate.initdrivers(pGridcell->get_lat());
 
 		if (run_landcover && !restart) 
          {
 			// Read landcover and cft fraction data from 
 			// data files for the spinup period and create stands
-			landcover_init(gridcell, input_module.get());
+			landcover_init(*pGridcell, input_module.get());
 		   }
 
 		if (restart) {
 			// Get the whole grid cell from file...
-			deserializer->deserialize_gridcell(gridcell);
+			deserializer->deserialize_gridcell(*pGridcell);
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
 
-		float y = gridcell.get_lat();
-		float x = gridcell.get_lon();
-
+		float y = pGridcell->get_lat();
+		float x = pGridcell->get_lon();
     
       int hruCount = pFlow->GetHRUCount();
       HRU *pHRU = nullptr;
@@ -192,7 +195,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
             // add this gridcell to this HRU's grid cell array
             m_hruGridCells[h]->Add(gridCellIndex);
 
-			m_gridCellHRUArray.Add(pHRU);
+   			m_gridCellHRUArray.Add(pHRU);
             }
 		   }
       gridCellIndex++;
@@ -223,7 +226,7 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, LPCTSTR initStr)
 	   {
 		HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
 
-        int gridCellCount = m_hruGridCells[h]->GetSize();
+      int gridCellCount = m_hruGridCells[h]->GetSize();
 
 		for (int i = 0; i < gridCellCount; i++)
 		   {
@@ -231,14 +234,13 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, LPCTSTR initStr)
 			// day of the simulation. Function getclimate returns false if last year
 			// has already been simulated for this grid cell
 
-			Gridcell gridcell = m_hruGridCells[h][i];//?? need to have access to each gridcell.  
-		//	while (input_module->getclimate(gridcell, pFlowContext)) {
+         int gridCellIndex = m_hruGridCells[h]->GetAt(i);
 
-				// START OF LOOP THROUGH SIMULATION DAYS
+         Gridcell *pGridcell = m_gridCellArray[gridCellIndex];
+         
+         simulate_day(*pGridcell, input_module.get());
 
-				simulate_day(gridcell, input_module.get());
-
-				output_modules.outdaily(gridcell);
+				output_modules.outdaily(*pGridcell);
 
 				if (date.islastday && date.islastmonth) {
 					// LAST DAY OF YEAR

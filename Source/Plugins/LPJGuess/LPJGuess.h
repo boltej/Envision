@@ -31,6 +31,8 @@ protected:
    // for HRUs, hold array of corresponding GridCells
    PtrArray< GridCellIndexArray > m_hruGridCells;
    CArray< HRU*, HRU*> m_gridCellHRUArray;
+   PtrArray<Gridcell> m_gridCellArray;
+
 	// initialization
 
 	bool InitRun(FlowContext *pFlowContext, bool useInitialSeed);
