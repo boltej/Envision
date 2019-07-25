@@ -48,8 +48,6 @@ Copywrite 2012 - Oregon State University
 #include <omp.h>
 
 
-#include <..\Plugins\LPJGuess\framework\guess.h>
-
 // Required columns
 // Catchment Columns
 //   m_colCatchmentArea,        AREA,          TYPE_FLOAT,

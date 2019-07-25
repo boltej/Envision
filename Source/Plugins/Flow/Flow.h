@@ -550,8 +550,6 @@ public:
    int AddPools( FlowModel *pFlowModel,  /* int pools, float initWaterContent, float initTemperature,*/ bool grid );
    //int AddLayers( int soilLayerCount, int snowLayerCount, int vegLayerCount, float initWaterContent, float initTemperature, bool grid );
 
-   PtrArray< Gridcell > m_pGuessArray;
-
 };
 
 
