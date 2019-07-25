@@ -126,7 +126,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell;
-		Gridcell *pGridcell = &gridcell;
+		
 
 		Gridcell *pG = new Gridcell;
 		Gridcell gridc = *pG;
@@ -169,7 +169,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 	//	break;
 	//}
 
-	framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
+	//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
 	//Create array of gridcells from global_cru_new
 
 	return TRUE;
