@@ -6,6 +6,7 @@
 class FlowContext;
 class Reach;
 class Gridcell;
+class HRU;
 
 
 class GridCellIndexArray : public CArray< UINT > 
