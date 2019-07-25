@@ -135,6 +135,8 @@ class StateVar;
 class VideoRecorder;
 class ResConstraint;
 
+class Gridcell;
+
 #include <MovingWindow.h>
 
 
@@ -439,6 +441,7 @@ public:
 
 class FLOWAPI HRU
 {
+
 public:
    HRU();
    ~HRU();  
@@ -546,6 +549,8 @@ public:
    HRUPool *GetPool( int i ) { return m_poolArray[ i ]; }
    int AddPools( FlowModel *pFlowModel,  /* int pools, float initWaterContent, float initTemperature,*/ bool grid );
    //int AddLayers( int soilLayerCount, int snowLayerCount, int vegLayerCount, float initWaterContent, float initTemperature, bool grid );
+
+   PtrArray< Gridcell > m_pGuessArray;
 
 };
 
