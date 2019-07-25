@@ -21,5 +21,5 @@ class CommandLineArguments;
  *
  */
 int framework(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file/*, const CommandLineArguments& args*/);
-
+void print_logfile_heading();
 #endif // LPJ_GUESS_FRAMEWORK_H
