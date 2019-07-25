@@ -1,9 +1,16 @@
 #include <FDataObj.h>
 #include <guess.h>
 #include <framework.h>
+#include <PtrArray.h>
+
 class FlowContext;
 class Reach;
 class Gridcell;
+
+
+class GridCellIndexArray : public CArray< UINT > 
+   { };
+
 
 
 class LPJGuess
@@ -19,6 +26,10 @@ public:
 protected:
 	int m_col_cfmax;
 	FDataObj *m_pClimateData;
+
+   // for HRUs, hold array of corresponding GridCells
+   PtrArray< GridCellIndexArray > m_hruGridCells;
+   CArray< HRU*, HRU*> m_gridCellHRUArray;
 	// initialization
 
 	bool InitRun(FlowContext *pFlowContext, bool useInitialSeed);

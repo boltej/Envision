@@ -116,7 +116,19 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
-	while (true) {
+
+   FlowModel *pFlow = pFlowContext->pFlowModel;
+   EnvModel *pEnvModel = pFlowContext->pEnvContext->pEnvModel;
+
+   MapLayer *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
+
+   m_hruGridCells.SetSize(pFlow->GetHRUCount());
+   for (int i = 0; i < pFlow->GetHRUCount(); i++)
+      m_hruGridCells[i] = new GridCellIndexArray;
+
+   UINT gridCellIndex = 0;
+	
+   while (true) {
 
 		// START OF LOOP THROUGH GRID CELLS
 
@@ -127,22 +139,21 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		// Create and initialise a new Gridcell object for each locality
 		Gridcell gridcell;
 		
-
-		Gridcell *pG = new Gridcell;
-		Gridcell gridc = *pG;
-		// Call input module to obtain latitude and driver data for this grid cell.
-		if (!input_module->getgridcell(gridc)) {
+      // Call input module to obtain latitude and driver data for this grid cell.
+		if (!input_module->getgridcell(gridcell))
+         {
 			break;
-		}
+		   }
 
 		// Initialise certain climate and soil drivers
 		gridcell.climate.initdrivers(gridcell.get_lat());
 
-		if (run_landcover && !restart) {
+		if (run_landcover && !restart) 
+         {
 			// Read landcover and cft fraction data from 
 			// data files for the spinup period and create stands
 			landcover_init(gridcell, input_module.get());
-		}
+		   }
 
 		if (restart) {
 			// Get the whole grid cell from file...
@@ -151,23 +162,43 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 			date.year = state_year;
 		}
 
-		float lt = gridcell.get_lat();
-		float lg = gridcell.get_lon();
+		float y = gridcell.get_lat();
+		float x = gridcell.get_lon();
 
-		int hruCount = pFlowContext->pFlowModel->GetHRUCount();
+    
+      int hruCount = pFlow->GetHRUCount();
+      HRU *pHRU = nullptr;
+
 		for (int h = 0; h < hruCount; h++)
 		   {
-			HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
-			if (lt == pHRU->m_centroid.y && lg == pHRU->m_centroid.x)
-				pHRU->m_pGuessArray.Add(&gridcell);
+			pHRU = pFlowContext->pFlowModel->GetHRU(h);
 
+         // if center of grid cell is in an hru poly 
+         bool found = false;
+
+         for (int i = 0; i < pHRU->m_polyIndexArray.GetSize(); i++)
+            {
+            Poly *pPoly = pIDULayer->GetPolygon(pHRU->m_polyIndexArray[i]);
+
+            if (pPoly->IsPointInPoly(Vertex(x, y)))
+               {
+               found = true;
+               break;
+               }
+            }
+
+         if (found)
+            {
+            // add this gridcell to this HRU's grid cell array
+            m_hruGridCells[h]->Add(gridCellIndex);
+
+            m_gridCellHRUArray.Add(pHRU);
+            }
 		   }
-	}
-	//Gridcell *pGridcell = new Gridcell;
-	//Gridcell gridcell;
-	//if (!input_module->getgridcell(gridcell)) {
-	//	break;
-	//}
+      gridCellIndex++;
+
+	}// end of while
+
 
 	//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
 	//Create array of gridcells from global_cru_new
@@ -191,9 +222,12 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, LPCTSTR initStr)
 	for (int h = 0; h < hruCount; h++)
 	   {
 		HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
-		for (int i = 0; i < pHRU->m_pGuessArray.GetSize(); i++)
+
+      int gridCellCount = m_hruGridCells[h]->GetSize();
+
+		for (int i = 0; i < gridCellCount; i++)
 		   {
-			Gridcell *pGridcell = new Gridcell;
+			//Gridcell *pGridcell = new Gridcell;
 		   }
 		//Assume each HRU has a array of pointers to guess gridcells
 		//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
