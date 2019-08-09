@@ -2137,7 +2137,7 @@ void FlowModel::SummarizeIDULULC()
             for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
                {
                this->UpdateIDU(m_flowContext.pEnvContext, pHRU->m_polyIndexArray[k], m_colHRUPercentIrrigated, pHRU->m_percentIrrigated, ADD_DELTA);
-               this->UpdateIDU(m_flowContext.pEnvContext, pHRU->m_polyIndexArray[k], m_colHRUMeanLAI, pHRU->m_meanLAI, SET_DATA);
+           //    this->UpdateIDU(m_flowContext.pEnvContext, pHRU->m_polyIndexArray[k], m_colHRUMeanLAI, pHRU->m_meanLAI, SET_DATA);
                }
             }
          }
@@ -5194,7 +5194,8 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
                   snow += ((float) pHRU->GetPool( k)->m_volumeWater/ pHRU->m_area)*MM_PER_M; //get the current year snowpack
                }
 
-            m_pCatchmentLayer->SetData(idu, m_colHruSWE, snow); //mm of snow
+            m_pCatchmentLayer->SetData(idu, m_colHRUMeanLAI, pHRU->m_biomass); //lai
+
          //   m_pCatchmentLayer->SetData( idu, m_colHruSWC,   pHRU->m_currentMAX_ET );
             }
          }
@@ -10376,7 +10377,7 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
    int n = pData->GetRowCount();
    FDataObj *pDataGrouped = new FDataObj(3, 0, 0.0f, U_UNDEFINED);     // MEMORY LEAK!!!!!!
    float obsMean = 0.0f, predMean = 0.0f, obsMeanL = 0.0f, predMeanL = 0.0f;
-   int firstSample = int( 100 / m_timeStep );
+   int firstSample = int( 1 / m_timeStep );
    for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values                                       // might be unacceptable due to initial conditions...
    {
       float time = 0.0f; float obs = 0.0f; float pred = 0.0f;

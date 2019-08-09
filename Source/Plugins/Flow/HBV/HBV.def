@@ -11,6 +11,7 @@ HBV_Basic @1
 HBV_WithIrrigation @2
 HBV_WithQuickflow @3
 HBV_WithRadiationDrivenSnow @4
+HBV_OnlyGroundwater @30
 
 ; deprecated models - don't use these!
 HBV_Global @5

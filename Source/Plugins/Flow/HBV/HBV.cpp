@@ -264,7 +264,104 @@ float HBV::HBV_Basic(FlowContext *pFlowContext)
    //  }
    return 0.0f;
    }
-   
+  
+
+   float HBV::HBV_OnlyGroundwater(FlowContext *pFlowContext)
+   {
+	   if (pFlowContext->timing & GMT_INIT) // Init()
+		   return HBV::InitHBV(pFlowContext, NULL);
+
+	   if (!(pFlowContext->timing & GMT_CATCHMENT))   // only process these two timings, ignore everyting else
+		   return 0;
+
+	   // int catchmentCount = pFlowContext->pFlowModel->GetCatchmentCount();
+	   int hruCount = pFlowContext->pFlowModel->GetHRUCount();
+
+	   ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
+
+	   int doy = pFlowContext->dayOfYear;  // int( fmod( timeInRun, 364 ) );  // zero based day of year
+	   int _month = 0; int _day; int _year;
+	   BOOL ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
+
+	   //omp_set_num_threads( 8 );
+
+	   // iterate through hrus/hrulayers 
+#pragma omp parallel for firstprivate( pFlowContext )
+	   for (int h = 0; h < hruCount; h++)
+	   {
+		   HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
+		   int hruLayerCount = pHRU->GetPoolCount();
+		   //Initialize local variables
+		   float CFMAX, TT, CFR, SFCF, CWH, Beta, kPerc, WP = 0.0f;
+		   float k0, k1, UZL, k2, wp = 0.0f;
+		   float fc, lp = 0.0f;
+		   VData key;            // lookup key connecting rows in the csv files with IDU records
+
+		   // Get Model Parameters
+		   pFlowContext->pFlowModel->GetHRUData(pHRU, pHBVTable->m_iduCol, key, DAM_FIRST);  // get HRU key info for lookups
+		   if (pHBVTable->m_type == DOT_FLOAT)
+			   key.ChangeType(TYPE_FLOAT);
+
+		   bool ok = pHBVTable->Lookup(key, m_col_k0, k0);        // Recession coefficient (day-1)
+		   ok = pHBVTable->Lookup(key, m_col_k1, k1);        // Recession coefficient (day-1)
+		   ok = pHBVTable->Lookup(key, m_col_uzl, UZL);      // threshold parameter (mm)
+		   ok = pHBVTable->Lookup(key, m_col_k2, k2);        // Recession coefficient (day-1)
+		   ok = pHBVTable->Lookup(key, m_col_kperc, kPerc);  // Percolation constant (mm)
+
+		   // Get state variables from layers, these will be used to calculate some of the rates
+
+		   float soilWater = float(pHRU->GetPool(0)->m_volumeWater / pHRU->m_area*1000.0f);//convert from m to mm
+		   float upperGroundWater = float(pHRU->GetPool(1)->m_volumeWater / pHRU->m_area*1000.0f);//convert from m to mm
+
+		   //Calculate rates
+		   //float gw = GroundWaterRechargeFraction(precip, soilWater, fc, Beta);
+		   float percolation = PercolationHBV(upperGroundWater, kPerc);//filling the deepest reservoir
+
+		   //Calculate the source/sink term for each HRUPool
+		   float q0 = 0.0f; float q2 = 0.0f;
+		   // #pragma omp parallel for 
+		   for (int l = 0; l < hruLayerCount; l++)
+		   {
+			   HRUPool *pHRUPool = pHRU->GetPool(l);
+			   float waterDepth = float(pHRUPool->m_volumeWater / pHRU->m_area*1000.0f);//mm
+			   float ss = 0.0f;
+			   q0 = 0.0f;
+			   pHRUPool->m_wc = (float)pHRUPool->m_volumeWater / (pHRU->m_area*pHRUPool->m_depth);//of layer 0, saturated
+			  // pHRUPool->m_wc = (float)pHRUPool->m_volumeWater / pHRU->m_area *1000.0f;//mm water
+			   pHRUPool->m_wDepth = (float)pHRUPool->m_volumeWater / pHRU->m_area *1000.0f;//mm water
+			   switch (pHRUPool->m_pool)
+			   {
+
+			   case 0://Upper Groundwater
+				   q0 = Q0(waterDepth, k0, k1, UZL);
+				   if (q0 + percolation > waterDepth)
+					   percolation = 0.0f;
+				 //  pHRUPool->AddFluxFromGlobalHandler(-meltToSoil * gw*pHRU->m_area / 1000.0f, FL_SINK);     //m3/d   TODO: Breaks with solute, FIX!!!
+				   pHRUPool->AddFluxFromGlobalHandler(percolation*pHRU->m_area / 1000.0f, FL_BOTTOM_SINK);     //m3/d 
+				   pHRUPool->AddFluxFromGlobalHandler(q0*pHRU->m_area / 1000.0f, FL_STREAM_SINK);     //m3/d
+				   break;
+
+			   case 1://Lower Groundwater
+				   q2 = Q2(waterDepth, k2);
+				   pHRUPool->AddFluxFromGlobalHandler(percolation*pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d 
+				   pHRUPool->AddFluxFromGlobalHandler(q2*pHRU->m_area / 1000.0f, FL_STREAM_SINK);     //m3/d
+				   break;
+
+			   default:
+				   //ss=0.0f;
+				   ;
+			   } // end of switch
+			   pHRU->m_currentRunoff = q0 + q2;//mm_d
+			   Reach * pReach = pHRUPool->GetReach();
+			   if (pReach)
+				   pReach->AddFluxFromGlobalHandler(((q0 + q2) / 1000.0f*pHRU->m_area)); //m3/d
+		   }
+	   }
+	   return 0.0f;
+   }
+
+
+
 float HBV::HBV_WithRadiationDrivenSnow(FlowContext *pFlowContext)
    {
    if ( pFlowContext->timing & 1 ) // Init()

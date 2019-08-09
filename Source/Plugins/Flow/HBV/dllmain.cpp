@@ -74,6 +74,7 @@ extern "C" float PASCAL EXPORT HBV_Basic(FlowContext *pFlowContext);
 extern "C" float PASCAL EXPORT HBV_WithIrrigation(FlowContext *pFlowContext);
 extern "C" float PASCAL EXPORT HBV_WithQuickflow(FlowContext *pFlowContext);
 extern "C" float PASCAL EXPORT HBV_WithRadiationDrivenSnow(FlowContext *pFlowContext);
+extern "C" float PASCAL EXPORT HBV_OnlyGroundwater(FlowContext *pFlowContext);
 
 // deprecated models
 extern "C" float PASCAL EXPORT HBV_Global(FlowContext *pFlowContext); // deprecated
@@ -114,6 +115,7 @@ extern "C" BOOL PASCAL EXPORT StreamTempReg(FlowContext *pFlowContext);
 // Model implementation
 float PASCAL HBV_Basic(FlowContext *pFlowContext) { return theModel->HBV_Basic(pFlowContext); }
 float PASCAL HBV_WithIrrigation(FlowContext *pFlowContext) { return theModel->HBV_WithIrrigation(pFlowContext); }
+float PASCAL HBV_OnlyGroundwater(FlowContext *pFlowContext) { return theModel->HBV_OnlyGroundwater(pFlowContext); }
 float PASCAL HBV_WithQuickflow(FlowContext *pFlowContext) { return theModel->HBV_WithQuickflow(pFlowContext); }
 float PASCAL HBV_WithRadiationDrivenSnow(FlowContext *pFlowContext) { return theModel->HBV_WithRadiationDrivenSnow(pFlowContext); }
 

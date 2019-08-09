@@ -128,6 +128,8 @@ public:
    float HBV_WithQuickflow(FlowContext *pFlowContext);    // formerly HBV_Agriculture
    float HBV_WithRadiationDrivenSnow(FlowContext *pFlowContext);   // formerly HBV_Global_Radiation
 
+   float HBV_OnlyGroundwater(FlowContext *pFlowContext);       
+
    //-------------------------------------------------------------------
    //------ exchange handlers ------------------------------------------
    //-------------------------------------------------------------------
