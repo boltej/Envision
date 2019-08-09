@@ -945,6 +945,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			++gc_itr;
 		}//End of loop through stands
 
+
 		// Print PFT sums to files
 
 		double standpft_mean_cton_leaf = limited_cton(mean_standpft_cmass_leaf, mean_standpft_nmass_leaf);
@@ -965,6 +966,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_nuptake,   mean_standpft_nuptake * m2toha);
 		outlimit(out,out_nlitter,   mean_standpft_nlitter * m2toha);
 
+		if (mean_standpft_lai > 0.0f)
+		   gridcell.pHRU->m_biomass = mean_standpft_lai;//kbv
 		// print species heights
 		double height = 0.0;
 		if (mean_standpft_densindiv_total > 0.0)
@@ -1206,7 +1209,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		}
 	}
 
-	// Print monthly output variables
+	// Print monthly output variables 
 	for (m=0;m<12;m++) {
 			outlimit(out,out_mnpp,         mnpp[m]);
 			outlimit(out,out_mlai,         mlai[m]);
@@ -1438,7 +1441,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			output_vegetation(gridcell, pftlist);
 		}
 	}
-
+	gridcell.pHRU->m_biomass = mean_standpft_lai;
 }
 
 /// Output of simulation results at the end of each day

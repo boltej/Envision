@@ -76,6 +76,8 @@ void interception(Patch& patch,Climate& climate) {
 	double pet; // potential evapotranspiration (mm)
 
 	pet=climate.eet*PRIESTLEY_TAYLOR;
+	Gridcell& gridcell = patch.stand.get_gridcell();
+	gridcell.pHRU->m_currentMaxET = pet;
 
 	// Retrieve Vegetation object
 	Vegetation& vegetation=patch.vegetation;
@@ -350,8 +352,7 @@ void fpar(Patch& patch) {
 			// Update cumulative LAI for this layer and above
 			plai+=plai_layer;
 			plai_leafon+=plai_leafon_layer;
-
-			// Calculate FPAR at bottom of this layer
+					// Calculate FPAR at bottom of this layer
 			// Eqn 27, Prentice et al 1993
 
 			fpar_layer_bottom = lambertbeer(plai);
@@ -1205,6 +1206,9 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 	}
 	else
 		patch.wdemand_leafon = 0.0;
+
+	Gridcell& gridcell = patch.stand.get_gridcell();
+	gridcell.pHRU->m_currentET = patch.wdemand+ patch.wdemand_leafon;
 }
 
 /// Plant water uptake
@@ -1518,8 +1522,9 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 			ppft.wscal = 0;
 			if (date.day == 0) {
 				ppft.wscal_mean = 0;
-				if (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass)
-					ppft.cropphen->growingdays_y=0;
+				//kbv
+				//if (ppft.pft.phenology==CROPGREEN || ppft.pft.isintercropgrass)
+				//	ppft.cropphen->growingdays_y=0;
 			}
 		}
 
@@ -1544,13 +1549,14 @@ void water_scalar(Patch& patch, Vegetation& vegetation, const Day& day) {
 					ppft.wscal_mean /= date.year_length();
 				}
 			}
-			else if (ppft.cropphen->growingseason									// true crops and cover-crop grass
-					|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
-					|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
+			//kbv
+			//else if (ppft.cropphen->growingseason									// true crops and cover-crop grass
+			//		|| ppft.pft.phenology == CROPGREEN && date.day == ppft.cropphen->hdate
+			//		|| ppft.pft.isintercropgrass && date.day == patch.pft[patch.stand.pftid].cropphen->eicdate) {
 
-				ppft.cropphen->growingdays_y++;
-				ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
-			}
+			//	ppft.cropphen->growingdays_y++;
+			//	ppft.wscal_mean = ppft.wscal_mean + (ppft.wscal - ppft.wscal_mean) / ppft.cropphen->growingdays_y;
+			//}
 		}
 	}
 }

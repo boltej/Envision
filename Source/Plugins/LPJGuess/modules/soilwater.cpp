@@ -298,7 +298,14 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	dperc = runoff_baseflow + runoff_drain;
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
+	Gridcell& gridcell = patch.stand.get_gridcell();
+	HRUPool *pHRUPool = gridcell.pHRU->GetPool(0);
+	pHRUPool->AddFluxFromGlobalHandler(dperc*gridcell.pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d
 
+	gridcell.pHRU->m_currentRunoff = runoff_surf;
+	Reach * pReach = pHRUPool->GetReach();
+	if (pReach)
+		pReach->AddFluxFromGlobalHandler(((runoff_surf) / 1000.0f*gridcell.pHRU->m_area)); //m3/d
 	patch.asurfrunoff += runoff_surf;
 	patch.adrainrunoff += runoff_drain;
 	patch.abaserunoff += runoff_baseflow;

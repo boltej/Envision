@@ -46,6 +46,8 @@
 #include "parameters.h"
 #include "guesscontainer.h"
 
+#include <..\Plugins\Flow\Flow.h>
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
@@ -3834,6 +3836,8 @@ public:
 
 	/// landcover fractions and landcover-specific variables
 	Landcover landcover;
+
+	HRU *pHRU;
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;

@@ -307,6 +307,8 @@ void CRUInput::adjust_raw_forcing_data(double lon,
 }
 
 
+
+
 bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities

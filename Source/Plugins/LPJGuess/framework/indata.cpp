@@ -1618,17 +1618,17 @@ void TimeDataD::Output(char *name) {
 	case LOCAL_STATIC:
 		fprintf(ofp, "%6.2f\t%6.2f",currentStand.lon, currentStand.lat);
 		for(j=0; j<nColumns; j++)
-			fprintf(ofp, "\t%8.3f", data[nColumns*i+j]);
+			fprintf(ofp, "\t%12.1f", data[nColumns*i+j]);
 		fprintf(ofp, "\n");
 		break;
 	case LOCAL_YEARLY:
 
 		if(!ifheader)
-			fprintf(ofp, "%8.2f\t%8.2f\n",currentStand.lon, currentStand.lat);
+			fprintf(ofp, "%12.1f\t%12.1f\n",currentStand.lon, currentStand.lat);
 
 		for(i=0;i<nYears;i++) {
 			if(ifheader)
-				fprintf(ofp, "%6.2f\t%6.2f\t",currentStand.lon, currentStand.lat);
+				fprintf(ofp, "%12.1f\t%12.1f\t",currentStand.lon, currentStand.lat);
 
 			fprintf(ofp, "%6d ", year[i]);
 			for(j=0; j<nColumns; j++)

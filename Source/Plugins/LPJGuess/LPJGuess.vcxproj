@@ -134,6 +134,7 @@
     <ClCompile Include="cru\guessio\cruinput.cpp" />
     <ClCompile Include="cru\guessio\cru_ts30.cpp" />
     <ClCompile Include="cru\guessio\lamarquendep.cpp" />
+    <ClCompile Include="envision_input.cpp" />
     <ClCompile Include="framework\archive.cpp" />
     <ClCompile Include="framework\commandlinearguments.cpp" />
     <ClCompile Include="framework\externalinput.cpp" />
@@ -203,6 +204,7 @@
     <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP60.h" />
     <ClInclude Include="cru\guessio\GlobalNitrogenDepositionRCP85.h" />
     <ClInclude Include="cru\guessio\lamarquendep.h" />
+    <ClInclude Include="envision_input.h" />
     <ClInclude Include="framework\archive.h" />
     <ClInclude Include="framework\commandlinearguments.h" />
     <ClInclude Include="framework\config.h" />

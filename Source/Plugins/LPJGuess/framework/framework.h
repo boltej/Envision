@@ -9,7 +9,9 @@
 #ifndef LPJ_GUESS_FRAMEWORK_H
 #define LPJ_GUESS_FRAMEWORK_H
 class FlowContext;
+class Gridcell;
 class CommandLineArguments;
+class InputModule;
 
 /// The 'mission control' of the model
 /** 
@@ -22,4 +24,5 @@ class CommandLineArguments;
  */
 int framework(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file/*, const CommandLineArguments& args*/);
 void print_logfile_heading();
+void simulate_day(Gridcell& gridcell, InputModule* input_module);
 #endif // LPJ_GUESS_FRAMEWORK_H

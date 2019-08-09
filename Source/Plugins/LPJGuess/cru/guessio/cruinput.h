@@ -52,9 +52,11 @@ public:
 
 	/// See base class for documentation about this function's responsibilities
 	bool getgridcell(Gridcell& gridcell);
+	bool getgridcell_INFEWS(Gridcell& gridcell);
 
 	/// See base class for documentation about this function's responsibilities
 	bool getclimate(Gridcell& gridcell, FlowContext *pFlowContext);
+	bool getclimate_INFEWS(Gridcell& gridcell, FlowContext *pFlowContext);
 
 	/// See base class for documentation about this function's responsibilities
 	void getlandcover(Gridcell& gridcell);

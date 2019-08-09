@@ -1231,7 +1231,8 @@ void add_litter(Soil& soil, int year, int pool) {
 void equilsom(Soil& soil) {
 
 	// Number of years to run SOM pools, value chosen to get cold climates to equilibrium
-	const int EQUILSOM_YEARS = 40000;
+	//kbv changed to 40 from 40000
+	const int EQUILSOM_YEARS = 40;
 
 	Patch& patch = soil.patch;
 	const Climate& climate = soil.patch.get_climate();
