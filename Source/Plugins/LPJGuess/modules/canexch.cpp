@@ -1208,7 +1208,7 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 		patch.wdemand_leafon = 0.0;
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
-	gridcell.pHRU->m_currentET = patch.wdemand+ patch.wdemand_leafon;
+	//kbvgridcell.pHRU->m_currentET = patch.wdemand+ patch.wdemand_leafon;
 }
 
 /// Plant water uptake
@@ -2137,6 +2137,7 @@ void canopy_exchange(Patch& patch, Climate& climate) {
 				climate.eet * PRIESTLEY_TAYLOR * max(1.0-patch.fpc_total, 0.0);
 	patch.apet += pet_patch;
 	patch.mpet[date.month] += pet_patch;
+
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

@@ -72,10 +72,11 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		}
 	}
 
-
+	int standCount = 0;
+	int patchCount = 0;
 	Gridcell::iterator gc_itr = gridcell.begin();
 	while (gc_itr != gridcell.end()) {
-
+		standCount++;
 		// START OF LOOP THROUGH STANDS
 		Stand& stand = *gc_itr;
 
@@ -84,7 +85,7 @@ void simulate_day(Gridcell& gridcell, InputModule* input_module) {
 		stand.firstobj();
 		while (stand.isobj) {
 			// START OF LOOP THROUGH PATCHES
-
+			patchCount++;
 			// Get reference to this patch
 			Patch& patch = stand.getobj();
 			// Update daily soil drivers including soil temperature

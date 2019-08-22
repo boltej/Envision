@@ -139,7 +139,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	const double SOILDEPTH_EVAP = 200.0;
 		// depth of sublayer at top of upper soil layer, from which evaporation is
 		// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
-	const double BASEFLOW_FRAC = 0.5;
+	const double BASEFLOW_FRAC = 0.95;
 		// Fraction of standard percolation amount from lower soil layer that is
 		// diverted to baseflow runoff
 	const double K_DEPTH = 0.4;
@@ -299,13 +299,24 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 	Gridcell& gridcell = patch.stand.get_gridcell();
-	HRUPool *pHRUPool = gridcell.pHRU->GetPool(0);
-	pHRUPool->AddFluxFromGlobalHandler(dperc*gridcell.pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d
-
-	gridcell.pHRU->m_currentRunoff = runoff_surf;
-	Reach * pReach = pHRUPool->GetReach();
-	if (pReach)
-		pReach->AddFluxFromGlobalHandler(((runoff_surf) / 1000.0f*gridcell.pHRU->m_area)); //m3/d
+	
+	//for (int k = 0; k < gridcell.m_hruArray.GetSize(); k++)
+	 //  {
+	
+		//HRU *pHRU = gridcell.m_hruArray[k];
+	    HRU *pHRU = gridcell.pHRU;
+		HRUPool *pHRUPool = pHRU->GetPool(0);
+		pHRUPool->AddFluxFromGlobalHandler(runoff*pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d
+		//pHRUPool->AddFluxFromGlobalHandler((aet_layer[0]+evap) *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
+		//HRUPool *pHRUPool2 = pHRU->GetPool(1);
+		//pHRUPool2->AddFluxFromGlobalHandler(aet_layer[1] *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
+		gridcell.pHRU->m_currentET = aet_total+evap;
+		pHRU->m_currentRunoff = runoff_surf;
+		pHRU->m_swc = wcont[0];
+	//	Reach * pReach = pHRUPool->GetReach();
+	//	if (pReach)
+	//		pReach->AddFluxFromGlobalHandler(((runoff_surf) / 1000.0f*pHRU->m_area)); //m3/d
+	  // }
 	patch.asurfrunoff += runoff_surf;
 	patch.adrainrunoff += runoff_drain;
 	patch.abaserunoff += runoff_baseflow;
@@ -374,6 +385,10 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 		soil.wcont_evap = soil.wcont[0];
 	}
+	Gridcell& gridcell = patch.stand.get_gridcell();
+	HRU *pHRU = gridcell.pHRU;
+	pHRU->m_depthSWE = soil.snowpack;
+
 }
 
 /// Calculate required irrigation according to water deficiency.

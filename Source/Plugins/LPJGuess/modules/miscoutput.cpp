@@ -1060,26 +1060,26 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 	double lat = gridcell.get_lat();
 	OutputRows out(output_channel, lon, lat, date.get_calendar_year(), date.day);
 
-	if (date.year < nyear_spinup) {
-		return;
-	}
+	//if (date.year < nyear_spinup) {
+//		return;
+//	}
 
 	pftlist.firstobj();
 	while (pftlist.isobj) {
 		Pft& pft=pftlist.getobj();
 
-		if (pft.landcover != CROPLAND) {
+/*		if (pft.landcover != CROPLAND) {
 			pftlist.nextobj();
 			continue;
 		}
-
+*/
 		Gridcell::iterator gc_itr = gridcell.begin();
 		while (gc_itr != gridcell.end()) {
 
 			Stand& stand = *gc_itr;
-			if (stand.landcover != CROPLAND || stand.npatch() > 1) {
-				break;
-			}
+//			if (stand.landcover != CROPLAND || stand.npatch() > 1) {
+//				break;
+//			}
 
 			stand.firstobj();
 			while (stand.isobj) {
@@ -1091,7 +1091,7 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 				vegetation.firstobj();
 				while (vegetation.isobj) {
 					Individual& indiv=vegetation.getobj();
-					if (indiv.id != -1 && indiv.pft.id == pft.id && !indiv.cropindiv->isintercropgrass) {
+					if (indiv.id != -1 && indiv.pft.id == pft.id ) {
 						//To be able to print values for the year after establishment of crops !
 						// (if not dead and has existed for at least one year)
 						// Ben 2007-11-28
@@ -1119,25 +1119,25 @@ void MiscOutput::outdaily(Gridcell& gridcell) {
 						outlimit_misc(out, out_daily_lower_wcont,lw);
 						outlimit_misc(out, out_daily_irrigation,patch.irrigation_d);
 
-						outlimit_misc(out, out_daily_cmass_storage,indiv.cropindiv->grs_cmass_ho*m2toha);
-						outlimit_misc(out, out_daily_nmass_storage,indiv.cropindiv->nmass_ho*m2toha);
+	//					outlimit_misc(out, out_daily_cmass_storage,indiv.cropindiv->grs_cmass_ho*m2toha);
+	//					outlimit_misc(out, out_daily_nmass_storage,indiv.cropindiv->nmass_ho*m2toha);
 
-						outlimit_misc(out, out_daily_ndemand,indiv.ndemand);
+	//					outlimit_misc(out, out_daily_ndemand,indiv.ndemand);
 						outlimit_misc(out, out_daily_cton,limited_cton(indiv.cmass_leaf_today(),indiv.nmass_leaf*m2toha));
 
 						if (ifnlim) {
-							outlimit_misc(out, out_daily_ds,patch.pft[pft.id].cropphen->dev_stage); // daglig ds
-							outlimit_misc(out, out_daily_cmass_stem,(indiv.cropindiv->grs_cmass_agpool+indiv.cropindiv->grs_cmass_stem)*m2toha);
-							outlimit_misc(out, out_daily_nmass_stem,indiv.cropindiv->nmass_agpool*m2toha);
+		//					outlimit_misc(out, out_daily_ds,patch.pft[pft.id].cropphen->dev_stage); // daglig ds
+		//					outlimit_misc(out, out_daily_cmass_stem,(indiv.cropindiv->grs_cmass_agpool+indiv.cropindiv->grs_cmass_stem)*m2toha);
+		//					outlimit_misc(out, out_daily_nmass_stem,indiv.cropindiv->nmass_agpool*m2toha);
 
-							outlimit_misc(out, out_daily_cmass_dead_leaf,indiv.cropindiv->grs_cmass_dead_leaf*m2toha);
-							outlimit_misc(out, out_daily_nmass_dead_leaf,indiv.cropindiv->nmass_dead_leaf*m2toha);
+	//						outlimit_misc(out, out_daily_cmass_dead_leaf,indiv.cropindiv->grs_cmass_dead_leaf*m2toha);
+	//						outlimit_misc(out, out_daily_nmass_dead_leaf,indiv.cropindiv->nmass_dead_leaf*m2toha);
 
-							outlimit_misc(out, out_daily_fphu,patch.pft[pft.id].cropphen->fphu);
-							outlimit_misc(out, out_daily_stem,patch.pft[pft.id].cropphen->f_alloc_stem);
-							outlimit_misc(out, out_daily_leaf,patch.pft[pft.id].cropphen->f_alloc_leaf);
-							outlimit_misc(out, out_daily_root,patch.pft[pft.id].cropphen->f_alloc_root);
-							outlimit_misc(out, out_daily_storage,patch.pft[pft.id].cropphen->f_alloc_horg);
+		//					outlimit_misc(out, out_daily_fphu,patch.pft[pft.id].cropphen->fphu);
+		//					outlimit_misc(out, out_daily_stem,patch.pft[pft.id].cropphen->f_alloc_stem);
+		//					outlimit_misc(out, out_daily_leaf,patch.pft[pft.id].cropphen->f_alloc_leaf);
+		//					outlimit_misc(out, out_daily_root,patch.pft[pft.id].cropphen->f_alloc_root);
+		//					outlimit_misc(out, out_daily_storage,patch.pft[pft.id].cropphen->f_alloc_horg);
 						}
 
 					}

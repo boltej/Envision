@@ -3838,6 +3838,7 @@ public:
 	Landcover landcover;
 
 	HRU *pHRU;
+	PtrArray< HRU > m_hruArray;
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
 	ListArray_idin1<Gridcellpft,Pft> pft;

@@ -966,7 +966,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_nuptake,   mean_standpft_nuptake * m2toha);
 		outlimit(out,out_nlitter,   mean_standpft_nlitter * m2toha);
 
-		if (mean_standpft_lai > 0.0f)
+	//	if (mean_standpft_lai > 0.0f)
 		   gridcell.pHRU->m_biomass = mean_standpft_lai;//kbv
 		// print species heights
 		double height = 0.0;
@@ -1441,7 +1441,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			output_vegetation(gridcell, pftlist);
 		}
 	}
-	gridcell.pHRU->m_biomass = mean_standpft_lai;
+//	gridcell.pHRU->m_biomass = mean_standpft_lai;
 }
 
 /// Output of simulation results at the end of each day
