@@ -467,6 +467,7 @@ public:
 
    float m_soilTemp;
    float m_biomass;
+   float m_swc;
 
    // SWE-related variables
    float     m_depthMelt;          // depth of water in snow (m)

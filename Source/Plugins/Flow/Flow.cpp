@@ -439,6 +439,7 @@ HRU::HRU(void)
    , m_elws(0.0f)
    , m_soilTemp(10.0f)
    , m_biomass(0.0f)
+   , m_swc(0.0f)
    , m_pCatchment(NULL)
    { }
 
@@ -1934,6 +1935,7 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUPercentIrrigated, "HRU_IRR_P", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUMeanLAI, "HRU_LAI", TYPE_FLOAT, CC_AUTOADD);
+   EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruSWC, "HRU_SWC", TYPE_FLOAT, CC_AUTOADD);
 
    // <streams>
    EnvExtension::CheckCol(m_pStreamLayer, m_colStreamFrom, m_fromCol, TYPE_INT, CC_MUST_EXIST);  // required for building topology
@@ -5195,10 +5197,11 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
                }
 
             m_pCatchmentLayer->SetData(idu, m_colHRUMeanLAI, pHRU->m_biomass); //lai
-
-         //   m_pCatchmentLayer->SetData( idu, m_colHruSWC,   pHRU->m_currentMAX_ET );
+            m_pCatchmentLayer->SetData( idu, m_colHruSWC,   pHRU->m_swc );
             }
          }
+	  int activeField = m_pCatchmentLayer->GetActiveField();
+	  m_pCatchmentLayer->ClassifyData(activeField);
       }
 
    int reachCount = (int)m_reachArray.GetSize();
@@ -9953,7 +9956,7 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
 
       // hydrology
       pHRU->m_depthMelt = 0;
-      pHRU->m_depthSWE  = 0;
+  //    pHRU->m_depthSWE  = 0;
       for ( int j=0; j < this->m_poolInfoArray.GetSize(); j++ )
          {
          switch(this->m_poolInfoArray[j]->m_type )
@@ -9963,12 +9966,12 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
                break;
 
             case PT_SNOW:
-               pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
+  //             pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
                break;
             }
          }
 
-      pHRU->m_depthSWE += pHRU->m_depthMelt; // SWE includes melt + ice
+    //  pHRU->m_depthSWE += pHRU->m_depthMelt; // SWE includes melt + ice
 
       pHRU->m_maxET_yr += float( pHRU->m_currentMaxET*m_timeStep );
       pHRU->m_et_yr += float( pHRU->m_currentET*m_timeStep );
@@ -9989,7 +9992,7 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
                }
             }
 
-         this->UpdateIDU(pEnvContext, idu, m_colHruSWE, snow, SET_DATA);  // SetData, not AddDelta   // m_colHruSWE_yr
+         this->UpdateIDU(pEnvContext, idu, m_colHruSWE, pHRU->m_depthSWE, SET_DATA);  // SetData, not AddDelta   // m_colHruSWE_yr
          }
       }
 
@@ -11308,8 +11311,8 @@ bool FlowModel::CollectModelOutput(void)
          totalIDUArea += area;
 
          // update static HRU variables
-         HRU::m_mvDepthMelt = pHRU->m_depthMelt*1000.0f;  // volume of water in snow (converted from m to mm)
-         HRU::m_mvDepthSWE = pHRU->m_depthSWE*1000.0f;   // volume of ice in snow (converted from m to mm)
+         HRU::m_mvDepthMelt = pHRU->m_depthMelt;  // volume of water in snow (converted from m to mm)
+         HRU::m_mvDepthSWE = pHRU->m_depthSWE;   // volume of ice in snow (converted from m to mm)
          HRU::m_mvCurrentPrecip = pHRU->m_currentPrecip;
          HRU::m_mvCurrentRainfall = pHRU->m_currentRainfall;
          HRU::m_mvCurrentSnowFall = pHRU->m_currentSnowFall;
