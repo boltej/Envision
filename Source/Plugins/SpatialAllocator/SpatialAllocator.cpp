@@ -507,7 +507,8 @@ Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_S
    , m_pAllocSet( pSet )
    //, m_iduScoreArray( NULL )
    , m_currentIduScoreIndex( -1 )
-   { 
+   {
+   m_constraint.m_pAlloc = this;
    }
 
 Allocation::~Allocation( void )

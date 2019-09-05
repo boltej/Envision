@@ -1,0 +1,2247 @@
+#include "StdAfx.h"
+
+#pragma hdrstop
+
+#include "FarmModel.h"
+#include "F2R.h"
+#include <Maplayer.h>
+#include <tixml.h>
+#include <UNITCONV.H>
+#include <misc.h>
+#include <DATE.HPP>
+#include <MAP.h>
+#include <omp.h>
+
+#include <randgen\Randunif.hpp>
+#include <LULCTREE.H>
+#include <FDATAOBJ.H>
+
+#include <EnvInterface.h>
+
+extern F2RProcess *theProcess;
+
+bool IsCereal( int );
+
+bool IsCereal( int lulc )
+   {
+   switch ( lulc )
+      {
+      case 133:
+      case 134:
+      case 136:
+      case 140:
+         return true;
+      }
+
+   return false;
+   }
+
+
+bool FarmRotation::ContainCereals()
+   {
+   for ( int i=0; i < (int) m_sequenceArray.GetSize(); i++ )
+      {
+      if ( IsCereal( m_sequenceArray[ i ] ) )
+         return true;
+      }
+
+   return false;
+   }
+
+
+
+
+/////////////////////////////////////////////////////////////////////
+// F A R M    M O D E L 
+/////////////////////////////////////////////////////////////////////
+
+FarmModel::FarmModel( void )
+   : m_id( FARM_MODEL )
+   , m_doInit( 0 )
+   , m_climateManager()
+   , m_climateScenarioID( 0 )
+   , m_colFarmID( -1 )
+   , m_colFarmType( -1 )
+   , m_colLulc( -1 )
+   , m_colLulcA( -1 )
+   , m_colCropStatus( -1 )
+   , m_colCropStage( -1 )
+   , m_colPlantDate( -1 )
+   , m_colYieldRed( -1 )
+   , m_colRotation( -1 )
+   , m_colRotIndex( -1 )
+   , m_colArea( -1 )
+   , m_avgYieldReduction( 0 )
+   , m_yrfThreshold( 0.20f )
+   , m_pDailyData( NULL )
+   , m_pCropEventData( NULL )
+   , m_totalIDUArea( 0 )
+   , m_maxProcessors( -1 )
+   , m_processorsUsed( 0 )
+   {
+   // zero out event array
+   memset( m_cropEvents, 0, sizeof( float )* CS_EVENTCOUNT );
+   }
+
+
+FarmModel::~FarmModel( void )
+   {
+   if ( m_pDailyData != NULL )
+      delete m_pDailyData;
+
+   if ( m_pCropEventData != NULL )
+      delete m_pCropEventData;
+   }
+
+
+bool FarmModel::Init( EnvContext *pEnvContext, LPCTSTR initStr )
+   {
+   m_processorsUsed = omp_get_num_procs();
+
+   m_processorsUsed = ( 2 * m_processorsUsed / 3) + 1;   // default uses 2/3 of the cores
+   if ( m_maxProcessors > 0 && m_processorsUsed >= m_maxProcessors )
+      m_processorsUsed = m_maxProcessors;
+
+   omp_set_num_threads(m_processorsUsed); 
+
+
+   // load table
+   bool ok = LoadXml( pEnvContext, initStr );
+   if ( ! ok ) 
+      return false;
+   
+   m_climateManager.Init( pEnvContext, initStr );
+   
+   MapLayer *pMapLayer = (MapLayer*) pEnvContext->pMapLayer;
+
+   if ( m_doInit > 0 )
+      InitializeFarms( pMapLayer );   // populates FarmType, FT_Code fields based on FT_Extent strings
+   
+   // these are hard coded columns (for now)
+   ok = theProcess->CheckCol( pMapLayer, m_colArea, "Area", TYPE_FLOAT, CC_MUST_EXIST );
+   if ( ! ok ) 
+      return false;
+   
+   theProcess->CheckCol( pMapLayer, m_colRotIndex,   "ROT_INDEX",  TYPE_INT,  CC_AUTOADD | TYPE_INT );
+   theProcess->CheckCol( pMapLayer, m_colCropStatus, "CropStatus", TYPE_INT,  CC_AUTOADD | TYPE_INT );
+   theProcess->CheckCol( pMapLayer, m_colCropStage,  "CropStage",  TYPE_INT,  CC_AUTOADD | TYPE_INT );
+   theProcess->CheckCol( pMapLayer, m_colPlantDate,  "PlantDate",  TYPE_INT,  CC_AUTOADD | TYPE_INT );
+   theProcess->CheckCol( pMapLayer, m_colYieldRed,   "YieldRed",   TYPE_FLOAT, CC_AUTOADD | TYPE_FLOAT );
+
+   pMapLayer->SetColNoData( m_colRotIndex );
+   pMapLayer->SetColNoData( m_colCropStatus );
+   pMapLayer->SetColNoData( m_colCropStage );
+   pMapLayer->SetColNoData( m_colPlantDate );
+   pMapLayer->SetColNoData( m_colYieldRed );
+   
+   // build the farm aggregations
+   int farmCount = BuildFarms( pMapLayer );
+   
+   // set up input variables
+   theProcess->m_inVarIndexFarmModel = theProcess->GetInputVarCount();
+   theProcess->m_inVarCountFarmModel = 1;
+   theProcess->AddInputVar( "Climate Scenario ID", this->m_climateScenarioID, "0=CCSM4, IPSL=1, MPI=2");
+
+   // set up any outputs for the FarmModel
+   SetupOutputVars( pEnvContext );
+   
+   CString msg;
+   msg.Format( "Farm Model: Loaded %i farms, %i farm types, %i rotations", (int) m_rotationArray.GetSize() );
+   Report::LogMsg( msg );
+
+   return true;
+   }
+
+
+bool FarmModel::InitRun( EnvContext *pContext )
+   {
+   m_climateManager.InitRun( m_climateScenarioID );
+
+   // also initializates individual crop area output vars
+   AllocateInitialCropRotations( (MapLayer*) pContext->pMapLayer );
+
+   // reset output data objects
+   for ( int i=0; i < (int) m_annualCIArray.GetSize(); i++ )
+      m_annualCIArray[ i ]->ClearRows();
+
+   for ( int i=0; i < (int) m_dailyCIArray.GetSize(); i++ )
+      m_dailyCIArray[ i ]->ClearRows();
+
+   m_pDailyData->ClearRows();
+   m_pCropEventData->ClearRows();
+
+   return true;
+   }
+
+
+// run one year
+bool FarmModel::Run( EnvContext *pContext, bool useAddDelta )
+   {
+   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+   bool readOnly = pLayer->m_readOnly;
+   pLayer->m_readOnly = false;
+
+   // update climate metrics for this year
+   m_climateManager.Run( pContext, useAddDelta );
+
+   // reset any columns that need to be reset at the start of the year
+   //MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+   pLayer->SetColNoData( m_colYieldRed );
+   pLayer->SetColNoData( m_colPlantDate );
+
+   m_cropEvents[ 0 ] = (float) pContext->currentYear;
+   for ( int i=1; i < CS_EVENTCOUNT; i++ )
+      m_cropEvents[ i ] = 0;
+
+   // runs through one year
+   RotateCrops( pContext, useAddDelta );
+   GrowCrops( pContext, useAddDelta );
+
+   UpdateAnnualOutputs( pContext, useAddDelta );
+
+   pLayer->m_readOnly = readOnly;
+   return true;
+   }
+
+
+// called once only in Init()
+void FarmModel::SetupOutputVars( EnvContext *pEnvContext )
+   {
+   // set up any output data objs
+   ASSERT( m_pDailyData == NULL );
+   m_pDailyData = new FDataObj( 3, 0 );
+   m_pDailyData->SetName( "Farm Model Daily Data" );
+   m_pDailyData->SetLabel( 0, "Time" );
+   m_pDailyData->SetLabel( 1, "Avg Yield Reduction" );
+   m_pDailyData->SetLabel( 2, "Avg Planting Date" );
+
+   ASSERT( m_pCropEventData == NULL );
+   m_pCropEventData = new FDataObj( 20, 0 );
+   m_pCropEventData->SetName( "Farm Model Crop Events" );
+   m_pCropEventData->SetLabel( 0, "Time" );
+   m_pCropEventData->SetLabel( 1, "Poor Seed Condition (ha)" );
+   m_pCropEventData->SetLabel( 2, "Early Frost (ha)" );
+   m_pCropEventData->SetLabel( 3, "Mid Frost (ha)" );
+   m_pCropEventData->SetLabel( 4, "Fall Frost (ha)" );
+   m_pCropEventData->SetLabel( 5, "Winter Frost (ha)" );
+   m_pCropEventData->SetLabel( 6, "Cool Nights (ha)" );
+   m_pCropEventData->SetLabel( 7, "Warm Nights (ha)" );
+   m_pCropEventData->SetLabel( 8, "Pollen-killing Heat (ha)" );
+   m_pCropEventData->SetLabel( 9, "R2 Heat (ha)" );
+   m_pCropEventData->SetLabel( 10, "Extreme Heat (ha)" );
+   m_pCropEventData->SetLabel( 11, "Veg Drought (ha)" );
+   m_pCropEventData->SetLabel( 12, "Pollen Drought (ha)" );
+   m_pCropEventData->SetLabel( 13, "R2 Drought (ha)" );
+   m_pCropEventData->SetLabel( 14, "R3 Drought (ha)" );
+   m_pCropEventData->SetLabel( 15, "R5 Drought (ha)" );
+   m_pCropEventData->SetLabel( 16, "Pod Drought (ha)" );
+   m_pCropEventData->SetLabel( 17, "Seed Drought (ha)" );
+   m_pCropEventData->SetLabel( 18, "Early Flood (ha)" );
+   m_pCropEventData->SetLabel( 19, "Mid Flood (ha)" );
+
+   // internal variables
+   theProcess->m_outVarIndexFarmModel = theProcess->GetOutputVarCount();
+
+   theProcess->AddOutputVar( "Mean Yield Reduction", m_avgYieldReduction, "" );
+   theProcess->AddOutputVar( "Daily Data", m_pDailyData, "" );
+   theProcess->AddOutputVar( "Crop Event Data", m_pCropEventData, "" );
+
+   // rotation-related variables
+   for ( int i=0; i < (int) this->m_rotationArray.GetSize(); i++ )
+      {
+      FarmRotation *pRotation = m_rotationArray.GetAt( i );
+
+      CString name = pRotation->m_name;
+      name += " Area (ha)";
+      theProcess->AddOutputVar( name, pRotation->m_totalArea, "" );  // remeber the index of the first one added
+      
+      name = pRotation->m_name;
+      name += " Area (%)";
+      theProcess->AddOutputVar( name, pRotation->m_totalAreaPct, "" );
+      
+      name = pRotation->m_name;
+      name += " Area (% of Ag)";
+      theProcess->AddOutputVar( name, pRotation->m_totalAreaPctAg, "" );
+      }
+
+   // get a list of all LULC values included in a rotation and do those as well
+   for ( int i=0; i < (int) this->m_rotationArray.GetSize(); i++ )
+      {
+      FarmRotation *pRotation = m_rotationArray.GetAt( i );
+
+      for ( int j=0; j < (int) pRotation->m_sequenceArray.GetSize(); j++ )
+         {
+         int lulc = pRotation->m_sequenceArray[ j ];
+
+         // does this exist in the global array already?
+         bool found = false;
+         for ( int k=0; k < (int) m_rotLulcArray.GetSize(); k++ )
+            {
+            if ( m_rotLulcArray[ k ] == lulc )
+               {
+               found = true;
+               break;
+               }
+            }
+
+         if ( ! found )
+            {
+            m_rotLulcArray.Add( lulc );
+            m_rotLulcAreaArray.Add( 0 );
+            }
+         }
+      }
+
+   for ( int i=0; i < (int) this->m_rotLulcArray.GetSize(); i++ )
+      {
+      int lulc = m_rotLulcArray.GetAt( i );
+
+      // find the corresponding crop
+      int level = pEnvContext->pLulcTree->FindLevelFromFieldname( m_lulcField ); // level is one-based
+      ASSERT( level > 0 );
+
+      LulcNode *pNode = pEnvContext->pLulcTree->FindNode( level, lulc );
+      ASSERT( pNode != NULL );
+
+      CString name = pNode->m_name;
+      name += " Area (ha)";
+      theProcess->AddOutputVar( name, m_rotLulcAreaArray[ i ], "" );
+      }
+
+   // climate indicators (output vars added in Build method)
+   m_dailyCIArray.Add( BuildOutputClimateDataObj( "Daily Precip (mm)" , true ) );
+   m_dailyCIArray.Add( BuildOutputClimateDataObj( "Daily Tmin (C)"    , true ) );
+   m_dailyCIArray.Add( BuildOutputClimateDataObj( "Daily Tmean (C)"   , true ) );
+   m_dailyCIArray.Add( BuildOutputClimateDataObj( "Daily Tmax (C)"    , true ) );
+
+   // note - following order must match the "output data object indices" enum in FarmModel.h
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Annual Precip (mm)"    , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Annual Tmin (C)"       , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Annual Tmean (C)"      , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Annual Tmax (C)"       , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Jan (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Feb (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Mar (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Apr (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-May (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Jun (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Jul (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Aug (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Sep (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Oct (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Nov (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx1-Dec (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Jan (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Feb (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Mar (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Apr (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-May (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Jun (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Jul (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Aug (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Sep (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Oct (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Nov (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Rx3-Dec (mm)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "CDD (days)"            , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "R10mm (days)"          , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "10yr Storm (events)"   , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "100yr Storm (events)"  , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Short Dur. Precip (mm)", false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Extreme Heat Events"   , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Extreme Cold Events"   , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "GSL (days)"            , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "CHU"                   , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Cereal GDD"            , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "Alfalfa GDD"           , false ) );
+   m_annualCIArray.Add( BuildOutputClimateDataObj( "P-Days"                , false ) );
+
+   // all outputs generated, fix up counter
+   int count = theProcess->GetOutputVarCount();
+   theProcess->m_outVarCountFarmModel = count - theProcess->m_outVarIndexFarmModel;
+
+   CString msg;
+   int rotations = (int) this->m_rotationArray.GetSize();
+   int lulcs     = (int) this->m_rotLulcArray.GetSize();
+   int outputs   = rotations*3 + lulcs;
+   msg.Format( "Farm Model: Added %i output variables: %i*3 rotations + %i rotational lulc classes", outputs, rotations, lulcs );
+   Report::LogMsg( msg );
+   }
+
+
+FDataObj *FarmModel::BuildOutputClimateDataObj( LPCTSTR label, bool isDaily )
+   {
+   int stationCount = m_climateManager.GetStationCount();
+
+   FDataObj *pData = new FDataObj( 1+stationCount, 0 );   // time + stations 
+   if( isDaily )
+      pData->SetLabel( 0, "Day" );
+   else 
+      pData->SetLabel( 0, "Year" );
+   
+   int i;
+   for ( i=0; i < stationCount; i++ )
+      {
+      CString _label( m_climateManager.GetStation( i )->m_name );
+      _label += ": ";
+      _label += label;
+      pData->SetLabel( i+1, _label );
+      }
+
+   pData->SetName( label );
+
+   theProcess->AddOutputVar( label, pData, "" );
+
+   return pData;
+   }
+
+
+bool FarmModel::RotateCrops( EnvContext *pContext, bool useAddDelta )
+   {
+   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+
+   float noDataValue = pLayer->GetNoDataValue();
+
+   // create a random number generator for ????
+   RandUniform rnRotIndex( 0.0, 1.0, 1 );
+
+   // initialize outputVars
+   for ( int i=0; i < (int) this->m_rotationArray.GetSize(); i++ )
+      {
+      FarmRotation *pRotation = m_rotationArray.GetAt( i );
+      pRotation->m_totalArea = 0;
+      pRotation->m_totalAreaPct = 0;
+      pRotation->m_totalAreaPctAg = 0;
+      }
+
+   for ( int i=0; i < (int) m_rotLulcAreaArray.GetSize(); i++ )
+      m_rotLulcAreaArray[ i ] = 0;
+
+   m_totalIDUAreaAg = 0;
+
+   float areaHayPasture = 0;
+   float areaCashCrop = 0;
+
+   // basic idea - loop through Farms.
+   // For each cadaster unit,??? move each IDU in the 
+   // cadastre through it rotation.
+
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
+      {
+      int lulcA = -1;
+      pLayer->GetData( idu, m_colLulcA, lulcA );
+
+      float area = 0;
+      pLayer->GetData( idu, m_colArea, area );
+
+      if ( lulcA == ANNUAL_CROP || lulcA == PERENNIAL_CROP )
+         {
+         pLayer->SetData( idu, m_colCropStage,  CS_PREPLANT );
+         theProcess->UpdateIDU( pContext, idu, m_colCropStatus, CS_SUCCESS, true );
+         m_totalIDUAreaAg += area;
+         }
+      else
+         {
+         pLayer->SetData( idu, m_colCropStage, CS_NONCROP );
+         theProcess->UpdateIDU( pContext, idu, m_colCropStatus, noDataValue, true );
+         }
+         
+      int lulc = -1;
+      pLayer->GetData( idu, m_colLulc, lulc );
+
+      // track areas of crops in the rotations for output
+      // (Note that these are starting values, which are adjusted as needed below)
+      for ( int i=0; i < (int) m_rotLulcArray.GetSize(); i++ )
+         {
+         if ( lulc == m_rotLulcArray[ i ] )
+            {
+            m_rotLulcAreaArray[ i ] += ( area / M2_PER_HA );
+            break;
+            }
+         }
+
+      int rotationID = 0;
+      pLayer->GetData( idu, m_colRotation, rotationID );
+      
+      int rotIndex = 0;
+      pLayer->GetData( idu, m_colRotIndex, rotIndex );
+
+      // are we in a rotation?  If so, move through the rotation
+      if ( rotationID > 0 )
+         {
+         FarmRotation *pRotation = NULL;
+         BOOL found = m_rotationMap.Lookup( rotationID, pRotation ); 
+
+         if ( ! found || pRotation == NULL )
+            continue;      // no valid rotation found
+
+         if ( lulc < 0 )   // no lulc value found
+            continue;
+
+         // see where we are at in the rotation.  NOTE:  if we are in a rotation, but the 
+         // lulc value is invalid OR the rotIndex < 0 , then randomly assign an lulc         
+         if ( rotIndex >= (int) pRotation->m_sequenceArray.GetSize()-1 )// last item in sequence
+            rotIndex = 0;     // then move to start of rotation
+         else if ( rotIndex < 0 )   // not yet assigned a value in sequence
+            {
+            // randomly assign an lulc class in this rotation
+            int rotLength = (int) pRotation->m_sequenceArray.GetSize();
+            rotIndex = (int) rnRotIndex.RandValue( 0, (double) rotLength );
+            }
+         else
+            rotIndex++;
+
+         //found = pRotation->m_sequenceMap.Lookup( lulc, index );   // false if same crops shows up twice in rotation
+         //found = false;
+         //for ( int i=0; i < (int) pRotation->m_sequenceArray.GetSize(); i++ )
+         //   {
+         //   if ( pRotation->m_sequenceArray[ i ] == lulc )
+         //      {
+         //      found = true;
+         //      break;
+         //      }
+         //   }
+         //
+         //if ( ! found ) // || index < 0 )
+         //   continue;   // rotation found, but lulc value is invalid for rotation
+
+         int nextLulc = pRotation->m_sequenceArray[ rotIndex ];
+         if ( nextLulc != lulc )
+            theProcess->UpdateIDU( pContext, idu, m_colLulc, nextLulc, useAddDelta );
+
+         theProcess->UpdateIDU( pContext, idu, m_colRotIndex, rotIndex, useAddDelta );
+
+         pRotation->m_totalArea += area / M2_PER_HA;
+
+         for ( int i=0; i < (int) m_rotLulcArray.GetSize(); i++ )
+            {
+            if ( lulc == m_rotLulcArray[ i ] )
+               m_rotLulcAreaArray[ i ] -= ( area / M2_PER_HA );
+
+            if ( nextLulc == m_rotLulcArray[ i ] )
+               m_rotLulcAreaArray[ i ] += ( area / M2_PER_HA );
+            }
+         }  // end of: if (rotationID > 0 )
+
+      else  // check for case where rotation < 0, make sure rotIndex = -1
+         {
+         if ( rotIndex >= 0 )
+            theProcess->UpdateIDU( pContext, idu, m_colRotIndex, -1, useAddDelta );
+         }
+      }
+
+   // update rotation summaries
+   for ( int j=0; j < (int) m_rotationArray.GetSize(); j++ )
+      {
+      FarmRotation *pRotation = m_rotationArray.GetAt( j );
+      pRotation->m_totalAreaPct   = 100*pRotation->m_totalArea/( m_totalIDUArea / M2_PER_HA );
+      pRotation->m_totalAreaPctAg = 100*pRotation->m_totalArea/( m_totalIDUAreaAg / M2_PER_HA );
+
+      //CString msg;
+      //msg.Format( "Crop Rotation '%s': Target=%f, Realized=%4.1f", pRotation->m_name, pRotation->m_initPctArea*100, pRotation->m_totalAreaPct );
+      //Report::LogMsg( msg );
+      }
+   
+   return true;
+   }
+
+
+bool FarmModel::GrowCrops( EnvContext *pContext, bool useAddDelta )
+   {
+   // basic idea:  crop selection has been set prior to getting here.
+   //  the job here is to march through an annual growing season, estimating
+   //  changes in crop management and impacts on yield.  We do this farm by farm.
+   //
+   // Note that when we get hear, the ClimateManager has already updated it's internal 
+   // arrays to have a full year of weather stats/metrics.
+
+   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+
+   // start the annual clock running
+   int doy = 0;
+   int colStationID = m_climateManager.GetStationIDCol();
+
+   for ( int doy = 1; doy <= 365; doy++ )   // note: doy's are one-based
+      {
+      int year=2000, month, dom;
+      ::GetCalDate( doy, &year, &month, &dom, 0 );
+
+      CString msg;
+      msg.Format("%s %i   ", ::GetMonthStr(month), dom );
+      ::EnvSetLLMapText( msg );
+
+      float tArea = 0;
+      float tYRF = 0;
+
+      // update individual farms
+//#pragma omp parallel for
+      for ( int i=0; i < (int) m_farmArray.GetSize(); i++ )
+         {
+         Farm *pFarm = m_farmArray[ i ];
+
+         if ( pFarm->m_iduArray.GetSize() == 0 )   // any idus?
+            continue;
+
+         // get weather information for this farm
+         int idu = pFarm->m_iduArray[ 0 ];
+         int stationID = -1;
+
+         pLayer->GetData( idu, colStationID, stationID);
+
+         ClimateStation *pStation = m_climateManager.GetStationFromID( stationID );
+         if ( pStation == NULL )
+            continue;
+
+         // we have a farm and associate climate, iterate through each IDU in the farm.
+         // for each IDU associated with this farm, 
+         for ( int j=0; j < (int) pFarm->m_iduArray.GetSize(); j++ )
+            {
+            idu = pFarm->m_iduArray[ j ];
+
+            if ( IsAnnualCrop( pFarm, pLayer ) )
+               {
+               float yrf = 0;    // 0-1 yield reduction factors
+               CheckCropConditions( pContext, pFarm, pLayer, idu, doy, pContext->currentYear, yrf );
+
+               float priorYRF = 0;
+               pLayer->GetData( idu, m_colYieldRed, priorYRF );
+
+               float area = 0;
+               pLayer->GetData( idu, m_colArea, area );
+
+               
+               yrf = priorYRF + yrf;
+               
+               if ( yrf < 0  )
+                  yrf = 0;
+               else if ( yrf > 1 )
+                  yrf = 1;
+
+
+               tYRF += yrf * area;
+               tArea += area;
+
+               if ( yrf > priorYRF )
+                  theProcess->UpdateIDU( pContext, idu, m_colYieldRed, yrf, false );
+               }  // end of: IsAnnualCrop()
+
+            }  // end of: for each Farm IDU
+
+         }  // end of: for each farm
+
+      m_avgYieldReduction = tYRF / tArea;
+
+      UpdateDailyOutputs( doy, pContext );
+
+      }  // end of: for each day of year
+
+   /*
+      else  // check for case where rotation < 0, make sure rotIndex = -1
+         {
+         if ( rotIndex >= 0 )
+            theProcess->UpdateIDU( pContext, idu, m_colRotIndex, -1, useAddDelta );
+         }
+      }
+
+   // update rotation summaries
+   for ( int j=0; j < (int) m_rotationArray.GetSize(); j++ )
+      {
+      FarmRotation *pRotation = m_rotationArray.GetAt( j );
+      pRotation->m_totalAreaPct   = 100*pRotation->m_totalArea/( m_totalIDUArea / M2_PER_HA );
+      pRotation->m_totalAreaPctAg = 100*pRotation->m_totalArea/( m_totalIDUAreaAg / M2_PER_HA );
+
+      //CString msg;
+      //msg.Format( "Crop Rotation '%s': Target=%f, Realized=%4.1f", pRotation->m_name, pRotation->m_initPctArea*100, pRotation->m_totalAreaPct );
+      //Report::LogMsg( msg );
+      }
+      */
+
+   return true;
+   }
+
+
+bool FarmModel::IsAnnualCrop( Farm *pFarm, MapLayer *pLayer )
+   {
+   for ( int i=0; i < (int) pFarm->m_iduArray.GetSize(); i++ )
+      {
+      int idu = pFarm->m_iduArray[ i ];
+      int lulcA = 0;
+      pLayer->GetData( idu, m_colLulcA, lulcA );
+
+      if ( lulcA == ANNUAL_CROP )
+         return true;
+      }
+
+   return false;
+   }
+
+
+int FarmModel::InitializeFarms( MapLayer *pLayer )
+   {
+   int colFTExtent = pLayer->GetFieldCol( "FT_Extent" );
+   if ( colFTExtent < 0 )
+      return -1;
+
+   int colFarmType = pLayer->GetFieldCol( "FarmType" );
+   if ( colFarmType < 0 )
+      colFarmType = pLayer->m_pDbTable->AddField( "FarmType", TYPE_INT );
+
+   int colFTCode = pLayer->GetFieldCol( "FT_Code" );
+   if ( colFTCode < 0 )
+      colFTCode = pLayer->m_pDbTable->AddField( "FT_Code", TYPE_STRING, 8, 0 );
+
+   pLayer->SetColNoData( colFarmType );
+   pLayer->SetColNull( colFTCode );
+
+   // iterate through IDUs
+   CString ft;
+   TCHAR buffer[ 64 ];
+   int count = 0;
+
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
+      {
+      // get the FT_Extent entry
+      pLayer->GetData( idu, colFTExtent, ft );
+
+      if ( ft.IsEmpty() )
+         continue;
+
+      lstrcpy( buffer, (LPCTSTR) ft );
+
+      TCHAR *start = _tcschr( buffer, '_');
+      start++;
+
+      TCHAR *end = start;
+      while( isalpha( *end ) ) end++;  // find first non-alpha character
+      *end = NULL;
+
+      pLayer->SetData( idu, colFTCode, start );
+
+      // can we find this one in our legal list?
+      for ( int j=0; j < (int) m_farmTypeArray.GetSize(); j++ )
+         {
+         if ( m_farmTypeArray[ j ]->m_code.CompareNoCase( start ) == 0 )
+            {
+            pLayer->SetData( idu, colFarmType, m_farmTypeArray[ j ]->m_id );
+            count++;
+            break;
+            }
+         }
+
+      }  // end of: for each IDU
+
+   CString msg;
+   msg.Format( "Farm Model: Initialized [FarmType] for %i of %i IDUs", count, (int) pLayer->GetRecordCount() );
+   Report::LogMsg( msg );
+
+   return 0;
+   }
+
+
+int FarmModel::BuildFarms( MapLayer *pLayer )
+   {
+   // iterate through IDU's creating and populating Farms
+   if ( m_colFarmID < 0 )
+      return -1;
+
+   m_farmMap.RemoveAll();
+   m_farmArray.RemoveAll();
+
+   int farmID = 0;
+
+   // iterate through IDUs
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
+      {
+      // get the farmID
+      pLayer->GetData( idu, m_colFarmID, farmID );
+
+      // look it up (have we seen it already?)
+      Farm *pFarm = NULL;
+      BOOL found = m_farmMap.Lookup( farmID, pFarm );
+
+      if ( ! found )  // we haven't seen it, so add it
+         {
+         pFarm = new Farm;
+         pFarm->m_id = farmID;
+         this->m_farmArray.Add( pFarm );
+         m_farmMap[ farmID ] = pFarm;
+
+         // set climate station for this farm
+         int stationID = -1;
+         pLayer->GetData( idu, m_climateManager.GetStationIDCol(), stationID );
+         pFarm->m_pClimateStation = m_climateManager.GetStationFromID( stationID );
+         }
+
+      pFarm->m_iduArray.Add( idu );
+      }
+   
+   return (int) m_farmArray.GetSize();
+   }
+
+
+// only called in InitRun();
+void FarmModel::AllocateInitialCropRotations( MapLayer *pLayer )
+   {
+   m_totalIDUArea   = pLayer->GetTotalArea();
+   m_totalIDUAreaAg = 0;
+
+   // reset Rotation areas
+   int rotationCount = (int) m_rotationArray.GetCount();
+   float total = 0;
+   for ( int i=0; i < rotationCount; i++ )
+      {
+      FarmRotation *pRotation = m_rotationArray[ i ];
+
+      pRotation->m_totalArea = 0;
+      pRotation->m_totalAreaPct = 0;
+      pRotation->m_totalAreaPctAg = 0;
+
+      total += pRotation->m_initPctArea;
+      }
+
+   // this array tracks the areas for each crop in a rotation 
+   for ( int i=0; i < (int) m_rotLulcArray.GetSize(); i++ )
+      m_rotLulcAreaArray[ i ] = 0;
+
+   RandUniform rn( 0.0, (double) total, 0 );
+   RandUniform rnRotIndex( 0.0, 1.0, 1 );
+
+   pLayer->SetColNoData( m_colRotation );
+   pLayer->SetColNoData( m_colRotIndex );
+
+   // make an array of IDUs we will randomize
+   int iduCount = pLayer->GetPolygonCount();
+   int *iduArray = new int[ iduCount ];
+   for ( int i=0; i < iduCount; i++ )
+      iduArray[ i ] = i;
+   
+   // randomize IDU traversal
+   RandUniform rnShuffle( 0, iduCount );
+   ShuffleArray< int >( iduArray, iduCount, &rnShuffle );
+
+   // okay, preliminaries accomplished.  Next, allocate the rotations.
+   // Basic idea is to allocate the rotation that
+   // has the largest allocation deficit as we move through IDUs,
+   // expressed as a percent of the target allocation
+   for ( int i=0; i < iduCount; i++ )
+      {
+      int idu = iduArray[ i ];
+
+      int lulcA = -1;
+      pLayer->GetData( idu, m_colLulcA, lulcA );
+
+      float area = 0;
+      pLayer->GetData( idu, m_colArea, area );
+
+      if ( lulcA == 2 )
+         m_totalIDUAreaAg += area;
+
+      int rotationID = 0;
+      pLayer->GetData( idu, m_colRotation, rotationID );
+
+      // are we in a rotation already??  If so, skip
+      if ( rotationID > 0 )
+         {
+         ASSERT( 0 );
+         continue;
+         }
+
+      // get lulc
+      int lulc = -1;
+      pLayer->GetData( idu, m_colLulc, lulc );
+
+      // is this lulc in a rotation?  If so, apply an appropriate rotation - whichever has the highest pct remaining area
+      FarmRotation *pBest = NULL;
+      int       bestIndex = -1;
+      float mostRemainingAreaSoFar = 0;
+      
+      for ( int j=0; j < rotationCount; j++ )
+         {
+         FarmRotation *pRotation = m_rotationArray.GetAt( j );
+         int lulcIndex = -1;
+
+         // does the LULC in the coverage exist in this rotation?
+         //if ( pRotation->m_sequenceMap.Lookup( lulc, lulcIndex ) )
+         bool found = false;
+         for ( int i=0; i < (int) pRotation->m_sequenceArray.GetSize(); i++ )
+            {
+            if ( pRotation->m_sequenceArray[ i ] == lulc )
+               {
+               found = true;
+               break;
+               }
+            }
+
+         if ( found )
+            {
+            float pctRemainingArea = ( pRotation->m_initPctArea - (pRotation->m_totalAreaPct/100) )/pRotation->m_initPctArea;
+
+            if ( pctRemainingArea > mostRemainingAreaSoFar )
+               {
+               mostRemainingAreaSoFar = pctRemainingArea;
+               pBest = pRotation;
+               bestIndex = j;
+               }
+            }
+         }
+
+      if ( pBest != NULL ) // anything found for this IDU?
+         {
+         pLayer->SetData( idu, m_colRotation, pBest->m_rotationID );
+
+         // randomly assign an lulc class in this rotation
+         int rotLength = (int) pBest->m_sequenceArray.GetSize();
+         int rotIndex = (int) rnRotIndex.RandValue( 0, (double) rotLength );
+
+         pLayer->SetData( idu, m_colRotIndex, rotIndex );
+
+         int rotLulc = pBest->m_sequenceArray[ rotIndex ];
+         pLayer->SetData( idu, m_colLulc, rotLulc );
+
+         // update area summaries for this rotation         
+         float area = 0;
+         pLayer->GetData( idu, m_colArea, area );
+
+         pBest->m_totalArea     += ( area / M2_PER_HA );
+         pBest->m_totalAreaPct   = 100*pBest->m_totalArea/( m_totalIDUArea / M2_PER_HA );
+         pBest->m_totalAreaPctAg = 100*pBest->m_totalArea/( m_totalIDUAreaAg / M2_PER_HA );
+         }
+      }  // end of:  for ( i < iduCount )
+   
+   // update output variables   
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
+      {
+      int lulc = -1;
+      pLayer->GetData( idu, m_colLulc, lulc );
+
+      float area = 0;
+      pLayer->GetData( idu, m_colArea, area );
+
+      for ( int i=0; i < (int) m_rotLulcArray.GetSize(); i++ )
+         {
+         if ( lulc == m_rotLulcArray[ i ] )
+            {
+            m_rotLulcAreaArray[ i ] += ( area / M2_PER_HA );
+            break;
+            }
+         }
+      }
+
+   // final report
+   for ( int j=0; j < rotationCount; j++ )
+      {
+      FarmRotation *pRotation = m_rotationArray.GetAt( j );
+
+      CString msg;
+      msg.Format( "Farm Model Crop Rotation '%s': Target=%.1f, Realized=%.1f", pRotation->m_name, pRotation->m_initPctArea*100, pRotation->m_totalAreaPct );
+      Report::LogMsg( msg );
+      }
+
+   delete [] iduArray;
+   }
+
+
+
+bool FarmModel::LoadXml( EnvContext *pContext, LPCTSTR filename )
+   {
+   // have xml string, start parsing
+   TiXmlDocument doc;
+   bool ok = doc.LoadFile( filename );
+
+   if ( ! ok )
+      {      
+      Report::ErrorMsg( doc.ErrorDesc() );
+      return false;
+      }
+ 
+   // start interating through the nodes
+   TiXmlElement *pXmlRoot = doc.RootElement();  // f2r
+
+   TiXmlElement *pXmlFarmModel = pXmlRoot->FirstChildElement( "farm_model" );
+   if ( pXmlFarmModel == NULL )
+      {
+      CString msg( "Farm Model: missing <farm_model> element in input file " );
+      msg += filename;
+      Report::ErrorMsg( msg );
+      return false;
+      }
+
+   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+
+   // lookup fields
+   XML_ATTR attrs[] = {
+      // attr            type           address              isReq checkCol
+      { "farmID_col",    TYPE_CSTRING,  &m_farmIDField,      true,  0 },
+      { "farmType_col",  TYPE_CSTRING,  &m_farmTypeField,    true,  0 },
+      { "lulc_col",      TYPE_CSTRING,  &m_lulcField,        true,  0 },
+      { "rotation_col",  TYPE_CSTRING,  &m_rotationField,    true,  0 },
+      { "init",          TYPE_INT,      &m_doInit,           false, 0 },
+      { NULL,            TYPE_NULL,     NULL,                false, 0 } };
+
+   ok = TiXmlGetAttributes( pXmlFarmModel, attrs, filename, pLayer );
+
+   if ( ! ok )
+      return false;
+
+   // verify columns exist
+   theProcess->CheckCol( pLayer, m_colFarmID,    m_farmIDField,   TYPE_INT, m_doInit ? CC_AUTOADD : CC_MUST_EXIST );
+   theProcess->CheckCol( pLayer, m_colFarmType,  m_farmTypeField, TYPE_INT,  m_doInit ? CC_AUTOADD : CC_MUST_EXIST );
+   theProcess->CheckCol( pLayer, m_colLulc,      m_lulcField,     TYPE_INT, CC_MUST_EXIST );
+   theProcess->CheckCol( pLayer, m_colRotation,  m_rotationField, TYPE_INT, CC_AUTOADD );
+   theProcess->CheckCol( pLayer, m_colLulcA, "LULC_A", TYPE_INT, CC_MUST_EXIST );
+
+   // next, farm rotations
+   TiXmlElement *pXmlRotations = pXmlFarmModel->FirstChildElement( "rotations" );
+
+   if ( pXmlRotations != NULL )
+      {
+      // get rotations assocated with this farm types
+      TiXmlElement *pXmlRotation = pXmlRotations->FirstChildElement( "rotation" );
+
+      while ( pXmlRotation != NULL )
+         {
+         LPTSTR name  = NULL;
+         int    id   = 0;
+         LPTSTR rotations = 0;
+         float  initPctArea = 0;
+
+         XML_ATTR attrs[] = { // attr          type        address      isReq checkCol
+                            { "name",          TYPE_STRING,   &name,        true,  0 },
+                            { "id",            TYPE_INT,      &id,          true,  0 },
+                            { "sequence",      TYPE_STRING,   &rotations,   true,  0 },
+                            { "init_pct_area", TYPE_FLOAT,    &initPctArea, true,  0 },
+                            { NULL,            TYPE_NULL,     NULL,         false, 0 } };
+
+         bool ok = TiXmlGetAttributes( pXmlRotation, attrs, filename );
+
+         if ( ok )
+            {
+            FarmRotation *pRotation = new FarmRotation;
+
+            pRotation->m_name = name;
+            pRotation->m_rotationID = id;
+            
+            // parse sequence
+            TCHAR *buffer = new TCHAR[ lstrlen( rotations ) + 1 ];
+            lstrcpy( buffer, rotations );
+            TCHAR *next = NULL;
+            TCHAR *token = _tcstok_s( buffer, _T(","), &next );
+
+            while ( token != NULL )
+               {
+               int attrCode = atoi( token );
+
+               int index = (int) pRotation->m_sequenceArray.Add( attrCode );
+               pRotation->m_sequenceMap.SetAt( attrCode, index );    // BUG ALERT!~!!! fails if the same crops shows up twice in thw sequence
+               token = _tcstok_s( NULL, _T( "," ), &next );
+               }
+            delete [] buffer;
+
+            pRotation->m_initPctArea = initPctArea;
+
+            m_rotationMap.SetAt( id, pRotation );
+            m_rotationArray.Add( pRotation );
+            }
+    
+         pXmlRotation = pXmlRotation->NextSiblingElement( "rotation" );
+         }
+      }  // end of:  if ( pXmlRotations != NULL )
+
+
+
+   // next, farm_types
+   TiXmlElement *pXmlFarmTypes = pXmlFarmModel->FirstChildElement( "farm_types" );
+   if ( pXmlFarmTypes == NULL )
+      {
+      CString msg( "Farm Model: missing <farm_types> element in input file " );
+      msg += filename;
+      Report::ErrorMsg( msg );
+      return false;
+      }
+
+   TiXmlElement *pXmlFarmType = pXmlFarmTypes->FirstChildElement( "farm_type" );
+   if ( pXmlFarmTypes == NULL )
+      {
+      CString msg( "Farm Model: missing <farm_types> element in input file " );
+      msg += filename;
+      Report::ErrorMsg( msg );
+      return false;
+      }
+
+   while ( pXmlFarmType != NULL )
+      {
+      FarmType *pFarmType = new FarmType;
+
+      CString rotations;
+
+      // lookup fields
+      XML_ATTR attrs[] = {
+         // attr            type           address            isReq checkCol
+         { "name",         TYPE_CSTRING,  &(pFarmType->m_name),     true,  0 },
+         { "priority",     TYPE_INT,      &(pFarmType->m_priority), true,  0 },
+         { "id",           TYPE_INT,      &(pFarmType->m_id),       true,  0 },
+         { "code",         TYPE_CSTRING,  &(pFarmType->m_code),     true,  0 },
+         { "rotations",    TYPE_CSTRING,  &rotations,               true,  0 },
+         { NULL,           TYPE_NULL,     NULL,                 false, 0 } };
+   
+      ok = TiXmlGetAttributes( pXmlFarmType, attrs, filename, NULL );
+   
+      if ( ! ok )
+         {
+         CString msg;
+         msg = "FarmModel:  Error reading <farm_type> tag in input file ";
+         msg += filename;
+         Report::ErrorMsg( msg );
+         return false;
+         }
+      else
+         {
+         m_farmTypeArray.Add( pFarmType );
+
+         // parse rotations
+         int nTokenPos = 0;
+         CString rotID = rotations.Tokenize(_T(", "), nTokenPos );
+         while (! rotID.IsEmpty() )
+            {
+            int _rotID = atoi( rotID );
+
+            FarmRotation *pRotation = NULL;
+            BOOL found = m_rotationMap.Lookup( _rotID, pRotation );
+
+            if ( found && pRotation != NULL )
+               pFarmType->m_rotationArray.Add( pRotation );
+            else
+               {
+               CString msg;
+               msg.Format( "Farm Model: Unrecognized rotation code '%s' found when reading farm type '%s'", (LPCTSTR) rotID, (LPCTSTR) pFarmType->m_name );
+               }
+
+            rotID = rotations.Tokenize(_T(", "), nTokenPos);
+            }
+         }      
+
+      pXmlFarmType = pXmlFarmType->NextSiblingElement( "farm_type" );
+      }
+
+   CString msg;
+   msg.Format( "Farm Model: Loaded %i farm types, %i rotations,", (int) m_farmTypeArray.GetSize(), (int) m_rotationArray.GetSize() );
+   Report::LogMsg( msg );
+   return true;
+   }
+
+
+/*
+// returns flag indicating stage
+int FarmModel::GetCropStage( Farm *pFarm, MapLayer *pLayer, int crop, int doy, int year, float &value )
+   {
+   switch( crop )
+      {
+      case CORN:
+         {
+         float chu = 0;
+         pFarm->m_pClimateStation->GetData( doy, year, CHUCMAY1, chu );  //m_chuCornMay1[ doy-1 ];
+         value = chu;
+
+         if ( chu <= 0 )         // pre planting
+            return C_PREPLANTING;
+
+         if ( chu < 180 )        // planting 
+            return C_PLANTING;
+
+         else if ( chu < 330 )   // emergence
+            return C_EMERGENCE;
+
+         else if ( chu < 630 )   // V1
+            return C_V1;
+
+         else if ( chu < 680 )   // V4
+            return C_V4;
+
+         else if ( chu < 930 )   // V6
+            return C_V6;
+
+         else if ( chu < 1270 )  // V8
+            return C_V8;
+
+         else if ( chu < 1310 )  // V12
+            return C_V12;
+
+         else if ( chu < 1480 )  // VT
+            return C_VT;
+
+         else if ( chu < 1825 )  // R1
+            return C_R1;
+
+         else if ( chu < 2000 )  // R2
+            return C_R2;
+
+         else if ( chu < 2165 )  // R3
+            return C_R3;
+
+         else if ( chu < 2475 )  // R4
+            return C_R4;
+
+         else if ( chu < 2800 )  // R5
+            return C_R5;
+
+         else 
+            return C_R6;           // R6 
+         }
+         break;
+
+      case ALFALFA:
+         {
+         float chu = pFarm->m_pClimateStation->m_cumDegDays5Apr1[ doy-1 ];
+         value = chu;
+
+         if ( chu < 90 )         // pre-emergence
+            return A_PREEMERGENCE;
+
+         else if ( chu < 325 )   // emergence
+            return A_EMERGENCE;
+
+         else if ( chu < 540 )   // pre-bud
+             return A_PREBUD;
+
+         else if ( chu < 925 )   // flowering
+            return A_FLOWERING;
+
+         else
+            return A_SEEDPOD;
+         }
+         break;
+
+      case SOYBEANS:
+         {
+         int daysSincePlanting = doy - 130;   // 130 = May 10.
+         value = (float) daysSincePlanting;
+
+         if ( daysSincePlanting <= 0 )         // pre planting
+            return S_PREPLANTING;
+
+         if ( daysSincePlanting < 12 )        // planting 
+            return S_PREEMERGENCE;
+
+         else if ( daysSincePlanting < 20 )   // emergence
+            return S_VE;
+
+         else if ( daysSincePlanting < 26 )   // V1
+            return S_VC;
+
+         else if ( daysSincePlanting < 34 )   // V4
+            return S_V2;
+
+         else if ( daysSincePlanting < 40 )   // V6
+            return S_V3;
+
+         else if ( daysSincePlanting < 46 )  // V8
+            return S_V4;
+
+         else if ( daysSincePlanting < 50 )  // V12
+            return S_V5;
+
+         else if ( daysSincePlanting < 55 )  // VT
+            return S_V6;
+
+         else if ( daysSincePlanting < 65 )  // R1
+            return S_R1;
+
+         else if ( daysSincePlanting < 75 )  // R2
+            return S_R2;
+
+         else if ( daysSincePlanting < 85 )  // R3
+            return S_R3;
+
+         else if ( daysSincePlanting < 95 )  // R4
+            return S_R4;
+
+         else if ( daysSincePlanting < 115 )  // R5
+            return S_R5;
+
+         else if ( daysSincePlanting < 120 )  // R5
+            return S_R6;
+
+         else if ( daysSincePlanting < 130 )  // R5
+            return S_R7;
+
+         else 
+            return S_R8;           // R6 
+         }
+         break;
+
+      case SPRING_WHEAT:
+         {
+         float chu = pFarm->m_pClimateStation->m_cumDegDays0Apr15[ doy-1 ];
+         value = chu;
+
+         if ( chu < 140 )     // pre-emergence
+            return B_PREEMERGENCE;
+      
+         else if ( chu < 190 )   // germination
+            return B_GERMINATION;
+
+         else if ( chu < 400 )   // leaf production
+            return B_LEAF_PRODUCTION;
+
+         else if ( chu < 630 )   // tillering
+            return B_TILLERING;
+
+         else if ( chu < 712 )   // stem elongation 
+            return B_STEM_ELONGATION;
+
+         else if ( chu < 775 )   // boot
+            return B_BOOT;
+
+         else if ( chu < 850 )   // head emergence
+            return B_HEAD_EMERGENCE;
+
+         else if ( chu < 1130 )   // flowering
+            return B_FLOWERING;
+
+         else if ( chu < 1490 )   // milk
+            return B_MILK;
+         
+         else if ( chu < 1600 )   // R3
+           return B_DOUGH;
+
+         else 
+            return B_RIPENING; 
+         }
+         break;
+
+      case BARLEY:
+         {
+         float chu = pFarm->m_pClimateStation->m_cumDegDays0Apr15[ doy-1 ];
+         value = chu;
+
+         if ( chu < 130 )     // pre-emergence
+            return B_PREEMERGENCE;
+      
+         else if ( chu < 160 )   // germination
+            return B_GERMINATION;
+
+         else if ( chu < 330 )   // leaf production
+            return B_LEAF_PRODUCTION;
+
+         else if ( chu < 525 )   // tillering
+            return B_TILLERING;
+
+         else if ( chu < 592 )   // stem elongation 
+            return B_STEM_ELONGATION;
+
+         else if ( chu < 702 )   // boot
+            return B_BOOT;
+
+         else if ( chu < 840 )   // head emergence
+            return B_HEAD_EMERGENCE;
+
+         else if ( chu < 1030 )   // flowering
+            return B_FLOWERING;
+
+         else if ( chu < 1325 )   // milk
+            return B_MILK;
+         
+         else if ( chu < 1410 )   // R3
+           return B_DOUGH;
+
+         else 
+            return B_RIPENING; 
+         }
+         break;
+
+      case POTATOES:
+         {
+         // calculate p-days
+         float tMin = 0, tMax = 0;
+         pFarm->m_pClimateStation->GetData( doy, year, TMIN, tMin );
+         pFarm->m_pClimateStation->GetData( doy, year, TMAX, tMax );
+
+         float t[4];
+         t[0] = tMin;
+         t[1] = ((2*tMin) + tMax )/3;
+         t[2] = (tMin + (2*tMax))/3;
+         t[3] = tMax;
+         float p[4];
+
+         p[0] = GetPfromT( t[0] );
+         p[1] = GetPfromT( t[1] );
+         p[2] = GetPfromT( t[2] );
+         p[3] = GetPfromT( t[3] );
+
+         float pDays = ( 5*p[0] + 8*p[1] + p[2] + 3*p[3] )/24.0f;
+         value = pDays;
+         
+         // assume late maturing variety
+         if ( pDays < 155 )
+            return P_PREEMERGENCE;
+
+         else if ( pDays < 330 )
+            return P_EMERGENCE;
+
+         else if ( pDays < 440 )
+            return P_TUBER_INITIATION;
+
+         else if ( pDays < 640 )
+            return P_TUBER_GROWTH;
+
+         else if ( pDays < 800 )
+            return P_MAX_BULKING;
+
+         else if ( pDays < 1000 )
+            return P_CESS_BULKING;
+
+         else
+            return P_MATURE;
+         }
+         break;      
+      }
+
+   return -1;
+   }
+*/
+   
+int FarmModel::CheckCropConditions( EnvContext *pContext, Farm *pFarm, MapLayer *pLayer, int idu, int doy, int year, float& yieldReductionFactor )
+   {
+   yieldReductionFactor = 0;  // assume no yield reduction unless called for below
+
+   ClimateStation *pStation = pFarm->m_pClimateStation;
+   if ( pStation == NULL )
+      return -1;
+
+   int lulc = -1;
+   pLayer->GetData( idu, m_colLulc, lulc );
+
+   float area = 0;
+   pLayer->GetData( idu, m_colArea, area );
+
+   float areaHa = area / M2_PER_HA;
+
+   switch( lulc )
+      {
+      case CORN:
+         {
+         float chu = pStation->m_chuCornMay1[ doy-1 ];
+         int cropStage = -99;
+         pLayer->GetData( idu, m_colCropStage, cropStage );
+
+         // check crop status to see if we need to remember the doy we 
+         // entered a crop status we want to pay attention to.         
+         if ( 600 <= chu && chu < 1300 && cropStage != CS_LATEVEGETATION )
+            {
+            pLayer->SetData( idu, m_colCropStage, CS_LATEVEGETATION );
+            cropStage = CS_LATEVEGETATION;
+            }
+         else if ( 1300 <= chu && chu < 1600 && cropStage != CS_POLLINATION )
+            {
+            pLayer->SetData( idu, m_colCropStage, CS_POLLINATION );
+            cropStage = CS_POLLINATION;
+            }
+         else if ( 1601 <= chu && chu < 2000 && cropStage != CS_REPRODUCTIVE )
+            {
+            pLayer->SetData( idu, m_colCropStage, CS_REPRODUCTIVE );
+            cropStage = CS_REPRODUCTIVE;
+            }
+         
+         // planting effects
+         // note: Wet, or cold + wet, can delay planting, so check these.
+         // If it is just Cold (not Wet), then delay until May 1 and plant,
+         // unless you are still getting freezing temperatures at night (Tmin<0). 
+         // If Tmin > 0 in May and it's dry, then planting begins.
+         
+         float tMin=0, tMax=0;
+         pStation->GetData( doy, year, TMIN, tMin );
+         pStation->GetData( doy, year, TMAX, tMax );
+         float tMean = ( tMax + tMin ) / 2.0f;
+
+         float precip = 0;
+         pStation->GetData( doy, year, PRECIP, precip );
+         
+         if ( doy >= MAY1 && cropStage == CS_PREPLANT )
+            {
+            bool plant = true;
+
+            // do we need to delay another day?  first, check wetness
+            // get last weeks weather
+            float weeklyPrecip = 0;
+            float historicPrecip = 0;
+            for ( int i=0; i < 7; i++ )
+               {
+               float _precip = 0;
+               pStation->GetData( doy-i-1, year, PRECIP, _precip );
+               weeklyPrecip += _precip;
+
+               pStation->GetHistoricMean( doy-i-1, PRECIP, _precip );
+               historicPrecip += _precip;
+               }
+
+            if ( weeklyPrecip > ( 1.3 * historicPrecip ) )
+               plant = false;
+
+            // check temperatures - freezing weather at night?
+            if ( tMin < 10 )
+               plant = false;
+
+            // can we plant?
+            if ( plant )
+               {
+               theProcess->UpdateIDU( pContext, idu, m_colCropStage, CS_PLANTED, false );
+               theProcess->UpdateIDU( pContext, idu, m_colPlantDate, doy, false );
+               }
+            else
+               {  // not yet, and reduce yield appropriately
+               yieldReductionFactor = 0.01f;
+
+               if ( doy >= JUN1 )
+                  yieldReductionFactor = 0.02f;
+
+               AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, yieldReductionFactor );
+               }
+            }  // end of: if ( pre-planting and doy > MAY1 )
+
+         // crop growing? then check production effects
+         if ( cropStage >= CS_PLANTED && cropStage < CS_HARVESTED )  
+            {
+            if ( chu >= 2800 )
+               {
+               theProcess->UpdateIDU( pContext, idu, m_colCropStage, CS_HARVESTED, false );
+               return CS_HARVESTED;
+               }
+
+            // killing frost A: Tmin <=-2 C with <680 accumulated CHUs
+            if ( chu < 680  && tMin <= -2.0f )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FROST, areaHa, 0.08f );
+
+            // Early flooding: Weekly Precipitation 30% greater than weekly Mean Precipitation (between May 16 and June 20)
+            if ( MAY15 < doy && doy <= JUN20 )
+               {
+               float weeklyPrecip = 0;
+               float historicPrecip = 0;
+               for ( int i=0; i < 7; i++ )
+                  {
+                  float _precip = 0;
+                  pStation->GetData( doy-i-1, year, PRECIP, _precip );
+                  weeklyPrecip += _precip;
+
+                  pStation->GetHistoricMean( doy-i-1, PRECIP, _precip );
+                  historicPrecip += _precip;
+                  }
+
+               if ( weeklyPrecip > ( 1.3 * historicPrecip ) )
+                  {
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, 1.0f );
+                  theProcess->UpdateIDU( pContext, idu, m_colCropStage, CS_FAILED, false );
+                  }
+               }
+  
+            // flooding 5+ previous days > 8mm precip
+            //if ( doy == pStation->m_doyCHU680 )
+            //   {               
+            //   int count = 0;
+            //   for ( int day=pStation->m_doyCHU600; day <= doy; day++ )
+            //      {
+            //      float _precip = 0;
+            //      pStation->GetData( day, year, PRECIP, _precip );
+            //
+            //      if ( _precip > 8 )
+            //         count++;
+            //
+            //      if ( count >= 5 )
+            //         break;
+            //      }
+            //
+            //   if ( count >= 5 )
+            //      {
+            //      theProcess->UpdateIDU( pContext, idu, m_colCropStage, CS_FAILED, false );
+            //      yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, 1.0f );
+            //      }
+            //   }
+   
+            // killing frost B
+            if ( chu > 930 && chu < 1310 && tMin <= -2 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FROST, areaHa, 0.40f );
+   
+            // drought A (CDD >10 and CHU between 600 and 1,300)
+            if ( doy == pStation->m_doyCHU1300 )
+               {
+               int count = 0;
+               for ( int day=pStation->m_doyCHU600; day <= doy; day++ )
+                  {
+                  float _precip = 0;
+                  pStation->GetData( day, year, PRECIP, _precip );
+   
+                  if ( _precip <  1.0f )
+                     count++;
+   
+                  if ( count >= 10 )
+                     break;
+                  }
+   
+               if ( count >= 10 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_VEG_DROUGHT, areaHa, 0.15f );
+               }
+                        
+            // drought B (pollination): CDD >10 and CHU between 1,301 and 1,600.           
+            if ( doy == pStation->m_doyCHU1600 )
+               {
+               int count = 0;
+               for ( int day=pStation->m_doyCHU1300; day <= doy; day++ )
+                  {
+                  float _precip = 0;
+                  pStation->GetData( day, year, PRECIP, _precip );
+   
+                  if ( _precip <  1.0f )
+                     count++;
+   
+                  if ( count >= 10 )
+                     break;
+                  }
+   
+               if ( count >= 10 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_POL_DROUGHT, areaHa, 0.50f );
+               }            
+                  
+            // lethal pollen heat: Tmax >=35 C and CHU between 1,450-1,550
+            if ( chu > 1450 && chu < 1550 && tMax >= 35.0f )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_POL_HEAT, areaHa, 0.15f );
+
+            // drought C: P<45mm at CHUs between 1,601 and 1,825
+            if ( doy == pStation->m_doyCHU1826 )
+               {
+               int startDOY = pStation->m_doyCHU1600;
+               float totalPrecip = 0;
+               for ( int day=startDOY; day <= doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  totalPrecip += precip;
+                  }
+
+               if ( totalPrecip < 45.0f )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_R2_DROUGHT, areaHa, 0.15f );
+               }
+
+            // heat stress during early R stages - Tmax >=33 C for 6+ days at CHUs between 1,601 and 2,000
+            if ( doy == pStation->m_doyCHU2000 )
+               {
+               int startDOY = pStation->m_doyCHU1600+1;
+               float hotDays = 0;
+               for ( int day=startDOY; day <= doy; day++ )
+                  {
+                  float tMax = 0;
+                  pStation->GetData( day, year, TMAX, tMax );
+
+                  if ( tMax > 33 )
+                     hotDays++;
+
+                  if ( hotDays >= 6 )
+                     break;
+                  }
+
+               if ( hotDays >= 6 )
+                  {
+                  // in addition to other stresses
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_R2_HEAT, areaHa, yieldReductionFactor + 0.04f );
+                  }
+               }
+
+            // drought D: P<45mm at CHUs between 1,826 and 2,000
+            if ( doy == pStation->m_doyCHU2000 )
+               {
+               int start = pStation->m_doyCHU1826;
+               float totalPrecip = 0;
+
+               for ( int day=start; day <= doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  totalPrecip += precip;
+                  }
+
+               if ( totalPrecip < 45 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_R3_DROUGHT, areaHa, 0.20f );
+               }
+
+            // killing frost C -Tmin <=-2 C with 2,165 to 2,475 accumulated CHUs;
+            if ( 2165 < chu  && chu < 2475 && tMin <= -2.0f )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FROST, areaHa, 0.50f );
+               
+            // Drought E: P<8mm at CHUs between 2,001 and 2,165
+            if ( doy == pStation->m_doyCHU2165 )
+               {
+               int start = pStation->m_doyCHU2000;
+               float totalPrecip = 0;
+
+               for ( int day=start; day <= doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  totalPrecip += precip;
+                  }
+
+               if ( totalPrecip < 8.0f )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_R3_DROUGHT, areaHa, 0.20f );
+               }
+
+            // Killing frost D: Tmin <=-2 C with 2,476 to 2,799 accumulated CHUs; 
+            if ( 2476 < chu && chu <= 2600 && tMin <= -2.0f )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_FALL_FROST, areaHa, 0.05f );
+            else if ( 2601 < chu && chu <= 2799 && tMin <= -2.0f )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_FALL_FROST, areaHa, 0.20f );
+            
+            // Drought F: P<16mm at CHUs between 2,166 and 2,475 
+            if ( doy == pStation->m_doyCHU2475 )
+               {
+               int start = pStation->m_doyCHU2000;
+               float totalPrecip = 0;
+
+               for ( int day=start; day <= doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  totalPrecip += precip;
+                  }
+
+               if ( totalPrecip < 16.0f )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_R5_DROUGHT, areaHa, 0.20f );
+               }
+            }  // end of: if ( cropStatus == CS_PLANTED )
+
+         return cropStage;
+         }
+         break;
+
+      case SOYBEANS:
+         {
+         int cropStage = -99;
+         pLayer->GetData( idu, m_colCropStage, cropStage );
+         
+         if ( doy >= MAY10 && cropStage < CS_PLANTED )  // check planting conditions
+            {
+            // if Weekly Precipitation 30% greater than weekly 
+            // Mean Precipitation (weeks between May 1 and May 24), delay planting
+            float weeklyPrecip=0, weeklyHistoricPrecip=0;
+            for ( int i=0; i < 7; i++ )      // look back one week
+               {               
+               float precip = 0;
+               pStation->GetData( doy-i, year, PRECIP, precip );               
+               weeklyPrecip += precip;
+               
+               float historicPrecip = 0;
+               pStation->GetHistoricMean( doy, PRECIP, historicPrecip );
+               weeklyHistoricPrecip += historicPrecip;
+               }
+
+            if ( weeklyPrecip < ( weeklyHistoricPrecip * 1.30f ) )
+               {
+               // go ahead and plant the crop
+               theProcess->UpdateIDU( pContext, idu, m_colCropStage, CS_PLANTED, false );
+               theProcess->UpdateIDU( pContext, idu, m_colPlantDate, doy, false );
+               cropStage = CS_PLANTED;
+
+               // were we delayed?
+               if ( doy > MAY24 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, 0.08f );
+
+               if ( doy > JUN7 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, 0.15f );
+               }     
+            }  // end of: time to plant?
+
+         if ( cropStage >= CS_PLANTED && cropStage < CS_HARVESTED )  
+            {
+            int plantDate = 0;  // doy
+            pLayer->GetData( idu, m_colPlantDate, plantDate );
+
+            if ( doy == plantDate + 130 )
+               {
+               theProcess->UpdateIDU( pContext, idu, m_colCropStage, CS_HARVESTED, false );
+               return CS_HARVESTED;
+               }
+
+            float tMin = 0;
+            pStation->GetData( doy, year, TMIN, tMin );
+
+            float tMax = 0;
+            pStation->GetData( doy, year, TMAX, tMax );
+
+            // Spring killing frost: Tmin < 0C 26+ days after seeding
+            if ( doy >= plantDate+26 && doy < plantDate+33 && tMin < 0 )
+               {
+               theProcess->UpdateIDU( pContext, idu, m_colCropStage, CS_FAILED, false );
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FROST, areaHa, 1.0f );
+               return CS_FAILED;
+               }
+
+            // Flooding A: Precipitation 30% greater than mean precipitation 25 to 35 days after seeding; 
+            if ( doy == plantDate+35 )
+               {
+               float totalPrecip=0, totalHistoricPrecip=0;
+               for ( int i=plantDate+25; i <= doy; i++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( i, year, PRECIP, precip );               
+                  totalPrecip += precip;
+                  
+                  float historicPrecip = 0;
+                  pStation->GetHistoricMean( doy, PRECIP, historicPrecip );
+                  totalHistoricPrecip += historicPrecip;
+                  }
+
+               if ( totalPrecip > ( totalHistoricPrecip * 1.30f ) )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, 0.20f );
+               }
+            
+            // Flooding B: Precipitation 30% greater than weekly precipitation 25 to 45 days after seeding
+            if ( doy == plantDate+45 )
+               {
+               float totalPrecip=0, totalHistoricPrecip=0;
+               for ( int i=plantDate+25; i <= doy; i++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( i, year, PRECIP, precip );
+                  totalPrecip += precip;
+                  
+                  float historicPrecip = 0;
+                  pStation->GetHistoricMean( doy, PRECIP, historicPrecip );
+                  totalHistoricPrecip += historicPrecip;
+                  }
+
+               if ( totalPrecip > ( totalHistoricPrecip * 1.30f ) )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, 0.90f );
+               }
+            
+            // Flooding C: Precipitation 30% greater than mean precipitation 40 to 45 days after seeding
+            if ( doy == plantDate+45 )
+               {
+               float totalPrecip=0, totalHistoricPrecip=0;
+               for ( int i=plantDate+40; i <= doy; i++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( i, year, PRECIP, precip );               
+                  totalPrecip += precip;
+                  
+                  float historicPrecip = 0;
+                  pStation->GetHistoricMean( doy, PRECIP, historicPrecip );
+                  totalHistoricPrecip += historicPrecip;
+                  }
+
+               if ( totalPrecip > ( totalHistoricPrecip * 1.30f ) )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_EARLY_FLOOD, areaHa, 0.18f );
+               }
+
+            // Cool nights: Tmin  <10C for 5+ days 45-55 days after seeding
+            if ( doy == plantDate+55 )
+               {
+               int days = 0;
+               for ( int day=plantDate+45; day <= doy; day++ )
+                  {
+                  float _tMin = 0;
+                  pStation->GetData( day, year, TMIN, _tMin );
+
+                  if ( _tMin < 10.0f )
+                     days++;
+                  }
+
+               if ( days > 5 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_COOL_NIGHTS, areaHa, 0.25f );
+               }
+
+            // Killing frost B: Tmin<0C 55 to 100 days after seeding; 
+            if ( tMin < 0 && doy >= plantDate+55 && doy <= plantDate+100 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_MID_FROST, areaHa, 0.80f );
+            
+            // Cold nights: 1C<Tmin<10C 55 to 100 days after seeding; 
+            if ( tMin < 10 && doy >= plantDate+55 && doy <= plantDate+100 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_COOL_NIGHTS, areaHa, 0.10f );
+            
+            // Warm nights: Tmin>=24C 55 to 100 days after seeding
+            if ( tMin > 24 && doy >= plantDate+55 && doy <= plantDate+100 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_WARM_NIGHTS, areaHa, 0.25f );
+
+            // Flooding D: Precipitation >90mm 60 to 80 days after seeding
+            if ( doy == plantDate+80 )
+               {
+               float tPrecip = 0;
+               for ( int day=plantDate+60; day < doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  tPrecip += precip;
+                  }
+
+               if ( tPrecip > 90 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_MID_FLOOD, areaHa, 0.26f );
+               }
+
+            // Drought A: Precipitation <10mm 65 to 80 days after seeding
+            if ( doy == plantDate+80 )
+               {
+               float tPrecip = 0;
+               for ( int day=plantDate+65; day < doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  tPrecip += precip;
+                  }
+
+               if ( tPrecip < 10 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_POD_DROUGHT, areaHa, 0.19f );
+               }
+
+            // Drought B: Precipitation <10mm 81 to 95 days after seeding
+            if ( doy == plantDate+95 )
+               {
+               float tPrecip = 0;
+               for ( int day=plantDate+81; day < doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  tPrecip += precip;
+                  }
+
+               if ( tPrecip < 10 )
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_POD_DROUGHT, areaHa, 0.36f );
+               }
+
+            // Fall frost A: Tmin <-1C between 90 and 100 days after seeding; 
+            if ( tMin < -1 && doy >= plantDate+90 && doy <= plantDate+100 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_FALL_FROST, areaHa, 0.65f );
+            
+            // Extreme heat: mean Tmax > 33C 95-120 days after seeding
+            if ( tMax < 33 && doy >= plantDate+95 && doy <= plantDate+120 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_EXTREME_HEAT, areaHa, 0.22f );
+
+            // Fall frost B: Tmin <-1C 101 to 110 days after seeding; 
+            int coldAndDrought = 0;
+            if ( tMin < -1 && doy >= plantDate+101 && doy <= plantDate+110 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_FALL_FROST, areaHa, 0.37f );
+            
+            // Drought C: P<5mm 96-115 days after seeding
+            if ( doy == plantDate+115 )
+               {
+               float tPrecip = 0;
+               for ( int day=plantDate+96; day < doy; day++ )
+                  {
+                  float precip = 0;
+                  pStation->GetData( day, year, PRECIP, precip );
+                  tPrecip += precip;
+                  }
+
+               if ( tPrecip < 5 )
+                  {
+                  coldAndDrought += 2;
+                  yieldReductionFactor = AddCropEvent( pContext, idu, CS_SEED_DROUGHT, areaHa, 0.37f );
+                  }
+               }
+
+            if ( coldAndDrought )
+               yieldReductionFactor = 0.42f;
+
+            // Fall frost C: Tmin <-1C 111 to 120 days after seeding
+            if ( tMin < -1 && doy >= plantDate+111 && doy <= plantDate+120 )
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_FALL_FROST, areaHa, 0.11f );
+            }
+         }
+         break;
+
+      case ALFALFA:
+         {
+         // right now, we assume cuts on May31, July 6, and Aug 3.
+
+         // Late spring frost (TMin <=-3C between May 1 and June 30)
+         // no action required, since this is reflected in the CDD calculations
+
+         if ( doy == MAY31 || doy == JUL6 || doy == AUG3 )  // harvest?
+            {
+            int startDOY = 0;
+            switch( doy )
+               {
+               case MAY31:   startDOY = MAY1;  break;
+               case JUL6:    startDOY = JUN1;  break;
+               case AUG3:    startDOY = JUL7;  break;
+               }
+
+            // Temperature stress: If TempMean <21, TempStr = 1-((TempMean -21)/(5-21))^2
+            //                     If 21<TempMean<27, TempStr = 1
+            //                     If TempMean >27, TempStr = 1-((TempMean-27)/(35-27))^2
+            float periodTMean = 0;
+            int   period = 0;
+            for ( int day=startDOY; day <= doy; day++ )
+               {
+               float tMean = 0;
+               pStation->GetData( day, year, TMEAN, tMean );
+               periodTMean += tMean;
+               period++;
+               }
+
+            periodTMean /= period;
+
+            float tStress = 0;
+            if ( periodTMean <= 21 )
+               {
+               float f = (periodTMean - 21)/(5-21);
+               tStress = 1-(f*f);
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_COOL_NIGHTS, areaHa, 1-tStress );
+               }
+            else if ( periodTMean <= 27 )
+               tStress = 1;
+            else
+               {
+               // periodTMean > 27
+               }
+               {
+               float f = (periodTMean - 27)/(35-27);
+               tStress = 1-(f*f);
+               yieldReductionFactor = AddCropEvent( pContext, idu, CS_WARM_NIGHTS, areaHa, 1-tStress );
+               }
+            }
+         }
+         break;
+
+      case SPRING_WHEAT:
+         break;
+
+      case BARLEY:
+         break;
+
+      case POTATOES:
+         break;      
+      }
+
+   return 0;
+   }
+
+
+void FarmModel::UpdateAnnualOutputs( EnvContext *pContext, bool useAddDelta )
+   {
+   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+   int year = pContext->currentYear;
+
+   float tYRF=0, tArea= 0;
+
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
+      {
+      float yrf = -1, area=0;
+      pLayer->GetData( idu, m_colYieldRed, yrf );
+      pLayer->GetData( idu, m_colArea, area );
+
+      if ( yrf >= 0 )
+         {
+         tYRF += yrf * area;
+         tArea += area;
+         theProcess->UpdateIDU( pContext, idu, m_colYieldRed, yrf, true );
+         }
+      }
+
+   m_avgYieldReduction = tYRF / tArea;
+
+   // climate data - annual totals/means
+   int stationCount = m_climateManager.GetStationCount();
+   CArray< float, float > dataPrecip;  dataPrecip.SetSize ( stationCount+1 );   dataPrecip [ 0 ] = (float) year;
+   CArray< float, float > dataTmin;    dataTmin.SetSize   ( stationCount+1 );   dataTmin   [ 0 ] = (float) year;
+   CArray< float, float > dataTmean;   dataTmean.SetSize  ( stationCount+1 );   dataTmean  [ 0 ] = (float) year;
+   CArray< float, float > dataTmax;    dataTmax.SetSize   ( stationCount+1 );   dataTmax   [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Jan;  dataRx1Jan.SetSize ( stationCount+1 );   dataRx1Jan [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Feb;  dataRx1Feb.SetSize ( stationCount+1 );   dataRx1Feb [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Mar;  dataRx1Mar.SetSize ( stationCount+1 );   dataRx1Mar [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Apr;  dataRx1Apr.SetSize ( stationCount+1 );   dataRx1Apr [ 0 ] = (float) year;
+   CArray< float, float > dataRx1May;  dataRx1May.SetSize ( stationCount+1 );   dataRx1May [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Jun;  dataRx1Jun.SetSize ( stationCount+1 );   dataRx1Jun [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Jul;  dataRx1Jul.SetSize ( stationCount+1 );   dataRx1Jul [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Aug;  dataRx1Aug.SetSize ( stationCount+1 );   dataRx1Aug [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Sep;  dataRx1Sep.SetSize ( stationCount+1 );   dataRx1Sep [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Oct;  dataRx1Oct.SetSize ( stationCount+1 );   dataRx1Oct [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Nov;  dataRx1Nov.SetSize ( stationCount+1 );   dataRx1Nov [ 0 ] = (float) year;
+   CArray< float, float > dataRx1Dec;  dataRx1Dec.SetSize ( stationCount+1 );   dataRx1Dec [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Jan;  dataRx3Jan.SetSize ( stationCount+1 );   dataRx3Jan [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Feb;  dataRx3Feb.SetSize ( stationCount+1 );   dataRx3Feb [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Mar;  dataRx3Mar.SetSize ( stationCount+1 );   dataRx3Mar [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Apr;  dataRx3Apr.SetSize ( stationCount+1 );   dataRx3Apr [ 0 ] = (float) year;
+   CArray< float, float > dataRx3May;  dataRx3May.SetSize ( stationCount+1 );   dataRx3May [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Jun;  dataRx3Jun.SetSize ( stationCount+1 );   dataRx3Jun [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Jul;  dataRx3Jul.SetSize ( stationCount+1 );   dataRx3Jul [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Aug;  dataRx3Aug.SetSize ( stationCount+1 );   dataRx3Aug [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Sep;  dataRx3Sep.SetSize ( stationCount+1 );   dataRx3Sep [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Oct;  dataRx3Oct.SetSize ( stationCount+1 );   dataRx3Oct [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Nov;  dataRx3Nov.SetSize ( stationCount+1 );   dataRx3Nov [ 0 ] = (float) year;
+   CArray< float, float > dataRx3Dec;  dataRx3Dec.SetSize ( stationCount+1 );   dataRx3Dec [ 0 ] = (float) year;
+   CArray< float, float > dataCDD;     dataCDD.SetSize    ( stationCount+1 );   dataCDD    [ 0 ] = (float) year;
+   CArray< float, float > dataR10mm;   dataR10mm.SetSize  ( stationCount+1 );   dataR10mm  [ 0 ] = (float) year;
+   CArray< float, float > dataR10yr;   dataR10yr.SetSize  ( stationCount+1 );   dataR10yr  [ 0 ] = (float) year;
+   CArray< float, float > dataR100Yr;  dataR100Yr.SetSize ( stationCount+1 );   dataR100Yr [ 0 ] = (float) year;
+   CArray< float, float > dataRShort;  dataRShort.SetSize ( stationCount+1 );   dataRShort [ 0 ] = (float) year;
+   CArray< float, float > dataExtHeat; dataExtHeat.SetSize( stationCount+1 );   dataExtHeat[ 0 ] = (float) year;
+   CArray< float, float > dataExtCold; dataExtCold.SetSize( stationCount+1 );   dataExtCold[ 0 ] = (float) year;
+   CArray< float, float > dataGSL;     dataGSL.SetSize    ( stationCount+1 );   dataGSL    [ 0 ] = (float) year;
+   CArray< float, float > dataCHU;     dataCHU.SetSize    ( stationCount+1 );   dataCHU    [ 0 ] = (float) year;
+   CArray< float, float > dataCGDD;    dataCGDD.SetSize   ( stationCount+1 );   dataCGDD   [ 0 ] = (float) year;
+   CArray< float, float > dataAGDD;    dataAGDD.SetSize   ( stationCount+1 );   dataAGDD   [ 0 ] = (float) year;
+   CArray< float, float > dataPDays;   dataPDays.SetSize  ( stationCount+1 );   dataPDays  [ 0 ] = (float) year;
+
+   for ( int i=0; i < stationCount; i++ )
+      {
+      ClimateStation *pStation = m_climateManager.GetStation( i );
+      dataPrecip [ i+1 ] = pStation->m_annualPrecip; 
+      dataTmin   [ i+1 ] = pStation->m_annualTMin; 
+      dataTmean  [ i+1 ] = pStation->m_annualTMean; 
+      dataTmax   [ i+1 ] = pStation->m_annualTMax; 
+
+      dataRx1Jan [ i+1 ] = pStation->m_rx1[ 0 ];
+      dataRx1Feb [ i+1 ] = pStation->m_rx1[ 1 ];
+      dataRx1Mar [ i+1 ] = pStation->m_rx1[ 2 ];
+      dataRx1Apr [ i+1 ] = pStation->m_rx1[ 3 ];
+      dataRx1May [ i+1 ] = pStation->m_rx1[ 4 ];
+      dataRx1Jun [ i+1 ] = pStation->m_rx1[ 5 ];
+      dataRx1Jul [ i+1 ] = pStation->m_rx1[ 6 ];
+      dataRx1Aug [ i+1 ] = pStation->m_rx1[ 7 ];
+      dataRx1Sep [ i+1 ] = pStation->m_rx1[ 8 ];
+      dataRx1Oct [ i+1 ] = pStation->m_rx1[ 9 ];
+      dataRx1Nov [ i+1 ] = pStation->m_rx1[ 10 ];
+      dataRx1Dec [ i+1 ] = pStation->m_rx1[ 11 ];
+ 
+      dataRx3Jan [ i+1 ] = pStation->m_rx3[ 0 ];
+      dataRx3Feb [ i+1 ] = pStation->m_rx3[ 1 ];
+      dataRx3Mar [ i+1 ] = pStation->m_rx3[ 2 ];
+      dataRx3Apr [ i+1 ] = pStation->m_rx3[ 3 ];
+      dataRx3May [ i+1 ] = pStation->m_rx3[ 4 ];
+      dataRx3Jun [ i+1 ] = pStation->m_rx3[ 5 ];
+      dataRx3Jul [ i+1 ] = pStation->m_rx3[ 6 ];
+      dataRx3Aug [ i+1 ] = pStation->m_rx3[ 7 ];
+      dataRx3Sep [ i+1 ] = pStation->m_rx3[ 8 ];
+      dataRx3Oct [ i+1 ] = pStation->m_rx3[ 9 ];
+      dataRx3Nov [ i+1 ] = pStation->m_rx3[ 10 ];
+      dataRx3Dec [ i+1 ] = pStation->m_rx3[ 11 ];
+ 
+      dataCDD    [ i+1 ] = (float) pStation->m_maxConsDryDays;
+      dataR10mm  [ i+1 ] = (float) pStation->m_r10mmDays;
+      dataR10yr  [ i+1 ] = (float) pStation->m_r10yrDays;
+      dataR100Yr [ i+1 ] = (float) pStation->m_r100yrDays;
+      dataRShort [ i+1 ] = (float) pStation->m_rShortDurationDays;
+      dataExtHeat[ i+1 ] = (float) pStation->m_extHeatDays;
+      dataExtCold[ i+1 ] = (float) pStation->m_extColdDays;
+      dataGSL    [ i+1 ] = (float) pStation->m_gslDays;
+      dataCHU    [ i+1 ] = pStation->m_chuCornMay1[ 364 ];
+      dataCGDD   [ i+1 ] = pStation->m_cumDegDays0Apr15[ 364 ];
+      dataAGDD   [ i+1 ] = pStation->m_cumDegDays5Apr1[ 364 ];
+      dataPDays  [ i+1 ] = pStation->m_pDays[ 364 ];
+      }
+
+   // Climate Indice summaries
+   m_annualCIArray[ DO_PRECIP  ]->AppendRow( dataPrecip );
+   m_annualCIArray[ DO_TMIN    ]->AppendRow( dataTmin );
+   m_annualCIArray[ DO_TMEAN   ]->AppendRow( dataTmean );
+   m_annualCIArray[ DO_TMAX    ]->AppendRow( dataTmax );
+
+   m_annualCIArray[ DO_RX1_JAN     ]->AppendRow( dataRx1Jan );
+   m_annualCIArray[ DO_RX1_FEB     ]->AppendRow( dataRx1Feb );
+   m_annualCIArray[ DO_RX1_MAR     ]->AppendRow( dataRx1Mar );
+   m_annualCIArray[ DO_RX1_APR     ]->AppendRow( dataRx1Apr );
+   m_annualCIArray[ DO_RX1_MAY     ]->AppendRow( dataRx1May );
+   m_annualCIArray[ DO_RX1_JUN     ]->AppendRow( dataRx1Jun );
+   m_annualCIArray[ DO_RX1_JUL     ]->AppendRow( dataRx1Jul );
+   m_annualCIArray[ DO_RX1_AUG     ]->AppendRow( dataRx1Aug );
+   m_annualCIArray[ DO_RX1_SEP     ]->AppendRow( dataRx1Sep );
+   m_annualCIArray[ DO_RX1_OCT     ]->AppendRow( dataRx1Oct );
+   m_annualCIArray[ DO_RX1_NOV     ]->AppendRow( dataRx1Nov );
+   m_annualCIArray[ DO_RX1_DEC     ]->AppendRow( dataRx1Dec );
+
+   m_annualCIArray[ DO_RX3_JAN     ]->AppendRow( dataRx3Jan );
+   m_annualCIArray[ DO_RX3_FEB     ]->AppendRow( dataRx3Feb );
+   m_annualCIArray[ DO_RX3_MAR     ]->AppendRow( dataRx3Mar );
+   m_annualCIArray[ DO_RX3_APR     ]->AppendRow( dataRx3Apr );
+   m_annualCIArray[ DO_RX3_MAY     ]->AppendRow( dataRx3May );
+   m_annualCIArray[ DO_RX3_JUN     ]->AppendRow( dataRx3Jun );
+   m_annualCIArray[ DO_RX3_JUL     ]->AppendRow( dataRx3Jul );
+   m_annualCIArray[ DO_RX3_AUG     ]->AppendRow( dataRx3Aug );
+   m_annualCIArray[ DO_RX3_SEP     ]->AppendRow( dataRx3Sep );
+   m_annualCIArray[ DO_RX3_OCT     ]->AppendRow( dataRx3Oct );
+   m_annualCIArray[ DO_RX3_NOV     ]->AppendRow( dataRx3Nov );
+   m_annualCIArray[ DO_RX3_DEC     ]->AppendRow( dataRx3Dec );
+
+   m_annualCIArray[ DO_CDD     ]->AppendRow( dataCDD     );
+   m_annualCIArray[ DO_R10MM   ]->AppendRow( dataR10mm   );
+   m_annualCIArray[ DO_STORM10 ]->AppendRow( dataR10yr   );
+   m_annualCIArray[ DO_STORM100]->AppendRow( dataR100Yr  );
+   m_annualCIArray[ DO_SHORTDURPRECIP]->AppendRow( dataRShort  );
+   m_annualCIArray[ DO_EXTHEAT ]->AppendRow( dataExtHeat );
+   m_annualCIArray[ DO_EXTCOLD ]->AppendRow( dataExtCold );
+   m_annualCIArray[ DO_GSL     ]->AppendRow( dataGSL     );
+   m_annualCIArray[ DO_CHU     ]->AppendRow( dataCHU     );
+   m_annualCIArray[ DO_CERGDD  ]->AppendRow( dataCGDD    );
+   m_annualCIArray[ DO_ALFGDD  ]->AppendRow( dataAGDD    );
+   m_annualCIArray[ DO_PDAYS   ]->AppendRow( dataPDays   );
+
+   // event data.  Note that it is lread stored in the event array,
+   // so all we have to do is add it to the data obj
+   m_pCropEventData->AppendRow( m_cropEvents, CS_EVENTCOUNT );
+   }
+
+
+void FarmModel::UpdateDailyOutputs( int doy, EnvContext *pContext )
+   {
+   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+   int year = pContext->currentYear;
+   float day = float( 365*(year-pContext->startYear) + doy - 1 );
+
+   float tPlantDate = 0, tAreaPlantDate = 0;
+
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
+      {
+      float area = 0;
+      pLayer->GetData( idu, m_colArea, area );
+
+      // planting date
+      int plantDate = 0;
+      pLayer->GetData( idu, m_colPlantDate, plantDate );
+
+      if ( plantDate > 0)
+         {
+         tPlantDate += (float) plantDate * area;
+         tAreaPlantDate += area;
+         }
+      }
+
+   tPlantDate /= tAreaPlantDate;
+
+   CArray< float, float > data;
+   data.Add( (float) day );
+   data.Add( m_avgYieldReduction );
+   data.Add( tPlantDate );
+
+   m_pDailyData->AppendRow( data );
+
+   // climate data
+   int stationCount = m_climateManager.GetStationCount();
+   CArray< float, float > dataPrecip;  dataPrecip.SetSize( stationCount+1 ); dataPrecip[ 0 ] = (float) day;
+   CArray< float, float > dataTmin;    dataTmin.SetSize( stationCount+1 );   dataTmin  [ 0 ] = (float) day;
+   CArray< float, float > dataTmean;   dataTmean.SetSize( stationCount+1 );  dataTmean [ 0 ] = (float) day;
+   CArray< float, float > dataTmax;    dataTmax.SetSize( stationCount+1 );   dataTmax  [ 0 ] = (float) day;
+
+   for ( int i=0; i < stationCount; i++ )
+      {
+      ClimateStation *pStation = m_climateManager.GetStation( i );
+
+      float precip=0, tMin=0, tMax=0, tMean=0;
+      pStation->GetData( doy, year, PRECIP, dataPrecip[ i+1 ] );
+      pStation->GetData( doy, year, TMIN,   dataTmin  [ i+1 ] );
+      pStation->GetData( doy, year, TMEAN,  dataTmean [ i+1 ] );
+      pStation->GetData( doy, year, TMAX,   dataTmax  [ i+1 ] );
+      }
+
+   m_dailyCIArray[ DO_PRECIP ]->AppendRow( dataPrecip );
+   m_dailyCIArray[ DO_TMIN   ]->AppendRow( dataTmin );
+   m_dailyCIArray[ DO_TMEAN  ]->AppendRow( dataTmean );
+   m_dailyCIArray[ DO_TMAX   ]->AppendRow( dataTmax );
+   }
+   
+
+float FarmModel::AddCropEvent( EnvContext *pContext, int idu, int status, float areaHa, float yrf )
+   {
+   theProcess->UpdateIDU( pContext, idu, m_colCropStatus, status, true );
+
+   if ( yrf > m_yrfThreshold )
+      m_cropEvents[ status ] += areaHa;
+
+   return yrf;
+   }   
+

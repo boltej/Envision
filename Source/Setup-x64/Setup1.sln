@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup-x64", "Setup1.vdproj", "{DC6E48DB-6D73-4032-880C-00187F485BF7}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Default = Debug|Default
+		Release|Default = Release|Default
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|Default.ActiveCfg = Debug
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|Default.Build.0 = Debug
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|Default.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|Default.Build.0 = Release
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
