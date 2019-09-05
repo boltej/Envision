@@ -15,10 +15,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="ReadMe.txt" />
-    <None Include="DynamicVeg.def">
-      <Filter>Source Files</Filter>
-    </None>
     <None Include="res\DynamicVeg.rc2">
       <Filter>Resource Files</Filter>
     </None>
@@ -28,12 +24,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\EnvExtension.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
