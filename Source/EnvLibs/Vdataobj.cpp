@@ -24,7 +24,7 @@ Copywrite 2012 - Oregon State University
 //-------------------------------------------------------------------
 
 #include <EnvLibs.h>
-
+#include <stdexcept>
 #pragma hdrstop
 
 #ifndef NO_MFC
@@ -38,6 +38,7 @@ Copywrite 2012 - Oregon State University
 
 #include "Path.h"
 #include "PathManager.h"
+
 
 #define USE_SHAPELIB
 
