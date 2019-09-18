@@ -145,17 +145,18 @@ struct ALLOCATION
 
    float   currentValue;     // total target value at any given point in time (non-density)
    float   currentCapacity;  // total capacity for accomodating new values of the target variable (absolute numbers - not density)
+   float   currentArea;      // area satisfying query
 
    //ALLOCATION() : pTarget(NULL), pQuery( NULL ), parser(), multiplier( 1.0f ), parserVars( NULL ), currentValue(0), currentCapacity(0) { }
    
    ALLOCATION( LPCTSTR _name, Target *_pTarget, LPCTSTR query, LPCTSTR expr, float _multiplier ) : name( _name ), 
       pTarget(_pTarget), queryStr( query ), expression( expr ), pQuery( NULL ), parserVars( NULL ), multiplier( _multiplier ),
-      currentValue(0), currentCapacity(0)
+      currentValue(0), currentCapacity(0), currentArea(0)
       { }
 
    ~ALLOCATION();
 
-   void ResetCurrent() { currentValue = currentCapacity = 0; }
+   void ResetCurrent() { currentValue = currentCapacity = currentArea = 0; }
    bool Compile( Target *pTarget, const MapLayer *pLayer );
    };
 

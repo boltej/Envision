@@ -367,8 +367,8 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
       CString msg;
       msg.Format( _T( "Loaded sync_map for source column %s, target column %s (%i mappings)\n" ),
-                  pSyncMap->m_sourceCol, pSyncMap->m_targetCol, mapCount );
-      Report::InfoMsg( msg );
+                  (LPCTSTR) pSyncMap->m_sourceCol, (LPCTSTR) pSyncMap->m_targetCol, mapCount );
+      Report::LogInfo( msg );
       TRACE( msg );
 
       pXmlSyncMap = pXmlSyncMap->NextSiblingElement( _T( "sync_map" ) );

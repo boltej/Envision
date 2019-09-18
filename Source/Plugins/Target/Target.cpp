@@ -290,27 +290,32 @@ bool Target::Init( EnvContext *pEnvContext )
    if ( m_pQuery == NULL )
       ((MapLayer*) pEnvContext->pMapLayer)->ClearSelection();
 
-
    // generate initial report
    CString msg;
    for (int i = 0; i < m_allocationSetArray.GetSize(); i++)
       {
       AllocationSet *pAllocationSet = m_allocationSetArray.GetAt(i);
 
-      msg.Format(_T("  Allocations Set %s: Initial Allocation Values\n"), (LPCTSTR)pAllocationSet->m_name);
+      msg.Format(_T("   Allocation Set %s (%i): Initial Allocation Values\n"), (LPCTSTR)pAllocationSet->m_name, pAllocationSet->m_id);
       Report::LogInfo( msg );
 
+	  float totalValue = 0;
+	  float totalCapacity = 0;
       for (int j = 0; j < pAllocationSet->GetSize(); j++)
          {
          ALLOCATION *pAlloc = pAllocationSet->GetAt(j);
-         msg.Format( _T("     %s: Capacity: %g, Available: %g\n"), (LPCTSTR) pAlloc->name, pAlloc->currentValue, pAlloc->currentCapacity);
+
+         msg.Format( _T("      %s - Current: %g, Capacity: %g, Area (ha): %.0g\n"), (LPCTSTR) pAlloc->name, pAlloc->currentValue, pAlloc->currentCapacity, pAlloc->currentArea/ M2_PER_HA );
          Report::LogInfo( msg );
+		 totalValue += pAlloc->currentValue;
+		 totalCapacity += pAlloc->currentCapacity;
          }
-      }
+	  msg.Format(_T("      Total: Current: %g, Capacity: %g\n"), totalValue, totalCapacity);
+	  Report::LogInfo(msg);
+   }
 
-
-   //CString msg;
-   //msg.Format( _T("   Starting %s: %g, Capacity: %g, Available: %g, Over Capacity: %g\n"), (LPCTSTR) m_name, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, m_totalOverCapacity );
+   //msg.Format( _T("   Starting %s: %g, Capacity: %g, Available: %g, Over Capacity: %g\n"),
+   // (LPCTSTR) m_name, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, m_totalOverCapacity );
    //Report::LogInfo( msg );
 
    return true;
@@ -358,8 +363,13 @@ bool Target::InitRun( EnvContext *pEnvContext )
    if ( m_pQuery == NULL )
       ((MapLayer*) pEnvContext->pMapLayer)->ClearSelection();
 
+
+   AllocationSet* pAllocationSet = GetActiveAllocationSet();
+   ASSERT(pAllocationSet != NULL);
+
    CString msg;
-   msg.Format( _T("   Starting %s: %g, Capacity: %g, Available: %g, Over Capacity: %g\n"), (LPCTSTR) m_name, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, m_totalOverCapacity );
+   msg.Format( _T("%s (%i) - Starting: %g, Capacity: %g, Available: %g, Over Capacity: %g\n"),
+	   (LPCTSTR) m_name, pAllocationSet->m_id, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, m_totalOverCapacity );
    Report::LogInfo( msg );
 
    return true;
@@ -458,7 +468,7 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    int colIDUIndex = pLayer->GetFieldCol("IDU_ID");
 
 
-   // basic idea:  for each allocation specified in the input file,
+   // basic idea:  for each allocation specified in the input file:
    //   1) Run the associated spatial query to get IDU's contained within that allocation
    //   2) Execute the allocation formula to compute a non-normalized population capacity surface (spatial distribution).
    //      This surface gives the total population capacity of the landscape.  Note that the capacity 
@@ -474,7 +484,6 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    for ( int i=0; i < (int) pAllocationSet->GetCount(); i++ )
       {
       ALLOCATION *pAlloc = pAllocationSet->GetAt( i );
-
       ASSERT( pAlloc != NULL );
       pAlloc->ResetCurrent(); 
 
@@ -492,6 +501,9 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
             }
 
          queryCount++;
+		 float area = 0;
+		 pLayer->GetData(idu, m_colArea, area);
+		 pAlloc->currentArea += area;
 
          if ( m_availCapacityArray[ idu ] > float( LONG_MIN )  )
             {
@@ -525,8 +537,6 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
             TRACE( _T("Exception thrown evaluating MTParser expression in Target.DLL") );
             }
 
-         float area;
-         pLayer->GetData( idu, m_colArea, area );
          float capacity = pAlloc->value * pAlloc->multiplier * area;   // this does NOT have preferences applied
          
          pAlloc->currentCapacity += capacity;  // absolute numbers
@@ -876,7 +886,7 @@ float Target::GetCurrentTargetValue( EnvContext *pEnvContext )
          break;
 
       case TM_RATE_EXP:
-         actualProjTarget = m_startTotalActualValue * exp( float(m_rate)*(pEnvContext->yearOfRun+1));
+         actualProjTarget = m_startTotalActualValue * (float) exp( float(m_rate)*(pEnvContext->yearOfRun+1));
          break;
 
       case TM_TIMESERIES:
@@ -1815,19 +1825,19 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
    
       if ( m_targetArray.GetSize() > 1 )
          {
-         vname.Format( "%s.Target", pTarget->m_name );
+         vname.Format( "%s.Target", (LPCTSTR) pTarget->m_name );
          AddOutputVar( vname, pTarget->m_curTotalTargetValue, _T("") );
 
-         vname.Format( "%s.Actual", pTarget->m_name );
+         vname.Format( "%s.Actual", (LPCTSTR) pTarget->m_name );
          AddOutputVar( vname, pTarget->m_curTotalActualValue, _T("") );
 
-         vname.Format( "%s.Total Capacity", pTarget->m_name );
+         vname.Format( "%s.Total Capacity", (LPCTSTR) pTarget->m_name );
          AddOutputVar(  vname, pTarget->m_totalCapacity, _T("") );
 
-         vname.Format( "%s.Available Capacity", pTarget->m_name );
+         vname.Format( "%s.Available Capacity", (LPCTSTR) pTarget->m_name );
          AddOutputVar( vname, pTarget->m_totalAvailCapacity, _T("") );
 
-         vname.Format( "%s.Percent of Capacity Available", pTarget->m_name );
+         vname.Format( "%s.Percent of Capacity Available", (LPCTSTR) pTarget->m_name );
          AddOutputVar( vname, pTarget->m_totalPercentAvailable, _T("") );
 
          varCount = 5;    // based on above
@@ -1838,7 +1848,7 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
          {
          TargetReport *pReport = pTarget->m_reportArray[ i ];
 
-         vname.Format( "%s.%s", pTarget->m_name, pReport->m_name );
+         vname.Format( "%s.%s", (LPCTSTR) pTarget->m_name, (LPCTSTR) pReport->m_name );
          AddOutputVar( vname, pReport->m_value, _T("") );
          varCount++;
          }

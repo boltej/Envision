@@ -1421,7 +1421,7 @@ int CEnvDoc::SaveAs( LPCTSTR _filename  /* if NULL, prompt for path */ )
    fputs( "\n", fp );
    fputs( "==================================================================================================\n", fp );
    fputs( "-->\n", fp );
-   fputs( "<models> \n", fp );
+   fputs( "<evaluators> \n", fp );
 
    for ( int i=0; i < gpModel->GetEvaluatorCount(); i++ )
       {
@@ -1436,7 +1436,7 @@ int CEnvDoc::SaveAs( LPCTSTR _filename  /* if NULL, prompt for path */ )
       CString name;
       GetXmlStr( pInfo->m_name, name );
 
-      fputs( "\t<model \n", fp );
+      fputs( "\t<evaluator \n", fp );
       fprintf( fp, "\t\tname         ='%s' \n", (LPCTSTR) name );
       fprintf( fp, "\t\tpath         ='%s' \n", (LPCTSTR) pInfo->m_path );
       fprintf( fp, "\t\tid           ='%i' \n", pInfo->m_id );
@@ -1453,7 +1453,7 @@ int CEnvDoc::SaveAs( LPCTSTR _filename  /* if NULL, prompt for path */ )
       fputs( "\t/>\n", fp );
       }
 
-   fputs( "\n</models>\n\n", fp );
+   fputs( "\n</evaluators>\n\n", fp );
    
    fputs( "<!--\n", fp );
    fputs( "===================================================================================\n", fp );

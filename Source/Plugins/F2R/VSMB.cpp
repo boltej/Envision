@@ -93,6 +93,7 @@ bool VSMBModel::AllocateSoilArray(int size)
    {
    ASSERT(m_soilInfoArray.GetSize() == 0);
    m_soilInfoArray.SetSize(size);
+   return true;
    }
 
 
