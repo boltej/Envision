@@ -224,7 +224,6 @@
     <ClCompile Include="TransMatrix.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\EnvExtension.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="SSTM.h" />
     <ClInclude Include="stdafx.h" />

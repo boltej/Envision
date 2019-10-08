@@ -28,8 +28,10 @@ class NModel;
 class TiXmlElement;
 class NAESIModel;
 class FarmModel;
+class EOHabitat;
 
-enum { WILDLIFE=0, PHOSPHORUS=1, NITROGEN=2, NAESI_HABITAT=4, FARM_MODEL=6, REPORT=100 };
+
+enum { WILDLIFE=0, PHOSPHORUS=1, NITROGEN=2, NAESI_HABITAT=4, FARM_MODEL=6, EO_HABITAT=8, REPORT=100 };
 
 
 class CSortableUIntArray : public CUIntArray 
@@ -129,6 +131,7 @@ public:
    NModel             *m_pNitrogen;       // IROWC-N Nitrogen model
    NAESIModel         *m_pNAESI;
    FarmModel          *m_pFarmModel;
+   EOHabitat          *m_pEOHabitat;
     
 public:
    int m_inVarIndexFarmModel;

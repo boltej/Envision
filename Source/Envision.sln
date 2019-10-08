@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 15
-VisualStudioVersion = 15.0.28307.489
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.29306.81
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EnvLibs", "EnvLibs\EnvLibs.vcxproj", "{E3502523-3A54-4A72-AC75-A59C944AD9C1}"
 EndProject
@@ -106,6 +106,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Trigger", "Plugins\Trigger\Trigger.vcxproj", "{DB45CD2E-7601-4985-A1BA-4347D85EFC8B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "VersionUpdater", "VersionUpdater\VersionUpdater.vcxproj", "{661D361B-DCF4-455C-BE6C-A2EAA9E27D5B}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EOHabitat", "Plugins\EOHabitat\EOHabitat.vcxproj", "{6134E72E-72D6-4576-989D-B46E548A0A24}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -699,6 +701,24 @@ Global
 		{661D361B-DCF4-455C-BE6C-A2EAA9E27D5B}.Template|x64.Build.0 = Release|x64
 		{661D361B-DCF4-455C-BE6C-A2EAA9E27D5B}.Template|x86.ActiveCfg = Release|Win32
 		{661D361B-DCF4-455C-BE6C-A2EAA9E27D5B}.Template|x86.Build.0 = Release|Win32
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Debug|x64.ActiveCfg = Debug|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Debug|x64.Build.0 = Debug|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Debug|x86.ActiveCfg = Debug|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.MinSizeRel|x64.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.MinSizeRel|x64.Build.0 = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.MinSizeRel|x86.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.MinSizeRel|x86.Build.0 = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Release|x64.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Release|x64.Build.0 = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Release|x86.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.RelWithDebInfo|x86.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.RelWithDebInfo|x86.Build.0 = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Template|x64.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Template|x64.Build.0 = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Template|x86.ActiveCfg = Release|x64
+		{6134E72E-72D6-4576-989D-B46E548A0A24}.Template|x86.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -725,6 +745,7 @@ Global
 		{105C441D-43A8-43C6-AC12-4BD361A5092A} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
 		{29EAFF6A-37C0-4A2B-88BF-F177F9D294C2} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
 		{DB45CD2E-7601-4985-A1BA-4347D85EFC8B} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
+		{6134E72E-72D6-4576-989D-B46E548A0A24} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C9AEC6B4-19EB-4CA2-87A9-144868D9DD13}
