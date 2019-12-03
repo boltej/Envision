@@ -1,0 +1,18 @@
+; Flow_Grid.def : Declares the module parameters for the DLL.
+
+LIBRARY
+
+EXPORTS
+    ; Explicit exports can go here
+	Grid_Fluxes @1
+	Init_Grid_Fluxes @5
+	Solute_Fluxes @2
+	PrecipFluxHandler @3
+	Tracer_Application @4
+	SRS_5_Layer @6
+	SRS_6_Layer @7
+	UpdateTreeGrowth @8
+	UpdateSmallWatershedTreeGrowth @9
+    HJA_6_Layer @10
+	UpdateHBVTreeGrowth @11
+	Init_FIRE_Grid_Fluxes @12

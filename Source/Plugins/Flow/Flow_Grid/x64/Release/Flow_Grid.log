@@ -1,0 +1,47 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  Flow_Grid.cpp
+Flow_Grid.cpp(377): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Flow_Grid.cpp(437): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Flow_Grid.cpp(525): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Flow_Grid.cpp(659): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(660): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1368): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1392): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1410): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1413): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1416): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1442): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1462): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1469): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1499): warning C4305: '=': truncation from 'double' to 'float'
+Flow_Grid.cpp(1500): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1598): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1617): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1630): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1633): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1636): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1662): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1682): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1689): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1712): warning C4305: '=': truncation from 'double' to 'float'
+Flow_Grid.cpp(1713): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1783): warning C4305: 'initializing': truncation from 'double' to 'float'
+Flow_Grid.cpp(1912): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1966): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1970): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(1976): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(2071): warning C4305: 'initializing': truncation from 'double' to 'float'
+Flow_Grid.cpp(2156): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(2181): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(2261): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(2278): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Grid.cpp(2285): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+     Creating library C:\Envision.git\trunk\Source\x64\Release\Flow_Grid.lib and object C:\Envision.git\trunk\Source\x64\Release\Flow_Grid.exp
+  Generating code
+  41 of 206 functions (19.9%) were compiled, the rest were copied from previous compilation.
+    7 functions were new in current compilation
+    10 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  Flow_Grid.vcxproj -> C:\Envision.git\trunk\Source\x64\Release\Flow_Grid.dll
+  Flow_Grid.vcxproj -> C:\Envision.git\trunk\Source\x64\Release\Flow_Grid.pdb (Full PDB)
