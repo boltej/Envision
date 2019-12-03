@@ -1,0 +1,23 @@
+﻿  stdafx.cpp
+  dllmain.cpp
+  Flow_Solute.cpp
+Flow_Solute.cpp(516): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Flow_Solute.cpp(528): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+Flow_Solute.cpp(529): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+Flow_Solute.cpp(672): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Flow_Solute.cpp(684): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+Flow_Solute.cpp(685): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+Flow_Solute.cpp(1007): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+Flow_Solute.cpp(1018): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+Flow_Solute.cpp(1019): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+Flow_Solute.cpp(1880): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+Flow_Solute.cpp(2211): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+Flow_Solute.cpp(2219): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+     Creating library C:\Envision.git\trunk\Source\x64\Release\Flow_Solute.lib and object C:\Envision.git\trunk\Source\x64\Release\Flow_Solute.exp
+  Generating code
+  26 of 202 functions (12.9%) were compiled, the rest were copied from previous compilation.
+    0 functions were new in current compilation
+    5 functions had inline decision re-evaluated but remain unchanged
+  Finished generating code
+  Flow_Solute.vcxproj -> C:\Envision.git\trunk\Source\x64\Release\Flow_Solute.dll
+  Flow_Solute.vcxproj -> C:\Envision.git\trunk\Source\x64\Release\Flow_Solute.pdb (Full PDB)

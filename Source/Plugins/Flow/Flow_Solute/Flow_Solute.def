@@ -1,0 +1,13 @@
+; Flow_Solute.def : Declares the module parameters for the DLL.
+
+LIBRARY
+
+EXPORTS
+    ; Explicit exports can go here
+	
+	Init_Solute_Fluxes @1
+	Solute_Fluxes @2
+    HBV_N_Fluxes @3
+	Solute_Fluxes_SRS @4
+	Solute_Fluxes_SRS_Managed @5
+    Solute_Fluxes_HJA @6
