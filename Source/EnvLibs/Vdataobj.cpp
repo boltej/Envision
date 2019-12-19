@@ -942,7 +942,7 @@ int VDataObj::WriteAscii( LPCTSTR fileName, TCHAR delimiter, int colWidth )
          ++p;
          }
 
-      fprintf( fp, "%s%c ", buffer, delimiter );
+      fprintf( fp, "%s%c", buffer, delimiter );
 
       if ( colWidth == 0 )
          colWidthArray[ col ] = lstrlen( GetLabel( col ) ) + 1;

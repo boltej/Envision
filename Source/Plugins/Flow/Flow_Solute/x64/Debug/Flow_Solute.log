@@ -1,0 +1,20 @@
+﻿  stdafx.cpp
+  Flow_Solute.cpp
+c:\envision\src\flow_solute\flow_solute.cpp(516): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(528): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(529): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(672): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(684): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(685): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(1007): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(1018): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(1019): warning C4244: 'initializing': conversion from 'float' to 'int', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(1880): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(2211): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_solute\flow_solute.cpp(2219): warning C4244: '=': conversion from 'int' to 'float', possible loss of data
+  EnvExtension.cpp
+  Generating Code...
+  dllmain.cpp
+     Creating library C:\Envision\src\x64\Debug\Flow_Solute.lib and object C:\Envision\src\x64\Debug\Flow_Solute.exp
+  Flow_Solute.vcxproj -> C:\Envision\src\x64\Debug\Flow_Solute.dll
+  Flow_Solute.vcxproj -> C:\Envision\src\x64\Debug\Flow_Solute.pdb (Full PDB)

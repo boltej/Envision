@@ -1,0 +1,43 @@
+﻿  stdafx.cpp
+  Flow_Grid.cpp
+c:\envision\src\flow_grid\flow_grid.cpp(377): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(437): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(525): warning C4244: 'initializing': conversion from 'int' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(659): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(660): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1368): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1392): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1410): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1413): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1416): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1442): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1462): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1469): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1499): warning C4305: '=': truncation from 'double' to 'float'
+c:\envision\src\flow_grid\flow_grid.cpp(1500): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1598): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1617): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1630): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1633): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1636): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1662): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1682): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1689): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1712): warning C4305: '=': truncation from 'double' to 'float'
+c:\envision\src\flow_grid\flow_grid.cpp(1713): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1783): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\envision\src\flow_grid\flow_grid.cpp(1912): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1966): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1970): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(1976): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(2071): warning C4305: 'initializing': truncation from 'double' to 'float'
+c:\envision\src\flow_grid\flow_grid.cpp(2156): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(2181): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(2261): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(2278): warning C4244: 'initializing': conversion from 'SVTYPE' to 'float', possible loss of data
+c:\envision\src\flow_grid\flow_grid.cpp(2285): warning C4244: '=': conversion from 'SVTYPE' to 'float', possible loss of data
+  EnvExtension.cpp
+  Generating Code...
+  dllmain.cpp
+  Flow_Grid.vcxproj -> C:\Envision\src\x64\Debug\Flow_Grid.dll
+  Flow_Grid.vcxproj -> C:\Envision\src\x64\Debug\Flow_Grid.pdb (Full PDB)
