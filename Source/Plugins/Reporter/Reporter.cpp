@@ -95,7 +95,7 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
 
    m_stratifyByStr = stratifyBy;
 
-   // parse field name is needed - {field} or {field} [v1,v2,v3] are valid
+   // parse field name if needed - {field} or {field}=[v1,v2,v3] are valid
    TCHAR *p = _tcschr( buffer, '=' );
 
    if ( p != NULL )  // '=' found?
@@ -169,7 +169,10 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
       for ( int i=0; i < pInfo->GetAttributeCount(); i++ )
          {
          FIELD_ATTR &fa = pInfo->GetAttribute( i );
-         m_stratifiedAttrs.Add( fa.value );
+         if (pInfo->mfiType == MFIT_CATEGORYBINS)
+            m_stratifiedAttrs.Add(fa.value);
+         else if (pInfo->mfiType == MFIT_QUANTITYBINS)
+            m_stratifiedAttrs.Add(VData(fa.maxVal));      // for quantity bins, use max value of bin
          }
       }
 
@@ -178,7 +181,7 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
    for ( int i=0; i < attrCount; i++ )
       {
       int attrIndex = -1;
-      FIELD_ATTR *fa = pInfo->FindAttribute( m_stratifiedAttrs[ i ], &attrIndex );
+      FIELD_ATTR* fa = pInfo->FindAttribute(m_stratifiedAttrs[i], &attrIndex);
 
       ASSERT( fa != NULL );
 
