@@ -300,23 +300,25 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 	Gridcell& gridcell = patch.stand.get_gridcell();
 	
-	//for (int k = 0; k < gridcell.m_hruArray.GetSize(); k++)
-	 //  {
+	int si = gridcell.m_hruArray.GetSize();
+//	for (int k = 0; k < gridcell.m_hruArray.GetSize(); k++)
+//	   {
 	
-		//HRU *pHRU = gridcell.m_hruArray[k];
+	//	HRU *pHRU = gridcell.m_hruArray[k];
 	    HRU *pHRU = gridcell.pHRU;
 		HRUPool *pHRUPool = pHRU->GetPool(0);
 		pHRUPool->AddFluxFromGlobalHandler(runoff*pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d
 		//pHRUPool->AddFluxFromGlobalHandler((aet_layer[0]+evap) *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
 		//HRUPool *pHRUPool2 = pHRU->GetPool(1);
 		//pHRUPool2->AddFluxFromGlobalHandler(aet_layer[1] *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
-		gridcell.pHRU->m_currentET = aet_total+evap;
+		//pHRU->m_currentET = aet_total+evap;
+		pHRU->m_currentET = aet_total + evap;
 		pHRU->m_currentRunoff = runoff_surf;
 		pHRU->m_swc = wcont[0];
 	//	Reach * pReach = pHRUPool->GetReach();
 	//	if (pReach)
 	//		pReach->AddFluxFromGlobalHandler(((runoff_surf) / 1000.0f*pHRU->m_area)); //m3/d
-	  // }
+	//   }
 	patch.asurfrunoff += runoff_surf;
 	patch.adrainrunoff += runoff_drain;
 	patch.abaserunoff += runoff_baseflow;
@@ -386,6 +388,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 		soil.wcont_evap = soil.wcont[0];
 	}
 	Gridcell& gridcell = patch.stand.get_gridcell();
+	//HRU* pHRU = gridcell.m_hruArray[0];
 	HRU *pHRU = gridcell.pHRU;
 	pHRU->m_depthSWE = soil.snowpack;
 

@@ -228,6 +228,7 @@ protected:
 
    //bool  SolveReachDirect( void );     // high level method
    bool  SolveReachKinematicWave( FlowContext* );
+   int   CalculateDupuitElevation(MapLayer *pStreamLayer, MapLayer *pDEMLayer);
    bool  SolveReach2KW(FlowContext*);
 
    float GetLateralInflow( Reach *pReach );

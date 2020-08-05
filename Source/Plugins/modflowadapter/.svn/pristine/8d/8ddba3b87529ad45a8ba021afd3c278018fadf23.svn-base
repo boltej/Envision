@@ -1,0 +1,11 @@
+; ModflowAdapter.def : Declares the module parameters for the DLL.
+
+LIBRARY
+
+EXPORTS
+    ; Explicit exports can go here
+
+Init @99
+InitRun @15
+Run @16
+EndRun @17

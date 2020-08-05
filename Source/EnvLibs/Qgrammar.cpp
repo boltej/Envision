@@ -123,7 +123,7 @@ top:
       p += 2;
    cycle:
       char *end = strchr(p, '*');
-      if (end == '\0')
+      if (end == (char*)'\0')
          {
          QCompilerError("Unterminated comment found", p);
          //QCurrentLineNo = 0;

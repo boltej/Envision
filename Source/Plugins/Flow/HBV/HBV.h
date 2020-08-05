@@ -103,6 +103,9 @@ public:  // these should be phased out
    float HBV_HorizontalwSnow( FlowContext *pFlowContext );
    float HBV_VerticalwSnow( FlowContext *pFlowContext );
 
+   float ExchangeFlowToCalvin(FlowContext *pFlowContext);
+   float ExchangeCalvinToFlow(FlowContext *pFlowContext);
+
 protected:
    float ET( float waterDepth, float fc, float lp, float wp, float temp, int month, int doy, float &etRc);
    float CalcET(  float temp, int month, int doy ) ;//hargreaves equation
@@ -118,6 +121,8 @@ protected:
 	int   m_colIDUArea;				// IDU area from IDU layer
 	int   m_colUGB;					// IDU UGB from IDU layer
 
+
+   float GetMean(FDataObj *pData, int col, int startRow, int numRows);
 // public (exported) methods
 public:
    //-------------------------------------------------------------------

@@ -30,11 +30,143 @@ Copywrite 2012 - Oregon State University
 #include <omp.h>
 #include <math.h>
 #include <UNITCONV.H>
+
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
 
+float HBV::GetMean(FDataObj *pData, int col, int startRow, int numRows)
+   {
+   int rows = pData->GetRowCount();
+
+   if (rows <= 0 || (int)startRow+numRows >= rows)
+      return 0;
+
+   float mean = 0.0;
+
+   for (int i = startRow; i < startRow+numRows; i++)
+      mean += pData->Get(col, i);
+
+   return (mean / (numRows));
+   }
+
+
+float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
+   {
+   FDataObj *pMnthlyData = new FDataObj(3,0);
+   int yearOffset = pFlowContext->pEnvContext->currentYear - pFlowContext->pEnvContext->startYear;
+   int numRes = 0;
+   int mnth[12];
+   mnth[0]=9; mnth[1]=10; mnth[2]=11;
+   for (int i=3;i<12;i++)
+      mnth[i]=i-3;
+
+  // FDataObj *pData = NULL;
+   //Step 1.  Get daily data from Flow
+   int outputCount = pFlowContext->pFlowModel->GetModelOutputGroupCount();
+   for (int i = 0; i < outputCount ; i++)
+      {
+      ModelOutputGroup *pGroup = pFlowContext->pFlowModel->GetModelOutputGroup(i);
+      CString name = pGroup->m_name;
+      if (name=="Calvin") //find the offset of the model output with named Calvin.  It will have a column for each reservoir, plus time         
+         {
+         int offset = yearOffset*365;
+         // Step 2.  Get average monthly data from Daily Data
+         numRes = pGroup->m_pDataObj->GetColCount() - 1;//first column is date, so numres is colCount-1
+         float *row = new float[numRes + 1];//date, and 1 column for each reservoir
+         for (int row_ = 0; row_ < 12; row_++)
+            {
+            row[0] = row_;//add month
+            for (int col_ = 0; col_ < numRes; col_++)
+               {
+               float mn = GetMean(pGroup->m_pDataObj, col_ + 1, offset, 30);
+               row[col_ + 1] = mn;
+               }
+            offset += 30;
+            pMnthlyData->AppendRow(row, numRes + 1);
+            }
+         delete [] row;
+         break;
+         }   
+         
+      }
+     // ASSERT(pData!=NULL);
+
+      
+
+	// Step 3.  Write monthly data into the Calvin input spreadsheet
+	VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
+	pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv",',');
+   for (int res = 0; res<numRes;res++)
+      { 
+      for (int link=0;link<pExchange->GetRowCount(); link++)
+         { 
+         CString a = pExchange->GetAsString(0,link);
+         CString b = pExchange->GetAsString(1,link);
+         CString aa=a.Left(6);
+         CString bb=b.Left(6);
+         int a1 = strcmp(aa,"INFLOW");
+         int b1 = strcmp(bb, "SR_PNF");
+
+         if (a1==0 && b1==0)
+            {           
+	         for (int i = 0; i < 12; i++)
+	            {
+		         pExchange->Set(5, link+i, pMnthlyData->Get(res+1,mnth[i]));
+		         pExchange->Set(6, link+i, pMnthlyData->Get(res+1,mnth[i]));
+	            }
+            break;
+            }     
+         }
+      }
+	pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922.csv");
+   pMnthlyData->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\exchange.csv");
+
+  // Step 4.  Write monthly data into the Calvin DataObjs.  This isn't required, but allows data to show up in Envision
+
+   delete [] pMnthlyData;
+//   delete [] pData;
+   delete [] pExchange;
+
+	return -1.0f;
+   }
+
+float HBV::ExchangeCalvinToFlow(FlowContext *pFlowContext)
+{
+   FDataObj *pDlyData = new FDataObj(360, 1);
+   //Step 1.  Get monthly data from Calvin
+   VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
+   pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\example-results\\storage.csv");
+   int calvinOffset=0;
+   for (int i = 0; i < (int)pFlowContext->pFlowModel->m_reservoirArray.GetSize(); i++)
+   {
+      Reservoir *pRes = pFlowContext->pFlowModel->m_reservoirArray.GetAt(i);
+      FDataObj *pData = pRes->m_pResData;
+      
+      CString name=pRes->m_name;
+      for (int j=0;j<pExchange->GetColCount();j++)//search columns to find correct name
+         { 
+         CString lab = pDlyData->GetLabel(j);
+         calvinOffset=j;
+         if (lab==name)
+            break;
+         }
+      int offset = 0;
+      // Step 2.  Read data from Calvin Output, add that data to an Envision DataObj
+          
+      for (int k = 0; k < 24; k=k+2)
+        {
+         float dat = pExchange->GetAsFloat(calvinOffset, k);
+         for (int y=0;y<30;y++)
+            { 
+            offset += 30;
+            pDlyData->Add(2, y, dat);
+            }
+         }
+      }
+   return -1.0f;
+   }
 
 float HBV::InitHBV(FlowContext *pFlowContext, LPCTSTR inti)
    {
@@ -56,8 +188,6 @@ float HBV::InitHBV(FlowContext *pFlowContext, LPCTSTR inti)
    m_col_rain  = pHBVTable->GetFieldCol("RAIN");
    m_col_snow  = pHBVTable->GetFieldCol("SNOW");
    m_col_sfcfCorrection = pHBVTable->GetFieldCol("SFCFCORRECTION");
-
-
 
    const char* p = pFlowContext->pFlowModel->GetPath();
    return -1.0f;

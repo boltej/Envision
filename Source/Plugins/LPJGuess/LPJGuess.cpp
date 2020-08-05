@@ -198,7 +198,7 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 				pHRU = pFlowContext->pFlowModel->GetHRU(h);
 				Vertex cen = pHRU->m_centroid;
 				float dist = sqrt((cen.x - x)*(cen.x - x) + (cen.y - y)*(cen.y - y));
-				if (dist < 3000.0f && added[h] != 1)//then this hru is close to this LPJ gridcell
+				if (dist < 1414.0f && added[h] != 1)//then this hru is close to this LPJ gridcell
 				    {
 					pGridcell->m_hruArray.Add(pHRU);//then add the HRU to the gridcell
 					added[h] = 1;//and flag this HRU so we don't add it to another gridcell
@@ -206,7 +206,7 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 				    }
 				
 			    }
-			
+			//ASSERT(hruAddedCount > 0);
 		  //  }
 
 	}// end of while

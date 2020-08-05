@@ -99,11 +99,12 @@ enum EXSVMETHOD {
 ///\enum RESMETHOD reservoir flux methods
 enum RESMETHOD {
    RES_EXTERNAL = 0,
-   RES_RESSIMLITE=100
+   RES_RESSIMLITE=100,
+   RES_OPTIMIZATION = 200
    };
 
 ///\enum GWMETHOD reservoir flux methods (Note: No internal methods - yet)
-//enum GWMETHOD {
+//enum GWMETHOD {RES_OPIMIZATION
 //   GW_EXTERNAL = 0,
 //   GW_NONE = 100
 //   };

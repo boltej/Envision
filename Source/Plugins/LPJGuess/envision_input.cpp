@@ -347,6 +347,7 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 	float prec = 0.0f; float temp = 0.0f; float insol = 0.0f;
 	//HRU *pHRU = pFlowContext->pFlowModel->GetHRU(0);
 	HRU *pHRU = gridcell.pHRU;
+	//HRU* pHRU = gridcell.m_hruArray[0];
 	pFlowContext->pFlowModel->GetHRUClimate(CDT_PRECIP, pHRU, pFlowContext->dayOfYear, prec);//mm
 	pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, pFlowContext->dayOfYear, temp);//C
 	pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, pFlowContext->dayOfYear, insol);//C
