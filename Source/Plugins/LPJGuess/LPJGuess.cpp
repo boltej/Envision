@@ -20,7 +20,7 @@
 
 #include "bvoc.h"
 #include "landcover.h"
-
+#include <PathManager.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -45,18 +45,18 @@ bool LPJGuess::Guess_Standalone(FlowContext *pFlowContext, LPCTSTR initStr)
 	//framework(args);
 
 	set_shell(new CommandLineShell(file_log));
-	framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
-
+	//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
+	framework(pFlowContext, "cru_ncep", "\\LPJGuess\\inputs\\global_cru_new.ins");
    return TRUE;
    }
 
 bool LPJGuess::Guess_Flow(FlowContext *pFlowContext, bool useInitialSeed)
    {
 	if (pFlowContext->timing & GMT_INIT) // Init()
-		return LPJGuess::Init_Guess(pFlowContext, "envision", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
+		return LPJGuess::Init_Guess(pFlowContext, "envision", pFlowContext->initInfo);
 
 	if (pFlowContext->timing & GMT_CATCHMENT) // Init()
-		return LPJGuess::Run_Guess(pFlowContext, "envision", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
+		return LPJGuess::Run_Guess(pFlowContext, "envision", "\\LPJGuess\\inputs\\global_cru_new.ins");
 	
    return TRUE;
    }
@@ -235,7 +235,15 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 	//GuessOutput::OutputModuleContainer output_modules;
 	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(m_output_modules);
 
-	read_instruction_file(instruction_file);
+	CString path;
+	if (PathManager::FindPath(instruction_file, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), instruction_file);
+		Report::LogError(msg);
+	}
+
+	read_instruction_file(path);
 	m_input_module->init();
 	m_output_modules.init();
 

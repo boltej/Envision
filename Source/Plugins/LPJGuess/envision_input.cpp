@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include <PathManager.h>
+
 #include <..\Plugins\Flow\Flow.h>
 REGISTER_INPUT_MODULE("envision", ENVInput)
 
@@ -83,7 +85,17 @@ void ENVInput::init() {
 	// Retrieve name of grid list file as read from ins file
 	xtring file_gridlist = param["file_gridlist"].str;
 
-	FILE* in_grid = fopen(file_gridlist, "r");
+
+	CString path;
+	//tmpPath = PathManager::GetPath(PM_IDU_DIR);//directory with the idu
+	if (PathManager::FindPath(file_gridlist, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_gridlist);
+		Report::LogError(msg);
+	}
+
+	FILE* in_grid = fopen(path, "r");
 	if (!in_grid) fail("initio: could not open %s for input", (char*)file_gridlist);
 
 	//file_cru=param["file_cru"].str;
