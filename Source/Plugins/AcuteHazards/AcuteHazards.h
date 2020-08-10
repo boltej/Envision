@@ -1,6 +1,27 @@
 #pragma once
 
 
+/* -------------------------
+Sequence:
+EnvModel:Run()
+   EnvModel::UpdateAppVars()
+   EnvModel::RunAutoPre()
+      AcuteHazards::Run()
+         if (postevent)
+            AcuteHazards::Update() -> if event has run, checks for damaged bldgs
+                    that are to be repaired according to repair policy (BLDGDAMAGE < 0), and resets
+                    them to a repaired state if repairYrs == 0.  For multiyear repairs, reduce repairYrs
+                    by one.
+         if (eventScheduled)
+            AHEvent::Run() - runs model, writes repairCost, repairYrs, bldgDamage
+
+         -> DeltaArray appled here
+
+   EnvModel::RunGlobalConstraints() -> resets global constraints
+   EnvModel::ApplyMandatoryPolicies() -> selects policies within constraints
+------------------- */
+
+
 #include <EnvExtension.h>
 #include <PtrArray.h>
 #include <FDATAOBJ.H>
@@ -35,7 +56,10 @@ class AHEvent
       CString m_tsunamiInputPath;
       CString m_earthquakeScenario;
       CString m_tsunamiScenario;
-
+      //CString m_pyTransModulePath;
+      //CString m_pyTransModuleName;
+      //CString m_pyTransFunction;
+      
       AcuteHazards *m_pAHModel;
 
       int m_use;          // scenario variable
@@ -107,6 +131,7 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       int m_colIduBldgDamageTsu; // BLDGDMGTS  - tsunami damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
       int m_colIduRemoved;       // REMOVED - buildings removed
       //int m_colBldRestYr;   // BD_REST_YR
+      int m_colIduCasualties;
 
       // exposed outputs
       //float m_annualRepairCosts;
@@ -125,5 +150,12 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       int m_totalBldgs;
       int m_nFunctionalBldgs;
       float m_pctFunctionalBldgs;
+
+      // life safety
+      float m_numCasSev1;
+      float m_numCasSev2;
+      float m_numCasSev3;
+      float m_numCasSev4;
+      float m_numCasTotal;
 
    };

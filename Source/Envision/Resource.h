@@ -179,14 +179,16 @@
 #define ID_DATA_PROJECT3D               414
 #define ID_DATA_BUILDNETWORKTREE        415
 #define ID_DATA_IDUINFO                 416
-#define ID_DATA_VERIFYCELLLAYER         417
-#define ID_DATA_EVALUATIVEMODELLEARNING 418
-#define ID_DATA_INITIALIZEPOLICYEFFICACIES 419
-#define ID_DATA_HISTOGRAM               420
-#define ID_EDIT_POLICIES                421
-#define ID_EDIT_ACTORS                  422
-#define ID_EDIT_LULC                    423
-#define ID_EDIT_SCENARIOS               424
+#define ID_DATA_IDUDOC                  417
+#define ID_DATA_VERIFYCELLLAYER         418
+#define ID_DATA_EVALUATIVEMODELLEARNING 419
+#define ID_DATA_INITIALIZEPOLICYEFFICACIES 420
+#define ID_DATA_HISTOGRAM               421
+
+#define ID_EDIT_POLICIES                423
+#define ID_EDIT_ACTORS                  424
+#define ID_EDIT_LULC                    425
+#define ID_EDIT_SCENARIOS               426
 #define ID_ANALYSIS_SETUP_RUN           430
 #define ID_ANALYSIS_SETUP_MODELS        431
 #define ID_ANALYSIS_RUN                 432

@@ -1,4 +1,4 @@
-// CoastalHazards.cpp : Defines the initialization routines for the DLL.
+// ChronicHazards.cpp : Defines the initialization routines for the DLL.
 //
 /*
 This file is part of Envision.
@@ -23,28 +23,24 @@ Copywrite 2012 - Oregon State University
 #include "stdafx.h"
 #pragma hdrstop
 
-#include "CoastalHazards.h"
+#include "ChronicHazards.h"
 
 #include <Map.h>
 #include <PathManager.h>
 #include <EnvConstants.h>
 #include <cmath>
-#include "CoastalHazards.h"
+#include "ChronicHazards.h"
 
 #include <tixml.h>
 #include <vector>
-#include <MAP.h>
 #include <Maplayer.h>
-#include <cmath>
 #include <AlgLib\AlgLib.h>
-#include <PathManager.h>
 #include <UNITCONV.H>
 #include <DATE.HPP>
 #include <randgen\Randunif.hpp>
 #include <randgen\Randnorm.hpp>
 #include <randgen\RandExp.h>
 #include <EnvModel.h>
-#include <EnvConstants.h>
 #include <complex>
 #include "secant.h"
 #include "bisection.h"
@@ -71,8 +67,8 @@ float PolicyInfo::m_budgetAllocFrac = 0.5f;
 FILE *fpPolicySummary = NULL;
 
 
-TWLDATAFILE CoastalHazards::m_datafile;
-COSTS CoastalHazards::m_costs;
+TWLDATAFILE ChronicHazards::m_datafile;
+COSTS ChronicHazards::m_costs;
 
 
 
@@ -83,17 +79,17 @@ COSTS CoastalHazards::m_costs;
 //      return false; }
 
 //=====================================================================================================
-// CoastalHazards
+// ChronicHazards
 //=====================================================================================================
 
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new CoastalHazards; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new ChronicHazards; }
 
 
 
-CoastalHazards::CoastalHazards(void)
+ChronicHazards::ChronicHazards(void)
    : EnvModelProcess(0, 0),
-
+   m_runFlags(CF_NONE),
    // Layers and Grids                  
    m_pIDULayer(NULL),                  // ptr to IDU Layer                  
    m_pRoadLayer(NULL),                  // ptr to Road Layer
@@ -183,7 +179,7 @@ CoastalHazards::CoastalHazards(void)
    m_findSafeSiteCell(0),               // 0=Off, 1=On
    m_runBayFloodModel(0),               // Run Bay Flooding Model: 0=Off, 1=On
    m_writeDailyData(0),               // 0=Off, 1=On
-   m_writeRBF(0),                     // 0=Off, 1=On
+   m_writeRBF(0),                     // 0=Off, postive value=sample interval
 
    m_bfeCount(0),
    m_eroCount(0),
@@ -540,7 +536,7 @@ CoastalHazards::CoastalHazards(void)
    //   m_pRnSimulation(NULL)
    { }
 
-CoastalHazards::~CoastalHazards(void)
+ChronicHazards::~ChronicHazards(void)
    {
    if (m_pPolygonGridLkUp != NULL) delete m_pPolygonGridLkUp;
    if (m_pPolylineGridLkUp != NULL) delete m_pPolylineGridLkUp;
@@ -558,8 +554,10 @@ CoastalHazards::~CoastalHazards(void)
    }
 
 
-bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
+bool ChronicHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    {
+   LoadXml(initStr);
+
    // get Map pointer
    m_pMap = pEnvContext->pMapLayer->GetMapPtr();
 
@@ -573,13 +571,14 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    // Buildings Layer
    m_pBldgLayer = m_pMap->GetLayer("Buildings");
-   m_numBldgs = m_pBldgLayer->GetRowCount();
+   if ( m_pBldgLayer != NULL )
+      m_numBldgs = m_pBldgLayer->GetRowCount();
 
    // Infrastructure Layer
    m_pInfraLayer = m_pMap->GetLayer("Infrastructure Locations");
 
    // Original Dune line layer
-   m_pOrigDuneLineLayer = m_pMap->GetLayer("2002 Dune Toe Line");
+   m_pOrigDuneLineLayer = m_pMap->GetLayer("Dune Points");
    // Tidal Bathymetry
 
    //m_pBayTraceLayer = m_pMap->GetLayer("Bay Trace Pts");
@@ -587,33 +586,44 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    // Elevation
    m_pElevationGrid = m_pMap->GetLayer("Elevation");
-   m_pElevationGrid->Hide();
-   m_numRows = m_pElevationGrid->GetRowCount();
-   m_numCols = m_pElevationGrid->GetColCount();
-   m_pElevationGrid->GetCellSize(m_cellWidth, m_cellHeight);
+   if (m_pElevationGrid != NULL)
+      {
+      m_pElevationGrid->Hide();
+      m_numRows = m_pElevationGrid->GetRowCount();
+      m_numCols = m_pElevationGrid->GetColCount();
+      m_pElevationGrid->GetCellSize(m_cellWidth, m_cellHeight);
+      }
 
    // Bay Bathymetry
    m_pBayBathyGrid = m_pMap->GetLayer("Bay Bathy");
-   m_pBayBathyGrid->Hide();
-   m_numBayRows = m_pBayBathyGrid->GetRowCount();
-   m_numBayCols = m_pBayBathyGrid->GetColCount();
-   m_pBayBathyGrid->GetCellSize(m_bayCellWidth, m_bayCellHeight);
+   if (m_pBayBathyGrid != NULL)
+      {
+      m_pBayBathyGrid->Hide();
+      m_numBayRows = m_pBayBathyGrid->GetRowCount();
+      m_numBayCols = m_pBayBathyGrid->GetColCount();
+      m_pBayBathyGrid->GetCellSize(m_bayCellWidth, m_bayCellHeight);
+      }
 
    // Bates Model Mask
-   m_pManningMaskGrid = m_pMap->GetLayer("Manning Mask");
-   m_pManningMaskGrid->Hide();
-
-   m_pFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
-   m_pFloodedGrid->m_name = "Flooded Grid";
-   m_pCumFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
-   m_pCumFloodedGrid->m_name = "Cumulative Flooded Grid";
+   if (m_runFlags & CH_MODEL_FLOODING)
+      {
+      m_pManningMaskGrid = m_pMap->GetLayer("Manning Mask");
+      m_pManningMaskGrid->Hide();
+      m_pFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
+      m_pFloodedGrid->m_name = "Flooded Grid";
+      m_pCumFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
+      m_pCumFloodedGrid->m_name = "Cumulative Flooded Grid";
+      }
 
    // Tidal Bathymetry
    m_pTidalBathyGrid = m_pMap->GetLayer("Tidal Bathy");
-   m_pTidalBathyGrid->Hide();
-   m_numTidalRows = m_pTidalBathyGrid->GetRowCount();
-   m_numTidalCols = m_pTidalBathyGrid->GetColCount();
-   m_pTidalBathyGrid->GetCellSize(m_tidalCellWidth, m_tidalCellHeight);
+   if (m_pTidalBathyGrid != NULL)
+      {
+      m_pTidalBathyGrid->Hide();
+      m_numTidalRows = m_pTidalBathyGrid->GetRowCount();
+      m_numTidalCols = m_pTidalBathyGrid->GetColCount();
+      m_pTidalBathyGrid->GetCellSize(m_tidalCellWidth, m_tidalCellHeight);
+      }
 
    // Tsunami Inundation generate
    // --not needed but could be use as sanity check
@@ -621,357 +631,361 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    // Check and store relevant columns (in IDU coverage)
 
-   CheckCol(m_pIDULayer, m_colArea, "Area", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colZone, "ZONE_CODE", TYPE_INT, CC_MUST_EXIST);
-   CheckCol(m_pIDULayer, m_colPopDensity, "PopDens", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pIDULayer, m_colPopulation, "Population", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pIDULayer, m_colPopCap, "POP_CAP", TYPE_FLOAT, CC_AUTOADD);
-
-   CheckCol(m_pIDULayer, m_colNorthingBottom, "Bottom", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pIDULayer, m_colNorthingTop, "Top", TYPE_DOUBLE, CC_MUST_EXIST);
-
-   CheckCol(m_pIDULayer, m_colLength, "Length", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pIDULayer, m_colIDUAddBPSYr, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colNDU, "NDU", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colNEWDU, "NewDU", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colBeachfront, "BEACHFRONT", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colIDUCityCode, "CITY_CODE", TYPE_INT, CC_AUTOADD);
-
-   // IDU Attributes for Safest Site Policy
-
-   CheckCol(m_pIDULayer, m_colMinElevation, "MIN_ELEV", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colMaxElevation, "MAX_ELEV", TYPE_FLOAT, CC_AUTOADD);
-
-   // These can be calculated once in Init by turning on the findSafeSiteCell flag in GHC_Hazards.xml
-   // They are the DEM cell location of the highest elevation in an IDU
-   CheckCol(m_pIDULayer, m_colSafestSiteRow, "SAFE_ROW", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colSafestSiteCol, "SAFE_COL", TYPE_FLOAT, CC_AUTOADD);
-
-   // 1/0 Field to indicate Safe Site is available, 0 if taken  // not implemented = 0 if closer to coast, to avoid construction of new buildings
-   CheckCol(m_pIDULayer, m_colSafeSite, "SAFE_SITE", TYPE_INT, CC_MUST_EXIST);
-   m_pIDULayer->SetColData(m_colSafeSite, VData(1), true);
-
-   CheckCol(m_pIDULayer, m_colRemoveBldgYr, "REMBLDGYR", TYPE_INT, CC_AUTOADD);
-   m_pIDULayer->SetColData(m_colRemoveBldgYr, VData(0), true);
-
-   // change to MUST_EXIST
-   CheckCol(m_pIDULayer, m_colBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);   // read
-   CheckCol(m_pIDULayer, m_colBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);   // readflood
-   CheckCol(m_pIDULayer, m_colIDUFloodZone, "FLD_ZONE", TYPE_STRING, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colIDUFloodZoneCode, "FLD_HZ", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colTsunamiHazardZone, "TSUNAMI_HZ", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colLandValue, "LANDVALUE", TYPE_LONG, CC_MUST_EXIST);
-
-   // 1/0 field if IDU was annually flooded or eroded
-   CheckCol(m_pIDULayer, m_colIDUFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colIDUEroded, "ERODED", TYPE_INT, CC_AUTOADD);
-
-   CheckCol(m_pIDULayer, m_colFracFlooded, "FRACFLOOD", TYPE_FLOAT, CC_AUTOADD);
-   m_pIDULayer->SetColData(m_colFracFlooded, VData(0.0f), true);
-
-   CheckCol(m_pIDULayer, m_colEasementYear, "EASEMNT_YR", TYPE_INT, CC_AUTOADD);
-   m_pIDULayer->SetColData(m_colEasementYear, VData(0.0f), true);
-
-   // ****** Finished Columns for IDU Coverage ****** //
-
-   //These attributes come from LIDAR and other data sets in the original shape file
-   // MUST_EXIST 
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneIndx, "DUNEINDX", TYPE_LONG, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colTranSlope, "TANB", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneToe, "DT", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneCrest, "DUNECREST", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colBeachWidth, "BEACHWDTH", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colNorthingToe, "NORTHING", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colEastingToe, "EASTING", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colNorthingCrest, "NORTHNGCR", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colEastingCrest, "EASTNGCR", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colEastingShoreline, "EASTNGSH", TYPE_DOUBLE, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colShorelineChange, "SCRate", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colBeachType, "BEACHTYPE", TYPE_INT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colGammaRough, "GAMMAROUGH", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneHeel, "DUNEHEEL", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colFrontSlope, "FRONTSLOPE", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colBackSlope, "BACKSLOPE", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneWidth, "DUNEWIDTH", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pOrigDuneLineLayer, m_colScomp, "COMPSLOPE", TYPE_FLOAT, CC_AUTOADD);
-
-
-
-   // short term shoreline change rate
-   //  CheckCol(m_pOrigDuneLineLayer, m_colEPR, "EPR", TYPE_FLOAT, CC_AUTOADD);
-
-   // Shoreline locations to tally specific metrics or set differnt actions
-   CheckCol(m_pOrigDuneLineLayer, m_colLittCell, "LOC", TYPE_INT, CC_AUTOADD);
-
-   // These attributes need values to be determined
-
-   CheckCol(m_pOrigDuneLineLayer, m_colShorelineAngle, "GAMMABETA", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colShorelineAngle, VData(0.0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colGammaBerm, "GAMMABERM", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colGammaBerm, VData(1.0f), true);
-
-   //   CheckCol(m_pOrigDuneLineLayer, m_colEastingMHW, "EASTINGMHW", TYPE_DOUBLE, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colLongitudeToe, "LONGITUDE", TYPE_DOUBLE, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colLatitudeToe, "LATITUDE", TYPE_DOUBLE, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colOrigBeachType, "ORBCHTYPE", TYPE_INT, CC_AUTOADD);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colPrevSlope, "PREVTANB", TYPE_DOUBLE, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colPrevDuneCr, "PREVDUNECR", TYPE_DOUBLE, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colPrevRow, "PREVROW", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colPrevCol, "PREVCOL", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colEastingCrestProfile, "PEASTINGCR", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colEastingCrestProfile, VData(0.0), true);
-
-   // These attributes are filled in on the fly from the Lookup tables to connect up the various layers
-
-   // Index to lookup 
-   CheckCol(m_pOrigDuneLineLayer, m_colTranIndx, "TRANINDX", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colProfileIndx, "PROFINDX", TYPE_INT, CC_AUTOADD);
-
-   // Bruun Rule Slope (measured MHW - depth at 25m contour)
-   CheckCol(m_pOrigDuneLineLayer, m_colShoreface, "SHOREFACE", TYPE_FLOAT, CC_AUTOADD);
-
-   // Foreshore Slope (measured in cross-shore profile within +- 0.5m vertically of MHW)
-   CheckCol(m_pOrigDuneLineLayer, m_colForeshore, "FORESHORE", TYPE_FLOAT, CC_AUTOADD);
-
-   // Index of protected building
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgIndx, "BLDGINDX", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colDuneBldgIndx, VData(-1), true);
-   // Distance (m) to protected building
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgDist, "BLDGDIST", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colDuneBldgDist, VData(5000.0), true);
-
-
-   // ******   These attributes are calculated during an annual run and represent the annual maximum or average ******
-
-   // Yearly Maxmimum Total Water Level (TWL)
-   CheckCol(m_pOrigDuneLineLayer, m_colYrMaxTWL, "MAX_TWL_YR", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrMaxTWL, VData(0.0f), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colYrFMaxTWL, "MAXFTWL_YR", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrFMaxTWL, VData(0.0f), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colYrAvgTWL, "AVG_TWL_YR", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrAvgTWL, VData(0.0f), true);
-
-   // Moving Average of TWL over a designated window
-   CheckCol(m_pOrigDuneLineLayer, m_colMvAvgTWL, "MVAVG_TWL", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colMvAvgTWL, VData(0.0f), true);
-
-   // Maximum TWL within a designated moving window
-   CheckCol(m_pOrigDuneLineLayer, m_colMvMaxTWL, "MVMAX_TWL", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colMvMaxTWL, VData(0.0f), true);
-
-   // Annual Data corresponding to the wave characteristics which have the yearly maximum TWL
-   CheckCol(m_pOrigDuneLineLayer, m_colWPeriod, "WPERIOD", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colWHeight, "WHEIGHT", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colWDirection, "WDIRECTION", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colHdeep, "HDEEP", TYPE_FLOAT, CC_AUTOADD);
-
-   // Day of Year (doy) which has the yearly Maximum TWL
-   CheckCol(m_pOrigDuneLineLayer, m_colYrMaxDoy, "MAXDOY", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrMaxDoy, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colYrMaxSWL, "MAXSWL", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrMaxSWL, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colYrAvgSWL, "AVG_SWL_YR", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrAvgSWL, VData(0.0f), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colYrAvgLowSWL, "AVGLWSWLYR", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrAvgLowSWL, VData(0.0f), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colYrMaxSetup, "MAXSETUP", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrMaxSetup, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colYrMaxIGSwash, "MAXIGSWASH", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrMaxIGSwash, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colYrMaxIncSwash, "MXINCSWASH", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrMaxIncSwash, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colYrMaxSwash, "MAXSWASH", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colYrMaxSwash, VData(0.0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colWb, "WB", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colHb, "HB", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colTS, "TS", TYPE_DOUBLE, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colAlpha, "ALPHA", TYPE_DOUBLE, CC_AUTOADD);
-
-
-   // Erosion attributes
-
-   // Annual K&D erosion extent
-   CheckCol(m_pOrigDuneLineLayer, m_colKD, "EROSION", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colKD, VData(0.0f), true);
-
-   // K&D 2-yr average erosion extent
-   CheckCol(m_pOrigDuneLineLayer, m_colAvgKD, "AVGKD", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colAvgKD, VData(0.0f), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colXAvgKD, "X_AVGKD", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colXAvgKD, VData(0.0f), true);
-
-
-   // 0=Not Flooded, value=Yearly Maximum TWL
-   CheckCol(m_pOrigDuneLineLayer, m_colFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colFlooded, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colAmtFlooded, "AMT_FLOOD", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colAmtFlooded, VData(0.0), true);
-
-   // Frequency of K&D erosion event or flooded event
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneEroFreq, "ERO_FREQ", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colDuneEroFreq, VData(0.0f), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneFloodFreq, "FLOOD_FREQ", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colDuneFloodFreq, VData(0.0f), true);
-
-
-   // ***** Impact Days ***** //
-
-   // These attributes are calculated annually and represent the number of days per year the dune is impacted
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDToe, "IDDUNETOE", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDToe, VData(0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDCrest, "IDDUNECR", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDCrest, VData(0), true);
-
-   // These attributes are calculated annually and represent the number of days per season the dune toe or dune crest is impacted
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDToeWinter, "IDDTWINTER", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDToeWinter, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDToeSpring, "IDDTSPRING", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDToeSpring, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDToeSummer, "IDDTSUMMER", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDToeSummer, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDToeFall, "IDDTFALL", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDToeFall, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestWinter, "IDDCWINTER", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDCrestWinter, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestSpring, "IDDCSPRING", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDCrestSpring, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestSummer, "IDDCSUMMER", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDCrestSummer, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestFall, "IDDCFALL", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colIDDCrestFall, VData(0), true);
-
-   // Moving Average of Impact Days Per Year
-   CheckCol(m_pOrigDuneLineLayer, m_colMvAvgIDPY, "MVAVG_IDPY", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colMvAvgIDPY, VData(0.0f), true);
-
-
-   // ****** Protection Structures ****** //
-
-   // ****** Hard Protection Structures ****** //
-   CheckCol(m_pOrigDuneLineLayer, m_colEastingToeBPS, "EASTINGBPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colEastingToeBPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colAddYearBPS, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colAddYearBPS, VData(0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colMaintYearBPS, "MAIN_YRBPS", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colMaintYearBPS, VData(0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colRemoveYearBPS, "REM_YR_BPS", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colRemoveYearBPS, VData(0), true);
-
-
-   // Hard Protection Structure Nourishment attributes
-   CheckCol(m_pOrigDuneLineLayer, m_colNourishVolBPS, "NOURVOLBPS", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colNourishYearBPS, "NOURYRBPS", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colNourishYearBPS, VData(0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colNourishFreqBPS, "NOURFRQBPS", TYPE_INT, CC_AUTOADD);
-
-
-   // ****** Soft Protection Structures ****** //
-   CheckCol(m_pOrigDuneLineLayer, m_colEastingToeSPS, "EASTINGSPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colEastingToeSPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colAddYearSPS, "ADD_YR_SPS", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colAddYearSPS, VData(0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colMaintYearSPS, "MAIN_YRSPS", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colMaintYearSPS, VData(0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colEastingCrestSPS, "ECRESTSPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colEastingCrestSPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneToeSPS, "DUNETOESPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colDuneToeSPS, VData(0.0f), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colHeelWidthSPS, "HWIDTHSPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colHeelWidthSPS, VData(0.0f), true);
-
-   //   CheckCol(m_pOrigDuneLineLayer, m_colEastingCrestSPS, "EASTCRESTSPS", TYPE_DOUBLE, CC_AUTOADD);
-
-   // Soft Protection Structure Sand Volume attributes
-   CheckCol(m_pOrigDuneLineLayer, m_colConstructVolumeSPS, "BLDVOLSPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colConstructVolumeSPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colMaintVolumeSPS, "RBLDVOLSPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colMaintVolumeSPS, VData(0.0), true);
-
-
-   // Soft Protection Structure Nourishment attributes
-   CheckCol(m_pOrigDuneLineLayer, m_colNourishVolSPS, "NOURVOLSPS", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colNourishYearSPS, "NOURYRSPS", TYPE_INT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colNourishYearSPS, VData(0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colNourishFreqSPS, "NOURFRQSPS", TYPE_INT, CC_AUTOADD);
-
-   // Costs of Protection Structures
-   CheckCol(m_pOrigDuneLineLayer, m_colCostBPS, "COST_BPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colCostBPS, VData(0.0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colCostMaintBPS, "MNTCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colCostMaintBPS, VData(0.0), true);
-
-   CheckCol(m_pOrigDuneLineLayer, m_colCostSPS, "COST_SPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colCostSPS, VData(0.0), true);
-   //CheckCol(m_pOrigDuneLineLayer, m_colNoursihCostSPS, "NOURCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
-   //m_pOrigDuneLineLayer->SetColData(m_colNourishCostSPS, VData(0.0), true);
-   //CheckCol(m_pOrigDuneLineLayer, m_colRebuildCostSPS, "RBLDCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
-   //m_pOrigDuneLineLayer->SetColData(m_colRebuildCostSPS, VData(0.0), true);
-
-   // Height of Protection Structures
-   CheckCol(m_pOrigDuneLineLayer, m_colHeightBPS, "HEIGHT_BPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colHeightBPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colHeightSPS, "HEIGHT_SPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colHeightSPS, VData(0.0), true);
-
-   // Length of Protection Structures
-   CheckCol(m_pOrigDuneLineLayer, m_colLengthBPS, "LENGTH_BPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colLengthBPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colLengthSPS, "LENGTH_SPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colLengthSPS, VData(0.0), true);
-
-   // Width of Protection Structures
-   CheckCol(m_pOrigDuneLineLayer, m_colWidthBPS, "WIDTH_BPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colWidthBPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colWidthSPS, "WIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colWidthSPS, VData(0.0), true);
-   CheckCol(m_pOrigDuneLineLayer, m_colTopWidthSPS, "TOPWDTHSPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colTopWidthSPS, VData(0.0), true);
-
-
-   // 1/0 Indication that Beachtype changed 
-   // ??? track annually
-   CheckCol(m_pOrigDuneLineLayer, m_colTypeChange, "TYPECHANGE", TYPE_INT, CC_AUTOADD);
-
-   /*CheckCol(m_pOrigDuneLineLayer, m_colDuneWidthSPS, "DWIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pOrigDuneLineLayer->SetColData(m_colDuneWidthSPS, VData(0.0), true);*/
-
-   // Beach Accessibility attributes, annually and seasonally
-   CheckCol(m_pOrigDuneLineLayer, m_colBchAccess, "ACCESS", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colBchAccessWinter, "ACCESS_W", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colBchAccessSpring, "ACCESS_SP", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colBchAccessSummer, "ACCESS_SU", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colBchAccessFall, "ACCESS_F", TYPE_FLOAT, CC_AUTOADD);
-
-   // currently unused
-
-   /*CheckCol(m_pOrigDuneLineLayer, m_colAvgDuneC, "AVG_DUNEC", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colAvgDuneT, "AVG_DUNET", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colAvgEro, "AVG_ERO", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colCPolicyL, "Policy", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colThreshDate, "THR_DATE", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colCalDCrest, "CAL_DCREST", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colCalDToe, "CAL_DTOE", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colCalEroExt, "CAL_EROEXT", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colCalDate, "CAL_DATE", TYPE_INT, CC_AUTOADD);*/
+   CheckCol(m_pIDULayer, m_colArea, "Area", TYPE_FLOAT, CC_MUST_EXIST);
+
+   if (m_runFlags & CH_REPORT_BUILDINGS )
+      {
+      CheckCol(m_pIDULayer, m_colZone, "ZONE_CODE", TYPE_INT, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colPopDensity, "PopDens", TYPE_DOUBLE, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colPopulation, "Population", TYPE_DOUBLE, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colPopCap, "POP_CAP", TYPE_FLOAT, CC_AUTOADD);
+      }
+
+   ////////CheckCol(m_pIDULayer, m_colNorthingBottom, "Bottom", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pIDULayer, m_colNorthingTop, "Top", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////
+   ////////CheckCol(m_pIDULayer, m_colLength, "Length", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pIDULayer, m_colIDUAddBPSYr, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colNDU, "NDU", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colNEWDU, "NewDU", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colBeachfront, "BEACHFRONT", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colIDUCityCode, "CITY_CODE", TYPE_INT, CC_AUTOADD);
+   ////////
+   ////////// IDU Attributes for Safest Site Policy
+   ////////
+   ////////CheckCol(m_pIDULayer, m_colMinElevation, "MIN_ELEV", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colMaxElevation, "MAX_ELEV", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////// These can be calculated once in Init by turning on the findSafeSiteCell flag in GHC_Hazards.xml
+   ////////// They are the DEM cell location of the highest elevation in an IDU
+   ////////CheckCol(m_pIDULayer, m_colSafestSiteRow, "SAFE_ROW", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colSafestSiteCol, "SAFE_COL", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////// 1/0 Field to indicate Safe Site is available, 0 if taken  // not implemented = 0 if closer to coast, to avoid construction of new buildings
+   ////////CheckCol(m_pIDULayer, m_colSafeSite, "SAFE_SITE", TYPE_INT, CC_MUST_EXIST);
+   ////////m_pIDULayer->SetColData(m_colSafeSite, VData(1), true);
+   ////////
+   ////////CheckCol(m_pIDULayer, m_colRemoveBldgYr, "REMBLDGYR", TYPE_INT, CC_AUTOADD);
+   ////////m_pIDULayer->SetColData(m_colRemoveBldgYr, VData(0), true);
+   ////////
+   ////////// change to MUST_EXIST
+   ////////CheckCol(m_pIDULayer, m_colBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);   // read
+   ////////CheckCol(m_pIDULayer, m_colBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);   // readflood
+   ////////CheckCol(m_pIDULayer, m_colIDUFloodZone, "FLD_ZONE", TYPE_STRING, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colIDUFloodZoneCode, "FLD_HZ", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colTsunamiHazardZone, "TSUNAMI_HZ", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colLandValue, "LANDVALUE", TYPE_LONG, CC_MUST_EXIST);
+   ////////
+   ////////// 1/0 field if IDU was annually flooded or eroded
+   ////////CheckCol(m_pIDULayer, m_colIDUFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pIDULayer, m_colIDUEroded, "ERODED", TYPE_INT, CC_AUTOADD);
+   ////////
+   ////////CheckCol(m_pIDULayer, m_colFracFlooded, "FRACFLOOD", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pIDULayer->SetColData(m_colFracFlooded, VData(0.0f), true);
+   ////////
+   ////////CheckCol(m_pIDULayer, m_colEasementYear, "EASEMNT_YR", TYPE_INT, CC_AUTOADD);
+   ////////m_pIDULayer->SetColData(m_colEasementYear, VData(0.0f), true);
+   ////////
+   ////////// ****** Finished Columns for IDU Coverage ****** //
+   ////////
+   //////////These attributes come from LIDAR and other data sets in the original shape file
+   ////////// MUST_EXIST 
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneIndx, "DUNEINDX", TYPE_LONG, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colTranSlope, "TANB", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneToe, "DT", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneCrest, "DUNECREST", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBeachWidth, "BEACHWDTH", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNorthingToe, "NORTHING", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colEastingToe, "EASTING", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNorthingCrest, "NORTHNGCR", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colEastingCrest, "EASTNGCR", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colEastingShoreline, "EASTNGSH", TYPE_DOUBLE, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colShorelineChange, "SCRate", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBeachType, "BEACHTYPE", TYPE_INT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colGammaRough, "GAMMAROUGH", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneHeel, "DUNEHEEL", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colFrontSlope, "FRONTSLOPE", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBackSlope, "BACKSLOPE", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneWidth, "DUNEWIDTH", TYPE_FLOAT, CC_MUST_EXIST);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colScomp, "COMPSLOPE", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////
+   ////////
+   ////////// short term shoreline change rate
+   //////////  CheckCol(m_pOrigDuneLineLayer, m_colEPR, "EPR", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////// Shoreline locations to tally specific metrics or set differnt actions
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colLittCell, "LOC", TYPE_INT, CC_AUTOADD);
+   ////////
+   ////////// These attributes need values to be determined
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colShorelineAngle, "GAMMABETA", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colShorelineAngle, VData(0.0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colGammaBerm, "GAMMABERM", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colGammaBerm, VData(1.0f), true);
+   ////////
+   //////////   CheckCol(m_pOrigDuneLineLayer, m_colEastingMHW, "EASTINGMHW", TYPE_DOUBLE, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colLongitudeToe, "LONGITUDE", TYPE_DOUBLE, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colLatitudeToe, "LATITUDE", TYPE_DOUBLE, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colOrigBeachType, "ORBCHTYPE", TYPE_INT, CC_AUTOADD);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colPrevSlope, "PREVTANB", TYPE_DOUBLE, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colPrevDuneCr, "PREVDUNECR", TYPE_DOUBLE, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colPrevRow, "PREVROW", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colPrevCol, "PREVCOL", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colEastingCrestProfile, "PEASTINGCR", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colEastingCrestProfile, VData(0.0), true);
+   ////////
+   ////////// These attributes are filled in on the fly from the Lookup tables to connect up the various layers
+   ////////
+   ////////// Index to lookup 
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colTranIndx, "TRANINDX", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colProfileIndx, "PROFINDX", TYPE_INT, CC_AUTOADD);
+   ////////
+   ////////// Bruun Rule Slope (measured MHW - depth at 25m contour)
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colShoreface, "SHOREFACE", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////// Foreshore Slope (measured in cross-shore profile within +- 0.5m vertically of MHW)
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colForeshore, "FORESHORE", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////// Index of protected building
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgIndx, "BLDGINDX", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colDuneBldgIndx, VData(-1), true);
+   ////////// Distance (m) to protected building
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgDist, "BLDGDIST", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colDuneBldgDist, VData(5000.0), true);
+   ////////
+   ////////
+   ////////// ******   These attributes are calculated during an annual run and represent the annual maximum or average ******
+   ////////
+   ////////// Yearly Maxmimum Total Water Level (TWL)
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrMaxTWL, "MAX_TWL_YR", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrMaxTWL, VData(0.0f), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrFMaxTWL, "MAXFTWL_YR", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrFMaxTWL, VData(0.0f), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrAvgTWL, "AVG_TWL_YR", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrAvgTWL, VData(0.0f), true);
+   ////////
+   ////////// Moving Average of TWL over a designated window
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colMvAvgTWL, "MVAVG_TWL", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colMvAvgTWL, VData(0.0f), true);
+   ////////
+   ////////// Maximum TWL within a designated moving window
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colMvMaxTWL, "MVMAX_TWL", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colMvMaxTWL, VData(0.0f), true);
+   ////////
+   ////////// Annual Data corresponding to the wave characteristics which have the yearly maximum TWL
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colWPeriod, "WPERIOD", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colWHeight, "WHEIGHT", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colWDirection, "WDIRECTION", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colHdeep, "HDEEP", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////// Day of Year (doy) which has the yearly Maximum TWL
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrMaxDoy, "MAXDOY", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrMaxDoy, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrMaxSWL, "MAXSWL", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrMaxSWL, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrAvgSWL, "AVG_SWL_YR", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrAvgSWL, VData(0.0f), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrAvgLowSWL, "AVGLWSWLYR", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrAvgLowSWL, VData(0.0f), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrMaxSetup, "MAXSETUP", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrMaxSetup, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrMaxIGSwash, "MAXIGSWASH", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrMaxIGSwash, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrMaxIncSwash, "MXINCSWASH", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrMaxIncSwash, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colYrMaxSwash, "MAXSWASH", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colYrMaxSwash, VData(0.0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colWb, "WB", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colHb, "HB", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colTS, "TS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colAlpha, "ALPHA", TYPE_DOUBLE, CC_AUTOADD);
+   ////////
+   ////////
+   ////////// Erosion attributes
+   ////////
+   ////////// Annual K&D erosion extent
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colKD, "EROSION", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colKD, VData(0.0f), true);
+   ////////
+   ////////// K&D 2-yr average erosion extent
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colAvgKD, "AVGKD", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colAvgKD, VData(0.0f), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colXAvgKD, "X_AVGKD", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colXAvgKD, VData(0.0f), true);
+   ////////
+   ////////
+   ////////// 0=Not Flooded, value=Yearly Maximum TWL
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colFlooded, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colAmtFlooded, "AMT_FLOOD", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colAmtFlooded, VData(0.0), true);
+   ////////
+   ////////// Frequency of K&D erosion event or flooded event
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneEroFreq, "ERO_FREQ", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colDuneEroFreq, VData(0.0f), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneFloodFreq, "FLOOD_FREQ", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colDuneFloodFreq, VData(0.0f), true);
+   ////////
+   ////////
+   ////////// ***** Impact Days ***** //
+   ////////
+   ////////// These attributes are calculated annually and represent the number of days per year the dune is impacted
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDToe, "IDDUNETOE", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDToe, VData(0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDCrest, "IDDUNECR", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDCrest, VData(0), true);
+   ////////
+   ////////// These attributes are calculated annually and represent the number of days per season the dune toe or dune crest is impacted
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDToeWinter, "IDDTWINTER", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDToeWinter, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDToeSpring, "IDDTSPRING", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDToeSpring, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDToeSummer, "IDDTSUMMER", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDToeSummer, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDToeFall, "IDDTFALL", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDToeFall, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestWinter, "IDDCWINTER", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDCrestWinter, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestSpring, "IDDCSPRING", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDCrestSpring, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestSummer, "IDDCSUMMER", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDCrestSummer, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colIDDCrestFall, "IDDCFALL", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colIDDCrestFall, VData(0), true);
+   ////////
+   ////////// Moving Average of Impact Days Per Year
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colMvAvgIDPY, "MVAVG_IDPY", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colMvAvgIDPY, VData(0.0f), true);
+   ////////
+   ////////
+   ////////// ****** Protection Structures ****** //
+   ////////
+   ////////// ****** Hard Protection Structures ****** //
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colEastingToeBPS, "EASTINGBPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colEastingToeBPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colAddYearBPS, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colAddYearBPS, VData(0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colMaintYearBPS, "MAIN_YRBPS", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colMaintYearBPS, VData(0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colRemoveYearBPS, "REM_YR_BPS", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colRemoveYearBPS, VData(0), true);
+   ////////
+   ////////
+   ////////// Hard Protection Structure Nourishment attributes
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNourishVolBPS, "NOURVOLBPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNourishYearBPS, "NOURYRBPS", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colNourishYearBPS, VData(0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNourishFreqBPS, "NOURFRQBPS", TYPE_INT, CC_AUTOADD);
+   ////////
+   ////////
+   ////////// ****** Soft Protection Structures ****** //
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colEastingToeSPS, "EASTINGSPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colEastingToeSPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colAddYearSPS, "ADD_YR_SPS", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colAddYearSPS, VData(0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colMaintYearSPS, "MAIN_YRSPS", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colMaintYearSPS, VData(0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colEastingCrestSPS, "ECRESTSPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colEastingCrestSPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colDuneToeSPS, "DUNETOESPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colDuneToeSPS, VData(0.0f), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colHeelWidthSPS, "HWIDTHSPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colHeelWidthSPS, VData(0.0f), true);
+   ////////
+   //////////   CheckCol(m_pOrigDuneLineLayer, m_colEastingCrestSPS, "EASTCRESTSPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////
+   ////////// Soft Protection Structure Sand Volume attributes
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colConstructVolumeSPS, "BLDVOLSPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colConstructVolumeSPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colMaintVolumeSPS, "RBLDVOLSPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colMaintVolumeSPS, VData(0.0), true);
+   ////////
+   ////////
+   ////////// Soft Protection Structure Nourishment attributes
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNourishVolSPS, "NOURVOLSPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNourishYearSPS, "NOURYRSPS", TYPE_INT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colNourishYearSPS, VData(0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colNourishFreqSPS, "NOURFRQSPS", TYPE_INT, CC_AUTOADD);
+   ////////
+   ////////// Costs of Protection Structures
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCostBPS, "COST_BPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colCostBPS, VData(0.0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCostMaintBPS, "MNTCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colCostMaintBPS, VData(0.0), true);
+   ////////
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCostSPS, "COST_SPS", TYPE_DOUBLE, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colCostSPS, VData(0.0), true);
+   //////////CheckCol(m_pOrigDuneLineLayer, m_colNoursihCostSPS, "NOURCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
+   //////////m_pOrigDuneLineLayer->SetColData(m_colNourishCostSPS, VData(0.0), true);
+   //////////CheckCol(m_pOrigDuneLineLayer, m_colRebuildCostSPS, "RBLDCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
+   //////////m_pOrigDuneLineLayer->SetColData(m_colRebuildCostSPS, VData(0.0), true);
+   ////////
+   ////////// Height of Protection Structures
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colHeightBPS, "HEIGHT_BPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colHeightBPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colHeightSPS, "HEIGHT_SPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colHeightSPS, VData(0.0), true);
+   ////////
+   ////////// Length of Protection Structures
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colLengthBPS, "LENGTH_BPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colLengthBPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colLengthSPS, "LENGTH_SPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colLengthSPS, VData(0.0), true);
+   ////////
+   ////////// Width of Protection Structures
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colWidthBPS, "WIDTH_BPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colWidthBPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colWidthSPS, "WIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colWidthSPS, VData(0.0), true);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colTopWidthSPS, "TOPWDTHSPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colTopWidthSPS, VData(0.0), true);
+   ////////
+   ////////
+   ////////// 1/0 Indication that Beachtype changed 
+   ////////// ??? track annually
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colTypeChange, "TYPECHANGE", TYPE_INT, CC_AUTOADD);
+   ////////
+   /////////*CheckCol(m_pOrigDuneLineLayer, m_colDuneWidthSPS, "DWIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
+   ////////m_pOrigDuneLineLayer->SetColData(m_colDuneWidthSPS, VData(0.0), true);*/
+   ////////
+   ////////// Beach Accessibility attributes, annually and seasonally
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBchAccess, "ACCESS", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBchAccessWinter, "ACCESS_W", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBchAccessSpring, "ACCESS_SP", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBchAccessSummer, "ACCESS_SU", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colBchAccessFall, "ACCESS_F", TYPE_FLOAT, CC_AUTOADD);
+   ////////
+   ////////// currently unused
+   ////////
+   /////////*CheckCol(m_pOrigDuneLineLayer, m_colAvgDuneC, "AVG_DUNEC", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colAvgDuneT, "AVG_DUNET", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colAvgEro, "AVG_ERO", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCPolicyL, "Policy", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colThreshDate, "THR_DATE", TYPE_INT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCalDCrest, "CAL_DCREST", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCalDToe, "CAL_DTOE", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCalEroExt, "CAL_EROEXT", TYPE_FLOAT, CC_AUTOADD);
+   ////////CheckCol(m_pOrigDuneLineLayer, m_colCalDate, "CAL_DATE", TYPE_INT, CC_AUTOADD);*/
    //CheckCol(m_pOrigDuneLineLayer, m_colBackshoreElev, "MIN_BACK_E", TYPE_FLOAT, CC_AUTOADD);
    //
 
@@ -1062,7 +1076,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    AddInputVar("Climate Scenario ID", m_climateScenarioID, "0=BaseSLR, 1=LowSLR, 2=MedSLR, 3=HighSLR, 4=WorstCaseSLR");
    AddInputVar("Track Habitat", m_runEelgrassModel, "0=Off, 1=On");
 
-   LoadXml(initStr);
+   //LoadXml(initStr);
 
    AddInputVar(_T("Construct BPS"), m_runConstructBPSPolicy, "0=Off, 1=On");
    AddInputVar(_T("Maintain BPS"), m_runMaintainBPSPolicy, "0=Off, 1=On");
@@ -1139,36 +1153,36 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    m_debugOn = (m_debug == 1) ? true : false;
 
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgEast, "BLDGEAST", TYPE_DOUBLE, CC_AUTOADD);
-   CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgIndx2, "BLDGINDX2", TYPE_INT, CC_AUTOADD);
-
-   if (m_debugOn)
-      {
-      // columns for debugging Dune line 
-      CheckCol(m_pOrigDuneLineLayer, m_colA, "AN", TYPE_DOUBLE, CC_AUTOADD);
-      CheckCol(m_pOrigDuneLineLayer, m_colBWidth, "DELTAX_2", TYPE_DOUBLE, CC_AUTOADD);
-      CheckCol(m_pOrigDuneLineLayer, m_colComputedSlope, "CSLOPE", TYPE_DOUBLE, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colComputedSlope, VData(0.0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colComputedSlope2, "CSLOPENEW", TYPE_DOUBLE, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colComputedSlope2, VData(0.0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colDeltaX, "DELTAX", TYPE_FLOAT, CC_AUTOADD);
-      CheckCol(m_pOrigDuneLineLayer, m_colNewEasting, "NEASTING", TYPE_DOUBLE, CC_AUTOADD);
-      CheckCol(m_pOrigDuneLineLayer, m_colNumIDPY, "IDPY_CNT", TYPE_INT, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colNumIDPY, VData(0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colSTKTWL, "STKTWL", TYPE_FLOAT, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colSTKTWL, VData(0.0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colRunupFlag, "RUNUPFLAG", TYPE_INT, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colRunupFlag, VData(0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colTAWSlope, "TAWSLOPE", TYPE_FLOAT, CC_AUTOADD);
-
-      CheckCol(m_pOrigDuneLineLayer, m_colSTKRunup, "STKRunup", TYPE_FLOAT, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colSTKRunup, VData(0.0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colSTKR2, "STKR2", TYPE_FLOAT, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colSTKR2, VData(0.0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colStructR2, "StructR2", TYPE_FLOAT, CC_AUTOADD);
-      m_pOrigDuneLineLayer->SetColData(m_colStructR2, VData(0.0), true);
-      CheckCol(m_pOrigDuneLineLayer, m_colTD, "TD", TYPE_FLOAT, CC_AUTOADD);
-      }
+   ///////CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgEast, "BLDGEAST", TYPE_DOUBLE, CC_AUTOADD);
+   ///////CheckCol(m_pOrigDuneLineLayer, m_colDuneBldgIndx2, "BLDGINDX2", TYPE_INT, CC_AUTOADD);
+   ///////
+   ///////if (m_debugOn)
+   ///////   {
+   ///////   // columns for debugging Dune line 
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colA, "AN", TYPE_DOUBLE, CC_AUTOADD);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colBWidth, "DELTAX_2", TYPE_DOUBLE, CC_AUTOADD);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colComputedSlope, "CSLOPE", TYPE_DOUBLE, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colComputedSlope, VData(0.0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colComputedSlope2, "CSLOPENEW", TYPE_DOUBLE, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colComputedSlope2, VData(0.0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colDeltaX, "DELTAX", TYPE_FLOAT, CC_AUTOADD);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colNewEasting, "NEASTING", TYPE_DOUBLE, CC_AUTOADD);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colNumIDPY, "IDPY_CNT", TYPE_INT, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colNumIDPY, VData(0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colSTKTWL, "STKTWL", TYPE_FLOAT, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colSTKTWL, VData(0.0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colRunupFlag, "RUNUPFLAG", TYPE_INT, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colRunupFlag, VData(0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colTAWSlope, "TAWSLOPE", TYPE_FLOAT, CC_AUTOADD);
+   ///////
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colSTKRunup, "STKRunup", TYPE_FLOAT, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colSTKRunup, VData(0.0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colSTKR2, "STKR2", TYPE_FLOAT, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colSTKR2, VData(0.0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colStructR2, "StructR2", TYPE_FLOAT, CC_AUTOADD);
+   ///////   m_pOrigDuneLineLayer->SetColData(m_colStructR2, VData(0.0), true);
+   ///////   CheckCol(m_pOrigDuneLineLayer, m_colTD, "TD", TYPE_FLOAT, CC_AUTOADD);
+   ///////   }
 
    CString filename;
    CString fullFilename = PathManager::GetPath(PM_PROJECT_DIR);
@@ -1183,53 +1197,54 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    Report::Log(msg);
 
    // Load from file if found, otherwise create PolyPointMap for IDUs 
-   CString iduBldgFile = fullFilename + "IDUBuildings.ppm";
-   m_pIduBuildingLkup = new PolyPointMapper(m_pIDULayer, m_pBldgLayer, iduBldgFile);
-   //   m_pIduBuildingLkup->BuildIndex();
-
-   // Load from file if found, otherwise create PolyPointMap for IDUs 
-   CString iduInfraFile = fullFilename + "IDUInfrastructure.ppm";
-   m_pPolygonInfraPointLkup = new PolyPointMapper(m_pIDULayer, m_pInfraLayer, iduInfraFile);
-   //m_pPolygonInfraPointLkup->BuildIndex();
-
-   //  Load from file if found, otherwise create PolyGridMap for IDUs based upon cell sizes of the Elevation Layer
-   CString IDUPglFile = fullFilename + "IDUGridLkup.pgm";
-   m_pPolygonGridLkUp = new PolyGridMapper(m_pIDULayer, m_pElevationGrid, 1, IDUPglFile);
-   // Check built lookup matches grid 
-   if ((m_pPolygonGridLkUp->GetNumGridCols() != m_numCols) || (m_pPolygonGridLkUp->GetNumGridRows() != m_numRows))
-      Report::ErrorMsg("CoastalHazards: IDU Grid Lookup row or column mismatch, rebuild lookup");
-   else if (m_pPolygonGridLkUp->GetNumPolys() != m_pIDULayer->GetPolygonCount())
-      Report::ErrorMsg("CoastalHazards: IDU Grid Lookup IDU count mismatch, rebuild lookup");
-
-   // Load from file if found, otherwise create PolyGridMap for Roads based upon cell sizes of the Elevation Layer
-   CString roadsPglFile = fullFilename + "RoadGridLkup.pgm";
-   m_pPolylineGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pElevationGrid, 1, roadsPglFile);
-   // Check built lookup matches grid
-   if ((m_pPolylineGridLkUp->GetNumGridCols() != m_numCols) || (m_pPolylineGridLkUp->GetNumGridRows() != m_numRows))
-      Report::ErrorMsg("CoastalHazards: Road Grid Lookup row or column mismatch, rebuild lookup");
-   /*else if (m_pPolylineGridLkUp->GetNumPolys() != m_pRoadLayer->GetPolygonCount())
-   Report::ErrorMsg("CoastalHazards: Road Grid Lookup road count mismatch, rebuild lookup");*/
+   ///////////CString iduBldgFile = fullFilename + "IDUBuildings.ppm";
+   ///////////m_pIduBuildingLkup = new PolyPointMapper(m_pIDULayer, m_pBldgLayer, iduBldgFile);
+   /////////////   m_pIduBuildingLkup->BuildIndex();
+   ///////////
+   ///////////// Load from file if found, otherwise create PolyPointMap for IDUs 
+   ///////////CString iduInfraFile = fullFilename + "IDUInfrastructure.ppm";
+   ///////////m_pPolygonInfraPointLkup = new PolyPointMapper(m_pIDULayer, m_pInfraLayer, iduInfraFile);
+   /////////////m_pPolygonInfraPointLkup->BuildIndex();
+   ///////////
+   /////////////  Load from file if found, otherwise create PolyGridMap for IDUs based upon cell sizes of the Elevation Layer
+   ///////////CString IDUPglFile = fullFilename + "IDUGridLkup.pgm";
+   ///////////m_pPolygonGridLkUp = new PolyGridMapper(m_pIDULayer, m_pElevationGrid, 1, IDUPglFile);
+   ///////////// Check built lookup matches grid 
+   ///////////if ((m_pPolygonGridLkUp->GetNumGridCols() != m_numCols) || (m_pPolygonGridLkUp->GetNumGridRows() != m_numRows))
+   ///////////   Report::ErrorMsg("ChronicHazards: IDU Grid Lookup row or column mismatch, rebuild lookup");
+   ///////////else if (m_pPolygonGridLkUp->GetNumPolys() != m_pIDULayer->GetPolygonCount())
+   ///////////   Report::ErrorMsg("ChronicHazards: IDU Grid Lookup IDU count mismatch, rebuild lookup");
+   ///////////
+   ///////////// Load from file if found, otherwise create PolyGridMap for Roads based upon cell sizes of the Elevation Layer
+   ///////////CString roadsPglFile = fullFilename + "RoadGridLkup.pgm";
+   ///////////m_pPolylineGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pElevationGrid, 1, roadsPglFile);
+   ///////////// Check built lookup matches grid
+   ///////////if ((m_pPolylineGridLkUp->GetNumGridCols() != m_numCols) || (m_pPolylineGridLkUp->GetNumGridRows() != m_numRows))
+   ///////////   Report::ErrorMsg("ChronicHazards: Road Grid Lookup row or column mismatch, rebuild lookup");
+   ////////////*else if (m_pPolylineGridLkUp->GetNumPolys() != m_pRoadLayer->GetPolygonCount())
+   ///////////Report::ErrorMsg("ChronicHazards: Road Grid Lookup road count mismatch, rebuild lookup");*/
 
    // Load Northing SWAN Lookup
-   CString fullPath;
-   PathManager::FindPath("SWANIndxLookup.csv", fullPath);
+   CString iduPath = PathManager::GetPath(PM_IDU_DIR);
+   CString fullPath = iduPath + "TWL INPUTS\\" + m_transectLookupFile;
    m_pTransectLUT = new DDataObj;
    m_numTransects = m_pTransectLUT->ReadAscii(fullPath);
 
    // Load Northing Profile Lookup (includes shoreface slope lookup for each profile)
-   PathManager::FindPath("ProfileLookup.csv", fullPath);
-   m_pProfileLUT = new DDataObj;
-   m_numProfiles = m_pProfileLUT->ReadAscii(fullPath);
+   //PathManager::FindPath("ProfileLookup.csv", fullPath);
+   //////fullPath = iduPath + "TWL INPUTS\transect_lookup.csv";
+   //////m_pProfileLUT = new DDataObj;
+   //////m_numProfiles = m_pProfileLUT->ReadAscii(fullPath);
 
    // Load Shoreline Angle Lookup
-   PathManager::FindPath("ShorelineAngleLookup.csv", fullPath);
-   m_pSAngleLUT = new DDataObj;
-   int numAngles = m_pSAngleLUT->ReadAscii(fullPath);
-   int colSA = m_pSAngleLUT->GetCol("Shoreline Angle");
-
-   PathManager::FindPath("BayLookup.csv", fullPath);
-   m_pBayLUT = new DDataObj;
-   m_numBayStations = m_pBayLUT->ReadAscii(fullPath);
+   //////////PathManager::FindPath("ShorelineAngleLookup.csv", fullPath);
+   //////////m_pSAngleLUT = new DDataObj;
+   //////////int numAngles = m_pSAngleLUT->ReadAscii(fullPath);
+   //////////int colSA = m_pSAngleLUT->GetCol("Shoreline Angle");
+   //////////
+   //////////PathManager::FindPath("BayLookup.csv", fullPath);
+   //////////m_pBayLUT = new DDataObj;
+   //////////m_numBayStations = m_pBayLUT->ReadAscii(fullPath);
 
    /* int colNorthing = m_pProfileLUT->GetCol("Northing");
    int colTransectNum = m_pProfileLUT->GetCol("Profile Number");*/
@@ -1242,172 +1257,174 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    // Associate SWAN transects and cross shore profiles to duneline by NORTHING value
    // Initialize previous beachtype
-   for (MapLayer::Iterator point = m_pOrigDuneLineLayer->Begin(); point < m_pOrigDuneLineLayer->End(); point++)
+   if (m_pOrigDuneLineLayer != NULL)
       {
-      REAL xCoord = 0.0;
-      REAL yCoord = 0.0;
+      for (MapLayer::Iterator point = m_pOrigDuneLineLayer->Begin(); point < m_pOrigDuneLineLayer->End(); point++)
+         {
+         REAL xCoord = 0.0;
+         REAL yCoord = 0.0;
 
-      m_pOrigDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
+         m_pOrigDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
 
-      int beachType = -1;
-      m_pOrigDuneLineLayer->GetData(point, m_colBeachType, beachType);
+         int beachType = -1;
+         m_pOrigDuneLineLayer->GetData(point, m_colBeachType, beachType);
 
-      // Determine SWAN Lookup transect index
-      int rowIndex = -1;
+         // Determine SWAN Lookup transect index
+         int rowIndex = -1;
 
-      double tIndex = IGet(m_pTransectLUT, yCoord, 0, 1, IM_LINEAR, 0, &rowIndex);
-      int transectIndex = m_pTransectLUT->GetAsInt(1, rowIndex);
-      /*float index = m_pTransectLUT->IGet(yCoord, 1, IM_LINEAR);
-      int transectIndex = (int)round(index);*/
+         double tIndex = IGet(m_pTransectLUT, yCoord, 0, 1, IM_LINEAR, 0, &rowIndex);
+         int transectIndex = m_pTransectLUT->GetAsInt(1, rowIndex);
+         /*float index = m_pTransectLUT->IGet(yCoord, 1, IM_LINEAR);
+         int transectIndex = (int)round(index);*/
 
-      if (transectIndex < m_minTransect)
-         m_minTransect = transectIndex;
+         if (transectIndex < m_minTransect)
+            m_minTransect = transectIndex;
 
-      if (transectIndex > m_maxTransect)
-         m_maxTransect = transectIndex;
+         if (transectIndex > m_maxTransect)
+            m_maxTransect = transectIndex;
 
-      //m_pOrigDuneLineLayer->SetData(point, m_colTranIndx, transectIndex);
+         //m_pOrigDuneLineLayer->SetData(point, m_colTranIndx, transectIndex);
 
-      // Determine ShorelineAngle 
-      //   double shorelineAngle = m_pSAngleLUT->IGet((double)yCoord, 2, IM_LINEAR);
-      //   m_pOrigDuneLineLayer->SetData(point, m_colShorelineAngle, shorelineAngle);
+         // Determine ShorelineAngle 
+         //   double shorelineAngle = m_pSAngleLUT->IGet((double)yCoord, 2, IM_LINEAR);
+         //   m_pOrigDuneLineLayer->SetData(point, m_colShorelineAngle, shorelineAngle);
 
+         int duneIndx = -1;
+         m_pOrigDuneLineLayer->GetData(point, m_colDuneIndx, duneIndx);
+         //index = -1;
+         // Determine beach profile index
+         //index = m_pProfileLUT->IGet(yCoord, 1, IM_LINEAR);
+
+         //   rowIndex = -1;
+         //   IGet(m_pProfileLUT, yCoord, 0, 1, IM_LINEAR, 0, &rowIndex); 
+         //   int profileIndex = m_pProfileLUT->GetAsInt(1, rowIndex);
+
+         // merge datasets using dune shape and up to date elevations
+         /*   float duneToe = 0.0;
+         int row = -1;
+         int col = -1;
+         m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
+         m_pElevationGrid->GetData(row, col, duneToe);
+         m_pOrigDuneLineLayer->SetData(point, m_colDuneToe, duneToe);*/
+
+         float duneCrest = 0.0;
+
+         /*REAL xCoordCr = 0.0;
+         m_pOrigDuneLineLayer->GetData(point, m_colEastingCrest, xCoordCr);
+         m_pElevationGrid->GetGridCellFromCoord(xCoordCr, yCoord, row, col);
+         m_pElevationGrid->GetData(row, col, duneCrest);
+         m_pOrigDuneLineLayer->SetData(point, m_colDuneCrest, duneCrest);*/
+
+         //   m_pOrigDuneLineLayer->SetData(point, m_colProfileIndx, profileIndex);
+         //   m_pOrigDuneLineLayer->SetData(point, m_colShoreface, bruunRuleSlope);
+
+         //   float foreshoreSlope = m_pProfileLUT->GetAsFloat(colForeshoreSlope, profileIndex);
+         //   m_pOrigDuneLineLayer->SetData(point, m_colForeshore, foreshoreSlope);
+
+
+         // find Maximum dune line index for display purposes
+         if (duneIndx > m_maxDuneIndx)
+            m_maxDuneIndx = duneIndx;
+
+         //      float duneCrest = 0.0f;
+         m_pOrigDuneLineLayer->GetData(point, m_colDuneCrest, duneCrest);
+         m_pOrigDuneLineLayer->SetData(point, m_colPrevDuneCr, duneCrest);
+
+         int startRow = -1;
+         int startCol = -1;
+         m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
+
+         m_pOrigDuneLineLayer->SetData(point, m_colPrevRow, startRow);
+         m_pOrigDuneLineLayer->SetData(point, m_colPrevCol, startCol);
+
+         // Initialize original beachtype with existing beachtype
+         beachType = 0;
+         m_pOrigDuneLineLayer->GetData(point, m_colBeachType, beachType);
+         m_pOrigDuneLineLayer->SetData(point, m_colOrigBeachType, beachType);
+
+         int loc = 0;
+         m_pOrigDuneLineLayer->GetData(point, m_colLittCell, loc);
+         if (loc == 1)
+            {
+            m_numJettyPts++;
+            m_numOceanShoresPts++;
+
+            }
+         if (loc == 2)
+            {
+            m_numJettyPts++;
+            m_numWestportPts++;
+
+            }
+
+
+         // Convert NORTHING and EASTING to LONGITUDE and LATITUDE for map csv display
+         CalculateUTM2LL(m_pOrigDuneLineLayer, point);
+
+         } // end duneline points
+      }  // end of: if ( m_pOrigDuneLineLayer )
+
+   // Read in the Bay coverage if running Bay Flooding Model
+   /*bool runBayFloodModel = (m_runBayFloodModel == 1) ? true : false;
+   if (runBayFloodModel)
+      {
+      CString bayTraceFile = NULL;
+      if (CString(m_cityDir).IsEmpty())
+      bayTraceFile = "BayPts.csv";
+      else
+      bayTraceFile = "BayPts_" + m_cityDir + ".csv";
+
+      PathManager::FindPath(bayTraceFile, fullPath);
+      m_pInletLUT = new DDataObj;
+      m_numBayPts = m_pInletLUT->ReadAscii(fullPath);
+      }*/
+
+   // Associate IDU <-> Duneline indexing
+   int polyCount = m_pIDULayer->GetRowCount();
+   for (int idu = 0; idu < polyCount; idu++)
+      {
+      Poly *pPoly = m_pIDULayer->GetPolygon(idu);
+      /* float northing = pPoly->m_yMax;*/
+      Vertex centroid = pPoly->GetCentroid();
+      REAL northing = centroid.y;
+      float minDiff = 9999.0F;
       int duneIndx = -1;
-      m_pOrigDuneLineLayer->GetData(point, m_colDuneIndx, duneIndx);
-      //index = -1;
-      // Determine beach profile index
-      //index = m_pProfileLUT->IGet(yCoord, 1, IM_LINEAR);
 
-      //   rowIndex = -1;
-      //   IGet(m_pProfileLUT, yCoord, 0, 1, IM_LINEAR, 0, &rowIndex); 
-      //   int profileIndex = m_pProfileLUT->GetAsInt(1, rowIndex);
-
-      // merge datasets using dune shape and up to date elevations
-      /*   float duneToe = 0.0;
-      int row = -1;
-      int col = -1;
-      m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
-      m_pElevationGrid->GetData(row, col, duneToe);
-      m_pOrigDuneLineLayer->SetData(point, m_colDuneToe, duneToe);*/
-
-      float duneCrest = 0.0;
-
-      /*REAL xCoordCr = 0.0;
-      m_pOrigDuneLineLayer->GetData(point, m_colEastingCrest, xCoordCr);
-      m_pElevationGrid->GetGridCellFromCoord(xCoordCr, yCoord, row, col);
-      m_pElevationGrid->GetData(row, col, duneCrest);
-      m_pOrigDuneLineLayer->SetData(point, m_colDuneCrest, duneCrest);*/
-
-      //   m_pOrigDuneLineLayer->SetData(point, m_colProfileIndx, profileIndex);
-      //   m_pOrigDuneLineLayer->SetData(point, m_colShoreface, bruunRuleSlope);
-
-      //   float foreshoreSlope = m_pProfileLUT->GetAsFloat(colForeshoreSlope, profileIndex);
-      //   m_pOrigDuneLineLayer->SetData(point, m_colForeshore, foreshoreSlope);
-
-
-      // find Maximum dune line index for display purposes
-      if (duneIndx > m_maxDuneIndx)
-         m_maxDuneIndx = duneIndx;
-
-      //      float duneCrest = 0.0f;
-      m_pOrigDuneLineLayer->GetData(point, m_colDuneCrest, duneCrest);
-      m_pOrigDuneLineLayer->SetData(point, m_colPrevDuneCr, duneCrest);
-
-      int startRow = -1;
-      int startCol = -1;
-      m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
-
-      m_pOrigDuneLineLayer->SetData(point, m_colPrevRow, startRow);
-      m_pOrigDuneLineLayer->SetData(point, m_colPrevCol, startCol);
-
-      // Initialize original beachtype with existing beachtype
-      beachType = 0;
-      m_pOrigDuneLineLayer->GetData(point, m_colBeachType, beachType);
-      m_pOrigDuneLineLayer->SetData(point, m_colOrigBeachType, beachType);
-
-      int loc = 0;
-      m_pOrigDuneLineLayer->GetData(point, m_colLittCell, loc);
-      if (loc == 1)
+      for (MapLayer::Iterator point = m_pOrigDuneLineLayer->Begin(); point < m_pOrigDuneLineLayer->End(); point++)
          {
-         m_numJettyPts++;
-         m_numOceanShoresPts++;
+         REAL xCoord = 0.0;
+         REAL yCoord = 0.0;
 
+         m_pOrigDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
+         float tmpDiff = float(abs(yCoord - northing));
+
+         if (tmpDiff < minDiff)
+            {
+            minDiff = tmpDiff;
+            m_pOrigDuneLineLayer->GetData(point, m_colDuneIndx, duneIndx);
+            }
          }
-      if (loc == 2)
-         {
-         m_numJettyPts++;
-         m_numWestportPts++;
+      m_pIDULayer->SetData(idu, m_colBeachfront, duneIndx);
+      }  // end of: for ( idu < polyCount )
 
-         }
+   // New Dune line layer starts off as copy of Original with changes of Label and Color
+   if (m_pOrigDuneLineLayer != NULL)
+      {
+      m_pNewDuneLineLayer = m_pMap->CloneLayer(*m_pOrigDuneLineLayer);
+      m_pNewDuneLineLayer->m_name = "Active Dune Toe Line";
 
+      // Change the color of the active dune line
+      int colIndex = m_pNewDuneLineLayer->GetFieldCol("DUNEINDX");
 
-      // Convert NORTHING and EASTING to LONGITUDE and LATITUDE for map csv display
-      CalculateUTM2LL(m_pOrigDuneLineLayer, point);
-
-      } // end duneline points
-
-        // Read in the Bay coverage if running Bay Flooding Model
-        /*bool runBayFloodModel = (m_runBayFloodModel == 1) ? true : false;
-        if (runBayFloodModel)
-        {
-        CString bayTraceFile = NULL;
-        if (CString(m_cityDir).IsEmpty())
-        bayTraceFile = "BayPts.csv";
-        else
-        bayTraceFile = "BayPts_" + m_cityDir + ".csv";
-
-        PathManager::FindPath(bayTraceFile, fullPath);
-        m_pInletLUT = new DDataObj;
-        m_numBayPts = m_pInletLUT->ReadAscii(fullPath);
-        }*/
-
-        //// Associate IDU <-> Duneline indexing
-        //int polyCount = m_pIDULayer->GetRowCount();
-
-        //for (int idu = 0; idu < polyCount; idu++)
-        //{
-        //   Poly *pPoly = m_pIDULayer->GetPolygon(idu);
-        //   /* float northing = pPoly->m_yMax;*/
-        //   Vertex centroid = pPoly->GetCentroid();
-        //   REAL northing = centroid.y;
-        //   float minDiff = 9999.0F;
-        //   int duneIndx = -1;
-
-        //   for (MapLayer::Iterator point = m_pOrigDuneLineLayer->Begin(); point < m_pOrigDuneLineLayer->End(); point++)
-        //   {
-        //      REAL xCoord = 0.0;
-        //      REAL yCoord = 0.0;
-
-        //      m_pOrigDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
-        //      float tmpDiff = float(abs(yCoord - northing));
-
-        //      if (tmpDiff < minDiff)
-        //      {
-        //         minDiff = tmpDiff;
-        //         m_pOrigDuneLineLayer->GetData(point, m_colDuneIndx, duneIndx);
-        //      }
-        //   }
-        //   m_pIDULayer->SetData(idu, m_colBeachfront, duneIndx);
-        //}
-
-        // New Dune line layer starts off as copy of Original with changes of Label and Color
-   m_pNewDuneLineLayer = m_pMap->CloneLayer(*m_pOrigDuneLineLayer);
-   m_pNewDuneLineLayer->m_name = "Active Dune Toe Line";
-
-   // Change the color of the active dune line
-   int colIndex = m_pNewDuneLineLayer->GetFieldCol("DUNEINDX");
-
-   // Rebin and classify for display
-   m_pNewDuneLineLayer->AddBin(colIndex, RGB(179, 89, 0), "All Points", TYPE_INT, 0, (float)m_maxDuneIndx + 1);
-   m_pNewDuneLineLayer->AddNoDataBin(colIndex);
-   m_pNewDuneLineLayer->ClassifyData();
-
+      // Rebin and classify for display
+      m_pNewDuneLineLayer->AddBin(colIndex, RGB(179, 89, 0), "All Points", TYPE_INT, 0, (float)m_maxDuneIndx + 1);
+      m_pNewDuneLineLayer->AddNoDataBin(colIndex);
+      m_pNewDuneLineLayer->ClassifyData();
+      }
 
    // Setup outputs for County-Wide or Location specific annual statistics
 
    this->AddOutputVar("Mean TWL (m)", m_meanTWL, "");
-   this->AddOutputVar("Flooded Area (sq meter)", m_floodedArea, "");
-   this->AddOutputVar("Flooded Area (sq miles)", m_floodedAreaSqMiles, "");
 
    this->AddOutputVar("Number of BPS Construction Projects", m_noConstructedBPS, "");
    this->AddOutputVar("BPS Construction Cost ($)", m_constructCostBPS, "");
@@ -1438,22 +1455,30 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("Number of Buildings Removed From Hazard Zone (100-yr)", m_noBldgsRemovedFromHazardZone, "");
 
    this->AddOutputVar("% Beach Accessibility (County Wide)", m_avgCountyAccess, "");
-   this->AddOutputVar("% Beach Accessibility (Ocean Shores)", m_avgOceanShoresAccess, "");
-   this->AddOutputVar("% Beach Accessibility (Westport)", m_avgWestportAccess, "");
-   this->AddOutputVar("% Beach Accessibility Surrounding Jetty", m_avgJettyAccess, "");
    //   this->AddOutputVar("Number of Buildings Eroded", m_noBldgsEroded, "");
 
-   this->AddOutputVar("Flooded Road (m)", m_floodedRoad, "");
-   this->AddOutputVar("Flooded Road (miles)", m_floodedRoadMiles, "");
-   this->AddOutputVar("Flooded Railroad (miles)", m_floodedRailroadMiles, "");
-   this->AddOutputVar("Eroded Road (m)", m_erodedRoad, "");
-   this->AddOutputVar("Eroded Road (miles)", m_erodedRoadMiles, "");
+   if (m_runFlags && CH_MODEL_FLOODING)
+      {
+      this->AddOutputVar("Flooded Area (sq meter)", m_floodedArea, "");
+      this->AddOutputVar("Flooded Area (sq miles)", m_floodedAreaSqMiles, "");
+      this->AddOutputVar("Flooded Road (m)", m_floodedRoad, "");
+      this->AddOutputVar("Flooded Road (miles)", m_floodedRoadMiles, "");
+      this->AddOutputVar("Flooded Railroad (miles)", m_floodedRailroadMiles, "");
+      }
 
-   this->AddOutputVar("Potential Eelgrass Habitat Area (sq meter)", m_eelgrassArea, "");
-   this->AddOutputVar("Potential Eelgrass Habitat Area (sq miles)", m_eelgrassAreaSqMiles, "");
+   if (m_runFlags && CH_MODEL_EROSION)
+      {
+      this->AddOutputVar("Eroded Road (m)", m_erodedRoad, "");
+      this->AddOutputVar("Eroded Road (miles)", m_erodedRoadMiles, "");
+      }
 
-   this->AddOutputVar("Intertidal Area (sq meter)", m_intertidalArea, "");
-   this->AddOutputVar("Intertidal Area (sq miles)", m_intertidalAreaSqMiles, "");
+   if (m_runFlags && CH_MODEL_EELGRASS)
+      {
+      this->AddOutputVar("Potential Eelgrass Habitat Area (sq meter)", m_eelgrassArea, "");
+      this->AddOutputVar("Potential Eelgrass Habitat Area (sq miles)", m_eelgrassAreaSqMiles, "");
+      this->AddOutputVar("Intertidal Area (sq meter)", m_intertidalArea, "");
+      this->AddOutputVar("Intertidal Area (sq miles)", m_intertidalAreaSqMiles, "");
+      }
 
    // Flooded and Eroded Buildings counted in Reporter
    /*  this->AddOutputVar("Flooded Buildings", m_floodedBldgCount, "");
@@ -1462,127 +1487,13 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("Policy Cost Allocation Frac", PolicyInfo::m_budgetAllocFrac, "");
    this->AddOutputVar("Policy Cost Summary", &m_policyCostData, "");
 
+   if ( m_runFlags & CH_MODEL_TWL )
+      LoadRBFs(); // Load/create radial basis functions for TWL model
 
-
-   FILE *fpSave = NULL;
-   CString savePath(PathManager::GetPath(PM_PROJECT_DIR));
-
-   savePath += "TWL Inputs\\SWAN_RBF_Params.rbf";
-   filename = (PCTSTR)savePath;
-
-   m_randIndex = m_simulationCount;
-
-   bool writeRBFfile = (m_writeRBF == 1) ? true : false;
-
-   // Parameterizing the RBF's from data and save to disk
-   if (writeRBFfile)
+   if ( m_runFlags & CH_MODEL_EROSION)
       {
-      if (fopen_s(&fpSave, filename, "wb") != 0)
-         {
-         AfxMessageBox("CoastalHazards: Unable to open RBF serialization file for writing", MB_OK);
-         return false;
-         }
-      }
-   else // are we loading from disk?
-      {
-      if (fopen_s(&fpSave, filename, "rb") != 0)
-         {
-         AfxMessageBox("CoastalHazards: Unable to open RBF serialization file for reading", MB_OK);
-         return false;
-         }
-      }
-
-   bool writeDailyData = (m_writeDailyData == 1) ? true : false;
-
-   if (writeRBFfile || writeDailyData)
-      {
-      m_minTransect = 0;
-      m_maxTransect = m_numTransects - 1;
-      }
-
-   // Either read in the rbf file or generate the rbf file
-   for (int i = m_minTransect; i <= m_maxTransect; i++)
-      {
-      // create a lookup table
-      LookupTable *pLookupTable = new LookupTable;
-
-      bool success = true;
-
-      // generate RBFs from data files
-      if (writeRBFfile)
-         {
-         CString path(PathManager::GetPath(PM_PROJECT_DIR));
-         path += "TWL Inputs\\Lookup Tables\\";
-
-         CString file;
-         file.Format("SWAN_lookup_Yp_%i.csv", i);     //series of SWAN lookup tables
-         path += file;
-
-         CString msg("CoastalHazards: processing input file ");
-         msg += file;
-         //    Report::StatusMsg(msg);
-
-         int rows = pLookupTable->m_data.ReadAscii(path);//series of SWAN lookup tables
-         if (rows < 0)
-            success = false;
-
-         // create RBF
-         pLookupTable->m_rbf.Create(8);  // number of outputs
-         pLookupTable->m_rbf.SetML(30, 5, 0.005);   // radius, layers, lambdaV , add to 
-
-                                                    // set the data into the RBF
-         pLookupTable->m_rbf.SetPoints(pLookupTable->m_data);  // rows are input points, col0=x, col1=y, col2=z, col3=f0, col4=f1 etc...
-
-         // build the RBF
-         pLookupTable->m_rbf.Build();
-
-         std::string str;
-         pLookupTable->m_rbf.Save(str);
-
-         int len = (int)str.length();
-         CString m;
-         m.Format("Length: %i", len);
-         Report::Log(m);
-
-         fwrite((void *)&len, sizeof(int), 1, fpSave);
-         fwrite((void *)str.c_str(), sizeof(TCHAR), len, fpSave);
-         }
-      else
-         {
-         // read the first int, it has the size of the serialization string
-         int length;
-         size_t count = fread(&length, sizeof(int), 1, fpSave);
-
-         if (count != 1)
-            Report::ErrorMsg("CoastalHazards: Error reading RBF parameter header");
-
-         TCHAR *buffer = new TCHAR[length];
-         count = fread(buffer, sizeof(TCHAR), length, fpSave);
-
-         if (int(count) != length)
-            Report::ErrorMsg("CoastalHazards: Error reading RBF parameter");
-
-         pLookupTable->m_rbf.Load(buffer);
-
-         int outputs = pLookupTable->m_rbf.GetOutputCount();
-         ASSERT(outputs == 8);
-
-         delete[] buffer;
-         }
-
-      if (success)
-         this->m_swanLookupTableArray.Add(pLookupTable);
-      else
-         delete pLookupTable;
-      }  // end of for ( i < numTransects )
-
-   fclose(fpSave);
-
-   msg.Format("CoastalHazards: Processed %i SWAN input files", (int)m_swanLookupTableArray.GetSize());
-   Report::Log(msg);
-
    // Read in the erosion and EVT tables
-   for (int i = 0; i < m_numProfiles; i++)
+      for (int i = 0; i < m_numProfiles; i++)
       {
       CString path(PathManager::GetPath(PM_PROJECT_DIR));
 
@@ -1599,7 +1510,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
       bathyFile += extension;
       PathManager::FindPath(bathyFile, fullPath);
 
-      CString msg("CoastalHazards: processing bathy input file ");
+      CString msg("ChronicHazards: processing bathy input file ");
       msg += bathyFile;
       //     Report::StatusMsg(msg);
 
@@ -1625,7 +1536,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
       //  surfZoneFile += extension;
       //  PathManager::FindPath(surfZoneFile, fullPath);
 
-      //  msg = "CoastalHazards: processing surf zone width input file ";
+      //  msg = "ChronicHazards: processing surf zone width input file ";
       //  msg += surfZoneFile;
       ////  Report::Log(msg);
 
@@ -1640,37 +1551,33 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
       //        delete pSurfZoneData;
 
       }  // end, we have read in all files required for erosion models
+           
+      //CString msg;
+      msg.Format("ChronicHazards: Processed %i cross shore profiles", (int)m_BathyDataArray.GetSize());
+      Report::Log(msg);
 
-   fclose(fpSave);
-   //CString msg;
-   msg.Format("CoastalHazards: Processed %i cross shore profiles", (int)m_BathyDataArray.GetSize());
-   Report::Log(msg);
+      /*this->m_twlTime = 0;
+      this->m_floodingTime = 0;
+      this->m_erosionTime = 0;*/
 
-   /*this->m_twlTime = 0;
-   this->m_floodingTime = 0;
-   this->m_erosionTime = 0;*/
+      //srand(time(NULL));
 
-   //srand(time(NULL));
+      // Initialize Moving Window Dune line statistics data structures
+      // Each dune pt has a its own set of moving windows
+      for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+         {
+         MovingWindow* ipdyMovingWindow = new MovingWindow(m_windowLengthTWL);
+         m_IDPYArray.Add(ipdyMovingWindow);
 
+         MovingWindow* twlMovingWindow = new MovingWindow(m_windowLengthTWL);
+         m_TWLArray.Add(twlMovingWindow);
 
-
-   // Initialize Moving Window Dune line statistics data structures
-   // Each dune pt has a its own set of moving windows
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
-      {
-      MovingWindow *ipdyMovingWindow = new MovingWindow(m_windowLengthTWL);
-      m_IDPYArray.Add(ipdyMovingWindow);
-
-      MovingWindow *twlMovingWindow = new MovingWindow(m_windowLengthTWL);
-      m_TWLArray.Add(twlMovingWindow);
-
-      MovingWindow *eroKDMovingWindow = new MovingWindow(2);
-      m_eroKDArray.Add(eroKDMovingWindow);
+         MovingWindow* eroKDMovingWindow = new MovingWindow(2);
+         m_eroKDArray.Add(eroKDMovingWindow);
+         }
       }
 
-   bool calculateSafeSiteCell = (m_findSafeSiteCell == 1) ? true : false;
-
-   if (calculateSafeSiteCell)
+   if (m_findSafeSiteCell)
       {
       for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
          {
@@ -1718,25 +1625,24 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    // Associate Moving Windows for Erosion and Flooding Frequency to a building
    // Set year of safest site for buildings equal the start year of the run
-   for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
+   if (m_runFlags & CH_MODEL_FLOODING)
       {
-      MovingWindow *eroFreqMovingWindow = new MovingWindow(m_windowLengthEroHzrd);
-      m_eroBldgFreqArray.Add(eroFreqMovingWindow);
-
-      MovingWindow *floodFreqMovingWindow = new MovingWindow(m_windowLengthFloodHzrd);
-      m_floodBldgFreqArray.Add(floodFreqMovingWindow);
-
-      //   m_pBldgLayer->SetData(bldg, m_colBldgSafeSiteYr, pEnvContext->startYear);
+      for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
+         {
+         m_floodBldgFreqArray.Add(new MovingWindow(m_windowLengthFloodHzrd));
+         m_floodInfraFreqArray.Add(new MovingWindow(m_windowLengthFloodHzrd));
+         // m_pBldgLayer->SetData(bldg, m_colBldgSafeSiteYr, pEnvContext->startYear);
+         }
       }
 
-   // Associate Moving Windows for Erosion and Flooding frequency to critical infrastructure layer
-   for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
+   if (m_runFlags & CH_MODEL_EROSION)
       {
-      MovingWindow *eroFreqMovingWindow = new MovingWindow(m_windowLengthEroHzrd);
-      m_eroInfraFreqArray.Add(eroFreqMovingWindow);
-
-      MovingWindow *floodFreqMovingWindow = new MovingWindow(m_windowLengthFloodHzrd);
-      m_floodInfraFreqArray.Add(floodFreqMovingWindow);
+      // Associate Moving Windows for Erosion and Flooding frequency to critical infrastructure layer
+      for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
+         {
+         m_eroInfraFreqArray.Add(new MovingWindow(m_windowLengthEroHzrd));
+         m_eroBldgFreqArray.Add(new MovingWindow(m_windowLengthEroHzrd));
+         }
       }
 
    //  // ********************************************************************************
@@ -1761,7 +1667,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    //  if (m_days <= 0)
    //  {
    //     CString msg;
-   //     msg.Format("CoastalHazards: InitRun could not load buoy csv file \n");
+   //     msg.Format("ChronicHazards: InitRun could not load buoy csv file \n");
    //     Report::InfoMsg(msg);
    //     return false;
    //  }
@@ -1769,7 +1675,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    //  {
    //     m_years = m_days / 365;
    //     CString msg;
-   //     msg.Format("CoastalHazards: The buoy data %s contains %i years of daily data", buoyFile, m_years);
+   //     msg.Format("ChronicHazards: The buoy data %s contains %i years of daily data", buoyFile, m_years);
    //     Report::Log(msg);
    //     /*  Report::Log(buoyFile);
    //     cols = m_buoyObsData.GetColCount();*/
@@ -1846,7 +1752,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    //        pRBFDaily->WriteAscii(folder);
 
-   //        CString msg("CoastalHazards: processing input file ");
+   //        CString msg("ChronicHazards: processing input file ");
    //        msg += folder;
    //        Report::Log(msg);
 
@@ -1861,7 +1767,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    //           success = false;
    //        /*  else
    //        {
-   //        CString msg("CoastalHazards: processing daily data input file ");
+   //        CString msg("ChronicHazards: processing daily data input file ");
    //        msg += folder;
    //        Report::Log(msg);
    //        }*/
@@ -1879,7 +1785,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    //  //m_nourishCostBPS = 0;
    //  //m_nourishVolumeBPS = 0;
 
-   //  msg.Format("CoastalHazards: Processed DailyData input files for %i transects", (int)m_RBFDailyDataArray.GetSize());
+   //  msg.Format("ChronicHazards: Processed DailyData input files for %i transects", (int)m_RBFDailyDataArray.GetSize());
    //  Report::Log(msg);
    //  //m_randIndex += 1; // add to xml, only want when we are running probabalistically
 
@@ -1894,128 +1800,141 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    }*/
 
    //FindClosestDunePtToBldg(pEnvContext);
-   FindProtectedBldgs();
+   if (m_runFlags & CH_MODEL_FLOODING || m_runFlags & CH_MODEL_EROSION)
+      {
+      FindProtectedBldgs();
+      }
 
    return TRUE;
    }
 
-bool CoastalHazards::WriteDailyData(CString timeSeriesFolder)
-   {
-   bool writeDailyData = (m_writeDailyData == 1) ? true : false;
 
-   // if randomize, reread in
-   //  m_RBFDailyDataArray.Clear();
-
-   const int outputCount = 8;
-   double outputs[outputCount];
-
-   // CString path(PathManager::GetPath(PM_PROJECT_DIR));
-
-   if (writeDailyData)
+bool ChronicHazards::LoadRBFs()
       {
-      m_minTransect = 0;
-      m_maxTransect = m_numTransects - 1;
-      }
+      FILE* fpSave = NULL;
+      CString iduPath(PathManager::GetPath(PM_IDU_DIR));
 
-   //for(int i=22; i <= 85; i++)
-   for (int i = m_minTransect; i <= m_maxTransect; i++)
-      {
-      bool success = true;
-      FDataObj *pRBFDaily = new FDataObj;
-      pRBFDaily->SetSize(outputCount, m_numDays);
-      //   extension.Format("_%i", m_randIndex);
+      CString savePath = iduPath + "TWL Inputs\\SWAN_RBF_Params.rbf";
+      
+      m_randIndex = m_simulationCount;
 
-      //  CString folder = m_datafile.timeseries_file + extension + "\\";
+      bool writeRBFfile = (m_writeRBF > 0) ? true : false;
 
-      //PathManager::FindPath(folder, path);
-      // folder = path + folder;
-
-      CString timeSeriesFile;
-      timeSeriesFile.Format("%s\\DailyData_%i.csv", timeSeriesFolder, i);     //series of SWAN lookup tables
-
-                                                                              // generate DailyData_%i.csv files using the rbfs and the buoy (simulation) data timeseries
-      if (writeDailyData)
+      // Parameterizing the RBF's from data and save to disk
+      if (writeRBFfile)
          {
-         LookupTable *pLUT = m_swanLookupTableArray.GetAt(i - m_minTransect);   // zero-based
-
-         pRBFDaily->SetLabel(0, "Height_L");
-         pRBFDaily->SetLabel(1, "Height_H");
-         pRBFDaily->SetLabel(2, "Period_L");
-         pRBFDaily->SetLabel(3, "Period_H");
-         pRBFDaily->SetLabel(4, "Direction_L");
-         pRBFDaily->SetLabel(5, "Direction_H");
-         pRBFDaily->SetLabel(6, "Depth_L");
-         pRBFDaily->SetLabel(7, "Depth_H");
-
-         // read in the whole simulation time period, typically 90 years
-         for (int row = 0; row < m_numDays; row++)
+         if (fopen_s(&fpSave, savePath, "wb") != 0)
             {
-            float height, period, direction, swl;
+            Report::ErrorMsg("ChronicHazards: Unable to open RBF serialization file for writing");
+            return false;
+            }
+         }
+      else // are we loading from disk?
+         {
+         if (fopen_s(&fpSave, savePath, "rb") != 0)
+            {
+            Report::ErrorMsg("ChronicHazards: Unable to open RBF serialization file for reading");
+            return false;
+            }
+         }
 
-            m_buoyObsData.Get(0, row, height);
-            m_buoyObsData.Get(1, row, period);
-            m_buoyObsData.Get(2, row, direction);
-            m_buoyObsData.Get(3, row, swl);
+      bool writeDailyData = (m_writeDailyData == 1) ? true : false;
 
-            int count = pLUT->m_rbf.GetAt(height, period, direction, outputs);
+      if (writeRBFfile || writeDailyData)
+         {
+         m_minTransect = 0;
+         m_maxTransect = m_numTransects - 1;
+         }
 
-            // added this because rbf isn't doing well with small ( < 1) values
-            // for wave heights; later this becomes a problem with a negative wave height
-            if (outputs[HEIGHT_L] < 0.0f)
-               outputs[HEIGHT_L] = 0.0f;
+      // Either read in the rbf file or generate the rbf file
+      for (int i = m_minTransect; i <= m_maxTransect; i++)
+         {
+         int ypNum = m_pTransectLUT->GetAsInt(0, i);
 
-            if (outputs[HEIGHT_H] < 0.0f)
-               outputs[HEIGHT_H] = 0.0f;
+         // create a lookup table
+         LookupTable* pLookupTable = new LookupTable;
 
-            // Series of Bathymetry lookup tables
-            pRBFDaily->Set(0, row, (float)outputs[HEIGHT_L]);
-            pRBFDaily->Set(1, row, (float)outputs[HEIGHT_H]);
-            pRBFDaily->Set(2, row, (float)outputs[PERIOD_L]);
-            pRBFDaily->Set(3, row, (float)outputs[PERIOD_H]);
-            pRBFDaily->Set(4, row, (float)outputs[DIRECTION_L]);
-            pRBFDaily->Set(5, row, (float)outputs[DIRECTION_H]);
-            pRBFDaily->Set(6, row, (float)outputs[DEPTH_L]);
-            pRBFDaily->Set(7, row, (float)outputs[DEPTH_H]);
+         bool success = true;
+
+         // generate RBFs from data files
+         if (writeRBFfile)
+            {
+            CString path(iduPath);
+            path += "TWL Inputs\\Lookup Tables\\";
+
+            CString file;
+
+            file.Format("SWAN_lookup_Yp_%04i.csv", ypNum); // i);  //series of SWAN lookup tables (note ONE-based)
+            path += file;
+
+            CString msg("Chronic Hazards: Generating RBF parameters for input file ");
+            msg += file;
+            Report::StatusMsg(msg);
+
+            int rows = pLookupTable->m_data.ReadAscii(path);//series of SWAN lookup tables
+            if (rows < 0)
+               success = false;
+
+            // create RBF
+            pLookupTable->m_rbf.Create(8);  // number of outputs
+            pLookupTable->m_rbf.SetML(30, 5, 0.005);   // radius, layers, lambdaV , add to 
+
+                                                       // set the data into the RBF
+            pLookupTable->m_rbf.SetPoints(pLookupTable->m_data);  // rows are input points, col0=x, col1=y, col2=z, col3=f0, col4=f1 etc...
+
+            // build the RBF
+            pLookupTable->m_rbf.Build();
+
+            std::string str;
+            pLookupTable->m_rbf.Save(str);
+
+            int len = (int)str.length();
+            //CString m;
+            //m.Format("... Success (RBF size: %i)", len);
+            //Report::Log(m, RA_APPEND);
+
+            fwrite((void*)&len, sizeof(int), 1, fpSave);
+            fwrite((void*)str.c_str(), sizeof(TCHAR), len, fpSave);
+            }
+         else
+            {
+            // read the first int, it has the size of the serialization string
+            int length;
+            size_t count = fread(&length, sizeof(int), 1, fpSave);
+
+            if (count != 1)
+               Report::ErrorMsg("ChronicHazards: Error reading RBF parameter header");
+
+            TCHAR* buffer = new TCHAR[length];
+            count = fread(buffer, sizeof(TCHAR), length, fpSave);
+
+            if (int(count) != length)
+               Report::ErrorMsg("ChronicHazards: Error reading RBF parameter");
+
+            pLookupTable->m_rbf.Load(buffer);
+
+            int outputs = pLookupTable->m_rbf.GetOutputCount();
+            ASSERT(outputs == 8);
+
+            delete[] buffer;
             }
 
-         pRBFDaily->WriteAscii(timeSeriesFile);
+         if (success)
+            this->m_swanLookupTableArray.Add(pLookupTable);
+         else
+            delete pLookupTable;
+         }  // end of for ( i < numTransects )
 
-         CString msg("CoastalHazards: processing input file ");
-         msg += timeSeriesFolder;
-         Report::Log(msg);
+      fclose(fpSave);
 
-         //delete pLUT;
-         }
-      else
-         {
-         int numRows = pRBFDaily->ReadAscii(timeSeriesFile);
+      CString msg;
+      msg.Format("ChronicHazards: Processed %i SWAN input files", (int)m_swanLookupTableArray.GetSize());
+      Report::LogInfo(msg);
 
-         if (numRows < 0)
-            success = false;
-         /*  else
-         {
-         CString msg("CoastalHazards: processing daily data input file ");
-         msg += folder;
-         Report::Log(msg);
-         }*/
-         }
+      return true;
+   }
 
-      if (success)
-         this->m_RBFDailyDataArray.Add(pRBFDaily);
-      else
-         delete pRBFDaily;
-      }
-
-   CString msg;
-   msg.Format("CoastalHazards: Processed DailyData input files for %i transects", (int)m_RBFDailyDataArray.GetSize());
-   Report::Log(msg);
-   //m_randIndex += 1; // add to xml, only want when we are running probabalistically
-
-   return true;
-
-   } // end WriteDailyData(CString timeSeriesFolder)
-
-bool CoastalHazards::ReadDailyBayData(CString timeSeriesFolder)
+bool ChronicHazards::ReadDailyBayData(CString timeSeriesFolder)
    {
    // if randomize, reread in
    //  m_DailyBayDataArray.Clear();
@@ -2035,7 +1954,7 @@ bool CoastalHazards::ReadDailyBayData(CString timeSeriesFolder)
          success = false;
       /*  else
       {
-      CString msg("CoastalHazards: processing daily bay data input file ");
+      CString msg("ChronicHazards: processing daily bay data input file ");
       msg += folder;
       Report::Log(msg);
       }*/
@@ -2047,15 +1966,14 @@ bool CoastalHazards::ReadDailyBayData(CString timeSeriesFolder)
       }
 
    CString msg;
-   msg.Format("CoastalHazards: Processed DailyBayData input files for %i locations", (int)m_DailyBayDataArray.GetSize());
+   msg.Format("ChronicHazards: Processed DailyBayData input files for %i locations", (int)m_DailyBayDataArray.GetSize());
    Report::Log(msg);
 
    return true;
-
    }
 
 
-int CoastalHazards::SetInfrastructureValues()
+int ChronicHazards::SetInfrastructureValues()
    {
    if (m_pBldgLayer == NULL || m_pInfraLayer == NULL)
       return -1;
@@ -2091,10 +2009,8 @@ int CoastalHazards::SetInfrastructureValues()
    return 1;
    }
 
-
-
 // LEGACY :: Not called 
-int CoastalHazards::ReducebuoyObsData(int period)
+int ChronicHazards::ReducebuoyObsData(int period)
    {
    // This method takes full buoyObsData and reduces to monthly max values.
    // We scan through the rows of hourly buoy data, collecting max values for 
@@ -2173,7 +2089,7 @@ int CoastalHazards::ReducebuoyObsData(int period)
 
    } // end ReducebuoyObsData(int period)
 
-bool CoastalHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
+bool ChronicHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    {
    // Determine which climate scenario is chosen
    switch (m_climateScenarioID)
@@ -2191,7 +2107,7 @@ bool CoastalHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
          m_climateScenarioStr = "High";
          break;
       case 4:
-         m_climateScenarioStr = "WorstCase";
+         m_climateScenarioStr = "Extreme";
          break;
       default:
          m_climateScenarioStr = "Base";
@@ -2202,12 +2118,12 @@ bool CoastalHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    // PathManager::AddPath(climateScenarioPath); */
 
    CString slrDataFile;
-   slrDataFile.Format("%sSLR_%s.csv", climateScenarioPath, m_climateScenarioStr);
+   slrDataFile.Format("%s%s_slr.csv", climateScenarioPath, m_climateScenarioStr);
 
    CString fullPath;
    PathManager::FindPath(slrDataFile, fullPath);
    int sEPRows = m_slrData.ReadAscii(fullPath);
-   CString Rep = "CoastalHazards: Read in slr data: " + slrDataFile;
+   CString Rep = "ChronicHazards: Read in Seal Level Rise data: " + slrDataFile;
    Report::Log(Rep);
 
    // Change the simulation number from 1 to generated number to randomize 
@@ -2243,7 +2159,7 @@ bool CoastalHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    if (m_numDays <= 0)
       {
       CString msg;
-      msg.Format("CoastalHazards: InitRun could not load buoy csv file \n");
+      msg.Format("ChronicHazards: InitRun could not load buoy csv file \n");
       Report::InfoMsg(msg);
       return false;
       }
@@ -2251,25 +2167,25 @@ bool CoastalHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
       {
       m_numYears = m_numDays / 365;
       CString msg;
-      msg.Format("CoastalHazards: The buoy data %s contains %i years of daily data", buoyFile, m_numYears);
+      msg.Format("ChronicHazards: The buoy data %s contains %i years of daily data", (LPCTSTR) buoyFile, m_numYears);
       Report::Log(msg);
       /*  Report::Log(buoyFile);
       cols = m_buoyObsData.GetColCount();*/
       }
 
    CString timeSeriesFolder;
-   timeSeriesFolder.Format("%s\\DailyData_%s", simulationPath, m_climateScenarioStr);
+   timeSeriesFolder.Format("%s\\DailyData_%s", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
    PathManager::FindPath(timeSeriesFolder, fullPath);
 
    WriteDailyData(fullPath);
 
-   CString bayTimeSeriesFolder;
-   bayTimeSeriesFolder.Format("%s\\DailyBayData_%s", simulationPath, m_climateScenarioStr);
-   PathManager::FindPath(bayTimeSeriesFolder, fullPath);
+   //////CString bayTimeSeriesFolder;
+   //////bayTimeSeriesFolder.Format("%s\\DailyBayData_%s", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
+   //////PathManager::FindPath(bayTimeSeriesFolder, fullPath);
 
-   bool runSpatialBayTWL = (m_runSpatialBayTWL == 1) ? true : false;
-   if (runSpatialBayTWL)
-      ReadDailyBayData(fullPath);
+   //////bool runSpatialBayTWL = (m_runSpatialBayTWL == 1) ? true : false;
+   //////if (runSpatialBayTWL)
+   //////   ReadDailyBayData(fullPath);
 
    // initialize policyInfo for this run (Note - m_isActive is already set by the scenario variable)
    int costCount = 0;
@@ -2304,7 +2220,8 @@ bool CoastalHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    m_policyCostData.ClearRows();
 
    // reset the cumulative flood map
-   m_pCumFloodedGrid->SetAllData(0, false);
+   if ( m_runFlags & CH_MODEL_FLOODING)
+      m_pCumFloodedGrid->SetAllData(0, false);
 
    //// Read in the Bay coverage if running Bay Flooding Model
    /*bool runBayFloodModel = (m_runBayFloodModel == 1) ? true : false;
@@ -2328,15 +2245,130 @@ bool CoastalHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
    } // end InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
-bool CoastalHazards::Run(EnvContext *pEnvContext)
+bool ChronicHazards::WriteDailyData(CString timeSeriesFolder)
    {
+   bool writeDailyData = (m_writeDailyData == 1) ? true : false;
 
-   TRACE(_T("CoastalHazards: Starting Run\n"));
+   // if randomize, reread in
+   //  m_RBFDailyDataArray.Clear();
+
+   const int outputCount = 8;
+   double outputs[outputCount];
+
+   // CString path(PathManager::GetPath(PM_PROJECT_DIR));
+
+   if (writeDailyData)
+      {
+      m_minTransect = 0;
+      m_maxTransect = m_numTransects - 1;
+      }
+
+   // ??? Need to update to get correct transects?
+   for (int i = m_minTransect; i <= m_maxTransect; i++)
+      {
+      bool success = true;
+      FDataObj* pRBFDaily = new FDataObj;
+      pRBFDaily->SetSize(outputCount, m_numDays);
+      //   extension.Format("_%i", m_randIndex);
+      //  CString folder = m_datafile.timeseries_file + extension + "\\";
+      //PathManager::FindPath(folder, path);
+      // folder = path + folder;
+
+      CString timeSeriesFile;
+      timeSeriesFile.Format("%s\\DailyData_%i.csv", timeSeriesFolder, i);     //series of SWAN lookup tables
+                                                                              // generate DailyData_%i.csv files using the rbfs and the buoy (simulation) data timeseries
+      if (writeDailyData)
+         {
+         pRBFDaily->SetLabel(0, "Height_L");
+         pRBFDaily->SetLabel(1, "Height_H");
+         pRBFDaily->SetLabel(2, "Period_L");
+         pRBFDaily->SetLabel(3, "Period_H");
+         pRBFDaily->SetLabel(4, "Direction_L");
+         pRBFDaily->SetLabel(5, "Direction_H");
+         pRBFDaily->SetLabel(6, "Depth_L");
+         pRBFDaily->SetLabel(7, "Depth_H");
+
+         // read in the whole simulation time period, typically 90 years
+         LookupTable* pLUT = m_swanLookupTableArray.GetAt(i - m_minTransect);   // zero-based
+
+         for (int row = 0; row < m_numDays; row++)
+            {
+            float height, period, direction, swl;
+
+            m_buoyObsData.Get(1, row, height);
+            m_buoyObsData.Get(2, row, period);
+            m_buoyObsData.Get(3, row, direction);
+            m_buoyObsData.Get(4, row, swl);
+
+            int count = pLUT->m_rbf.GetAt(height, period, direction, outputs);
+
+            // added this because rbf isn't doing well with small ( < 1) values
+            // for wave heights; later this becomes a problem with a negative wave height
+            if (outputs[HEIGHT_L] < 0.0f)
+               outputs[HEIGHT_L] = 0.0f;
+
+            if (outputs[HEIGHT_H] < 0.0f)
+               outputs[HEIGHT_H] = 0.0f;
+
+            // Series of Bathymetry lookup tables
+            pRBFDaily->Set(0, row, (float)outputs[HEIGHT_L]);
+            pRBFDaily->Set(1, row, (float)outputs[HEIGHT_H]);
+            pRBFDaily->Set(2, row, (float)outputs[PERIOD_L]);
+            pRBFDaily->Set(3, row, (float)outputs[PERIOD_H]);
+            pRBFDaily->Set(4, row, (float)outputs[DIRECTION_L]);
+            pRBFDaily->Set(5, row, (float)outputs[DIRECTION_H]);
+            pRBFDaily->Set(6, row, (float)outputs[DEPTH_L]);
+            pRBFDaily->Set(7, row, (float)outputs[DEPTH_H]);
+            }
+
+         pRBFDaily->WriteAscii(timeSeriesFile);
+
+         CString msg("ChronicHazards: processing input files for ");
+         msg += timeSeriesFolder;
+         Report::Log(msg);
+
+         //delete pLUT;
+         }
+      else
+         {
+         int numRows = pRBFDaily->ReadAscii(timeSeriesFile);
+
+         if (numRows < 0)
+            success = false;
+         /*  else
+         {
+         CString msg("ChronicHazards: processing daily data input file ");
+         msg += folder;
+         Report::Log(msg);
+         }*/
+         }
+
+      if (success)
+         this->m_RBFDailyDataArray.Add(pRBFDaily);
+      else
+         delete pRBFDaily;
+      }
+
+   CString msg;
+   msg.Format("ChronicHazards: Processed DailyData input files for %i transects", (int)m_RBFDailyDataArray.GetSize());
+   Report::Log(msg);
+   //m_randIndex += 1; // add to xml, only want when we are running probabalistically
+
+   return true;
+
+   } // end WriteDailyData(CString timeSeriesFolder)
+
+
+
+bool ChronicHazards::Run(EnvContext *pEnvContext)
+   {
+   TRACE(_T("ChronicHazards: Starting Run\n"));
    ASSERT(pEnvContext != NULL);
 
    const float tolerance = 1.0f;    // tolerance value
 
-   m_pNewDuneLineLayer->m_readOnly = false;
+   if ( m_pNewDuneLineLayer != NULL )
+      m_pNewDuneLineLayer->m_readOnly = false;
 
    ExportMapLayers(pEnvContext, pEnvContext->currentYear);
 
@@ -2365,7 +2397,7 @@ bool CoastalHazards::Run(EnvContext *pEnvContext)
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
    this->m_twlTime += duration;*/
 
-   // Report::StatusMsg("CoastalHazards: Running Erosion Model...");
+   // Report::StatusMsg("ChronicHazards: Running Erosion Model...");
 
    // start = clock();
    ///////   CalculateErosionExtents(pEnvContext);
@@ -2922,7 +2954,7 @@ bool CoastalHazards::Run(EnvContext *pEnvContext)
    count = 0;
    GenerateErosionMap(count);
 
-   msg.Format("CoastalHazards: %i Flooding and Erosion Maps generated", pEnvContext->currentYear);
+   msg.Format("ChronicHazards: %i Flooding and Erosion Maps generated", pEnvContext->currentYear);
    Report::Log(msg);
 
 
@@ -2989,7 +3021,7 @@ bool CoastalHazards::Run(EnvContext *pEnvContext)
 
    } // end Run(EnvContext *pEnvContext)
 
-bool CoastalHazards::EndRun(EnvContext *pEnvContext)
+bool ChronicHazards::EndRun(EnvContext *pEnvContext)
    {
    fclose(fpPolicySummary);
 
@@ -2998,7 +3030,7 @@ bool CoastalHazards::EndRun(EnvContext *pEnvContext)
 
 
 
-bool CoastalHazards::ResetAnnualVariables()
+bool ChronicHazards::ResetAnnualVariables()
    {
    m_pNewDuneLineLayer->m_readOnly = false;
    m_pNewDuneLineLayer->SetColData(m_colYrFMaxTWL, VData(0.0f), true);
@@ -3104,7 +3136,7 @@ bool CoastalHazards::ResetAnnualVariables()
    }
 
 
-bool CoastalHazards::ResetAnnualBudget()
+bool ChronicHazards::ResetAnnualBudget()
    {
    // allocate budgets for the year.  Basic idea:
    // 1) There is no carry-over - budgets are reset every year.
@@ -3231,11 +3263,11 @@ bool CoastalHazards::ResetAnnualBudget()
 
 
 
-//bool CoastalHazards::LoadPolyGridLookup()
+//bool ChronicHazards::LoadPolyGridLookup()
 //{
 //   if (m_pPolygonGridLkUp f!= NULL)
 //      return true;
-//   TRACE(_T("CoastalHazards: Starting LoadPolyGridLookup \n"));
+//   TRACE(_T("ChronicHazards: Starting LoadPolyGridLookup \n"));
 //
 //   float
 //      cellWidth = 0.0f,
@@ -3280,7 +3312,7 @@ bool CoastalHazards::ResetAnnualBudget()
 //   n = m_pIDULayer->GetPolygonCount();
 //
 //   CString msg;
-//   msg.Format("CoastalHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
+//   msg.Format("ChronicHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
 //   Report::Log(msg);
 //
 //   clock_t start = clock();
@@ -3334,10 +3366,10 @@ bool CoastalHazards::ResetAnnualBudget()
 //   Report::Log(msg);
 //
 //   return true;
-//} // BOOL CoastalHazards::LoadPolyGridLookup
+//} // BOOL ChronicHazards::LoadPolyGridLookup
 
 
-//bool CoastalHazards::LoadPolyGridLookup(MapLayer *pGridLayer, MapLayer *pPolyLayer, CString fullFilename, PolyGridLookups *&pPolyGridLookup)
+//bool ChronicHazards::LoadPolyGridLookup(MapLayer *pGridLayer, MapLayer *pPolyLayer, CString fullFilename, PolyGridLookups *&pPolyGridLookup)
 //{
 //   if (pPolyGridLookup != NULL)
 //      return true;
@@ -3351,7 +3383,7 @@ bool CoastalHazards::ResetAnnualBudget()
 //   if (CString(fullFilename).IsEmpty())
 //      return false;
 //
-//   TRACE(_T("CoastalHazards: Starting LoadPolyGridLookup \n"));
+//   TRACE(_T("ChronicHazards: Starting LoadPolyGridLookup \n"));
 //
 //   float
 //      cellWidth = 0.0f,
@@ -3405,7 +3437,7 @@ bool CoastalHazards::ResetAnnualBudget()
 //   int n = pPolyLayer->GetPolygonCount();
 //
 //   CString msg;
-//   msg.Format("CoastalHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
+//   msg.Format("ChronicHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
 //   Report::Log(msg);
 //
 //   clock_t start = clock();
@@ -3418,7 +3450,7 @@ bool CoastalHazards::ResetAnnualBudget()
 //   // else (if .pgl file does NOT exists): create poly - grid - lookup table and write to .pgl file
 //   if (status >= 0)
 //   {
-//      msg = "CoastalHazards: Loading PolyGrid from File ";
+//      msg = "ChronicHazards: Loading PolyGrid from File ";
 //      msg += pglPath;
 //      Report::Log(msg);
 //
@@ -3427,7 +3459,7 @@ bool CoastalHazards::ResetAnnualBudget()
 //      //// if existing file has wrong dimension, create NEW poly - grid - lookup table and write to .pgl file
 //      // if ((pPolyGridLookup->GetNumGridCols() != m_numCols) || (pPolyGridLookup->GetNumGridRows() != m_numRows))
 //      //{
-//      //msg = "CoastalHazards: Invalid dimensions: Recreating File ";
+//      //msg = "ChronicHazards: Invalid dimensions: Recreating File ";
 //      //msg += pglPath;
 //      //Report::Log(msg);
 //      //pPolyGridLookup = new PolyGridLookups(pGridMapLayer, pPolyLayer, 1, maxEls, 0, -9999);
@@ -3436,7 +3468,7 @@ bool CoastalHazards::ResetAnnualBudget()
 //   } else  // doesn't exist, create it
 //   {
 //      pglPath = fullFilename;
-//      msg = "CoastalHazards: Generating PolyGrid ";
+//      msg = "ChronicHazards: Generating PolyGrid ";
 //      msg += pglPath;
 //      Report::Log(msg);
 //
@@ -3447,14 +3479,14 @@ bool CoastalHazards::ResetAnnualBudget()
 //   clock_t finish = clock();
 //   float duration = (float)(finish - start) / CLOCKS_PER_SEC;
 //
-//   msg.Format("CoastalHazards: PolyGridLookup generated in %i seconds", (int)duration);
+//   msg.Format("ChronicHazards: PolyGridLookup generated in %i seconds", (int)duration);
 //   Report::Log(msg);
 //
 //   return true;
-//} // BOOL CoastalHazards::LoadPolyGridLookup
+//} // BOOL ChronicHazards::LoadPolyGridLookup
 
 // Runs the flooding model returning the number of grid cells flooded and the area flooded
-///////double CoastalHazards::GenerateBathtubFloodMap(int &floodedCount)
+///////double ChronicHazards::GenerateBathtubFloodMap(int &floodedCount)
 ///////   {
 ///////   //return 0;
 ///////
@@ -3709,7 +3741,7 @@ bool CoastalHazards::ResetAnnualBudget()
 ///////   //clock_t finish = clock();
 ///////   //float duration = (float)(finish - start) / CLOCKS_PER_SEC;
 ///////   //
-///////   //msg.Format("CoastalHazards: Flooded grid generated in %i seconds", (int)duration);
+///////   //msg.Format("ChronicHazards: Flooded grid generated in %i seconds", (int)duration);
 ///////   //Report::Log(msg);
 ///////   //
 ///////   floodedArea = m_cellWidth * m_cellHeight * floodedCount;
@@ -3720,7 +3752,7 @@ bool CoastalHazards::ResetAnnualBudget()
 ///////
 ///////// Recursively called method that visits a grid cells, eight neighboring grid cells and determines whether they are flooded
 ///////// returns the number of flooded grid cells
-///////int CoastalHazards::VisitNeighbors(int row, int col, float twl, float &minElevation)
+///////int ChronicHazards::VisitNeighbors(int row, int col, float twl, float &minElevation)
 ///////   {
 ///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
 ///////   float flooded = 0.0f;
@@ -3804,7 +3836,7 @@ bool CoastalHazards::ResetAnnualBudget()
 ///////
 ///////   }
 //////////////
-//////////////int CoastalHazards::VisitNeighbors(int row, int col, float twl)
+//////////////int ChronicHazards::VisitNeighbors(int row, int col, float twl)
 ///////   {
 ///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
 ///////   float minElevation = 0.0f;
@@ -3889,7 +3921,7 @@ bool CoastalHazards::ResetAnnualBudget()
 ///////   return cellCount;
 ///////   }
 //////////////
-//////////////int CoastalHazards::VNeighbors(int row, int col, float twl)
+//////////////int ChronicHazards::VNeighbors(int row, int col, float twl)
 ///////   {
 ///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
 ///////   float minElevation = 0.0f;
@@ -3970,7 +4002,7 @@ bool CoastalHazards::ResetAnnualBudget()
 ///////   }
 ///////
 
-float CoastalHazards::GenerateErosionMap(int &erodedCount)
+float ChronicHazards::GenerateErosionMap(int &erodedCount)
    {
    if (m_pErodedGrid == NULL)
       {
@@ -4076,14 +4108,14 @@ float CoastalHazards::GenerateErosionMap(int &erodedCount)
    /*clock_t finish = clock();
    float duration = (float)(finish - start) / CLOCKS_PER_SEC;*/
 
-   //msg.Format("CoastalHazards: Eroded grid generated in %i seconds", (int)duration);
+   //msg.Format("ChronicHazards: Eroded grid generated in %i seconds", (int)duration);
    //Report::Log(msg);
 
    //   ErodedArea = ErodedCount * (cellWidth * cellHeight) ;
    return ErodedArea;
    }
 
-void CoastalHazards::ComputeBuildingStatistics()
+void ChronicHazards::ComputeBuildingStatistics()
    {
    // determine how many new buildings were added
    int numNewBldgs = m_pBldgLayer->GetRowCount() - m_numBldgs;
@@ -4261,7 +4293,7 @@ void CoastalHazards::ComputeBuildingStatistics()
    } // end ComputeBuildingStatistics
 
 
-void CoastalHazards::TallyCostStatistics(int currentYear)
+void ChronicHazards::TallyCostStatistics(int currentYear)
    {
    int cols = 1 + ((PI_COUNT + 1) * 7);
    ASSERT(cols == m_policyCostData.GetColCount());
@@ -4311,7 +4343,7 @@ void CoastalHazards::TallyCostStatistics(int currentYear)
    }
 
 
-void CoastalHazards::TallyDuneStatistics(int currentYear)
+void ChronicHazards::TallyDuneStatistics(int currentYear)
    {
    //if (m_pFloodedGrid != NULL)
    //{
@@ -4398,7 +4430,7 @@ void CoastalHazards::TallyDuneStatistics(int currentYear)
 
    }
 
-void CoastalHazards::ComputeFloodedIDUStatistics()
+void ChronicHazards::ComputeFloodedIDUStatistics()
    {
    m_pIDULayer->m_readOnly = false;
 
@@ -4449,7 +4481,7 @@ void CoastalHazards::ComputeFloodedIDUStatistics()
 
    }  // end ComputeFloodedIDUStatistics
 
-void CoastalHazards::ComputeIDUStatistics()
+void ChronicHazards::ComputeIDUStatistics()
    {
    m_pIDULayer->m_readOnly = false;
 
@@ -4490,7 +4522,7 @@ void CoastalHazards::ComputeIDUStatistics()
    m_pIDULayer->m_readOnly = true;
    }
 
-void CoastalHazards::TallyRoadStatistics()
+void ChronicHazards::TallyRoadStatistics()
    {
    if (m_pRoadLayer != NULL)
       {
@@ -4644,7 +4676,7 @@ void CoastalHazards::TallyRoadStatistics()
 
    }
 
-void CoastalHazards::ComputeInfraStatistics()
+void ChronicHazards::ComputeInfraStatistics()
    {
 
    /************************   Calculate Flooded Infrastructure Statistics ************************/
@@ -4763,7 +4795,7 @@ void CoastalHazards::ComputeInfraStatistics()
       }
    }
 
-void CoastalHazards::ExportMapLayers(EnvContext *pEnvContext, int outputYear)
+void ChronicHazards::ExportMapLayers(EnvContext *pEnvContext, int outputYear)
    {
    /*int outputYear;
 
@@ -4825,14 +4857,14 @@ void CoastalHazards::ExportMapLayers(EnvContext *pEnvContext, int outputYear)
 
       //      if (pQuery == NULL)
       //      {
-      //         CString qmsg(_T("CoastalHazards: Error parsing dune layer query: '"));
+      //         CString qmsg(_T("ChronicHazards: Error parsing dune layer query: '"));
       //         qmsg += ocQuery;
       //         qmsg += _T("' - the query will be ignored");
       //         Report::ErrorMsg(qmsg);
       //      }
       //   }*/
 
-      ////   CString msg("CoastalHazards:: Exporting map layer: ");
+      ////   CString msg("ChronicHazards:: Exporting map layer: ");
       /*CString duneOCShapeFile = duneOceanShoresFilename + ".shp";
       duneOCShapeFilePath.Append(duneOCShapeFile);
       m_pNewDuneLineLayer->SaveShapeFile(duneOCShapeFilePath, true);
@@ -4844,7 +4876,7 @@ void CoastalHazards::ExportMapLayers(EnvContext *pEnvContext, int outputYear)
       // Dune line layer naming
       duneFilename.Format("Backshore_Year%i_%s_Run%i", outputYear, scenario, run);
 
-      CString msg("CoastalHazards:: Exporting map layer: ");
+      CString msg("ChronicHazards:: Exporting map layer: ");
       CString duneShapeFile = duneFilename + ".shp";
       duneShapeFilePath.Append(duneShapeFile);
       int ok = m_pNewDuneLineLayer->SaveShapeFile(duneShapeFilePath, false, 0, 1);
@@ -4958,7 +4990,7 @@ void CoastalHazards::ExportMapLayers(EnvContext *pEnvContext, int outputYear)
       //      m_pInletLUT->WriteAscii(floodedBayPtsPath);
 
       //      //m_pElevationGrid->SaveGridFile("C:\\Envision\\StudyAreas\\GraysHarbor\\Outputs\\ghc_dem.flt");
-      //      CString debugMsg("CoastalHazards:: Exporting map layer: ");
+      //      CString debugMsg("ChronicHazards:: Exporting map layer: ");
       //      debugMsg += floodedBayPtsFilename;
       //      Report::Log(debugMsg);
       //   }
@@ -4968,7 +5000,7 @@ void CoastalHazards::ExportMapLayers(EnvContext *pEnvContext, int outputYear)
 
    } // end ExportMapLayers(EnvContext *pEnvContext)
 
-void CoastalHazards::RunPolicies(EnvContext *pEnvContext)
+void ChronicHazards::RunPolicies(EnvContext *pEnvContext)
    {
    FindProtectedBldgs();
 
@@ -5027,7 +5059,7 @@ void CoastalHazards::RunPolicies(EnvContext *pEnvContext)
 
 
      // Determine if
-bool CoastalHazards::FindProtectedBldgs()
+bool ChronicHazards::FindProtectedBldgs()
    {
    // For each building get it's IDU
    // Then find the set of dunePts within the Northing extents of that IDU
@@ -5202,7 +5234,7 @@ bool CoastalHazards::FindProtectedBldgs()
 
    }
 
-bool CoastalHazards::FindClosestDunePtToBldg(EnvContext *pEnvContext)
+bool ChronicHazards::FindClosestDunePtToBldg(EnvContext *pEnvContext)
    {
    // Find closest Dune Pt for each Building
    //   for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
@@ -5388,7 +5420,7 @@ bool CoastalHazards::FindClosestDunePtToBldg(EnvContext *pEnvContext)
    return true;
    }
 
-bool CoastalHazards::IsBldgImpactedByEErosion(int bldg, float avgEro, float distToBldg) //, float eroThreshold, int& iduIndex)
+bool ChronicHazards::IsBldgImpactedByEErosion(int bldg, float avgEro, float distToBldg) //, float eroThreshold, int& iduIndex)
    {
    bool flag1 = false;
    bool flag2 = false;
@@ -5437,10 +5469,10 @@ bool CoastalHazards::IsBldgImpactedByEErosion(int bldg, float avgEro, float dist
 
    return (flag1 || flag2);
 
-   } // end CoastalHazards::IsBldgImpactedByErosion
+   } // end ChronicHazards::IsBldgImpactedByErosion
 
 
-bool CoastalHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, float s, bool north)
+bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, float s, bool north)
    {
    REAL xCoord = 0.0;
    REAL yCoord = 0.0;
@@ -5500,7 +5532,7 @@ bool CoastalHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
    return true;
    } // bool CalculateExcessErosion
 
-bool CoastalHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, MapLayer::Iterator &minToePoint, MapLayer::Iterator &minDistPoint, MapLayer::Iterator &maxTWLPoint)
+bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, MapLayer::Iterator &minToePoint, MapLayer::Iterator &minDistPoint, MapLayer::Iterator &maxTWLPoint)
    {
    int duneBldgIndx = -1;
    m_pNewDuneLineLayer->GetData(startPoint, m_colDuneBldgIndx, duneBldgIndx);
@@ -5614,7 +5646,7 @@ bool CoastalHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
 
    } // end CalculateImpactExtent
 
-bool CoastalHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint)
+bool ChronicHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint)
    {
    bool rebuild = false;
 
@@ -5673,7 +5705,7 @@ bool CoastalHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, Ma
 //)
 
 // Helper Methods
-bool CoastalHazards::CalculateSegmentLength(MapLayer::Iterator startPoint, MapLayer::Iterator endPoint, float &length)
+bool ChronicHazards::CalculateSegmentLength(MapLayer::Iterator startPoint, MapLayer::Iterator endPoint, float &length)
    {
    // determine length of segment, runs along IDU
    REAL yTop = 0.0;
@@ -5689,7 +5721,7 @@ bool CoastalHazards::CalculateSegmentLength(MapLayer::Iterator startPoint, MapLa
    return true;
    }
 
-int CoastalHazards::GetBeachType(MapLayer::Iterator pt)
+int ChronicHazards::GetBeachType(MapLayer::Iterator pt)
    {
    int beachType = -1;
    if (pt < m_pNewDuneLineLayer->End())
@@ -5698,7 +5730,7 @@ int CoastalHazards::GetBeachType(MapLayer::Iterator pt)
    return beachType;
    }
 
-int CoastalHazards::GetNextBldgIndx(MapLayer::Iterator pt)
+int ChronicHazards::GetNextBldgIndx(MapLayer::Iterator pt)
    {
    int nextBldgIndx = -1;
    if (pt < m_pNewDuneLineLayer->End())
@@ -5711,7 +5743,7 @@ int CoastalHazards::GetNextBldgIndx(MapLayer::Iterator pt)
 // uncomment beachwidth narrowing and eastingToe translation to build seaward
 // question of how much beach narrows and toe translates based upon geometry:  if every toe moves different distances
 // dependent upon the beachslope use ConstructBPS
-void CoastalHazards::ConstructBPS1(int currentYear)
+void ChronicHazards::ConstructBPS1(int currentYear)
    {
    for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
       {
@@ -5833,7 +5865,7 @@ void CoastalHazards::ConstructBPS1(int currentYear)
       }
    }
 
-void CoastalHazards::ConstructBPS(int currentYear)
+void ChronicHazards::ConstructBPS(int currentYear)
    {
    // basic idea: start at the bottom of the dune point coverage.
    // Iterate thought the Dune points. looking for points that are protecting a building
@@ -6295,7 +6327,7 @@ void CoastalHazards::ConstructBPS(int currentYear)
    }
 
 
-void CoastalHazards::ConstructSPS(int currentYear)
+void ChronicHazards::ConstructSPS(int currentYear)
    {
    for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
       {
@@ -6787,7 +6819,7 @@ void CoastalHazards::ConstructSPS(int currentYear)
       }  // end of: for each dune point
    }
 
-void CoastalHazards::ConstructDune(int currentYear)
+void ChronicHazards::ConstructDune(int currentYear)
    {
    //   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
    //   {
@@ -6950,7 +6982,7 @@ void CoastalHazards::ConstructDune(int currentYear)
 
 // Maintains or rebuilds the constructed dune when the dune erodes past the angle of repose
 // Rebuilds the dune back to its original constructed characteristics
-void CoastalHazards::MaintainSPS(int currentYear)
+void ChronicHazards::MaintainSPS(int currentYear)
    {
    for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
       {
@@ -7111,7 +7143,7 @@ void CoastalHazards::MaintainSPS(int currentYear)
       } // end dune points
    }
 
-void CoastalHazards::ConstructBPS2(int currentYear)
+void ChronicHazards::ConstructBPS2(int currentYear)
    {
    //float buildBPSThreshold = m_idpyFactor * 365.0f;
 
@@ -7347,14 +7379,14 @@ void CoastalHazards::ConstructBPS2(int currentYear)
 
    } // end ConstructBPS(int currentYear)
 
-bool CoastalHazards::IsMissingRow(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint)
+bool ChronicHazards::IsMissingRow(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint)
    {
 
 
    return false;
    }
 
-bool CoastalHazards::CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, MapLayer::Iterator &maxPoint)
+bool ChronicHazards::CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, MapLayer::Iterator &maxPoint)
    {
    float buildBPSThreshold = m_idpyFactor * 365.0f;
 
@@ -7420,7 +7452,7 @@ bool CoastalHazards::CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer:
 
    } // end CalculateBPSExtent
 
-bool CoastalHazards::CalculateExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, MapLayer::Iterator &maxPoint)
+bool ChronicHazards::CalculateExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, MapLayer::Iterator &maxPoint)
    {
    float buildThreshold = m_idpyFactor * 365.0f;
 
@@ -7484,7 +7516,7 @@ bool CoastalHazards::CalculateExtent(MapLayer::Iterator startPoint, MapLayer::It
 
    } // end CalculateExtent
 
-int CoastalHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int currentYear, double northingTop, double northingBtm)
+int ChronicHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int currentYear, double northingTop, double northingBtm)
    {
    if (dunePt > m_pNewDuneLineLayer->Begin())
       dunePt--;
@@ -7532,7 +7564,7 @@ int CoastalHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int cur
 
    } // end WalkSouth
 
-     //void CoastalHazards::RemoveBPS(int beachType, int pt, float newCrest, double top, double bottom, EnvContext *pEnvContext)
+     //void ChronicHazards::RemoveBPS(int beachType, int pt, float newCrest, double top, double bottom, EnvContext *pEnvContext)
      //{
      //   bool isDunePtWithinIDU = true;
      //   int currentYear = pEnvContext->currentYear;
@@ -7594,7 +7626,7 @@ int CoastalHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int cur
      //   }
      //}
 
-double CoastalHazards::CalculateArea(float duneToe, float duneCrest, float duneHeel, float frontSlope, float btmDuneWidth)
+double ChronicHazards::CalculateArea(float duneToe, float duneCrest, float duneHeel, float frontSlope, float btmDuneWidth)
    {
    float x1 = (duneCrest - duneToe) / frontSlope;
    float h1 = duneCrest - duneToe;
@@ -7616,7 +7648,7 @@ double CoastalHazards::CalculateArea(float duneToe, float duneCrest, float duneH
    }
 
 
-void CoastalHazards::RemoveBPS(EnvContext *pEnvContext)
+void ChronicHazards::RemoveBPS(EnvContext *pEnvContext)
    {
    //   Only remove BPS if they are not protecting buildings and if they are  ???? at the end of a BPS segment
 
@@ -7640,7 +7672,7 @@ void CoastalHazards::RemoveBPS(EnvContext *pEnvContext)
 
 
      // BPS is maintained at front of structure, reducing beachwidth and moving structure toe seaward
-void CoastalHazards::MaintainBPS(int currentYear)
+void ChronicHazards::MaintainBPS(int currentYear)
    {
    for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
       {
@@ -7849,7 +7881,7 @@ void CoastalHazards::MaintainBPS(int currentYear)
 
 
      // flowing not currently used
-void CoastalHazards::MaintainStructure(MapLayer::Iterator point, int currentYear) //, bool isBPS)
+void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear) //, bool isBPS)
    {
    for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
       {
@@ -8049,7 +8081,7 @@ void CoastalHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
    } // end MaintainStructure
 
 
-void CoastalHazards::MaintainBPS2(int currentYear)
+void ChronicHazards::MaintainBPS2(int currentYear)
    {
    //for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
    //{
@@ -8165,7 +8197,7 @@ void CoastalHazards::MaintainBPS2(int currentYear)
 
    } // end MaintainBPS
 
-void CoastalHazards::NourishSPS(int currentYear)
+void ChronicHazards::NourishSPS(int currentYear)
    {
    // get height of cell which corresponds to length of shoreline
    //REAL cellHeight = m_pElevationGrid->GetGridCellHeight();
@@ -8308,7 +8340,7 @@ void CoastalHazards::NourishSPS(int currentYear)
 
    } // end Nourish
 
-void CoastalHazards::NourishBPS(int currentYear, bool nourishByType)
+void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
    {
    // get height of cell which corresponds to length of shoreline
    //float cellHeight = m_pElevationGrid->GetGridCellHeight();
@@ -8452,7 +8484,7 @@ void CoastalHazards::NourishBPS(int currentYear, bool nourishByType)
 
    } // end Nourish
 
-bool CoastalHazards::FindNourishExtent(MapLayer::Iterator &endPoint)
+bool ChronicHazards::FindNourishExtent(MapLayer::Iterator &endPoint)
    {
    float buildBPSThreshold = m_idpyFactor * 365.0f;
    bool nourish = false;
@@ -8474,7 +8506,7 @@ bool CoastalHazards::FindNourishExtent(MapLayer::Iterator &endPoint)
    } // end FindNourishExtent
 
 
-bool CoastalHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, bool isBPS)
+bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint, bool isBPS)
    {
    bool nourish = false;
 
@@ -8532,7 +8564,7 @@ bool CoastalHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
 
    } // end FindImpactExtent
 
-     //bool CoastalHazards::FindNourishExtent(int builtYear, MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint)
+     //bool ChronicHazards::FindNourishExtent(int builtYear, MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint)
      //   {
      //   float buildThreshold = m_idpyFactor * 365.0f;
      //   bool nourish = false;
@@ -8559,7 +8591,7 @@ bool CoastalHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
      //
      //   } // FindNourishExtent
 
-void CoastalHazards::CompareBPSorNourishCosts(int currentYear)
+void ChronicHazards::CompareBPSorNourishCosts(int currentYear)
    {
    //   float cellHeight = m_pNewDuneLineLayer->GetGridCellHeight();
 
@@ -8620,7 +8652,7 @@ void CoastalHazards::CompareBPSorNourishCosts(int currentYear)
    } // end CompareBPSorNourishCost
 
      // If a new dwelling exists, it must be located on the safest site
-void CoastalHazards::ConstructOnSafestSite(EnvContext *pEnvContext, bool inFloodPlain)
+void ChronicHazards::ConstructOnSafestSite(EnvContext *pEnvContext, bool inFloodPlain)
    {
    for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
       {
@@ -8717,7 +8749,7 @@ void CoastalHazards::ConstructOnSafestSite(EnvContext *pEnvContext, bool inFlood
    } // end ConstructOnSafestSite
 
 
-void CoastalHazards::RaiseOrRelocateBldgToSafestSite(EnvContext *pEnvContext)
+void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext *pEnvContext)
    {
    if (pEnvContext->currentYear >= (pEnvContext->startYear + m_windowLengthFloodHzrd - 1))
       {
@@ -8963,7 +8995,7 @@ void CoastalHazards::RaiseOrRelocateBldgToSafestSite(EnvContext *pEnvContext)
    } // end RaiseOrRelocateToSafestSite
 
 
-void CoastalHazards::RaiseInfrastructure(EnvContext *pEnvContext)
+void ChronicHazards::RaiseInfrastructure(EnvContext *pEnvContext)
    {
    if (pEnvContext->currentYear >= (pEnvContext->startYear + m_windowLengthFloodHzrd - 1))
       {
@@ -9061,7 +9093,7 @@ void CoastalHazards::RaiseInfrastructure(EnvContext *pEnvContext)
    } // end RaiseInfrastructure
 
 
-void CoastalHazards::RemoveBldgFromHazardZone(EnvContext *pEnvContext)
+void ChronicHazards::RemoveBldgFromHazardZone(EnvContext *pEnvContext)
    {
    bool buildIndex = false;
 
@@ -9186,7 +9218,7 @@ void CoastalHazards::RemoveBldgFromHazardZone(EnvContext *pEnvContext)
    } // end RemoveFromHazardZone
 
 
-void CoastalHazards::RemoveInfraFromHazardZone(EnvContext *pEnvContext)
+void ChronicHazards::RemoveInfraFromHazardZone(EnvContext *pEnvContext)
    {
    // Relocate existing homes/buildings from hazard zone (100-yr flood plain)
    for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
@@ -9256,7 +9288,7 @@ void CoastalHazards::RemoveInfraFromHazardZone(EnvContext *pEnvContext)
       } // end each IDU
    } // end RemoveFromHazardZone
 
-void CoastalHazards::RemoveFromSafestSite()
+void ChronicHazards::RemoveFromSafestSite()
    {
    /*for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
    {
@@ -9274,7 +9306,7 @@ void CoastalHazards::RemoveFromSafestSite()
    } */
    } // end RemoveFromSafestSite
 
-bool CoastalHazards::LoadXml(LPCTSTR filename)
+bool ChronicHazards::LoadXml(LPCTSTR filename)
    {
    CString fullPath;
    PathManager::FindPath(filename, fullPath);
@@ -9289,9 +9321,13 @@ bool CoastalHazards::LoadXml(LPCTSTR filename)
       }
 
    // start iterating through the nodes
-   TiXmlElement *pXmlRoot = doc.RootElement();  // coastalhazards
+   TiXmlElement *pXmlRoot = doc.RootElement();  // <chronic_hazards>
    if (pXmlRoot == NULL)
       return false;
+
+   int flags = -1;
+   if (pXmlRoot->Attribute("flags", &flags) != NULL)
+      m_runFlags = flags;
 
    // envx file directory, slash-terminated
    CString projDir = PathManager::GetPath(PM_PROJECT_DIR);
@@ -9313,6 +9349,7 @@ bool CoastalHazards::LoadXml(LPCTSTR filename)
       { "findSafeSiteCell",  TYPE_INT,     &m_findSafeSiteCell,             true,    0 },
       { "erosionInputDir",   TYPE_STRING,  &erosionInputDir,                true,    0 },
       { "twlInputDir",       TYPE_STRING,  &twlInputDir,                    true,    0 },
+      { "transect_lookup",   TYPE_CSTRING, &m_transectLookupFile,           true,    0 },
       { "bathymetry",        TYPE_CSTRING, &m_bathyFiles,                   true,    0 },
       { "exportMapInterval", TYPE_INT,     &m_exportMapInterval,            true,    0 },
       { "simulationCount",   TYPE_INT,     &m_simulationCount,              true,    0 },
@@ -9334,7 +9371,7 @@ bool CoastalHazards::LoadXml(LPCTSTR filename)
    if (TiXmlGetAttributes(pXmlTWL, twlAttrs, filename) == false)
       {
       CString msg;
-      msg.Format(_T("CoastalHazards: Misformed <twl> element while reading in %s"), filename);
+      msg.Format(_T("ChronicHazards: Misformed <twl> element while reading in %s"), filename);
       Report::ErrorMsg(msg);
       return false;
       }
@@ -9427,7 +9464,7 @@ bool CoastalHazards::LoadXml(LPCTSTR filename)
       { "AvgDuneWidth",      TYPE_FLOAT,     &m_avgDuneWidth,       false,   0 },
       { "RebuildFactor",     TYPE_INT,       &m_rebuildFactorSPS,   true,    0 },
       { "FloodCount",        TYPE_INT,       &m_floodCountSPS,      true,    0 },
-      { NULL,               TYPE_NULL,       NULL                   false,   0 } };
+      { NULL,               TYPE_NULL,       NULL,                  false,   0 } };
 
    if (TiXmlGetAttributes(pXmlSPSPolicy, SPSAttrs, filename) == false)
       return false;
@@ -9452,31 +9489,31 @@ bool CoastalHazards::LoadXml(LPCTSTR filename)
    if (TiXmlGetAttributes(pXmlTWLcosts, costAttrs, filename) == false)
       return false;
 
-
-   // flooded areas
-   TiXmlElement *pXmlFloodAreas = pXmlRoot->FirstChildElement("flood_areas");
-   if (pXmlFloodAreas != NULL)
+   if (m_runFlags & CH_MODEL_FLOODING)
       {
-      // take care of any constant expressions
-      TiXmlElement *pXmlFloodArea = pXmlFloodAreas->FirstChildElement(_T("flood_area"));
-      while (pXmlFloodArea != NULL)
+      // flooded areas
+      TiXmlElement* pXmlFloodAreas = pXmlRoot->FirstChildElement("flood_areas");
+      if (pXmlFloodAreas != NULL)
          {
-         FloodArea *pFloodArea = FloodArea::LoadXml(pXmlFloodArea, filename, m_pMap);
-
-         if (pFloodArea != NULL)
+         // take care of any constant expressions
+         TiXmlElement* pXmlFloodArea = pXmlFloodAreas->FirstChildElement(_T("flood_area"));
+         while (pXmlFloodArea != NULL)
             {
-            m_floodAreaArray.Add(pFloodArea);
+            FloodArea* pFloodArea = FloodArea::LoadXml(pXmlFloodArea, filename, m_pMap);
 
-            CString msg("  FloodArea: Loaded Flood Grid for layer ");
-            msg += pFloodArea->m_cellTypeGridName;
-            Report::Log(msg);
+            if (pFloodArea != NULL)
+               {
+               m_floodAreaArray.Add(pFloodArea);
+
+               CString msg("  FloodArea: Loaded Flood Grid for layer ");
+               msg += pFloodArea->m_cellTypeGridName;
+               Report::Log(msg);
+               }
+
+            pXmlFloodArea = pXmlFloodArea->NextSiblingElement(_T("flood_area"));
             }
-
-         pXmlFloodArea = pXmlFloodArea->NextSiblingElement(_T("flood_area"));
          }
       }
-
-
 
 
    // m_period = PERIOD_ANNUAL;
@@ -9493,7 +9530,7 @@ bool CoastalHazards::LoadXml(LPCTSTR filename)
    } // end LoadXml
 
 
-double CoastalHazards::Maximum(double *dat, int length)
+double ChronicHazards::Maximum(double *dat, int length)
    {
 
    double max = -9999;
@@ -9507,7 +9544,7 @@ double CoastalHazards::Maximum(double *dat, int length)
    return max;
    }
 
-double CoastalHazards::Minimum(double *dat, int length)
+double ChronicHazards::Minimum(double *dat, int length)
 
    {
 
@@ -9522,7 +9559,7 @@ double CoastalHazards::Minimum(double *dat, int length)
    return min;
    }
 
-void CoastalHazards::Mminvinterp(double *x, double *y, double *&xo, int length)
+void ChronicHazards::Mminvinterp(double *x, double *y, double *&xo, int length)
    {
    // MMINVINTERP 1-D Inverse Interpolation. From the text "Mastering MATLAB 7"
    // [Xo, Yo]=MMINVINTERP(X,Y,Yo) linearly interpolates the vector Y to find
@@ -9567,7 +9604,7 @@ void CoastalHazards::Mminvinterp(double *x, double *y, double *&xo, int length)
 // Ref : Hunt, J.N., 1979. Direct solution of wave dispersion equation. J.
 // Waterw., Port, CoastalOcean Dlv., Am.Soc.Civ.Eng. 105(4),
 // 457 - 459.
-double CoastalHazards::CalculateCelerity2(float waterLevel, float wavePeriod, double &kh)
+double ChronicHazards::CalculateCelerity2(float waterLevel, float wavePeriod, double &kh)
    {
    double celerity;
 
@@ -9604,7 +9641,7 @@ double CoastalHazards::CalculateCelerity2(float waterLevel, float wavePeriod, do
    }
 
 
-float CoastalHazards::CalculateCelerity(float waterLevel, float wavePeriod, float &n)
+float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, float &n)
    {
    // The calculation below solves the dispersion relation for water waves. 
    // The Newton-Rhapson method is used to solve the equation.
@@ -9648,7 +9685,7 @@ float CoastalHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
    } // end CalculateCelerity
 
      // Runs the Bates flooding model returning the number of grid cells flooded and the area flooded
-     //////////double CoastalHazards::GenerateBatesFloodMap(int &floodedCount)
+     //////////double ChronicHazards::GenerateBatesFloodMap(int &floodedCount)
      //////////   {
      //////////   m_pFloodedGrid->SetAllData(0, false);
      //////////
@@ -9801,7 +9838,7 @@ float CoastalHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
      //////////
      //////////   } // end GenerateBatesFloodMap
      //////////
-     //////////bool CoastalHazards::CalculateFourQs(int row, int col, double &flux)
+     //////////bool ChronicHazards::CalculateFourQs(int row, int col, double &flux)
      //////////   {
      //////////   //   CString msg;
      //////////
@@ -9932,7 +9969,7 @@ float CoastalHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
      //////////
      //////////   } // end CalculateFourQs
      //////////
-     //////////bool CoastalHazards::InitializeWaterElevationGrid()
+     //////////bool ChronicHazards::InitializeWaterElevationGrid()
      //////////   {
      //////////   /********* BEGIN uncomment for testing/debugging creating a flat elevation surface *********/
      //////////
@@ -10231,7 +10268,7 @@ float CoastalHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
      ///////////////////////////////////////////////////////////////////////////
 
 
-bool CoastalHazards::RunFloodAreas(EnvContext *pContext)
+bool ChronicHazards::RunFloodAreas(EnvContext *pContext)
    {
    for (int i = 0; i < m_floodAreaArray.GetSize(); i++)
       {
@@ -10246,7 +10283,7 @@ bool CoastalHazards::RunFloodAreas(EnvContext *pContext)
    }
 
 
-bool CoastalHazards::InitializeFloodGrids(EnvContext *pContext, FloodArea *pFloodArea)
+bool ChronicHazards::InitializeFloodGrids(EnvContext *pContext, FloodArea *pFloodArea)
    {
    // first, make sure required grids are available
    if (pFloodArea->m_pElevationGrid == NULL)
@@ -10401,7 +10438,7 @@ bool CoastalHazards::InitializeFloodGrids(EnvContext *pContext, FloodArea *pFloo
 
 
 
-double CoastalHazards::GenerateEelgrassMap(int &eelgrassCount)
+double ChronicHazards::GenerateEelgrassMap(int &eelgrassCount)
    {
    if (m_pEelgrassGrid == NULL)
       {
@@ -10495,7 +10532,7 @@ double CoastalHazards::GenerateEelgrassMap(int &eelgrassCount)
 // If the magnitudes from the interpolated value are equal,
 // method returns the first row encountered during the search (the lesser row in the case of the forward search and the greater row in the case of the reverse search)
 
-double CoastalHazards::IGet(DDataObj *table, double x, int xcol, int ycol/*= 1*/, IMETHOD method/*=IM_LINEAR*/, int startRow/*=0*/, int *returnRow/*=NULL*/, bool forwardSearch/*=true*/)
+double ChronicHazards::IGet(DDataObj *table, double x, int xcol, int ycol/*= 1*/, IMETHOD method/*=IM_LINEAR*/, int startRow/*=0*/, int *returnRow/*=NULL*/, bool forwardSearch/*=true*/)
    {
    double x1;
 
@@ -10628,7 +10665,7 @@ double CoastalHazards::IGet(DDataObj *table, double x, int xcol, int ycol/*= 1*/
 
    } // end IGet
 
-void CoastalHazards::CalculateYrMaxTWL(EnvContext *pEnvContext)
+void ChronicHazards::CalculateYrMaxTWL(EnvContext *pEnvContext)
    {
    m_pNewDuneLineLayer->m_readOnly = false;
    // Determine Yearly Maximum TWL based upon daily TWL calculations at each shoreline location
@@ -11589,7 +11626,7 @@ void CoastalHazards::CalculateYrMaxTWL(EnvContext *pEnvContext)
 
    } // end CalculateYrMaxTWL
 
-bool CoastalHazards::CalculateUTM2LL(MapLayer *pLayer, int point)
+bool ChronicHazards::CalculateUTM2LL(MapLayer *pLayer, int point)
    {
    double easting = 0.0;
    pLayer->GetData(point, m_colEastingToe, easting);
@@ -11613,7 +11650,7 @@ bool CoastalHazards::CalculateUTM2LL(MapLayer *pLayer, int point)
    } // end CalculateUTM2LL
 
 
-bool CoastalHazards::AddToPolicySummary(int year, int policyID, int locator, float unitCost, float cost, float availBudget, float param1, float param2, bool passCostConstraint)
+bool ChronicHazards::AddToPolicySummary(int year, int policyID, int locator, float unitCost, float cost, float availBudget, float param1, float param2, bool passCostConstraint)
    {
    CString policyName;
    switch (policyID)

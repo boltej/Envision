@@ -30,26 +30,6 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) n
 void CaptureException();
 
 
-/*
-Sequence:
-EnvModel:Run()
-   EnvModel::UpdateAppVars()
-   EnvModel::RunAutoPre()  
-      AcuteHazards::Run()
-         if (postevent) 
-            AcuteHazards::Update() -> if event has run, checks for damaged bldgs
-                    that are to be repaired according to repair policy (BLDGDAMAGE < 0), and resets
-                    them to a repaired state if repairYrs == 0.  For multiyear repairs, reduce repairYrs
-                    by one.
-         if (eventScheduled) 
-            AHEvent::Run() - runs model, writes repairCost, repairYrs, bldgDamage
-         
-         -> DeltaArray appled here
-
-   EnvModel::RunGlobalConstraints() -> resets global constraints
-   EnvModel::ApplyMandatoryPolicies() -> selects policies within constraints
-*/
-
 
 
 
@@ -114,7 +94,7 @@ bool AHEvent::Run(EnvContext *pEnvContext)
    char cwd[512];
    _getcwd(cwd, 512);
 
-   _chdir("/Envision/studyAreas/OrCoast/Hazus");
+   _chdir("/Envision/StudyAreas/OrCoast/Hazus");
      
    // add hazus path to system path
    CString code;
@@ -131,6 +111,11 @@ bool AHEvent::Run(EnvContext *pEnvContext)
       }
    catch (...)
       {
+      CString msg("Acute Hazards: Unable to load Python module ");
+      msg += this->m_pyModulePath;
+      msg += ":";
+      msg += this->m_pyModuleName;
+      Report::LogWarning(msg);
       CaptureException();
       }
 
@@ -163,11 +148,23 @@ bool AHEvent::Run(EnvContext *pEnvContext)
 
          if (pRetVal != NULL)
             {
-            //printf("Result of call: %ld\n", PyLong_AsLong(pValue));
+            CString msg("Acute Hazards: Python module ");
+            msg += this->m_pyModulePath;
+            msg += ":";
+            msg += this->m_pyModuleName;
+            msg += " executed successfully";
+            Report::LogInfo(msg);
+
             Py_DECREF(pRetVal);
             }
          else
             {
+            CString msg("Acute Hazards: Unable to execute Python module ");
+            msg += this->m_pyModulePath;
+            msg += ":";
+            msg += this->m_pyModuleName;
+            Report::LogWarning(msg);
+
             CaptureException();
             }
 
@@ -203,26 +200,29 @@ bool AHEvent::Run(EnvContext *pEnvContext)
 bool AHEvent::Propagate(EnvContext *pEnvContext)
    {
    //---------------------
-   // Earthquake first
+   // Building Damage
    //---------------------
    // grab input file generated from damage model (csv)
-   Report::Log("Acute Hazards: reading building damage parameter file");
+   CString msg("Acute Hazards: reading building damage parameter file ");
+   msg += this->m_earthquakeInputPath;
+   Report::Log(msg);
    this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
 
    // pull out needed columns
    PtrArray<HazDataColInfo> eqColInfos;
-   eqColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
-   eqColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
-   eqColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
-   eqColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "DS",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "DS", -1 });
+   eqColInfos.Add(new HazDataColInfo{ "rep_time", -1 });
+   eqColInfos.Add(new HazDataColInfo{ "rep_cost",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "habitable",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "CasSev1",  -1 });  // casuality severitys
+   eqColInfos.Add(new HazDataColInfo{ "CasSev2",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "CasSev3",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "CasSev4",  -1 });
 
    // find the CSV column associated with each statistic type
    for (int i = 0; i < eqColInfos.GetSize(); i++)
       {
       HazDataColInfo *pInfo =  eqColInfos[i];
-
       pInfo->col = this->m_earthquakeData.GetCol(pInfo->field);
       ASSERT(pInfo->col >= 0);
       }
@@ -231,23 +231,25 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    // Repeat for TSUNAMI
    //---------------------
 
-   Report::Log("Acute Hazards: reading building damage parameter file");
+   msg = "Acute Hazards: reading building damage parameter file ";
+   msg += this->m_tsunamiInputPath;
    this->m_tsunamiData.ReadAscii(this->m_tsunamiInputPath, ',', 0);
 
    // pull out needed columns
    PtrArray<HazDataColInfo> tsuColInfos;
-   tsuColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "DS",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "DS", -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "rep_time", -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "rep_cost", -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "habitable",-1 });
+   //tsuColInfos.Add(new HazDataColInfo{ "CasSev1",  -1 });  // casuality severitys
+   //tsuColInfos.Add(new HazDataColInfo{ "CasSev2",  -1 });
+   //tsuColInfos.Add(new HazDataColInfo{ "CasSev3",  -1 });
+   //tsuColInfos.Add(new HazDataColInfo{ "CasSev4",  -1 });
 
    // find the CSV column associated with each statistic type
    for (int i = 0; i < tsuColInfos.GetSize(); i++)
       {
       HazDataColInfo* pInfo = tsuColInfos[i];
-
       pInfo->col = this->m_tsunamiData.GetCol(pInfo->field);
       ASSERT(pInfo->col >= 0);
       }
@@ -258,14 +260,18 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    ASSERT(idus == m_earthquakeData.GetRowCount());
    ASSERT(idus == m_tsunamiData.GetRowCount());
 
-   enum HAZARD_METRIC_INDEX { HMI_P_DS0, HMI_REP_TIME_MU0, HMI_REP_TIME_STD0, HMI_REP_COST_DR0, HMI_HAB_0, HMI_DS };
+   enum HAZARD_METRIC_INDEX { HMI_DS, HMI_REP_TIME, HMI_REP_COST, HMI_HABITABLE, HMI_CASSEV1,
+      HMI_CASSEV2, HMI_CASSEV3, HMI_CASSEV4 };
+   
    int currentYear = pEnvContext->currentYear;
 
-   // we'll start with damage state
+
    for (int idu = 0; idu < idus; idu++)
       {
+      // we'll start with damage state
       int damageIndexEq = (int) m_earthquakeData.Get(eqColInfos[HMI_DS]->col, idu);
       int damageIndexTsu = (int) m_tsunamiData.Get(tsuColInfos[HMI_DS]->col, idu);
+
       damageIndexTsu--;  // TEMPORARY
       int damageIndex = max(damageIndexEq, damageIndexTsu);
       if (damageIndexEq == damageIndexTsu && damageIndex < 4)
@@ -278,19 +284,12 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       // was the building damaged? Then set repair time in IDUs
       if (damageIndex > 0)
          {
-         float mean=0, std = 0,timeToRepair=0;
+         float timeToRepair=0;
          if (damageIndexEq > damageIndexTsu)
-            {
-            mean = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
-            std = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
-            }
+            timeToRepair = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME]->col, idu);
          else
-            {
-            mean = m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
-            std =  m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
-            }
+            timeToRepair = m_tsunamiData.Get(eqColInfos[HMI_REP_TIME]->col, idu);
 
-         timeToRepair = (float)m_pAHModel->m_randLogNormal.RandValue(mean, std);  // TEMPORARY
          int yearsToRepair = int(timeToRepair / 365);
          //yearsToRepair++;    // round up
          // for time to restore, we populate the following fields:
@@ -300,31 +299,170 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
          m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgStatus, 1, ADD_DELTA);
 
          // repair costs
-         float repCostFrac = m_earthquakeData.Get(eqColInfos[HMI_REP_COST_DR0]->col + damageIndex, idu);
+         float repCost = m_earthquakeData.Get(eqColInfos[HMI_REP_COST]->col, idu);
 
-         ASSERT(repCostFrac > 0);
-         if (repCostFrac > 0)
+         //ASSERT(repCost > 0);
+         if (repCost > 0)
             {
-            ASSERT(repCostFrac < 1);
             // for time to restore, we populate the following fields:
             // IDU field "BD_REPAIR" (float) - cost of any repair ($1000's of $)
             float impValue = 0;
             pIDULayer->GetData(idu, m_pAHModel->m_colIduImprValue, impValue);
-            float repairCost = impValue * repCostFrac / 1000000.0f;  // M$, since that's what the budget is
-            m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairCost, repairCost, ADD_DELTA);
+            //float repairCost = impValue * repCostFrac / 1000000.0f;  // M$, since that's what the budget is
+            float repCostM = repCost / 1000000.0f;  // M$, since that's what the budget is
+            m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairCost, repCostM, ADD_DELTA);
             } 
          
          // habitable
-         float randVal = (float) m_pAHModel->m_randUniform.RandValue();
-         float pHab = m_earthquakeData.Get(eqColInfos[HMI_HAB_0]->col + damageIndex, idu);
+         float randVal = (float) m_pAHModel->m_randUniform.RandValue();   // 0-1
+         float pHab = m_earthquakeData.Get(eqColInfos[HMI_HABITABLE]->col, idu);
 
          int habitable = (randVal >= pHab) ? 0 : 1;    
          m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduHabitable, habitable, ADD_DELTA);
          }  // end of: if ( damageIndex > 0 )
 
+      // life safety next
+      float casSev1 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV1]->col, idu);  // people
+      float casSev2 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV2]->col, idu);
+      float casSev3 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV3]->col, idu);
+      float casSev4 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV4]->col, idu);
+      float casTotal = casSev1 + casSev2 + casSev3 + casSev4;
+      m_pAHModel->m_numCasSev1 += casSev1;
+      m_pAHModel->m_numCasSev2 += casSev2;
+      m_pAHModel->m_numCasSev3 += casSev3;
+      m_pAHModel->m_numCasSev4 += casSev4;
+
+      m_pAHModel->m_numCasTotal += casTotal;
+
+      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduCasualties, casTotal, ADD_DELTA);
       }  // end of: for each IDU
-   
+
    return true;
+
+
+/////   //---------------------
+/////   // Earthquake first
+/////   //---------------------
+/////   // grab input file generated from damage model (csv)
+/////   Report::Log("Acute Hazards: reading building damage parameter file");
+/////   this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
+/////
+/////   // pull out needed columns
+/////   PtrArray<HazDataColInfo> eqColInfos;
+/////   eqColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
+/////   eqColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
+/////   eqColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
+/////   eqColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
+/////   eqColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
+/////   eqColInfos.Add(new HazDataColInfo{ "DS",  -1 });
+/////
+/////   // find the CSV column associated with each statistic type
+/////   for (int i = 0; i < eqColInfos.GetSize(); i++)
+/////      {
+/////      HazDataColInfo *pInfo =  eqColInfos[i];
+/////
+/////      pInfo->col = this->m_earthquakeData.GetCol(pInfo->field);
+/////      ASSERT(pInfo->col >= 0);
+/////      }
+/////
+/////   //---------------------
+/////   // Repeat for TSUNAMI
+/////   //---------------------
+/////
+/////   Report::Log("Acute Hazards: reading building damage parameter file");
+/////   this->m_tsunamiData.ReadAscii(this->m_tsunamiInputPath, ',', 0);
+/////
+/////   // pull out needed columns
+/////   PtrArray<HazDataColInfo> tsuColInfos;
+/////   tsuColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
+/////   tsuColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
+/////   tsuColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
+/////   tsuColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
+/////   tsuColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
+/////   tsuColInfos.Add(new HazDataColInfo{ "DS",  -1 });
+/////
+/////   // find the CSV column associated with each statistic type
+/////   for (int i = 0; i < tsuColInfos.GetSize(); i++)
+/////      {
+/////      HazDataColInfo* pInfo = tsuColInfos[i];
+/////
+/////      pInfo->col = this->m_tsunamiData.GetCol(pInfo->field);
+/////      ASSERT(pInfo->col >= 0);
+/////      }
+/////
+/////   // iterate through IDUs, populating data on hazard states as needed
+/////   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+/////   int idus = pIDULayer->GetRowCount();
+/////   ASSERT(idus == m_earthquakeData.GetRowCount());
+/////   ASSERT(idus == m_tsunamiData.GetRowCount());
+/////
+/////   enum HAZARD_METRIC_INDEX { HMI_P_DS0, HMI_REP_TIME_MU0, HMI_REP_TIME_STD0, HMI_REP_COST_DR0, HMI_HAB_0, HMI_DS };
+/////   int currentYear = pEnvContext->currentYear;
+/////
+/////   // we'll start with damage state
+/////   for (int idu = 0; idu < idus; idu++)
+/////      {
+/////      int damageIndexEq = (int) m_earthquakeData.Get(eqColInfos[HMI_DS]->col, idu);
+/////      int damageIndexTsu = (int) m_tsunamiData.Get(tsuColInfos[HMI_DS]->col, idu);
+/////      damageIndexTsu--;  // TEMPORARY
+/////      int damageIndex = max(damageIndexEq, damageIndexTsu);
+/////      if (damageIndexEq == damageIndexTsu && damageIndex < 4)
+/////         damageIndex++;
+/////
+/////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageEq, damageIndexEq, ADD_DELTA);
+/////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageTsu, damageIndexTsu, ADD_DELTA);
+/////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamage, damageIndex, ADD_DELTA);
+/////
+/////      // was the building damaged? Then set repair time in IDUs
+/////      if (damageIndex > 0)
+/////         {
+/////         float mean=0, std = 0,timeToRepair=0;
+/////         if (damageIndexEq > damageIndexTsu)
+/////            {
+/////            mean = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
+/////            std = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
+/////            }
+/////         else
+/////            {
+/////            mean = m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
+/////            std =  m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
+/////            }
+/////
+/////         timeToRepair = (float)m_pAHModel->m_randLogNormal.RandValue(mean, std);  // TEMPORARY
+/////         int yearsToRepair = int(timeToRepair / 365);
+/////         //yearsToRepair++;    // round up
+/////         // for time to restore, we populate the following fields:
+/////         // IDU field "REPAIR_YRS" (int) - put the year the building will be restored
+/////         // IDU field "BLDG_STATUS" (int) - put the year the building status (0=normal, 1=being restored, 2=uninhabitable)
+/////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairYrs, yearsToRepair, ADD_DELTA);
+/////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgStatus, 1, ADD_DELTA);
+/////
+/////         // repair costs
+/////         float repCostFrac = m_earthquakeData.Get(eqColInfos[HMI_REP_COST_DR0]->col + damageIndex, idu);
+/////
+/////         ASSERT(repCostFrac > 0);
+/////         if (repCostFrac > 0)
+/////            {
+/////            ASSERT(repCostFrac < 1);
+/////            // for time to restore, we populate the following fields:
+/////            // IDU field "BD_REPAIR" (float) - cost of any repair ($1000's of $)
+/////            float impValue = 0;
+/////            pIDULayer->GetData(idu, m_pAHModel->m_colIduImprValue, impValue);
+/////            float repairCost = impValue * repCostFrac / 1000000.0f;  // M$, since that's what the budget is
+/////            m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairCost, repairCost, ADD_DELTA);
+/////            } 
+/////         
+/////         // habitable
+/////         float randVal = (float) m_pAHModel->m_randUniform.RandValue();
+/////         float pHab = m_earthquakeData.Get(eqColInfos[HMI_HAB_0]->col + damageIndex, idu);
+/////
+/////         int habitable = (randVal >= pHab) ? 0 : 1;    
+/////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduHabitable, habitable, ADD_DELTA);
+/////         }  // end of: if ( damageIndex > 0 )
+/////
+/////      }  // end of: for each IDU
+/////   
+/////   return true;
    }
 
 
@@ -358,6 +496,11 @@ AcuteHazards::AcuteHazards(void)
       , m_pctInhabitableStructures(0)
       , m_nFunctionalBldgs(0)
       , m_pctFunctionalBldgs(0)
+      , m_numCasSev1(0)
+      , m_numCasSev2(0)
+      , m_numCasSev3(0)
+      , m_numCasSev4(0)
+      , m_numCasTotal(0)
    { }
 
 AcuteHazards::~AcuteHazards(void)
@@ -385,6 +528,7 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->CheckCol(pIDULayer, m_colIduBldgDamageEq, "BLDGDMGEQ", TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduBldgDamageTsu, "BLDGDMGTS", TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduRemoved, "REMOVED", TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(pIDULayer, m_colIduCasualties, "CASUALTIES", TYPE_FLOAT, CC_AUTOADD);
 
    // initialize column info
    pIDULayer->SetColData(m_colIduRepairYrs, VData(-1), true);
@@ -420,6 +564,12 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("Total No. Bldgs Damaged", m_nDamaged, "");
    this->AddOutputVar("Bldgs Repaired", m_bldgsRepaired, "");
    this->AddOutputVar("Bldgs Being Repaired", m_bldgsBeingRepaired, "");
+   // life safety
+   this->AddOutputVar("Casulties (Severity 1)", m_numCasSev1, "" );
+   this->AddOutputVar("Casulties (Severity 2)", m_numCasSev2, "" );
+   this->AddOutputVar("Casulties (Severity 3)", m_numCasSev3, "" );
+   this->AddOutputVar("Casulties (Severity 4)", m_numCasSev4, "" );
+   this->AddOutputVar("Casulties (Total)", m_numCasTotal, "");
 
    InitPython();
 

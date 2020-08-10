@@ -1031,15 +1031,17 @@ class  LIBSAPI  MapLayer
 
    protected:
       float AddExpandPoly(int idu, CArray< int, int > &expandArray, int colValue, VData &value, OPERATOR op, int colArea, bool &addToPool, float areaSoFar, float maxArea);
+      float AddExpandPolyFromQuery(int idu, CArray< int, int >& expandArray, Query* pQuery, int colArea, bool& addToPool, float areaSoFar, float maxArea);
 
    public:
       float GetExpandPolysFromAttr(int idu, int colValue, VData &value, OPERATOR op, int areaCol, float maxExpandArea, CArray< int, int > &expandArray);
+      float GetExpandPolysFromQuery(int idu, Query* pPatchQuery, int colArea, float maxExpandArea, /* bool* visited,*/ CArray< int, int >& expandArray);
 
       bool IsNextTo(int poly0, int poly1);
       int  GetNextToPolys(int poly, CArray< int, int > &nextToArray);
 
-      int GetPatchSizes(int colValue, VData &value, OPERATOR op, int colArea, Query *pAreaToConsider, CArray< float, float > patchSizeArray);
-
+      int GetPatchSizes(Query *pPatchQuery, int colArea, CArray< float, float >& patchSizeArray);
+      int GetPatchSizes(int colValue, VData& value, OPERATOR op, int colArea, Query* pAreaToConsider, CArray< float, float >& patchSizeArray);
 
       ////////////////////
       // dynamic map stuff

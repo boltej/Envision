@@ -88,6 +88,7 @@ Copywrite 2012 - Oregon State University
 #include <fstream>
 #include <iomanip>
 #include <path.h>
+#include <PathManager.h>
 #include <folderdlg.h>
 #include "TextToIdDlg.h"
 #include "IntersectDlg.h"
@@ -309,6 +310,8 @@ BEGIN_MESSAGE_MAP(CEnvDoc, CDocument)
    ON_COMMAND(ID_DATA_RECLASS,            &CEnvDoc::OnDataReclass)
    ON_COMMAND(ID_DATA_IDUINDEX,           &CEnvDoc::OnDataPopulateIduIndex)
    ON_COMMAND(ID_DATA_HISTOGRAM,          &CEnvDoc::OnDataHistogram)
+   ON_COMMAND(ID_DATA_IDUDOC,             &CEnvDoc::OnDataGenerateFieldDocumentation)
+
 
    // Analysis menu
    ON_COMMAND(ID_MAP_AREASUMMARY,         &CEnvDoc::OnMapAreaSummary)
@@ -3569,6 +3572,248 @@ int CEnvDoc::ReconcileDataTypes(void)
       }
 
    return 1;
+   }
+
+struct ENV_FIELD_DOC_INFO
+   {
+   LPCTSTR field;
+   MAP_FIELD_INFO *pInfo;
+   TYPE fieldType;
+   CStringArray usedBy;
+   CStringArray popBy;
+   };
+
+bool ExtractUsedColInfo(EnvProcess* pProcess, LPCTSTR field);
+bool ExtractPopColInfo(EnvProcess* pProcess, LPCTSTR field);
+
+void CEnvDoc::OnDataGenerateFieldDocumentation()
+   {
+   PtrArray<ENV_FIELD_DOC_INFO> fdiArray;
+   
+   // basic idea - using envx file entries, generate a document describing every field in the IDU database
+   MapLayer* pIDULayer = this->m_model.m_pIDULayer;
+
+   int cols = pIDULayer->GetColCount();
+
+   for (int col = 0; col < cols; col++)
+      {
+      ENV_FIELD_DOC_INFO* pFDI = new ENV_FIELD_DOC_INFO;
+      fdiArray.Add( pFDI );
+
+      pFDI->field = pIDULayer->GetFieldLabel(col);
+      pFDI->fieldType = pIDULayer->GetFieldType(col);
+      pFDI->pInfo = pIDULayer->FindFieldInfo(pFDI->field);           // field is the name of the database field 
+
+      // used by next
+      // basic idea - look through: 1) plugin source CheckCols class, 2) plugin input files, 3) policies, looking for this field
+
+      for (int i=0; i < m_model.GetEvaluatorCount(); i++)
+         {
+         EnvProcess *pModel = (EnvProcess*) m_model.GetEvaluatorInfo(i);
+         bool usedBy = ExtractUsedColInfo(pModel, pFDI->field);
+         if (usedBy)
+            pFDI->usedBy.Add(pModel->m_name);
+
+         bool popBy = ExtractPopColInfo(pModel, pFDI->field);
+         if (popBy)
+            pFDI->popBy.Add(pModel->m_name);
+         }
+
+      for (int i = 0; i < m_model.GetModelProcessCount(); i++)
+         {
+         EnvProcess* pModel = (EnvProcess*)m_model.GetModelProcessInfo(i);
+         bool usedBy = ExtractUsedColInfo(pModel, pFDI->field);
+         if (usedBy)
+            pFDI->usedBy.Add(pModel->m_name);
+
+         bool popBy = ExtractPopColInfo(pModel, pFDI->field);
+         if (popBy)
+            pFDI->popBy.Add(pModel->m_name);
+         }
+
+      // check policies
+      int policyCount = gpPolicyManager->GetPolicyCount();
+      for (int i = 0; i < policyCount; i++)
+         {
+         Policy* pPolicy = gpPolicyManager->GetPolicy(i);
+         if (pPolicy->m_siteAttrStr.Find((LPCTSTR)pFDI->field) >= 0)
+            {
+            pFDI->usedBy.Add("Policies");
+            break;
+            }
+         }
+
+      for (int i = 0; i < policyCount; i++)
+         {
+         Policy* pPolicy = gpPolicyManager->GetPolicy(i);
+         if (pPolicy->m_outcomeStr.Find((LPCTSTR)pFDI->field) >= 0)
+            {
+            pFDI->popBy.Add("Policies");
+            break;
+            }
+         }
+      }
+
+   // write results out to file
+   CString path(PathManager::GetPath(PM_PROJECT_DIR));
+   path += "FieldSummary.csv";
+   ofstream outfile;
+   outfile.open(path);
+   CString line;
+   outfile << "Field,Label,Description,Type,idu.xml?,Populated By,Used By\n";
+   for (int i = 0; i < fdiArray.GetSize(); i++)
+      {
+      ENV_FIELD_DOC_INFO* pInfo = fdiArray[i];
+      CString usedBy;
+      CString popBy;
+
+      for (int j = 0; j < pInfo->usedBy.GetSize(); j++)
+         {
+         usedBy += pInfo->usedBy[j];
+         usedBy += "; ";
+         }
+
+      for (int j = 0; j < pInfo->popBy.GetSize(); j++)
+         {
+         popBy += pInfo->popBy[j];
+         popBy += "; ";
+         }
+
+      CString desc("");
+      if (pInfo->pInfo)
+         {
+         desc = pInfo->pInfo->description;
+         desc.Replace(',', ';');
+         }
+      CString label("");
+      if (pInfo->pInfo)
+         {
+         label = pInfo->pInfo->label;
+         label.Replace(',', ';');
+         }
+
+      line.Format("%s,%s,%s,%s,%c,%s,%s\n", (LPCTSTR)pInfo->field,
+         (LPCTSTR) label, (LPCTSTR) desc,
+         GetTypeLabel(pInfo->fieldType),
+         pInfo->pInfo ? 'X' : ' ', (LPCTSTR)popBy, (LPCTSTR)usedBy         
+         );
+      outfile << line;
+      }
+   outfile.close();
+   return;
+   }
+
+bool ExtractUsedColInfo( EnvProcess *pProcess, LPCTSTR field)
+   {
+   // is initInfo an xml file?
+   LPCTSTR initInfo = pProcess->m_initInfo;
+
+   bool found = false;
+   
+   nsPath::CPath path(initInfo);
+   CString ext = path.GetExtension();
+   if (ext.CompareNoCase(_T("xml")) == 0)
+      {
+      CString path;
+      PathManager::FindPath(initInfo, path);
+
+      std::ifstream t(path);
+      std::stringstream buffer;
+      buffer << t.rdbuf();
+      std::string contents = buffer.str();
+      std::size_t pos = contents.find(field);
+
+      if (pos != string::npos)
+         found = true;
+      }
+
+   // is it in a CheckCol in the source?
+   CString srcPath = "/Envision/Source/Plugins/";
+   srcPath += pProcess->m_name;
+   srcPath += _T("/");
+   srcPath += pProcess->m_name;
+   srcPath += _T(".cpp");
+
+   //std::ifstream t(path);
+   //std::stringstream buffer;
+   //buffer << t.rdbuf();
+   //std::string contents = buffer.str();
+   //std::size_t pos = contents.find(field);
+   //if (pos != string::npos)
+   //   found = true;
+
+   std::string line;
+   std::ifstream f(srcPath);
+   CString qField;
+   qField.Format("\"%s\"", (LPCTSTR)field);
+
+   while (getline(f, line))
+      {
+      if (line.find("CheckCol") != string::npos  && line.find("CC_MUST_EXIST") != string::npos && line.find(qField) != string::npos)
+         {
+         found = true;
+         break;
+         }
+      }
+
+   return found;
+   }
+
+
+bool ExtractPopColInfo(EnvProcess* pProcess, LPCTSTR field)
+   {
+   // is initInfo an xml file?
+   LPCTSTR initInfo = pProcess->m_initInfo;
+
+   bool found = false;
+
+   //nsPath::CPath path(initInfo);
+   //CString ext = path.GetExtension();
+   //if (ext.CompareNoCase(_T("xml")) == 0)
+   //   {
+   //   CString path;
+   //   PathManager::FindPath(initInfo, path);
+   //
+   //   std::ifstream t(path);
+   //   std::stringstream buffer;
+   //   buffer << t.rdbuf();
+   //   std::string contents = buffer.str();
+   //   std::size_t pos = contents.find(field);
+   //
+   //   if (pos != string::npos)
+   //      found = true;
+   //   }
+
+   // is it in a CheckCol in the source?
+   CString srcPath = "/Envision/Source/Plugins/";
+   srcPath += pProcess->m_name;
+   srcPath += _T("/");
+   srcPath += pProcess->m_name;
+   srcPath += _T(".cpp");
+
+   //std::ifstream t(path);
+   //std::stringstream buffer;
+   //buffer << t.rdbuf();
+   //std::string contents = buffer.str();
+   //std::size_t pos = contents.find(field);
+   //if (pos != string::npos)
+   //   found = true;
+
+   std::string line;
+   std::ifstream f(srcPath);
+   CString qField;
+   qField.Format("\"%s\"", (LPCTSTR)field);
+
+   while (getline(f, line))
+      {
+      if (line.find("CheckCol") != string::npos && line.find("CC_AUTOADD") != string::npos && line.find(qField) != string::npos)
+         {
+         found = true;
+         break;
+         }
+      }
+
+   return found;
    }
 
 

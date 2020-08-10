@@ -613,7 +613,7 @@ GDALDatasetH GDALWrapper::Open(const char *filename , GDALAccess)
       {
       CString msg( "GDALWrapper::Open cannot register drivers, check path to gdalplugins DLLs" );
       Report::ErrorMsg( msg );
-      return false;
+      return NULL;
       }
 
    return m_OpenFn(filename,GA_ReadOnly);

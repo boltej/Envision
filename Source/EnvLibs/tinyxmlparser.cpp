@@ -767,7 +767,7 @@ const char* TiXmlDocument::Parse( const char* p, TiXmlParsingData* prevData, TiX
 	}
 
     p = SkipWhiteSpace( p, encoding );
-	if ( !p )
+	if ( p == NULL || *p == NULL)
 	{
 		SetError( TIXML_ERROR_DOCUMENT_EMPTY, 0, 0, TIXML_ENCODING_UNKNOWN );
 		return 0;

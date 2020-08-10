@@ -15,6 +15,7 @@ class _EXPORT EOHabitat : public EnvModelProcess
    public:
       EOHabitat()
          : EnvModelProcess()
+         , m_enableMaxPatchSize(true)
          , m_scenario(EOH_STATUS_QUO)
          // , m_pctWetlandCovers({0, 0, 0, 0}),
          // , pctImpervious
@@ -34,8 +35,8 @@ class _EXPORT EOHabitat : public EnvModelProcess
       bool Run(EnvContext* pEnvContext);
 
    protected:
-      float GetMaxPatchSize(MapLayer* pLayer, int wshedID);
-      float ExpandPatch(MapLayer* pLayer, int wshedID, bool visited[], float& sizeSoFar);
+      bool m_enableMaxPatchSize;
+      float GetMaxPatchSize(EnvContext *, int wshedID);
 
       // inputs
       EOH_SCENARIO m_scenario;
