@@ -584,26 +584,10 @@
     <ClInclude Include="UltimateToolbox\OXDllExt.h" />
     <ClInclude Include="UltimateToolbox\OXLayoutManager.h" />
     <ClInclude Include="UltimateToolbox\UTB64Bit.h" />
-    <ClInclude Include="GsTL\univariate_stats\build_cdf.h" />
-    <ClInclude Include="GsTL\cdf\categ_non_param_cdf.h" />
-    <ClInclude Include="GsTL\cdf.h" />
-    <ClInclude Include="GsTL\cdf\cdf_basics.h" />
-    <ClInclude Include="GsTL\cdf\gaussian_cdf.h" />
-    <ClInclude Include="GsTL\utils\gstl_error_messages.h" />
-    <ClInclude Include="GsTL\utils\helper_functions.h" />
-    <ClInclude Include="GsTL\math\indicator_coding.h" />
-    <ClInclude Include="GsTL\cdf\interpolators.h" />
-    <ClInclude Include="GsTL\math\math_functions.h" />
-    <ClInclude Include="GsTL\cdf\non_param_cdf.h" />
-    <ClInclude Include="GsTL\cdf\non_param_pdf.h" />
-    <ClInclude Include="GsTL\math\random_number_generators.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="res\fieldInfoDlg.bmp" />
     <None Include="UltimateToolbox\OXLayoutManager.inl" />
-    <None Include="GsTL\Debug\BuildLog.htm">
-      <DeploymentContent>true</DeploymentContent>
-    </None>
     <None Include="res\analysis_large.bmp" />
     <None Include="res\analysis_small.bmp" />
     <None Include="res\button_end.bmp" />
