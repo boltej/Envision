@@ -157,7 +157,8 @@ class LIBSAPI QNode
 
       // methods
       bool Solve( void );
-      bool IsTerminal( void ) { return m_pLeft == NULL; } // && m_pRight == NULL;
+      bool Invert(void);
+      bool IsTerminal(void) { return (m_pLeft == NULL && m_pRight == NULL); }
       //void Free( void );
 
       bool GetValueAsBool( bool &value ) { return m_value.GetAsBool( value ); }

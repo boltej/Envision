@@ -1,6 +1,27 @@
 #pragma once
 
 
+/* -------------------------
+Sequence:
+EnvModel:Run()
+   EnvModel::UpdateAppVars()
+   EnvModel::RunAutoPre()
+      AcuteHazards::Run()
+         if (postevent)
+            AcuteHazards::Update() -> if event has run, checks for damaged bldgs
+                    that are to be repaired according to repair policy (BLDGDAMAGE < 0), and resets
+                    them to a repaired state if repairYrs == 0.  For multiyear repairs, reduce repairYrs
+                    by one.
+         if (eventScheduled)
+            AHEvent::Run() - runs model, writes repairCost, repairYrs, bldgDamage
+
+         -> DeltaArray appled here
+
+   EnvModel::RunGlobalConstraints() -> resets global constraints
+   EnvModel::ApplyMandatoryPolicies() -> selects policies within constraints
+------------------- */
+
+
 #include <EnvExtension.h>
 #include <PtrArray.h>
 #include <FDATAOBJ.H>
@@ -31,18 +52,30 @@ class AHEvent
       CString m_pyModulePath;
       CString m_pyModuleName;
       CString m_envOutputPath;
-      CString m_envInputPath;
-      CString m_hazardScenario;
-
+      CString m_earthquakeInputPath;
+      CString m_tsunamiInputPath;
+      CString m_earthquakeScenario;
+      CString m_tsunamiScenario;
+      //CString m_pyTransModulePath;
+      //CString m_pyTransModuleName;
+      //CString m_pyTransFunction;
+      
       AcuteHazards *m_pAHModel;
 
       int m_use;          // scenario variable
 
       AH_STATUS m_status;
 
-      FDataObj m_hazData;  // results table
+      FDataObj m_earthquakeData;  // results table
+      FDataObj m_tsunamiData;  // results table
 
-      AHEvent() : m_status(AHS_PRE_EVENT), m_pAHModel(nullptr), m_hazData(U_UNDEFINED) {}
+      AHEvent() 
+         : m_year(-1)
+         , m_status(AHS_PRE_EVENT)
+         , m_pAHModel(nullptr)
+         , m_use(1)
+         , m_earthquakeData(U_UNDEFINED)
+         , m_tsunamiData(U_UNDEFINED) {}
 
       bool Run(EnvContext *pEnvContext);
       bool Propagate(EnvContext *pEnvContext);
@@ -93,9 +126,12 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       int m_colIduBldgStatus;    // BLDGSTATUS  - 0=normal, 1=being restored, 2=uninhabitable
       int m_colIduRepairCost;    // REPAIRCOST  - multiples of $1000
       int m_colIduHabitable;     // HABITABLE    - 0 means building is not habitable and 1 means it can be used
-      int m_colIduBldgDamage;    // BLDGDAMAGE  - damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
-
+      int m_colIduBldgDamage;    // BLDGDAMAGE  - combined damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
+      int m_colIduBldgDamageEq;  // BLDGDMGEQ  - earthquake damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
+      int m_colIduBldgDamageTsu; // BLDGDMGTS  - tsunami damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
+      int m_colIduRemoved;       // REMOVED - buildings removed
       //int m_colBldRestYr;   // BD_REST_YR
+      int m_colIduCasualties;
 
       // exposed outputs
       //float m_annualRepairCosts;
@@ -108,4 +144,18 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       int m_nDamaged5;
       int m_bldgsRepaired;
       int m_bldgsBeingRepaired;
+
+      int m_nInhabitableStructures;
+      float m_pctInhabitableStructures;
+      int m_totalBldgs;
+      int m_nFunctionalBldgs;
+      float m_pctFunctionalBldgs;
+
+      // life safety
+      float m_numCasSev1;
+      float m_numCasSev2;
+      float m_numCasSev3;
+      float m_numCasSev4;
+      float m_numCasTotal;
+
    };

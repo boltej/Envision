@@ -795,13 +795,14 @@ bool QNode::Solve( void )
       }  // end of: IsTerminal();
     
     // non terminal, so handle remaining cases by examining children
-    ASSERT( m_pLeft != NULL );
+    //ASSERT( m_pLeft != NULL );
     ASSERT( m_pRight != NULL );
     
     switch( m_nodeType )
        {
        case AND:   // a logical "AND" node...
        case OR:    // logical "OR" node
+       case NOT:
           return SolveLogical();
              
        case '+':
@@ -882,16 +883,20 @@ void QNode::GetNeighbors( Poly *pPoly, CMap< int, int, bool, bool > &foundPolyMa
 
 bool QNode::SolveLogical( void )
     {
-    bool lvalue;
-    bool ok = m_pLeft->GetValueAsBool( lvalue );
-    
-    if ( !ok )
+    bool lvalue = false;
+    bool rvalue = false;
+    bool ok = false;
+    if (m_nodeType != NOT)
        {
-       _gpQueryEngine->RuntimeError( "Error getting LH boolean value while evaluating 'AND/OR' " );
-       return false;
+       ok = m_pLeft->GetValueAsBool(lvalue);
+
+       if (!ok)
+          {
+          _gpQueryEngine->RuntimeError("Error getting LH boolean value while evaluating 'AND/OR' ");
+          return false;
+          }
        }
     
-    bool rvalue;
     ok = m_pRight->GetValueAsBool( rvalue );
                
     if ( !ok )
@@ -900,10 +905,20 @@ bool QNode::SolveLogical( void )
        return false;
        }
     
-    if ( m_nodeType == AND )
-       m_value = (bool) (lvalue && rvalue);      // make sure vdata can handle this
-    else
-       m_value = (bool) (lvalue || rvalue);
+    switch (m_nodeType)
+       {
+       case AND:
+          m_value = (bool)(lvalue && rvalue);      // make sure vdata can handle this
+          break;
+
+       case OR:
+          m_value = (bool)(lvalue || rvalue);
+          break;
+
+       case NOT:
+          m_value = ! rvalue;
+             break;
+       }
 
     return true;
     }
