@@ -120,14 +120,12 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
             }     
          }
       }
-	pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922.csv");
+   pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv");
    pMnthlyData->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\exchange.csv");
 
-  // Step 4.  Write monthly data into the Calvin DataObjs.  This isn't required, but allows data to show up in Envision
 
-   delete [] pMnthlyData;
-//   delete [] pData;
-   delete [] pExchange;
+   delete pMnthlyData;
+   delete pExchange;
 
 	return -1.0f;
    }

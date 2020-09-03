@@ -415,22 +415,22 @@ bool Calvin::InitPython()
 
 
 	// launch a python instance and run the model
-	wchar_t path[512];
+	wchar_t path[1024];
 
-	//Py_SetProgramName(L"c:\\anaconda3\\envs\\python35\\python");  // argv[0]
-	Py_SetProgramName(L"c://Envision//studyAreas//Calfews//Calvin");
-	Py_SetPythonHome(L"Envision");
-
+	Py_SetProgramName(L"C:\\Users\\kelli\\anaconda3\\envs\\calvin35d\\python");  // argv[0]
+//	Py_SetProgramName(L"python");
+//	Py_SetPythonHome(L"Envision");
+//	Py_SetProgramName(L"Envision");  // argv[0]
 	/*int cx = swprintf(path, 512, L"%hs;%hsbin;%hsScripts;%hsLibrary\\bin;%hsLibrary\\usr\\bin;%hsLibrary\\mingw-w64\\bin;%hsLibrary\\lib;%hsLibrary\\include;%hsDLLs;%hslib;%hs;%hslib\\site-packages;%hsScripts",
 		(LPCTSTR)m_pyModulePath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath,
 		(LPCTSTR)m_pyModulePath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath,
 		(LPCTSTR)m_pyModulePath,(LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath, 
 		(LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath);
-*/
-	int cx = swprintf(path, 512, L"%hs;%hsDLLs;%hslib;%hslib\\site-packages",
+		*/
+	int cx = swprintf(path, 512, L"%hs;%hsLibrary\\bin;%hsDLLs;%hslib;%hslib\\site-packages;%hslibrary",
 		(LPCTSTR)m_pyModulePath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath,
-		(LPCTSTR)m_pythonPath);
-
+		(LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath);
+	
 	Py_SetPath(path);
 	PyImport_AppendInittab("redirection", PyInit_redirection);
 
@@ -453,9 +453,10 @@ sys.stdout = StdoutCatcher()");
 
 	CString code;
 	//code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
-	code.Format("sys.path.append('%s')", (LPCTSTR)"c:\\envision\\studyareas\\calfews\\calvin");
+	code.Format("sys.path.append('%s')", (LPCTSTR)"C:\\Users\\kelli\\anaconda3\\envs\\calvin35d\\Library\\bin");
 	int retVal = PyRun_SimpleString(code);
-
+	FILE* file = _Py_fopen("test.py", "r+");
+	int retVal23 = PyRun_SimpleFile(file, "test.py");
 	int retVa1 = PyRun_SimpleString("import numpy");
 	int retV1 = PyRun_SimpleString("from pyomo.opt import *");
 	int retV9 = PyRun_SimpleString("from pyomo.opt.base.solvers import _extract_version");
