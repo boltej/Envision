@@ -37,5 +37,6 @@ extern YYSTYPE yylval;
 #define CONTAINS 281
 #define AND 282
 #define OR 283
-#define MAPLAYER 284
-#define CAN 285
+#define NOT 284
+#define MAPLAYER 285
+#define CAN 286

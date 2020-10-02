@@ -2,7 +2,7 @@
 
 %{
 #include "stdafx.h"
-#include "libs.h"
+#include "EnvLibs.h"
 #pragma hdrstop
 
 #include <QueryEngine.h>
@@ -30,7 +30,7 @@ int   QIsReserved ( char **p );
 int   QIsFunction( char **p );
 int   QIsFieldCol( char **p );
 MapLayer *QIsMapLayer( char **p );
-QExternal *QIsExtern( char **p );
+QExternal *QIsExternal( char **p );
 char *QParseString( char **p );
 void  QCompilerError( LPCSTR errMsg, LPSTR buffer );
 void  yyerror( const char* );
@@ -64,11 +64,12 @@ int   yylex( void );
 %token <ivalue> FIELD
 %token <ivalue> INDEX NEXTTO NEXTTOAREA WITHIN WITHINAREA EXPAND MOVAVG CHANGED TIME DELTA
 %token <ivalue> EQ LT LE GT GE NE CAND COR CONTAINS 
-%token <ivalue> AND OR
+%token <ivalue> AND OR NOT
 %token <pMapLayer> MAPLAYER
 
 %right AND
 %right OR
+%right NOT
 %left  GE LE EQ NE LT GT CAN COR CONTAINS
 %left FIELD 
 %left  '+' '-'
@@ -113,6 +114,7 @@ querySet:
 
 queryExpr:
    queryExpr logicalOp queryExpr   { $$ = new QNode( $1, $2, $3 ); }
+|  NOT queryExpr                 { $$ = new QNode( (QNode*)NULL, NOT, $2 ); }
 |  conditional                     { $$ = $1; }
 |  '(' queryExpr ')'               { $$ = $2; }
 ;
@@ -224,6 +226,7 @@ const int BUILTIN_FN   = 2;
 KEYWORD fKeywordArray[] = 
 { { OPERATOR,      "and ",       AND  },
   { OPERATOR,      "or ",        OR   },
+  { OPERATOR,      "not ",       NOT   },
   { OPERATOR,      "contains ",  CONTAINS   },
 
   //-- integer constants --//
@@ -482,8 +485,7 @@ cycle:
        gQueryBuffer = p;
        yylval.ivalue = col;
        return EXTERNAL;
-	
-
+       }
 
    // is it a number?
    bool negative = false;
@@ -594,30 +596,31 @@ int QIsFieldCol( char **p )
 // check to see if the string is a External Variable (AppVar).  If so, increment cursor to
 // following character and return variable name (id).  Othewise, do nothing and return -1
 
-QExternal *QIsExternal( char **p )
-   {
-   if ( ! isalpha( (int) (**p ) ) && **p != '_' )	// has to start with alpha or underscore
-      return -1;
+   QExternal *QIsExternal(char **p)
+      {
+      if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
+         return NULL;
 
-	TCHAR name[64];
-	memset( name, 0, 64 );
-	TCHAR *ptr = *p;
-	int index = 0;
-	while (( isalnum( (int) (*ptr ) ) || *ptr == '_' || *ptr == '.'  )	// has to start with alpha or underscore
-		{
-		name[index] = *ptr;
-		ptr++;
-		}
+      TCHAR name[64];
+      memset(name, 0, 64);
+      TCHAR *ptr = *p;
+      int index = 0;
+      while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// has to start with alpha or underscore
+         {
+         name[index] = *ptr;
+         index++;
+         ptr++;
+         }
 
-	// ptr pts to the first position after the name.  See if the name matches an extern id
-	QExternal *pExt = _gpQueryEngine->FindExternal( name );
-	if ( pExt == NULL )
-	   return NULL;
+      // ptr pts to the first position after the name.  See if the name matches an extern id
+      QExternal *pExt = _gpQueryEngine->FindExternal(name);
+      if (pExt == NULL)
+         return NULL;
 
-	// found, so return found external
-	*p = ptr;
-	return pExt;
-	}
+      // found, so return found external
+      *p = ptr;
+      return pExt;
+      }
 
 
 MapLayer *QIsMapLayer( char **p )
@@ -721,7 +724,7 @@ int QIsReserved( char **p )
    int i=0;
    while ( fKeywordArray[ i ].keyword != NULL )
       {
-      char *keyword = fKeywordArray[ i ].keyword;
+      const char *keyword = fKeywordArray[ i ].keyword;
       if ( _strnicmp( *p, keyword, lstrlen( keyword ) ) == 0 )
          {
          *p += lstrlen( keyword );
@@ -774,7 +777,7 @@ void QCompilerError( LPCSTR errorStr, LPSTR buffer )
 
 
 
-void yyerror( char *msg )
+void yyerror( const char *msg )
    {
    QCompilerError( msg, gQueryBuffer );
    }

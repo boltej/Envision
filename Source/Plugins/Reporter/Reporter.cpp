@@ -116,7 +116,7 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
    if ( pInfo == NULL || m_colStratifyField < 0 )
       {
       CString msg;
-      msg.Format( "Reporter:  Field '%s' specified in 'stratify_by' attribute could not be found in the IDU coverage",
+      msg.Format( "Reporter:  Field Information for field '%s' specified in 'stratify_by' attribute could not be found in the IDU coverage",
                   (LPCTSTR) m_stratifyField );
       Report::ErrorMsg( msg );
       return -1;
@@ -308,7 +308,8 @@ bool Reporter::Init( EnvContext *pEnvContext, LPCTSTR initStr )
       if ( pOutput->IsStratified() )
          {
          CString label;
-         label.Format( "%s by %s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
+         ///label.Format( "%s by %s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
+         label.Format("%s", (LPCTSTR)pOutput->m_name); // , (LPCTSTR)pOutput->m_stratifyField);
 
          ASSERT( pOutput->m_pStratifyData != NULL );
 
@@ -372,7 +373,8 @@ bool Reporter::Init( EnvContext *pEnvContext, LPCTSTR initStr )
             if ( pOutput->m_pStratifyData != NULL )  // collecting summarized data?
                {
                CString label;
-               label.Format( "%s by %s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField ); 
+               //label.Format("%s by %s", (LPCTSTR)pOutput->m_name, (LPCTSTR)pOutput->m_stratifyField);
+               label.Format("%s", (LPCTSTR)pOutput->m_name); // , (LPCTSTR)pOutput->m_stratifyField);
                AddOutputVar( label, pOutput->m_pStratifyData, "", 1 );
                }
             }
@@ -514,9 +516,9 @@ bool Reporter::EndRun( EnvContext* )
          {
          CString filename;
 
-         if ( pOutput->IsStratified() )
-            filename.Format( "%s_by_%s_pivot.csv", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );  // (LPCTSTR) m_startTimeStr );
-         else
+         //if ( pOutput->IsStratified() )
+         //   filename.Format( "%s_by_%s_pivot.csv", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );  // (LPCTSTR) m_startTimeStr );
+         //else
             filename.Format( "%s_pivot.csv", (LPCTSTR) pOutput->m_name ); //, (LPCTSTR) m_startTimeStr );
 
          WritePivotData( pOutput->m_pPivotData, filename );
@@ -531,9 +533,9 @@ bool Reporter::EndRun( EnvContext* )
       if ( pGroup->m_pPivotData )
          {
          CString filename;
-         if ( pGroup->IsStratified() )
-            filename.Format( "%s_by_%s_pivot.csv", (LPCTSTR) pGroup->m_name, (LPCTSTR) pGroup->m_stratifyField ); //, (LPCTSTR) m_startTimeStr );
-         else
+         //if ( pGroup->IsStratified() )
+         //   filename.Format( "%s_by_%s_pivot.csv", (LPCTSTR) pGroup->m_name, (LPCTSTR) pGroup->m_stratifyField ); //, (LPCTSTR) m_startTimeStr );
+         //else
             filename.Format( "%s_pivot.csv", (LPCTSTR) pGroup->m_name ); //, (LPCTSTR) m_startTimeStr );
 
          WritePivotData( pGroup->m_pPivotData, filename );
@@ -1225,10 +1227,12 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
          
                CString name;
                if ( pGroup != NULL )
-                  name.Format( "%s-%s_by_%s", (LPCTSTR) pGroup->m_name, (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
-               else            
-                  name.Format( "%s_by_%s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
-         
+                  name.Format("%s-%s", (LPCTSTR)pGroup->m_name, (LPCTSTR)pOutput->m_name); // , (LPCTSTR)pOutput->m_stratifyField);
+                  //name.Format("%s-%s_by_%s", (LPCTSTR)pGroup->m_name, (LPCTSTR)pOutput->m_name, (LPCTSTR)pOutput->m_stratifyField);
+               else
+                  name.Format("%s", (LPCTSTR)pOutput->m_name);// , (LPCTSTR)pOutput->m_stratifyField );
+                  //name.Format("%s_by_%s", (LPCTSTR)pOutput->m_name, (LPCTSTR)pOutput->m_stratifyField);
+
                pOutput->m_pStratifyData->SetName( name );
                pOutput->m_pStratifyData->SetLabel( 0, "Year" );
          
@@ -1262,9 +1266,9 @@ bool BuildPivotTable( Output *pOutput )
    pOutput->m_pPivotData = new VDataObj( cols, 0, U_UNDEFINED);
 
    CString name;
-   if ( pOutput->IsStratified() )
-      name.Format( "%s_by_%s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
-   else
+   //if ( pOutput->IsStratified() )
+   //   name.Format( "%s_by_%s", (LPCTSTR) pOutput->m_name, (LPCTSTR) pOutput->m_stratifyField );
+   //else
       name = pOutput->m_name;
    
    int col = 0;

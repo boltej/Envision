@@ -147,11 +147,14 @@ FIELD_ATTR *MAP_FIELD_INFO::FindAttribute(int value, int *index /*=NULL*/)
    }
 
 
-FIELD_ATTR *MAP_FIELD_INFO::FindAttribute(LPCTSTR value, int *index /*=NULL*/)
+FIELD_ATTR* MAP_FIELD_INFO::FindAttribute(LPCTSTR value, int* index /*=NULL*/)
    {
+   if (value == NULL)
+      return NULL;
+
    for (int i = 0; i < this->GetAttributeCount(); i++)
       {
-      FIELD_ATTR &attr = attributes[i];
+      FIELD_ATTR& attr = attributes[i];
 
       CString _value;
       attr.value.GetAsString(_value);
