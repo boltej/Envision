@@ -1478,12 +1478,12 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
    xx = (int)floor(m_geox);
    yy = (int)floor(m_geoy);
 
-   ASSERT(xx < m_nXSize && yy < m_nYSize);
+   ASSERT(xx <= m_nXSize && yy <= m_nYSize);
    if (xx < 0 || xx >= m_nXSize || yy < 0 || yy >= m_nYSize)
       {
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad centroid (%g,%g) passed in", (float)xcoord, (float)ycoord);
-      Report::ErrorMsg(msg);
+      //Report::ErrorMsg(msg);
       return 0;
       }
 

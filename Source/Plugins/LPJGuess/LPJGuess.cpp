@@ -303,8 +303,6 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		   
       m_gridCellArray.Add(pGridcell);
 
-
-
 		// Initialise certain climate and soil drivers
       pGridcell->climate.initdrivers(pGridcell->get_lat());
 
@@ -368,49 +366,6 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
 
-	//using std::auto_ptr;
-
-
-
-	//auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
-
-	//GuessOutput::OutputModuleContainer output_modules;
-	//GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(output_modules);
-
-
-	//read_instruction_file(instruction_file);
-
-
-
-	//input_module->init();
-	//output_modules.init();
-
-//	print_logfile_heading();
-
-
-//	if (ifnlim && !ifcentury) {
-//		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
-//	}
-
-
-//	if (ifbvoc) {
-//		initbvoc();
-//	}
-
-	/*
-	auto_ptr<GuessSerializer> serializer;
-	auto_ptr<GuessDeserializer> deserializer;
-
-	if (save_state) {
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
-	}
-
-	if (restart) {
-		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
-	}
-	*/
-
-	// int catchmentCount = pFlowContext->pFlowModel->GetCatchmentCount();
 	int hruCount = pFlowContext->pFlowModel->GetHRUCount();
 
 	ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
@@ -460,23 +415,15 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 				if (abort_request_received()) {
 					return 99;
 				}
-
-
-
-
-				// End of loop through simulation days
+			// End of loop through simulation days
 			//}	//while (getclimate())
 
 				//pGridcell->balance.check_period(*pGridcell);
 			}
 			// Advance timer to next simulation day
-
-
 		}
 	}
 	date.next();
-	//Assume each HRU has a array of pointers to guess gridcells
-	//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
 	return TRUE;
 }
 

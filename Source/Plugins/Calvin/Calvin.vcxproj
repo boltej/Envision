@@ -145,7 +145,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;_DEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;C:\users\kelli\anaconda3\envs\shit\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;C:\users\kelli\anaconda3\envs\shit\include;C:\Users\kelli\anaconda3\envs\shit\Lib\site-packages\numpy\core\include\numpy</AdditionalIncludeDirectories>
       <MinimalRebuild />
     </ClCompile>
     <Link>

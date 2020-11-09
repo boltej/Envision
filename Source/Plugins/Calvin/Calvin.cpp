@@ -13,13 +13,25 @@
 #include <FDataObj.h>
 #include <Vdataobj.h>
 
+#define NPY_NO_DEPRECATED_APINPY_1_7_API_VERSION
+#define PY_ARRAY_UNIQUE_SYMBOL cool_ARRAY_API
+
+
+
 #ifdef _DEBUG
 #undef _DEBUG
 #include <python.h>
+#include <arrayobject.h> // numpy!
+#include <iostream>
 #define _DEBUG
 #else
 #include <python.h>
+#include <arrayobject.h> // numpy!
+#include <iostream>
 #endif
+
+#pragma warning( disable : 4789 )
+
 using namespace std;
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -101,10 +113,108 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
 	InitPython();
 
+	// Name of input-file
+	char pyfilename[] = "testfile";
+
+	// set up the C API's function-pointer table.  needed to use numpy
+	import_array();
+	// load input-file
+	PyObject* pyName = PyUnicode_FromString(pyfilename); //Create a Unicode object from a UTF-8 encoded null-terminated char buffer u.
+	PyObject* pyModule = PyImport_Import(pyName);
+
+	// import my numpy array object
+	char pyarrayname[] = "calvin_data_2";
+	//PyObject_GetAttrString: Retrieve an attribute named attr_name from object o
+	//calvin_data is an attribute of the imported python code ( the array name, defined in the python code)
+	//obj is a pointer to the array
+	PyObject* obj = PyObject_GetAttrString(pyModule, pyarrayname); 
+
+
+	// Array Dimensions
+	npy_intp Dims[] = { PyArray_NDIM(obj) }; // array dimension
+	Dims[0] = PyArray_DIM(obj, 0); // number of rows
+	Dims[1] = PyArray_DIM(obj, 1); // number of columns
+
+	// PyArray_SimpleNew allocates the memory needed for the array .Create a new uninitialized array of type, typenum, whose size in each of nd dimensions is given by the integer array, dims.
+	PyObject* ArgsArray = PyArray_SimpleNew(2, Dims, NPY_DOUBLE); //NPY_STRING
+
+	double* p = (double*)PyArray_DATA(ArgsArray); //obtain the pointer to the data-buffer for the array.  This is a new blank array of doubles
+
+	int* pA = (int*)PyArray_DATA(obj); //obtain the pointer to the data-buffer for the array.  This is the array created in the python code
+	//string* pA = (string*)PyArray_DATA(obj);
+	int        ndim = PyArray_NDIM(obj);
+	npy_intp* dims = PyArray_DIMS(obj);
+	int        typenum = PyArray_TYPE(obj);
+
+ char* data0 = (char*)PyArray_DATA(obj);
+ char* data1 = PyArray_BYTES(obj);
+ npy_intp* strides = PyArray_STRIDES(obj);
+ //int        ndim = PyArray_NDIM(obj);
+ //npy_intp* dims = PyArray_DIMS(obj);
+ npy_intp   itemsize = PyArray_ITEMSIZE(obj);
+// int        typenum = PyArray_TYPE(obj);
+   double* c_out;
+	int i = 4; int j = 35;
+
+	double d1 = *(double*)&data0[i * strides[0] + j * strides[1]];
+	//double d0 = *(double*)PyArray_GetPtr(obj,  { 3, 3 });
+
+	int height = PyArray_DIM(obj, 0);  //Return the shape in the nth dimension.
+	int width = PyArray_DIM(obj, 1);
+
+	//copy data from obj (the numpy array defined in the python code) into p (an empty numpy array defined here)
+	//just an example of something that could be done
+	for (int i = 0; i < height; i++)
+	   {
+		for (int j = 0; j < width; j++)
+		   {
+			p[i * width + j] = pA[i * width + j];
+		   }
+	   }
+
+	// Convert back to C++ array and print.
+
+	c_out = reinterpret_cast< double*>(PyArray_DATA(obj));
+	std::cout << "Printing output array" << std::endl;
+	for (int i = 0; i < height; i++)
+		std::cout << c_out[i] << ' ';
+	std::cout << std::endl;
+//	result = EXIT_SUCCESS;
+
+	// Step 3.  Write monthly data into the Calvin input spreadsheet
+	VDataObj* pExchange = new VDataObj(width, height, U_UNDEFINED);
+	//We can simply read the data, from the same file (as the python/numpy code), but accessing the disk is slow.
+	//Would it be better to copy the numpy object into a VDataObj ? or could we do the same thing with a set of parallel numpy arrays?
+	//pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv", ',');
+
+	//Populate pExchange with pA????
+	for (int res = 0; res < 1; res++)
+	{
+		for (int link = 0; link < pExchange->GetRowCount(); link++)
+		{
+			CString a = pExchange->GetAsString(0, link);
+			CString b = pExchange->GetAsString(1, link);
+			CString aa = a.Left(6);
+			CString bb = b.Left(6);
+			int a1 = strcmp(aa, "INFLOW");
+			int b1 = strcmp(bb, "SR_PNF");
+
+			if (a1 == 0 && b1 == 0)
+			{
+				for (int i = 0; i < 12; i++)
+				{
+					pExchange->Set(5, link + i, 1);
+					pExchange->Set(6, link + i, 1);
+				}
+				break;
+			}
+			pExchange->Set(4, link , c_out[link]);
+		}
+	}
    //// Step 3.  Write monthly data into the Calvin input spreadsheet
    //VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
    //pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv", ',');
-   //pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922.csv");
+   pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922t.csv");
 
 
 
@@ -203,36 +313,6 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
    delete [] pExchange;
    delete [] pStorage;
    delete [] row;
-/*
-   pExchange = new FDataObj();
-   pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\example-results\\flow.csv");
-   
-   calvinOffset = 0;
-
-   numRes = m_outflowLinkArray.GetSize();
-   for (int i = 0; i < numRes; i++)
-   {
-      CString name = m_outflowLinkArray.GetAt(i);
-      for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
-      {
-         CString lab = pExchange->GetLabel(j);
-         calvinOffset = j;
-         if (lab == name)
-            break;
-      }
-      int offset = 0;
-      // Step 2.  Read data from Calvin Output, add that data to an Calvin DataObj
-
-      FDataObj *pResData = m_reservoirDataArray.GetAt(i);
-      for (int k = 0; k < 12; k++)//the output adds blank rows...This assumes the model was run for 1 year (so 12 rows total)
-      {
-         float dat = pExchange->GetAsFloat(calvinOffset, k);//This is outflow data
-         pResData->Set(3, k+(yearOffset*12), dat);
-      }
-
-   }
-   delete[] pExchange;
-*/
 
    return TRUE;
    }

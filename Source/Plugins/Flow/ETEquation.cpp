@@ -633,7 +633,7 @@ float ETEquation::Fao56()
       //delete [] monthlyTempDiff;
 
       //   etrc = 0.0023f * (m_solarRadiation*W_TO_MJ) * 4.0f * ( m_airTemperature + 17.8f ) ; //gives reference crop et in mm / d*/
-      return etrc / 24.0f;
+      return etrc;// / 24.0f;
       }
 
    float ETEquation::Hargreaves1985()
@@ -711,9 +711,12 @@ float ETEquation::Fao56()
      // 30.00 is coefficient for max at surface
      float radExt = radMax * 37.59f / 30.0f;
      float pet = 0.0f;   // mm-day
+
+
      if (tempMax > tempMin)
         {
-        pet = 0.0023f*(radExt/ xl) * (tempMean+17.8f) * sqrt(tempMax - tempMin);
+        pet = (0.0023f*(radExt) * (tempMean+17.8f) * sqrt(tempMax - tempMin))/xl;
+        
         pet = max(0.0f, pet);
         }
      else
