@@ -76,7 +76,7 @@ void ENVInput::init() {
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
 
-	double dlon, dlat;
+	double dlon, dlat, dnorth, deast;
 	bool eof = false;
 	xtring descrip;
 
@@ -115,13 +115,15 @@ void ENVInput::init() {
 	while (!eof) {
 
 		// Read next record in file
-		eof = !readfor(in_grid, "f,f,a#", &dlon, &dlat, &descrip);
+		eof = !readfor(in_grid, "f,f,f,f,a#", &dlon, &dlat,&dnorth,&deast, &descrip);
 
 		if (!eof && !(dlon == 0.0 && dlat == 0.0)) { // ignore blank lines at end (if any)
 			Coord& c = gridlist.createobj(); // add new coordinate to grid list
 
 			c.lon = dlon;
 			c.lat = dlat;
+			c.north=dnorth;
+			c.east=deast;
 			c.descrip = descrip;
 		}
 	}
@@ -306,6 +308,8 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
+
+		gridcell.set_utm_coordinates(gridlist.getobj().north, gridlist.getobj().east);
 
 		// Get nitrogen deposition data. 
 		/* Since the historic data set does not reach decade 2010-2019,

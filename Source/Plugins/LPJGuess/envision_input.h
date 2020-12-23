@@ -122,6 +122,8 @@ private:
 		int id;
 		double lon;
 		double lat;
+		double north;
+		double east;
 		xtring descrip;
 	};
 

@@ -63,7 +63,7 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
    mnth[0]=9; mnth[1]=10; mnth[2]=11;
    for (int i=3;i<12;i++)
       mnth[i]=i-3;
-
+      
   // FDataObj *pData = NULL;
    //Step 1.  Get daily data from Flow
    int outputCount = pFlowContext->pFlowModel->GetModelOutputGroupCount();
@@ -76,7 +76,7 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
          int offset = yearOffset*365;
          // Step 2.  Get average monthly data from Daily Data
          numRes = pGroup->m_pDataObj->GetColCount() - 1;//first column is date, so numres is colCount-1
-         float *row = new float[numRes + 1];//date, and 1 column for each reservoir
+         float *row = new float[numRes + 1]; //date, and 1 column for each reservoir
          for (int row_ = 0; row_ < 12; row_++)
             {
             row[0] = row_;//add month
@@ -93,14 +93,14 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
          }   
          
       }
-     // ASSERT(pData!=NULL);
+     
+   CString nam;
+   nam.Format(_T("%s%i%s"), "C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY", pFlowContext->pEnvContext->currentYear,".csv");
 
-      
-
-	// Step 3.  Write monthly data into the Calvin input spreadsheet
-	VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
-	pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv",',');
-   for (int res = 0; res<numRes;res++)
+	// Step 3.  Write monthly data into the Calvin input spreadsheet, for the current year (Calvin will read it in the next step, when it runs this year)
+	VDataObj *pExchange = new VDataObj(0, 0, U_UNDEFINED);
+	pExchange->ReadAscii(nam,',');
+   for (int res = 0; res<1;res++)
       { 
       for (int link=0;link<pExchange->GetRowCount(); link++)
          { 
@@ -109,7 +109,7 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
          CString aa=a.Left(6);
          CString bb=b.Left(6);
          int a1 = strcmp(aa,"INFLOW");
-         int b1 = strcmp(bb, "SR_PNF");
+         int b1 = strcmp(bb,"SR_PNF");
 
          if (a1==0 && b1==0)
             {           
@@ -119,12 +119,12 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
 		         pExchange->Set(6, link+i, pMnthlyData->Get(res+1,mnth[i]));
 	            }
             break;
-            }     
+            } 
          }
       }
-   pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv");
+   //Step 5. Write updates out to files
+   pExchange->WriteAscii(nam);
    pMnthlyData->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\exchange.csv");
-
 
    delete pMnthlyData;
    delete pExchange;
@@ -445,7 +445,7 @@ float HBV::HBV_Basic(FlowContext *pFlowContext)
 
 		   //Calculate rates
 		   //float gw = GroundWaterRechargeFraction(precip, soilWater, fc, Beta);
-		   float percolation = PercolationHBV(upperGroundWater, kPerc);//filling the deepest reservoir
+		   float percolation = PercolationHBV_GW(pHRU->GetPool(0)->m_volumeWater, kPerc);//filling the deepest reservoir
 
 		   //Calculate the source/sink term for each HRUPool
 		   float q0 = 0.0f; float q2 = 0.0f;
@@ -460,27 +460,30 @@ float HBV::HBV_Basic(FlowContext *pFlowContext)
 			  // pHRUPool->m_wc = (float)pHRUPool->m_volumeWater / pHRU->m_area *1000.0f;//mm water
 			   pHRUPool->m_wDepth = (float)pHRUPool->m_volumeWater / pHRU->m_area *1000.0f;//mm water
 			   switch (pHRUPool->m_pool)
-			   {
+			      {
 
-			   case 0://Upper Groundwater
-				   q0 = Q0(waterDepth, k0, k1, UZL);
-				   if (q0 + percolation > waterDepth)
-					   percolation = 0.0f;
-				 //  pHRUPool->AddFluxFromGlobalHandler(-meltToSoil * gw*pHRU->m_area / 1000.0f, FL_SINK);     //m3/d   TODO: Breaks with solute, FIX!!!
-				   pHRUPool->AddFluxFromGlobalHandler(percolation*pHRU->m_area / 1000.0f, FL_BOTTOM_SINK);     //m3/d 
-				   pHRUPool->AddFluxFromGlobalHandler(q0*pHRU->m_area / 1000.0f, FL_STREAM_SINK);     //m3/d
-				   break;
+			      case 0://Upper Groundwater
+				      q0 = Q0(waterDepth, k0, k1, UZL);
+				     // if (q0 + percolation > waterDepth)
+					  //    percolation = 0.0f;
+				    //  pHRUPool->AddFluxFromGlobalHandler(-meltToSoil * gw*pHRU->m_area / 1000.0f, FL_SINK);     //m3/d   TODO: Breaks with solute, FIX!!!
+				    //  pHRUPool->AddFluxFromGlobalHandler(percolation*pHRU->m_area / 1000.0f, FL_BOTTOM_SINK);     //m3/d 
+                  pHRUPool->AddFluxFromGlobalHandler(percolation , FL_BOTTOM_SINK);
+				      pHRUPool->AddFluxFromGlobalHandler(q0*pHRU->m_area / 1000.0f, FL_STREAM_SINK);     //m3/d
+				      break;
 
-			   case 1://Lower Groundwater
-				   q2 = Q2(waterDepth, k2);
-				   pHRUPool->AddFluxFromGlobalHandler(percolation*pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d 
-				   pHRUPool->AddFluxFromGlobalHandler(q2*pHRU->m_area / 1000.0f, FL_STREAM_SINK);     //m3/d
-				   break;
+			      case 1://Lower Groundwater
+				      q2 = Q2(waterDepth, k2);
+				     // pHRUPool->AddFluxFromGlobalHandler(percolation*pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d 
+                  pHRUPool->AddFluxFromGlobalHandler(percolation  , FL_TOP_SOURCE);
+				      pHRUPool->AddFluxFromGlobalHandler(q2*pHRU->m_area / 1000.0f, FL_STREAM_SINK);     //m3/d
+                  pHRUPool->AddFluxFromGlobalHandler(0.025f * pHRUPool->m_volumeWater , FL_BOTTOM_SINK);
+				      break;
 
-			   default:
-				   //ss=0.0f;
-				   ;
-			   } // end of switch
+			      default:
+				      //ss=0.0f;
+				      ;
+			      } // end of switch
 			   pHRU->m_currentRunoff = q0 + q2;//mm_d
 			   Reach * pReach = pHRUPool->GetReach();
 			   if (pReach)
@@ -1295,6 +1298,13 @@ float HBV::PercolationHBV(float waterDepth, float kPerc)
       value = kPerc;
    return value;
    }
+
+float HBV::PercolationHBV_GW(float waterVolume, float kPerc)
+{
+   float value = kPerc*waterVolume;
+   return value;
+}
+
 
 
 float HBV::Q0( float waterDepth, float k0, float k1, float UZL )

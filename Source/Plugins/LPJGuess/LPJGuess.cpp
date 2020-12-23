@@ -46,7 +46,7 @@ bool LPJGuess::Guess_Standalone(FlowContext *pFlowContext, LPCTSTR initStr)
 
 	set_shell(new CommandLineShell(file_log));
 	//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
-	framework(pFlowContext, "cru_ncep", "\\LPJGuess\\inputs\\global_cru_new.ins");
+	framework(pFlowContext, "cru_ncep", "C:\\Envision\\StudyAreas\\CalFEWS\\4km\\4km\\lpjGuess\\inputs\\global_cru.ins");
    return TRUE;
    }
 
@@ -160,8 +160,8 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 			date.year = state_year;
 		}
 
-		float y = pGridcell->get_lat();
-		float x = pGridcell->get_lon();
+		float y = pGridcell->get_easting();
+		float x = pGridcell->get_northing();
 
 		int hruCount = pFlow->GetHRUCount();
 		HRU *pHRU = nullptr;
@@ -320,8 +320,8 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 			date.year = state_year;
 		}
 
-		float y = pGridcell->get_lat();
-		float x = pGridcell->get_lon();
+		float y = pGridcell->get_easting();
+		float x = pGridcell->get_northing();
     
       int hruCount = pFlow->GetHRUCount();
       HRU *pHRU = nullptr;

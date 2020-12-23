@@ -13,25 +13,13 @@
 #include <FDataObj.h>
 #include <Vdataobj.h>
 
-#define NPY_NO_DEPRECATED_APINPY_1_7_API_VERSION
-#define PY_ARRAY_UNIQUE_SYMBOL cool_ARRAY_API
-
-
-
 #ifdef _DEBUG
 #undef _DEBUG
 #include <python.h>
-#include <arrayobject.h> // numpy!
-#include <iostream>
 #define _DEBUG
 #else
 #include <python.h>
-#include <arrayobject.h> // numpy!
-#include <iostream>
 #endif
-
-#pragma warning( disable : 4789 )
-
 using namespace std;
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -84,10 +72,15 @@ PyMODINIT_FUNC PyInit_redirection(void)
 
 Calvin::Calvin()
 	: EnvModelProcess()
-	, m_pResData(NULL)
+	//, m_pResData(NULL)
    , m_numRes(1)
    , m_reservoirList("")
    , m_outflowLinks("")
+	, m_gwList("")
+	, m_gwOutflowLinks("")
+	, m_gwInflowLinks("")
+	, m_gwBasinArray()
+	, m_reservoirNameArray()
 	//, m_randNormal(1, 1, 0)
 	//, m_randUniform(0.0, 1.0, 0)
 
@@ -113,119 +106,16 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
 	InitPython();
 
-	// Name of input-file
-	char pyfilename[] = "testfile";
-
-	// set up the C API's function-pointer table.  needed to use numpy
-	import_array();
-	// load input-file
-	PyObject* pyName = PyUnicode_FromString(pyfilename); //Create a Unicode object from a UTF-8 encoded null-terminated char buffer u.
-	PyObject* pyModule = PyImport_Import(pyName);
-
-	// import my numpy array object
-	char pyarrayname[] = "calvin_data_2";
-	//PyObject_GetAttrString: Retrieve an attribute named attr_name from object o
-	//calvin_data is an attribute of the imported python code ( the array name, defined in the python code)
-	//obj is a pointer to the array
-	PyObject* obj = PyObject_GetAttrString(pyModule, pyarrayname); 
-
-
-	// Array Dimensions
-	npy_intp Dims[] = { PyArray_NDIM(obj) }; // array dimension
-	Dims[0] = PyArray_DIM(obj, 0); // number of rows
-	Dims[1] = PyArray_DIM(obj, 1); // number of columns
-
-	// PyArray_SimpleNew allocates the memory needed for the array .Create a new uninitialized array of type, typenum, whose size in each of nd dimensions is given by the integer array, dims.
-	PyObject* ArgsArray = PyArray_SimpleNew(2, Dims, NPY_DOUBLE); //NPY_STRING
-
-	double* p = (double*)PyArray_DATA(ArgsArray); //obtain the pointer to the data-buffer for the array.  This is a new blank array of doubles
-
-	int* pA = (int*)PyArray_DATA(obj); //obtain the pointer to the data-buffer for the array.  This is the array created in the python code
-	//string* pA = (string*)PyArray_DATA(obj);
-	int        ndim = PyArray_NDIM(obj);
-	npy_intp* dims = PyArray_DIMS(obj);
-	int        typenum = PyArray_TYPE(obj);
-
- char* data0 = (char*)PyArray_DATA(obj);
- char* data1 = PyArray_BYTES(obj);
- npy_intp* strides = PyArray_STRIDES(obj);
- //int        ndim = PyArray_NDIM(obj);
- //npy_intp* dims = PyArray_DIMS(obj);
- npy_intp   itemsize = PyArray_ITEMSIZE(obj);
-// int        typenum = PyArray_TYPE(obj);
-   double* c_out;
-	int i = 4; int j = 35;
-
-	double d1 = *(double*)&data0[i * strides[0] + j * strides[1]];
-	//double d0 = *(double*)PyArray_GetPtr(obj,  { 3, 3 });
-
-	int height = PyArray_DIM(obj, 0);  //Return the shape in the nth dimension.
-	int width = PyArray_DIM(obj, 1);
-
-	//copy data from obj (the numpy array defined in the python code) into p (an empty numpy array defined here)
-	//just an example of something that could be done
-	for (int i = 0; i < height; i++)
-	   {
-		for (int j = 0; j < width; j++)
-		   {
-			p[i * width + j] = pA[i * width + j];
-		   }
-	   }
-
-	// Convert back to C++ array and print.
-
-	c_out = reinterpret_cast< double*>(PyArray_DATA(obj));
-	std::cout << "Printing output array" << std::endl;
-	for (int i = 0; i < height; i++)
-		std::cout << c_out[i] << ' ';
-	std::cout << std::endl;
-//	result = EXIT_SUCCESS;
-
-	// Step 3.  Write monthly data into the Calvin input spreadsheet
-	VDataObj* pExchange = new VDataObj(width, height, U_UNDEFINED);
-	//We can simply read the data, from the same file (as the python/numpy code), but accessing the disk is slow.
-	//Would it be better to copy the numpy object into a VDataObj ? or could we do the same thing with a set of parallel numpy arrays?
-	//pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv", ',');
-
-	//Populate pExchange with pA????
-	for (int res = 0; res < 1; res++)
-	{
-		for (int link = 0; link < pExchange->GetRowCount(); link++)
-		{
-			CString a = pExchange->GetAsString(0, link);
-			CString b = pExchange->GetAsString(1, link);
-			CString aa = a.Left(6);
-			CString bb = b.Left(6);
-			int a1 = strcmp(aa, "INFLOW");
-			int b1 = strcmp(bb, "SR_PNF");
-
-			if (a1 == 0 && b1 == 0)
-			{
-				for (int i = 0; i < 12; i++)
-				{
-					pExchange->Set(5, link + i, 1);
-					pExchange->Set(6, link + i, 1);
-				}
-				break;
-			}
-			pExchange->Set(4, link , c_out[link]);
-		}
-	}
    //// Step 3.  Write monthly data into the Calvin input spreadsheet
    //VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
    //pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv", ',');
-   pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922t.csv");
+   //pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922.csv");
 
 
 
    for (int i = 0; i < m_reservoirNameArray.GetSize(); i++)
-   {
+      {
       FDataObj *pData = new FDataObj(4,0);
-    //  if (m_pResData == NULL)
-     // {
-     //    m_pResData = new FDataObj(4, 0, U_DAYS);
-     //    ASSERT(m_pResData != NULL);
-     // }
 
       pData->SetLabel(0, _T("Time"));
       pData->SetLabel(1, _T("Inflow (m3/s)"));
@@ -234,16 +124,35 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
       this->AddOutputVar(m_reservoirNameArray.GetAt(i), pData, "");
       m_reservoirDataArray.Add(pData);
-   }
+      }
+
+	for (int i = 0; i < m_gwBasinArray.GetSize(); i++)
+	   {
+		FDataObj* pData = new FDataObj(4+ m_gwInflowLinkArray.GetSize(), 0);
+
+		pData->SetLabel(0, _T("Time"));
+		pData->SetLabel(1, _T("Inflow"));
+		pData->SetLabel(2, _T("Storage (acre/feet)"));
+		pData->SetLabel(3, _T(m_gwOutflowLinkArray[0]));
+		for (int k = 0; k < m_gwInflowLinkArray.GetSize(); k++)
+			pData->SetLabel(4 + k, _T(m_gwInflowLinkArray[k]));
+		this->AddOutputVar(m_gwBasinArray.GetAt(i), pData, "");
+		m_gwDataArray.Add(pData);
+	   }
+	
 	return TRUE;
 }
 
 bool Calvin::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    {   
+	return TRUE;
+   }
+bool Calvin::StartYear(EnvContext* pEnvContext)
+   {
+
 
 	return TRUE;
-}
-
+   }
 bool Calvin::EndYear(EnvContext *pEnvContext)
    {
    // The Calvin simulated reservoir height and discharge have already been written to the output files.
@@ -251,17 +160,20 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
 //Step 1.  Get monthly data from Calvin
 //   VDataObj *pExchange = new VDataObj(U_UNDEFINED);SR_PNF-C51
    
-   int numRes = m_reservoirNameArray.GetSize();
+   int numRes = (int)m_reservoirNameArray.GetSize();
+	int numGW = (int)m_gwBasinArray.GetSize();
    float *row = new float[4];//date, inflow, outflow, storage
 
    FDataObj *pExchange = new FDataObj();
    FDataObj *pStorage = new FDataObj();
+
    pStorage->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\example-results\\storage.csv");
    pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\example-results\\flow.csv");
    int yearOffset = pEnvContext->currentYear - pEnvContext->startYear;
    int inflowOffset = 0;
    int outflowOffset = 0;
    int storageOffset = 0;
+	int gwOffset = 0;
 
 
 
@@ -271,7 +183,7 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
       CString name = m_reservoirNameArray.GetAt(i);
       FDataObj *pResData = m_reservoirDataArray.GetAt(i);
       //Step1.  Find Inflow column
-      msg.Format(_T("INFLOW-%s"), name);
+      msg.Format(_T("INFLOW-%s"), (LPCTSTR)name);
       for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
          {
          CString lab = pExchange->GetLabel(j);
@@ -299,6 +211,16 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
             break;
          }
 
+		//Step 3.  Find any other inflow columns
+		name = m_reservoirNameArray.GetAt(i);
+		for (int j = 0; j < pStorage->GetColCount(); j++)//search columns to find correct name
+		   {
+			CString lab = pStorage->GetLabel(j);
+			storageOffset = j;
+			if (lab == name)
+				break;
+		   }
+
       for (int k = 0; k < 12; k++)//the output adds blank rows...This assumes the model was run for 1 year (so 12 rows total)
          {
          //float dat = pExchange->GetAsFloat(inflowOffset, k);//This is storage data
@@ -309,47 +231,141 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
          row[2] = pStorage->GetAsFloat(storageOffset, k);
          pResData->AppendRow(row,4);
          }     
-   }
-   delete [] pExchange;
-   delete [] pStorage;
+      }
    delete [] row;
+	
+	int* inflowOff = new int[m_gwInflowLinkArray.GetSize()];
+	float* row_gw = new float[4 + m_gwInflowLinkArray.GetSize()];//date, inflow, outflow, storage, plus any other inflows
+	for (int i = 0; i < numGW; i++)
+	   {
+		CString msg;
+		CString name = m_gwBasinArray.GetAt(i);
+		FDataObj* pGWData = m_gwDataArray.GetAt(i);
+		//Step1.  Find Inflow column
+		msg.Format(_T("INFLOW-%s"), (LPCTSTR)name);
+		for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
+		   {
+			CString lab = pExchange->GetLabel(j);
+			inflowOffset = j;
+			if (lab == msg)
+				break;
+		   }
+		//Step 2.  Find Outflow column     
+		name = m_gwOutflowLinkArray.GetAt(i);
+		for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
+		   {
+			CString lab = pExchange->GetLabel(j);
+			outflowOffset = j;
+			if (lab == name)
+				break;
+		   }
 
+		//Step 3.  Find Storage column
+		name = m_gwBasinArray.GetAt(i);
+		for (int j = 0; j < pStorage->GetColCount(); j++)//search columns to find correct name
+		   {
+			CString lab = pStorage->GetLabel(j);
+			storageOffset = j;
+			if (lab == name)
+				break;
+		   }
+		//Step 4.  Find other Inflow columns  
+
+		for (int m=0;m<m_gwInflowLinkArray.GetSize();m++)
+			{ 
+			name = m_gwInflowLinkArray.GetAt(i);
+			for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
+			   {
+				CString lab = pExchange->GetLabel(j);
+				
+				if (lab == name)
+				   {
+					inflowOff[m] = j;
+					break;
+					}
+			   }
+			}
+
+		for (int k = 0; k < 12; k++)//the output adds blank rows...This assumes the model was run for 1 year (so 12 rows total)
+		   {
+			row_gw[0] = k + (12 * yearOffset);
+			row_gw[1] = pExchange->GetAsFloat(inflowOffset, k);
+			row_gw[2] = pStorage->GetAsFloat(storageOffset, k);
+			row_gw[3] = pExchange->GetAsFloat(outflowOffset, k);
+			for (int m = 0; m < m_gwInflowLinkArray.GetSize();m++)
+				row_gw[4+m]= pExchange->GetAsFloat(inflowOff[m], k);
+
+			pGWData->AppendRow(row_gw, 4 + (int)m_gwInflowLinkArray.GetSize());
+		   }
+	   }
+   delete  pExchange;
+   delete [] row_gw;
+	delete [] inflowOff;
+
+	//Write Storage values from LAST year into INITIAL values in the links file for next year
+	CString nam;
+	nam.Format(_T("%s%i%s"), "C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY", pEnvContext->currentYear + 1, ".csv");//next years links file
+
+	if ( pEnvContext->currentYear < pEnvContext->endYear)//Don't write values into the next years initial values if this is the last year
+		{ 
+		VDataObj* pLinks = new VDataObj(0, 0, U_UNDEFINED);
+		pLinks->ReadAscii(nam, ',');
+		int numStorage = 0;
+		for (int link = 0; link < pLinks->GetRowCount(); link++)
+			{
+			CString b = pLinks->GetAsString(0, link);
+			CString bb = b.Left(6);
+			int b1 = strcmp(bb, "INITIA");
+			if (b1 == 0)
+				{
+				float store= pStorage->Get(numStorage + 1, 11);
+				pLinks->Set(5, link, store);
+				pLinks->Set(6, link,store);
+				numStorage++;
+				}
+			}
+		pLinks->WriteAscii(nam);//this file will be read as input for next year's Calvin run
+		delete pLinks;
+		}
+	delete pStorage;
    return TRUE;
    }
 
 bool Calvin::Run(EnvContext *pEnvContext)
-{
-
-   // The simulated inflow data have already been written to the links file.
-   //  Here we write those data to the Calvin DataObjs.  This allows inflow to show up in Envision Output
-/*   FDataObj *pMnthlyData = new FDataObj;
-   pMnthlyData->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\exchange.csv");
-   int numRes = m_reservoirNameArray.GetSize() + 1;
-   float *row = new float[4];
-   for (int i = 0; i < m_reservoirNameArray.GetSize(); i++)
    {
-      FDataObj *pResData = m_reservoirDataArray.GetAt(i);
-      for (int month = 0; month < 12; month++)
-      {
-         row[0] = month + 1;
-         row[1] = pMnthlyData->GetAsFloat(i + 1, month);
-         row[2] = 0.0f;
-         row[3] = 0.0f;
-         pResData->AppendRow(row, 4);//add time and flow to this dataObj.
-      }
-   }
-   delete[] pMnthlyData;
-*/
 
    int retVal2;
-   FILE *file = _Py_fopen("RunCalvin.py", "r+");
+	CString nam ;
+	nam.Format(_T("%s%s.py"), (LPCTSTR)m_pyModulePath, (LPCTSTR)m_pyModuleName);
+   FILE *file = _Py_fopen(nam, "r+");
 
-   if (file != NULL) {
+	CString link;
+	link.Format(_T("%s%i%s"), "C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY", pEnvContext->currentYear, ".csv");
+   if (file != NULL) 
+	   {
+		int argc;
+		char* argv[1];
+		argc = 1;
 
-      retVal2 = PyRun_SimpleFile(file, "RunCalvin.py");
-   }
+		//argv[0] = nam.GetBuffer(nam.GetLength());
+		//wchar_t* pyfilepath = Py_DecodeLocale(argv[0], NULL);
+
+		argv[0] = link.GetBuffer(link.GetLength());	
+		wchar_t* linkpath = Py_DecodeLocale(argv[0], NULL);
+
+		//PySys_SetArgvEx(0, &pyfilepath,0);
+		PySys_SetArgvEx(1, &linkpath,0);
+
+      retVal2 = PyRun_SimpleFile(file, nam);
+		link.ReleaseBuffer();
+		nam.ReleaseBuffer();
+      }
 
    EndYear(pEnvContext);
+	return TRUE;
+   }
+
+
 //Need to move data from Calvin files to Calvin DataObjs
 
 
@@ -480,13 +496,27 @@ bool Calvin::Run(EnvContext *pEnvContext)
 	_getcwd(cwd, 512);
 
 	_chdir(cwd);
-*/
+
 	return TRUE;
 }
-
+*/
 
 bool Calvin::InitPython()
 {
+
+	//VDataObj* pExchange = new VDataObj(0, 0, U_UNDEFINED);
+	//pExchange->ReadAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922.csv", ',');
+	//pExchange->WriteAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922b.csv");
+	//VDataObj* pExchange1 = new VDataObj(0, 0, U_UNDEFINED);
+	//pExchange1->ReadAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922b.csv", ',');
+	//pExchange1->WriteAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922c.csv");
+	//VDataObj* pExchange2 = new VDataObj(0, 0, U_UNDEFINED);
+	//pExchange2->ReadAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922c.csv", ',');
+	//pExchange2->WriteAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922d.csv");
+	//delete pExchange;
+	//delete pExchange1;
+	//delete pExchange2;
+
 	
 	Report::Log("Calvin:  Initializing embedded Python interpreter...");
 
@@ -645,10 +675,13 @@ bool Calvin::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 			{ "py_function",     TYPE_CSTRING,  &m_pyFunction,        true,  0 },
 			{ "py_module",       TYPE_CSTRING,  &pyModulePath,        true,  0 },
          { "ReservoirList",   TYPE_CSTRING,  &m_reservoirList,     true,  0 },
-         { "OutflowLinks",   TYPE_CSTRING,  &m_outflowLinks,     true,  0 },
+         { "OutflowLinks",    TYPE_CSTRING,  &m_outflowLinks,      true,  0 },
+			{ "GWList",          TYPE_CSTRING,  &m_gwList,            true,  0 },
+			{ "GWOutflowLinks",  TYPE_CSTRING,  &m_gwOutflowLinks,    true,  0 },
+			{ "GWInflowLinks",   TYPE_CSTRING,  &m_gwInflowLinks,     true,  0 },
 
 			{ NULL,              TYPE_NULL,     NULL,        false, 0 } };
-
+  
 		ok = TiXmlGetAttributes(pXmlEvent, attrs, filename, NULL);
 
 		if (!ok)
@@ -686,7 +719,7 @@ bool Calvin::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
             int _out = 0xFFFF;
        //Outflow links
             if (_out != NULL)
-            {
+               {
                _out = 0;   // if specified, assume nothing by default
 
                TCHAR *buffer = new TCHAR[lstrlen(m_outflowLinks) + 1];
@@ -695,13 +728,76 @@ bool Calvin::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                TCHAR *token = _tcstok_s(buffer, _T(",+|:"), &next);
 
                while (token != NULL)
-               {
+                  {
                   m_outflowLinkArray.Add(token);
                   token = _tcstok_s(NULL, _T(",+|:"), &next);
-               }
+                  }
 
                delete[] buffer;
-            }
+               }
+
+				int _gw = 0xFFFF;
+				//Groundwater Storage
+				if (_gw != NULL)
+				{
+					_gw = 0;   // if specified, assume nothing by default
+
+					TCHAR* buffer = new TCHAR[lstrlen(m_gwList) + 1];
+					lstrcpy(buffer, m_gwList);
+					TCHAR* next = NULL;
+					TCHAR* token = _tcstok_s(buffer, _T(",+|:"), &next);
+
+					while (token != NULL)
+					{
+						m_gwBasinArray.Add(token);
+						token = _tcstok_s(NULL, _T(",+|:"), &next);
+					}
+
+					delete[] buffer;
+				}
+
+
+				//GW Outflow links
+				int _outgw = 0xFFFF;
+				if (_outgw != NULL)
+				{
+					_outgw = 0;   // if specified, assume nothing by default
+
+					TCHAR* buffer = new TCHAR[lstrlen(m_gwOutflowLinks) + 1];
+					lstrcpy(buffer, m_gwOutflowLinks);
+					TCHAR* next = NULL;
+					TCHAR* token = _tcstok_s(buffer, _T(",+|:"), &next);
+
+					while (token != NULL)
+					{
+						m_gwOutflowLinkArray.Add(token);
+						token = _tcstok_s(NULL, _T(",+|:"), &next);
+					}
+
+					delete[] buffer;
+				}
+
+
+				//GW Inflow links
+				int _ingw = 0xFFFF;
+				if (_ingw != NULL)
+				{
+					_ingw = 0;   // if specified, assume nothing by default
+
+					TCHAR* buffer = new TCHAR[lstrlen(m_gwInflowLinks) + 1];
+					lstrcpy(buffer, m_gwInflowLinks);
+					TCHAR* next = NULL;
+					TCHAR* token = _tcstok_s(buffer, _T(",+|:"), &next);
+
+					while (token != NULL)
+					{
+						m_gwInflowLinkArray.Add(token);
+						token = _tcstok_s(NULL, _T(",+|:"), &next);
+					}
+
+					delete[] buffer;
+				}
+
             }
          }
 
