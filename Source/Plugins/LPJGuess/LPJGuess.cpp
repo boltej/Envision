@@ -267,7 +267,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 	}
 
 	if (restart) {
-		m_deserializer =  new GuessDeserializer(state_path);
+visu		m_deserializer =  new GuessDeserializer(state_path);
 	}
 
 	

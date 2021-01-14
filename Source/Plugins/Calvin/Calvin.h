@@ -56,16 +56,12 @@ public:
 	PtrArray < FDataObj > m_gwDataArray;
    int m_numRes;
    CString m_reservoirList;
-   CString m_outflowLinks;
 	CString m_gwList;
-	CString m_gwOutflowLinks;
-	CString m_gwInflowLinks;
 
    CArray< CString, CString > m_reservoirNameArray;
-   CArray< CString, CString > m_outflowLinkArray;
 	CArray< CString, CString > m_gwBasinArray;
-	CArray< CString, CString > m_gwOutflowLinkArray;
-	CArray< CString, CString > m_gwInflowLinkArray;
+	
+
 };
 
 

@@ -95,7 +95,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;NDEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;C:\users\kelli\anaconda3\envs\calvin35\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;C:\users\kelli\anaconda3\envs\calvin35\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
