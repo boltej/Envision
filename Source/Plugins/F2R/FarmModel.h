@@ -97,7 +97,6 @@ enum { B_PREEMERGENCE, B_GERMINATION, B_LEAF_PRODUCTION, B_TILLERING, B_STEM_ELO
 // soybeans
 enum { S_PREPLANTING, S_PREEMERGENCE, S_VE, S_VC, S_V2, S_V3, S_V4, S_V5, S_V6, S_R1, S_R2, S_R3, S_R4, S_R5, S_R6, S_R7, S_R8 };
 
-
 // Farm Events
 enum {FE_UNDEFINED=-99, FE_BOUGHT=0, FE_SOLD, FE_JOINED, FE_CHANGEDTYPE, FE_FIELDSMERGED, FE_ELIMINATED, FE_RECOVERED, FE_EVENTCOUNT };
 
@@ -135,6 +134,29 @@ enum FARMTYPE {
    FT_OTH =21,     // other (unused)
    FT_BE = 22,
    FT_COUNT = 23
+   };
+
+
+class Crop
+   {
+   protected:
+      CString m_name;
+      int m_lulcA;
+      int m_lulcB;
+      bool m_isAnnual;
+
+      // dormancy stuff
+      bool m_isDormant;
+      int m_dormancyUserCriticalDate;
+      int m_dormancyDynamicCriticalDate;
+      int m_dormancyPretrackPeriod''
+
+
+      CArray<int, int> m_stages;
+      CArray<int, int> m_harvestTriggers;
+
+
+      CArray<int, int> m_cropEvents;     
    };
 
 class Farm;
