@@ -1,4 +1,5 @@
       subroutine getallo
+!!      !DEC$ ATTRIBUTES DLLEXPORT :: getallo
 
 !!    ~ ~ ~ PURPOSE ~ ~ ~
 !!   This subroutine calculates the number of HRUs, subbasins, etc. in the 

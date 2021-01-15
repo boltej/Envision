@@ -3871,8 +3871,16 @@ public:
 	/// Latitude for this grid cell
 	double get_lat() const;
 
+	/// Northing for this grid cell
+	double get_northing() const;
+
+	/// Easting for this grid cell
+	double get_easting() const;
+
 	/// Set longitude and latitude for this grid cell
 	void set_coordinates(double longitude, double latitude);
+
+	void set_utm_coordinates(double north, double east);
 
 	void serialize(ArchiveStream& arch);
 
@@ -3906,6 +3914,12 @@ private:
 
 	/// Latitude for this grid cell
 	double lat;
+	/// Easting for this grid cell
+	double easting;
+
+	/// Northing for this grid cell
+	double northing;
+
 
 };
 

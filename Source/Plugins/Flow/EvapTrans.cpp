@@ -1390,7 +1390,7 @@ void EvapTrans::GetHruET(FlowContext *pFlowContext, HRU *pHRU, int hruIndex)
                break;
 
             case GM_BAIER_ROBERTSON:
-               maxET = referenceET;
+               maxET = referenceET * landCover_coefficient;;
                break;
 
             case GM_PENMAN_MONTIETH:

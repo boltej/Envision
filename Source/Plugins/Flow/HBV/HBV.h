@@ -89,6 +89,7 @@ public:
    float GroundWaterRechargeFraction(float precip,float waterDepth, float FC,  float Beta); 
    float Percolation(float waterDepth, float kPerc);
    float PercolationHBV(float waterDepth, float kPerc);
+   float PercolationHBV_GW(float waterVolume, float kPerc);
 
    //HBV Horizontal
    float Q0( float waterDepth, float k0, float k1, float UZL );

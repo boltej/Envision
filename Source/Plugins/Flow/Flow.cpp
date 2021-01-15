@@ -2485,7 +2485,7 @@ int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* > &filePtrArray)
 
    CStringArray names;     // units??
 
-   names.Add("L1Depth");                   // 0
+  /* names.Add("L1Depth");                   // 0
    names.Add("L2Depth");
    names.Add("L3Depth");
    names.Add("L4Depth");
@@ -2500,6 +2500,8 @@ int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* > &filePtrArray)
    names.Add("LossToGW");
    names.Add("GainFromGW");
    names.Add("L0Depth");
+   */
+   names.Add("SWE");
 
 
    int numElements = 1;
@@ -2794,7 +2796,7 @@ int FlowModel::SaveDetailedOutputIDU(CArray< FILE*, FILE* > &filePtrArray)
 
 int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
    {
-   ASSERT(filePtrArray.GetSize() == 15);
+   ASSERT(filePtrArray.GetSize() == 1);
 
    int hruCount = GetHRUCount();
    int hruPoolCount = GetHRUPoolCount();
@@ -2815,7 +2817,7 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
          m_pGrid->GetData(j, i, value);//Go to the elevation grid and get the value
          if (value == m_pGrid->GetNoDataValue())
             {
-            fwrite(&value, sizeof(float), 1, filePtrArray[0]);
+          /*  fwrite(&value, sizeof(float), 1, filePtrArray[0]);
             fwrite(&value, sizeof(float), 1, filePtrArray[1]);
             fwrite(&value, sizeof(float), 1, filePtrArray[2]);
             fwrite(&value, sizeof(float), 1, filePtrArray[3]);
@@ -2829,7 +2831,8 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
             fwrite(&value, sizeof(float), 1, filePtrArray[11]);
             fwrite(&value, sizeof(float), 1, filePtrArray[12]);
             fwrite(&value, sizeof(float), 1, filePtrArray[13]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[14]);
+            fwrite(&value, sizeof(float), 1, filePtrArray[14]);*/
+            fwrite(&value, sizeof(float), 1, filePtrArray[0]);
             }
          else
             {
@@ -2847,17 +2850,19 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
                float area = pHRU->m_area;
                float precip = pHRU->m_currentPrecip;//precipitation (mm/d )
                float pet = pHRU->m_currentMaxET;
+               float swe = pHRU->m_depthSWE;
 
 
                float et = pLayer->m_waterFluxArray[FL_TOP_SINK] / area*1000.0f*-1.0f;//AET (m3/d converted to mm/d )
                float elws = pHRU->m_elws;
                float gwOut = pHRU->m_currentGWFlowOut;
                float runoff = pHRU->m_currentRunoff;
-               HRUPool *pLayer2 = pHRU->GetPool(2);//Layer above Groundwater...specific to 5 Layer SRS model
-               et += pLayer2->m_waterFluxArray[FL_TOP_SINK] / area*1000.0f*-1.0f;//this adds et from argillic
+               float recharge = 0;
+//               HRUPool *pLayer2 = pHRU->GetPool(2);//Layer above Groundwater...specific to 5 Layer SRS model
+ //              et += pLayer2->m_waterFluxArray[FL_TOP_SINK] / area*1000.0f*-1.0f;//this adds et from argillic
 
                et = pHRU->m_currentET;
-               float recharge = -1.0f*((float)pLayer2->m_waterFluxArray[FL_BOTTOM_SINK] + (float)pLayer2->m_waterFluxArray[FL_BOTTOM_SOURCE]) / area*1000.0f;
+ //              float recharge = -1.0f*((float)pLayer2->m_waterFluxArray[FL_BOTTOM_SINK] + (float)pLayer2->m_waterFluxArray[FL_BOTTOM_SOURCE]) / area*1000.0f;
                float lossToGW = 0.0f; float gainFromGW = 0.0f;
                if (recharge > 0.0f)
                   lossToGW = recharge;
@@ -2867,7 +2872,8 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
                recharge = pHRU->m_currentGWRecharge;
 
                l1 = (float)pLayer->m_volumeWater / area*1000.0f;
-               fwrite(&l1, sizeof(float), 1, filePtrArray[0]);
+               fwrite(&swe, sizeof(float), 1, filePtrArray[0]);
+              /* fwrite(&l1, sizeof(float), 1, filePtrArray[0]);
                fwrite(&precip, sizeof(float), 1, filePtrArray[5]);
                fwrite(&pet, sizeof(float), 1, filePtrArray[8]);
                fwrite(&et, sizeof(float), 1, filePtrArray[6]);
@@ -2901,12 +2907,14 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
                pLayer = pHRU->GetPool( 5);
                l0 = (float)pLayer->m_volumeWater / area*1000.0f;
                fwrite(&l0, sizeof(float), 1, filePtrArray[14]);
+
+               */
                }
             else
                {
                float val = 0.0f;
                fwrite(&val, sizeof(float), 1, filePtrArray[0]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[1]);
+              /* fwrite(&val, sizeof(float), 1, filePtrArray[1]);
                fwrite(&val, sizeof(float), 1, filePtrArray[2]);
                fwrite(&val, sizeof(float), 1, filePtrArray[3]);
                fwrite(&val, sizeof(float), 1, filePtrArray[4]);
@@ -2920,6 +2928,8 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
                fwrite(&val, sizeof(float), 1, filePtrArray[12]);
                fwrite(&val, sizeof(float), 1, filePtrArray[13]);
                fwrite(&val, sizeof(float), 1, filePtrArray[14]);
+
+               */
                }
             }
          }

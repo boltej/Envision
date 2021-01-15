@@ -98,6 +98,8 @@ extern "C" float PASCAL EXPORT RuninFluxHandler(FlowContext *pFlowContext);
 extern "C" float PASCAL EXPORT N_Deposition_FluxHandler(FlowContext *pFlowContext);
 extern "C" float PASCAL EXPORT N_ET_FluxHandler(FlowContext *pFlowContext);
 
+extern "C" float PASCAL EXPORT ExchangeFlowToCalvin(FlowContext * pFlowContext);
+
 // state variable handlers
 extern "C" float PASCAL EXPORT N_Transformations(FlowContext *pFlowContext);
 
@@ -140,6 +142,9 @@ float PASCAL UplandFluxHandler(FlowContext *pFlowContext) { return theModel->Upl
 float PASCAL RuninFluxHandler(FlowContext *pFlowContext) { return theModel->RuninFluxHandler(pFlowContext); }
 float PASCAL N_Deposition_FluxHandler(FlowContext *pFlowContext) { return theModel->N_Deposition_FluxHandler(pFlowContext); }
 float PASCAL N_ET_FluxHandler(FlowContext *pFlowContext) { return theModel->N_ET_FluxHandler(pFlowContext); }
+
+
+float PASCAL ExchangeFlowToCalvin(FlowContext* pFlowContext) { return theModel->ExchangeFlowToCalvin(pFlowContext); }
 
 // state variable handlers
 float PASCAL N_Transformations(FlowContext *pFlowContext) { return theModel->N_Transformations(pFlowContext); }

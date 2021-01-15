@@ -1,4 +1,5 @@
       module parm
+      !DEC$ ATTRIBUTES DLLEXPORT :: parm
       integer icalen
       real*8 :: prf_bsn
       
@@ -141,8 +142,7 @@
       character(len=13) :: slrfile, wndfile, rhfile, petfile, calfile
       character(len=13) :: atmofile, lucfile
       character(len=13) :: septdb
-      character(len=13) :: dpd_file, wpd_file, rib_file, sfb_file,
-     &                     lid_file
+      character(len=13) :: dpd_file, wpd_file, rib_file, sfb_file, lid_file
       integer, dimension (:), allocatable :: ifirstr, idg, ifirsthr
       integer, dimension (:), allocatable :: values, ndays
       integer, dimension (:), allocatable :: ndays_noleap, ndays_leap
@@ -508,6 +508,8 @@
       real*8, dimension (:), allocatable :: bactp_plt,bactlp_plt,cnday
       real*8, dimension (:), allocatable :: bactlpq,auto_eff,sol_sw,secciw
       real*8, dimension (:), allocatable :: bactps,bactlps,tmpav,chlaw
+      !integer, parameter :: DP = kind(0d0)
+      !real(kind=DP), dimension(*) :: subp
       real*8, dimension (:), allocatable :: subp,sno_hru,hru_ra,wet_orgn
       real*8, dimension (:), allocatable :: tmx,tmn,rsdin,tmp_hi,tmp_lo
       real*8, dimension (:), allocatable :: rwt,olai,usle_k,tconc,hru_rmx
@@ -725,8 +727,7 @@
 	integer:: urban_flag, dorm_flag
 	real*8 :: bf_flg, iabstr
 	real*8, dimension (:), allocatable :: ubnrunoff,ubntss
-	real*8, dimension (:,:), allocatable :: sub_ubnrunoff,sub_ubntss,
-     & ovrlnd_dt	
+	real*8, dimension (:,:), allocatable :: sub_ubnrunoff,sub_ubntss,ovrlnd_dt	
 	real*8, dimension (:,:,:), allocatable :: hhsurf_bs
 
 !! subdaily erosion modeling by Jaehak Jeong
@@ -739,31 +740,23 @@
 	real*8, dimension(:), allocatable:: dratio, hrtevp, hrttlc
 	real*8, dimension(:,:,:), allocatable:: rchhr
 !! subdaily reservoir modeling by Jaehak Jeong
-	real*8, dimension(:), allocatable:: hhresflwi, hhresflwo,
-     & hhressedi, hhressedo 
+	real*8, dimension(:), allocatable:: hhresflwi, hhresflwo, hhressedi, hhressedo 
 	
 !! bmp modeling by jaehak jeong
       character(len=4), dimension(:), allocatable:: lu_nodrain
       integer, dimension(:), allocatable:: bmpdrain
-      real*8, dimension(:), allocatable :: sub_cn2, sub_ha_urb,
-     & bmp_recharge 
+      real*8, dimension(:), allocatable :: sub_cn2, sub_ha_urb,bmp_recharge 
       !sed-fil
       real*8, dimension(:), allocatable:: sub_ha_imp,subdr_km,subdr_ickm
-      real*8, dimension(:,:), allocatable:: sf_im,sf_iy,sp_sa,
-     &  sp_pvol,sp_pd,sp_sedi,sp_sede,ft_sa,ft_fsa,
-     &  ft_dep,ft_h,ft_pd,ft_k,ft_dp,ft_dc,ft_por,
-     &  tss_den,ft_alp,sf_fr,sp_qi,sp_k,ft_qpnd,sp_dp,
-     &  ft_qsw,ft_qin,ft_qout,ft_sedpnd,sp_bpw,ft_bpw,
-     &  ft_sed_cumul,sp_sed_cumul
+      real*8, dimension(:,:), allocatable:: sf_im,sf_iy,sp_sa,sp_pvol,sp_pd,sp_sedi,sp_sede,ft_sa,ft_fsa,ft_dep,ft_h,ft_pd,ft_k
+      real*8, dimension(:,:), allocatable:: ft_dp,ft_dc,ft_por,tss_den,ft_alp,sf_fr,sp_qi,sp_k,ft_qpnd,sp_dp,ft_qsw,ft_qin,ft_qout
+      real*8, dimension(:,:), allocatable:: ft_sedpnd,sp_bpw,ft_bpw,ft_sed_cumul,sp_sed_cumul
       integer, dimension(:), allocatable:: num_sf
-      integer, dimension(:,:), allocatable:: sf_typ,sf_dim,ft_qfg,
-     &  sp_qfg,sf_ptp,ft_fc 
+      integer, dimension(:,:), allocatable:: sf_typ,sf_dim,ft_qfg,sp_qfg,sf_ptp,ft_fc 
       real*8 :: sfsedmean,sfsedstdev  !Jaehak effluent probability method for urban bmp 2017
       
       !detention pond
-	integer, dimension(:), allocatable :: dtp_subnum,dtp_imo,
-     &  dtp_iyr,dtp_numweir,dtp_numstage,dtp_stagdis,
-     &  dtp_reltype,dtp_onoff
+	integer, dimension(:), allocatable :: dtp_subnum,dtp_imo,dtp_iyr,dtp_numweir,dtp_numstage,dtp_stagdis,dtp_reltype,dtp_onoff
 !! sj & armen changes for SWAT-C
 	real*8, dimension (:), allocatable :: cf, cfh, cfdec
 !! sj & armen changes for SWAT-C end
@@ -772,13 +765,10 @@
 
 	integer, dimension(:,:), allocatable :: dtp_weirtype,dtp_weirdim
 	
-	real*8, dimension(:), allocatable ::dtp_evrsv,
-     &  dtp_inflvol,dtp_totwrwid,dtp_lwratio,dtp_wdep,dtp_totdep,
-     &  dtp_watdepact,dtp_outflow,dtp_totrel,dtp_backoff,dtp_seep_sa,
-     &  dtp_evap_sa,dtp_pet_day,dtp_pcpvol,dtp_seepvol,dtp_evapvol,
-     &  dtp_flowin,dtp_backup_length,dtp_intcept,dtp_expont,dtp_coef1,
-     &  dtp_coef2,dtp_coef3,dtp_dummy1,dtp_dummy2,
-     &  dtp_dummy3,dtp_ivol,dtp_ised
+	real*8, dimension(:), allocatable ::dtp_evrsv, dtp_inflvol,dtp_totwrwid,dtp_lwratio,dtp_wdep,dtp_totdep,dtp_watdepact
+      real*8, dimension(:), allocatable ::dtp_totrel,dtp_backoff,dtp_seep_sa,dtp_evap_sa,dtp_pet_day,dtp_pcpvol,dtp_seepvol
+      real*8, dimension(:), allocatable ::dtp_outflow,dtp_flowin,dtp_backup_length,dtp_intcept,dtp_expont,dtp_coef1,dtp_evapvol
+      real*8, dimension(:), allocatable ::dtp_coef2,dtp_coef3,dtp_dummy1,dtp_dummy2,dtp_dummy3,dtp_ivol,dtp_ised
 
       integer, dimension (:,:),allocatable :: so_res_flag, ro_bmp_flag
       real*8, dimension (:,:),allocatable :: sol_watp, sol_solp_pre   
@@ -814,67 +804,61 @@
       real*8, dimension (:),allocatable :: bmp_ppt, bmp_spt
       real*8, dimension (:),allocatable :: bmp_pnt, bmp_snt
 
-      real*8, dimension(:,:), allocatable:: dtp_wdratio,dtp_depweir,
-     &  dtp_diaweir,dtp_retperd,dtp_pcpret,dtp_cdis,dtp_flowrate,
-     &  dtp_wrwid,dtp_addon
+      real*8, dimension(:,:), allocatable:: dtp_wdratio,dtp_depweir
+      real*8, dimension(:,:), allocatable:: dtp_diaweir,dtp_retperd,dtp_pcpret,dtp_cdis,dtp_flowrate
+      real*8, dimension(:,:), allocatable:: dtp_wrwid,dtp_addon
 !!    added for manure Armen Jan 2009
  !!     real*8, dimension (:,:), allocatable :: sol_mc, sol_mn, sol_mp
 
       !retention irrigation
-      real*8, dimension(:), allocatable:: ri_subkm,ri_totpvol,
-     &  irmmdt
-      real*8, dimension(:,:), allocatable:: ri_sed,ri_fr,ri_dim,
-     &  ri_im,ri_iy,ri_sa,ri_vol,ri_qi,ri_k,ri_dd,ri_evrsv, 
-     &  ri_dep,ri_ndt,ri_pmpvol,ri_sed_cumul,hrnopcp,ri_qloss,
-     &  ri_pumpv,ri_sedi
+      real*8, dimension(:), allocatable:: ri_subkm,ri_totpvol,irmmdt
+      real*8, dimension(:,:), allocatable:: ri_sed,ri_fr,ri_dim
+      real*8, dimension(:,:), allocatable:: ri_im,ri_iy,ri_sa,ri_vol,ri_qi,ri_k,ri_dd,ri_evrsv
+      real*8, dimension(:,:), allocatable:: ri_dep,ri_ndt,ri_pmpvol,ri_sed_cumul,hrnopcp,ri_qloss
+      real*8, dimension(:,:), allocatable:: ri_pumpv,ri_sedi
       character(len=4), dimension(:,:), allocatable:: ri_nirr
       integer, dimension(:), allocatable:: num_ri,ri_luflg,num_noirr
       
       !wet pond
-      integer, dimension(:), allocatable:: wtp_subnum,wtp_onoff,wtp_imo,
-     &  wtp_iyr,wtp_dim,wtp_stagdis,wtp_sdtype      
-      real*8, dimension(:), allocatable:: wtp_pvol,wtp_pdepth,wtp_sdslope,
-     &  wtp_lenwdth,wtp_extdepth,wtp_hydeff,wtp_evrsv,wtp_sdintc,
-     &  wtp_sdexp,wtp_sdc1,wtp_sdc2,wtp_sdc3,wtp_pdia,wtp_plen,
-     &  wtp_pmann,wtp_ploss,wtp_k,wtp_dp,wtp_sedi,wtp_sede,wtp_qi 
+      integer, dimension(:), allocatable:: wtp_subnum,wtp_onoff,wtp_imo,wtp_iyr,wtp_dim,wtp_stagdis,wtp_sdtype      
+      real*8, dimension(:), allocatable:: wtp_pvol,wtp_pdepth,wtp_sdslope
+      real*8, dimension(:), allocatable:: wtp_lenwdth,wtp_extdepth,wtp_hydeff,wtp_evrsv,wtp_sdintc
+      real*8, dimension(:), allocatable:: wtp_sdexp,wtp_sdc1,wtp_sdc2,wtp_sdc3,wtp_pdia,wtp_plen
+      real*8, dimension(:), allocatable::  wtp_pmann,wtp_ploss,wtp_k,wtp_dp,wtp_sedi,wtp_sede,wtp_qi 
      
       real*8 :: bio_init, lai_init, cnop,hi_ovr,harveff,frac_harvk
 
       ! van Genuchten equation's coefficients
-      real*8 :: lid_vgcl,lid_vgcm,lid_qsurf_total,
-     & lid_farea_sum
+      real*8 :: lid_vgcl,lid_vgcm,lid_qsurf_total,lid_farea_sum
       
       ! soil water content and amount of accumulated infiltration
-      real*8, dimension(:,:), allocatable :: lid_cuminf_last,
-     & lid_sw_last, interval_last,lid_f_last,lid_cumr_last,lid_str_last,
-     & lid_farea,lid_qsurf,lid_sw_add,lid_cumqperc_last,lid_cumirr_last,
-     & lid_excum_last                                                      !! nbs
+      real*8, dimension(:,:), allocatable :: lid_cuminf_last
+      real*8, dimension(:,:), allocatable :: lid_sw_last, interval_last,lid_f_last,lid_cumr_last,lid_str_last
+      real*8, dimension(:,:), allocatable :: lid_farea,lid_qsurf,lid_sw_add,lid_cumqperc_last,lid_cumirr_last
+      real*8, dimension(:,:), allocatable :: lid_excum_last                                                      !! nbs
       
       ! Green Roof
       integer, dimension(:,:), allocatable:: gr_onoff,gr_imo,gr_iyr
-      real*8, dimension(:,:), allocatable:: gr_farea,gr_solop,gr_etcoef,
-     & gr_fc,gr_wp,gr_ksat,gr_por,gr_hydeff,gr_soldpt,gr_dummy1,
-     & gr_dummy2,gr_dummy3,gr_dummy4,gr_dummy5
+      real*8, dimension(:,:), allocatable:: gr_farea,gr_solop,gr_etcoef
+      real*8, dimension(:,:), allocatable:: gr_fc,gr_wp,gr_ksat,gr_por,gr_hydeff,gr_soldpt,gr_dummy1
+      real*8, dimension(:,:), allocatable:: gr_dummy2,gr_dummy3,gr_dummy4,gr_dummy5
             
       ! Rain Gerden
       integer, dimension(:,:), allocatable:: rg_onoff,rg_imo,rg_iyr
-      real*8, dimension(:,:), allocatable:: rg_farea,rg_solop,rg_etcoef,
-     & rg_fc,rg_wp,rg_ksat,rg_por,rg_hydeff,rg_soldpt,rg_dimop,rg_sarea,
-     & rg_vol,rg_sth,rg_sdia,rg_bdia,rg_sts,rg_orifice,rg_oheight,
-     & rg_odia,rg_dummy1,rg_dummy2,rg_dummy3,rg_dummy4,rg_dummy5
+      real*8, dimension(:,:), allocatable:: rg_farea,rg_solop,rg_etcoef
+      real*8, dimension(:,:), allocatable:: rg_fc,rg_wp,rg_ksat,rg_por,rg_hydeff,rg_soldpt,rg_dimop,rg_sarea
+      real*8, dimension(:,:), allocatable:: rg_vol,rg_sth,rg_sdia,rg_bdia,rg_sts,rg_orifice,rg_oheight
+      real*8, dimension(:,:), allocatable:: rg_odia,rg_dummy1,rg_dummy2,rg_dummy3,rg_dummy4,rg_dummy5
       
       ! CiStern
-      integer, dimension(:,:), allocatable:: cs_onoff,cs_imo,cs_iyr,
-     & cs_grcon
-      real*8, dimension(:,:), allocatable:: cs_farea,cs_vol,cs_rdepth,
-     & cs_dummy1,cs_dummy2,cs_dummy3,cs_dummy4,cs_dummy5
+      integer, dimension(:,:), allocatable:: cs_onoff,cs_imo,cs_iyr,cs_grcon
+      real*8, dimension(:,:), allocatable:: cs_farea,cs_vol,cs_rdepth,cs_dummy1,cs_dummy2,cs_dummy3,cs_dummy4,cs_dummy5
       
       ! Porous paVement
-      integer, dimension(:,:), allocatable:: pv_onoff,pv_imo,pv_iyr,
-     & pv_solop
-      real*8, dimension(:,:), allocatable:: pv_grvdep,pv_grvpor,pv_farea,
-     & pv_drcoef,pv_fc,pv_wp,pv_ksat,pv_por,pv_hydeff,pv_soldpt,
-     & pv_dummy1,pv_dummy2,pv_dummy3,pv_dummy4,pv_dummy5
+      integer, dimension(:,:), allocatable:: pv_onoff,pv_imo,pv_iyr,pv_solop
+      real*8, dimension(:,:), allocatable:: pv_grvdep,pv_grvpor,pv_farea
+      real*8, dimension(:,:), allocatable:: pv_drcoef,pv_fc,pv_wp,pv_ksat,pv_por,pv_hydeff,pv_soldpt
+      real*8, dimension(:,:), allocatable:: pv_dummy1,pv_dummy2,pv_dummy3,pv_dummy4,pv_dummy5
       
       ! LID general
       integer, dimension(:,:), allocatable:: lid_onoff
@@ -882,11 +866,9 @@
 
 !! By Zhang for C/N cycling
       !!SOM-residue C/N state variables -- currently included
-	real*8, dimension(:,:), allocatable :: sol_BMC, sol_BMN, sol_HSC, 
-     &	sol_HSN, sol_HPC, sol_HPN, sol_LM, 
-     &  sol_LMC, sol_LMN, sol_LS, sol_LSL, sol_LSC, sol_LSN	, sol_RNMN,
-     &  sol_LSLC, sol_LSLNC, sol_RSPC, sol_WOC, sol_WON, sol_HP, sol_HS,
-     &  sol_BM	
+	real*8, dimension(:,:), allocatable :: sol_BMC, sol_BMN, sol_HSC, sol_HSN, sol_HPC, sol_HPN, sol_LM 
+      real*8, dimension(:,:), allocatable :: sol_LMC, sol_LMN, sol_LS, sol_LSL, sol_LSC, sol_LSN	, sol_RNMN
+      real*8, dimension(:,:), allocatable :: sol_LSLC, sol_LSLNC, sol_RSPC, sol_WOC, sol_WON, sol_HP, sol_HS,sol_BM	
       !	HSC mass of C present in slow humus (kg ha-1)
       !	HSN mass of N present in slow humus (kg ha-1)
       !	HPC mass of C present in passive humus (kg ha-1)
@@ -907,28 +889,24 @@
 	real*8, dimension(:,:), allocatable :: sol_latc
 	
       !!Daily carbon change by different means (entire soil profile for each HRU)
-	real*8, dimension(:), allocatable :: sedc_d, surfqc_d, latc_d,
-     &	percc_d, foc_d, NPPC_d, rsdc_d, grainc_d, stoverc_d, soc_d, 
-     &  rspc_d, emitc_d 	
+	real*8, dimension(:), allocatable :: sedc_d, surfqc_d, latc_d
+      real*8, dimension(:), allocatable :: percc_d, foc_d, NPPC_d, rsdc_d, grainc_d, stoverc_d, soc_d, rspc_d, emitc_d 	
 	!!emitc_d include biomass_c eaten by grazing, burnt
 
       
       !!Daily carbon change by different means (entire soil profile for each Subbasin)
       !!Only defined the variables, but not used them in the code
-	real*8, dimension(:), allocatable :: sub_sedc_d, sub_surfqc_d, 
-     &  sub_latc_d,	sub_percc_d, sub_foc_d, sub_NPPC_d, sub_rsdc_d,
-     &  sub_grainc_d, sub_stoverc_d, sub_emitc_d, sub_soc_d, sub_rspc_d
+	real*8, dimension(:), allocatable :: sub_sedc_d, sub_surfqc_d
+      real*8, dimension(:), allocatable :: sub_latc_d,	sub_percc_d, sub_foc_d, sub_NPPC_d, sub_rsdc_d
+      real*8, dimension(:), allocatable :: sub_grainc_d, sub_stoverc_d, sub_emitc_d, sub_soc_d, sub_rspc_d
 	
 	
       !!Monthly carbon change by different means (entire soil profile for each HRU)	
-	real*8, dimension(:), allocatable :: sedc_m, surfqc_m, latc_m, percc_m, 
-     &  foc_m, NPPC_m, rsdc_m, grainc_m, stoverc_m, emitc_m, soc_m, 
-     &  rspc_m	
+	real*8, dimension(:), allocatable :: sedc_m, surfqc_m, latc_m, percc_m 
+      real*8, dimension(:), allocatable :: foc_m, NPPC_m, rsdc_m, grainc_m, stoverc_m, emitc_m, soc_m, rspc_m	
 
       !!Yearly carbon change by different means (entire soil profile for each HRU)	
-	real*8, dimension(:), allocatable :: sedc_a, surfqc_a, latc_a, 
-     &  percc_a, foc_a, NPPC_a, rsdc_a, grainc_a, stoverc_a, emitc_a, 	 
-     &  soc_a, rspc_a	
+	real*8, dimension(:), allocatable :: sedc_a, surfqc_a,latc_a,percc_a,foc_a,NPPC_a,rsdc_a,grainc_a,stoverc_a, emitc_a,soc_a,rspc_a	
 
 	
       !! The following variables are defined and calculated locally
