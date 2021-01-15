@@ -213,7 +213,7 @@ bool SoilInfo::DetermineSnowEquivalent(float snowCoef )
    if (m_snowWatEq < 0.0f)
       m_snowWatEq = 0.0f;
 
-   return true;;
+   return true;
    }
 
 

@@ -149,8 +149,7 @@ class Crop
       bool m_isDormant;
       int m_dormancyUserCriticalDate;
       int m_dormancyDynamicCriticalDate;
-      int m_dormancyPretrackPeriod''
-
+      int m_dormancyPretrackPeriod;
 
       CArray<int, int> m_stages;
       CArray<int, int> m_harvestTriggers;
@@ -158,6 +157,7 @@ class Crop
 
       CArray<int, int> m_cropEvents;     
    };
+
 
 class Farm;
 
