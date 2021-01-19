@@ -95,15 +95,18 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 		initbvoc();
 	}
 
-	//auto_ptr<GuessSerializer> serializer;
-	//auto_ptr<GuessDeserializer> deserializer;
+	auto_ptr<GuessSerializer> serializer;
+	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
+		//m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
+
 	}
 
 	if (restart) {
-		m_deserializer = new GuessDeserializer(state_path);
+		//m_deserializer = new GuessDeserializer(state_path);
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
 
@@ -259,15 +262,18 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		initbvoc();
 	}
 
-	//auto_ptr<GuessSerializer> serializer;
-	//auto_ptr<GuessDeserializer> deserializer;
+	auto_ptr<GuessSerializer> serializer;
+	auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
+		//m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
+
 	}
 
 	if (restart) {
-visu		m_deserializer =  new GuessDeserializer(state_path);
+		//m_deserializer = new GuessDeserializer(state_path);
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
 	}
 
 	
@@ -315,7 +321,8 @@ visu		m_deserializer =  new GuessDeserializer(state_path);
 
 		if (restart) {
 			// Get the whole grid cell from file...
-			m_deserializer->deserialize_gridcell(*pGridcell);
+			//m_deserializer->deserialize_gridcell(*pGridcell);
+			deserializer->deserialize_gridcell(*pGridcell);
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
@@ -409,6 +416,7 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 				// Time to save state?
 				if (date.year == state_year - 1 && save_state) {
 					m_serializer->serialize_gridcell(*pGridcell);
+					
 				}
 
 				// Check whether to abort

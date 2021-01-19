@@ -103,13 +103,6 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
 	InitPython();
 
-   //// Step 3.  Write monthly data into the Calvin input spreadsheet
-   //VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
-   //pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv", ',');
-   //pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922.csv");
-
-
-
    for (int i = 0; i < m_reservoirNameArray.GetSize(); i++)
       {
       FDataObj *pData = new FDataObj(4,0);
