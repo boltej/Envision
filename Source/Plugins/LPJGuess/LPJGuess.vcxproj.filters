@@ -22,9 +22,6 @@
     <Filter Include="Source Files\modules">
       <UniqueIdentifier>{779b144d-aa3f-4773-9789-3eb38a8e56fa}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\libraries\guessnc">
-      <UniqueIdentifier>{30c36635-19e6-4cea-ab70-0a6fe6a786b0}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Source Files\libraries\gutil">
       <UniqueIdentifier>{08865a00-47f8-44c7-bea8-d539ae7084cb}</UniqueIdentifier>
     </Filter>
@@ -36,6 +33,9 @@
     </Filter>
     <Filter Include="cru\guessio">
       <UniqueIdentifier>{ce5f94d9-884f-4801-81e8-17619383149d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\framework\guessnc">
+      <UniqueIdentifier>{30c36635-19e6-4cea-ab70-0a6fe6a786b0}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -94,13 +94,13 @@
       <Filter>Source Files\framework</Filter>
     </ClCompile>
     <ClCompile Include="libraries\guessnc\cftime.cpp">
-      <Filter>Source Files\libraries\guessnc</Filter>
+      <Filter>Source Files\framework\guessnc</Filter>
     </ClCompile>
     <ClCompile Include="libraries\guessnc\cfvariable.cpp">
-      <Filter>Source Files\libraries\guessnc</Filter>
+      <Filter>Source Files\framework\guessnc</Filter>
     </ClCompile>
     <ClCompile Include="libraries\guessnc\guessnc.cpp">
-      <Filter>Source Files\libraries\guessnc</Filter>
+      <Filter>Source Files\framework\guessnc</Filter>
     </ClCompile>
     <ClCompile Include="libraries\gutil\gutil.cpp">
       <Filter>Source Files\libraries\gutil</Filter>

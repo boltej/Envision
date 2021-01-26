@@ -1080,7 +1080,6 @@ void mortality_guess(Stand& stand, Patch& patch, const Climate& climate, double 
 
 				// Calculate this year's growth efficiency
 				// Eqn 31, Smith et al 2001
-
 				if (!negligible(indiv.cmass_leaf))
 					greff=max(indiv.anpp,0.0)/indiv.cmass_leaf/indiv.pft.sla;
 				else

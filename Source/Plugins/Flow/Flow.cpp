@@ -434,6 +434,7 @@ HRU::HRU(void)
    , m_storage_yr(0.0f)
    , m_percentIrrigated(0.0f)
    , m_meanLAI(0.0f)
+   , m_meanAge(0.0f)
    , m_currentMaxET(0.0f)
    , m_currentCGDD(0.0f)
    , m_currentSediment(0.0f)
@@ -1944,6 +1945,7 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUPercentIrrigated, "HRU_IRR_P", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUMeanLAI, "HRU_LAI", TYPE_FLOAT, CC_AUTOADD);
+   EnvExtension::CheckCol(m_pCatchmentLayer, m_colAgeClass, "HRU_AGE", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruSWC, "HRU_SWC", TYPE_FLOAT, CC_AUTOADD);
 
    // <streams>
@@ -5196,8 +5198,8 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
 
    float time = float(m_currentTime - (int)m_currentTime);
    float currTime = m_flowContext.dayOfYear + time;
-   if (!m_pGrid)   //m_buildCatchmentsMethod != 2 )    // not a grid based model?
-      {
+   //if (!m_pGrid)   //m_buildCatchmentsMethod != 2 )    // not a grid based model?
+    //  {
       int hruCount = (int)m_hruArray.GetSize();
       //#pragma omp parallel for  // firstprivate( pEnvContext )
       for (int h = 0; h < hruCount; h++)
@@ -5221,13 +5223,14 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
                   snow += ((float) pHRU->GetPool( k)->m_volumeWater/ pHRU->m_area)*MM_PER_M; //get the current year snowpack
                }
 
-            m_pCatchmentLayer->SetData(idu, m_colHRUMeanLAI, pHRU->m_biomass); //lai
+            m_pCatchmentLayer->SetData(idu, m_colHRUMeanLAI, pHRU->m_meanLAI); //lai
+            m_pCatchmentLayer->SetData(idu, m_colAgeClass, pHRU->m_meanAge); //lai
             m_pCatchmentLayer->SetData( idu, m_colHruSWC,   pHRU->m_swc );
             }
          }
-	  int activeField = m_pCatchmentLayer->GetActiveField();
+	  activeField = m_pCatchmentLayer->GetActiveField();
 	  m_pCatchmentLayer->ClassifyData(activeField);
-      }
+    //  }
 
    int reachCount = (int)m_reachArray.GetSize();
    m_pStreamLayer->m_readOnly = false;
@@ -5249,7 +5252,7 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
       {
       int hruCount = (int)m_hruArray.GetSize();
 
-
+/*
       float modelDepth = 0;
       for (int i = 0; i < this->m_poolInfoArray.GetSize(); i++)
          modelDepth += this->m_poolInfoArray[ i ]->m_depth;
@@ -5362,6 +5365,7 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
             }
          m_pGrid->SetData(pHRU->m_demRow, pHRU->m_demCol, wc);
          }
+         */
       }
 
    return true;

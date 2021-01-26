@@ -40,7 +40,8 @@ protected:
    GuessOutput::OutputModuleContainer m_output_modules;
    GuessSerializer* m_serializer;
    GuessDeserializer* m_deserializer;
-
+	void move_to_flow(Gridcell& gridcell);
+	void out_daily(Gridcell& gridcell);
 	// initialization
 
 	//bool InitRun(FlowContext *pFlowContext, bool useInitialSeed);

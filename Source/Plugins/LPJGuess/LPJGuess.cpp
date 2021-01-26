@@ -95,18 +95,15 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 		initbvoc();
 	}
 
-	auto_ptr<GuessSerializer> serializer;
-	auto_ptr<GuessDeserializer> deserializer;
+	//auto_ptr<GuessSerializer> serializer;
+	//auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		//m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
-
+		m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
 	}
 
 	if (restart) {
-		//m_deserializer = new GuessDeserializer(state_path);
-		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+		m_deserializer = new GuessDeserializer(state_path);
 	}
 
 
@@ -262,18 +259,15 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		initbvoc();
 	}
 
-	auto_ptr<GuessSerializer> serializer;
-	auto_ptr<GuessDeserializer> deserializer;
+	//auto_ptr<GuessSerializer> serializer;
+	//auto_ptr<GuessDeserializer> deserializer;
 
 	if (save_state) {
-		//m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
-
+		m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
 	}
 
 	if (restart) {
-		//m_deserializer = new GuessDeserializer(state_path);
-		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+		m_deserializer =  new GuessDeserializer(state_path);
 	}
 
 	
@@ -321,8 +315,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 		if (restart) {
 			// Get the whole grid cell from file...
-			//m_deserializer->deserialize_gridcell(*pGridcell);
-			deserializer->deserialize_gridcell(*pGridcell);
+			m_deserializer->deserialize_gridcell(*pGridcell);
 			// ...and jump to the restart year
 			date.year = state_year;
 		}
@@ -405,6 +398,8 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 
 			m_output_modules.outdaily(*pGridcell);
 
+			move_to_flow(*pGridcell);
+
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
 				// Call output module to output results for end of year
@@ -416,7 +411,6 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 				// Time to save state?
 				if (date.year == state_year - 1 && save_state) {
 					m_serializer->serialize_gridcell(*pGridcell);
-					
 				}
 
 				// Check whether to abort
@@ -433,6 +427,53 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 	}
 	date.next();
 	return TRUE;
+}
+
+void LPJGuess::move_to_flow(Gridcell& gridcell)
+   {
+	int standCount = 0;
+	int patchCount = 0;
+	Gridcell::iterator gc_itr = gridcell.begin();
+	HRU* pHRU = gridcell.pHRU;
+	while (gc_itr != gridcell.end()) 
+	   {
+		standCount++;
+		// START OF LOOP THROUGH STANDS
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+		while (stand.isobj) 
+		   {
+			// START OF LOOP THROUGH PATCHES
+			patchCount++;
+			// Get reference to this patch
+			Patch& patch = stand.getobj();
+			// Update daily soil drivers including soil temperature
+			//dailyaccounting_patch(patch);
+			float patchLAI=0;
+			Vegetation& vegetation = patch.vegetation;
+			vegetation.firstobj();
+			int vegCount=0;
+			while (vegetation.isobj) 
+			   {
+				patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+				patchLAI+=vegetation.getobj().lai_today();
+				if (vegetation.getobj().lai > 0.0f)
+				   vegCount++;
+				vegetation.nextobj();
+			   }
+			// Calculate rescaling factor to account for overlap between populations/
+			// cohorts/individuals (i.e. total FPC > 1)
+			//patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+			
+			pHRU->m_meanAge += patch.age;
+			pHRU->m_meanLAI =+ patchLAI;
+			stand.nextobj();
+		   }
+		++gc_itr;
+		   // End of loop through stands
+		}// End of loop through patches
+		pHRU->m_meanAge/=patchCount;
+		pHRU->m_meanLAI /= patchCount;
 }
 
 bool LPJGuess::Run_Guess_Complete(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
