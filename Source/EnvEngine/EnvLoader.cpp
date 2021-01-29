@@ -1608,6 +1608,7 @@ bool EnvLoader::LoadModel( EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCT
       }
    else
       {
+      pEnvModel->m_envContext.id=id;
       EnvModelProcess *pModel = (EnvModelProcess*) factory(&pEnvModel->m_envContext);
 
       if (pModel != nullptr)

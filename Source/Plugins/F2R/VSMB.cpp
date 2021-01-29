@@ -27,7 +27,7 @@ Copywrite 2012 - Oregon State University
 
 bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy)
    {
-   SoilInfo *pSoilInfo = GetSoilInfo(idu);
+   SoilInfo *pSoilInfo = GetSoilInfo(idu);//this is already in the IDU layer
 
    if (pSoilInfo == NULL)
       return false;
@@ -311,22 +311,22 @@ bool SoilInfo::DeterminePotentialDailyMelt()
    // calculate potential daily melt
 
    // correct McKay value loaded
-   /////m_dailySnowMelt = self.snow_melt.get_mckey_value(self.currentDaysOfYear, m_tdTa); // TODO
-   /////
-   /////if (m_tMax < 0)
-   /////   {
-   /////   m_dailySnowMelt = 0.0f;
-   /////   m_packRetainMelt = 0.0f;
-   /////   }
-   /////
-   /////if (m_dailySnowMelt >= m_snowCover)
-   /////   {
-   /////   m_dailySnowMelt = m_snowCover;
-   /////   m_packRetainMelt = 0.0f;
-   /////   m_snowCover = 0.0f;
-   /////   }
-   /////else
-   /////   m_snowCover = m_snowCover - m_dailySnowMelt;
+  // m_dailySnowMelt = self.snow_melt.get_mckey_value(self.currentDaysOfYear, m_tdTa); // TODO
+   
+   if (m_tMax < 0)
+      {
+      m_dailySnowMelt = 0.0f;
+      m_packRetainMelt = 0.0f;
+      }
+   
+   if (m_dailySnowMelt >= m_snowCover)
+      {
+      m_dailySnowMelt = m_snowCover;
+      m_packRetainMelt = 0.0f;
+      m_snowCover = 0.0f;
+      }
+   else
+      m_snowCover = m_snowCover - m_dailySnowMelt;
 
    return true;
    }
@@ -416,37 +416,37 @@ bool SoilInfo::DetermineInfiltrationAndRunoff()
 
          for (int i = 0; i < GetLayerCount(); i++)
             {
-            ///SoilLayerInfo *pLayer = m_soilLayerArray[i];
-            ///SoilLayerParams *pParams = pLayer->m_pLayerParams;
-            ///
-            ///pLayer->m_soilMoistContent = (pLayer->m_soilMoistContent + pParams->m_permWilt) / pParams->m_zoneThick;
-            ///
-            ///CNPW += (pLayer->m_SW / pParams->m_DUL) * WF[i];
-            ///CNPD += ((pLayer->m_SW - pParams->m_PLL) / (pParams->m_DUL - pParams->m_PLL)) * WF[i];
-            ///
-            ///float curveNum = 0.0f;
-            ///
-            ///// TODO
-            ///if (CNPD >= 1.0f)
-            ///   curveNum = StationDetails.CURVE2 + (wetCurveNum - StationDetails.CURVE2) * CNPW;
-            ///else
-            ///   curveNum = dryCurveNum + (StationDetails.CURVE2 - dryCurveNum) * CNPD;
-            ///
-            ///if (curveNum == 0.0f)
-            ///   curveNum = 0.99f;
-            ///
-            ///float dSMX = 254.0f * (100.0f / curveNum - 1.0f);
-            ///
-            ///// reduce the retention factor if soil is frozen formula adapted from epic model,
-            ///// this method was # found inappropriate as such use the hob - krogman's technique shown below. 
-            ///float dPB = surfaceWater - 0.2f * dSMX;
-            ///
-            ///if (dPB > 0)
-            ///   {
-            ///   runoff = (dPB*dPB) / (surfaceWater + 0.8f * dSMX);
-            ///   if (runoff < 0.0)
-            ///      runoff = 0.0f;
-            ///   }
+            SoilLayerInfo *pLayer = m_soilLayerArray[i];
+            SoilLayerParams *pParams = pLayer->m_pLayerParams;
+            
+            pLayer->m_soilMoistContent = (pLayer->m_soilMoistContent + pParams->m_permWilt) / pParams->m_zoneThick;
+            
+            CNPW += (pLayer->m_SW / pParams->m_DUL) * WF[i];
+            CNPD += ((pLayer->m_SW - pParams->m_PLL) / (pParams->m_DUL - pParams->m_PLL)) * WF[i];
+            
+            float curveNum = 0.0f;
+            
+            /// TODO
+          /*  if (CNPD >= 1.0f)
+               curveNum = StationDetails.CURVE2 + (wetCurveNum - StationDetails.CURVE2) * CNPW;
+            else
+               curveNum = dryCurveNum + (StationDetails.CURVE2 - dryCurveNum) * CNPD;
+            
+            if (curveNum == 0.0f)
+               curveNum = 0.99f;*/
+            
+            float dSMX = 254.0f * (100.0f / curveNum - 1.0f);
+            
+            /// reduce the retention factor if soil is frozen formula adapted from epic model,
+            /// this method was # found inappropriate as such use the hob - krogman's technique shown below. 
+            float dPB = surfaceWater - 0.2f * dSMX;
+            
+            if (dPB > 0)
+               {
+               runoff = (dPB*dPB) / (surfaceWater + 0.8f * dSMX);
+               if (runoff < 0.0)
+                  runoff = 0.0f;
+               }
             }  // end of for
             
             delete[] WF;
@@ -512,72 +512,72 @@ bool SoilInfo::DetermineET()
          if (deltaA > 1.0)
             deltaA = 1.0f;
 
-         //////pLayer->m_kCoef = self.get_root_coeff(self.iCurrentCropStage, i);  // TODO
-         //////
-         //////if ((self.iCurrentCropStage >= StationDetails.KADJUSTSTAGE - 1) && (i != 0))  // TODO
-         //////   {
-         //////   int j = 1;
-         //////   while (j <= i)
-         //////      {
-         //////      int k = j - 1;  // adjusting soil moisture coefficient for stress
-         //////      SoilLayerInfo *pLayerK = m_soilLayerArray[k];
-         //////      SoilLayerParams *pParamsK = pLayerK->m_pLayerParams;
-         //////
-         //////
-         //////      if (l == 0)
-         //////         pLayer->m_kCoef += pLayer->m_kCoef * pLayerK->m_kCoef
-         //////         * (1.0f - pLayerK->m_soilMoistContent / pParamsK->m_AWHC);
-         //////      else
-         //////         pLayer->m_kCoef += pLayer->m_kCoef * pLayerK->m_kCoef
-         //////         * (1.0f - pLayerK->m_content2 / pParamsK->m_AWHC);
-         //////
-         //////      j += 1;
-         //////      }
-         //////
-         //////   int IT = int(floor(relMoistCont * 100.0f) - 1);
-         //////
-         //////   if (l == 1)
-         //////      IT = int(floor(deltaA * 100.0f) - 1);  // should we be using a floor function here or should we round ? #Dim IT As Integer = CInt(dRelMoistCont * 100.0) - 1 #If(l = 1) Then IT = CInt(m_DeltaA * 100.0) - 1
-         //////
-         //////   float work = 0.0f;
-         //////   if (IT < 0)
-         //////      work = 0.0f;
-         //////
-         //////   else if (StationDetails.KNTROL <= GetLayerCount())  // TODO
-         //////      {
-         //////      if (i > StationDetails.KNTROL - 1)  // TODO
-         //////         work = self.get_z_table2(IT);
-         //////      else
-         //////         work = self.get_z_table1(IT);
-         //////      }
-         //////   else if (self.iCurrentCropStage == 0)  // TODO
-         //////      work = self.get_z_table2(IT);
-         //////   else
-         //////      work = self.get_z_table1(IT);   // TODO 
-         //////
-         //////   // water loss
-         //////   if (l == 0)
-         //////      {
-         //////      actEvap = relMoistCont * work * m_adjustedPET * pLayer->m_kCoef;
-         //////
-         //////      if (actEvap > pLayer->m_soilMoistContent)
-         //////         actEvap = pLayer->m_soilMoistContent;
-         //////
-         //////      pLayer->m_waterLoss = actEvap;
-         //////      m_dailyAET += pLayer->m_waterLoss;
-         //////      }
-         //////   else
-         //////      {
-         //////      deltaB = deltaA * work * m_computedPET * pLayer->m_kCoef;
-         //////
-         //////      if (deltaB > pLayer->m_content2)
-         //////         deltaB = pLayer->m_content2;
-         //////
-         //////      pLayer->m_delta = deltaB;
-         //////      //m_deltaSum += pLayer->m_delta; ??? Never used?
-         //////      }
-         //////
-         //////   }  // end of if ((self.iCurrentCropStage >= StationDetails.KADJUSTSTAGE - 1) && (i != 0))
+         //pLayer->m_kCoef = self.get_root_coeff(self.iCurrentCropStage, i);  // TODO
+         //
+         //if ((self.iCurrentCropStage >= StationDetails.KADJUSTSTAGE - 1) && (i != 0))  // TODO
+         //   {
+         //   int j = 1;
+         //   while (j <= i)
+         //      {
+         //      int k = j - 1;  // adjusting soil moisture coefficient for stress
+         //      SoilLayerInfo *pLayerK = m_soilLayerArray[k];
+         //      SoilLayerParams *pParamsK = pLayerK->m_pLayerParams;
+         //
+         //
+         //      if (l == 0)
+         //         pLayer->m_kCoef += pLayer->m_kCoef * pLayerK->m_kCoef
+         //         * (1.0f - pLayerK->m_soilMoistContent / pParamsK->m_AWHC);
+         //      else
+         //         pLayer->m_kCoef += pLayer->m_kCoef * pLayerK->m_kCoef
+         //         * (1.0f - pLayerK->m_content2 / pParamsK->m_AWHC);
+         //
+         //      j += 1;
+         //      }
+         //
+         //   int IT = int(floor(relMoistCont * 100.0f) - 1);
+         //
+         //   if (l == 1)
+         //      IT = int(floor(deltaA * 100.0f) - 1);  // should we be using a floor function here or should we round ? #Dim IT As Integer = CInt(dRelMoistCont * 100.0) - 1 #If(l = 1) Then IT = CInt(m_DeltaA * 100.0) - 1
+         //
+         //   float work = 0.0f;
+         //   if (IT < 0)
+         //      work = 0.0f;
+         //
+         //   //else if (StationDetails.KNTROL <= GetLayerCount())  // TODO
+         //   //   {
+         //   //   if (i > StationDetails.KNTROL - 1)  // TODO
+         //   //      work = self.get_z_table2(IT);
+         //   //   else
+         //   //      work = self.get_z_table1(IT);
+         //   //   }
+         //   //else if (self.iCurrentCropStage == 0)  // TODO
+         //   //   work = self.get_z_table2(IT);
+         //   //else
+         //   //   work = self.get_z_table1(IT);   // TODO 
+         //
+         //   // water loss
+         //   if (l == 0)
+         //      {
+         //      actEvap = relMoistCont * work * m_adjustedPET * pLayer->m_kCoef;
+         //
+         //      if (actEvap > pLayer->m_soilMoistContent)
+         //         actEvap = pLayer->m_soilMoistContent;
+         //
+         //      pLayer->m_waterLoss = actEvap;
+         //      m_dailyAET += pLayer->m_waterLoss;
+         //      }
+         //   else
+         //      {
+         //      deltaB = deltaA * work * m_computedPET * pLayer->m_kCoef;
+         //
+         //      if (deltaB > pLayer->m_content2)
+         //         deltaB = pLayer->m_content2;
+         //
+         //      pLayer->m_delta = deltaB;
+         //      //m_deltaSum += pLayer->m_delta; ??? Never used?
+         //      }
+         //
+         //   }  // end of if ((self.iCurrentCropStage >= StationDetails.KADJUSTSTAGE - 1) && (i != 0))
          }  // end of: for each layer
       }  // end of: forl < 2
    m_dailyAET += m_snowLoss;
@@ -613,48 +613,48 @@ bool SoilInfo::ApplyPrecipitationAndEvaporationToLayers()
 bool SoilInfo::CalculateDrainageAndSoilWaterDistribution()
    {
    // find drainage and soil water distribution
-   //////m_soilLayerArray[0]->m_flux = m_surfaceWater - (m_runoff + m_runoffFrozen);   // TODO  where should these come from?
-   //////int layers = GetLayerCount() - 1;
-   //////int l = 0;
-   //////
-   //////for (l = 0; l < GetLayerCount(); l++)
-   //////   {
-   //////   SoilLayerInfo *pLayer = m_soilLayerArray[l];
-   //////   SoilLayerParams *pParams = pLayer->m_pLayerParams;
-   //////
-   //////   float HOLDw = pParams->m_sat * pParams->m_zoneThick - (pLayer->m_soilMoistContent + pParams->m_permWilt);
-   //////   if ((pLayer->m_flux == 0.0f) || (pLayer->m_flux <= HOLDw))
-   //////      {
-   //////      pLayer->m_soilMoistContent += pLayer->m_flux;
-   //////      pLayer->m_drain = ((pLayer->m_soilMoistContent + pParams->m_permWilt) - pParams->m_DUL * pParams->m_zoneThick);  // # pLayer->DUL = constant for (layer, station) # StationDetails.DRS2 = 0.8
-   //////
-   //////      if (l == layers)
-   //////         pLayer->m_drain = ((pLayer->m_soilMoistContent + pParams->m_permWilt) - StationDetails.DRS2 * pParams->m_DUL * pParams->m_zoneThick);  // TODO
-   //////
-   //////      if (pLayer->m_drain < 0.0f)
-   //////         pLayer->m_drain = 0.0f;
-   //////
-   //////      pLayer->m_soilMoistContent -= pLayer->m_drain;
-   //////      pLayer->m_flux = pLayer->m_drain;
-   //////      }
-   //////   else if (pLayer->m_flux > HOLDw)
-   //////      {
-   //////      pLayer->m_drain = (pParams->m_sat - pParams->m_DUL) * pParams->m_zoneThick;
-   //////      pLayer->m_soilMoistContent = pParams->m_sat * pParams->m_zoneThick - pLayer->m_drain - pParams->m_permWilt;
-   //////      pLayer->m_flux -= HOLDw + pLayer->m_drain;
-   //////      }
-   //////
-   //////   if (l < layers)
-   //////      m_soilLayerArray[l + 1]->m_flux = pLayer->m_flux;
-   //////   }  // end of: for( l < GetLayerCount() )
-   //////
-   //////if (l >= layers)
-   //////   l = layers;
-   //////
-   //////this->m_wleach = m_soilLayerArray[l]->m_flux;
-   //////
-   //////for (l = 0; l < GetLayerCount(); l++)
-   //////   m_soilLayerArray[l]->m_flux = 0.0f;
+   m_soilLayerArray[0]->m_flux = m_surfaceWater - (m_runoff + m_runoffFrozen);   // TODO  where should these come from?
+   int layers = GetLayerCount() - 1;
+   int l = 0;
+   
+   for (l = 0; l < GetLayerCount(); l++)
+      {
+      SoilLayerInfo *pLayer = m_soilLayerArray[l];
+      SoilLayerParams *pParams = pLayer->m_pLayerParams;
+   
+      float HOLDw = pParams->m_sat * pParams->m_zoneThick - (pLayer->m_soilMoistContent + pParams->m_permWilt);
+      if ((pLayer->m_flux == 0.0f) || (pLayer->m_flux <= HOLDw))
+         {
+         pLayer->m_soilMoistContent += pLayer->m_flux;
+         pLayer->m_drain = ((pLayer->m_soilMoistContent + pParams->m_permWilt) - pParams->m_DUL * pParams->m_zoneThick);  // # pLayer->DUL = constant for (layer, station) # StationDetails.DRS2 = 0.8
+   
+         //if (l == layers)
+         //   pLayer->m_drain = ((pLayer->m_soilMoistContent + pParams->m_permWilt) - StationDetails.DRS2 * pParams->m_DUL * pParams->m_zoneThick);  // TODO
+   
+         if (pLayer->m_drain < 0.0f)
+            pLayer->m_drain = 0.0f;
+   
+         pLayer->m_soilMoistContent -= pLayer->m_drain;
+         pLayer->m_flux = pLayer->m_drain;
+         }
+      else if (pLayer->m_flux > HOLDw)
+         {
+         pLayer->m_drain = (pParams->m_sat - pParams->m_DUL) * pParams->m_zoneThick;
+         pLayer->m_soilMoistContent = pParams->m_sat * pParams->m_zoneThick - pLayer->m_drain - pParams->m_permWilt;
+         pLayer->m_flux -= HOLDw + pLayer->m_drain;
+         }
+   
+      if (l < layers)
+         m_soilLayerArray[l + 1]->m_flux = pLayer->m_flux;
+      }  // end of: for( l < GetLayerCount() )
+   
+   if (l >= layers)
+      l = layers;
+   
+   this->m_wleach = m_soilLayerArray[l]->m_flux;
+   
+   for (l = 0; l < GetLayerCount(); l++)
+      m_soilLayerArray[l]->m_flux = 0.0f;
    
    return true;
    }

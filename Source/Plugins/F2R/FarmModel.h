@@ -278,6 +278,7 @@ public:
 public:
    PtrArray< FarmField > m_fieldArray;
 
+
    // runtime support  
    float m_totalArea;                     // m2
    float m_dailyPlantingAcresAvailable;   // Acres

@@ -1782,7 +1782,7 @@ bool FarmModel::GrowCrops( EnvContext *pContext, bool useAddDelta )
                // TODO: Verify VSMB
                // Update the current IDU's soil moisture status
                if ( m_useVSMB )
-                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy);
+                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy); 
 
                if ( IsAnnualCrop( pFarm, pLayer ) )
                   {
@@ -2003,13 +2003,13 @@ int FarmModel::BuildFarms( MapLayer *pLayer )
       int count = (int) pFarm->m_fieldArray.Add( pField );
       pField->m_iduArray.Add( idu );
       pLayer->SetData( idu, m_colFieldID, pField->m_id );
-
+      
       // create and attach soil info to this IDU
       if (m_useVSMB)
          {
          int soilIndex = -1;
          pLayer->GetData(idu, m_colSoilID, soilIndex);
-         //m_vsmb.SetSoilInfo(idu, soilIndex, pFarm->m_pClimateStation );
+        // m_vsmb.SetSoilInfo(idu, soilIndex, pFarm->m_pClimateStation );
          }
 // TODO:  Need to populate soil properties, layers according to soil type
 
@@ -4305,7 +4305,7 @@ bool FarmModel::LoadXml( EnvContext *pContext, LPCTSTR filename )
    // verify columns exist
    theProcess->CheckCol( pLayer, m_colFarmID,    m_farmIDField,   TYPE_INT, m_doInit ? CC_AUTOADD : CC_MUST_EXIST );
    theProcess->CheckCol( pLayer, m_colFarmType,  m_farmTypeField, TYPE_INT, m_doInit ? CC_AUTOADD : CC_MUST_EXIST );
-   theProcess->CheckCol( pLayer, m_colFarmHQ,    "FARMHQ",        TYPE_INT, CC_MUST_EXIST);
+   theProcess->CheckCol( pLayer, m_colFarmHQ,    "FT_HQ",        TYPE_INT, CC_MUST_EXIST);
    theProcess->CheckCol( pLayer, m_colLulc,      m_lulcField,     TYPE_INT, CC_MUST_EXIST );
    theProcess->CheckCol( pLayer, m_colRotation,  m_rotationField, TYPE_INT, CC_AUTOADD );
    theProcess->CheckCol( pLayer, m_colLulcA,     "LULC_A",        TYPE_INT, CC_MUST_EXIST );
@@ -4742,11 +4742,11 @@ bool FarmModel::LoadXml( EnvContext *pContext, LPCTSTR filename )
 
       TiXmlElement *pXmlVSMB = pXmlFarmModel->FirstChildElement("vsmb");
 
-      if (pXmlVSMB)
-         {
-         LPCTSTR paramFile = pXmlVSMB->Attribute("param_file");
-         m_vsmb.LoadParamFile(paramFile);
-         }
+      //if (pXmlVSMB)
+      //   {
+      //   LPCTSTR paramFile = pXmlVSMB->Attribute("param_file");
+      //   m_vsmb.LoadParamFile(paramFile);
+      //   }
 
       }
    

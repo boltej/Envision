@@ -787,7 +787,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_age = 0.0;
 
 			stand.firstobj();
-
+			int numPfts = 0;
 			// Loop through Patches
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
@@ -801,7 +801,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
-
+				
 					vegetation.firstobj();
 					while (vegetation.isobj) {
 						Individual& indiv=vegetation.getobj();
@@ -818,13 +818,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai;
+								standpft_age += indiv.age;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
 								}
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake += indiv.anuptake;
-								standpft_age += indiv.age;
+								
 								if(pft.landcover == CROPLAND) {
 									standpft_cmass_veg += indiv.cmass_leaf + indiv.cmass_root;
 									if(indiv.cropindiv) {
@@ -836,14 +837,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								else {
 
 									standpft_cmass_veg += indiv.cmass_veg;
-
+								
 								}
+							numPfts++;
 							}
 
 						} // alive?
 						vegetation.nextobj();
 					}
-
+				//	standpft_age += patch.age;
 					stand.nextobj();
 				} // end of patch loop
 
@@ -867,6 +869,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_vmaxnlim/=(double)stand.npatch();
 				heightindiv_total/=(double)stand.npatch(); // missing above!
 				standpft_age/=(double)stand.npatch();
+				if (numPfts > 0.0f)
+				   standpft_age/=numPfts;
 
 				if (!negligible(standpft_cmass_leaf))
 					standpft_vmaxnlim /= standpft_cmass_leaf;

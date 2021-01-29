@@ -54,6 +54,7 @@ class SoilLayerParams
       float m_DUL;                  //  Drained upper limit = "FIELDCAP" / 100 (ratio)
       float m_PLL;                  //  lower limit of plant extractable soil water = "WILTINGPT" / 100 (ratio)
       float m_AWHC;                 //  zone available water holding capacity = calculated from values above (mm)
+      float m_permWilt;
       //float voidCapacity;         //  void capacity(total porosity) for each zone
       // float m_WF;                //  weighting factor??? - calculated and used only in determineInfiltrationAndRunoff() not needed here
    };
@@ -129,6 +130,9 @@ class SoilInfo
          , m_snowLoss(0)
          , m_snowCover(0)
          , m_petMethod(VPM_PRIESTLEY_TAYLOR)
+         , m_runoff(0)
+         , m_runoffFrozen(0)
+         , m_surfaceWater(0)
          { }
 
       // dynamic variables
@@ -153,6 +157,9 @@ class SoilInfo
       float m_soilTempLast;
       float m_deficitTotal;
       float m_snowLoss;
+      float m_runoff;
+      float m_runoffFrozen;
+      float m_surfaceWater;
 
       MovingWindow m_soilTempHistory;
 

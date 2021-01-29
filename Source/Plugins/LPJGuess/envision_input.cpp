@@ -352,8 +352,10 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 	Climate& climate = gridcell.climate;
 
 
-
-	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+	if (FIRSTHISTYEAR + date.year <= pFlowContext->pEnvContext->endYear)
+	   climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+	else
+		climate.co2 = 414.01;
 
 	//	climate.temp  = dtemp[date.day];
 	//	climate.prec  = dprec[date.day];
