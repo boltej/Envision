@@ -80,7 +80,7 @@ class SoilLayerInfo
 
       // constructor
       SoilLayerInfo(SoilLayerParams *pParams)
-         : m_soilMoistContent(0)
+         : m_soilMoistContent(2.f)
          , m_kCoef(0)
          , m_SW(0)
          , m_SWX(0)
@@ -175,10 +175,10 @@ class SoilInfo
 
       PtrArray<SoilLayerInfo> m_soilLayerArray;
       
-      bool UpdateSoilMoisture(int year, int doy);
+      bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation);
 
    protected:
-      bool DeterminePrecipitationType(int year, int doy);   // sets m_rain, m_snow based on m_precip
+      bool DeterminePrecipitationType(int year, int doy, ClimateStation* pStation);   // sets m_rain, m_snow based on m_precip
 
       bool DetermineSnowEquivalent(float snowCoef);
 
@@ -209,15 +209,15 @@ class VSMBModel
    public:
       bool LoadParamFile(LPCTSTR paramFile);
       bool AllocateSoilArray(int size);
-      bool SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation);
+      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation);
 
       bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy);
 
-      SoilInfo *GetSoilInfo(int idu) { return NULL; } ///?????
+      SoilInfo *GetSoilInfo(int idu);///?????
 
       //  Wrting output CSV
       int OutputDayVSMBResults(int currentDate) { return -1; }//  calculate stress index = 1 - AET / PET
-
+      float GetSoilMoisture(int idu, int layer);
    public:
       PtrArray<SoilInfo> m_soilInfoArray;    // loaded from CSV file during LoadXml
 

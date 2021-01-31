@@ -229,8 +229,8 @@ public:
    Farm *m_pFarm;      // current owner of the field
    float m_totalArea;  // area of the field (m2)
    CArray< int, int > m_iduArray;   // initially, a single IDU
-
-   SoilInfo *m_pSoil;  // for VSMB, mmemory is managed by the VSMB Model Instance
+   CArray< SoilInfo*, SoilInfo* > m_pSoilArray;
+  // SoilInfo *m_pSoil;  // for VSMB, mmemory is managed by the VSMB Model Instance
 };
 
 
@@ -372,6 +372,8 @@ public:
 
    int m_colCadID;      // "CAD_ID"
    int m_colSoilID;     //
+
+   int m_colSWC;
 
    // the following are accessed by multiple classes
    static int m_colFarmHQ;

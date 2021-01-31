@@ -495,6 +495,7 @@ FarmModel::FarmModel( void )
    , m_maxProcessors( -1 )
    , m_processorsUsed( 0 )
    , m_outputPivotTable( true )
+   , m_colSWC(0)
    {
    // zero out event array
    memset( m_cropEvents, 0, sizeof( float )*(1+CE_EVENTCOUNT) );
@@ -592,7 +593,10 @@ bool FarmModel::Init( EnvContext *pContext, LPCTSTR initStr )
    theProcess->CheckCol( pMapLayer, m_colPigsAvg,    "PigsAvg",    TYPE_FLOAT, CC_AUTOADD );
    theProcess->CheckCol( pMapLayer, m_colPoultryAvg, "Poultry_Av", TYPE_FLOAT, CC_AUTOADD );
    theProcess->CheckCol( pMapLayer, m_colCadID,      "CAD_ID",     TYPE_INT,  CC_MUST_EXIST );
-   theProcess->CheckCol( pMapLayer, m_colCLI,        "CLI_d_code", TYPE_INT,  CC_MUST_EXIST );
+   //theProcess->CheckCol( pMapLayer, m_colCLI,        "CLI_d_code", TYPE_INT,  CC_MUST_EXIST );
+   theProcess->CheckCol(pMapLayer, m_colCLI, "CLI_d", TYPE_INT, CC_MUST_EXIST);
+
+   theProcess->CheckCol(pMapLayer, m_colSWC, "SWC", TYPE_FLOAT, CC_AUTOADD);
 
    pMapLayer->SetColNoData( m_colRotIndex );
    pMapLayer->SetColNoData( m_colCropStatus );
@@ -1122,11 +1126,12 @@ void FarmModel::SetupOutputVars( EnvContext *pContext )
 
    // set up any output data objs
    ASSERT( m_pDailyData == NULL );
-   m_pDailyData = new FDataObj( 3, 0 );
+   m_pDailyData = new FDataObj( 4, 0 );
    m_pDailyData->SetName( "Farm Model Daily Data" );
    m_pDailyData->SetLabel( 0, "Time" );
    m_pDailyData->SetLabel( 1, "Avg Yield Reduction" );
    m_pDailyData->SetLabel( 2, "Avg Planting Date" );
+   m_pDailyData->SetLabel( 3, "Avg surface SWC (mm)"); //kbv
 
    ASSERT( m_pCropEventData == NULL );
    m_pCropEventData = new FDataObj( 1+CE_EVENTCOUNT, 0 );
@@ -1488,6 +1493,7 @@ void FarmModel::SetupOutputVars( EnvContext *pContext )
    m_dailyCIArray.Add( BuildOutputClimateDataObj( "Daily Tmean (C)"   , true ) );
    m_dailyCIArray.Add( BuildOutputClimateDataObj( "Daily Tmax (C)"    , true ) );
 
+
    // note - following order must match the "output data object indices" enum in FarmModel.h
    m_annualCIArray.Add( BuildOutputClimateDataObj( "Annual Precip (mm)"    , false ) );
    m_annualCIArray.Add( BuildOutputClimateDataObj( "Annual Tmin (C)"       , false ) );
@@ -1731,6 +1737,7 @@ bool FarmModel::GrowCrops( EnvContext *pContext, bool useAddDelta )
    for ( int doy = 1; doy <= 365; doy++ )   // note: doy's are one-based
       {
       int year=2000, month, dom;
+      year=pContext->currentYear;//kbv: isn't year=2000 issue for climate data?
       ::GetCalDate( doy, &year, &month, &dom, 0 );
 
       CString msg;
@@ -1782,7 +1789,11 @@ bool FarmModel::GrowCrops( EnvContext *pContext, bool useAddDelta )
                // TODO: Verify VSMB
                // Update the current IDU's soil moisture status
                if ( m_useVSMB )
+                  { 
                   m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy); 
+                  float swc=m_vsmb.GetSoilMoisture(idu,0);
+                  theProcess->UpdateIDU(pContext, idu, m_colSWC, swc, SET_DATA);
+                  }
 
                if ( IsAnnualCrop( pFarm, pLayer ) )
                   {
@@ -1963,7 +1974,8 @@ int FarmModel::BuildFarms( MapLayer *pLayer )
 
    int farmID = 0;
    CArray< int, int > multiHQList;
-
+   if (m_useVSMB)
+      m_vsmb.AllocateSoilArray(pLayer->End());//allocate one for each idu??
    // iterate through IDUs
    for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
@@ -2008,8 +2020,10 @@ int FarmModel::BuildFarms( MapLayer *pLayer )
       if (m_useVSMB)
          {
          int soilIndex = -1;
-         pLayer->GetData(idu, m_colSoilID, soilIndex);
-        // m_vsmb.SetSoilInfo(idu, soilIndex, pFarm->m_pClimateStation );
+        // pLayer->GetData(idu, m_colSoilID, soilIndex);
+         LPCTSTR code="NotUsed";
+        // m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID));
+         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID)));
          }
 // TODO:  Need to populate soil properties, layers according to soil type
 
@@ -2418,7 +2432,7 @@ float FarmModel::CheckCropConditions( EnvContext *pContext, Farm *pFarm, MapLaye
             if (m_useVSMB)
                {
                /////float fc = m_vsmb.GetFieldCapacity(idu);
-               /////float availWater = m_vsmb.GetAvailableWater(idu);
+               //// float availWater = m_vsmb.GetAvailableWater(idu);
                /////
                /////float clayContent;
                /////pLayer->GetData(m_colClayContent, idu, clayContent);
@@ -2433,6 +2447,7 @@ float FarmModel::CheckCropConditions( EnvContext *pContext, Farm *pFarm, MapLaye
                /////   plant = false;
                /////   cropEvent = CE_EARLY_FLOOD_DELAY_CORN_PLANTING;
                /////   }
+               
                }
             else
                {
@@ -3636,7 +3651,7 @@ void FarmModel::UpdateDailyOutputs( int doy, EnvContext *pContext )
    float day = float( 365*(year-pContext->startYear) + doy - 1 );
 
    float tPlantDate = 0, tAreaPlantDate = 0;
-
+   float avSWC = 0, totalArea=0;
    for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
       float area = 0;
@@ -3646,19 +3661,30 @@ void FarmModel::UpdateDailyOutputs( int doy, EnvContext *pContext )
       int plantDate = 0;
       pLayer->GetData( idu, m_colPlantDate, plantDate );
 
+      //kbv
+      // soil water content
+      float iduSWC=0.0f;
+      pLayer->GetData(idu, m_colSWC, iduSWC);
+      avSWC+=iduSWC*area;
+      totalArea+=area;
+
       if ( plantDate > 0)
          {
          tPlantDate += (float) plantDate * area;
          tAreaPlantDate += area;
          }
-      }
 
-   tPlantDate /= tAreaPlantDate;
+      }
+   if (tAreaPlantDate > 0.0f)
+      tPlantDate /= tAreaPlantDate;
+   avSWC /= totalArea;
 
    CArray< float, float > data;
    data.Add( (float) day );
    data.Add( m_avgYieldReduction );
    data.Add( tPlantDate );
+   data.Add( avSWC);
+
 
    m_pDailyData->AppendRow( data );
 
@@ -4742,11 +4768,11 @@ bool FarmModel::LoadXml( EnvContext *pContext, LPCTSTR filename )
 
       TiXmlElement *pXmlVSMB = pXmlFarmModel->FirstChildElement("vsmb");
 
-      //if (pXmlVSMB)
-      //   {
-      //   LPCTSTR paramFile = pXmlVSMB->Attribute("param_file");
-      //   m_vsmb.LoadParamFile(paramFile);
-      //   }
+      if (pXmlVSMB)
+         {
+         LPCTSTR paramFile = pXmlVSMB->Attribute("param_file");
+         m_vsmb.LoadParamFile(paramFile);
+         }
 
       }
    
