@@ -133,6 +133,7 @@ class SoilInfo
          , m_runoff(0)
          , m_runoffFrozen(0)
          , m_surfaceWater(0)
+         , m_pNAISTable(NULL)
          { }
 
       // dynamic variables
@@ -172,7 +173,7 @@ class SoilInfo
       // static variables
       int m_idu;
       ClimateStation *m_pClimateStation;
-
+      FDataObj *m_pNAISTable;
       PtrArray<SoilLayerInfo> m_soilLayerArray;
       
       bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation);
@@ -189,7 +190,7 @@ class SoilInfo
       bool DetermineSoilSurfaceTemp(int year, int doy);   //  determine soil surface temperature
       bool DetermineThreeDaySoilSurfaceAverage();         //  determine 3 day running average for soil temperature
       bool DetermineSnowBudget();                     //  determine snow budget
-      bool DeterminePotentialDailyMelt();
+      bool DeterminePotentialDailyMelt(int doy, float tAvg);
       bool DetermineRetentionAndLoss();
       bool DetermineInfiltrationAndRunoff();
       bool DetermineSnowDepletion();
@@ -197,6 +198,9 @@ class SoilInfo
       bool ApplyPrecipitationAndEvaporationToLayers(); //  determine potential daily melt from snow
       bool CalculateDrainageAndSoilWaterDistribution();        //  calculate drainage and soil water distribution
       bool AccountForMoistureRedistributionOrUnsaturatedFlow();
+
+      float GetMcKayValue(int iDayOfYear, float dMeanTemp);
+     // float GetTempIndex(float dTemperature);
 
       // new
       int GetLayerCount() { return (int)m_soilLayerArray.GetSize(); }
@@ -209,7 +213,7 @@ class VSMBModel
    public:
       bool LoadParamFile(LPCTSTR paramFile);
       bool AllocateSoilArray(int size);
-      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation);
+      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation,  FDataObj* pNAISTable);
 
       bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy);
 
@@ -218,11 +222,12 @@ class VSMBModel
       //  Wrting output CSV
       int OutputDayVSMBResults(int currentDate) { return -1; }//  calculate stress index = 1 - AET / PET
       float GetSoilMoisture(int idu, int layer);
+      float GetSWE(int idu);
    public:
       PtrArray<SoilInfo> m_soilInfoArray;    // loaded from CSV file during LoadXml
 
       PtrArray<SoilLayerParams> m_soilLayerParams;
-
+      FDataObj* m_pNAISSnowMeltTable;//kbv
       // lookup map fpr soil param - key=soilID, value=array of ptrs to associated SoilLayerParams
       std::map < int, std::vector<SoilLayerParams*> > m_soilLayerParamsMap;
    };

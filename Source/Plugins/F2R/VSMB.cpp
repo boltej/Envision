@@ -45,6 +45,16 @@ float VSMBModel::GetSoilMoisture(int idu, int layer)
    return pLayer->m_soilMoistContent;
    }
 
+float VSMBModel::GetSWE(int idu)
+{
+   SoilInfo* pSoilInfo = GetSoilInfo(idu);
+
+   if (pSoilInfo == NULL)
+      return 0.0;
+
+   return pSoilInfo->m_snowCover;
+}
+
 bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
    {
    VDataObj paramData(U_UNDEFINED);
@@ -96,7 +106,7 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
       // add a map entry for this soil code to enable fact lookup later
       //m_soilLayerParamsMap.insert(make_pair(std::string(pParams->m_soilCode), pParams));
       }
-   
+
    return true;
    }
 
@@ -110,11 +120,12 @@ bool VSMBModel::AllocateSoilArray(int size)
    }
 
 
-SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation)
+SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, FDataObj *pNAISTable)
    {
    // make a new soil info
    SoilInfo *pSoilInfo = new SoilInfo(idu, pStation);
    pSoilInfo->m_pClimateStation = pStation;
+   pSoilInfo->m_pNAISTable=pNAISTable;
    try
       {
       // add soil layer info
@@ -204,7 +215,7 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation)
    //  determine snow budget
    DetermineSnowBudget();
    //  determine potential daily melt from snow
-   DeterminePotentialDailyMelt();
+   DeterminePotentialDailyMelt(doy, m_tAvg);
    //  determine retention and actual loss to snow pack
    DetermineRetentionAndLoss();
    // determine Infiltration and run off
@@ -349,12 +360,13 @@ bool SoilInfo::DetermineSnowBudget()
    }
 
 
-bool SoilInfo::DeterminePotentialDailyMelt()
+bool SoilInfo::DeterminePotentialDailyMelt(int doy, float tAvg)
    {
    // calculate potential daily melt
 
    // correct McKay value loaded
-  // m_dailySnowMelt = self.snow_melt.get_mckey_value(self.currentDaysOfYear, m_tdTa); // TODO
+   
+   m_dailySnowMelt = GetMcKayValue(doy, tAvg); // TODO
    
    if (m_tMax < 0)
       {
@@ -811,3 +823,26 @@ float SoilInfo::GetTotalSoilMoistContent()
 
    return smc;
    }
+
+float SoilInfo::GetMcKayValue(int iDayOfYear , float dMeanTemp )
+   {
+   float meltRate = 0.0f;
+   float d=(float)iDayOfYear;
+   if (dMeanTemp > 0.0f && dMeanTemp < 15.5f)
+      meltRate = m_pNAISTable->IGet(d, dMeanTemp, IM_LINEAR);
+   return meltRate;
+  /* if(iDayOfYear < 0) 
+      get value for January 1
+      GetMcKayValue = dMcKay(1, GetTempIndex(dMeanTemp));
+    else if(iDayOfYear > DAYS) Then
+       get value for December 31 (could be leap year)
+      GetMcKayValue = dMcKay(DAYS, GetTempIndex(dMeanTemp));
+      Else
+         GetMcKayValue = dMcKay(iDayOfYear - 1, GetTempIndex(dMeanTemp));
+ 
+
+      If (GetMcKayValue < 0.0) Then
+      GetMcKayValue = 0.0
+      End If*/
+   }
+

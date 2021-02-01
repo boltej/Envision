@@ -496,6 +496,8 @@ FarmModel::FarmModel( void )
    , m_processorsUsed( 0 )
    , m_outputPivotTable( true )
    , m_colSWC(0)
+   , m_colSWE(0)
+
    {
    // zero out event array
    memset( m_cropEvents, 0, sizeof( float )*(1+CE_EVENTCOUNT) );
@@ -548,6 +550,9 @@ FarmModel::~FarmModel( void )
 
    if ( m_pFldSizeTRData != NULL )
       delete m_pFldSizeTRData;
+
+   if (m_pNAISSnowMeltTable != NULL)
+      delete m_pNAISSnowMeltTable;
    }
 
 
@@ -597,6 +602,7 @@ bool FarmModel::Init( EnvContext *pContext, LPCTSTR initStr )
    theProcess->CheckCol(pMapLayer, m_colCLI, "CLI_d", TYPE_INT, CC_MUST_EXIST);
 
    theProcess->CheckCol(pMapLayer, m_colSWC, "SWC", TYPE_FLOAT, CC_AUTOADD);
+   theProcess->CheckCol(pMapLayer, m_colSWE, "SWE", TYPE_FLOAT, CC_AUTOADD);
 
    pMapLayer->SetColNoData( m_colRotIndex );
    pMapLayer->SetColNoData( m_colCropStatus );
@@ -604,9 +610,11 @@ bool FarmModel::Init( EnvContext *pContext, LPCTSTR initStr )
    pMapLayer->SetColNoData( m_colPlantDate );
    pMapLayer->SetColNoData( m_colYieldRed );
    pMapLayer->SetColNoData( m_colYield );
-   
+   //kbv
+   FDataObj *pNAISTable = new FDataObj;
+   pNAISTable->ReadAscii("NAISSnowMeltTable.csv",',');
    // build the farm aggregations
-   int farmCount = BuildFarms( pMapLayer );
+   int farmCount = BuildFarms( pMapLayer , pNAISTable);
 
    UpdateAvgFarmSizeByRegion(pMapLayer, true);      // recalculates all values in FST_INFO's
 
@@ -617,11 +625,14 @@ bool FarmModel::Init( EnvContext *pContext, LPCTSTR initStr )
 
    // set up any outputs for the FarmModel
    SetupOutputVars( pContext );
-   
+
+
    CString msg;
    msg.Format( "Farm Model: Success building %i farms, %i farm types, %i rotations", (int) m_farmArray.GetSize(),
       (int) m_farmTypeArray.GetSize(), (int) m_rotationArray.GetSize() );
    Report::Log( msg );
+
+
 
    return true;
    }
@@ -1126,12 +1137,13 @@ void FarmModel::SetupOutputVars( EnvContext *pContext )
 
    // set up any output data objs
    ASSERT( m_pDailyData == NULL );
-   m_pDailyData = new FDataObj( 4, 0 );
+   m_pDailyData = new FDataObj( 5, 0 );
    m_pDailyData->SetName( "Farm Model Daily Data" );
    m_pDailyData->SetLabel( 0, "Time" );
    m_pDailyData->SetLabel( 1, "Avg Yield Reduction" );
    m_pDailyData->SetLabel( 2, "Avg Planting Date" );
    m_pDailyData->SetLabel( 3, "Avg surface SWC (mm)"); //kbv
+   m_pDailyData->SetLabel( 4, "Avg SWE (mm)"); //kbv
 
    ASSERT( m_pCropEventData == NULL );
    m_pCropEventData = new FDataObj( 1+CE_EVENTCOUNT, 0 );
@@ -1792,7 +1804,9 @@ bool FarmModel::GrowCrops( EnvContext *pContext, bool useAddDelta )
                   { 
                   m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy); 
                   float swc=m_vsmb.GetSoilMoisture(idu,0);
+                  float swe= m_vsmb.GetSWE(idu);
                   theProcess->UpdateIDU(pContext, idu, m_colSWC, swc, SET_DATA);
+                  theProcess->UpdateIDU(pContext, idu, m_colSWE, swe, SET_DATA);
                   }
 
                if ( IsAnnualCrop( pFarm, pLayer ) )
@@ -1963,7 +1977,7 @@ int FarmModel::InitializeFarms( MapLayer *pLayer )
    }
 
 
-int FarmModel::BuildFarms( MapLayer *pLayer )
+int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
    {
    // iterate through IDU's creating and populating Farms
    if ( m_colFarmID < 0 )
@@ -2023,7 +2037,7 @@ int FarmModel::BuildFarms( MapLayer *pLayer )
         // pLayer->GetData(idu, m_colSoilID, soilIndex);
          LPCTSTR code="NotUsed";
         // m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID));
-         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID)));
+         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID), pNAISData));
          }
 // TODO:  Need to populate soil properties, layers according to soil type
 
@@ -3651,7 +3665,7 @@ void FarmModel::UpdateDailyOutputs( int doy, EnvContext *pContext )
    float day = float( 365*(year-pContext->startYear) + doy - 1 );
 
    float tPlantDate = 0, tAreaPlantDate = 0;
-   float avSWC = 0, totalArea=0;
+   float avSWC = 0, avSWE = 0, totalArea=0;
    for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
       float area = 0;
@@ -3662,10 +3676,12 @@ void FarmModel::UpdateDailyOutputs( int doy, EnvContext *pContext )
       pLayer->GetData( idu, m_colPlantDate, plantDate );
 
       //kbv
-      // soil water content
-      float iduSWC=0.0f;
+      // soil water content/SWE
+      float iduSWC=0.0f, iduSWE=0.0f;
       pLayer->GetData(idu, m_colSWC, iduSWC);
+      pLayer->GetData(idu, m_colSWE, iduSWE);
       avSWC+=iduSWC*area;
+      avSWE+=iduSWE*area;
       totalArea+=area;
 
       if ( plantDate > 0)
@@ -3678,12 +3694,14 @@ void FarmModel::UpdateDailyOutputs( int doy, EnvContext *pContext )
    if (tAreaPlantDate > 0.0f)
       tPlantDate /= tAreaPlantDate;
    avSWC /= totalArea;
+   avSWE /= totalArea;
 
    CArray< float, float > data;
    data.Add( (float) day );
    data.Add( m_avgYieldReduction );
    data.Add( tPlantDate );
-   data.Add( avSWC);
+   data.Add( avSWC );
+   data.Add( avSWE );
 
 
    m_pDailyData->AppendRow( data );

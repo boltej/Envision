@@ -325,7 +325,7 @@ public:
    PtrArray< FarmRotation > m_rotationArray;
 
    ClimateManager m_climateManager;
-
+   FDataObj *m_pNAISSnowMeltTable;
 // exposed variables
 protected:
    int m_climateScenarioID;
@@ -374,6 +374,7 @@ public:
    int m_colSoilID;     //
 
    int m_colSWC;
+   int m_colSWE;
 
    // the following are accessed by multiple classes
    static int m_colFarmHQ;
@@ -466,7 +467,7 @@ protected:
 
    int  InitializeFarms( MapLayer *pMapLayer );
    void SetupOutputVars( EnvContext* );
-   int  BuildFarms( MapLayer *pLayer );
+   int  BuildFarms( MapLayer *pLayer , FDataObj *pNAISData);
    void AllocateInitialCropRotations( MapLayer *pLayer );
    FDataObj *BuildOutputClimateDataObj( LPCTSTR label, bool isDaily );
    FarmType *FindFarmTypeFromID( int id ){ FarmType *pType = NULL; return ( m_farmTypeMap.Lookup( id, pType ) ? pType : NULL ); }
