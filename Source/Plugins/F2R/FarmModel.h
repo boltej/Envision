@@ -17,6 +17,14 @@ along with Envision.  If not, see <http://www.gnu.org/licenses/>
 Copywrite 2012 - Oregon State University
 
 */
+/* CHANGELOG
+1) Added CS_DORMANT to crop stage enum
+2) Added generate Crop class
+
+*/
+
+
+
 #pragma once
 
 #include <EnvExtension.h>
@@ -56,7 +64,7 @@ enum { DO_PRECIP=0, DO_TMIN, DO_TMEAN, DO_TMAX,
        DO_ALFGDD, DO_PDAYS, DO_COUNT /* DO_COUNT is always last*/ };
 
 // crop stage flags
-enum { CS_NONCROP=-99, CS_PREPLANT=1, CS_PLANTED=2, CS_LATEVEGETATION=3, CS_POLLINATION=4, CS_REPRODUCTIVE=5, CS_HARVESTED=6, CS_FAILED=7 };
+enum { CS_NONCROP=-99, CS_PREPLANT=1, CS_PLANTED=2, CS_LATEVEGETATION=3, CS_POLLINATION=4, CS_REPRODUCTIVE=5, CS_HARVESTED=6, CS_HARDENED=7, CS_ACTIVE_GROWTH=8, CS_DORMANT=9, CS_SPRING_REGROWTH=10, CS_FAILED=11 };
 
 //-----------------------------------------------------------------------------------------------------
 // crop event (status) flags
@@ -96,6 +104,10 @@ enum { B_PREEMERGENCE, B_GERMINATION, B_LEAF_PRODUCTION, B_TILLERING, B_STEM_ELO
 
 // soybeans
 enum { S_PREPLANTING, S_PREEMERGENCE, S_VE, S_VC, S_V2, S_V3, S_V4, S_V5, S_V6, S_R1, S_R2, S_R3, S_R4, S_R5, S_R6, S_R7, S_R8 };
+
+// generic woody
+//enum {};
+
 
 // Farm Events
 enum {FE_UNDEFINED=-99, FE_BOUGHT=0, FE_SOLD, FE_JOINED, FE_CHANGEDTYPE, FE_FIELDSMERGED, FE_ELIMINATED, FE_RECOVERED, FE_EVENTCOUNT };
@@ -139,24 +151,78 @@ enum FARMTYPE {
 
 class Crop
    {
-   protected:
+   public:
       CString m_name;
-      int m_lulcA;
-      int m_lulcB;
+      CString m_code;
+      int m_lulc;
       bool m_isAnnual;
 
       // dormancy stuff
-      bool m_isDormant;
-      int m_dormancyUserCriticalDate;
-      int m_dormancyDynamicCriticalDate;
-      int m_dormancyPretrackPeriod;
+      //bool m_isDormant;
+      //int m_dormancyUserCriticalDate;
+      //int m_dormancyDynamicCriticalDate;
+      //int m_dormancyPretrackPeriod;
 
-      CArray<int, int> m_stages;
-      CArray<int, int> m_harvestTriggers;
+      //CArray<int, int> m_stages;   // see crop stage enum (CS_xxxx)
+      //CArray<int, int> m_harvestTriggers;
+      //
+      //CArray<int, int> m_cropEvents;     // see crop event enum (CE_xxxx)
 
-
-      CArray<int, int> m_cropEvents;     
+   // methods
+   public:
+      virtual float CheckCondition(EnvContext* pContext, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF) { return 0; }
+      virtual bool LoadXml();
    };
+
+class WoodyCrop : public Crop 
+   {
+   public:
+      int m_minPlantingDate; // DOY
+      int m_maxPlantingDate; // DOY
+      int m_fieldAccessVMCThreshold;  // Volumentric Moisture Content (e.g. 0.92)
+      int m_dormancyCriticalDate;  // DOY
+      float m_highTempThreshold;
+      float m_highPrecipThreshold;
+
+      int m_startHarvestYr;
+      int m_harvFreqYr;
+
+   public:
+      WoodyCrop() : Crop()
+         , m_minPlantingDate(JAN1)
+         , m_maxPlantingDate(DEC31)
+         , m_fieldAccessVMCThreshold(0.92)
+         , m_dormancyCriticalDate(SEP21)
+         , m_highTempThreshold(0)
+         , m_highPrecipThreshold(0)
+         , m_startHarvestYr(0)
+         , m_harvFreqYr(0)
+      {}
+
+      virtual float CheckCondition(EnvContext* pContext, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF);
+
+   };
+
+class HerbaceousNativeCrop : public Crop
+   {
+   public:
+      float m_hardeningCriticalDate; // DOY
+      float m_highTempThresh;
+      float m_highPrecipThresh;
+      float m_growthCessationCriticalDate;  // DOY
+      float m_springCriticalDate;  // DOY
+
+   public:
+      HerbaceousNativeCrop() : Crop() {}
+
+      virtual float CheckCondition(EnvContext* pContext, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF);
+
+   };
+
+
+
+
+
 
 
 class Farm;
@@ -252,7 +318,7 @@ public:
    float m_totalArea;  // area of the field (m2)
    CArray< int, int > m_iduArray;   // initially, a single IDU
 
-   SoilInfo *m_pSoil;  // for VSMB, mmemory is managed by the VSMB Model Instance
+   //SoilInfo *m_pSoil;  // for VSMB, mmemory is managed by the VSMB Model Instance
 };
 
 
@@ -304,6 +370,9 @@ public:
    float m_totalArea;                     // m2
    float m_dailyPlantingAcresAvailable;   // Acres
 
+
+   static PtrArray<Crop> m_cropArray;
+
 public:
    Farm(void) : m_id(-1),
       m_cadID(-1),
@@ -352,7 +421,7 @@ protected:
    int m_climateScenarioID;
 
 protected:
-   CString m_farmIDField;
+   CString m_farmIDFiaeld;
    CString m_farmTypeField;
    CString m_cadIDField;   // cadastre ID - deprecated
    CString m_lulcField;
@@ -381,7 +450,6 @@ public:
    int m_colSLC;        // soil landscapoe unit
    int m_colLulcA;      // ????? check this!!!
    int m_colCropStatus; // "CROPSTATUS"        - output
-   int m_colCropStage;  // "CROPSTAGE"        - output
    int m_colPlantDate;  // "PLANTDATE"       - output
    int m_colYieldRed;   // "YIELDRED"      - output
    int m_colYield;      // "YIELD" - output
@@ -403,6 +471,8 @@ public:
    static int m_colFarmType;   // FARM_TYPE
    static int m_colRotation;   // rotation code (id) for current rotation scheme
    static int m_colRotIndex;   // 0-based index of current location in sequence, no data if not in sequence
+   static int m_colCropStage;  // "CROPSTAGE"        - output
+   static int m_colCropAge;    // age (years of establishment) of a perennial/woody crop
    static int m_colArea;       // "AREA"
    static int m_colCLI;        // "CLI_d_upda"
 

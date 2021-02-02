@@ -193,6 +193,7 @@
     <ClInclude Include="DirPlaceholder.h" />
     <ClInclude Include="DMatrix.h" />
     <ClInclude Include="DOIndex.h" />
+    <ClInclude Include="doy_enum.h" />
     <ClInclude Include="EnvLibs.h" />
     <ClInclude Include="EnvString.h" />
     <ClInclude Include="EXTENTS.HPP" />
