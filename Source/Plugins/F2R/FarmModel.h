@@ -325,7 +325,6 @@ public:
    PtrArray< FarmRotation > m_rotationArray;
 
    ClimateManager m_climateManager;
-   FDataObj *m_pNAISSnowMeltTable;
   int m_numIDUsToSave;
 // exposed variables
 protected:
@@ -468,7 +467,7 @@ protected:
 
    int  InitializeFarms( MapLayer *pMapLayer );
    void SetupOutputVars( EnvContext* );
-   int  BuildFarms( MapLayer *pLayer , FDataObj *pNAISData);
+   int  BuildFarms( MapLayer *pLayer );
    void AllocateInitialCropRotations( MapLayer *pLayer );
    FDataObj *BuildOutputClimateDataObj( LPCTSTR label, bool isDaily );
    FarmType *FindFarmTypeFromID( int id ){ FarmType *pType = NULL; return ( m_farmTypeMap.Lookup( id, pType ) ? pType : NULL ); }

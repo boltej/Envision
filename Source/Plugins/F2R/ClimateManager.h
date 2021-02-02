@@ -99,7 +99,7 @@ public:
    bool GetMaxConsDryDays( int startDOY, int endDOY, int year, float threshold );   
    bool GetGrowingSeasonLength( int year, int &length, int &startDOY, int &endDOY );
 
-   float GetPET(int method);
+   float GetPET(int method, int doy, int year);
 
 
    // calculated climate variables (for each day of the year)

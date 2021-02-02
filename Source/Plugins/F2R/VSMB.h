@@ -129,19 +129,18 @@ class SoilInfo
          , m_soilTempHistory(3)   // three day window
          , m_snowLoss(0)
          , m_snowCover(0)
-         , m_petMethod(VPM_PRIESTLEY_TAYLOR)
+         , m_petMethod(VPM_BAIER_ROBERTSON)
          , m_runoff(0)
          , m_runoffFrozen(0)
          , m_surfaceWater(0)
-         , m_pNAISTable(NULL)
+
          , m_pResults(NULL)
          , m_pRootCoefficientTable(NULL)
          { }
 
       SoilInfo::~SoilInfo(void)
       {
-         if (m_pNAISTable != NULL)//Should be member of VSMBModel
-            delete m_pNAISTable;
+
 
          if (m_pResults != NULL)
             delete m_pResults;
@@ -187,7 +186,6 @@ class SoilInfo
       // static variables
       int m_idu;
       ClimateStation *m_pClimateStation;
-      FDataObj *m_pNAISTable;
       PtrArray<SoilLayerInfo> m_soilLayerArray;
       FDataObj *m_pResults;
       FDataObj *m_pRootCoefficientTable;
@@ -203,7 +201,7 @@ class SoilInfo
       //bool DetermineDayAverageTemp();               // obsolete - just call climate station
       //bool CalculatePhenology(int currentDate);     // Calculate the proper Phenology - not implemented in Python code
       
-      bool DetermineAdjustedPET(int year, int doy);    // determine adjustedPET(adjustment based on snow cover)
+      bool DetermineAdjustedPET(int year, int doy, ClimateStation* pStation);    // determine adjustedPET(adjustment based on snow cover)
       bool DetermineSoilSurfaceTemp(int year, int doy);   //  determine soil surface temperature
       bool DetermineThreeDaySoilSurfaceAverage();         //  determine 3 day running average for soil temperature
       bool DetermineSnowBudget();                     //  determine snow budget
@@ -236,7 +234,7 @@ class VSMBModel
       ~VSMBModel(void);
       bool LoadParamFile(LPCTSTR paramFile);
       bool AllocateSoilArray(int size);
-      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation,  FDataObj* pNAISTable, bool saveResults=false);
+      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, bool saveResults=false);
 
       bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy);
 
@@ -248,18 +246,19 @@ class VSMBModel
       float GetSWE(int idu);
       bool WriteResults(int idu, LPCTSTR name);
 
-      const int m_kntrol;
-      const float m_dcurve2;
-      const int m_drs2;
-      const int m_iTotalStages;
-      const int m_iKAdjustStage;
-      const int m_iYearlyStages;
+      //kbv
+      static int m_kntrol;//VSMBModel::m_kntrol.  Initialize in the cpp file.
+      static int m_dcurve2;
+      static float  m_drs2;
+      static int m_iTotalStages;
+      static int m_iKAdjustStage;
+      static int m_iYearlyStages;
 
    public:
       PtrArray<SoilInfo> m_soilInfoArray;    // loaded from CSV file during LoadXml
 
       PtrArray<SoilLayerParams> m_soilLayerParams;
-      FDataObj* m_pNAISSnowMeltTable;//kbv
+      static FDataObj* m_pNAISSnowMeltTable;//kbv
       // lookup map fpr soil param - key=soilID, value=array of ptrs to associated SoilLayerParams
       std::map < int, std::vector<SoilLayerParams*> > m_soilLayerParamsMap;
    };

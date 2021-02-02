@@ -552,8 +552,6 @@ FarmModel::~FarmModel( void )
    if ( m_pFldSizeTRData != NULL )
       delete m_pFldSizeTRData;
 
-   if (m_pNAISSnowMeltTable != NULL)
-      delete m_pNAISSnowMeltTable;
    }
 
 
@@ -611,11 +609,9 @@ bool FarmModel::Init( EnvContext *pContext, LPCTSTR initStr )
    pMapLayer->SetColNoData( m_colPlantDate );
    pMapLayer->SetColNoData( m_colYieldRed );
    pMapLayer->SetColNoData( m_colYield );
-   //kbv
-   FDataObj *pNAISTable = new FDataObj;
-   pNAISTable->ReadAscii("NAISSnowMeltTable.csv",',');
+
    // build the farm aggregations
-   int farmCount = BuildFarms( pMapLayer , pNAISTable);
+   int farmCount = BuildFarms( pMapLayer );
 
    UpdateAvgFarmSizeByRegion(pMapLayer, true);      // recalculates all values in FST_INFO's
 
@@ -1991,7 +1987,7 @@ int FarmModel::InitializeFarms( MapLayer *pLayer )
    }
 
 
-int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
+int FarmModel::BuildFarms( MapLayer *pLayer)
    {
    // iterate through IDU's creating and populating Farms
    if ( m_colFarmID < 0 )
@@ -2005,7 +2001,8 @@ int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
    CArray< int, int > multiHQList;
    
    if (m_useVSMB)
-      m_vsmb.AllocateSoilArray(pLayer->End());//allocate one for each idu??
+      m_vsmb.AllocateSoilArray(pLayer->End());//allocate one for each idu??This is inefficient - there will only be SoilInfos allocated for IDUs in FarmFields.  So most of the allocated array won't end up pointing to anything.
+      //this works because we use the idu index when adding to or collecting from this array.
    // iterate through IDUs
    for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
@@ -2045,7 +2042,7 @@ int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
       int count = (int) pFarm->m_fieldArray.Add( pField );
       pField->m_iduArray.Add( idu );
       pLayer->SetData( idu, m_colFieldID, pField->m_id );
-      
+
       // create and attach soil info to this IDU
       if (m_useVSMB)
          {
@@ -2056,7 +2053,7 @@ int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
          if (numIDU < m_numIDUsToSave && numIDU > 0)
             saveResults=true;
          
-         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID), pNAISData, saveResults));
+         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID),  saveResults));
          }
 // TODO:  Need to populate soil properties, layers according to soil type
 

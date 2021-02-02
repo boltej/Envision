@@ -270,11 +270,82 @@ bool ClimateStation::GetGrowingSeasonLength( int year, int &length, int &startDO
 //       
 //        return pe 
 
-float ClimateStation::GetPET(int method ) //, int doy, float iceCover)
+float ClimateStation::GetPET(int method, int doy, int year ) //, int doy, float iceCover)
    {
 //	    if(method != VPM_PRIESTLEY_TAYLOR)
 //           Report::ErrorMsg( "F2R Error: Only the Priestley_Taylow method has been implemented.  Call with VPM_PRIESTLEY_TAYLOR." );
-   return 0;
+      float etrc = -1.0f;
+      float tmaxf_=0.0f, tminf_=0.0f;
+      this->GetData(doy, year, TMAX, tmaxf_) ;
+      this->GetData(doy, year, TMIN, tminf_);
+      float tmaxf = tmaxf_ * 1.8f + 32;
+      float tminf = tminf_ * 1.8f + 32; 
+      // tmaxf = tminf + 10;
+      float latdd = 50.0f;
+      float rad[13];//why is this 13 elements?
+      float f, theta, delta, r, solar, oour, cosoz, cosz, daylen, ourmax, ormax, our, phi, photp;
+      int nday = 0, i, x;
+      int J = doy + 1;
+      nday = J;
+      float max = 0, min = 25;
+      int dmax, dmin;
+
+      phi = latdd / 57.29578f;
+      //  do
+         //   {
+      f = 60.0;
+      // nday++;
+      theta = 0.01721f * nday;
+      delta = 0.3964f + 3.631f * sin(theta) - 22.97f * cos(theta) + 0.03838f * sin(2 * theta) - 0.3885f * cos(2 * theta) + 0.07659f * sin(3 * theta) - 0.1587f * cos(3 * theta) - 0.01021f * cos(4 * theta);
+      delta = delta / 57.29578f;
+      daylen = acos((-0.01454f - sin(phi) * sin(delta)) / (cos(phi) * cos(delta)));
+      daylen = daylen * 7.639f;
+      photp = daylen;
+
+      if ((photp) > max)
+      {
+         max = photp;
+         dmax = nday;
+      }
+      if ((photp) < min)
+      {
+         min = photp;
+         dmin = nday;
+      }
+      r = 1.0f - 0.0009464f * sin(theta) - 0.00002917f * sin(3 * theta) - 0.01671f * cos(theta) - 0.0001489f * cos(2 * theta) - 0.00003438f * cos(4 * theta);
+      ourmax = acos(-0.01454f - sin(phi) * sin(delta) / (cos(phi) * cos(delta)));
+      ormax = acos(-sin(phi) * sin(delta) / (cos(phi) * cos(delta)));
+      solar = 0.0;
+      oour = 0.0;
+      i = 1;
+      our = oour + 6.2832f / 24.0f;
+      do
+      {
+         x = 0;
+         cosoz = sin(phi) * sin(delta) + cos(phi) * cos(delta) * cos(oour);
+         cosz = sin(phi) * sin(delta) + cos(delta) * cos(phi) * cos(our);
+         rad[i] = f * 2.0f * (cosoz + cosz) / (2 * r * r);
+         solar = solar + 2 * rad[i];
+         i = i + 1;
+         if (f >= 60)
+         {
+            x = 1;
+            oour = our;
+            our = oour + 6.2832f / 24.0f;
+            if (our - ormax > 0)
+            {
+               our = ormax;
+               f = 60.0f * (ourmax - oour) * 24.0f / 6.2832f;
+            }
+         }
+      } while (x == 1);
+
+      float le = (0.928f * tmaxf) + (0.933f * (tmaxf - tminf)) + (0.0486f * solar) - 87.03f;//cubic centimeters (from Baier and Robertson, 1965 - LE)
+      etrc = 0.08636f * le;//mm/day from Holmes and Robertson 1958 - they developed relationship between LE and PE of 0.0035 inches/cc, and this includes conversion from inches to mm.
+      return etrc;
+
+
+   //return 0;
    }
 
 

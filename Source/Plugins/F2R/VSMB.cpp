@@ -25,14 +25,15 @@ Copywrite 2012 - Oregon State University
 #include "FarmModel.h"
 #include <Maplayer.h>
 
-VSMBModel::VSMBModel(void)
-   : m_kntrol(7)
-   , m_dcurve2(80)
-   , m_drs2(0.8f)
-   , m_iTotalStages(5)
-   , m_iKAdjustStage(3)
-   , m_iYearlyStages(5)
+int VSMBModel::m_kntrol = 7;
+int VSMBModel::m_dcurve2 = 80;
+float VSMBModel::m_drs2 = 7;
+int VSMBModel::m_iTotalStages = 7;
+int VSMBModel::m_iKAdjustStage = 7;
+int VSMBModel::m_iYearlyStages = 7;
+FDataObj* VSMBModel::m_pNAISSnowMeltTable=NULL;
 
+VSMBModel::VSMBModel(void)
 
 {
 
@@ -41,7 +42,8 @@ VSMBModel::VSMBModel(void)
 
 VSMBModel::~VSMBModel(void)
    {
-
+   if (m_pNAISSnowMeltTable != NULL)
+      delete m_pNAISSnowMeltTable;
    }
 
 bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy)
@@ -125,7 +127,9 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
       // add a map entry for this soil code to enable fact lookup later
       //m_soilLayerParamsMap.insert(make_pair(std::string(pParams->m_soilCode), pParams));
       }
-
+   //kbv
+   m_pNAISSnowMeltTable = new FDataObj;
+   m_pNAISSnowMeltTable->ReadAscii("NAISSnowMeltTable.csv", ',');
       
 
    return true;
@@ -153,12 +157,13 @@ bool VSMBModel::AllocateSoilArray(int size)
    }
 
 
-SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, FDataObj *pNAISTable, bool saveResults)
+SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, bool saveResults)
    {
    // make a new soil info
    SoilInfo *pSoilInfo = new SoilInfo(idu, pStation);
+
    pSoilInfo->m_pClimateStation = pStation;
-   pSoilInfo->m_pNAISTable=pNAISTable;
+
    try
       {
       // add soil layer info
@@ -260,7 +265,7 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation)
    // //Calculate the proper Phenology
    //CalculatePhenology(currentDate) //This is already done with Heat Unit Calculations
    //  determine adjustedPET(adjustment based on snow cover)
-   DetermineAdjustedPET(year, doy);
+   DetermineAdjustedPET(year, doy, pStation);
    //  determine soil surface temperature
    DetermineSoilSurfaceTemp(year, doy);
    //  determine 3 day running average for soil temperature
@@ -353,7 +358,7 @@ bool SoilInfo::DetermineSnowEquivalent(float snowCoef )
 
 
 // determine adjusted PET
-bool SoilInfo::DetermineAdjustedPET(int year, int doy)
+bool SoilInfo::DetermineAdjustedPET(int year, int doy, ClimateStation* pStation)
    {
    // calculate adjustedPET based on snow equivalent
 
@@ -362,7 +367,7 @@ bool SoilInfo::DetermineAdjustedPET(int year, int doy)
    switch (m_petMethod)
       {
       case VPM_BAIER_ROBERTSON:
-         m_computedPET = m_pClimateStation->GetPET( m_petMethod ); // TODO self.station.get_pe_baier_robertson(currentDay, self.rstop)
+         m_computedPET = pStation->GetPET( m_petMethod , doy, year); // TODO self.station.get_pe_baier_robertson(currentDay, self.rstop)
          break;
 
       case VPM_PENMAN_MONTEITH:
@@ -851,8 +856,8 @@ bool SoilInfo::CalculateDrainageAndSoilWaterDistribution()
          pLayer->m_soilMoistContent += pLayer->m_flux;
          pLayer->m_drain = ((pLayer->m_soilMoistContent + pParams->m_permWilt) - pParams->m_DUL * pParams->m_zoneThick);  // # pLayer->DUL = constant for (layer, station) # StationDetails.DRS2 = 0.8
    
-         //if (l == layers)
-         //   pLayer->m_drain = ((pLayer->m_soilMoistContent + pParams->m_permWilt) - StationDetails.DRS2 * pParams->m_DUL * pParams->m_zoneThick);  // TODO
+         if (l == layers)
+            pLayer->m_drain = ((pLayer->m_soilMoistContent + pParams->m_permWilt) - VSMBModel::m_drs2 * pParams->m_DUL * pParams->m_zoneThick);  // TODO...done
    
          if (pLayer->m_drain < 0.0f)
             pLayer->m_drain = 0.0f;
@@ -917,7 +922,7 @@ bool SoilInfo::AccountForMoistureRedistributionOrUnsaturatedFlow()
       float moisture1 = pLayer1->m_soilMoistContent / pParams1->m_zoneThick;
       float moisture2 = pLayer2->m_soilMoistContent / pParams2->m_zoneThick;
 
-      double Dbar = 0.88 * exp(35.4 * (moisture1 + moisture2) * 0.5);
+      float Dbar = 0.88 * exp(35.4 * (moisture1 + moisture2) * 0.5);
       if (Dbar > 100)
          Dbar = 100.0;
 
@@ -974,7 +979,7 @@ float SoilInfo::GetMcKayValue(int iDayOfYear , float dMeanTemp )
    float meltRate = 0.0f;
    float d=(float)iDayOfYear;
    if (dMeanTemp > 0.0f && dMeanTemp < 15.5f)
-      meltRate = m_pNAISTable->IGet(d, dMeanTemp, IM_LINEAR);
+      meltRate = VSMBModel::m_pNAISSnowMeltTable->IGet(d, dMeanTemp, IM_LINEAR);
    return meltRate;
   /* if(iDayOfYear < 0) 
       get value for January 1
