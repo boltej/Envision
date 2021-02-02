@@ -140,13 +140,13 @@ class SoilInfo
 
       SoilInfo::~SoilInfo(void)
       {
-         if (m_pNAISTable != NULL)
+         if (m_pNAISTable != NULL)//Should be member of VSMBModel
             delete m_pNAISTable;
 
          if (m_pResults != NULL)
             delete m_pResults;
 
-         if (m_pRootCoefficientTable != NULL)
+         if (m_pRootCoefficientTable != NULL)//Should be member of VSMBModel
             delete m_pRootCoefficientTable;
       }
 
