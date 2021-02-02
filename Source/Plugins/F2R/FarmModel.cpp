@@ -497,6 +497,7 @@ FarmModel::FarmModel( void )
    , m_outputPivotTable( true )
    , m_colSWC(0)
    , m_colSWE(0)
+   , m_numIDUsToSave(5)
 
    {
    // zero out event array
@@ -777,6 +778,19 @@ bool FarmModel::EndRun( EnvContext *pContext )
 
    if (m_pFarmTypeTransMatrix != NULL)
       m_pFarmTypeTransMatrix->WriteAscii(path);
+
+   if (m_useVSMB)
+      {
+      MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
+      
+      for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+         {
+         CString name;
+         name.Format("%i.csv",(int)idu);
+         path = outPath;
+         m_vsmb.WriteResults(idu, path+=name);
+         }
+      }
 
    return true;
    }
@@ -1987,7 +2001,9 @@ int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
    m_farmArray.RemoveAll();
 
    int farmID = 0;
+   int numIDU = 0;
    CArray< int, int > multiHQList;
+   
    if (m_useVSMB)
       m_vsmb.AllocateSoilArray(pLayer->End());//allocate one for each idu??
    // iterate through IDUs
@@ -2002,7 +2018,7 @@ int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
       // look up the Farm based on this ID (have we seen it already?)
       Farm *pFarm = NULL;
       BOOL found = m_farmMap.Lookup( farmID, pFarm );
-
+      numIDU = numIDU +1;
       if ( ! found )  // we haven't seen it, so add it
          {
          pFarm = new Farm;
@@ -2033,11 +2049,14 @@ int FarmModel::BuildFarms( MapLayer *pLayer, FDataObj *pNAISData )
       // create and attach soil info to this IDU
       if (m_useVSMB)
          {
-         int soilIndex = -1;
+         bool saveResults=false;
         // pLayer->GetData(idu, m_colSoilID, soilIndex);
          LPCTSTR code="NotUsed";
         // m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID));
-         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID), pNAISData));
+         if (numIDU < m_numIDUsToSave && numIDU > 0)
+            saveResults=true;
+         
+         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID), pNAISData, saveResults));
          }
 // TODO:  Need to populate soil properties, layers according to soil type
 

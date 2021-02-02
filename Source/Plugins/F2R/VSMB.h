@@ -134,7 +134,21 @@ class SoilInfo
          , m_runoffFrozen(0)
          , m_surfaceWater(0)
          , m_pNAISTable(NULL)
+         , m_pResults(NULL)
+         , m_pRootCoefficientTable(NULL)
          { }
+
+      SoilInfo::~SoilInfo(void)
+      {
+         if (m_pNAISTable != NULL)
+            delete m_pNAISTable;
+
+         if (m_pResults != NULL)
+            delete m_pResults;
+
+         if (m_pRootCoefficientTable != NULL)
+            delete m_pRootCoefficientTable;
+      }
 
       // dynamic variables
       float m_tMin;
@@ -175,9 +189,12 @@ class SoilInfo
       ClimateStation *m_pClimateStation;
       FDataObj *m_pNAISTable;
       PtrArray<SoilLayerInfo> m_soilLayerArray;
+      FDataObj *m_pResults;
+      FDataObj *m_pRootCoefficientTable;
+
       
       bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation);
-
+      int WriteSoilResults(LPCTSTR name);
    protected:
       bool DeterminePrecipitationType(int year, int doy, ClimateStation* pStation);   // sets m_rain, m_snow based on m_precip
 
@@ -200,20 +217,26 @@ class SoilInfo
       bool AccountForMoistureRedistributionOrUnsaturatedFlow();
 
       float GetMcKayValue(int iDayOfYear, float dMeanTemp);
+      float  get_z_table1(int val);
+      float  get_z_table2(int val);
      // float GetTempIndex(float dTemperature);
 
       // new
       int GetLayerCount() { return (int)m_soilLayerArray.GetSize(); }
       float GetTotalSoilMoistContent();
+      int OutputDayVSMBResults(int doy);
+
    };
 
 
 class VSMBModel
    {
    public:
+      VSMBModel(void);
+      ~VSMBModel(void);
       bool LoadParamFile(LPCTSTR paramFile);
       bool AllocateSoilArray(int size);
-      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation,  FDataObj* pNAISTable);
+      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation,  FDataObj* pNAISTable, bool saveResults=false);
 
       bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy);
 
@@ -223,6 +246,15 @@ class VSMBModel
       int OutputDayVSMBResults(int currentDate) { return -1; }//  calculate stress index = 1 - AET / PET
       float GetSoilMoisture(int idu, int layer);
       float GetSWE(int idu);
+      bool WriteResults(int idu, LPCTSTR name);
+
+      const int m_kntrol;
+      const float m_dcurve2;
+      const int m_drs2;
+      const int m_iTotalStages;
+      const int m_iKAdjustStage;
+      const int m_iYearlyStages;
+
    public:
       PtrArray<SoilInfo> m_soilInfoArray;    // loaded from CSV file during LoadXml
 

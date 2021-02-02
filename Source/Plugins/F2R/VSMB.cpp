@@ -25,6 +25,25 @@ Copywrite 2012 - Oregon State University
 #include "FarmModel.h"
 #include <Maplayer.h>
 
+VSMBModel::VSMBModel(void)
+   : m_kntrol(7)
+   , m_dcurve2(80)
+   , m_drs2(0.8f)
+   , m_iTotalStages(5)
+   , m_iKAdjustStage(3)
+   , m_iYearlyStages(5)
+
+
+{
+
+}
+
+
+VSMBModel::~VSMBModel(void)
+   {
+
+   }
+
 bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy)
    {
    SoilInfo *pSoilInfo = GetSoilInfo(idu);//this is already in the IDU layer
@@ -107,9 +126,23 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
       //m_soilLayerParamsMap.insert(make_pair(std::string(pParams->m_soilCode), pParams));
       }
 
+      
+
    return true;
    }
 
+bool VSMBModel::WriteResults(int idu, LPCTSTR name)
+   {
+   SoilInfo* pSoilInfo = GetSoilInfo(idu);//this is already in the IDU layer
+
+   if (pSoilInfo == NULL)
+      return false;
+   if (pSoilInfo->m_pResults==NULL)
+      return false;
+
+   pSoilInfo->WriteSoilResults(name);
+   return true;
+   }
 bool VSMBModel::AllocateSoilArray(int size)
    {
    ASSERT(m_soilInfoArray.GetSize() == 0);
@@ -120,7 +153,7 @@ bool VSMBModel::AllocateSoilArray(int size)
    }
 
 
-SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, FDataObj *pNAISTable)
+SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, FDataObj *pNAISTable, bool saveResults)
    {
    // make a new soil info
    SoilInfo *pSoilInfo = new SoilInfo(idu, pStation);
@@ -139,6 +172,25 @@ SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pSta
 
       // and add this to the soilInfoArray
       m_soilInfoArray[idu] = pSoilInfo;
+
+      if (saveResults)
+         { 
+         ASSERT(pSoilInfo->m_pResults == NULL);
+         pSoilInfo->m_pResults = new FDataObj(10, 0);
+
+         pSoilInfo->m_pResults->SetName("VSMB Results");
+         pSoilInfo->m_pResults->SetLabel(0, "Time");
+         pSoilInfo->m_pResults->SetLabel(1, "Temp Max");
+         pSoilInfo->m_pResults->SetLabel(2, "Temp Min");
+         pSoilInfo->m_pResults->SetLabel(3, "Precip (mm)"); //kbv
+         pSoilInfo->m_pResults->SetLabel(4, "GDD"); //kbv
+         pSoilInfo->m_pResults->SetLabel(5, "Adjusted PET");
+         pSoilInfo->m_pResults->SetLabel(6, "AET");
+         pSoilInfo->m_pResults->SetLabel(7, "SI"); //kbv
+         pSoilInfo->m_pResults->SetLabel(8, "Moisture Content (mm)"); //kbv
+         pSoilInfo->m_pResults->SetLabel(9, "Moisture Content (mm/mm)"); //kbv
+         }
+
       }
    catch (std::exception &)
       {
@@ -147,6 +199,7 @@ SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pSta
       Report::ErrorMsg(msg);
       return false;
       }
+
    return pSoilInfo;
    }
 
@@ -232,10 +285,38 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation)
    AccountForMoistureRedistributionOrUnsaturatedFlow();
 
    //  Wrting output CSV
-   //int columns = OutputDayVSMBResults(doy); //  calculate stress index = 1 - AET / PET
+   if (m_pResults != NULL)
+      int columns = OutputDayVSMBResults(doy); //  calculate stress index = 1 - AET / PET
    return true;
    }
 
+
+int SoilInfo::OutputDayVSMBResults(int doy)
+   {
+   CArray< float, float > data;
+   data.Add((float)doy);
+   data.Add(m_tMax);
+   data.Add(m_tMin);
+   data.Add(m_precip);
+   data.Add(0);
+   data.Add(m_adjustedPET);
+   data.Add(m_dailyAET);
+   float si=1-m_dailyAET/m_adjustedPET;//stress index
+   data.Add(si);
+   float m1=m_soilLayerArray.GetAt(0)->m_soilMoistContent+ m_soilLayerArray.GetAt(1)->m_soilMoistContent+ m_soilLayerArray.GetAt(2)->m_soilMoistContent+ m_soilLayerArray.GetAt(3)->m_soilMoistContent;
+   float m2= m_soilLayerArray.GetAt(0)->m_pLayerParams->m_AWHC + m_soilLayerArray.GetAt(1)->m_pLayerParams->m_AWHC + m_soilLayerArray.GetAt(2)->m_pLayerParams->m_AWHC + m_soilLayerArray.GetAt(3)->m_pLayerParams->m_AWHC;
+   float m3=m1/m2;
+   data.Add(m1);
+   data.Add(m3);
+   m_pResults->AppendRow(data);
+   return 1;
+   }
+
+int SoilInfo::WriteSoilResults(LPCTSTR name)
+   {
+   m_pResults->WriteAscii(name);
+   return 1;
+   }
 
 bool SoilInfo::DeterminePrecipitationType(int year, int doy,  ClimateStation* pStation)
    {
@@ -458,7 +539,7 @@ bool SoilInfo::DetermineInfiltrationAndRunoff()
             }
 
          // TODO
-         float CURVE2=80.0f;
+         float CURVE2=80.0f; //these should be member variables of the VSMB class
          float AC2=100-CURVE2;
          float wetCurveNum = CURVE2 * exp(0.006729 * AC2);
          float dryCurveNum = max(0.44f * CURVE2, CURVE2 - 20.0f * AC2 / (AC2 + exp(2.533 - 0.0636 * AC2)));
@@ -570,6 +651,7 @@ bool SoilInfo::DetermineET()
             deltaA = 1.0f;
 
          //pLayer->m_kCoef = self.get_root_coeff(self.iCurrentCropStage, i);  // TODO
+         //Should depend on crop stage.  See RootCoeffients.csv.
          switch (i)
          {
          case 0:
@@ -590,9 +672,9 @@ bool SoilInfo::DetermineET()
             break;
          }
 
-         
-       //  if ((self.iCurrentCropStage >= StationDetails.KADJUSTSTAGE - 1) && (i != 0))  // TODO
-         if ((i<0) && (i != 0))  // TODO
+         int iCurrentCropStage=2;//this should vary over time.  Done in determineCropPhenology in the VB code.  This has been replaced??
+         int iKAdjustStage = 3 ;//crop stage for k-adjustment start.  Should be member of VSMB
+         if ((iCurrentCropStage >= iKAdjustStage - 1) && (i != 0))  // TODO
             {
             int j = 1;
             while (j <= i)
@@ -600,8 +682,7 @@ bool SoilInfo::DetermineET()
                int k = j - 1;  // adjusting soil moisture coefficient for stress
                SoilLayerInfo *pLayerK = m_soilLayerArray[k];
                SoilLayerParams *pParamsK = pLayerK->m_pLayerParams;
-         
-         
+                 
                if (l == 0)
                   pLayer->m_kCoef += pLayer->m_kCoef * pLayerK->m_kCoef
                   * (1.0f - pLayerK->m_soilMoistContent / pParamsK->m_AWHC);
@@ -609,9 +690,8 @@ bool SoilInfo::DetermineET()
                   pLayer->m_kCoef += pLayer->m_kCoef * pLayerK->m_kCoef
                   * (1.0f - pLayerK->m_content2 / pParamsK->m_AWHC);
          
-               j += 1;
+               j += 1;                 
                }
-         
             int IT = int(floor(relMoistCont * 100.0f) - 1);
          
             if (l == 1)
@@ -620,18 +700,18 @@ bool SoilInfo::DetermineET()
             float work = 0.0f;
             if (IT < 0)
                work = 0.0f;
-         
-            //else if (StationDetails.KNTROL <= GetLayerCount())  // TODO
-            //   {
-            //   if (i > StationDetails.KNTROL - 1)  // TODO
-            //      work = self.get_z_table2(IT);
-            //   else
-            //      work = self.get_z_table1(IT);
-            //   }
-            //else if (self.iCurrentCropStage == 0)  // TODO
-            //   work = self.get_z_table2(IT);
-            //else
-            //   work = self.get_z_table1(IT);   // TODO 
+
+            else if (iKAdjustStage <= GetLayerCount())  // TODO
+               {
+               if (i > iKAdjustStage - 1)  // TODO
+                  work = get_z_table2(IT);
+               else
+                  work = get_z_table1(IT);
+               }
+            else if (iCurrentCropStage == 0)  // TODO
+               work = get_z_table2(IT);
+            else
+               work = get_z_table1(IT);   // TODO 
          
             // water loss
             if (l == 0)
@@ -661,6 +741,71 @@ bool SoilInfo::DetermineET()
    m_dailyAET += m_snowLoss;
 
    return true;
+   }
+
+float SoilInfo::get_z_table1(int val)
+   {
+   //' Drying Curve Index Parameters (Table 1...Wheat Curve)
+   //   ' Adapted from Ralph Wright (7/27/06)
+   float dSeedM = 0.27f;
+   float dSeedN = 0.9f;
+   float dH9 = 0.3f;
+   float dR9 = 1.58f;
+   float retval = 0.0f;
+   if (dSeedM > 0 || dSeedN > 0) 
+      { 
+      float dN = dSeedN;
+      float dM = dSeedM;
+      CArray<float,float>dZtable1;
+      for (int i = 0; i<100;i++)
+         { 
+         float dX9 = (i + 1) / 100.0;
+         if (dX9 >= dR9) 
+            {
+            dM = 0.0;
+            dN = 1.0;
+            }
+         float dRZ = (pow((dX9 / dR9), dM) * dN / dX9) + ((pow(((dR9 - dX9) / dR9), dN) * dM / dR9));
+         float dRZ1 = (pow((dX9 / dR9), (dM * dN * dH9)) * dRZ);
+         dZtable1.Add(dRZ1);
+
+
+         }
+   retval = dZtable1.GetAt(val);
+   }
+   return retval;
+   }
+
+float SoilInfo::get_z_table2(int val)
+   {
+   // Drying Curve Index Parameters (Table 2...Fallow Curve)
+   // Adapted from Ralph Wright (7/27/06)
+
+   float dSeedM = 0.66f;
+   float dSeedN = 0.95f;
+   float dH9 = 0.3f;
+   float dR9 = 1.47f;
+   float retval=0.0f;
+   if (dSeedM > 0 || dSeedN > 0)
+      {
+      float dN = dSeedN;
+      float dM = dSeedM;
+      CArray<float, float>dZtable2;
+      for (int i = 0; i < 100; i++)
+         {
+         float dX9 = (i + 1) / 100.0;
+         if (dX9 >= dR9)
+            {
+            dM = 0.0;
+            dN = 1.0;
+            }
+         float dRZ = (pow((dX9 / dR9), dM) * dN / dX9) + ((pow(((dR9 - dX9) / dR9), dN) * dM / dR9));
+         float dRZ1 = (pow((dX9 / dR9), (dM * dN * dH9)) * dRZ);
+         dZtable2.Add(dRZ1);
+         }
+      retval = dZtable2.GetAt(val);
+      }
+   return retval;
    }
 
 

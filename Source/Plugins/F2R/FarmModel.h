@@ -326,6 +326,7 @@ public:
 
    ClimateManager m_climateManager;
    FDataObj *m_pNAISSnowMeltTable;
+  int m_numIDUsToSave;
 // exposed variables
 protected:
    int m_climateScenarioID;
