@@ -27,11 +27,12 @@ Copywrite 2012 - Oregon State University
 
 int VSMBModel::m_kntrol = 7;
 int VSMBModel::m_dcurve2 = 80;
-float VSMBModel::m_drs2 = 7;
-int VSMBModel::m_iTotalStages = 7;
-int VSMBModel::m_iKAdjustStage = 7;
-int VSMBModel::m_iYearlyStages = 7;
+float VSMBModel::m_drs2 = 0.8;
+int VSMBModel::m_iTotalStages = 5;
+int VSMBModel::m_iKAdjustStage = 3;
+int VSMBModel::m_iYearlyStages = 5;
 FDataObj* VSMBModel::m_pNAISSnowMeltTable=NULL;
+PtrArray<FDataObj> VSMBModel::m_pOutputObjArray = NULL;
 
 VSMBModel::VSMBModel(void)
 
@@ -46,14 +47,14 @@ VSMBModel::~VSMBModel(void)
       delete m_pNAISSnowMeltTable;
    }
 
-bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy)
+bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation)
    {
    SoilInfo *pSoilInfo = GetSoilInfo(idu);//this is already in the IDU layer
 
    if (pSoilInfo == NULL)
       return false;
 
-   return pSoilInfo->UpdateSoilMoisture(year, doy, pStation);
+   return pSoilInfo->UpdateSoilMoisture(year, doy, pStation, dayOfSimulation);
    }
 
 float VSMBModel::GetSoilMoisture(int idu, int layer)
@@ -64,6 +65,10 @@ float VSMBModel::GetSoilMoisture(int idu, int layer)
       return 0.0;
    SoilLayerInfo* pLayer = pSoilInfo->m_soilLayerArray[layer];
    return pLayer->m_soilMoistContent;
+
+
+
+
    }
 
 float VSMBModel::GetSWE(int idu)
@@ -82,7 +87,7 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
    int rows = paramData.ReadAscii(paramFile, ',', FALSE);
 
    // get column indexes from the CSV file
-   int colIduID     = paramData.GetCol("IDU_ID");// soil ID
+   int colIduID     = paramData.GetCol("FID_VSMB");// soil ID  kbv - should be IDU_ID
    int colZoneThick = paramData.GetCol("THICKNESS");    // zone thickness (mm)
    int colPorosity  = paramData.GetCol("POROSITY"); // soil porosity (%)
    int colFieldCap  = paramData.GetCol("FIELDCAP"); // field capacity (%)
@@ -98,15 +103,29 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
       {
       SoilLayerParams *pParams = new SoilLayerParams;
 
-      pParams->m_iduID     = paramData.GetAsInt( colIduID,  i);
-      pParams->m_zoneThick = paramData.GetAsFloat( colZoneThick, i );               //  zone depth
-      pParams->m_sat       = (paramData.GetAsFloat( colPorosity , i )) / 100.0;     //  zone saturation (ratio)
-      pParams->m_DUL       = (paramData.GetAsFloat( colFieldCap , i )) / 100.0;     //  drained upper limit (ratio)
-      pParams->m_PLL       = (paramData.GetAsFloat( colPermWilt , i )) / 100.0;     //  plant lower limit (ratio)
-      pParams->m_permWilt = pParams->m_PLL;
-      pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) * pParams->m_zoneThick ;  //  zone available water holding capacity (mm)
+      //pParams->m_iduID     = paramData.GetAsInt( colIduID,  i);
+      //pParams->m_zoneThick = paramData.GetAsFloat( colZoneThick, i );               //  zone depth
+      //pParams->m_sat       = (paramData.GetAsFloat( colPorosity , i )) / 100.0f;     //  zone saturation (ratio)
+     // pParams->m_DUL       = ((paramData.GetAsFloat( colFieldCap , i )) / 100.0f)* pParams->m_zoneThick;     //  drained upper limit (ratio)
+      //pParams->m_PLL       = (paramData.GetAsFloat( colPermWilt , i )) / 100.0f;     //  plant lower limit (ratio)
+      //pParams->m_permWilt = pParams->m_PLL * pParams->m_zoneThick;  //mm
+      //pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) * pParams->m_zoneThick;
+      //pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) / 100.0f ;  //  zone available water holding capacity (mm)
+      //Params->m_WF is calculated in determineInfiltrationAndRunoff() found below
+      float po= (paramData.GetAsFloat(colPorosity, i));
+      float wpp= (paramData.GetAsFloat(colPermWilt, i));
+      float wp=po/100*30;
+      pParams->m_iduID = paramData.GetAsInt(colIduID, i);
+      pParams->m_zoneThick = paramData.GetAsFloat(colZoneThick, i);               //  zone depth
+      pParams->m_AWHC = (((paramData.GetAsFloat(colPorosity, i)) - (paramData.GetAsFloat(colPermWilt, i))) / 100.0f)* pParams->m_zoneThick;//length
+      pParams->m_permWilt = ((paramData.GetAsFloat(colPermWilt, i)) / 100.0f)*pParams->m_zoneThick;//length
+      pParams->m_sat = ((paramData.GetAsFloat(colPorosity, i)) / 100.0f) ;     //  zone saturation (ratio)
+     // pParams->m_DUL = (pParams->m_AWHC + pParams->m_permWilt)/ pParams->m_zoneThick;     //  drained upper limit (ratio)
+      pParams->m_DUL = ((paramData.GetAsFloat(colFieldCap, i)) / 100.0f) ;     //  drained upper limit (ratio)
+     pParams->m_PLL = pParams->m_permWilt / pParams->m_zoneThick;     //  plant lower limit (ratio)
+      
+     
 
-//    pParams->m_WF is calculated in determineInfiltrationAndRunoff() found below
 
       // add to params list
       m_soilLayerParams.Add(pParams);
@@ -181,7 +200,7 @@ SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pSta
       if (saveResults)
          { 
          ASSERT(pSoilInfo->m_pResults == NULL);
-         pSoilInfo->m_pResults = new FDataObj(10, 0);
+         pSoilInfo->m_pResults = new FDataObj(11, 0);
 
          pSoilInfo->m_pResults->SetName("VSMB Results");
          pSoilInfo->m_pResults->SetLabel(0, "Time");
@@ -191,9 +210,22 @@ SoilInfo* VSMBModel::SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pSta
          pSoilInfo->m_pResults->SetLabel(4, "GDD"); //kbv
          pSoilInfo->m_pResults->SetLabel(5, "Adjusted PET");
          pSoilInfo->m_pResults->SetLabel(6, "AET");
-         pSoilInfo->m_pResults->SetLabel(7, "SI"); //kbv
+         pSoilInfo->m_pResults->SetLabel(7, "Stress Index"); //kbv
          pSoilInfo->m_pResults->SetLabel(8, "Moisture Content (mm)"); //kbv
          pSoilInfo->m_pResults->SetLabel(9, "Moisture Content (mm/mm)"); //kbv
+         pSoilInfo->m_pResults->SetLabel(10, "Snow Water (mm)"); //kbv
+         m_pOutputObjArray.Add(pSoilInfo->m_pResults);
+
+         ASSERT(pSoilInfo->m_pSoilMoistureResults == NULL);
+         pSoilInfo->m_pSoilMoistureResults = new FDataObj(5, 0);
+
+         pSoilInfo->m_pSoilMoistureResults->SetName("VSMB Soil Moisture Results");
+         pSoilInfo->m_pSoilMoistureResults->SetLabel(0, "Time");
+         pSoilInfo->m_pSoilMoistureResults->SetLabel(1, "Layer 1 SWC (mm)"); //kbv
+         pSoilInfo->m_pSoilMoistureResults->SetLabel(2, "Layer 2 SWC (mm)"); //kbv
+         pSoilInfo->m_pSoilMoistureResults->SetLabel(3, "Layer 3 SWC (mm)"); //kbv
+         pSoilInfo->m_pSoilMoistureResults->SetLabel(4, "Layer 4 SWC (mm)"); //kbv
+         m_pOutputObjArray.Add(pSoilInfo->m_pSoilMoistureResults);
          }
 
       }
@@ -240,7 +272,7 @@ SoilInfo* VSMBModel::GetSoilInfo(int idu)
 
 
 // TODO:  Verify VSMB model working correctly
-bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation)
+bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation)
    {
    //
    //  Initial strategy to implement VBMS within the Envision F2R plugin. 2/10/2019
@@ -275,7 +307,7 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation)
    //  determine potential daily melt from snow
    DeterminePotentialDailyMelt(doy, m_tAvg);
    //  determine retention and actual loss to snow pack
-   DetermineRetentionAndLoss();
+   DetermineRetentionAndLoss(); 
    // determine Infiltration and run off
    DetermineInfiltrationAndRunoff();
    // determine snow depletion
@@ -291,7 +323,7 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation)
 
    //  Wrting output CSV
    if (m_pResults != NULL)
-      int columns = OutputDayVSMBResults(doy); //  calculate stress index = 1 - AET / PET
+      int columns = OutputDayVSMBResults(dayOfSimulation); //  calculate stress index = 1 - AET / PET
    return true;
    }
 
@@ -303,23 +335,45 @@ int SoilInfo::OutputDayVSMBResults(int doy)
    data.Add(m_tMax);
    data.Add(m_tMin);
    data.Add(m_precip);
-   data.Add(0);
+   data.Add(0.0f);
    data.Add(m_adjustedPET);
    data.Add(m_dailyAET);
-   float si=1-m_dailyAET/m_adjustedPET;//stress index
+   float si=0.0f;
+   if (m_adjustedPET > 0.0f)
+      si=1-m_dailyAET/m_adjustedPET;//stress index
    data.Add(si);
    float m1=m_soilLayerArray.GetAt(0)->m_soilMoistContent+ m_soilLayerArray.GetAt(1)->m_soilMoistContent+ m_soilLayerArray.GetAt(2)->m_soilMoistContent+ m_soilLayerArray.GetAt(3)->m_soilMoistContent;
+   if (m1<0.0f)
+      m1=0.0f;
    float m2= m_soilLayerArray.GetAt(0)->m_pLayerParams->m_AWHC + m_soilLayerArray.GetAt(1)->m_pLayerParams->m_AWHC + m_soilLayerArray.GetAt(2)->m_pLayerParams->m_AWHC + m_soilLayerArray.GetAt(3)->m_pLayerParams->m_AWHC;
-   float m3=m1/m2;
+   float m3 = 0.0f;
+   if (m2>0.0f)
+      m3=m1/m2;
    data.Add(m1);
    data.Add(m3);
+   data.Add(m_snow);
    m_pResults->AppendRow(data);
+
+
+   CArray< float, float > data1;
+   data1.Add((float)doy);
+   float a1= 
+   data1.Add(m_soilLayerArray.GetAt(0)->m_soilMoistContent/ m_soilLayerArray.GetAt(0)->m_pLayerParams->m_AWHC);
+   data1.Add(m_soilLayerArray.GetAt(1)->m_soilMoistContent/ m_soilLayerArray.GetAt(1)->m_pLayerParams->m_AWHC);
+   data1.Add(m_soilLayerArray.GetAt(2)->m_soilMoistContent/ m_soilLayerArray.GetAt(2)->m_pLayerParams->m_AWHC);
+   data1.Add(m_soilLayerArray.GetAt(3)->m_soilMoistContent/ m_soilLayerArray.GetAt(3)->m_pLayerParams->m_AWHC);
+   m_pSoilMoistureResults->AppendRow(data1);
+
    return 1;
    }
 
 int SoilInfo::WriteSoilResults(LPCTSTR name)
    {
-   m_pResults->WriteAscii(name);
+   CString na;
+   na.Format("%s%s",name,".csv");
+   m_pResults->WriteAscii(na);
+   na.Format("%s%s", name, "sm.csv");
+   m_pSoilMoistureResults->WriteAscii(na);
    return 1;
    }
 
@@ -334,11 +388,11 @@ bool SoilInfo::DeterminePrecipitationType(int year, int doy,  ClimateStation* pS
    if (m_tMax <= 0.0f)
       {
       m_rain = 0.0;
-      m_snow = m_precip;
+      m_snow = m_precip ;
       }
    else
       {
-      m_rain = m_precip;
+      m_rain = m_precip ;
       m_snow = 0.0;
       }
 
@@ -379,7 +433,7 @@ bool SoilInfo::DetermineAdjustedPET(int year, int doy, ClimateStation* pStation)
          m_computedPET = 0; // TODO self.dComputedPET = self.station.get_pe(currentDay, self.dSnowCover)
       }
 
-   m_adjustedPET = m_computedPET;
+   m_adjustedPET = m_computedPET ;
 
    // For every day, there is P(which is an input from raw data and this the total precipitation for the day).
    // P - PE thus PE is the potential loss every day and the difference between the two is what we call demand.
@@ -452,7 +506,7 @@ bool SoilInfo::DeterminePotentialDailyMelt(int doy, float tAvg)
 
    // correct McKay value loaded
    
-   m_dailySnowMelt = GetMcKayValue(doy, tAvg); // TODO
+   m_dailySnowMelt = GetMcKayValue(doy, tAvg); 
    
    if (m_tMax < 0)
       {
@@ -521,9 +575,9 @@ bool SoilInfo::DetermineInfiltrationAndRunoff()
          {
          float CNPW = 0.0f;  // para.of curve number when soil is wet
          float CNPD = 0.0f;  // para.of curve number when soil is dry
-         //////float AC2  = 100.0f - StationDetails.CURVE2;   // TODO
+         //float AC2  = 100.0f - 80.0f;// StationDetails.CURVE2;   // TODO
          float DXX  = 0.0f;
-         float* WF   = new float[GetLayerCount()];
+         float* WF   = new float[4];
 
          // calculation of m_WF for each layer # October 5, 1987
          // change the depmax to 45 cm when calculate wx value
@@ -562,37 +616,37 @@ bool SoilInfo::DetermineInfiltrationAndRunoff()
             SoilLayerInfo *pLayer = m_soilLayerArray[i];
             SoilLayerParams *pParams = pLayer->m_pLayerParams;
             
-            pLayer->m_soilMoistContent = (pLayer->m_soilMoistContent + pParams->m_permWilt) / pParams->m_zoneThick;
+            pLayer->m_SW = (pLayer->m_soilMoistContent + pParams->m_permWilt) / pParams->m_zoneThick;
             
             CNPW += (pLayer->m_SW / pParams->m_DUL) * WF[i];
             CNPD += ((pLayer->m_SW - pParams->m_PLL) / (pParams->m_DUL - pParams->m_PLL)) * WF[i];
+            }
+         float curveNum = 0.0f;
             
-            float curveNum = 0.0f;
+         /// TODO
+         if (CNPD >= 1.0f)
+            curveNum = CURVE2 + (wetCurveNum - CURVE2) * CNPW;
+         else
+            curveNum = dryCurveNum + (CURVE2 - dryCurveNum) * CNPD;
             
-            /// TODO
-            if (CNPD >= 1.0f)
-               curveNum = CURVE2 + (wetCurveNum - CURVE2) * CNPW;
-            else
-               curveNum = dryCurveNum + (CURVE2 - dryCurveNum) * CNPD;
+         if (curveNum == 0.0f)
+            curveNum = 0.99f;
             
-            if (curveNum == 0.0f)
-               curveNum = 0.99f;
+         float dSMX = 254.0f * (100.0f / curveNum - 1.0f);
             
-            float dSMX = 254.0f * (100.0f / curveNum - 1.0f);
+         /// reduce the retention factor if soil is frozen formula adapted from epic model,
+         /// this method was # found inappropriate as such use the hob - krogman's technique shown below. 
+         float dPB = m_surfaceWater - 0.2f * dSMX;
             
-            /// reduce the retention factor if soil is frozen formula adapted from epic model,
-            /// this method was # found inappropriate as such use the hob - krogman's technique shown below. 
-            float dPB = m_surfaceWater - 0.2f * dSMX;
+         if (dPB > 0)
+            {
+            m_runoff = (dPB*dPB) / (m_surfaceWater + 0.8f * dSMX);
+            if (m_runoff < 0.0)
+               m_runoff = 0.0f;
+            }
+      //   }  // end of for
             
-            if (dPB > 0)
-               {
-               m_runoff = (dPB*dPB) / (m_surfaceWater + 0.8f * dSMX);
-               if (m_runoff < 0.0)
-                  m_runoff = 0.0f;
-               }
-            }  // end of for
-            
-            delete[] WF;
+         delete[] WF;
             
          } // end of else
 
@@ -663,7 +717,7 @@ bool SoilInfo::DetermineET()
             pLayer->m_kCoef=0.75f;
             break;
          case 1:
-            pLayer->m_kCoef = 0.2f;
+            pLayer->m_kCoef = 0.25f;
             break;
 
          case 2:
@@ -677,8 +731,8 @@ bool SoilInfo::DetermineET()
             break;
          }
 
-         int iCurrentCropStage=2;//this should vary over time.  Done in determineCropPhenology in the VB code.  This has been replaced??
-         int iKAdjustStage = 3 ;//crop stage for k-adjustment start.  Should be member of VSMB
+         int iCurrentCropStage=4;//this should vary over time.  Done in determineCropPhenology in the VB code.  This has been replaced??
+         int iKAdjustStage = 2 ;//crop stage for k-adjustment start.  Should be member of VSMB
          if ((iCurrentCropStage >= iKAdjustStage - 1) && (i != 0))  // TODO
             {
             int j = 1;
@@ -724,7 +778,7 @@ bool SoilInfo::DetermineET()
                actEvap = relMoistCont * work * m_adjustedPET * pLayer->m_kCoef;
          
                if (actEvap > pLayer->m_soilMoistContent)
-                  actEvap = pLayer->m_soilMoistContent;
+                  actEvap = pLayer->m_soilMoistContent ;
          
                pLayer->m_waterLoss = actEvap;
                m_dailyAET += pLayer->m_waterLoss;
@@ -764,7 +818,7 @@ float SoilInfo::get_z_table1(int val)
       CArray<float,float>dZtable1;
       for (int i = 0; i<100;i++)
          { 
-         float dX9 = (i + 1) / 100.0;
+         float dX9 = ((float)i + 1) / 100.0;
          if (dX9 >= dR9) 
             {
             dM = 0.0;
@@ -798,11 +852,11 @@ float SoilInfo::get_z_table2(int val)
       CArray<float, float>dZtable2;
       for (int i = 0; i < 100; i++)
          {
-         float dX9 = (i + 1) / 100.0;
+         float dX9 = ((float)i + 1) / 100.0;
          if (dX9 >= dR9)
             {
-            dM = 0.0;
-            dN = 1.0;
+            dM = 0.0f;
+            dN = 1.0f;
             }
          float dRZ = (pow((dX9 / dR9), dM) * dN / dX9) + ((pow(((dR9 - dX9) / dR9), dN) * dM / dR9));
          float dRZ1 = (pow((dX9 / dR9), (dM * dN * dH9)) * dRZ);
@@ -821,8 +875,8 @@ bool SoilInfo::ApplyPrecipitationAndEvaporationToLayers()
       {
       SoilLayerInfo *pLayer = m_soilLayerArray[i];
 
-      pLayer->m_soilMoistContent -= pLayer->m_waterLoss;
-      pLayer->m_content2 -= pLayer->m_delta;
+      pLayer->m_soilMoistContent -= pLayer->m_waterLoss;//kbv test soil water movement by turning off et
+      pLayer->m_content2 -= pLayer->m_delta;//kbv
 
       if (pLayer->m_content2 < 0.0f)
          pLayer->m_content2 = 0.0f;
@@ -862,7 +916,7 @@ bool SoilInfo::CalculateDrainageAndSoilWaterDistribution()
          if (pLayer->m_drain < 0.0f)
             pLayer->m_drain = 0.0f;
    
-         pLayer->m_soilMoistContent -= pLayer->m_drain;
+         pLayer->m_soilMoistContent -= pLayer->m_drain; 
          pLayer->m_flux = pLayer->m_drain;
          }
       else if (pLayer->m_flux > HOLDw)
@@ -912,7 +966,8 @@ bool SoilInfo::AccountForMoistureRedistributionOrUnsaturatedFlow()
    int l = startLayer;
    int layers = GetLayerCount() - 2;
 
-   while (l <= layers)
+   //while (l <= layers)
+   for (l=startLayer; l<=layers;l++)
       {
       SoilLayerInfo   *pLayer1 = m_soilLayerArray[l];
       SoilLayerInfo   *pLayer2 = m_soilLayerArray[l + 1];
@@ -929,7 +984,7 @@ bool SoilInfo::AccountForMoistureRedistributionOrUnsaturatedFlow()
       float flow = 10.0f * float(Dbar) * (moisture2 - moisture1) / ((pParams1->m_zoneThick + pParams2->m_zoneThick) * 0.5f);
       float wFlow = flow * 10.0f / pParams1->m_zoneThick;
 
-      if (flow > 0)
+      if (flow >= 0)
          {
          if (pLayer1->m_SWX + wFlow > pParams1->m_sat)
             flow = (pParams1->m_sat - pLayer1->m_SWX) * (pParams1->m_zoneThick / 10.0f);
@@ -952,12 +1007,11 @@ bool SoilInfo::AccountForMoistureRedistributionOrUnsaturatedFlow()
 
       pLayer1->m_SWX += flow / (pParams1->m_zoneThick / 10.0f);
       pLayer2->m_SWX -= flow / (pParams2->m_zoneThick / 10.0f);
-      if (pLayer1->m_SWX > pParams1->m_permWilt)
-         { 
-         pLayer1->m_soilMoistContent = pLayer1->m_SWX * pParams1->m_zoneThick - pParams1->m_permWilt;
-         pLayer2->m_soilMoistContent = pLayer2->m_SWX * pParams2->m_zoneThick - pParams2->m_permWilt;
-         }
-      l = l + 1;
+
+      pLayer1->m_soilMoistContent = pLayer1->m_SWX * pParams1->m_zoneThick - pParams1->m_permWilt;
+      pLayer2->m_soilMoistContent = pLayer2->m_SWX * pParams2->m_zoneThick - pParams2->m_permWilt;
+
+    //  l = l + 1;
       }  // end of while (l <= layers)
 
    return true;

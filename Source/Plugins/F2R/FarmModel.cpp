@@ -497,7 +497,7 @@ FarmModel::FarmModel( void )
    , m_outputPivotTable( true )
    , m_colSWC(0)
    , m_colSWE(0)
-   , m_numIDUsToSave(5)
+   , m_numIDUsToSave(35)
 
    {
    // zero out event array
@@ -782,7 +782,7 @@ bool FarmModel::EndRun( EnvContext *pContext )
       for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
          {
          CString name;
-         name.Format("%i.csv",(int)idu);
+         name.Format("%i",(int)idu);
          path = outPath;
          m_vsmb.WriteResults(idu, path+=name);
          }
@@ -1438,6 +1438,21 @@ void FarmModel::SetupOutputVars( EnvContext *pContext )
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B and Region", m_pFldSizeLRData, "");
 
    theProcess->AddOutputVar( "Daily Data", m_pDailyData, "" );   
+   int counter=0;
+   for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
+      {
+      CString outName;
+      if (fmod((float)i,2.0f)==0.0)
+         {
+         outName.Format("VSMB_Site_%i",i);
+         counter++;
+         }
+      else
+         outName.Format("VSMB_SM_Site_%i", i-counter);
+      
+      theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(i), "");
+      }
+
 
    theProcess->AddOutputVar( "Crop Event Data", m_pCropEventData, "" );
    if ( m_outputPivotTable )
@@ -1812,7 +1827,8 @@ bool FarmModel::GrowCrops( EnvContext *pContext, bool useAddDelta )
                // Update the current IDU's soil moisture status
                if ( m_useVSMB )
                   { 
-                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy); 
+                  int dayOfSimulation=((pContext->currentYear-pContext->startYear)*365)+doy;
+                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation);
                   float swc=m_vsmb.GetSoilMoisture(idu,0);
                   float swe= m_vsmb.GetSWE(idu);
                   theProcess->UpdateIDU(pContext, idu, m_colSWC, swc, SET_DATA);

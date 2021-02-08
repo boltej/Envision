@@ -80,14 +80,14 @@ class SoilLayerInfo
 
       // constructor
       SoilLayerInfo(SoilLayerParams *pParams)
-         : m_soilMoistContent(2.f)
+         : m_soilMoistContent(100.f)
          , m_kCoef(0)
          , m_SW(0)
          , m_SWX(0)
          , m_flux(0)
          , m_waterLoss(0)
          , m_drain(0)
-         , m_content2(0)
+         , m_content2(100.f)
          , m_delta(0)
          , m_pLayerParams(pParams)
          { }
@@ -135,12 +135,14 @@ class SoilInfo
          , m_surfaceWater(0)
 
          , m_pResults(NULL)
+         , m_pSoilMoistureResults(NULL)
          , m_pRootCoefficientTable(NULL)
          { }
 
       SoilInfo::~SoilInfo(void)
       {
-
+         if (m_pSoilMoistureResults != NULL)
+            delete m_pSoilMoistureResults;
 
          if (m_pResults != NULL)
             delete m_pResults;
@@ -188,10 +190,11 @@ class SoilInfo
       ClimateStation *m_pClimateStation;
       PtrArray<SoilLayerInfo> m_soilLayerArray;
       FDataObj *m_pResults;
+      FDataObj *m_pSoilMoistureResults;
       FDataObj *m_pRootCoefficientTable;
 
       
-      bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation);
+      bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation);
       int WriteSoilResults(LPCTSTR name);
    protected:
       bool DeterminePrecipitationType(int year, int doy, ClimateStation* pStation);   // sets m_rain, m_snow based on m_precip
@@ -236,7 +239,7 @@ class VSMBModel
       bool AllocateSoilArray(int size);
       SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, bool saveResults=false);
 
-      bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy);
+      bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation);
 
       SoilInfo *GetSoilInfo(int idu);///?????
 
@@ -256,6 +259,8 @@ class VSMBModel
 
    public:
       PtrArray<SoilInfo> m_soilInfoArray;    // loaded from CSV file during LoadXml
+
+      static PtrArray<FDataObj> m_pOutputObjArray;
 
       PtrArray<SoilLayerParams> m_soilLayerParams;
       static FDataObj* m_pNAISSnowMeltTable;//kbv
