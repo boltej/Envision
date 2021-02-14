@@ -50,6 +50,10 @@ int FarmModel::m_colRegion = -1;
 int FarmModel::m_colCLI = -1;
 int FarmModel::m_colFarmType = -1;
 int FarmModel::m_colCropAge = -1;
+int FarmModel::m_colCropStage = -1;
+int FarmModel::m_colPlantDate = -1;  // "PLANTDATE"       - output
+int FarmModel::m_colDormancy;  // "DORMANCY" - used during runtime
+
 int FarmModel::m_maxFieldArea = int(80 * M2_PER_HA);
 RandUniform FarmModel::m_rn;
 
@@ -58,43 +62,43 @@ int FarmField::m_idCounter = 1;
 
 extern F2RProcess* theProcess;
 
-TCHAR* gCropEventNames[] =
-   {
-   "Planted",
-   "Poor Seed Cond",
-   "Early Frost",
-   "Mid Frost",
-   "Fall Frost",
-   "Winter Frost",
-   "Cool Nights",
-   "Warm Nights",
-   "Pol Heat",
-   "R2 Heat",
-   "Extreme Heat",
-   "Veg Drought",
-   "Pol Drought",
-   "R2 Drought",
-   "R3 Drought",
-   "R5 Drought",
-   "Pod Drought",
-   "Seed Drought",
-   "Early Flood Delay (Corn Planting)",
-   "Early Flood Delay (Soy Planting)",
-   "Early Flood Delay (Soy A)",
-   "Early Flood Delay (Soy B)",
-   "Early Flood Delay (Soy C)",
-   "Cool Spring",
-   "Early Flood Kill",
-   "Mid Flood",
-   "Corn to Soy",
-   "Corn to Fallow",
-   "Soy to Fallow",
-   "Wheat to Corn",
-   "Barley to Corn",
-   "Harvest",
-   "Yield Failure",
-   "Incomplete"
-   };
+////TCHAR* gCropEventNames[] =
+////   {
+////   "Planted",
+////   "Poor Seed Cond",
+////   "Early Frost",
+////   "Mid Frost",
+////   "Fall Frost",
+////   "Winter Frost",
+////   "Cool Nights",
+////   "Warm Nights",
+////   "Pol Heat",
+////   "R2 Heat",
+////   "Extreme Heat",
+////   "Veg Drought",
+////   "Pol Drought",
+////   "R2 Drought",
+////   "R3 Drought",
+////   "R5 Drought",
+////   "Pod Drought",
+////   "Seed Drought",
+////   "Early Flood Delay (Corn Planting)",
+////   "Early Flood Delay (Soy Planting)",
+////   "Early Flood Delay (Soy A)",
+////   "Early Flood Delay (Soy B)",
+////   "Early Flood Delay (Soy C)",
+////   "Cool Spring",
+////   "Early Flood Kill",
+////   "Mid Flood",
+////   "Corn to Soy",
+////   "Corn to Fallow",
+////   "Soy to Fallow",
+////   "Wheat to Corn",
+////   "Barley to Corn",
+////   "Harvest",
+////   "Yield Failure",
+////   "Incomplete"
+////   };
 
 
 TCHAR* gFarmEventNames[] =
@@ -458,8 +462,6 @@ FarmModel::FarmModel(void)
    , m_colSLC(-1)
    , m_colLulcA(-1)
    , m_colCropStatus(-1)
-   , m_colCropStage(-1)
-   , m_colPlantDate(-1)
    , m_colYieldRed(-1)
    , m_colYield(-1)
    , m_colDairyAvg(-1)
@@ -498,9 +500,10 @@ FarmModel::FarmModel(void)
    , m_maxProcessors(-1)
    , m_processorsUsed(0)
    , m_outputPivotTable(true)
+   , m_vsmb()
    {
    // zero out event array
-   memset(m_cropEvents, 0, sizeof(float) * (1 + CE_EVENTCOUNT));
+   //memset(m_cropEvents, 0, sizeof(float) * (1 + CE_EVENTCOUNT));
    }
 
 
@@ -552,6 +555,47 @@ FarmModel::~FarmModel(void)
       delete m_pFldSizeTRData;
    }
 
+int FarmModel::AddBuiltInCropEventTypes() 
+   {
+   this->AddCropEventType(CE_UNDEFINED, "Undefined");
+   this->AddCropEventType(CE_PLANTED, "Planted");
+   this->AddCropEventType(CE_POORSEEDCOND, "Poor Seed Cond");
+   this->AddCropEventType(CE_EARLY_FROST, "Early Frost");
+   this->AddCropEventType(CE_MID_FROST, "Mid Frost");
+   this->AddCropEventType(CE_FALL_FROST, "Fall Frost");
+   this->AddCropEventType(CE_WINTER_FROST, "Winter Frost");
+   this->AddCropEventType(CE_COOL_NIGHTS,"Cool Nights");
+   this->AddCropEventType(CE_WARM_NIGHTS, "Warm Nights");
+   this->AddCropEventType(CE_POL_HEAT, "Pol Heat");
+   this->AddCropEventType(CE_R2_HEAT, "R2 Heat");
+   this->AddCropEventType(CE_EXTREME_HEAT,"Extreme Heat");
+   this->AddCropEventType(CE_VEG_DROUGHT, "Veg Drought");
+   this->AddCropEventType(CE_POL_DROUGHT, "Pol Drought");
+   this->AddCropEventType(CE_R2_DROUGHT, "R2 Drought");
+   this->AddCropEventType(CE_R3_DROUGHT, "R3 Drought");
+   this->AddCropEventType(CE_R5_DROUGHT, "R5 Drought");
+   this->AddCropEventType(CE_POD_DROUGHT, "Pod Drought");
+   this->AddCropEventType(CE_SEED_DROUGHT,"Seed Drought");
+   this->AddCropEventType(CE_EARLY_FLOOD_DELAY_CORN_PLANTING,"Early Flood Delay (Corn Planting)");
+   this->AddCropEventType(CE_EARLY_FLOOD_DELAY_SOY_PLANTING,"Early Flood Delay (Soy Planting)");
+   this->AddCropEventType(CE_EARLY_FLOOD_DELAY_SOY_A,"Early Flood Delay (Soy A)");
+   this->AddCropEventType(CE_EARLY_FLOOD_DELAY_SOY_B,"Early Flood Delay (Soy B)");
+   this->AddCropEventType(CE_EARLY_FLOOD_DELAY_SOY_C,"Early Flood Delay (Soy C)");
+   this->AddCropEventType(CE_COOL_SPRING, "Cool Spring");
+   this->AddCropEventType(CE_EARLY_FLOOD_KILL, "Early Flood Kill");
+   this->AddCropEventType(CE_MID_FLOOD,"Mid Flood");
+   this->AddCropEventType(CE_CORN_TO_SOY, "Corn to Soy");
+   this->AddCropEventType(CE_CORN_TO_FALLOW, "Corn to Fallow");
+   this->AddCropEventType(CE_SOY_TO_FALLOW,"Soy to Fallow");
+   this->AddCropEventType(CE_WHEAT_TO_CORN, "Wheat to Corn");
+   this->AddCropEventType(CE_BARLEY_TO_CORN,"Barley to Corn");
+   this->AddCropEventType(CE_HARVEST, "Harvest");
+   this->AddCropEventType(CE_YIELD_FAILURE, "Yield Failure");
+   this->AddCropEventType(CE_INCOMPLETE, "Incomplete");
+
+   return (int) this->m_cropEventTypes.GetSize();
+   }
+
 
 bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    {
@@ -563,24 +607,26 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
 
    omp_set_num_threads(m_processorsUsed);
 
+   MapLayer* pMapLayer = (MapLayer*)pContext->pMapLayer;
+
+   this->AddBuiltInCropEventTypes();
+
    // load table
    bool ok = LoadXml(pContext, initStr);
    if (!ok)
       return false;
 
+   // initialize submodels
    m_climateManager.Init(pContext, initStr);
-
-   MapLayer* pMapLayer = (MapLayer*)pContext->pMapLayer;
+   m_csModel.Init(this, pMapLayer, pContext->pQueryEngine, pContext->pExprEngine);
 
    if (m_doInit > 0)
       InitializeFarms(pMapLayer);   // populates FarmType, FT_Code fields based on FT_Extent strings
 
    // these are hard coded columns (for now)
    ok = theProcess->CheckCol(pMapLayer, m_colArea, "Area", TYPE_FLOAT, CC_MUST_EXIST);
-   ok = theProcess->CheckCol(pMapLayer, m_colArea, "Area", TYPE_FLOAT, CC_MUST_EXIST);
    if (!ok)
       return false;
-
 
    theProcess->CheckCol(pMapLayer, m_colFieldID, "Field_ID", TYPE_INT, CC_AUTOADD);
    theProcess->CheckCol(pMapLayer, m_colSLC, "SLC", TYPE_INT, CC_AUTOADD);
@@ -591,6 +637,7 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    theProcess->CheckCol(pMapLayer, m_colPlantDate, "PlantDate", TYPE_INT, CC_AUTOADD);
    theProcess->CheckCol(pMapLayer, m_colYieldRed, "YieldRed", TYPE_FLOAT, CC_AUTOADD);
    theProcess->CheckCol(pMapLayer, m_colYield, "Yield", TYPE_FLOAT, CC_AUTOADD);
+   theProcess->CheckCol(pMapLayer, m_colDormancy, "DORMANCY", TYPE_INT, CC_AUTOADD);
 
    theProcess->CheckCol(pMapLayer, m_colDairyAvg, "DairyAvg", TYPE_FLOAT, CC_AUTOADD);
    theProcess->CheckCol(pMapLayer, m_colBeefAvg, "BeefAvg", TYPE_FLOAT, CC_AUTOADD);
@@ -605,6 +652,9 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    pMapLayer->SetColNoData(m_colPlantDate);
    pMapLayer->SetColNoData(m_colYieldRed);
    pMapLayer->SetColNoData(m_colYield);
+
+   // initialize dormancys to 0
+   pMapLayer->SetColData(m_colDormancy, VData(0), true);
 
    // build the farm aggregations
    int farmCount = BuildFarms(pMapLayer);
@@ -631,6 +681,7 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
 bool FarmModel::InitRun(EnvContext* pContext)
    {
    m_climateManager.InitRun(m_climateScenarioID);
+   m_csModel.InitRun(pContext);
 
    // initialize scenario-specific farm data
    for (int i = 0; i < (int)m_farmArray.GetSize(); i++)
@@ -697,6 +748,7 @@ bool FarmModel::Run(EnvContext* pContext, bool useAddDelta)
 
    // update climate metrics for this year
    m_climateManager.Run(pContext, useAddDelta);
+   m_csModel.Run(pContext, useAddDelta);
 
    // reset any columns and dataobjs that need to be reset at the start of the year
    ResetAnnualData(pContext);
@@ -829,9 +881,17 @@ bool FarmModel::ResetAnnualData(EnvContext* pContext)
             float area = 0;
             pLayer->GetData(idu, m_colArea, area);
 
+            int lulc = 0;
+            pLayer->GetData(idu, m_colLulc, lulc);
+
             if (IsAg(pLayer, idu))
                {
-               pLayer->SetData(idu, m_colCropStage, CS_PREPLANT);
+               CSCrop* pCrop;
+               if ( m_csModel.m_cropLookup.Lookup(lulc, pCrop) )
+                  pLayer->SetData(idu, m_colCropStage, pCrop->m_cropStages[0]->m_id);
+               else
+                  pLayer->SetData(idu, m_colCropStage, CS_PREPLANT);
+
                pLayer->SetData(idu, m_colCropStatus, CE_UNDEFINED);
                pLayer->SetData(idu, m_colYieldRed, 0);
                m_totalIDUAreaAg += area;
@@ -847,11 +907,11 @@ bool FarmModel::ResetAnnualData(EnvContext* pContext)
       }
 
    // reset events
-   m_cropEvents[0] = (float)pContext->currentYear;
-   for (int i = 0; i < CE_EVENTCOUNT; i++)
+   m_cropEvents[0] = (float) pContext->currentYear;
+   for (int i = 0; i < m_cropEventTypes.GetSize(); i++)
       m_cropEvents[i + 1] = 0;
 
-   m_farmEvents[0] = (float)pContext->currentYear;
+   m_farmEvents[0] = (float) pContext->currentYear;
    for (int i = 0; i < FE_EVENTCOUNT; i++)
       m_farmEvents[i + 1] = 0;
 
@@ -1133,12 +1193,17 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    m_pDailyData->SetLabel(1, "Avg Yield Reduction");
    m_pDailyData->SetLabel(2, "Avg Planting Date");
 
+   // allocate slots for crop event areas (first col is year)
+   m_cropEvents.SetSize(1 + m_cropEventTypes.GetSize());
+   for (int i = 0; i < m_cropEvents.GetSize(); i++)
+      m_cropEvents[i] = 0;
+
    ASSERT(m_pCropEventData == NULL);
-   m_pCropEventData = new FDataObj(1 + CE_EVENTCOUNT, 0);
+   m_pCropEventData = new FDataObj(1 + (int) m_cropEventTypes.GetSize(), 0);
    m_pCropEventData->SetName("Farm Model Crop Events");
    m_pCropEventData->SetLabel(0, "Time");
-   for (int i = 0; i < CE_EVENTCOUNT; i++)
-      m_pCropEventData->SetLabel(i + 1, gCropEventNames[i]);
+   for (int i = 0; i < m_cropEventTypes.GetSize(); i++)
+      m_pCropEventData->SetLabel(i + 1, m_cropEventTypes[i]->label);
 
    // crop event pivot table
    if (m_outputPivotTable)
@@ -1789,7 +1854,7 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                if (m_useVSMB)
                   m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy);
 
-               if (IsAnnualCrop(pFarm, pLayer))
+               if (IsCrop(pFarm, pLayer))   // LULC_A =annual or perennial crop
                   {
                   float priorCumYRF = 0;
                   pLayer->GetData(idu, m_colYieldRed, priorCumYRF);
@@ -1797,7 +1862,7 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                   if (priorCumYRF < m_yrfThreshold)
                      {
                      // 0-1 yield reduction factors
-                     float yrf = CheckCropConditions(pContext, pFarm, pStation, pLayer, idu, doy, pContext->currentYear, priorCumYRF);
+                     float yrf = CheckCropConditions(pContext, pFarm, pLayer, idu, doy, pContext->currentYear, priorCumYRF);
 
                      // accumulate area
                      float area = 0;
@@ -1812,7 +1877,7 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                      theProcess->UpdateIDU(pContext, idu, m_colYieldRed, cumYRF, SET_DATA);
 
                      if (cumYRF >= m_yrfThreshold)
-                        AddCropEvent(pContext, idu, CE_YIELD_FAILURE, area * M2_PER_HA, doy, 0, cumYRF);
+                        AddCropEvent(pContext, idu, CE_YIELD_FAILURE, "Yield Failure", area * M2_PER_HA, doy, 0, cumYRF);
 
                      }  // end of: if ( priorCumYRF < 1 )
                   }  // end of: IsAnnualCrop()
@@ -2334,7 +2399,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
    {
    float yrf = 0;  // yield reduction factor ([0-1]- assume no yield reduction unless called for below
 
-   ClimateStation* pStation = pFarm->m_pClimateStation;
+   ClimateStation *pStation = pFarm->m_pClimateStation;
    if (pStation == NULL)
       return 0;
 
@@ -2349,14 +2414,14 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
    int cropStage = -99;
    pLayer->GetData(idu, m_colCropStage, cropStage);
 
-   // has crop already harvested or failed?  then no need to go futher
+   // has crop already harvested or failed?  then no need to go futher  Perennial crops????
    if (cropStage == CS_HARVESTED || cropStage == CS_FAILED)
       return yrf;
 
-   // if we've hit the end of the year without a harvest, trgger an incomplete. 
+   // if we've hit the end of the year without a harvest, trigger an incomplete. 
    if (doy == 365 && cropStage == CS_PLANTED)
       {
-      AddCropEvent(pContext, idu, CE_INCOMPLETE, areaHa, doy, 0, priorCumYRF);
+      AddCropEvent(pContext, idu, CE_INCOMPLETE, "Incomplete", areaHa, doy, 0, priorCumYRF);
       theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_FAILED, ADD_DELTA);
       return yrf;
       }
@@ -2405,7 +2470,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
          if (doy == MAY24 && cropStage < CS_PLANTED)   // hit may 24, and still no planting?
             {                                            // switch to soybeans
             theProcess->UpdateIDU(pContext, idu, m_colLulc, SOYBEANS, ADD_DELTA | SET_DATA);
-            yrf = AddCropEvent(pContext, idu, CE_CORN_TO_SOY, areaHa, doy, 0, priorCumYRF);
+            yrf = AddCropEvent(pContext, idu, CE_CORN_TO_SOY, "Corn to Soy", areaHa, doy, 0, priorCumYRF);
             return yrf;
             }
 
@@ -2474,7 +2539,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                pFarm->m_dailyPlantingAcresAvailable -= (area * ACRE_PER_M2);
                theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
                theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
-               yrf = AddCropEvent(pContext, idu, CE_PLANTED, areaHa, doy, 0, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_PLANTED, "Planted", areaHa, doy, 0, priorCumYRF);
                }
             else
                {  // not yet, and reduce yield appropriately
@@ -2483,7 +2548,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                if (doy >= JUN1)
                   yrf = 0.02f;
 
-               AddCropEvent(pContext, idu, cropEvent, areaHa, doy, yrf, priorCumYRF);
+               AddCropEvent(pContext, idu, cropEvent, NULL, areaHa, doy, yrf, priorCumYRF);
                }
             }  // end of: if ( pre-planting and doy > MAY1 )
 
@@ -2492,7 +2557,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             {
             theProcess->UpdateIDU(pContext, idu, m_colLulc, FALLOW, ADD_DELTA | SET_DATA);
             theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PREPLANT, ADD_DELTA | SET_DATA);
-            AddCropEvent(pContext, idu, CE_CORN_TO_FALLOW, areaHa, doy, 0, priorCumYRF);
+            AddCropEvent(pContext, idu, CE_CORN_TO_FALLOW, "Corn to Fallow", areaHa, doy, 0, priorCumYRF);
             return yrf;
             }
 
@@ -2502,13 +2567,13 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             if (chu >= 2800)
                {
                theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
-               AddCropEvent(pContext, idu, CE_HARVEST, areaHa, doy, 0, priorCumYRF);
+               AddCropEvent(pContext, idu, CE_HARVEST, "Harvest", areaHa, doy, 0, priorCumYRF);
                return yrf;
                }
 
             // killing frost A: Tmin <=-2 C with <680 accumulated CHUs
             if (chu < 680 && tMin <= -2.0f)
-               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, areaHa, doy, (float)m_rn.RandValue(0, 0.08f), priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, "Early Frost", areaHa, doy, (float)m_rn.RandValue(0, 0.08f), priorCumYRF);
 
             // Early flooding: Weekly Precipitation 30% greater than weekly Mean Precipitation (between May 16 and June 20)
 
@@ -2531,7 +2596,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                // add - if ( tMean for the 7 days ), 1 and 2 day events.
                if (weeklyPrecip > (1.3 * historicPrecip))
                   {
-                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_KILL, areaHa, doy, 1.0f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_KILL, "Early Flood Kill", areaHa, doy, 1.0f, priorCumYRF);
                   theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_FAILED, ADD_DELTA | SET_DATA);
                   return yrf;
                   }
@@ -2539,7 +2604,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
 
             // killing frost B (doesn't actually kill, just reduces yield substantially)
             if (chu > 930 && chu < 1310 && tMin <= -2)
-               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, areaHa, doy, (float)m_rn.RandValue(0.3f, 0.5f), priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, "Early Frost", areaHa, doy, (float)m_rn.RandValue(0.3f, 0.5f), priorCumYRF);
 
             // drought A (CDD >10 and CHU between 600 and 1,300)
 
@@ -2561,7 +2626,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (count >= 10)
-                  yrf = AddCropEvent(pContext, idu, CE_VEG_DROUGHT, areaHa, doy, (float)m_rn.RandValue(0.10f, 0.20f), priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_VEG_DROUGHT, "Veg Drought", areaHa, doy, (float)m_rn.RandValue(0.10f, 0.20f), priorCumYRF);
                }
 
             // drought B (pollination): CDD >10 and CHU between 1,301 and 1,600.           
@@ -2581,12 +2646,12 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (count >= 10)
-                  yrf = AddCropEvent(pContext, idu, CE_POL_DROUGHT, areaHa, doy, 0.50f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_POL_DROUGHT, "POL Drought", areaHa, doy, 0.50f, priorCumYRF);
                }
 
             // lethal pollen heat: Tmax >=35 C and CHU between 1,450-1,550
             if (chu > 1450 && chu < 1550 && tMax >= 35.0f)
-               yrf = AddCropEvent(pContext, idu, CE_POL_HEAT, areaHa, doy, 0.15f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_POL_HEAT, "POL Heat", areaHa, doy, 0.15f, priorCumYRF);
 
             // drought C: P<45mm at CHUs between 1,601 and 1,825
             if (doy == pStation->m_doyCHU1826)
@@ -2601,7 +2666,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (totalPrecip < 45.0f)
-                  yrf = AddCropEvent(pContext, idu, CE_R2_DROUGHT, areaHa, doy, 0.15f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_R2_DROUGHT, "R2 Drought", areaHa, doy, 0.15f, priorCumYRF);
                }
 
             // heat stress during early R stages - Tmax >=33 C for 6+ days at CHUs between 1,601 and 2,000
@@ -2624,7 +2689,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                if (hotDays >= 6)
                   {
                   // in addition to other stresses
-                  yrf = AddCropEvent(pContext, idu, CE_R2_HEAT, areaHa, doy, yrf + 0.04f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_R2_HEAT ,"R2 Heat", areaHa, doy, yrf + 0.04f, priorCumYRF);
                   }
                }
 
@@ -2647,13 +2712,13 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                if (totalPrecip < 45)
                   {
                   float yrf = -(0.2f / 45) * totalPrecip + 0.2f;
-                  yrf = AddCropEvent(pContext, idu, CE_R3_DROUGHT, areaHa, doy, yrf, priorCumYRF);  // apply linear relationships with 0-45
+                  yrf = AddCropEvent(pContext, idu, CE_R3_DROUGHT, "R3 Drought", areaHa, doy, yrf, priorCumYRF);  // apply linear relationships with 0-45
                   }
                }
 
             // killing frost C -Tmin <=-2 C with 2,165 to 2,475 accumulated CHUs;
             if (2165 < chu && chu < 2475 && tMin <= -2.0f)
-               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, areaHa, doy, 0.50f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, "Early Frost", areaHa, doy, 0.50f, priorCumYRF);
 
 
             // TODO:  VSMB?
@@ -2674,15 +2739,15 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                if (totalPrecip < 8.0f)
                   {
                   float yrf = -(0.2f / 8) * totalPrecip + 0.2f;
-                  yrf = AddCropEvent(pContext, idu, CE_R3_DROUGHT, areaHa, doy, yrf, priorCumYRF);  // linear function
+                  yrf = AddCropEvent(pContext, idu, CE_R3_DROUGHT, "R3 Drought", areaHa, doy, yrf, priorCumYRF);  // linear function
                   }
                }
 
             // Killing frost D: Tmin <=-2 C with 2,476 to 2,799 accumulated CHUs; 
             if (2476 < chu && chu <= 2600 && tMin <= -2.0f)
-               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, areaHa, doy, 0.20f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, "Fall Frost", areaHa, doy, 0.20f, priorCumYRF);
             else if (2601 < chu && chu <= 2799 && tMin <= -2.0f)
-               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, areaHa, doy, 0.05f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, "Fall Frost", areaHa, doy, 0.05f, priorCumYRF);
 
             // TODO? VSMB
 
@@ -2702,7 +2767,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                if (totalPrecip < 16.0f)
                   {
                   float yrf = -(0.15f / 16) * totalPrecip + 0.15f;
-                  yrf = AddCropEvent(pContext, idu, CE_R5_DROUGHT, areaHa, doy, yrf, priorCumYRF);  // apply linear function 0-15
+                  yrf = AddCropEvent(pContext, idu, CE_R5_DROUGHT,"R5 Drought", areaHa, doy, yrf, priorCumYRF);  // apply linear function 0-15
                   }
                }
             }  // end of: if ( cropStage >= CS_PLANTED && cropStage < CS_HARVESTED )  
@@ -2716,7 +2781,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             {                                            // switch to fallow
             theProcess->UpdateIDU(pContext, idu, m_colLulc, FALLOW, ADD_DELTA | SET_DATA);
             theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PREPLANT, SET_DATA);
-            AddCropEvent(pContext, idu, CE_SOY_TO_FALLOW, areaHa, doy, 0, priorCumYRF);
+            AddCropEvent(pContext, idu, CE_SOY_TO_FALLOW, "Soy To Fallow", areaHa, doy, 0, priorCumYRF);
             return yrf;
             }
 
@@ -2742,7 +2807,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                // go ahead and plant the crop
                theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
                theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
-               AddCropEvent(pContext, idu, CE_PLANTED, areaHa, doy, 0, priorCumYRF);
+               AddCropEvent(pContext, idu, CE_PLANTED, "Planted", areaHa, doy, 0, priorCumYRF);
                cropStage = CS_PLANTED;
 
                pFarm->m_dailyPlantingAcresAvailable -= (area * ACRE_PER_M2);
@@ -2750,10 +2815,10 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             else  // delay - too wet
                {
                if (doy > MAY24)
-                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_PLANTING, areaHa, doy, 0.08f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_PLANTING, "Early Flood Delay Soy Planting", areaHa, doy, 0.08f, priorCumYRF);
 
                if (doy > JUN7)
-                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_PLANTING, areaHa, doy, 0.15f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_PLANTING, "Early Flood Delay Soy Planting", areaHa, doy, 0.15f, priorCumYRF);
                }
             }  // end of: time to plant?
 
@@ -2766,7 +2831,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             if (doy == plantDate + 130)
                {
                theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
-               AddCropEvent(pContext, idu, CE_HARVEST, areaHa, doy, 0, priorCumYRF);
+               AddCropEvent(pContext, idu, CE_HARVEST, "Harvest", areaHa, doy, 0, priorCumYRF);
                return yrf;
                }
 
@@ -2779,7 +2844,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             if (doy >= plantDate + 26 && doy < plantDate + 33 && tMin < 0)
                {
                theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_FAILED, SET_DATA);
-               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, areaHa, doy, 1.0f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_EARLY_FROST, "Early Frost", areaHa, doy, 1.0f, priorCumYRF);
                return yrf;
                }
 
@@ -2801,7 +2866,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (totalPrecip > (totalHistoricPrecip * 1.30f))
-                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_A, areaHa, doy, 0.20f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_A, "Early Flood Delay Soy A", areaHa, doy, 0.20f, priorCumYRF);
                }
 
             // Flooding B: Precipitation 30% greater than weekly precipitation 25 to 45 days after seeding
@@ -2820,7 +2885,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (totalPrecip > (totalHistoricPrecip * 1.30f))
-                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_B, areaHa, doy, (float)m_rn.RandValue(0, 0.90f), priorCumYRF);  // linear function?
+                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_B, "Early Flood Delay Soy B", areaHa, doy, (float)m_rn.RandValue(0, 0.90f), priorCumYRF);  // linear function?
                }
 
             // Flooding C: Precipitation 30% greater than mean precipitation 40 to 45 days after seeding
@@ -2839,7 +2904,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (totalPrecip > (totalHistoricPrecip * 1.30f))
-                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_C, areaHa, doy, (float)m_rn.RandValue(0, 0.18f), priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_EARLY_FLOOD_DELAY_SOY_C, "Early Flood Delay Soy C", areaHa, doy, (float)m_rn.RandValue(0, 0.18f), priorCumYRF);
                }
 
             // Cool nights: Tmin  <10C for 5+ days 45-55 days after seeding
@@ -2861,21 +2926,21 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   if (yrf < 0) yrf = 0;
                   if (yrf > 1) yrf = 1;
 
-                  yrf = AddCropEvent(pContext, idu, CE_COOL_NIGHTS, areaHa, doy, yrf, priorCumYRF);  // linear days or less=0,, 5-10 is linear between (0, 25)  etc...
+                  yrf = AddCropEvent(pContext, idu, CE_COOL_NIGHTS, "Cool Nights", areaHa, doy, yrf, priorCumYRF);  // linear days or less=0,, 5-10 is linear between (0, 25)  etc...
                   }
                }
 
             // Killing frost B: Tmin<0C 56 to 100 days after seeding; 
             if (tMin < 0 && doy >= plantDate + 56 && doy <= plantDate + 100)
-               yrf = AddCropEvent(pContext, idu, CE_MID_FROST, areaHa, doy, (float)m_rn.RandValue(0, 0.80f), priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_MID_FROST, "Mid Frost", areaHa, doy, (float)m_rn.RandValue(0, 0.80f), priorCumYRF);
 
             // Cold nights: 1C<Tmin<10C 55 to 100 days after seeding; 
             if (tMin < 10 && doy >= plantDate + 56 && doy <= plantDate + 100)
-               yrf = AddCropEvent(pContext, idu, CE_COOL_NIGHTS, areaHa, doy, 0.10f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_COOL_NIGHTS, "Cool Nights", areaHa, doy, 0.10f, priorCumYRF);
 
             // Warm nights: Tmin>=24C 55 to 100 days after seeding
             if (tMin > 24 && doy >= plantDate + 56 && doy <= plantDate + 100)
-               yrf = AddCropEvent(pContext, idu, CE_WARM_NIGHTS, areaHa, doy, 0.25f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_WARM_NIGHTS, "Warm Nights", areaHa, doy, 0.25f, priorCumYRF);
 
             // TODO: VSMB?
 
@@ -2891,7 +2956,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (tPrecip > 90)
-                  yrf = AddCropEvent(pContext, idu, CE_MID_FLOOD, areaHa, doy, (float)m_rn.RandValue(0, 0.26f), priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_MID_FLOOD, "Mid Flood", areaHa, doy, (float)m_rn.RandValue(0, 0.26f), priorCumYRF);
                }
 
             // Drought A: Precipitation <10mm 65 to 80 days after seeding
@@ -2906,7 +2971,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (tPrecip < 10)
-                  yrf = AddCropEvent(pContext, idu, CE_POD_DROUGHT, areaHa, doy, 0.19f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_POD_DROUGHT,"POD Drought", areaHa, doy, 0.19f, priorCumYRF);
                }
 
             // Drought B: Precipitation <10mm 81 to 95 days after seeding
@@ -2921,21 +2986,21 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                if (tPrecip < 10)
-                  yrf = AddCropEvent(pContext, idu, CE_POD_DROUGHT, areaHa, doy, 0.36f, priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_POD_DROUGHT, "POD Drought", areaHa, doy, 0.36f, priorCumYRF);
                }
 
             // Fall frost A: Tmin <-1C between 90 and 100 days after seeding; 
             if (tMin < -1 && doy >= plantDate + 90 && doy <= plantDate + 100)
-               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, areaHa, doy, (float)m_rn.RandValue(0, 0.65f), priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, "Fall Frost", areaHa, doy, (float)m_rn.RandValue(0, 0.65f), priorCumYRF);
 
             // Extreme heat: mean Tmax > 33C 95-120 days after seeding
             if (tMax < 33 && doy >= plantDate + 95 && doy <= plantDate + 120)
-               yrf = AddCropEvent(pContext, idu, CE_EXTREME_HEAT, areaHa, doy, 0.22f, priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_EXTREME_HEAT, "Extreme Heat", areaHa, doy, 0.22f, priorCumYRF);
 
             // Fall frost B: Tmin <-1C 101 to 110 days after seeding; 
             int coldAndDrought = 0;
             if (tMin < -1 && doy >= plantDate + 101 && doy <= plantDate + 110)
-               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, areaHa, doy, (float)m_rn.RandValue(0, 0.37f), priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, "Fall Frost", areaHa, doy, (float)m_rn.RandValue(0, 0.37f), priorCumYRF);
 
             // TODO: VSMB?
 
@@ -2953,7 +3018,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                if (tPrecip < 5)
                   {
                   coldAndDrought += 2;
-                  yrf = AddCropEvent(pContext, idu, CE_SEED_DROUGHT, areaHa, doy, (float)m_rn.RandValue(0, 0.37f), priorCumYRF);
+                  yrf = AddCropEvent(pContext, idu, CE_SEED_DROUGHT, "Seed Drought", areaHa, doy, (float)m_rn.RandValue(0, 0.37f), priorCumYRF);
                   }
                }
 
@@ -2962,7 +3027,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
 
             // Fall frost C: Tmin <-1C 111 to 120 days after seeding
             if (tMin < -1 && doy >= plantDate + 111 && doy <= plantDate + 120)
-               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, areaHa, doy, (float)m_rn.RandValue(0, 0.11f), priorCumYRF);
+               yrf = AddCropEvent(pContext, idu, CE_FALL_FROST, "Fall Frost", areaHa, doy, (float)m_rn.RandValue(0, 0.11f), priorCumYRF);
             }
          }
          break;
@@ -2985,14 +3050,14 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             // go ahead and plant the crop
             theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
             theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
-            AddCropEvent(pContext, idu, CE_PLANTED, areaHa, doy, 0, priorCumYRF);
+            AddCropEvent(pContext, idu, CE_PLANTED,"Planted",  areaHa, doy, 0, priorCumYRF);
             return 0;
             }
 
          if (doy == SEP1)
             {
             theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
-            AddCropEvent(pContext, idu, CE_HARVEST, areaHa, doy, 0, priorCumYRF);
+            AddCropEvent(pContext, idu, CE_HARVEST, "Harvest", areaHa, doy, 0, priorCumYRF);
             return 0;
             }
 
@@ -3043,7 +3108,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                      {
                      float f = (periodTMean - 21) / (5 - 21);
                      tStress = 1 - (f * f);
-                     yrf = AddCropEvent(pContext, idu, CE_COOL_NIGHTS, areaHa, doy, 1 - tStress, priorCumYRF);
+                     yrf = AddCropEvent(pContext, idu, CE_COOL_NIGHTS, "Cool Nights", areaHa, doy, 1 - tStress, priorCumYRF);
                      }
                   else if (periodTMean <= 27)
                      tStress = 1;
@@ -3051,7 +3116,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                      {
                      float f = (periodTMean - 27) / (35 - 27);
                      tStress = 1 - (f * f);
-                     yrf = AddCropEvent(pContext, idu, CE_WARM_NIGHTS, areaHa, doy, 1 - tStress, priorCumYRF);
+                     yrf = AddCropEvent(pContext, idu, CE_WARM_NIGHTS, "Warm Nights", areaHa, doy, 1 - tStress, priorCumYRF);
                      }
                   }  // end of: if ( cut alfalfa )
                }  // end of:  if ( periodGDD > 375
@@ -3069,7 +3134,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             if (doy > MAY1)
                {
                theProcess->UpdateIDU(pContext, idu, m_colLulc, CORN, ADD_DELTA | SET_DATA);
-               AddCropEvent(pContext, idu, CE_WHEAT_TO_CORN, areaHa, doy, 0, priorCumYRF);
+               AddCropEvent(pContext, idu, CE_WHEAT_TO_CORN, "Wheat to Corn", areaHa, doy, 0, priorCumYRF);
                return 0;
                }
             else if (doy > 8)  // allow for 7 days preceding
@@ -3098,7 +3163,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                {
                theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
                theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
-               AddCropEvent(pContext, idu, CE_PLANTED, areaHa, doy, 0, priorCumYRF);
+               AddCropEvent(pContext, idu, CE_PLANTED, "Planted", areaHa, doy, 0, priorCumYRF);
                cropStage = CS_PLANTED;
                }
             }
@@ -3110,7 +3175,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             if (gdd > 1600)
                {
                theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
-               AddCropEvent(pContext, idu, CE_HARVEST, areaHa, doy, 0, priorCumYRF);
+               AddCropEvent(pContext, idu, CE_HARVEST, "Harvest", areaHa, doy, 0, priorCumYRF);
                return 0;
                }
             }
@@ -3118,120 +3183,109 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
          return yrf;
          }
 
-      case BARLEY:
-         {
-         // pre-emergence?
-         if (cropStage < CS_PLANTED)  // check planting conditions
-            {
-            // After MAY1, switch to corn
-            if (doy > MAY1)
-               {
-               theProcess->UpdateIDU(pContext, idu, m_colLulc, CORN, ADD_DELTA | SET_DATA);
-               AddCropEvent(pContext, idu, CE_BARLEY_TO_CORN, areaHa, doy, 0, priorCumYRF);
-               return 0;
-               }
-            else if (doy > 8)
-               {
-               // TODO: VSMB?
+      //case BARLEY:
+      //   {
+      //   // pre-emergence?
+      //   if (cropStage < CS_PLANTED)  // check planting conditions
+      //      {
+      //      // After MAY1, switch to corn
+      //      if (doy > MAY1)
+      //         {
+      //         theProcess->UpdateIDU(pContext, idu, m_colLulc, CORN, ADD_DELTA | SET_DATA);
+      //         AddCropEvent(pContext, idu, CE_BARLEY_TO_CORN, "Barley to Corn",  areaHa, doy, 0, priorCumYRF);
+      //         return 0;
+      //         }
+      //      else if (doy > 8)
+      //         {
+      //         // TODO: VSMB?
+      //
+      //         // If greater than 30 Precent above historic precip, then delay.
+      //         float weeklyPrecip = 0;
+      //         float historicPrecip = 0;
+      //         for (int i = 0; i < 7; i++)
+      //            {
+      //            float _precip = 0;
+      //            pStation->GetData(doy - i - 1, year, PRECIP, _precip);
+      //            weeklyPrecip += _precip;
+      //
+      //            pStation->GetHistoricMean(doy - i - 1, PRECIP, _precip);
+      //            historicPrecip += _precip;
+      //            }
+      //
+      //         if (weeklyPrecip > (1.3 * historicPrecip))
+      //            return 0;
+      //         }
+      //
+      //      float gdd = pStation->m_cumDegDays0Apr15[doy - 1];
+      //      if (gdd > 130)   // time to plant?
+      //         {
+      //         theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
+      //         theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
+      //         AddCropEvent(pContext, idu, CE_PLANTED, "Planted", areaHa, doy, 0, priorCumYRF);
+      //         cropStage = CS_PLANTED;
+      //         }
+      //      }
+      //
+      //   // post-emergence?
+      //   if (CS_PLANTED <= cropStage && cropStage < CS_HARVESTED)
+      //      {
+      //      float gdd = pStation->m_cumDegDays0Apr15[doy - 1];
+      //      if (gdd > 1400)
+      //         {
+      //         theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
+      //         AddCropEvent(pContext, idu, CE_HARVEST, "Harvest", areaHa, doy, 0, priorCumYRF);
+      //         return 0;
+      //         }
+      //      }
+      //   return yrf;
+      //   }
 
-               // If greater than 30 Precent above historic precip, then delay.
-               float weeklyPrecip = 0;
-               float historicPrecip = 0;
-               for (int i = 0; i < 7; i++)
-                  {
-                  float _precip = 0;
-                  pStation->GetData(doy - i - 1, year, PRECIP, _precip);
-                  weeklyPrecip += _precip;
-
-                  pStation->GetHistoricMean(doy - i - 1, PRECIP, _precip);
-                  historicPrecip += _precip;
-                  }
-
-               if (weeklyPrecip > (1.3 * historicPrecip))
-                  return 0;
-               }
-
-            float gdd = pStation->m_cumDegDays0Apr15[doy - 1];
-            if (gdd > 130)   // time to plant?
-               {
-               theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
-               theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
-               AddCropEvent(pContext, idu, CE_PLANTED, areaHa, doy, 0, priorCumYRF);
-               cropStage = CS_PLANTED;
-               }
-            }
-
-         // post-emergence?
-         if (CS_PLANTED <= cropStage && cropStage < CS_HARVESTED)
-            {
-            float gdd = pStation->m_cumDegDays0Apr15[doy - 1];
-            if (gdd > 1400)
-               {
-               theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
-               AddCropEvent(pContext, idu, CE_HARVEST, areaHa, doy, 0, priorCumYRF);
-               return 0;
-               }
-            }
-         return yrf;
-         }
-
-      case POTATOES:
-         {
-         // pre-emergence?
-         if (cropStage < CS_PLANTED && doy >= APR15)
-            {
-            float pDays = 0;
-            pStation->GetData(doy, year, PDAYS, pDays);
-
-            if (pDays > 155)   // time to plant? (assume late maturing variety)
-               {
-               theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
-               theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
-               AddCropEvent(pContext, idu, CE_PLANTED, areaHa, doy, 0, priorCumYRF);
-               return 0;
-               }
-            }
-
-         // post-emergence?
-         if (CS_PLANTED <= cropStage && cropStage < CS_HARVESTED)
-            {
-            float pDays = 0;
-            pStation->GetData(doy, year, PDAYS, pDays);
-
-            if (pDays > 1000)  // assumes late maturing variety
-               {
-               theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
-               AddCropEvent(pContext, idu, CE_HARVEST, areaHa, doy, 0, priorCumYRF);
-               return 0;
-               }
-            }
-
-         return yrf;
-         }
+      //case POTATOES:
+      //   {
+      //   // pre-emergence?
+      //   if (cropStage < CS_PLANTED && doy >= APR15)
+      //      {
+      //      float pDays = 0;
+      //      pStation->GetData(doy, year, PDAYS, pDays);
+      //
+      //      if (pDays > 155)   // time to plant? (assume late maturing variety)
+      //         {
+      //         theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_PLANTED, SET_DATA);
+      //         theProcess->UpdateIDU(pContext, idu, m_colPlantDate, doy, SET_DATA);
+      //         AddCropEvent(pContext, idu, CE_PLANTED, "Planted", areaHa, doy, 0, priorCumYRF);
+      //         return 0;
+      //         }
+      //      }
+      //
+      //   // post-emergence?
+      //   if (CS_PLANTED <= cropStage && cropStage < CS_HARVESTED)
+      //      {
+      //      float pDays = 0;
+      //      pStation->GetData(doy, year, PDAYS, pDays);
+      //
+      //      if (pDays > 1000)  // assumes late maturing variety
+      //         {
+      //         theProcess->UpdateIDU(pContext, idu, m_colCropStage, CS_HARVESTED, SET_DATA);
+      //         AddCropEvent(pContext, idu, CE_HARVEST, "Harvest", areaHa, doy, 0, priorCumYRF);
+      //         return 0;
+      //         }
+      //      }
+      //
+      //   return yrf;
+      //   }
 
       default:
          {
-         for (int i = 0; i < pFarm->m_cropArray.GetSize(); i++)
-            {
-            Crop* pCrop = pFarm->m_cropArray[i];
-
-            // does this match the IDU?
-            if (pCrop->m_lulc == lulc)
-               {
-               yrf = pCrop->CheckCondition(pContext, pFarm, pStation, pLayer, idu, cropStage, doy, year, priorCumYRF);
-               return yrf;
-               }
-            }
+         yrf = m_csModel.UpdateCropStatus(pContext, this, pFarm, pStation, pLayer, idu, areaHa, doy, year, lulc, cropStage, priorCumYRF);
          }
       }
-
-
 
    return yrf;
    }
 
+   /*
 
-   float WoodyCrop::CheckCondition(EnvContext* pContext, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF)
+   float WoodyCrop::CheckCondition(EnvContext* pContext, FarmModel *pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF)
       {
       // questions:
       // 1) when was this planted?
@@ -3252,8 +3306,13 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
          case CS_PREPLANT:
             // condition which triggers planting
             if (doy > JUN14)
+               {
+               float areaHa = 0;
+               pLayer->GetData(idu, FarmModel::m_colArea, areaHa);  // m2
+               areaHa /= M2_PER_HA;  // convert m2->ha
                return pFarmModel->AddCropEvent(pContext, idu, CE_YIELD_FAILURE, areaHa, doy, 0, priorCumYRF);
-            
+               }
+
             if (doy > this->m_minPlantingDate)
                {
                float tMean = 0;
@@ -3277,23 +3336,31 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
 
          case CS_ACTIVE_GROWTH:
             {
+            if (doy == 1) 
+               {
+               pLayer->SetData(idu, FarmModel::m_colDormancy, this->m_dormancyCriticalDate);
+               return 0 ;
+               }
+
             float yrf = 0;
-            int dormancy = this->m_dormancyCriticalDate + 7;  // seven days after the critical date
+            int dormancy = 0;
+            pLayer->GetData(idu, FarmModel::m_colDormancy, dormancy);   // = this->m_dormancyCriticalDate + 7;  // seven days after the critical date
+
             // start checking for dormancy after Sept 
             if (doy > dormancy)  // make date user specified 
                {
                // calculate temperature and precip for the previous 21 days
-               float periodPrecip = 0;
-               float historicPrecip = 0;
+               //float periodPrecip = 0;
+               //float historicPrecip = 0;
                float tMean = 0;
                for (int i = 0; i < 21; i++)
                   {
-                  float _precip = 0;
-                  pStation->GetData(doy - i - 1, year, PRECIP, _precip);
-                  periodPrecip += _precip;
-
-                  pStation->GetHistoricMean(doy - i - 1, PRECIP, _precip);
-                  historicPrecip += _precip;
+                  //float _precip = 0;
+                  //pStation->GetData(doy - i - 1, year, PRECIP, _precip);
+                  //periodPrecip += _precip;
+                  //
+                  //pStation->GetHistoricMean(doy - i - 1, PRECIP, _precip);
+                  //historicPrecip += _precip;
 
                   float _tMean = 0;
                   pStation->GetData(doy - i - 1, year, TMEAN, _tMean);
@@ -3301,12 +3368,14 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                   }
 
                tMean /= 21;
-               periodPrecip /= 21;
+               //periodPrecip /= 21;
 
-               // high temperature/precipitation threshold met?   
-               if (tMean < this->m_highTempThreshold || periodPrecip < this->m_highPrecipThreshold)
+               // do we need to extend the growing season?
+               // (if in the prior 21 days, was our average temperature
+               // over the 90th percentile for historic mean 
+               if (tMean < this->m_highTempThreshold ) // || periodPrecip < this->m_highPrecipThreshold)
                   {
-                  dormancy += 14;   // growing season extended by two weeks (dynamic critical date)
+                  pLayer->SetData(idu, FarmModel::m_colDormancy, this->m_dormancyCriticalDate + 14);   // growing season extended by two weeks (dynamic critical date)
                   }
                else
                   {
@@ -3362,106 +3431,113 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
          }
       }
 
-float HerbaceousNativeCrop::CheckCondition(EnvContext* pContext, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF)
+float NativeHerbaceousCrop::CheckCondition(EnvContext* pContext, FarmModel *pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF)
    {
-   // questions:
-   // 1) when was this planted?
-   // 2) crop stages - can these be generically defined?
-
-   // applicable crop stages:
-   //  CS_PREPLANT
-   //  CS_PLANTED
-   //  CS_HARDENED
-   //  CS_YEAR1_GROWTH
-   //  CS_DORMANT
-   //  CS_SPRING_REGROWTH
-   //  CS_?????
-   // CS_
-
-   // IDU columns uses:
-   //  m_colCropAge
-
-   // crop has been planted but not yet hardened?
+   // Basic Model
    switch (cropStage)
       {
-      case CS_PLANTED:
-         {
-         // if we've gotten to the critical hardening date, indicate the crop is hardened
-         if (doy >= this->m_hardeningCriticalDate)
-            theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_HARDENED, SET_DATA);
-         }
-         return 0;
-
-         // the crop is beyond its critical hardening date.  Next, we want to track 
-         // temperature and precip, looking to see when we've had sufficient
-         // warming and precip to start growing
-      case CS_HARDENED:
-         {
-         // calculate temperature and precip for the previous 21 days
-         float periodPrecip = 0;
-         float historicPrecip = 0;
-         float tMean = 0;
-         for (int i = 0; i < 21; i++)
+      case CS_PREPLANT:
+         // condition which triggers planting
+         if (doy > this->m_minPlantingDate)  // are we past the minimum planting date?
             {
-            float _precip = 0;
-            pStation->GetData(doy - i - 1, year, PRECIP, _precip);
-            periodPrecip += _precip;
+            // has it been warm enough/long enough to plant?
+            float tMean = 0;
+            for (int i = 0; i < this->m_plantingDateTempPeriod; i++)
+               {
+               float _tMean = 0;
+               pStation->GetData(doy - i - 1, year, TMEAN, _tMean);
+               tMean += _tMean;
+               }
+            tMean /= this->m_plantingDateTempPeriod;
 
-            pStation->GetHistoricMean(doy - i - 1, PRECIP, _precip);
-            historicPrecip += _precip;
-
-            float _tMean = 0;
-            pStation->GetData(doy - i - 1, year, TMEAN, _tMean);
-            tMean += _tMean;
+            if (tMean >=  this->m_plantingDateTempThreshold)
+               {
+               // if field accessible? (vol. moisture content < 92% of FC)
+               // if ( vmc < 0.92 )   // 
+               theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_ACTIVE_GROWTH, ADD_DELTA);
+               }
             }
 
-         tMean /= 21;
-         periodPrecip /= 21;
-
-         // high temperature/precipitation threshold met?   
-         if (tMean < this->m_highTempThresh || periodPrecip < this->m_highPrecipThresh)
+         // have we exceeded the max planting day without planting?
+         if (doy > this->m_maxPlantingDate)
             {
-            // + 7 days ?????????
-            theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_ACTIVE_GROWTH, SET_DATA);
+            float areaHa = 0;
+            pLayer->GetData(idu, FarmModel::m_colArea, areaHa);  // m2
+            areaHa /= M2_PER_HA;  // convert m2->ha
+            return pFarmModel->AddCropEvent(pContext, idu, CE_YIELD_FAILURE, areaHa, doy, 0, priorCumYRF);
             }
          return 0;
 
       case CS_ACTIVE_GROWTH:
-         // is this year 1 regrowth?
          {
-         int cropAge = 0;
-         pLayer->GetData(idu, FarmModel::m_colCropAge, cropAge);
-         if (cropAge <= 1)
+         if (doy == 1)
             {
-            // start threshold stage
-            // track daily temperature
-            float yrf = 0;
-            float tMean = 0;
-            pStation->GetData(doy, year, TMEAN, tMean);
+            pLayer->SetData(idu, FarmModel::m_colDormancy, this->m_dormancyCriticalDate);
+            return 0;
+            }
 
-            // estimate damage if too cold
-            if (tMean <= -5.0f)
+         float yrf = 0;
+         int dormancy = 0;
+         pLayer->GetData(idu, FarmModel::m_colDormancy, dormancy);   // = this->m_dormancyCriticalDate + 7;  // seven days after the critical date
+
+         // start checking for dormancy after Sept 
+         if (doy > dormancy)  // make date user specified 
+            {
+            // calculate temperature and precip for the previous 21 days
+            //float periodPrecip = 0;
+            //float historicPrecip = 0;
+            float tMean = 0;
+            for (int i = 0; i < 21; i++)
                {
-               // estimate damage
-               yrf = 0.5f;  // ??????? TODO
-               // generate a crop event?  Which one????????????????
-               //FarmModel::AddCropEvent(pContext, idu, CE_????, areaHa, doy, 0, priorCumYRF);
+               //float _precip = 0;
+               //pStation->GetData(doy - i - 1, year, PRECIP, _precip);
+               //periodPrecip += _precip;
+               //
+               //pStation->GetHistoricMean(doy - i - 1, PRECIP, _precip);
+               //historicPrecip += _precip;
+
+               float _tMean = 0;
+               pStation->GetData(doy - i - 1, year, TMEAN, _tMean);
+               tMean += _tMean;
                }
 
-            // critical date of growth sessation reached?
-            // ( dynamic critical date + 7 days )
-            // then make it dormant
-            if (doy >= this->m_growthCessationCriticalDate + 7)
-               theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_DORMANT, SET_DATA);
+            tMean /= 21;
+            //periodPrecip /= 21;
 
-            return yrf;
+            // do we need to extend the growing season?
+            // (if in the prior 21 days, was our average temperature
+            // over the 90th percentile for historic mean 
+            if (tMean < this->m_highTempThreshold) // || periodPrecip < this->m_highPrecipThreshold)
+               {
+               pLayer->SetData(idu, FarmModel::m_colDormancy, this->m_dormancyCriticalDate + 14);   // growing season extended by two weeks (dynamic critical date)
+               }
+            else
+               {
+               // transition to dormant state; harvest if needed
+               int cropAge = 0;
+               pLayer->GetData(idu, FarmModel::m_colCropAge, cropAge);
+
+               float area = 0;
+               pLayer->GetData(idu, FarmModel::m_colArea, area);
+               float areaHa = area / M2_PER_HA;
+
+               // harvest?  Note: cropAge is ZERO-based, m_startHarvestYear is 0-based
+               if ((cropAge > this->m_startHarvestYr) && ((cropAge - this->m_startHarvestYr) % this->m_harvFreqYr == 0))
+                  {
+                  yrf = pFarmModel->AddCropEvent(pContext, idu, CE_HARVEST, areaHa, doy, 0, priorCumYRF);
+                  }
+
+               // in any case, make dormant
+               theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_DORMANT, SET_DATA);
+               }
             }
+         return yrf;
          }
 
       case CS_DORMANT:
          // critical winter date reached? (March 1)
          {
-         if (doy >= MAR1)
+         if (doy >= this->m_minPlantingDate)
             {
             // track daily temperature for last 5 days
             bool itsCold = false;
@@ -3482,48 +3558,16 @@ float HerbaceousNativeCrop::CheckCondition(EnvContext* pContext, Farm* pFarm, Cl
 
             // we passed the 5 consecutive days >= 5 C test
             // Spring Regrowth begins - accumulate GDD
-            theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_SPRING_REGROWTH, SET_DATA);
+            theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_ACTIVE_GROWTH, ADD_DELTA);
             }
          }
-         return 0;
-
-      case CS_SPRING_REGROWTH:
-         {
-         // start threshold stage
-         // track daily temperature
-
-         // SHOULD WE BE TRACKING GDDs? (see comment above)
-
-         float yrf = 0;
-         float tMean = 0;
-         pStation->GetData(doy, year, TMEAN, tMean);
-
-         if (tMean <= -5.0f)
-            {
-            // estimate damage
-            yrf = 0.5f;  // ??????? TODO
-            }
-
-         // critical date of growth sessation reached?
-         // ( dynamic critical date + 7 days )
-         if (doy >= this->m_springCriticalDate)
-            theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, CS_FALL ? ? ? , SET_DATA);
-
-         return yrf;
-         }
-
-         case CS_FALL ? ? ? :
-         }  // end of:  switch( cropStage )
-
          return 0;
       }
+      }
+      */
 
-
    
-   
-   
-   
-   void FarmModel::UpdateAnnualOutputs(EnvContext* pContext, bool useAddDelta)
+ void FarmModel::UpdateAnnualOutputs(EnvContext* pContext, bool useAddDelta)
    {
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
    int year = pContext->currentYear;
@@ -3926,7 +3970,7 @@ float HerbaceousNativeCrop::CheckCondition(EnvContext* pContext, Farm* pFarm, Cl
 
    // event data.  Note that it is lread stored in the event array,
    // so all we have to do is add it to the data obj
-   m_pCropEventData->AppendRow(m_cropEvents, 1 + CE_EVENTCOUNT);
+   m_pCropEventData->AppendRow(m_cropEvents.GetData(), 1 + (int) m_cropEventTypes.GetCount());
    m_pFarmEventData->AppendRow(m_farmEvents, 1 + FE_EVENTCOUNT);
    }
 
@@ -3989,11 +4033,14 @@ void FarmModel::UpdateDailyOutputs(int doy, EnvContext* pContext)
    }
 
 
-float FarmModel::AddCropEvent(EnvContext* pContext, int idu, int eventID, float areaHa, int doy, float yrf, float priorCumYRF)
+float FarmModel::AddCropEvent(EnvContext* pContext, int idu, int eventID, LPCTSTR eventLabel, float areaHa, int doy, float yrf, float priorCumYRF)
    {
    theProcess->UpdateIDU(pContext, idu, m_colCropStatus, eventID, ADD_DELTA);
 
-   m_cropEvents[eventID + 1] += areaHa;   // +1 because m_cropEvents[0] = year
+   int eventIndex = 0;
+   bool ok = m_cropEventIndexLookup.Lookup(eventID, eventIndex);
+
+   m_cropEvents[eventIndex + 1] += areaHa;   // +1 because m_cropEvents[0] = year
 
    if (m_outputPivotTable)
       {
@@ -4034,12 +4081,26 @@ float FarmModel::AddCropEvent(EnvContext* pContext, int idu, int eventID, float 
          case SPRING_WHEAT:   lulcName = "SprWheat";   break;
          case BARLEY:         lulcName = "Barley";     break;
          case POTATOES:       lulcName = "Potatoes";   break;
+         default:
+            {
+            // is it in our dynamic crop list?
+            for (int i = 0; i < m_csModel.m_crops.GetSize(); i++)
+               {
+               CSCrop* pCrop = m_csModel.m_crops[i];
+               if (pCrop->m_id == lulc)
+                  {
+                  lulcName = (TCHAR*)(LPCTSTR)pCrop->m_name;
+                  break;
+                  }
+               }
+            }
          }
+      LPCTSTR _eventLabel = (eventLabel != NULL) ? eventLabel : this->m_cropEventTypes[eventIndex]->label;
 
       data[0] = pContext->currentYear;
       data[1] = doy;
       data[2] = eventID;
-      data[3] = gCropEventNames[eventID];
+      data[3] = _eventLabel;
       data[4] = idu;
       data[5] = areaHa;
       data[6] = lulc;
@@ -4105,20 +4166,20 @@ void FarmModel::GetAnnualYield(int lulc, float precipJuntoAug, float heatUnitsAb
    switch (lulc)
       {
       case CORN:       //corn bu/acre
-         yield = 3.33f + 0.03f * log(R) + 0.18f * log(H);   //  (0.029795f*heatUnitsAbove10)+(0.015804f*precipJun1toAugust1)+95.23247f;
+         yield = float(3.33f + 0.03f * log(R) + 0.18f * log(H));   //  (0.029795f*heatUnitsAbove10)+(0.015804f*precipJun1toAugust1)+95.23247f;
          break;
 
       case SOYBEANS:   //soybeans bu/acre
-         yield = 1.62f + 0.03f * log(R) + 0.26f * log(H);      // (0.012931f*heatUnitsAbove10)+(0.004948f*precipJun1toAugust1)+26.59982f;
+         yield = float(1.62f + 0.03f * log(R) + 0.26f * log(H));      // (0.012931f*heatUnitsAbove10)+(0.004948f*precipJun1toAugust1)+26.59982f;
          break;
 
       case ALFALFA:    //hay tonnes/acre
-         yield = 1.12f + 0.01f * log(R) - 0.03f * log(H);  //(-0.00019f*heatUnitsAbove10)+(0.001687f*precipJun1toAugust1)+3.813044f; 
+         yield = float(1.12f + 0.01f * log(R) - 0.03f * log(H));  //(-0.00019f*heatUnitsAbove10)+(0.001687f*precipJun1toAugust1)+3.813044f; 
          break;
       }
 
    if (yield > 0)
-      yield = exp(yield);
+      yield = (float) exp(yield);
    }
 
 
@@ -4607,7 +4668,7 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
    // verify columns exist
    theProcess->CheckCol(pLayer, m_colFarmID, m_farmIDField, TYPE_INT, m_doInit ? CC_AUTOADD : CC_MUST_EXIST);
    theProcess->CheckCol(pLayer, m_colFarmType, m_farmTypeField, TYPE_INT, m_doInit ? CC_AUTOADD : CC_MUST_EXIST);
-   theProcess->CheckCol(pLayer, m_colFarmHQ, "FARMHQ", TYPE_INT, CC_MUST_EXIST);
+   theProcess->CheckCol(pLayer, m_colFarmHQ, "FARMHQ", TYPE_INT, CC_AUTOADD);
    theProcess->CheckCol(pLayer, m_colLulc, m_lulcField, TYPE_INT, CC_MUST_EXIST);
    theProcess->CheckCol(pLayer, m_colRotation, m_rotationField, TYPE_INT, CC_AUTOADD);
    theProcess->CheckCol(pLayer, m_colLulcA, "LULC_A", TYPE_INT, CC_MUST_EXIST);
@@ -4615,49 +4676,9 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
 
    m_yrfThreshold = yrfThreshold;
 
-   // process tracking IDs (if any)
-   if (trackIDs != NULL && trackIDs[0] != '*')   // 'track' tag defined?
-      {
-      CStringArray idArray;
-      ::Tokenize(trackIDs, ",", idArray);
-
-      for (int i = 0; i < (int)idArray.GetSize(); i++)
-         {
-         CString token(idArray[i]);
-         token.Trim();
-
-         if (token.GetLength() == 0)
-            continue;
-
-         if (::isalpha(token[0]))  // is it an Event name?  Then add to the event tracker
-            {
-            int eventID = -1;
-            for (int i = 0; i < CE_EVENTCOUNT; i++)
-               {
-               if (token.CompareNoCase(gCropEventNames[i]) == 0)
-                  {
-                  eventID = i;
-                  break;
-                  }
-               }
-
-            if (eventID >= 0)
-               {
-               int index = (int)m_trackCropEventArray.Add(eventID);
-               m_trackCropEventMap.SetAt(eventID, index);
-               }
-            }
-         else
-            {
-            // it's an idu index 
-            }
-         {
-         int idu = atoi((LPCTSTR)idArray[i]);
-         int index = (int)m_trackIDUArray.Add(idu);
-         m_trackIDUMap.SetAt(idu, index);
-         }
-         }
-      }
+   // next, <crops>
+   TiXmlElement* pXmlCrops = pXmlFarmModel->FirstChildElement("crops");
+   m_csModel.LoadXml(pXmlCrops, filename, pLayer);
 
    // next, farm rotations
    TiXmlElement* pXmlRotations = pXmlFarmModel->FirstChildElement("rotations");
@@ -4715,7 +4736,6 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
          pXmlRotation = pXmlRotation->NextSiblingElement("rotation");
          }
       }  // end of:  if ( pXmlRotations != NULL )
-
 
 
    // next, farm_types
@@ -5052,6 +5072,51 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
 
       }
 
+
+   // process tracking IDs (if any)
+   if (trackIDs != NULL && trackIDs[0] != '*')   // 'track' tag defined?
+      {
+      CStringArray idArray;
+      ::Tokenize(trackIDs, ",", idArray);
+
+      for (int i = 0; i < (int)idArray.GetSize(); i++)
+         {
+         CString token(idArray[i]);
+         token.Trim();
+
+         if (token.GetLength() == 0)
+            continue;
+
+         if (::isalpha(token[0]))  // is it an Event name?  Then add to the event tracker
+            {
+            int eventID = -1;
+            for (int i = 0; i < this->m_cropEventTypes.GetSize(); i++)
+               {
+               if (token.CompareNoCase(this->m_cropEventTypes[i]->label) == 0)
+                  {
+                  eventID = i;
+                  break;
+                  }
+               }
+
+            if (eventID >= 0)
+               {
+               int index = (int)m_trackCropEventArray.Add(eventID);
+               m_trackCropEventMap.SetAt(eventID, index);
+               }
+            }
+         else
+            {
+            // it's an idu index 
+            }
+
+         int idu = atoi((LPCTSTR)idArray[i]);
+         int index = (int)m_trackIDUArray.Add(idu);
+         m_trackIDUMap.SetAt(idu, index);
+         }
+      }
+
+
    CString msg;
    msg.Format("Farm Model: %i farm types, %i rotations found while reading %s", (int)m_farmTypeArray.GetSize(), (int)m_rotationArray.GetSize(),
       (LPCTSTR)filename);
@@ -5059,6 +5124,26 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
    return true;
    }
 
+
+bool FarmModel::IsCrop(Farm* pFarm, MapLayer* pLayer)
+   {
+   for (int i = 0; i < (int)pFarm->m_fieldArray.GetSize(); i++)
+      {
+      FarmField* pField = pFarm->m_fieldArray[i];
+
+      for (int j = 0; j < pField->m_iduArray.GetSize(); j++)
+         {
+         int idu = pField->m_iduArray[j];
+         int lulcA = 0;
+         pLayer->GetData(idu, m_colLulcA, lulcA);
+
+         if (lulcA == ANNUAL_CROP || lulcA == PERENNIAL_CROP)
+            return true;
+         }
+      }
+
+   return false;
+   }
 
 bool FarmModel::IsAnnualCrop(Farm* pFarm, MapLayer* pLayer)
    {

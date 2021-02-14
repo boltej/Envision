@@ -57,7 +57,7 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext)
       case NITROGEN:
       case NAESI_HABITAT:
       case FARM_MODEL:
-         if (theProcess != NULL)
+         if (theProcess == NULL)
             theProcess = new F2RProcess;
 
          return (EnvExtension*) theProcess;

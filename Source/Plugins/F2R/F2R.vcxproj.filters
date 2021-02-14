@@ -51,6 +51,9 @@
     <ClCompile Include="VSMB.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="CSModel.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -86,10 +89,16 @@
     <ClInclude Include="VSMB.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="CSModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="F2R.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="notes.txt" />
   </ItemGroup>
 </Project>

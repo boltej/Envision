@@ -62,7 +62,7 @@ int   yylex( void );
 %token <pStr>   STRING
 %token <pExternal> EXTERNAL 
 %token <ivalue> FIELD
-%token <ivalue> INDEX NEXTTO NEXTTOAREA WITHIN WITHINAREA EXPAND MOVAVG CHANGED TIME DELTA
+%token <ivalue> INDEX NEXTTO NEXTTOAREA WITHIN WITHINAREA EXPAND MOVAVG CHANGED TIME DELTA USERFN2
 %token <ivalue> EQ LT LE GT GE NE CAND COR CONTAINS 
 %token <ivalue> AND OR NOT
 %token <pMapLayer> MAPLAYER
@@ -156,7 +156,7 @@ conditionalOp:
 *     AREA          <-- simple fieldRef expression
 *     AREA * 10     <-- numeric expression
 *     13            <-- numeric value
-*     $TotalValue   <-- external value set at runtime by some other process
+*     @TotalValue   <-- external value set at runtime by some other process
 *     [1,2,5,6]     <-- a set of values
 */
 
@@ -211,9 +211,8 @@ function:
 |  CHANGED    '(' FIELD ')'                            { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3 ); }
 |  TIME       '(' ')'                                  { $$ = _gpQueryEngine->AddFunctionArgs( $1 ); }
 |  DELTA      '(' fieldExpr ',' fieldExpr ')'          { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5 ); }
+|  USERFN2    '(' INTEGER ',' INTEGER ')'              { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5 ); }
 ;
-
-
 %%
 
 struct KEYWORD { int type; const char *keyword; int ivalue; };
@@ -257,7 +256,7 @@ top:
       p +=2;
 cycle:
       char *end = strchr( p, '*' );
-      if ( end == '\0' )
+      if ( end == (char*) '\0' )
         {
         QCompilerError( "Unterminated comment found", p );
         //QCurrentLineNo = 0;
@@ -478,12 +477,12 @@ cycle:
       return FIELD;
       }
 
-	// or a appvar name?
+	// or an external/appvar name?
 	QExternal *pExt = QIsExternal( &p );
 	if ( pExt != NULL )
 	   {
        gQueryBuffer = p;
-       yylval.ivalue = col;
+       yylval.pExternal = pExt;
        return EXTERNAL;
        }
 
@@ -594,7 +593,7 @@ int QIsFieldCol( char **p )
    }
 
 // check to see if the string is a External Variable (AppVar).  If so, increment cursor to
-// following character and return variable name (id).  Othewise, do nothing and return -1
+// following character and return variable name (id).  Othewise, do nothing and return NULL
 
    QExternal *QIsExternal(char **p)
       {
@@ -605,7 +604,7 @@ int QIsFieldCol( char **p )
       memset(name, 0, 64);
       TCHAR *ptr = *p;
       int index = 0;
-      while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// has to start with alpha or underscore
+      while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// can only contain 'a-Z', '0-9', '_','.'  with alpha or underscore
          {
          name[index] = *ptr;
          index++;
@@ -711,6 +710,25 @@ int QIsFunction( char **p )
       return TIME;
       }
 
+    // is it a user defined function?
+    for (int i=0; i < _gpQueryEngine->GetUserFnCount();i++)
+        {
+        QUserFn *pFn = _gpQueryEngine->GetUserFn(i);
+        if ( _strnicmp(pFn->m_name, *p, pFn->m_name.GetLength()) == 0 )
+            {
+            *p += pFn->m_name.GetLength();
+
+            switch( pFn->m_nArgs)
+                {
+                //case 0:
+                //    return USERFN0;
+                //case 1:
+                //    return USERFN1;
+                case 2:
+                    return USERFN2;
+                }
+            }
+        }
 
    return -1;
    }

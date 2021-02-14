@@ -176,7 +176,7 @@ QNode::QNode( MapLayer *pLayer, int fieldCol, INT_PTR record )          // // fr
    }
     
 
-QNode::QNode( QFNARG &fnArg )
+QNode::QNode( QFNARG &fnArg)
    : m_value( -1 ),
      m_pLeft( NULL ),
      m_pRight( NULL ),
@@ -647,8 +647,6 @@ bool QNode::Solve( void )
             QArgList *pArgList = (QArgList*)m_extra;
             ASSERT(pArgList->GetCount() == 2);
 
-
-
             QArgument &arg0 = pArgList->GetAt(0);
             ASSERT(arg0.m_pNode);
 
@@ -683,7 +681,32 @@ bool QNode::Solve( void )
             return true;
             }
 
-            
+         case USERFN2:
+            {
+            // Arg List should be: 1) int (keyword), 2) fn ptr for user defined function
+            QArgList* pArgList = (QArgList*)m_extra;
+            ASSERT(pArgList->GetCount() == 2);
+
+            QArgument& arg0 = pArgList->GetAt(0);
+            int _arg0;
+            bool ok = arg0.GetAsInt(_arg0);
+
+            QArgument& arg1 = pArgList->GetAt(1);
+            int _arg1;
+            ok = arg1.GetAsInt(_arg1);
+
+            for (int i = 0; i < _gpQueryEngine->GetUserFnCount(); i++)
+               {
+               if (_gpQueryEngine->GetUserFn(i)->m_nArgs == 2) 
+                  {
+                  USERFN2PROC pFn = (USERFN2PROC)_gpQueryEngine->GetUserFn(i)->m_pFn;
+                  m_value = pFn(_arg0, _arg1);
+                  break;
+                  }
+               }
+            return true;
+            }
+
             /*
          case POLYINDEX:
             {
@@ -1724,7 +1747,7 @@ bool QueryEngine::RemoveQuery( Query *pQuery )
    }
 
 
-QFNARG QueryEngine::AddFunctionArgs(int functionID )
+QFNARG QueryEngine::AddFunctionArgs(int functionID )  // e.g. Next()
    {
    _gpQueryEngine = this;
 
@@ -1748,7 +1771,7 @@ QFNARG QueryEngine::AddFunctionArgs(int functionID )
    }
 
 
-QFNARG QueryEngine::AddFunctionArgs(int functionID, int polyIndex)
+QFNARG QueryEngine::AddFunctionArgs(int functionID, int polyIndex)  // eg. ?
    {
    _gpQueryEngine = this;
 
@@ -1857,6 +1880,37 @@ QFNARG QueryEngine::AddFunctionArgs( int functionID, QNode *pNode, double value 
    
    return fnArg;
    }
+
+
+// USERFN2
+QFNARG QueryEngine::AddFunctionArgs(int functionID, int arg0, int arg1)
+   {
+   _gpQueryEngine = this;
+
+   QArgList* pArgList = new QArgList;
+   QArgument _arg0(arg0);
+   QArgument _arg1(arg1);
+   pArgList->Add(_arg0);
+   pArgList->Add(_arg1);
+
+   m_argListArray.Add(pArgList);
+
+   QFNARG fnArg;
+   fnArg.function = functionID;
+   fnArg.pArgList = pArgList;
+   //fnArg
+
+   if (m_debug)
+      {
+      CString msg;
+      msg.Format("AddFunctionArgs(functionID=%i,arg0=%s,arg1=%i)\n", functionID, arg0, arg1);
+      m_debugInfo += msg;
+      }
+
+   return fnArg;
+   }
+
+
 
 
 QFNARG QueryEngine::AddFunctionArgs( int functionID, QNode *pNode, double value, double value2 )

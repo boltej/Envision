@@ -55,6 +55,11 @@ const int USE_HTML            = 0x80;
 
 const int ALL_OPTIONS         = INCLUDE_NEWLINES | SHOW_LEADING_TAGS | REMOVE_UNDERSCORES | HUMAN_READABLE | REPLACE_FIELDNAMES | REPLACE_ATTRS | USE_HTML;
 
+typedef float(*USERFN2PROC)(int,int);
+
+
+
+
 
 // temporary structure for compiler use
 class QArgList;
@@ -64,6 +69,7 @@ struct QFNARG
    //QFNARG( int _function, QArgList *_pArgList ) : function( _function ), pArgList( _pArgList ) { }
 
    int function;
+   
    QArgList *pArgList;
    };
 
@@ -88,6 +94,17 @@ class QExternal
 
       void SetValue( VData &value ) { m_value = value; }
       void GetValue( VData &value ) { value = m_value; }
+   };
+
+
+class QUserFn
+   {
+   public:
+      CString m_name;
+      int m_nArgs;
+      void* m_pFn;
+
+      QUserFn(LPCTSTR name, int nArgs, void* pFn) : m_name(name), m_nArgs(nArgs), m_pFn(pFn) {}
    };
 
 
@@ -327,6 +344,9 @@ class   LIBSAPI QueryEngine
       // externals management
       PtrArray< QExternal > m_externalArray;
       
+      // user-defined functions
+      PtrArray<QUserFn> m_userFnArray;
+
    private:
       QueryEngine() /*: m_debug( false )*/ { }
 
@@ -359,8 +379,13 @@ class   LIBSAPI QueryEngine
       QFNARG AddFunctionArgs( int functionID, int index );                                   // for POLYINDEX
       QFNARG AddFunctionArgs( int functionID, QNode *pNode0, QNode *pNode1);                 // for DELTA
       QFNARG AddFunctionArgs( int functionID, QNode *pNode, double value);                   // for WITHIN, MOVAVG
+      QFNARG AddFunctionArgs(int functionID, int arg0, int arg1);                            // for USERFN2
       QFNARG AddFunctionArgs( int functionID, QNode *pNode, double value, double value2 );   // for WITHINAREA
 
+      int GetUserFnCount(void) { return (int) m_userFnArray.GetSize(); }
+      QUserFn* GetUserFn(int i) { return m_userFnArray[i]; }
+      int AddUserFn(TCHAR* name, int nArgs, void* pFn) { return (int) m_userFnArray.Add(new QUserFn(name, nArgs, pFn)); }
+      int AddUserFn(TCHAR* name, USERFN2PROC pFn) { return (int) m_userFnArray.Add(new QUserFn(name, 2, (void*)pFn)); }
       QValueSet *CreateValueSet( void ) { QValueSet *pSet = new QValueSet( m_tempValueSet ); m_valueSetArray.Add( pSet ); m_tempValueSet.RemoveAll(); return pSet; }
       int    AddValue( int    value );  // { VData vv(value); m_tempValueSet.Add( vv ); return value; } 
       double AddValue( double value );  // { VData vv(value); m_tempValueSet.Add(vv ); return value; }
