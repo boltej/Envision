@@ -502,6 +502,7 @@ public:
    float m_storage_yr;        // mm/year?
    float m_percentIrrigated;  // fraction of area (0-1)
    float m_meanLAI;           // dimensionless
+   float m_meanAge;
 
    int m_climateIndex;  //the index of the climate grid cell representing the HRU
    int m_climateRow;    // row, column for this HRU in the climate data grid

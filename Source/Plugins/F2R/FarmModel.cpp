@@ -501,6 +501,14 @@ FarmModel::FarmModel(void)
    , m_processorsUsed(0)
    , m_outputPivotTable(true)
    , m_vsmb()
+   , m_enableFCT( true )
+   , m_enableFST( true )
+   , m_totalIDUArea( 0 )
+   , m_maxProcessors( -1 )
+   , m_processorsUsed( 0 )
+   , m_outputPivotTable( true )
+   , m_colSWC(0)
+   , m_numIDUsToSave(35)
    {
    // zero out event array
    //memset(m_cropEvents, 0, sizeof(float) * (1 + CE_EVENTCOUNT));
@@ -553,6 +561,7 @@ FarmModel::~FarmModel(void)
 
    if (m_pFldSizeTRData != NULL)
       delete m_pFldSizeTRData;
+
    }
 
 int FarmModel::AddBuiltInCropEventTypes() 
@@ -656,6 +665,33 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    // initialize dormancys to 0
    pMapLayer->SetColData(m_colDormancy, VData(0), true);
 
+   theProcess->CheckCol( pMapLayer, m_colFieldID,    "Field_ID",   TYPE_INT,  CC_AUTOADD);
+   theProcess->CheckCol( pMapLayer, m_colSLC,        "SLC",        TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol( pMapLayer, m_colRotIndex,   "ROT_INDEX",  TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol( pMapLayer, m_colCropStatus, "CropStatus", TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol( pMapLayer, m_colCropStage,  "CropStage",  TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol( pMapLayer, m_colPlantDate,  "PlantDate",  TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol( pMapLayer, m_colYieldRed,   "YieldRed",   TYPE_FLOAT, CC_AUTOADD );
+   theProcess->CheckCol( pMapLayer, m_colYield,      "Yield",      TYPE_FLOAT, CC_AUTOADD );
+
+   theProcess->CheckCol( pMapLayer, m_colDairyAvg,   "DairyAvg",   TYPE_FLOAT, CC_AUTOADD );
+   theProcess->CheckCol( pMapLayer, m_colBeefAvg,    "BeefAvg",    TYPE_FLOAT, CC_AUTOADD );
+   theProcess->CheckCol( pMapLayer, m_colPigsAvg,    "PigsAvg",    TYPE_FLOAT, CC_AUTOADD );
+   theProcess->CheckCol( pMapLayer, m_colPoultryAvg, "Poultry_Av", TYPE_FLOAT, CC_AUTOADD );
+   theProcess->CheckCol( pMapLayer, m_colCadID,      "CAD_ID",     TYPE_INT,  CC_MUST_EXIST );
+   //theProcess->CheckCol( pMapLayer, m_colCLI,        "CLI_d_code", TYPE_INT,  CC_MUST_EXIST );
+   theProcess->CheckCol(pMapLayer, m_colCLI, "CLI_d", TYPE_INT, CC_MUST_EXIST);
+
+   theProcess->CheckCol(pMapLayer, m_colSWC, "SWC", TYPE_FLOAT, CC_AUTOADD);
+   theProcess->CheckCol(pMapLayer, m_colSWE, "SWE", TYPE_FLOAT, CC_AUTOADD);
+
+   pMapLayer->SetColNoData( m_colRotIndex );
+   pMapLayer->SetColNoData( m_colCropStatus );
+   pMapLayer->SetColNoData( m_colCropStage );
+   pMapLayer->SetColNoData( m_colPlantDate );
+   pMapLayer->SetColNoData( m_colYieldRed );
+   pMapLayer->SetColNoData( m_colYield );
+
    // build the farm aggregations
    int farmCount = BuildFarms(pMapLayer);
 
@@ -673,6 +709,8 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    msg.Format("Farm Model: Success building %i farms, %i farm types, %i rotations", (int)m_farmArray.GetSize(),
       (int)m_farmTypeArray.GetSize(), (int)m_rotationArray.GetSize());
    Report::Log(msg);
+
+
 
    return true;
    }
@@ -819,6 +857,19 @@ bool FarmModel::EndRun(EnvContext* pContext)
 
    if (m_pFarmTypeTransMatrix != NULL)
       m_pFarmTypeTransMatrix->WriteAscii(path);
+
+   if (m_useVSMB)
+      {
+      MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
+      
+      for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+         {
+         CString name;
+         name.Format("%i",(int)idu);
+         path = outPath;
+         m_vsmb.WriteResults(idu, path+=name);
+         }
+      }
 
    return true;
    }
@@ -1185,13 +1236,15 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    {
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
-   // set up any output data objs
-   ASSERT(m_pDailyData == NULL);
-   m_pDailyData = new FDataObj(3, 0);
-   m_pDailyData->SetName("Farm Model Daily Data");
-   m_pDailyData->SetLabel(0, "Time");
-   m_pDailyData->SetLabel(1, "Avg Yield Reduction");
-   m_pDailyData->SetLabel(2, "Avg Planting Date");
+   // set up any output data objs   
+   ASSERT( m_pDailyData == NULL );
+   m_pDailyData = new FDataObj( 5, 0 );
+   m_pDailyData->SetName( "Farm Model Daily Data" );
+   m_pDailyData->SetLabel( 0, "Time" );
+   m_pDailyData->SetLabel( 1, "Avg Yield Reduction" );
+   m_pDailyData->SetLabel( 2, "Avg Planting Date" );
+   m_pDailyData->SetLabel( 3, "Avg surface SWC (mm)"); //kbv
+   m_pDailyData->SetLabel( 4, "Avg SWE (mm)"); //kbv
 
    // allocate slots for crop event areas (first col is year)
    m_cropEvents.SetSize(1 + m_cropEventTypes.GetSize());
@@ -1202,6 +1255,7 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    m_pCropEventData = new FDataObj(1 + (int) m_cropEventTypes.GetSize(), 0);
    m_pCropEventData->SetName("Farm Model Crop Events");
    m_pCropEventData->SetLabel(0, "Time");
+
    for (int i = 0; i < m_cropEventTypes.GetSize(); i++)
       m_pCropEventData->SetLabel(i + 1, m_cropEventTypes[i]->label);
 
@@ -1480,7 +1534,22 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B", m_pFldSizeLData, "");
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B and Region", m_pFldSizeLRData, "");
 
-   theProcess->AddOutputVar("Daily Data", m_pDailyData, "");
+   theProcess->AddOutputVar( "Daily Data", m_pDailyData, "" );   
+   int counter=0;
+   for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
+      {
+      CString outName;
+      if (fmod((float)i,2.0f)==0.0)
+         {
+         outName.Format("VSMB_Site_%i",i);
+         counter++;
+         }
+      else
+         outName.Format("VSMB_SM_Site_%i", i-counter);
+      
+      theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(i), "");
+      }
+
 
    theProcess->AddOutputVar("Crop Event Data", m_pCropEventData, "");
    if (m_outputPivotTable)
@@ -1557,6 +1626,7 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily Tmin (C)", true));
    m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily Tmean (C)", true));
    m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily Tmax (C)", true));
+
 
    // note - following order must match the "output data object indices" enum in FarmModel.h
    m_annualCIArray.Add(BuildOutputClimateDataObj("Annual Precip (mm)", false));
@@ -1800,8 +1870,9 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
    // loop through each day of the year
    for (int doy = 1; doy <= 365; doy++)   // note: doy's are one-based
       {
-      int year = 2000, month, dom;
-      ::GetCalDate(doy, &year, &month, &dom, 0);
+      int year=2000, month, dom;
+      year=pContext->currentYear;//kbv: isn't year=2000 issue for climate data?
+      ::GetCalDate( doy, &year, &month, &dom, 0 );
 
       CString msg;
       msg.Format("%s %i   ", ::GetMonthStr(month), dom);
@@ -1851,8 +1922,15 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
 
                // TODO: Verify VSMB
                // Update the current IDU's soil moisture status
-               if (m_useVSMB)
-                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy);
+               if ( m_useVSMB )
+                  { 
+                  int dayOfSimulation=((pContext->currentYear-pContext->startYear)*365)+doy;
+                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation);
+                  float swc=m_vsmb.GetSoilMoisture(idu,0);
+                  float swe= m_vsmb.GetSWE(idu);
+                  theProcess->UpdateIDU(pContext, idu, m_colSWC, swc, SET_DATA);
+                  theProcess->UpdateIDU(pContext, idu, m_colSWE, swe, SET_DATA);
+                  }
 
                if (IsCrop(pFarm, pLayer))   // LULC_A =annual or perennial crop
                   {
@@ -2022,7 +2100,7 @@ int FarmModel::InitializeFarms(MapLayer* pLayer)
    }
 
 
-int FarmModel::BuildFarms(MapLayer* pLayer)
+int FarmModel::BuildFarms( MapLayer *pLayer)
    {
    // iterate through IDU's creating and populating Farms
    if (m_colFarmID < 0)
@@ -2032,8 +2110,12 @@ int FarmModel::BuildFarms(MapLayer* pLayer)
    m_farmArray.RemoveAll();
 
    int farmID = 0;
+   int numIDU = 0;
    CArray< int, int > multiHQList;
-
+   
+   if (m_useVSMB)
+      m_vsmb.AllocateSoilArray(pLayer->End());//allocate one for each idu??This is inefficient - there will only be SoilInfos allocated for IDUs in FarmFields.  So most of the allocated array won't end up pointing to anything.
+      //this works because we use the idu index when adding to or collecting from this array.
    // iterate through IDUs
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2044,10 +2126,10 @@ int FarmModel::BuildFarms(MapLayer* pLayer)
          continue;
 
       // look up the Farm based on this ID (have we seen it already?)
-      Farm* pFarm = NULL;
-      BOOL found = m_farmMap.Lookup(farmID, pFarm);
-
-      if (!found)  // we haven't seen it, so add it
+      Farm *pFarm = NULL;
+      BOOL found = m_farmMap.Lookup( farmID, pFarm );
+      numIDU = numIDU +1;
+      if ( ! found )  // we haven't seen it, so add it
          {
          pFarm = new Farm;
          pFarm->m_id = farmID;
@@ -2077,9 +2159,14 @@ int FarmModel::BuildFarms(MapLayer* pLayer)
       // create and attach soil info to this IDU
       if (m_useVSMB)
          {
-         int soilIndex = -1;
-         pLayer->GetData(idu, m_colSoilID, soilIndex);
-         //m_vsmb.SetSoilInfo(idu, soilIndex, pFarm->m_pClimateStation );
+         bool saveResults=false;
+        // pLayer->GetData(idu, m_colSoilID, soilIndex);
+         LPCTSTR code="NotUsed";
+        // m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID));
+         if (numIDU < m_numIDUsToSave && numIDU > 0)
+            saveResults=true;
+         
+         pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID),  saveResults));
          }
       // TODO:  Need to populate soil properties, layers according to soil type
 
@@ -2488,7 +2575,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             if (m_useVSMB)
                {
                /////float fc = m_vsmb.GetFieldCapacity(idu);
-               /////float availWater = m_vsmb.GetAvailableWater(idu);
+               //// float availWater = m_vsmb.GetAvailableWater(idu);
                /////
                /////float clayContent;
                /////pLayer->GetData(m_colClayContent, idu, clayContent);
@@ -2503,6 +2590,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
                /////   plant = false;
                /////   cropEvent = CE_EARLY_FLOOD_DELAY_CORN_PLANTING;
                /////   }
+               
                }
             else
                {
@@ -3982,8 +4070,8 @@ void FarmModel::UpdateDailyOutputs(int doy, EnvContext* pContext)
    float day = float(365 * (year - pContext->startYear) + doy - 1);
 
    float tPlantDate = 0, tAreaPlantDate = 0;
-
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   float avSWC = 0, avSWE = 0, totalArea=0;
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
       float area = 0;
       pLayer->GetData(idu, m_colArea, area);
@@ -3992,19 +4080,34 @@ void FarmModel::UpdateDailyOutputs(int doy, EnvContext* pContext)
       int plantDate = 0;
       pLayer->GetData(idu, m_colPlantDate, plantDate);
 
-      if (plantDate > 0)
+      //kbv
+      // soil water content/SWE
+      float iduSWC=0.0f, iduSWE=0.0f;
+      pLayer->GetData(idu, m_colSWC, iduSWC);
+      pLayer->GetData(idu, m_colSWE, iduSWE);
+      avSWC+=iduSWC*area;
+      avSWE+=iduSWE*area;
+      totalArea+=area;
+
+      if ( plantDate > 0)
          {
          tPlantDate += (float)plantDate * area;
          tAreaPlantDate += area;
          }
-      }
 
-   tPlantDate /= tAreaPlantDate;
+      }
+   if (tAreaPlantDate > 0.0f)
+      tPlantDate /= tAreaPlantDate;
+   avSWC /= totalArea;
+   avSWE /= totalArea;
 
    CArray< float, float > data;
-   data.Add((float)day);
-   data.Add(m_avgYieldReduction);
-   data.Add(tPlantDate);
+   data.Add( (float) day );
+   data.Add( m_avgYieldReduction );
+   data.Add( tPlantDate );
+   data.Add( avSWC );
+   data.Add( avSWE );
+
 
    m_pDailyData->AppendRow(data);
 

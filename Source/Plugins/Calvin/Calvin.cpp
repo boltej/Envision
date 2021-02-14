@@ -75,10 +75,7 @@ Calvin::Calvin()
 	//, m_pResData(NULL)
    , m_numRes(1)
    , m_reservoirList("")
-   , m_outflowLinks("")
 	, m_gwList("")
-	, m_gwOutflowLinks("")
-	, m_gwInflowLinks("")
 	, m_gwBasinArray()
 	, m_reservoirNameArray()
 	//, m_randNormal(1, 1, 0)
@@ -106,13 +103,6 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
 	InitPython();
 
-   //// Step 3.  Write monthly data into the Calvin input spreadsheet
-   //VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
-   //pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922a.csv", ',');
-   //pExchange->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\linksWY1922.csv");
-
-
-
    for (int i = 0; i < m_reservoirNameArray.GetSize(); i++)
       {
       FDataObj *pData = new FDataObj(4,0);
@@ -126,18 +116,34 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
       m_reservoirDataArray.Add(pData);
       }
 
+	//Find all inflow/outflows from the groundwater storage.  These are listed in the Calvin results
+	FDataObj* pExchange = new FDataObj();
+	pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\example-results\\flow.csv");
 	for (int i = 0; i < m_gwBasinArray.GetSize(); i++)
 	   {
-		FDataObj* pData = new FDataObj(4+ m_gwInflowLinkArray.GetSize(), 0);
+		CString name = m_gwBasinArray.GetAt(i);
+		CUIntArray* offset = new CUIntArray();
+		//GW basins have either 1 or 2 inflow.  Figure out how many this GW basin has
+		for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
+			{
+			CString lab = pExchange->GetLabel(j);
+			if (lab.Right(name.GetLength()) == name && lab.Left(7) != "DBUGSRC")
+            offset->Add(j);
+			}
+      int numIn=offset->GetSize();
+		FDataObj* pData = new FDataObj(3+ numIn, 0);
 
 		pData->SetLabel(0, _T("Time"));
-		pData->SetLabel(1, _T("Inflow"));
-		pData->SetLabel(2, _T("Storage (acre/feet)"));
-		pData->SetLabel(3, _T(m_gwOutflowLinkArray[0]));
-		for (int k = 0; k < m_gwInflowLinkArray.GetSize(); k++)
-			pData->SetLabel(4 + k, _T(m_gwInflowLinkArray[k]));
+		//pData->SetLabel(1, _T("Inflow"));
+		pData->SetLabel(1, _T("Storage (acre/feet)"));
+		pData->SetLabel(2, _T("GW Outflow"));
+		for (int k = 0; k < numIn; k++)
+			pData->SetLabel(3 + k, _T(pExchange->GetLabel(offset->GetAt(k))));
+		
+		
 		this->AddOutputVar(m_gwBasinArray.GetAt(i), pData, "");
 		m_gwDataArray.Add(pData);
+		delete  offset;
 	   }
 	
 	return TRUE;
@@ -174,9 +180,6 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
    int outflowOffset = 0;
    int storageOffset = 0;
 	int gwOffset = 0;
-
-
-
    for (int i = 0; i < numRes; i++)
       {
       CString msg;
@@ -192,17 +195,15 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
             break;
          }
       //Step 2.  Find Outflow column     
-      name = m_outflowLinkArray.GetAt(i);
       for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
          {
          CString lab = pExchange->GetLabel(j);
          outflowOffset = j;
-         if (lab == name)
+         if (lab.Right(name.GetLength()) == name && lab.Left(4) != "DBUG") 
             break;
          }
 
       //Step 3.  Find Storage column
-      name = m_reservoirNameArray.GetAt(i);
       for (int j = 0; j < pStorage->GetColCount(); j++)//search columns to find correct name
          {
          CString lab = pStorage->GetLabel(j);
@@ -212,7 +213,6 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
          }
 
 		//Step 3.  Find any other inflow columns
-		name = m_reservoirNameArray.GetAt(i);
 		for (int j = 0; j < pStorage->GetColCount(); j++)//search columns to find correct name
 		   {
 			CString lab = pStorage->GetLabel(j);
@@ -234,34 +234,32 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
       }
    delete [] row;
 	
-	int* inflowOff = new int[m_gwInflowLinkArray.GetSize()];
-	float* row_gw = new float[4 + m_gwInflowLinkArray.GetSize()];//date, inflow, outflow, storage, plus any other inflows
+
+
 	for (int i = 0; i < numGW; i++)
 	   {
 		CString msg;
 		CString name = m_gwBasinArray.GetAt(i);
 		FDataObj* pGWData = m_gwDataArray.GetAt(i);
-		//Step1.  Find Inflow column
-		msg.Format(_T("INFLOW-%s"), (LPCTSTR)name);
-		for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
-		   {
-			CString lab = pExchange->GetLabel(j);
-			inflowOffset = j;
-			if (lab == msg)
-				break;
-		   }
-		//Step 2.  Find Outflow column     
-		name = m_gwOutflowLinkArray.GetAt(i);
+		//Step1.  Find Inflow column - now correctly accomodates multiple potential inflows
+		//msg.Format(_T("INFLOW-%s"), (LPCTSTR)name);
+		//for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
+		//   {
+		//	CString lab = pExchange->GetLabel(j);
+		//	inflowOffset = j;
+		//	if (lab == msg)
+		//		break;
+		//   }
+		//Step 2.  Find Outflow column(s)     
 		for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
 		   {
 			CString lab = pExchange->GetLabel(j);
 			outflowOffset = j;
-			if (lab == name)
+			if (lab.Left(name.GetLength()) == name && lab.Right(7) !="DBUGSNK")
 				break;
 		   }
 
 		//Step 3.  Find Storage column
-		name = m_gwBasinArray.GetAt(i);
 		for (int j = 0; j < pStorage->GetColCount(); j++)//search columns to find correct name
 		   {
 			CString lab = pStorage->GetLabel(j);
@@ -270,37 +268,37 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
 				break;
 		   }
 		//Step 4.  Find other Inflow columns  
-
-		for (int m=0;m<m_gwInflowLinkArray.GetSize();m++)
-			{ 
-			name = m_gwInflowLinkArray.GetAt(i);
+		CUIntArray* inflowOff = new CUIntArray();
+		//for (int m=0;m<pGWData->GetColCount()-4;m++)
+		//	{ 
 			for (int j = 0; j < pExchange->GetColCount(); j++)//search columns to find correct name
 			   {
 				CString lab = pExchange->GetLabel(j);
 				
-				if (lab == name)
+				if (lab.Right(name.GetLength()) == name && lab.Left(7) !="DBUGSRC")
 				   {
-					inflowOff[m] = j;
-					break;
+					inflowOff->Add(j);
 					}
 			   }
-			}
-
+		//	}
+	   int numInflow= inflowOff->GetSize()+3;
+		float* row_gw = new float[numInflow];//date, inflow, outflow, storage, plus any other inflows
 		for (int k = 0; k < 12; k++)//the output adds blank rows...This assumes the model was run for 1 year (so 12 rows total)
 		   {
 			row_gw[0] = k + (12 * yearOffset);
-			row_gw[1] = pExchange->GetAsFloat(inflowOffset, k);
-			row_gw[2] = pStorage->GetAsFloat(storageOffset, k);
-			row_gw[3] = pExchange->GetAsFloat(outflowOffset, k);
-			for (int m = 0; m < m_gwInflowLinkArray.GetSize();m++)
-				row_gw[4+m]= pExchange->GetAsFloat(inflowOff[m], k);
+			//row_gw[1] = pExchange->GetAsFloat(inflowOffset, k);
+			row_gw[1] = pStorage->GetAsFloat(storageOffset, k);
+			row_gw[2] = pExchange->GetAsFloat(outflowOffset, k);
+			for (int m = 0; m < numInflow-3; m++)
+				row_gw[3+m]= pExchange->GetAsFloat(inflowOff->GetAt(m), k);
 
-			pGWData->AppendRow(row_gw, 4 + (int)m_gwInflowLinkArray.GetSize());
+			pGWData->AppendRow(row_gw, numInflow);
 		   }
+		delete[] row_gw;
+		delete inflowOff;
 	   }
    delete  pExchange;
-   delete [] row_gw;
-	delete [] inflowOff;
+
 
 	//Write Storage values from LAST year into INITIAL values in the links file for next year
 	CString nam;
@@ -366,158 +364,8 @@ bool Calvin::Run(EnvContext *pEnvContext)
    }
 
 
-//Need to move data from Calvin files to Calvin DataObjs
-
-
-/*
-	int currentYear = pEnvContext->currentYear;
-
-	// output the current IDU dataset as a DBF. Note that providing a bitArray would reduce size subtantially!
-	//MapLayer *pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-	//pIDULayer->SaveDataDB(this->m_envOutputPath, NULL);   // save entire IDU as DBF.  
-
-	char cwd[512];
-	_getcwd(cwd, 512);
-
-	_chdir("c:/Envision/studyAreas/CalFEWS/Calvin");
-
-	//CString code;
-	//code.Format("sys.path.append(\"C:\\Envision\studyAreas\CalFEWS\Calvin\")");
-	int retVal = PyRun_SimpleString("sys.path.append(\"C:\\Envision\\studyAreas\\CalFEWS\\Calvin\")");
-
-	//int retVal2 = PyRun_SimpleString("sys.path.append(\"C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\Anaconda2_64\\pkgs\\numpy-base-1.14.3-py27h917549b_1\\Lib\\site-packages\\numpy\")");
-
-	//PyObject *pName = PyUnicode_DecodeFSDefault((LPCTSTR)this->m_pyModuleName);   // "e.g. "test1" (no .py)
-	
-	
-	int retVal2;
-	
-	//PyObject *obj = Py_BuildValue("s", "C:\\Envision\\studyareas\\CalFEWS\\Calvin\\RunCalvin.py");
-	//FILE *file = _Py_fopen_obj(obj, "r+");
-	FILE *file = _Py_fopen("hello.py", "r+");
-
-	if (file != NULL) {
-		retVal2 = PyRun_SimpleFile(file, "hello.py");
-	}
-	
-	//Dont use test.py as it actually searches sub module test>>py
-	//PyObject * moduleName = PyUnicode_FromString("hello");
-	//PyObject * pluginModule = PyImport_Import(moduleName);
-
-	//if (pluginModule == nullptr)
-	//{
-	//	PyErr_Print();
-	//	return "";
-	//}
-	
-	PyObject *pNameC = PyUnicode_FromString("calvin");
-	PyObject *pModuleC = NULL;
-
-	try
-	{
-		pModuleC = PyImport_Import(pNameC);
-	}
-	catch (...)
-	{
-		CaptureException();
-	}
-	
-	
-	
-	
-	PyObject *pName = PyUnicode_FromString("RunCalvin");
-	PyObject *pModule = NULL;
-
-	try
-	{
-		pModule = PyImport_Import(pName);
-	}
-	catch (...)
-	{
-		CaptureException();
-	}
-	
-	Py_DECREF(pName);
-
-	if (pModule == nullptr)
-		CaptureException();
-
-	else
-	   {
-		CString msg("Calvin:  Running Python module ");
-		msg += this->m_pyModuleName;
-		Report::Log(msg);
-
-		// pDict is a borrowed reference 
-		PyObject *pDict = PyModule_GetDict(pModule);
-		//pFunc is also a borrowed reference
-		PyObject *pFunc = PyObject_GetAttrString(pModule, (LPCTSTR)m_pyFunction);
-		if (pFunc && PyCallable_Check(pFunc))
-		   {
-
-
-//			PyObject* pScenario = PyUnicode_FromString((LPCTSTR)this->m_hazardScenario);/
-//			PyObject* pInDBFPath = PyUnicode_FromString((LPCTSTR)this->m_envOutputPath);
-//			PyObject* pOutCSVPath = PyUnicode_FromString((LPCTSTR)this->m_envInputPath);
-			//PyObject *pName1 = PyUnicode_FromString("linksWY1922.csv");
-			PyObject* pRetVal = PyObject_CallFunction(pFunc, NULL);
-			
-			if (pRetVal != NULL)
-			{
-
-				Py_DECREF(pRetVal);
-			}
-			else
-			{
-				CaptureException();
-			}
-
-			//Py_DECREF(pScenario);
-			//Py_DECREF(pInDBFPath);
-			//Py_DECREF(pOutCSVPath);
-		}
-		else
-		{
-			PyErr_Print();
-		}
-
-		Py_DECREF(pModule);
-	}
-
-	// grab input file generated from damage model (csv)
-	//Report::Log("Acute Hazards: reading building damage parameter file");
-	//this->m_hazData.ReadAscii(this->m_envInputPath, ',', 0);
-
-	// propagate event outcomes to IDU's
-	//this->Propagate(pEnvContext);
-
-	//this->m_status = AHS_POST_EVENT;
-
-	_getcwd(cwd, 512);
-
-	_chdir(cwd);
-
-	return TRUE;
-}
-*/
-
 bool Calvin::InitPython()
 {
-
-	//VDataObj* pExchange = new VDataObj(0, 0, U_UNDEFINED);
-	//pExchange->ReadAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922.csv", ',');
-	//pExchange->WriteAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922b.csv");
-	//VDataObj* pExchange1 = new VDataObj(0, 0, U_UNDEFINED);
-	//pExchange1->ReadAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922b.csv", ',');
-	//pExchange1->WriteAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922c.csv");
-	//VDataObj* pExchange2 = new VDataObj(0, 0, U_UNDEFINED);
-	//pExchange2->ReadAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922c.csv", ',');
-	//pExchange2->WriteAscii("C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY1922d.csv");
-	//delete pExchange;
-	//delete pExchange1;
-	//delete pExchange2;
-
-	
 	Report::Log("Calvin:  Initializing embedded Python interpreter...");
 
 	char cwd[512];
@@ -675,10 +523,8 @@ bool Calvin::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 			{ "py_function",     TYPE_CSTRING,  &m_pyFunction,        true,  0 },
 			{ "py_module",       TYPE_CSTRING,  &pyModulePath,        true,  0 },
          { "ReservoirList",   TYPE_CSTRING,  &m_reservoirList,     true,  0 },
-         { "OutflowLinks",    TYPE_CSTRING,  &m_outflowLinks,      true,  0 },
 			{ "GWList",          TYPE_CSTRING,  &m_gwList,            true,  0 },
-			{ "GWOutflowLinks",  TYPE_CSTRING,  &m_gwOutflowLinks,    true,  0 },
-			{ "GWInflowLinks",   TYPE_CSTRING,  &m_gwInflowLinks,     true,  0 },
+
 
 			{ NULL,              TYPE_NULL,     NULL,        false, 0 } };
   
@@ -715,26 +561,9 @@ bool Calvin::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                }
 
             delete[] buffer;
-            
+            }
             int _out = 0xFFFF;
-       //Outflow links
-            if (_out != NULL)
-               {
-               _out = 0;   // if specified, assume nothing by default
-
-               TCHAR *buffer = new TCHAR[lstrlen(m_outflowLinks) + 1];
-               lstrcpy(buffer, m_outflowLinks);
-               TCHAR *next = NULL;
-               TCHAR *token = _tcstok_s(buffer, _T(",+|:"), &next);
-
-               while (token != NULL)
-                  {
-                  m_outflowLinkArray.Add(token);
-                  token = _tcstok_s(NULL, _T(",+|:"), &next);
-                  }
-
-               delete[] buffer;
-               }
+     
 
 				int _gw = 0xFFFF;
 				//Groundwater Storage
@@ -755,50 +584,6 @@ bool Calvin::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
 					delete[] buffer;
 				}
-
-
-				//GW Outflow links
-				int _outgw = 0xFFFF;
-				if (_outgw != NULL)
-				{
-					_outgw = 0;   // if specified, assume nothing by default
-
-					TCHAR* buffer = new TCHAR[lstrlen(m_gwOutflowLinks) + 1];
-					lstrcpy(buffer, m_gwOutflowLinks);
-					TCHAR* next = NULL;
-					TCHAR* token = _tcstok_s(buffer, _T(",+|:"), &next);
-
-					while (token != NULL)
-					{
-						m_gwOutflowLinkArray.Add(token);
-						token = _tcstok_s(NULL, _T(",+|:"), &next);
-					}
-
-					delete[] buffer;
-				}
-
-
-				//GW Inflow links
-				int _ingw = 0xFFFF;
-				if (_ingw != NULL)
-				{
-					_ingw = 0;   // if specified, assume nothing by default
-
-					TCHAR* buffer = new TCHAR[lstrlen(m_gwInflowLinks) + 1];
-					lstrcpy(buffer, m_gwInflowLinks);
-					TCHAR* next = NULL;
-					TCHAR* token = _tcstok_s(buffer, _T(",+|:"), &next);
-
-					while (token != NULL)
-					{
-						m_gwInflowLinkArray.Add(token);
-						token = _tcstok_s(NULL, _T(",+|:"), &next);
-					}
-
-					delete[] buffer;
-				}
-
-            }
          }
 
 		pXmlEvent = pXmlEvent->NextSiblingElement("event");
