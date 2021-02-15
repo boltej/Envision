@@ -23,6 +23,8 @@ float CSModel::m_gdd5 = 0;
 float CSModel::m_gdd0Apr15 = 0;
 float CSModel::m_gdd5Apr1 = 0;
 float CSModel::m_gdd5May1 = 0;
+float CSModel::m_pctAVC = 0;
+float CSModel::m_AVC = 0;
 
 
 MapLayer* CSModel::m_pMapLayer = NULL;
@@ -183,12 +185,34 @@ int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, M
    pExt = pQE->AddExternal("GDD5MAY1");
    pExt->SetValue(VData(&m_gdd5May1, TYPE_PFLOAT, true));
 
+   pExt = pQE->AddExternal("TMIN");
+   pExt->SetValue(VData(&m_tMin, TYPE_PFLOAT, true));
+
+   pExt = pQE->AddExternal("TAMX");
+   pExt->SetValue(VData(&m_tMax, TYPE_PFLOAT, true));
+
+   pExt = pQE->AddExternal("TMEAN");
+   pExt->SetValue(VData(&m_tMean, TYPE_PFLOAT, true));
+
+   pExt = pQE->AddExternal("AVC");
+   pExt->SetValue(VData(&m_AVC, TYPE_PFLOAT, true));
+
+   pExt = pQE->AddExternal("pAVC");
+   pExt->SetValue(VData(&m_pctAVC, TYPE_PFLOAT, true));
 
    // initialize crops by compiling expressions as needed
    for (int i = 0; i < m_crops.GetSize(); i++)
       {
       CSCrop* pCrop = m_crops[i];
 
+      // check/populate and <field> cols for this crop
+      for (int j = 0; j < pCrop->m_fields.GetSize(); j++)
+         {
+         CSField* pField = pCrop->m_fields[j];
+         theProcess->CheckCol(m_pMapLayer, pField->col, pField->name, pField->type, CC_AUTOADD);
+         }
+
+      // compile querys
       for (int j = 0; j < pCrop->m_cropStages.GetSize(); j++)
          {
          CSCropStage* pStage = pCrop->m_cropStages[j];
@@ -220,18 +244,6 @@ int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, M
 
 int CSModel::InitRun( EnvContext *pContext)
    {
-   /// check/populate <field> cols
-   for (int i = 0; i < m_crops.GetSize(); i++)
-      {
-      CSCrop* pCrop = m_crops[i];
-
-      for (int j = 0; j < pCrop->m_fields.GetSize(); j++)
-         {
-         CSField* pField = pCrop->m_fields[j];
-         theProcess->CheckCol(m_pMapLayer, pField->col, pField->name, pField->type, CC_AUTOADD);
-         }
-      }
-
    // Initialize field cols where appropriate
    CSCrop* pCrop = NULL;
    
@@ -249,7 +261,7 @@ int CSModel::InitRun( EnvContext *pContext)
             }
 
          // initialize crop stage as well
-         theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, pCrop->m_cropStages[0]->m_idp, SET_DATA);
+         theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, pCrop->m_cropStages[0]->m_id, SET_DATA);
          }
       }  
 
@@ -272,6 +284,10 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
    // set current precip for this idu
    m_pClimateStation->GetData(doy, year, PRECIP, m_precip);
    m_pClimateStation->GetHistoricMean(doy, PRECIP, m_hMeanPrecip);
+
+   m_pClimateStation->GetData(doy, year, TMIN, m_tMin);
+   m_pClimateStation->GetData(doy, year, TMEAN, m_tMean);
+   m_pClimateStation->GetData(doy, year, TMAX, m_tMax);
 
    m_gdd0 = m_pClimateStation->m_cumDegDays0[doy-1];
    //m_gdd5 = m_pClimateStation->m_cum;
@@ -515,7 +531,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
          else
             {
             CSCropStage* pStage = new CSCropStage(name);
-            pStage->m_id = pCrop->m_cropStages.Add(pStage);
+            pStage->m_id = (int) pCrop->m_cropStages.Add(pStage);
             pStage->m_id += 1;   // make 1-based
 
             // process <eval>s

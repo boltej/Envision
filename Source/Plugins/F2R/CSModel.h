@@ -145,6 +145,8 @@ class CSModel
       static float m_gdd0Apr15;
       static float m_gdd5Apr1;
       static float m_gdd5May1;
+      static float m_pctAVC;
+      static float m_AVC;
 
       static MapLayer* m_pMapLayer;
 

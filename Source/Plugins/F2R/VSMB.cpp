@@ -27,7 +27,7 @@ Copywrite 2012 - Oregon State University
 
 int VSMBModel::m_kntrol = 7;
 int VSMBModel::m_dcurve2 = 80;
-float VSMBModel::m_drs2 = 0.8;
+float VSMBModel::m_drs2 = 0.8f;
 int VSMBModel::m_iTotalStages = 5;
 int VSMBModel::m_iKAdjustStage = 3;
 int VSMBModel::m_iYearlyStages = 5;
@@ -357,7 +357,7 @@ int SoilInfo::OutputDayVSMBResults(int doy)
 
    CArray< float, float > data1;
    data1.Add((float)doy);
-   float a1= 
+   //float a1= 
    data1.Add(m_soilLayerArray.GetAt(0)->m_soilMoistContent/ m_soilLayerArray.GetAt(0)->m_pLayerParams->m_AWHC);
    data1.Add(m_soilLayerArray.GetAt(1)->m_soilMoistContent/ m_soilLayerArray.GetAt(1)->m_pLayerParams->m_AWHC);
    data1.Add(m_soilLayerArray.GetAt(2)->m_soilMoistContent/ m_soilLayerArray.GetAt(2)->m_pLayerParams->m_AWHC);
@@ -600,10 +600,10 @@ bool SoilInfo::DetermineInfiltrationAndRunoff()
          // TODO
          float CURVE2=80.0f; //these should be member variables of the VSMB class
          float AC2=100-CURVE2;
-         float wetCurveNum = CURVE2 * exp(0.006729 * AC2);
-         float dryCurveNum = max(0.44f * CURVE2, CURVE2 - 20.0f * AC2 / (AC2 + exp(2.533 - 0.0636 * AC2)));
+         float wetCurveNum = CURVE2 * (float) exp(0.006729 * AC2);
+         float dryCurveNum = max(0.44f * CURVE2, CURVE2 - 20.0f * AC2 / (AC2 + (float) exp(2.533 - 0.0636 * AC2)));
          if (CURVE2 > 96.0f)
-            dryCurveNum = CURVE2 * (0.02 * CURVE2 - 1.0);
+            dryCurveNum = CURVE2 * (0.02f * CURVE2 - 1.0f);
          
          if (dryCurveNum >= 100.0f)
             dryCurveNum = 100.0f;
@@ -818,14 +818,14 @@ float SoilInfo::get_z_table1(int val)
       CArray<float,float>dZtable1;
       for (int i = 0; i<100;i++)
          { 
-         float dX9 = ((float)i + 1) / 100.0;
+         float dX9 = ((float)i + 1) / 100.0f;
          if (dX9 >= dR9) 
             {
             dM = 0.0;
             dN = 1.0;
             }
-         float dRZ = (pow((dX9 / dR9), dM) * dN / dX9) + ((pow(((dR9 - dX9) / dR9), dN) * dM / dR9));
-         float dRZ1 = (pow((dX9 / dR9), (dM * dN * dH9)) * dRZ);
+         float dRZ = float(pow((dX9 / dR9), dM) * dN / dX9) + ((pow(((dR9 - dX9) / dR9), dN) * dM / dR9));
+         float dRZ1 = float(pow((dX9 / dR9), (dM * dN * dH9)) * dRZ);
          dZtable1.Add(dRZ1);
 
 
@@ -852,14 +852,14 @@ float SoilInfo::get_z_table2(int val)
       CArray<float, float>dZtable2;
       for (int i = 0; i < 100; i++)
          {
-         float dX9 = ((float)i + 1) / 100.0;
+         float dX9 = ((float)i + 1) / 100.0f;
          if (dX9 >= dR9)
             {
             dM = 0.0f;
             dN = 1.0f;
             }
-         float dRZ = (pow((dX9 / dR9), dM) * dN / dX9) + ((pow(((dR9 - dX9) / dR9), dN) * dM / dR9));
-         float dRZ1 = (pow((dX9 / dR9), (dM * dN * dH9)) * dRZ);
+         float dRZ = float(pow((dX9 / dR9), dM) * dN / dX9) + ((pow(((dR9 - dX9) / dR9), dN) * dM / dR9));
+         float dRZ1 = float(pow((dX9 / dR9), (dM * dN * dH9)) * dRZ);
          dZtable2.Add(dRZ1);
          }
       retval = dZtable2.GetAt(val);
@@ -977,9 +977,9 @@ bool SoilInfo::AccountForMoistureRedistributionOrUnsaturatedFlow()
       float moisture1 = pLayer1->m_soilMoistContent / pParams1->m_zoneThick;
       float moisture2 = pLayer2->m_soilMoistContent / pParams2->m_zoneThick;
 
-      float Dbar = 0.88 * exp(35.4 * (moisture1 + moisture2) * 0.5);
+      float Dbar = 0.88f * (float) exp(35.4 * (moisture1 + moisture2) * 0.5);
       if (Dbar > 100)
-         Dbar = 100.0;
+         Dbar = 100.0f;
 
       float flow = 10.0f * float(Dbar) * (moisture2 - moisture1) / ((pParams1->m_zoneThick + pParams2->m_zoneThick) * 0.5f);
       float wFlow = flow * 10.0f / pParams1->m_zoneThick;

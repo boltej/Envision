@@ -127,34 +127,6 @@ public:
    CMap< CString, LPCTSTR, int, int > m_colMap;    // key=col name, value=col index
    CMap< int, int, int, int > m_yearMap;           // key=year, value=row index of start of that year
 
-public:
-   ClimateStation() : m_id( -1 ), m_name(), m_path(), 
-         m_doyCHU0( -1 ), m_doyCHU600( -1 ), m_doyCHU680( -1 ), m_doyCHU1300( -1 ), m_doyCHU1600( -1 ), 
-         m_doyCHU1826( -1 ),m_doyCHU2000( -1 ),m_doyCHU2165( -1 ),
-         m_doyCHU2475( -1 ),
-         m_annualPrecip( 0 ), m_annualTMin( 0 ), m_annualTMax( 0 ), m_annualTMean( 0 ),
-         m_r10mmDays( 0 ), m_r10yrDays( 0 ), m_r100yrDays( 0 ),
-         m_rShortDurationDays( 0 ), m_extHeatDays( 0 ), m_extColdDays( 0 ), 
-         m_pClimateData( NULL ),  m_pHistoricMeans( NULL ),
-         m_colTmin( -1 ), m_colTmax( -1 ), m_colPrecip( -1 )
-         { }
-
-   ~ClimateStation() { if ( m_pClimateData != NULL ) delete m_pClimateData;  if ( m_pHistoricMeans != NULL ) delete m_pHistoricMeans; }
-
-   // various methods
-   int GetFieldCol( LPCTSTR field ) { return ( m_pClimateData == NULL ) ? -1 : m_pClimateData->GetCol( field ); }
-
-   bool GetData( int doy, int year, int col, float &value );  // note: DOY's are ONE based
-   bool GetHistoricMean( int doy, int col, float &value );
-   bool GetPeriodGDD( int startDOY, int endDOY, int year, float baseTemp, float &cdd );
-   bool GetPeriodPrecip( int startDOY, int endDOY, int year, float &cumPrecip );
-   bool GetMaxConsDryDays( int startDOY, int endDOY, int year, float threshold );   
-   bool GetGrowingSeasonLength( int year, int &length, int &startDOY, int &endDOY );
-
-   float GetPET(int method);
-
-
-
 };
 
 
