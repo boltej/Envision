@@ -1922,6 +1922,11 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                   m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation);
                   float swc=m_vsmb.GetSoilMoisture(idu,0);
                   float swe= m_vsmb.GetSWE(idu);
+
+                  float averageSWC = m_vsmb.GetAverageSWC(idu);
+                  float percentSat = m_vsmb.GetPercentSaturated(idu);
+                  float percentAWC = m_vsmb.GetPercentAWC(idu);
+
                   theProcess->UpdateIDU(pContext, idu, m_colSWC, swc, SET_DATA);
                   theProcess->UpdateIDU(pContext, idu, m_colSWE, swe, SET_DATA);
                   }

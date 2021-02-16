@@ -81,6 +81,36 @@ float VSMBModel::GetSWE(int idu)
    return pSoilInfo->m_snowCover;
 }
 
+float VSMBModel::GetPercentAWC(int idu)
+{
+   SoilInfo* pSoilInfo = GetSoilInfo(idu);
+
+   if (pSoilInfo == NULL)
+      return 0.0;
+
+   return pSoilInfo->m_percentAWC;
+}
+
+float VSMBModel::GetAverageSWC(int idu)
+{
+   SoilInfo* pSoilInfo = GetSoilInfo(idu);
+
+   if (pSoilInfo == NULL)
+      return 0.0;
+
+   return pSoilInfo->m_avSWC;
+}
+
+float VSMBModel::GetPercentSaturated(int idu)
+{
+   SoilInfo* pSoilInfo = GetSoilInfo(idu);
+
+   if (pSoilInfo == NULL)
+      return 0.0;
+
+   return pSoilInfo->m_percentSat;
+}
+
 bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
    {
    VDataObj paramData(U_UNDEFINED);
@@ -321,6 +351,8 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, i
    // account for moisture redistribution or unsaturated flow
    AccountForMoistureRedistributionOrUnsaturatedFlow();
 
+
+   PopulateF2R();
    //  Wrting output CSV
    if (m_pResults != NULL)
       int columns = OutputDayVSMBResults(dayOfSimulation); //  calculate stress index = 1 - AET / PET
@@ -1017,7 +1049,27 @@ bool SoilInfo::AccountForMoistureRedistributionOrUnsaturatedFlow()
    return true;
    }
 
+float SoilInfo::PopulateF2R()
+{
+   float waterDepth = 0;//total depth of water (mm)
+   for (int i = 0; i < GetLayerCount(); i++)
+      waterDepth += m_soilLayerArray[i]->m_soilMoistContent;
+   float totalDepth=0;
+   for (int i = 0; i < GetLayerCount(); i++)
+      totalDepth += m_soilLayerArray[i]->m_pLayerParams->m_zoneThick;
 
+   m_avSWC = waterDepth/totalDepth;
+
+   float totalAWC = 0;
+   for (int i = 0; i < GetLayerCount(); i++)
+      totalAWC += m_soilLayerArray[i]->m_pLayerParams->m_AWHC;
+
+   m_percentAWC = waterDepth/totalAWC*100.0f;
+
+   m_percentSat = m_avSWC*100;
+
+return 0;
+}
 
 float SoilInfo::GetTotalSoilMoistContent()
    {

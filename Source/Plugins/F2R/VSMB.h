@@ -133,7 +133,9 @@ class SoilInfo
          , m_runoff(0)
          , m_runoffFrozen(0)
          , m_surfaceWater(0)
-
+         , m_percentAWC(0)
+         , m_avSWC(0)
+         , m_percentSat(0)
          , m_pResults(NULL)
          , m_pSoilMoistureResults(NULL)
          , m_pRootCoefficientTable(NULL)
@@ -176,7 +178,9 @@ class SoilInfo
       float m_runoff;
       float m_runoffFrozen;
       float m_surfaceWater;
-
+      float m_percentAWC;
+      float m_avSWC;
+      float m_percentSat;
       MovingWindow m_soilTempHistory;
 
       // state variables
@@ -226,7 +230,7 @@ class SoilInfo
       int GetLayerCount() { return (int)m_soilLayerArray.GetSize(); }
       float GetTotalSoilMoistContent();
       int OutputDayVSMBResults(int doy);
-
+      float PopulateF2R();
    };
 
 
@@ -247,7 +251,12 @@ class VSMBModel
       int OutputDayVSMBResults(int currentDate) { return -1; }//  calculate stress index = 1 - AET / PET
       float GetSoilMoisture(int idu, int layer);
       float GetSWE(int idu);
+      float GetPercentAWC(int idu);
+      float GetAverageSWC(int idu);
+      float GetPercentSaturated(int idu);
       bool WriteResults(int idu, LPCTSTR name);
+
+
 
       //kbv
       static int m_kntrol;//VSMBModel::m_kntrol.  Initialize in the cpp file.
