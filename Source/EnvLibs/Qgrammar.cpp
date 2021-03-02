@@ -10,15 +10,14 @@
 extern QueryEngine *_gpQueryEngine;
 extern char *gQueryBuffer;
 extern MapLayer *gFieldLayer;
+extern int gUserFnIndex;
 char functionBuffer[ 128 ];
 bool QShowCompilerErrors = true;
 TCHAR QSource[ 256 ];
 TCHAR QQueryStr[ 512 ];
 int   QCurrentLineNo = 0;
 
-
 //#define YYDEBUG
-
 
 //---- prototypes -----
 
@@ -27,10 +26,10 @@ int   QIsReserved ( char **p );
 int   QIsFunction( char **p );
 int   QIsFieldCol( char **p );
 MapLayer *QIsMapLayer( char **p );
-QExternal *QIsExternal(char **p);
+QExternal *QIsExternal( char **p );
 char *QParseString( char **p );
-void  QCompilerError( LPCTSTR errMsg, LPSTR buffer );
-void  yyerror( char* );
+void  QCompilerError( LPCSTR errMsg, LPSTR buffer );
+void  yyerror( const char* );
 int   QCountNewlines( char *start, char *end );
 void  QInitGlobals( int lineNo, LPCTSTR queryStr, LPCTSTR source );
 int   yylex( void );
@@ -66,19 +65,21 @@ typedef union  {
 #define CHANGED 270
 #define TIME 271
 #define DELTA 272
-#define EQ 273
-#define LT 274
-#define LE 275
-#define GT 276
-#define GE 277
-#define NE 278
-#define CAND 279
-#define COR 280
-#define CONTAINS 281
-#define AND 282
-#define OR 283
-#define MAPLAYER 284
-#define CAN 285
+#define USERFN2 273
+#define EQ 274
+#define LT 275
+#define LE 276
+#define GT 277
+#define GE 278
+#define NE 279
+#define CAND 280
+#define COR 281
+#define CONTAINS 282
+#define AND 283
+#define OR 284
+#define NOT 285
+#define MAPLAYER 286
+#define CAN 287
 YYSTYPE yylval, yyval;
 #define YYERRCODE 256
 
@@ -93,6 +94,7 @@ const int BUILTIN_FN   = 2;
 KEYWORD fKeywordArray[] = 
 { { OPERATOR,      "and ",       AND  },
   { OPERATOR,      "or ",        OR   },
+  { OPERATOR,      "not ",       NOT   },
   { OPERATOR,      "contains ",  CONTAINS   },
 
   //-- integer constants --//
@@ -111,85 +113,85 @@ int yylex()
    {
    char *p = gQueryBuffer;
 top:
-   p = QStripWhitespace(p);
-
+   p = QStripWhitespace( p );
+   
    //end of line found?
-   if (p == NULL || *p == NULL)
+   if (p == NULL || *p == NULL )
       return 0;
 
    // are we starting a comment?  (of the form /* ... */ )
-   if (*p == '/' && *(p + 1) == '*')
+   if ( *p == '/' && *(p+1) == '*' )
       {
-      p += 2;
-   cycle:
-      char *end = strchr(p, '*');
-      if (end == (TCHAR*)'\0')
-         {
-         QCompilerError("Unterminated comment found", p);
-         //QCurrentLineNo = 0;
-         return 0;
-         }
+      p +=2;
+cycle:
+      char *end = strchr( p, '*' );
+      if ( end == (char*) '\0' )
+        {
+        QCompilerError( "Unterminated comment found", p );
+        //QCurrentLineNo = 0;
+        return 0;
+        }
 
-      if (*(end + 1) != '/')   // did we find a '*/' (as opposed to just a '*')?
-         {
-         QCurrentLineNo += QCountNewlines(p, end);
-         p = end + 1;
-         goto cycle;
-         }
+      if ( *(end+1) != '/' )   // did we find a '*/' (as opposed to just a '*')?
+        {
+        QCurrentLineNo += QCountNewlines( p, end );
+        p = end+1;
+        goto cycle;
+        }
       else     // a valid comment delimiter was found, start again...
-         {
-         QCurrentLineNo += QCountNewlines(p, end);
-         p = end + 2;
-         }
+        {
+        QCurrentLineNo += QCountNewlines( p, end );
+        p = end+2;
+        }
 
-      goto top;
-      }
+       goto top;
+       }
 
    // are we starting a comment?  (of the form { })
-   if (*p == '{')
+   if ( *p == '{' )
       {
       p++;
-      char *end = strchr(p, '}');
-      if (end == NULL)
-         {
-         QCompilerError("Unterminated comment found", p);
-         return 0;
-         }
-      else
-         {
-         QCurrentLineNo += QCountNewlines(p, end);
-         p = end + 1;
-         }
-      goto top;
-      }
+      char *end = strchr( p, '}' );
+      if ( end == NULL )
+        {
+        QCompilerError( "Unterminated comment found", p );
+        return 0;
+        }
+       else
+        {
+        QCurrentLineNo += QCountNewlines( p, end );
+        p = end+1;
+        }
+       goto top;
+       }
 
    // are we starting a comment?  (of the form //  \n )
-   if (*p == '/' && *(p + 1) == '/')
+   if ( *p == '/' && *(p+1) == '/' )
       {
-      char *end = strchr(p + 2, '\n');
-      if (end == NULL)
+      char *end = strchr( p+2, '\n' );
+      if ( end == NULL )
          {
          QCurrentLineNo = 0;
          return 0;
          }
 
       QCurrentLineNo++;
-      p = end + 1;  // move to start of next line
+      p = end+1;  // move to start of next line
       goto top;
       }
 
    // end of input?
-   if (*p == '\0')
+   if ( *p == '\0' )
       {
       QCurrentLineNo = 0;
       return 0;
       }
 
    // what's here?
-   switch (*p)
+   switch ( *p )
       {
       // operators
-      case '%':
+	  case '%':
          gQueryBuffer = ++p;
          return yylval.ivalue = '%';
 
@@ -199,102 +201,102 @@ top:
 
       case '>':
          p++;
-         if (*p == '=')
+         if ( *p == '=' )
             {
-            gQueryBuffer = ++p;
-            yylval.ivalue = GE;
-            }
+           gQueryBuffer = ++p;
+              yylval.ivalue = GE;
+           }
          else
-            {
-            gQueryBuffer = p;
-            yylval.ivalue = GT;
-            }
+           {
+           gQueryBuffer = p;
+           yylval.ivalue = GT;
+           }
          return yylval.ivalue;
 
       case '<':
          p++;
-         if (*p == '=')
+         if ( *p == '=' )
             {
             gQueryBuffer = ++p;
             yylval.ivalue = LE;
             }
-         else if (*p == '>')
-            {
-            gQueryBuffer = ++p;
-            yylval.ivalue = NE;
-            }
+         else if ( *p == '>' )
+           {
+           gQueryBuffer = ++p;
+           yylval.ivalue = NE;         
+           }
          else
-            {
-            gQueryBuffer = p;
-            yylval.ivalue = LT;
-            }
+           {
+           gQueryBuffer = p;
+           yylval.ivalue = LT;
+           }
          return yylval.ivalue;
 
       case '|':
-         gQueryBuffer = ++p;
-         return yylval.ivalue = COR;
+           gQueryBuffer = ++p;
+           return yylval.ivalue = COR;
 
       case '&':
-         gQueryBuffer = ++p;
-         return yylval.ivalue = CAND;
-
+           gQueryBuffer = ++p;
+           return yylval.ivalue = CAND;
+      
       case '!':
-         if (*(p + 1) == '=')
+         if ( *(p+1) == '=' ) 
             {
-            gQueryBuffer = p + 2;
-            return yylval.ivalue = NE;
-            }
+           gQueryBuffer = p+2;
+           return yylval.ivalue = NE;           
+           }
          break;
-
+         
       case '$':
          gQueryBuffer = ++p;
-         return yylval.ivalue = CONTAINS;
+         return yylval.ivalue = CONTAINS;   
 
       case '@':		// external? (this should be removed!)
-      {
-      gQueryBuffer = ++p;
+         {
+         gQueryBuffer = ++p;
 
-      MapLayer *pLayer = gFieldLayer;
-      if (pLayer == NULL)
-         pLayer = _gpQueryEngine->GetMapLayer();
+         MapLayer *pLayer = gFieldLayer;
+         if ( pLayer == NULL )
+	         pLayer =_gpQueryEngine->GetMapLayer();
 
-      char *end = p;
-      while (isalnum(*end) || *end == '_') end++;
-      char _end = *end;
-      *end = NULL;
-      int col = pLayer->GetFieldCol(p);
-      yylval.pExternal = _gpQueryEngine->AddExternal(p, col);
-      *end = _end;
-      gQueryBuffer = end;
-      return EXTERNAL;  // yylval.pExternal;
-      }
+		 char *end = p;
+		 while( isalnum( *end ) || *end == '_' ) end++;
+		 char _end = *end;
+		 *end = NULL;
+		 int col = pLayer->GetFieldCol( p );
+         yylval.pExternal = _gpQueryEngine->AddExternal( p, col );   
+		 *end = _end;
+		 gQueryBuffer = end;
+		 return EXTERNAL;  // yylval.pExternal;
+		 }
 
       case '(':
       case ')':
       case ',':
       case '[':
       case ']':
-      case '.':
+      case '.':      
          gQueryBuffer = ++p;
-         return yylval.ivalue = *(p - 1);
-
+         return yylval.ivalue = *(p-1);
+         
       case '\'':	// single quote
-                  // see if we have a legal char
-         if (isalnum(*(p + 1)) && *(p + 2) == '\'')
-            {
-            gQueryBuffer += 3;
-            yylval.ivalue = (int)(*(p + 1));
-            return INTEGER;
-            }
-         break;
+		// see if we have a legal char
+		if ( isalnum( *(p+1) ) && *(p+2) == '\'' )
+		   {
+		   gQueryBuffer += 3;
+		   yylval.ivalue = (int) (*(p+1));
+		   return INTEGER;
+		   }
+		break;
 
       }  // end of: switch( *p )
 
-         // not an operator, is it a reserved word?
-   int reservedIndex = QIsReserved(&p);
-   if (reservedIndex >= 0)
-      {
-      if (p == NULL)
+   // not an operator, is it a reserved word?
+   int reservedIndex = QIsReserved( &p );
+   if ( reservedIndex >= 0 )
+       {
+      if ( p == NULL )
          {
          QCurrentLineNo = 0;
          return 0;
@@ -302,41 +304,41 @@ top:
 
       gQueryBuffer = p;      // note:  IsReserved increments p if match found
 
-      switch (fKeywordArray[reservedIndex].type)
+      switch( fKeywordArray[ reservedIndex ].type  )
          {
          case OPERATOR:         // a reserved word - operator
-            return yylval.ivalue = fKeywordArray[reservedIndex].ivalue;
+            return yylval.ivalue = fKeywordArray[ reservedIndex ].ivalue;
 
          case INT_CONSTANT:     // an integer constant
-            yylval.ivalue = fKeywordArray[reservedIndex].ivalue;
+            yylval.ivalue = fKeywordArray[ reservedIndex ].ivalue;
             return INTEGER;
-
+            
          default:
-            ASSERT(0);
+            ASSERT( 0 );
          }
       }   // end of:  if ( IsReserved() )
 
-          // Is it a function?
-   int fnID = QIsFunction(&p);
-   if (fnID >= 0)
-      {
+   // Is it a function?
+   int fnID = QIsFunction( &p );
+   if ( fnID >= 0 )
+	  {
       gQueryBuffer = p;
       return yylval.ivalue = fnID;   // this is the #defined ID of the function
       }
-
+      
    // or a layer name?
-   MapLayer *pLayer = QIsMapLayer(&p);
-   if (pLayer != NULL)
+   MapLayer *pLayer = QIsMapLayer( &p );
+   if ( pLayer != NULL )
       {
       gQueryBuffer = p;
       gFieldLayer = pLayer;
-      yylval.pMapLayer = pLayer;
+      yylval.pMapLayer = pLayer;      
       return MAPLAYER;
       }
-
+              
    // or a field column name?
-   int col = QIsFieldCol(&p);
-   if (col >= 0)
+   int col = QIsFieldCol( &p );
+   if ( col >=0 )
       {
       gQueryBuffer = p;
       gFieldLayer = NULL;
@@ -344,64 +346,64 @@ top:
       return FIELD;
       }
 
-   // or a appvar name?
-   QExternal *pExt = QIsExternal(&p);
-   if (pExt != NULL)
-      {
-      gQueryBuffer = p;
-      yylval.pExternal = pExt;
-      return EXTERNAL;
-      }
+	// or an external/appvar name?
+	QExternal *pExt = QIsExternal( &p );
+	if ( pExt != NULL )
+	   {
+       gQueryBuffer = p;
+       yylval.pExternal = pExt;
+       return EXTERNAL;
+       }
 
    // is it a number?
    bool negative = false;
-   if (*p == '-')
+   if ( *p == '-' )
       {
       negative = true;
       p++;
       }
 
-   if (isdigit(*p))
+   if ( isdigit( *p ) )
       {
       // find terminating character
       char *end = p;
       int   type = INTEGER;
-      while (isdigit(*end) || *end == '.')
+      while ( isdigit( *end ) || *end == '.' )
          {
-         if (*end == '.')
+         if ( *end == '.' )
             type = DOUBLE;
          end++;
          }
 
-      if (type == DOUBLE)
+      if ( type == DOUBLE )
          {
-         yylval.dvalue = atof(p);
-         if (negative)
+         yylval.dvalue = atof( p );
+         if ( negative )
             yylval.dvalue = -yylval.dvalue;
          }
       else   // INTEGER
          {
-         yylval.ivalue = atoi(p);
-         if (negative)
+         yylval.ivalue = atoi( p );
+         if ( negative )
             yylval.ivalue = -yylval.ivalue;
          }
 
       // is there a unit associated with this constant?
-      while (*end == ' ')   // skip white space
+      while ( *end == ' ' )   // skip white space
          end++;
-
+   
       gQueryBuffer = end;
       return type;
       }   // end of: isdigit( *p )
 
-   if (negative)    // back pointer up
+   if ( negative )    // back pointer up
       --p;
 
    // or a string?
    char *str;
-   if (*p == '"')   // start of a string delimiter?
+   if ( *p == '"' )   // start of a string delimiter?
       {
-      if ((str = QParseString(&p)) != NULL)
+      if ( ( str = QParseString( &p ) ) != NULL )
          {
          yylval.pStr = str;
          gQueryBuffer = p;
@@ -409,58 +411,58 @@ top:
          }
       }
 
-   QCompilerError("Unrecognized token found", p);
+   QCompilerError( "Unrecognized token found", p );
    return *p;
    //QCurrentLineNo = 0;
    //return 0;
    }
 
 
-   char *QStripWhitespace(char *p)// strip white space
+char *QStripWhitespace( char *p )// strip white space
+   {
+   while( *p == ' ' || *p == '\t' || *p == '\r' || *p == '\n'  )
       {
-      while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
-         {
-         if (*p == '\n' || *p == '\r')
-            QCurrentLineNo++;
-         p++;
-         }
-
-      return p;
+      if ( *p == '\n' || *p == '\r' )
+         QCurrentLineNo++;
+      p++;
       }
 
+   return p;
+   }
 
-   // check to see if the string is a fieldname in the current map.  If so, increment cursor to
-   // following character and return keyword id.  Othewise, do nothing and return -1
 
-   int QIsFieldCol(char **p)
-      {
-      if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
-         return -1;
+// check to see if the string is a fieldname in the current map.  If so, increment cursor to
+// following character and return keyword id.  Othewise, do nothing and return -1
 
-      MapLayer *pLayer = gFieldLayer;
-      if (pLayer == NULL)
-         pLayer = _gpQueryEngine->GetMapLayer();
+int QIsFieldCol( char **p )
+   {
+   if ( ! isalpha( (int) (**p ) ) && **p != '_' )	// has to start with alpha or underscore
+      return -1;
+      
+   MapLayer *pLayer = gFieldLayer;
+   if ( pLayer == NULL )
+	  pLayer =_gpQueryEngine->GetMapLayer();
+	  
+   // find termination of field name
+   char *end = *p;
+   while ( isalnum( (int) (*end ) ) || *end == '_' )
+      end++;
 
-      // find termination of field name
-      char *end = *p;
-      while (isalnum((int)(*end)) || *end == '_')
-         end++;
+   char endChar = *end;
+   *end = '\0';
 
-      char endChar = *end;
-      *end = '\0';
+   int col = pLayer->GetFieldCol( *p );
+   
+   *end = endChar;
+   
+   if ( col >= 0 )   // col found?
+      *p = end;
+  
+   return col;
+   }
 
-      int col = pLayer->GetFieldCol(*p);
-
-      *end = endChar;
-
-      if (col >= 0)   // col found?
-         *p = end;
-
-      return col;
-      }
-
-   // check to see if the string is a External Variable (AppVar).  If so, increment cursor to
-   // following character and return variable name (id).  Othewise, do nothing and return -1
+// check to see if the string is a External Variable (AppVar).  If so, increment cursor to
+// following character and return variable name (id).  Othewise, do nothing and return NULL
 
    QExternal *QIsExternal(char **p)
       {
@@ -471,7 +473,7 @@ top:
       memset(name, 0, 64);
       TCHAR *ptr = *p;
       int index = 0;
-      while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// has to start with alpha or underscore
+      while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// can only contain 'a-Z', '0-9', '_','.'  with alpha or underscore
          {
          name[index] = *ptr;
          index++;
@@ -489,195 +491,212 @@ top:
       }
 
 
-   MapLayer *QIsMapLayer(char **p)
+MapLayer *QIsMapLayer( char **p )
+   {
+   if ( ! isalpha( (int) (**p ) ) && **p != '_' )	// has to start with alpha or underscore
+      return NULL;
+
+   MapLayer *pLayer = _gpQueryEngine->GetMapLayer();
+   Map      *pMap   = pLayer->m_pMap;
+	  
+   // find termination of field name
+   char *end = *p;
+   while ( isalnum( (int) (*end ) ) || *end == '_' )
+      end++;
+      
+   if ( *end != '.' )    // layer names must terminate with '.'
+      return NULL;      
+
+   char endChar = *end;
+   *end = '\0';
+
+   int col = -1;
+   pLayer = pMap->GetLayer( *p );
+   
+   *end = endChar;
+   
+   if ( pLayer != NULL )   // layer found?
+      *p = end;
+
+   return pLayer;
+   }
+
+
+int QIsFunction( char **p )
+   {
+   if ( _strnicmp( "Index", *p, 5 ) == 0 )
       {
-      if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
-         return NULL;
-
-      MapLayer *pLayer = _gpQueryEngine->GetMapLayer();
-      Map      *pMap = pLayer->m_pMap;
-
-      // find termination of field name
-      char *end = *p;
-      while (isalnum((int)(*end)) || *end == '_')
-         end++;
-
-      if (*end != '.')    // layer names must terminate with '.'
-         return NULL;
-
-      char endChar = *end;
-      *end = '\0';
-
-      int col = -1;
-      pLayer = pMap->GetLayer(*p);
-
-      *end = endChar;
-
-      if (pLayer != NULL)   // layer found?
-         *p = end;
-
-      return pLayer;
+      *p += 5;
+      return INDEX;
+      } 
+   if ( _strnicmp( "NextToArea", *p, 10 ) == 0 )
+      {
+      *p += 10;
+      return NEXTTOAREA;
+      } 
+      
+   if ( _strnicmp( "NextTo", *p, 6 ) == 0 )
+      {
+      *p += 6;
+      return NEXTTO;
+      }
+      
+   if ( _strnicmp( "WithinArea", *p, 10 ) == 0 )
+      {
+      *p += 10;
+      return WITHINAREA;
+      }
+      
+      
+   if ( _strnicmp( "Within", *p, 6 ) == 0 )
+      {
+      *p += 6;
+      return WITHIN;
+      }
+      
+   if ( _strnicmp( "MOVAVG", *p, 6 ) == 0 )
+      {
+      *p += 6;
+      return MOVAVG;
       }
 
-
-   int QIsFunction(char **p)
+      
+   if ( _strnicmp( "CHANGED", *p, 7 ) == 0 )
       {
-      if (_strnicmp("Index", *p, 5) == 0)
-         {
-         *p += 5;
-         return INDEX;
-         }
-      if (_strnicmp("NextToArea", *p, 10) == 0)
-         {
-         *p += 10;
-         return NEXTTOAREA;
-         }
-
-      if (_strnicmp("NextTo", *p, 6) == 0)
-         {
-         *p += 6;
-         return NEXTTO;
-         }
-
-      if (_strnicmp("WithinArea", *p, 10) == 0)
-         {
-         *p += 10;
-         return WITHINAREA;
-         }
-
-
-      if (_strnicmp("Within", *p, 6) == 0)
-         {
-         *p += 6;
-         return WITHIN;
-         }
-
-      if (_strnicmp("MOVAVG", *p, 6) == 0)
-         {
-         *p += 6;
-         return MOVAVG;
-         }
-
-
-      if (_strnicmp("CHANGED", *p, 7) == 0)
-         {
-         *p += 7;
-         return CHANGED;
-         }
-
-      if (_strnicmp("DELTA", *p, 5) == 0)
-         {
-         *p += 5;
-         return DELTA;
-         }
-
-      if (_strnicmp("TIME", *p, 4) == 0)
-         {
-         *p += 4;
-         return TIME;
-         }
-
-
-      return -1;
+      *p += 7;
+      return CHANGED;
       }
 
-
-   // check to see if the string is a reserved word.  If so, increment cursor to
-   // following character and return keyword id.  Othewise, do nothing and return -1
-
-   int QIsReserved(char **p)
+   if ( _strnicmp( "DELTA", *p, 5 ) == 0 )
       {
-      int i = 0;
-      while (fKeywordArray[i].keyword != NULL)
-         {
-         const char *keyword = fKeywordArray[i].keyword;
-         if (_strnicmp(*p, keyword, lstrlen(keyword)) == 0)
+      *p += 5;
+      return DELTA;
+      }
+
+   if ( _strnicmp( "TIME", *p, 4 ) == 0 )
+      {
+      *p += 4;
+      return TIME;
+      }
+
+    // is it a user defined function?
+    for (int i=0; i < _gpQueryEngine->GetUserFnCount();i++)
+        {
+        QUserFn *pFn = _gpQueryEngine->GetUserFn(i);
+        if ( _strnicmp(pFn->m_name, *p, pFn->m_name.GetLength()) == 0 )
             {
-            *p += lstrlen(keyword);
-            return i;
+            gUserFnIndex = i;
+            *p += pFn->m_name.GetLength();
+
+            switch( pFn->m_nArgs)
+                {
+                //case 0:
+                //    return USERFN0;
+                //case 1:
+                //    return USERFN1;
+                case 2:
+                    return USERFN2;
+                }
             }
-         ++i;
-         }
+        }
 
-      return -1;
-      }
-
+   return -1;
+   }
 
 
-   char *QParseString(char **p)
+// check to see if the string is a reserved word.  If so, increment cursor to
+// following character and return keyword id.  Othewise, do nothing and return -1
+
+int QIsReserved( char **p )
+   {
+   int i=0;
+   while ( fKeywordArray[ i ].keyword != NULL )
       {
-      ASSERT(**p == '"');
-      (*p)++;
-
-      char *end = strchr(*p, '"');
-
-      if (end == NULL)
+      const char *keyword = fKeywordArray[ i ].keyword;
+      if ( _strnicmp( *p, keyword, lstrlen( keyword ) ) == 0 )
          {
-         QCompilerError("Unterminated string found", *p);
-         QCurrentLineNo = 0;
-         return 0;
-         }
-
-      // actual string found, so see if it is already in the string table
-      *end = '\0';
-      LPCTSTR str = _gpQueryEngine->FindString(*p, true);
-      *end = '"';
-      *p = end + 1;
-      return (char*)str;
+         *p += lstrlen( keyword );
+         return i;
+          }
+      ++i;
       }
 
-   void QCompilerError(LPCTSTR errorStr, LPSTR buffer)
+   return -1;
+   }
+
+
+
+char *QParseString( char **p )
+   {
+   ASSERT( **p == '"' );
+   (*p)++;
+
+   char *end = strchr( *p, '"' );
+
+   if ( end == NULL )
       {
-      char _buffer[512];
-      strncpy_s(_buffer, 512, buffer, 512);
-      _buffer[511] = '\0';
-
-      CString msg;
-      msg.Format("Query Compiler Error: %s while reading '%s' at line %i: %s.  The complete parse string is '%s'", errorStr, QSource, QCurrentLineNo + 1, _buffer, QQueryStr);
-
-      if (QShowCompilerErrors)
-         Report::ErrorMsg(msg, "Compiler Error", MB_OK);
-
-      _gpQueryEngine->AddError(QCurrentLineNo, errorStr);
+      QCompilerError( "Unterminated string found", *p );
+      QCurrentLineNo = 0;
+      return 0;
       }
 
+   // actual string found, so see if it is already in the string table
+   *end = '\0';
+   LPCSTR str = _gpQueryEngine->FindString( *p, true );
+   *end = '"';
+   *p = end+1;
+   return (char*) str;
+   }
+
+void QCompilerError( LPCSTR errorStr, LPSTR buffer )
+   {
+   char _buffer[ 512 ];
+   strncpy_s( _buffer, 512, buffer, 512);
+   _buffer[511] = '\0';
+
+   CString msg;
+   msg.Format( "Query Compiler Error: %s while reading '%s' at line %i: %s.  The complete parse string is '%s'", errorStr, QSource, QCurrentLineNo+1, _buffer, QQueryStr );
+   
+   if ( QShowCompilerErrors )
+	  Report::ErrorMsg( msg, "Compiler Error", MB_OK );
+
+   _gpQueryEngine->AddError( QCurrentLineNo, errorStr );
+   }
 
 
-   void yyerror(const char *msg)
+
+void yyerror( const char *msg )
+   {
+   QCompilerError( msg, gQueryBuffer );
+   }
+
+
+int QCountNewlines( char *start, char *end )
+   {
+   int count = 0;
+   while ( start != end )
       {
-      QCompilerError(msg, gQueryBuffer);
+      if ( *start == '\n' )
+         count++;
+
+      start++;
       }
 
+   return count;
+   }
+   
 
-   int QCountNewlines(char *start, char *end)
-      {
-      int count = 0;
-      while (start != end)
-         {
-         if (*start == '\n')
-            count++;
+void  QInitGlobals( int lineNo, LPCTSTR queryStr, LPCTSTR source )
+	{
+	if ( lineNo >= 0 )
+		QCurrentLineNo = lineNo;
 
-         start++;
-         }
+	if ( queryStr != NULL )
+		lstrcpyn( QQueryStr, queryStr, 511 );
 
-      return count;
-      }
-
-
-   void  QInitGlobals(int lineNo, LPCTSTR queryStr, LPCTSTR source)
-      {
-      if (lineNo >= 0)
-         QCurrentLineNo = lineNo;
-
-      if (queryStr != NULL)
-         lstrcpyn(QQueryStr, queryStr, 511);
-
-      if (source != NULL)
-         lstrcpyn(QSource, source, 255);
-      }
-
-
-
+	if ( source != NULL )
+		lstrcpyn( QSource, source, 255 );
+	}
 
 
 
@@ -689,26 +708,27 @@ const int yyexca[] = {
   0,
 };
 
-#define YYNPROD 53
-#define YYLAST 296
+#define YYNPROD 55
+#define YYLAST 300
 
 const int yyact[] = {
-      61,      89,      93,      88,      26,      27,      68,      13,
-      77,      69,      96,      13,      97,      95,     112,      94,
-     111,     110,      98,      99,     102,     101,      82,      81,
-      83,      45,      35,       6,       4,      14,      59,      33,
-      31,      14,      32,       5,      34,      35,      46,     107,
-      29,     106,      33,      31,     115,      32,      87,      34,
-      86,      85,       2,      84,      35,      58,      35,      28,
-     109,      33,      31,      33,      32,     114,      34,     105,
-      34,     113,      60,      62,      63,      64,      65,      66,
-     108,      67,      35,     104,      57,     103,      59,      33,
-      31,      35,      32,      90,      34,      56,      33,      31,
-      91,      32,      78,      34,      79,      70,      55,      54,
-      53,      80,      52,      71,      72,      73,      74,      75,
-      76,      51,      50,      35,      49,      48,       1,      92,
-      33,      31,      47,      32,      -1,      34,      -1,      12,
-      30,       3,      25,       0,       0,       0,       0,     100,
+       5,      94,      99,      93,      28,      29,      72,      14,
+      81,      73,     102,      14,     103,     101,     120,     100,
+     119,     118,     104,     107,     105,      84,     109,       6,
+     108,      87,      86,      88,      38,      32,      65,      15,
+      63,      36,      34,      15,      35,      48,      37,       7,
+      38,      49,     114,     113,     112,      36,      34,     123,
+      35,      92,      37,      91,      90,      97,      89,     122,
+      62,      64,      66,      67,      68,      69,      70,     121,
+     117,     115,      38,     111,     110,       2,     116,      36,
+      34,      30,      35,      31,      37,      95,      82,      74,
+      60,      59,      58,      83,      57,      56,      38,      55,
+      71,      85,      63,      36,      34,      38,      35,      54,
+      37,      61,      36,      34,      96,      35,      38,      37,
+      53,       1,      52,      36,      34,      51,      35,      50,
+      37,      -1,      -1,      13,      33,       4,      27,       0,
+     106,      75,      76,      77,      78,      79,      80,       0,
+      98,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
@@ -719,96 +739,99 @@ const int yyact[] = {
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
-       0,       0,       0,       0,       0,       0,       0,       0,
-       0,       8,      11,       9,      10,       7,      13,      15,
-      16,      17,      18,      19,      20,      21,      22,      23,
-      24,       0,       0,       0,       0,       0,       0,      26,
-      27,      26,      27,       0,      14,       8,      11,       9,
-      10,       7,      13,      15,      16,      17,      18,      19,
-      20,      21,      22,      23,      24,       0,      36,      37,
-      38,      39,      40,      41,      42,      43,      44,       0,
-      14,      36,      37,      38,      39,      40,      41,      42,
-      43,      44,       0,       0,      26,      27,      26,      27,
-       0,       0,      26,      27,      26,      27,      26,      27,
+       0,       9,      12,      10,      11,       8,      14,      16,
+      17,      18,      19,      20,      21,      22,      23,      24,
+      25,      26,       0,       0,       0,       0,       0,       0,
+      28,      29,      28,      29,       0,       3,      15,       9,
+      12,      10,      11,       8,      14,      16,      17,      18,
+      19,      20,      21,      22,      23,      24,      25,      26,
+       0,      39,      40,      41,      42,      43,      44,      45,
+      46,      47,       0,       0,      15,      39,      40,      41,
+      42,      43,      44,      45,      46,      47,       0,       0,
+      28,      29,      28,      29,       0,       0,      28,      29,
+      28,      29,      28,      29,
 };
 
 const int yypact[] = {
-   -4096,     -12,    -278,   -4096,     -12,       0,   -4096,   -4096,
-   -4096,   -4096,   -4096,   -4096,   -4096,     -66,      -8,      74,
-      69,      68,      66,      65,      58,      56,      55,      54,
-      45,     -12,   -4096,   -4096,      12,     -11,     -40,     -40,
-     -40,     -40,     -40,     -40,   -4096,   -4096,   -4096,   -4096,
-   -4096,   -4096,   -4096,   -4096,   -4096,    -251,    -253,      52,
-     -12,     -12,     -12,     -12,     -12,     -12,    -254,      49,
-     -40,    -278,   -4096,   -4096,      70,     -40,      17,      17,
-   -4096,   -4096,   -4096,     -70,     -71,     -67,   -4096,      10,
-       8,       4,       2,     -41,     -43,      42,   -4096,      44,
-      37,   -4096,   -4096,    -255,   -4096,   -4096,    -244,    -247,
-    -241,    -238,   -4096,     -40,     -72,     -73,      36,      34,
-      19,      -3,      -5,      31,      15,   -4096,   -4096,   -4096,
-   -4096,    -242,    -243,    -245,   -4096,   -4096,      24,      20,
-       3,   -4096,   -4096,   -4096,
+   -4096,     -40,    -279,     -40,   -4096,     -40,       3,   -4096,
+   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,     -54,      -5,
+      71,      69,      66,      64,      55,      47,      45,      44,
+      42,      41,      40,     -40,   -4096,   -4096,   -4096,      15,
+      -9,     -10,     -10,     -10,     -10,     -10,     -10,   -4096,
+   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,
+    -251,    -253,      38,     -40,     -40,     -40,     -40,     -40,
+     -40,    -254,      37,     -10,    -236,    -279,   -4096,   -4096,
+      65,     -10,   -4096,   -4096,   -4096,   -4096,   -4096,     -67,
+     -68,     -64,   -4096,      13,      11,       7,       5,     -41,
+     -43,      36,   -4096,      56,       9,      49,   -4096,   -4096,
+    -255,   -4096,   -4096,    -244,    -247,    -241,    -237,   -4096,
+     -10,    -238,     -69,     -71,      27,      26,       0,      -1,
+      -2,      24,      29,      23,   -4096,   -4096,   -4096,   -4096,
+    -242,    -243,    -245,   -4096,   -4096,   -4096,      22,      14,
+       6,   -4096,   -4096,   -4096,
 };
 
 const int yypgo[] = {
-       0,      50,     122,     121,     120,      35,     119,      27,
-     118,     116,     110,
+       0,      69,     118,     117,     116,      23,     115,      39,
+     114,     113,     105,
 };
 
 const int yyr1[] = {
-       0,      10,      10,       1,       1,       1,       2,       2,
-       3,       3,       4,       4,       4,       4,       4,       4,
-       4,       4,       4,       5,       5,       5,       5,       5,
+       0,      10,      10,       1,       1,       1,       1,       2,
+       2,       3,       3,       4,       4,       4,       4,       4,
+       4,       4,       4,       4,       5,       5,       5,       5,
        5,       5,       5,       5,       5,       5,       5,       5,
-       7,       7,       7,       7,       7,       8,       8,       9,
-       9,       6,       6,       6,       6,       6,       6,       6,
-       6,       6,       6,       6,       6,
+       5,       7,       7,       7,       7,       7,       8,       8,
+       9,       9,       6,       6,       6,       6,       6,       6,
+       6,       6,       6,       6,       6,       6,       6,
 };
 
 const int yyr2[] = {
-       0,       2,       0,       3,       1,       3,       1,       1,
+       0,       2,       0,       3,       2,       1,       3,       1,
+       1,       3,       1,       1,       1,       1,       1,       1,
+       1,       1,       1,       1,       3,       3,       3,       3,
        3,       1,       1,       1,       1,       1,       1,       1,
-       1,       1,       1,       3,       3,       3,       3,       3,
-       1,       1,       1,       1,       1,       1,       1,       3,
-       1,       4,       4,       6,       6,       3,       1,       1,
-       1,       3,       4,       4,       6,       6,       8,       8,
-       8,       6,       4,       3,       6,
+       3,       1,       4,       4,       6,       6,       3,       1,
+       1,       1,       3,       4,       4,       6,       6,       8,
+       8,       8,       6,       4,       3,       6,       6,
 };
 
 const int yychk[] = {
-   -4096,     -10,      -1,      -3,      40,      -5,      -7,     261,
-     257,     259,     260,     258,      -6,     262,     284,     263,
-     264,     265,     266,     267,     268,     269,     270,     271,
-     272,      -2,     282,     283,      -1,      -5,      -4,      43,
-      45,      42,      47,      37,     273,     274,     275,     276,
-     277,     278,     279,     280,     281,      91,      46,      40,
-      40,      40,      40,      40,      40,      40,      40,      40,
-      40,      -1,      41,      41,      -5,      40,      -5,      -5,
-      -5,      -5,      -5,      -7,     257,     262,      41,      -1,
-      -1,      -1,      -1,      -1,      -1,     262,      41,      -5,
-      -5,      93,      93,      91,      41,      41,      44,      44,
-      44,      44,      41,      44,      -7,     257,     259,     257,
-     257,     259,     259,     257,      -5,      93,      93,      41,
-      41,      44,      44,      44,      41,      41,     259,     259,
+   -4096,     -10,      -1,     285,      -3,      40,      -5,      -7,
+     261,     257,     259,     260,     258,      -6,     262,     286,
+     263,     264,     265,     266,     267,     268,     269,     270,
+     271,     272,     273,      -2,     283,     284,      -1,      -1,
+      -5,      -4,      43,      45,      42,      47,      37,     274,
+     275,     276,     277,     278,     279,     280,     281,     282,
+      91,      46,      40,      40,      40,      40,      40,      40,
+      40,      40,      40,      40,      40,      -1,      41,      41,
+      -5,      40,      -5,      -5,      -5,      -5,      -5,      -7,
+     257,     262,      41,      -1,      -1,      -1,      -1,      -1,
+      -1,     262,      41,      -5,     257,      -5,      93,      93,
+      91,      41,      41,      44,      44,      44,      44,      41,
+      44,      44,      -7,     257,     259,     257,     257,     259,
+     259,     257,      -5,     257,      93,      93,      41,      41,
+      44,      44,      44,      41,      41,      41,     259,     259,
      259,      41,      41,      41,
 };
 
 const int yydef[] = {
-       2,      -2,       1,       4,       0,       9,      24,      25,
-      26,      27,      28,      29,      30,      32,       0,       0,
+       2,      -2,       1,       0,       5,       0,      10,      25,
+      26,      27,      28,      29,      30,      31,      33,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
-       0,       0,       6,       7,       0,       9,       0,       0,
-       0,       0,       0,       0,      10,      11,      12,      13,
-      14,      15,      16,      17,      18,       0,       0,       0,
+       0,       0,       0,       0,       7,       8,       4,       0,
+      10,       0,       0,       0,       0,       0,       0,      11,
+      12,      13,      14,      15,      16,      17,      18,      19,
        0,       0,       0,       0,       0,       0,       0,       0,
-       0,       3,       5,      31,       8,       0,      19,      20,
-      21,      22,      23,       0,       0,       0,      41,       0,
-       0,       0,       0,       0,       0,       0,      51,       0,
-       0,      33,      34,       0,      42,      43,       0,       0,
-       0,       0,      50,       0,       0,       0,       0,       0,
-       0,       0,       0,       0,       0,      35,      36,      44,
-      45,       0,       0,       0,      49,      52,       0,       0,
-       0,      46,      47,      48,
+       0,       0,       0,       0,       0,       3,       6,      32,
+       9,       0,      20,      21,      22,      23,      24,       0,
+       0,       0,      42,       0,       0,       0,       0,       0,
+       0,       0,      52,       0,       0,       0,      34,      35,
+       0,      43,      44,       0,       0,       0,       0,      51,
+       0,       0,       0,       0,       0,       0,       0,       0,
+       0,       0,       0,       0,      36,      37,      45,      46,
+       0,       0,       0,      50,      53,      54,       0,       0,
+       0,      47,      48,      49,
 };
 
 /*****************************************************************/
@@ -1016,43 +1039,45 @@ int tmptoken;
       
       case 1:{ _gpQueryEngine->AddQuery( yypvt[-0].pNode ); } break;
       case 3:{ yyval.pNode = new QNode( yypvt[-2].pNode, yypvt[-1].ivalue, yypvt[-0].pNode ); } break;
-      case 4:{ yyval.pNode = yypvt[-0].pNode; } break;
-      case 5:{ yyval.pNode = yypvt[-1].pNode; } break;
-      case 8:{ yyval.pNode = new QNode( yypvt[-2].pNode, yypvt[-1].ivalue, yypvt[-0].pNode ); } break;
-      case 9:{ yyval.pNode = yypvt[-0].pNode; } break;
-      case 19:{ yyval.pNode = new QNode( yypvt[-2].pNode, '+', yypvt[-0].pNode ); } break;
-      case 20:{ yyval.pNode = new QNode( yypvt[-2].pNode, '-', yypvt[-0].pNode ); } break;
-      case 21:{ yyval.pNode = new QNode( yypvt[-2].pNode, '*', yypvt[-0].pNode ); } break;
-      case 22:{ yyval.pNode = new QNode( yypvt[-2].pNode, '/', yypvt[-0].pNode ); } break;
-      case 23:{ yyval.pNode = new QNode( yypvt[-2].pNode, '%', yypvt[-0].pNode ); } break;
-      case 24:{ yyval.pNode = yypvt[-0].pNode; } break;
-      case 25:{ yyval.pNode = new QNode( yypvt[-0].pExternal ); } break;
-      case 26:{ yyval.pNode = new QNode( yypvt[-0].ivalue ); } break;
-      case 27:{ yyval.pNode = new QNode( yypvt[-0].dvalue ); } break;
-      case 28:{ yyval.pNode = new QNode( yypvt[-0].pStr ); } break;
-      case 29:{ yyval.pNode = new QNode( yypvt[-0].ivalue ); } break;
-      case 30:{ yyval.pNode = new QNode( yypvt[-0].qFnArg ); } break;
-      case 31:{ yyval.pNode = yypvt[-1].pNode; } break;
-      case 32:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-0].ivalue ); } break;
-      case 33:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
-      case 34:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
-      case 35:{ yyval.pNode = new QNode( yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
-      case 36:{ yyval.pNode = new QNode( yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
-      case 37:{ yyval.ivalue = 1; } break;
+      case 4:{ yyval.pNode = new QNode( (QNode*)NULL, NOT, yypvt[-0].pNode ); } break;
+      case 5:{ yyval.pNode = yypvt[-0].pNode; } break;
+      case 6:{ yyval.pNode = yypvt[-1].pNode; } break;
+      case 9:{ yyval.pNode = new QNode( yypvt[-2].pNode, yypvt[-1].ivalue, yypvt[-0].pNode ); } break;
+      case 10:{ yyval.pNode = yypvt[-0].pNode; } break;
+      case 20:{ yyval.pNode = new QNode( yypvt[-2].pNode, '+', yypvt[-0].pNode ); } break;
+      case 21:{ yyval.pNode = new QNode( yypvt[-2].pNode, '-', yypvt[-0].pNode ); } break;
+      case 22:{ yyval.pNode = new QNode( yypvt[-2].pNode, '*', yypvt[-0].pNode ); } break;
+      case 23:{ yyval.pNode = new QNode( yypvt[-2].pNode, '/', yypvt[-0].pNode ); } break;
+      case 24:{ yyval.pNode = new QNode( yypvt[-2].pNode, '%', yypvt[-0].pNode ); } break;
+      case 25:{ yyval.pNode = yypvt[-0].pNode; } break;
+      case 26:{ yyval.pNode = new QNode( yypvt[-0].pExternal ); } break;
+      case 27:{ yyval.pNode = new QNode( yypvt[-0].ivalue ); } break;
+      case 28:{ yyval.pNode = new QNode( yypvt[-0].dvalue ); } break;
+      case 29:{ yyval.pNode = new QNode( yypvt[-0].pStr ); } break;
+      case 30:{ yyval.pNode = new QNode( yypvt[-0].ivalue ); } break;
+      case 31:{ yyval.pNode = new QNode( yypvt[-0].qFnArg ); } break;
+      case 32:{ yyval.pNode = yypvt[-1].pNode; } break;
+      case 33:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-0].ivalue ); } break;
+      case 34:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
+      case 35:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
+      case 36:{ yyval.pNode = new QNode( yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
+      case 37:{ yyval.pNode = new QNode( yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
       case 38:{ yyval.ivalue = 1; } break;
-      case 39:{ yyval.ivalue = (int) _gpQueryEngine->AddValue( yypvt[-0].ivalue ); } break;
-      case 40:{ yyval.ivalue = (int) _gpQueryEngine->AddValue( yypvt[-0].dvalue ); } break;
-      case 41:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-2].ivalue ); } break;
-      case 42:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
+      case 39:{ yyval.ivalue = 1; } break;
+      case 40:{ yyval.ivalue = (int) _gpQueryEngine->AddValue( yypvt[-0].ivalue ); } break;
+      case 41:{ yyval.ivalue = (int) _gpQueryEngine->AddValue( yypvt[-0].dvalue ); } break;
+      case 42:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-2].ivalue ); } break;
       case 43:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
-      case 44:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue ); } break;
-      case 45:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
-      case 46:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, (double) yypvt[-3].ivalue, yypvt[-1].dvalue ); } break;
-      case 47:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, yypvt[-3].dvalue, yypvt[-1].dvalue ); } break;
+      case 44:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
+      case 45:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue ); } break;
+      case 46:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
+      case 47:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, (double) yypvt[-3].ivalue, yypvt[-1].dvalue ); } break;
       case 48:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, yypvt[-3].dvalue, yypvt[-1].dvalue ); } break;
-      case 49:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
-      case 50:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
-      case 51:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-2].ivalue ); } break;
-      case 52:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].pNode ); } break;    }
+      case 49:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, yypvt[-3].dvalue, yypvt[-1].dvalue ); } break;
+      case 50:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
+      case 51:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
+      case 52:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-2].ivalue ); } break;
+      case 53:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].pNode ); } break;
+      case 54:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;    }
     goto enstack;
 }

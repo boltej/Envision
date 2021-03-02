@@ -161,7 +161,6 @@ bool AHEvent::Run(EnvContext *pEnvContext)
             {
             CString msg("Acute Hazards: Unable to execute Python module ");
             msg += this->m_pyModulePath;
-            msg += ":";
             msg += this->m_pyModuleName;
             Report::LogWarning(msg);
 
@@ -277,6 +276,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       if (damageIndexEq == damageIndexTsu && damageIndex < 4)
          damageIndex++;
 
+      // bldg damage 0(none)-4(max damage)
       m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageEq, damageIndexEq, ADD_DELTA);
       m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageTsu, damageIndexTsu, ADD_DELTA);
       m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamage, damageIndex, ADD_DELTA);

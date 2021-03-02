@@ -77,8 +77,10 @@ void interception(Patch& patch,Climate& climate) {
 
 	pet=climate.eet*PRIESTLEY_TAYLOR;
 	Gridcell& gridcell = patch.stand.get_gridcell();
-	gridcell.pHRU->m_currentMaxET = pet;
-
+	//HRU* pHRU = gridcell.m_hruArray[0];
+	HRU* pHRU = gridcell.pHRU;
+	pHRU->m_currentMaxET = pet;
+	
 	// Retrieve Vegetation object
 	Vegetation& vegetation=patch.vegetation;
 
@@ -1208,7 +1210,7 @@ void wdemand(Patch& patch, Climate& climate, Vegetation& vegetation, const Day& 
 		patch.wdemand_leafon = 0.0;
 
 	Gridcell& gridcell = patch.stand.get_gridcell();
-	//kbvgridcell.pHRU->m_currentET = patch.wdemand+ patch.wdemand_leafon;
+	//gridcell.pHRU->m_currentET = patch.wdemand+ patch.wdemand_leafon;
 }
 
 /// Plant water uptake

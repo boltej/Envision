@@ -20,6 +20,7 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include <parallel.h>
 #include <..\Plugins\Flow\Flow.h>
 REGISTER_INPUT_MODULE("cru_ncep", CRUInput)
 
@@ -31,9 +32,11 @@ xtring file_cru_misc;
 
 // weichao revision
 // File names for temperature, precipitation, sunshine and soil code driver files
-xtring file_temp, file_prec, file_sun, file_dtr, file_soil;
+xtring file_temp, file_prec, file_sun, file_dtr, file_soil, file_soil_depth;
 // LPJ soil code
 int soilcode;
+double SOILDEPTH_UPPER;
+double SOILDEPTH_LOWER;
 //end of weichao revision
 
 /// Interpolates monthly data to quasi-daily values.
@@ -81,7 +84,12 @@ void CRUInput::init() {
 	// Read list of grid coordinates and store in global Coord object 'gridlist'
 
 	// Retrieve name of grid list file as read from ins file
-	xtring file_gridlist=param["file_gridlist"].str;
+	//xtring file_gridlist=param["file_gridlist"].str;
+	
+	xtring nodepath;
+	nodepath.printf("C:\\Envision\\StudyAreas\\CalFEWS\\4km\\4km\\lpjGuess\\inputs\\gridlist_sn - Copy.txt",  GuessParallel::get_rank()+1);
+	xtring file_gridlist;
+	file_gridlist=nodepath;
 
 	FILE* in_grid=fopen(file_gridlist,"r");
 	if (!in_grid) fail("initio: could not open %s for input",(char*)file_gridlist);
@@ -94,7 +102,10 @@ void CRUInput::init() {
 	file_dtr = param["file_dtr"].str;
 	file_prec = param["file_prec"].str;
 	file_sun = param["file_sun"].str;
+
+	//
 	//file_soil = param["file_soil"].str;
+	//file_soil_depth = param["file_soil_depth"].str;
 	// end
 
 	gridlist.killall();
@@ -277,7 +288,6 @@ bool CRUInput::searchmydata(double longitude,double latitude) {
 	}
 	fclose(in);
 
-	// soiltype
 
 	
 	return found;
@@ -307,8 +317,199 @@ void CRUInput::adjust_raw_forcing_data(double lon,
 }
 
 
-
-
+//bool CRUInput::getgridcell(Gridcell& gridcell) {
+//
+//	// See base class for documentation about this function's responsibilities
+//
+//	double soilcode;
+//    double SOILDEPTH_UPPER, SOILDEPTH_LOWER;
+//	// soiltype
+//
+//	//
+//
+//	// Make sure we use the first gridcell in the first call to this function,
+//	// and then step through the gridlist in subsequent calls.
+//	if (first_call) {
+//		gridlist.firstobj();
+//
+//		// Note that first_call is static, so this assignment is remembered
+//		// across function calls.
+//		first_call = false;
+//	}
+//	else gridlist.nextobj();
+//
+//	if (gridlist.isobj) {
+//
+//		bool gridfound = false;
+//		bool LUerror = false;
+//		double lon;
+//		double lat;
+//
+//		while (!gridfound) {
+//
+//			if (gridlist.isobj) {
+//
+//				lon = gridlist.getobj().lon;
+//				lat = gridlist.getobj().lat;
+//				gridfound = searchmydata(lon,lat);
+//				
+//				FILE* in;
+//	            int j;
+//				bool found;
+//	            double soildata;	
+//	            double dlon, dlat;				
+//	            in = fopen(file_soil, "r");
+//	            if (!in) fail("readenv: could not open %s for input", (char*)file_soil);
+//	            found = false;
+//	                  for (j = 0; j < 6532;j++) {
+//		                   readfor(in, "f7.2,f6.2,f2.1", &dlon, &dlat, &soildata); 
+//		                  //dprintf("(%g,%g,%g)\n", dlon,dlat,soildata);
+//		                   if (equal(lon, dlon) && equal(lat, dlat)) {
+//                               soilcode = soildata*10;
+//			                   dprintf("find soil type (%g,%g,%g) in %s",lon, lat, soilcode);
+//			                   
+//							   //continue;
+//			                   found = true;
+//							   //return found;
+//		                       }
+//					  }
+//
+//		              if (feof(in) && !found) {
+//			                  dprintf("readenv: could not find record for (%g,%g,%g,%g,%d) in %s",
+//				              lon, lat, dlon,dlat,j,(char*)file_soil);
+//			                  fclose(in);
+//			                  return false;
+//		                }
+//
+//	            fclose(in);
+//				
+//				
+//				// change soil depth
+//				FILE* in2;
+//	            int jj;
+//				bool found2;
+//	            double soildepth, soildepth_total;	
+//				//double SOILDEPTH_UPPER, SOILDEPTH_LOWER;
+//	            double dlon2, dlat2;				
+//	            in2 = fopen(file_soil_depth, "r");
+//	            if (!in2) fail("readenv: could not open %s for input", (char*)file_soil_depth);
+//	            found2 = false;
+//	                  for (jj = 0; jj < 6532;jj++) {
+//		                   readfor(in2, "f7.2,f6.2,f5.2", &dlon2, &dlat2, &soildepth); 
+//		                   //dprintf("(%g,%g,%g)\n", dlon2,dlat2,soildepth*100);
+//		                   if (equal(lon, dlon2) && equal(lat, dlat2)) {
+//                               soildepth_total = soildepth*1000;
+//							   SOILDEPTH_UPPER = soildepth_total/3*5;
+//							   SOILDEPTH_LOWER = soildepth_total/3*2*5;
+//							   //SOILDEPTH_LOWER = soildepth_total-500;
+//							   // soildepth_upper is 500 mm;
+///* 							   if(soildepth_total<=500){
+//								   SOILDEPTH_LOWER = 10;
+//							   } */
+//			                   dprintf("find soil depth (%g,%g,%g,%g) in %s",lon, lat, SOILDEPTH_UPPER, SOILDEPTH_LOWER);
+//			                   
+//							   //continue;
+//			                   found2 = true;
+//							   //return found;
+//		                       }
+//					  }
+//
+//		              if (feof(in2) && !found2) {
+//			                  dprintf("readenv: could not find record for (%g,%g,%g,%g,%d) in %s",
+//				              lon, lat, dlon2,dlat2,jj,(char*)file_soil_depth);
+//			                  fclose(in2);
+//			                  return false;
+//		                }
+//
+//	            fclose(in2);				
+//	//weichao
+//	//soilcode = 3;
+//               // soilparameters(gridcell.soiltype,soilcode);
+//				//gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
+//					//hist_mtemp, hist_mprec, hist_msun);
+//
+//				//if (gridfound) // Get more historical CRU data for this grid cell
+//					//gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
+//						//hist_mfrs, hist_mwet, hist_mdtr);
+//
+//				if (run_landcover && gridfound) {
+//					LUerror = landcover_input.loadlandcover(lon, lat);
+//					if (!LUerror)
+//						LUerror = management_input.loadmanagement(lon, lat);
+//				}
+//
+//				if (!gridfound || LUerror) {
+//					if (!gridfound)
+//						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n", gridlist.getobj().lon, gridlist.getobj().lat);
+//					else if (LUerror)
+//						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", gridlist.getobj().lon, gridlist.getobj().lat);
+//					gridfound = false;
+//					gridlist.nextobj();
+//				}
+//			}
+//			else return false;
+//		}
+//
+//		// Give sub-classes a chance to modify the data
+//		adjust_raw_forcing_data(gridlist.getobj().lon,
+//			gridlist.getobj().lat,
+//			hist_mtemp, hist_mprec, hist_msun);
+//
+//		// Build spinup data sets
+//		spinup_mtemp.get_data_from(hist_mtemp);
+//		spinup_mprec.get_data_from(hist_mprec);
+//		spinup_msun.get_data_from(hist_msun);
+//
+//		// Detrend spinup temperature data
+//		spinup_mtemp.detrend_data();
+//
+//		// guess2008 - new spinup data sets
+//		spinup_mfrs.get_data_from(hist_mfrs);
+//		spinup_mwet.get_data_from(hist_mwet);
+//		spinup_mdtr.get_data_from(hist_mdtr);
+//
+//		// We wont detrend dtr for now. Partly because dtr is at the moment only
+//		// used for BVOC, so what happens during the spinup is not affecting
+//		// results in the period thereafter, and partly because the detrending
+//		// can give negative dtr values.
+//		//spinup_mdtr.detrend_data();
+//
+//
+//		dprintf("\nCommencing simulation for stand at (%g,%g)", gridlist.getobj().lon,
+//			gridlist.getobj().lat);
+//		if (gridlist.getobj().descrip != "") dprintf(" (%s)\n\n",
+//			(char*)gridlist.getobj().descrip);
+//		else dprintf("\n\n");
+//
+//		// Tell framework the coordinates of this grid cell
+//		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
+//
+//		// Get nitrogen deposition data. 
+//		/* Since the historic data set does not reach decade 2010-2019,
+//		 * we need to use the RCP data for the last decade. */
+//		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
+//
+//		// The insolation data will be sent (in function getclimate, below)
+//		// as incoming shortwave radiation, averages are over 24 hours
+//
+//		gridcell.climate.instype = SWRAD_TS;
+//
+//		// Tell framework the soil type of this grid cell
+//		//Weichao modified soilparameters a bit
+//		//soilparameters(gridcell.soiltype, soilcode, SOILDEPTH_UPPER, SOILDEPTH_LOWER);
+//	  // Tell framework the soil type of this grid cell
+//		soilparameters(gridcell.soiltype, soilcode);
+//
+//		// For Windows shell - clear graphical output
+//		// (ignored on other platforms)
+//
+//		clear_all_graphs();
+//
+//		return true; // simulate this stand
+//	}
+//
+//	return false; // no more stands
+//}
 bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 	// See base class for documentation about this function's responsibilities
@@ -344,7 +545,7 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-				gridfound = searchmydata(lon,lat);
+				gridfound = searchmydata(lon, lat);
 				//gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
 					//hist_mtemp, hist_mprec, hist_msun);
 
@@ -428,7 +629,6 @@ bool CRUInput::getgridcell(Gridcell& gridcell) {
 	return false; // no more stands
 }
 
-
 void CRUInput::getlandcover(Gridcell& gridcell) {
 
 	landcover_input.getlandcover(gridcell);
@@ -436,7 +636,7 @@ void CRUInput::getlandcover(Gridcell& gridcell) {
 }
 
 
-bool CRUInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
+bool CRUInput::getclimate(Gridcell& gridcell, FlowContext* pFlowContext) {
 
 	// See base class for documentation about this function's responsibilities
 
@@ -535,21 +735,9 @@ bool CRUInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 
 	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
 
-//	climate.temp  = dtemp[date.day];
-//	climate.prec  = dprec[date.day];
-//	climate.insol = dsun[date.day];
-
-
-	float prec = 0.0f; float temp = 0.0f; float insol = 0.0f;
-	HRU *pHRU = pFlowContext->pFlowModel->GetHRU(0);
-	pFlowContext->pFlowModel->GetHRUClimate(CDT_PRECIP, pHRU, pFlowContext->dayOfYear, prec);//mm
-	pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, pFlowContext->dayOfYear, temp);//C
-	pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, pFlowContext->dayOfYear, insol);//C
-
-	climate.temp  = temp;
-	climate.prec  = prec;
-	climate.insol = insol;
-
+	climate.temp  = dtemp[date.day];
+	climate.prec  = dprec[date.day];
+	climate.insol = dsun[date.day];
 
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];

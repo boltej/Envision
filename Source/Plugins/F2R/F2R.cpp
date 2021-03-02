@@ -45,23 +45,23 @@ Copywrite 2012 - Oregon State University
 
 static int calcPopDens = false;
 
-F2RProcess* theProcess = NULL;
+F2RProcess *theProcess = NULL;
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext* pContext)
+extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext)
    {
    switch (pContext->id)
       {
+
       case WILDLIFE:
       case PHOSPHORUS:
       case NITROGEN:
       case NAESI_HABITAT:
       case FARM_MODEL:
-      case EO_HABITAT:
-         if (theProcess != NULL)
+         if (theProcess == NULL)
             theProcess = new F2RProcess;
 
-         return (EnvExtension*)theProcess;
-
+         return (EnvExtension*) theProcess;
+      
       case REPORT:
          return (EnvExtension*) new F2RReport;
       }
@@ -71,133 +71,131 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext* pContext)
 
 ////////////////////////////////////////////////////
 
-F2RProcess::F2RProcess()
-   : EnvModelProcess()
-   , m_inVarIndexFarmModel(0)
-   , m_inVarCountFarmModel(0)
-   , m_outVarIndexFarmModel(0)
-   , m_outVarCountFarmModel(0)
-   , m_pWildlife(NULL)
-   , m_pPhosphorus(NULL)
-   , m_pNAESI(NULL)
-   , m_pNitrogen(NULL)
-   , m_pFarmModel(NULL)
-   , m_pEOHabitat(NULL)
-   , m_outVarIndexWildlife(0)
-   , m_outVarCountWildlife(0)
-   , m_outVarIndexPModel(0)
-   , m_outVarCountPModel(0)
-   , m_outVarIndexNModel(0)
-   , m_outVarCountNModel(0)
-   , m_outVarIndexNaesi(0)
-   , m_outVarCountNaesi(0)
-   , m_colSLC(-1)
-   , m_colArea(-1)
-   {
-   }
+F2RProcess::F2RProcess() 
+: EnvModelProcess()
+, m_inVarIndexFarmModel( 0 )
+, m_inVarCountFarmModel( 0 )
+, m_outVarIndexFarmModel( 0 )
+, m_outVarCountFarmModel( 0 )
+, m_pWildlife( NULL )
+, m_pPhosphorus( NULL )
+, m_pNAESI(NULL)
+, m_pNitrogen( NULL )
+, m_pFarmModel( NULL )
+, m_outVarIndexWildlife( 0 )
+, m_outVarCountWildlife( 0 )
+, m_outVarIndexPModel( 0 )
+, m_outVarCountPModel( 0 )
+, m_outVarIndexNModel( 0 )
+, m_outVarCountNModel( 0 )
+, m_outVarIndexNaesi( 0 )
+, m_outVarCountNaesi( 0 )
+, m_colSLC( -1 )
+, m_colArea( -1 )
+   { }
 
 
-F2RProcess::~F2RProcess(void)
+F2RProcess::~F2RProcess( void )
    {
-   if (m_pFarmModel != NULL)
+   if ( m_pFarmModel != NULL )
       delete m_pFarmModel;
 
-   if (m_pWildlife != NULL)
+   if ( m_pWildlife != NULL )
       delete m_pWildlife;
 
-   if (m_pPhosphorus != NULL)
+   if ( m_pPhosphorus != NULL )
       delete m_pPhosphorus;
 
-   if (m_pNitrogen != NULL)
+   if ( m_pNitrogen != NULL )
       delete m_pNitrogen;
 
-   //   if ( m_pClimateIndicators != NULL )
-   //      delete m_pClimateIndicators;
+//   if ( m_pClimateIndicators != NULL )
+//      delete m_pClimateIndicators;
 
-   if (m_pNAESI != NULL)
+   if ( m_pNAESI != NULL )
       delete m_pNAESI;
    }
 
 
-bool F2RProcess::Init(EnvContext* pEnvContext, LPCTSTR initStr)
+bool F2RProcess::Init( EnvContext *pEnvContext, LPCTSTR initStr )
    {
    //////////////
-   if (calcPopDens)
+   if ( calcPopDens )
       {
-      MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
-      BuildPopDens(pLayer);
+      MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
+      BuildPopDens( pLayer );
       calcPopDens = false;
       }
    ////////////////////
 
-   if (GetSLCCount() == 0)
+   if ( GetSLCCount() == 0 )
       {
-      m_colSLC = pEnvContext->pMapLayer->GetFieldCol("SLC_ID");
-      if (m_colSLC < 0)
+      m_colSLC = pEnvContext->pMapLayer->GetFieldCol( "SLC_ID" );
+      if ( m_colSLC < 0 )
          {
-         Report::ErrorMsg("F2R Error: IDU Coverage is missing 'SLC_ID' field - this is a required field.");
+         Report::ErrorMsg( "F2R Error: IDU Coverage is missing 'SLC_ID' field - this is a required field." );
          return FALSE;
          }
 
       TiXmlDocument doc;
-      bool ok = doc.LoadFile(initStr);
+      bool ok = doc.LoadFile( initStr );
 
-      if (!ok)
-         {
-         Report::ErrorMsg(doc.ErrorDesc());
+      if ( ! ok )
+         {      
+         Report::ErrorMsg( doc.ErrorDesc() );
          return FALSE;
          }
-
+ 
       // start interating through the nodes
-      TiXmlElement* pXmlRoot = doc.RootElement();  // naharp
-      LPCTSTR areaCol = pXmlRoot->Attribute("area_col");
-      if (areaCol == NULL)
+      TiXmlElement *pXmlRoot = doc.RootElement();  // naharp
+      LPCTSTR areaCol = pXmlRoot->Attribute( "area_col" );
+      if ( areaCol == NULL )
          areaCol = "AREA";
-
-      ok = CheckCol(pEnvContext->pMapLayer, m_colArea, areaCol, TYPE_FLOAT, CC_MUST_EXIST);
-      if (!ok)
+   
+      ok = CheckCol( pEnvContext->pMapLayer, m_colArea, areaCol, TYPE_FLOAT, CC_MUST_EXIST );
+      if ( ! ok ) 
          return false;
-
-      BuildSLCs((MapLayer*)pEnvContext->pMapLayer);
+      
+      BuildSLCs( (MapLayer*) pEnvContext->pMapLayer );
       }
 
-   switch (pEnvContext->id)
+   switch( pEnvContext->id )
       {
       case FARM_MODEL:     // 
-      {
-      if (m_pFarmModel == NULL)
-         m_pFarmModel = new FarmModel;
+         {
+         if ( m_pFarmModel == NULL )
+            m_pFarmModel = new FarmModel;
 
-      return m_pFarmModel->Init(pEnvContext, initStr) ? TRUE : FALSE;
-      }
-      break;
+         return m_pFarmModel->Init( pEnvContext, initStr ) ? TRUE : FALSE;
+         }
+         break;
 
       case WILDLIFE:     // wildlife
-      {
-      if (m_pWildlife == NULL)
-         m_pWildlife = new WildlifeModel;
+         {
+         if ( m_pWildlife == NULL )
+            m_pWildlife = new WildlifeModel;
 
-      return m_pWildlife->Init(pEnvContext, initStr) ? TRUE : FALSE;
-      }
-      break;
+         return m_pWildlife->Init( pEnvContext, initStr ) ? TRUE : FALSE;
+         }
+         break;
 
-      case PHOSPHORUS:
-      {
-      if (m_pPhosphorus == NULL)
-         m_pPhosphorus = new PModel;
+      case PHOSPHORUS:  
+         {
+         if ( m_pPhosphorus == NULL )
+            m_pPhosphorus = new PModel;
 
-      return m_pPhosphorus->Init(pEnvContext, initStr) ? TRUE : FALSE;
-      }
-      break;
+         return m_pPhosphorus->Init( pEnvContext, initStr ) ? TRUE : FALSE;
+         }
+         break;
 
-      case NITROGEN:
-      {
-      if (m_pNitrogen == NULL)
-         m_pNitrogen = new NModel;
+      case NITROGEN:  
+         {
+         if ( m_pNitrogen == NULL )
+            m_pNitrogen = new NModel;
 
-      return m_pNitrogen->Init(pEnvContext, initStr) ? TRUE : FALSE;
-      }
-      break;
+         return m_pNitrogen->Init( pEnvContext, initStr ) ? TRUE : FALSE;
+         }
+         break;
 
       //case CLIMATE:  
       //   {
@@ -208,14 +206,14 @@ bool F2RProcess::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       //   }
       //   break;
 
-      case NAESI_HABITAT:
-      {
-      if (m_pNAESI == NULL)
-         m_pNAESI = new NAESIModel;
+      case NAESI_HABITAT:  
+         {
+         if ( m_pNAESI == NULL )
+            m_pNAESI= new NAESIModel;
 
-      return m_pNAESI->Init(pEnvContext, initStr) ? TRUE : FALSE;
-      }
-      break;
+         return m_pNAESI->Init( pEnvContext, initStr ) ? TRUE : FALSE;
+         }
+         break;
 
       default:
          ;
@@ -225,33 +223,33 @@ bool F2RProcess::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    }
 
 
-bool F2RProcess::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
+bool F2RProcess::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
    {
-   switch (pEnvContext->id)
+   switch( pEnvContext->id )
       {
       case FARM_MODEL:
-         if (m_pFarmModel != NULL)
-            return m_pFarmModel->InitRun(pEnvContext) ? TRUE : FALSE;
+         if ( m_pFarmModel != NULL )
+            return m_pFarmModel->InitRun( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case WILDLIFE:     // wildlife
-         if (m_pWildlife != NULL)
-            return m_pWildlife->InitRun(pEnvContext) ? TRUE : FALSE;
+         if ( m_pWildlife != NULL )
+            return m_pWildlife->InitRun( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case PHOSPHORUS:
-         if (m_pPhosphorus != NULL)
-            return m_pPhosphorus->InitRun(pEnvContext) ? TRUE : FALSE;
+         if ( m_pPhosphorus != NULL )
+            return m_pPhosphorus->InitRun( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case NITROGEN:
-         if (m_pNitrogen != NULL)
-            return m_pNitrogen->InitRun(pEnvContext) ? TRUE : FALSE;
+         if ( m_pNitrogen != NULL )
+            return m_pNitrogen->InitRun( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case NAESI_HABITAT:
-         if (m_pNAESI != NULL)
-            return m_pNAESI->InitRun(pEnvContext) ? TRUE : FALSE;
+         if ( m_pNAESI != NULL )
+            return m_pNAESI->InitRun( pEnvContext ) ? TRUE : FALSE;
          break;
       }
 
@@ -260,33 +258,33 @@ bool F2RProcess::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
 
 
-bool F2RProcess::Run(EnvContext* pEnvContext)
+bool F2RProcess::Run( EnvContext *pEnvContext )
    {
-   switch (pEnvContext->id)
+   switch( pEnvContext->id )
       {
       case FARM_MODEL:
-         if (m_pFarmModel != NULL)
-            return m_pFarmModel->Run(pEnvContext) ? TRUE : FALSE;
+         if ( m_pFarmModel != NULL )
+            return m_pFarmModel->Run( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case WILDLIFE:     // wildlife
-         if (m_pWildlife != NULL)
-            return m_pWildlife->Run(pEnvContext) ? TRUE : FALSE;
+         if ( m_pWildlife != NULL )
+            return m_pWildlife->Run( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case PHOSPHORUS:
-         if (m_pPhosphorus != NULL)
-            return m_pPhosphorus->Run(pEnvContext) ? TRUE : FALSE;
+         if ( m_pPhosphorus != NULL )
+            return m_pPhosphorus->Run( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case NITROGEN:
-         if (m_pNitrogen != NULL)
-            return m_pNitrogen->Run(pEnvContext) ? TRUE : FALSE;
+         if ( m_pNitrogen != NULL )
+            return m_pNitrogen->Run( pEnvContext ) ? TRUE : FALSE;
          break;
 
       case NAESI_HABITAT:
-         if (m_pNAESI != NULL)
-            return m_pNAESI->Run(pEnvContext) ? TRUE : FALSE;
+         if ( m_pNAESI != NULL )
+            return m_pNAESI->Run( pEnvContext ) ? TRUE : FALSE;
          break;
       }
 
@@ -296,7 +294,7 @@ bool F2RProcess::Run(EnvContext* pEnvContext)
 
 
 
-bool F2RProcess::EndRun(EnvContext* pEnvContext)
+bool F2RProcess::EndRun(EnvContext *pEnvContext)
    {
    switch (pEnvContext->id)
       {
@@ -305,25 +303,25 @@ bool F2RProcess::EndRun(EnvContext* pEnvContext)
             return m_pFarmModel->EndRun(pEnvContext) ? TRUE : FALSE;
          break;
 
-         //case WILDLIFE:     // wildlife
-         //   if (m_pWildlife != NULL)
-         //      return m_pWildlife->EndRun(pEnvContext) ? TRUE : FALSE;
-         //   break;
-         //
-         //case PHOSPHORUS:
-         //   if (m_pPhosphorus != NULL)
-         //      return m_pPhosphorus->EndRun(pEnvContext) ? TRUE : FALSE;
-         //   break;
-         //
-         //case NITROGEN:
-         //   if (m_pNitrogen != NULL)
-         //      return m_pNitrogen->EndRun(pEnvContext) ? TRUE : FALSE;
-         //   break;
-         //
-         //case NAESI_HABITAT:
-         //   if (m_pNAESI != NULL)
-         //      return m_pNAESI->EndRun(pEnvContext) ? TRUE : FALSE;
-         //   break;
+      //case WILDLIFE:     // wildlife
+      //   if (m_pWildlife != NULL)
+      //      return m_pWildlife->EndRun(pEnvContext) ? TRUE : FALSE;
+      //   break;
+      //
+      //case PHOSPHORUS:
+      //   if (m_pPhosphorus != NULL)
+      //      return m_pPhosphorus->EndRun(pEnvContext) ? TRUE : FALSE;
+      //   break;
+      //
+      //case NITROGEN:
+      //   if (m_pNitrogen != NULL)
+      //      return m_pNitrogen->EndRun(pEnvContext) ? TRUE : FALSE;
+      //   break;
+      //
+      //case NAESI_HABITAT:
+      //   if (m_pNAESI != NULL)
+      //      return m_pNAESI->EndRun(pEnvContext) ? TRUE : FALSE;
+      //   break;
       }
 
    return TRUE;
@@ -331,19 +329,19 @@ bool F2RProcess::EndRun(EnvContext* pEnvContext)
 
 
 
-int F2RProcess::InputVar(int id, MODEL_VAR** modelVar)
+int F2RProcess::InputVar ( int id, MODEL_VAR** modelVar )
    {
    *modelVar = NULL;
 
-   switch (id)
+   switch( id )
       {
       case FARM_MODEL:
-         if (m_inVarCountFarmModel > 0)
+         if ( m_inVarCountFarmModel > 0 )
             {
             *modelVar = m_inputVars.GetData() + m_inVarIndexFarmModel;
             return m_inVarCountFarmModel;
             }
-
+         
       case WILDLIFE:     // wildlife
       case PHOSPHORUS:
       case NITROGEN:
@@ -355,14 +353,14 @@ int F2RProcess::InputVar(int id, MODEL_VAR** modelVar)
    }
 
 
-int F2RProcess::OutputVar(int id, MODEL_VAR** modelVar)
+int F2RProcess::OutputVar( int id, MODEL_VAR** modelVar )
    {
    *modelVar = NULL;
 
-   switch (id)
+   switch( id )
       {
       case FARM_MODEL:
-         if (m_outVarCountFarmModel > 0)
+         if ( m_outVarCountFarmModel > 0 )
             {
             *modelVar = m_outputVars.GetData() + m_outVarIndexFarmModel;
             return m_outVarCountFarmModel;
@@ -370,38 +368,38 @@ int F2RProcess::OutputVar(int id, MODEL_VAR** modelVar)
          break;
 
       case WILDLIFE:     // wildlife
-         if (m_outVarCountWildlife > 0)
+         if ( m_outVarCountWildlife > 0 )
             {
             *modelVar = m_outputVars.GetData() + m_outVarIndexWildlife;
             return m_outVarCountWildlife;
             }
-         break;
-
+        break;
+           
       case PHOSPHORUS:
-         if (m_outVarCountPModel > 0)
+         if ( m_outVarCountPModel > 0 )
             {
             *modelVar = m_outputVars.GetData() + m_outVarIndexPModel;
             return m_outVarCountPModel;
             }
-         break;
+        break;
 
       case NITROGEN:
-         if (m_outVarCountNModel > 0)
+         if ( m_outVarCountNModel > 0 )
             {
             *modelVar = m_outputVars.GetData() + m_outVarIndexNModel;
             return m_outVarCountNModel;
             }
-         break;
+        break;
 
       case NAESI_HABITAT:
-         if (m_outVarCountNaesi > 0)
+         if ( m_outVarCountNaesi > 0 )
             {
             *modelVar = m_outputVars.GetData() + m_outVarIndexNaesi;
             return m_outVarCountNaesi;
             }
          break;
-      }
-
+      }  
+   
    // default
    *modelVar = NULL;
    return 0;
@@ -413,211 +411,210 @@ int F2RProcess::OutputVar(int id, MODEL_VAR** modelVar)
 
 ////////////////////////////////////////////////////
 
-F2RReport::F2RReport()
-   : EnvModelProcess()
-   , m_colArea(-1)
-   , m_colLulc(-1)
-   , m_colDairyAvg(-1)
-   , m_colBeefAvg(-1)
-   , m_colPigsAvg(-1)
-   , m_colPoultryAvg(-1)
-   , m_totalIDUArea(0)
-   , m_totalIDUAreaAg(0)
-   , m_pctCashCrop(0)
-   , m_pctHayPasture(0)
-   , m_hayPastureAreaHa(0)
-   , m_bioenergyAreaHa(0)
-   , m_cropRotationAreaHa(0)
-   , m_fruitAreaHa(0)
-   , m_vegAreaHa(0)
-   , m_beefAreaHa(0)
-   , m_dairyAreaHa(0)
-   , m_pigAreaHa(0)
-   , m_dairyCount(0)
-   , m_beefCount(0)
-   , m_poultryCount(0)
-   , m_pigCount(0)
+F2RReport::F2RReport() 
+: EnvModelProcess()
+, m_colArea( -1 )
+, m_colLulc( -1 )
+, m_colDairyAvg( -1 )
+, m_colBeefAvg( -1 )
+, m_colPigsAvg( -1 )
+, m_colPoultryAvg( -1 )
+, m_totalIDUArea ( 0 )
+, m_totalIDUAreaAg( 0 )
+, m_pctCashCrop( 0 )
+, m_pctHayPasture( 0 )
+, m_hayPastureAreaHa( 0 )
+, m_bioenergyAreaHa( 0 )
+, m_cropRotationAreaHa( 0 )
+, m_fruitAreaHa( 0 )
+, m_vegAreaHa( 0 )
+, m_beefAreaHa( 0 )
+, m_dairyAreaHa( 0 )
+, m_pigAreaHa( 0 )
+, m_dairyCount( 0 )
+, m_beefCount( 0 )
+, m_poultryCount( 0 )
+, m_pigCount( 0 )
+   { }
+
+
+bool F2RReport::Init( EnvContext *pEnvContext, LPCTSTR initStr )
    {
-   }
+   MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
 
-
-bool F2RReport::Init(EnvContext* pEnvContext, LPCTSTR initStr)
-   {
-   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
-
-   m_colArea = pEnvContext->pMapLayer->GetFieldCol("AREA");
-   m_colLulc = pEnvContext->pMapLayer->GetFieldCol("LULC_C");
-   m_colDairyAvg = pEnvContext->pMapLayer->GetFieldCol("DairyAvg");
-   m_colBeefAvg = pEnvContext->pMapLayer->GetFieldCol("BeefAvg");
-   m_colPoultryAvg = pEnvContext->pMapLayer->GetFieldCol("Poultry_Av");
-   m_colPigsAvg = pEnvContext->pMapLayer->GetFieldCol("Pigs_Avg");
+   m_colArea = pEnvContext->pMapLayer->GetFieldCol( "AREA" );
+   m_colLulc = pEnvContext->pMapLayer->GetFieldCol( "LULC_C" );
+   m_colDairyAvg = pEnvContext->pMapLayer->GetFieldCol( "DairyAvg" );
+   m_colBeefAvg  = pEnvContext->pMapLayer->GetFieldCol( "BeefAvg" );
+   m_colPoultryAvg = pEnvContext->pMapLayer->GetFieldCol( "Poultry_Av" );
+   m_colPigsAvg    = pEnvContext->pMapLayer->GetFieldCol( "Pigs_Avg" );
 
    m_totalIDUArea = 0;
 
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
       float area = 0;
-      pLayer->GetData(idu, m_colArea, area);
+      pLayer->GetData( idu, m_colArea, area );
 
       m_totalIDUArea += area;
-      }
+      }      
 
-   AddOutputVar("Fraction of Ag Area in Cash Crops", m_pctCashCrop, "");
-   AddOutputVar("Fraction of Ag Area in Hay-Pasture", m_pctHayPasture, "");
-   AddOutputVar("Area in Crop Rotation (ha)", m_cropRotationAreaHa, "");
-   AddOutputVar("Area in Pasture (ha)", m_hayPastureAreaHa, "");
-   AddOutputVar("Area in Bioenergy Crop (ha)", m_bioenergyAreaHa, "");
-   AddOutputVar("Area in Fruit Crop (ha)", m_fruitAreaHa, "");
-   AddOutputVar("Area in Vegetable Crop (ha)", m_vegAreaHa, "");
-   AddOutputVar("Area in Beef (ha)", m_beefAreaHa, "");
-   AddOutputVar("Area in Dairy (ha)", m_dairyAreaHa, "");
-   AddOutputVar("Area in Pig (ha)", m_pigAreaHa, "");
-   AddOutputVar("Area in Poultry (ha)", m_poultryAreaHa, "");
+   AddOutputVar( "Fraction of Ag Area in Cash Crops", m_pctCashCrop, "" );
+   AddOutputVar( "Fraction of Ag Area in Hay-Pasture", m_pctHayPasture, "" );
+   AddOutputVar( "Area in Crop Rotation (ha)", m_cropRotationAreaHa, "" );
+   AddOutputVar( "Area in Pasture (ha)", m_hayPastureAreaHa, "" );
+   AddOutputVar( "Area in Bioenergy Crop (ha)", m_bioenergyAreaHa, "" );
+   AddOutputVar( "Area in Fruit Crop (ha)", m_fruitAreaHa, "" );
+   AddOutputVar( "Area in Vegetable Crop (ha)", m_vegAreaHa, "" );
+   AddOutputVar( "Area in Beef (ha)", m_beefAreaHa, "" );
+   AddOutputVar( "Area in Dairy (ha)", m_dairyAreaHa, "" );
+   AddOutputVar( "Area in Pig (ha)", m_pigAreaHa, "" );
+   AddOutputVar( "Area in Poultry (ha)", m_poultryAreaHa, "" );
 
-   AddOutputVar("Number of Beef", m_beefCount, "");
-   AddOutputVar("Number of Dairy", m_dairyCount, "");
-   AddOutputVar("Number of Pig", m_pigCount, "");
-   AddOutputVar("Number of Poultry", m_poultryCount, "");
+   AddOutputVar( "Number of Beef",    m_beefCount, "" );
+   AddOutputVar( "Number of Dairy",   m_dairyCount, "" );
+   AddOutputVar( "Number of Pig",     m_pigCount, "" );
+   AddOutputVar( "Number of Poultry", m_poultryCount, "" );
    return TRUE;
    }
 
 
-bool F2RReport::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
+bool F2RReport::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
    {
-   Run(pEnvContext);
-
+   Run( pEnvContext );
+     
    return TRUE;
    }
 
 
 
-bool F2RReport::Run(EnvContext* pEnvContext)
+bool F2RReport::Run( EnvContext *pEnvContext )
    {
-   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
+   MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
 
-   int colLulcA = pLayer->GetFieldCol("LULC_A");
+   int colLulcA = pLayer->GetFieldCol( "LULC_A");
 
    m_totalIDUAreaAg = 0;
-   m_pctCashCrop = 0;
-   m_pctHayPasture = 0;
+   m_pctCashCrop    = 0;
+   m_pctHayPasture  = 0;
 
    m_hayPastureAreaHa = 0;
    m_bioenergyAreaHa = 0;
    m_cropRotationAreaHa = 0;
    m_fruitAreaHa = 0;
-   m_vegAreaHa = 0;
+   m_vegAreaHa   = 0;
 
-   m_beefAreaHa = 0;
+   m_beefAreaHa  = 0;
    m_dairyAreaHa = 0;
-   m_pigAreaHa = 0;
+   m_pigAreaHa   = 0;
    m_poultryAreaHa = 0;
 
-   m_beefCount = 0;
+   m_beefCount  = 0;
    m_dairyCount = 0;
-   m_pigCount = 0;
+   m_pigCount   = 0;
    m_poultryCount = 0;
-
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
       float area = 0;
-      pLayer->GetData(idu, m_colArea, area);
+      pLayer->GetData( idu, m_colArea, area );
 
       int lulcA = 0;
-      pLayer->GetData(idu, colLulcA, lulcA);
-
-      if (lulcA == 2 || lulcA == 3)   // ag?
+      pLayer->GetData( idu, colLulcA, lulcA );
+      
+      if ( lulcA == 2 || lulcA == 3 )   // ag?
          {
          m_totalIDUAreaAg += area;
 
          int lulc = 0;
-         pLayer->GetData(idu, m_colLulc, lulc);
+         pLayer->GetData( idu, m_colLulc, lulc );
 
-         if (IsCashCrop(lulc))
+         if ( IsCashCrop( lulc ) )
             m_pctCashCrop += area;
-         else if (lulc == 50) // Pasture
+         else if ( lulc == 50 ) // Pasture
             m_pctHayPasture += area;
 
          // bioenergy? fruits?  veggies?
-         switch (lulc)
+         switch( lulc )
             {
-            case 50: m_hayPastureAreaHa += area;   break;
+            case 50: m_hayPastureAreaHa += area;   break; 
             case 300:
-            case 301: m_bioenergyAreaHa += area;   break;
+            case 301: m_bioenergyAreaHa  += area;   break;
 
-            case 180: m_fruitAreaHa += area;   break;
-            case 179: m_vegAreaHa += area;   break;
+            case 180: m_fruitAreaHa      += area;   break;
+            case 179: m_vegAreaHa        += area;   break;
             }
 
          // crop rotation?
-         if (theProcess->m_pFarmModel)
+         if ( theProcess->m_pFarmModel )
             {
             int rotationID = 0;
-            pLayer->GetData(idu, theProcess->m_pFarmModel->m_colRotation, rotationID);
-
+            pLayer->GetData( idu, theProcess->m_pFarmModel->m_colRotation, rotationID );
+      
             // are we in a rotation?  If so, move through the rotation
-            if (rotationID > 0)
+            if ( rotationID > 0 )
                m_cropRotationAreaHa += area;
             }
          }
 
       // animal operation?
       float beefAvg = 0;
-      pLayer->GetData(idu, m_colBeefAvg, beefAvg);
-      if (beefAvg > 0)
+      pLayer->GetData( idu, m_colBeefAvg, beefAvg );
+      if ( beefAvg > 0 )
          {
-         m_beefCount += beefAvg;  // UNITS????
+         m_beefCount  += beefAvg;  // UNITS????
          m_beefAreaHa += area;
          }
 
       float dairyAvg = 0;
-      pLayer->GetData(idu, m_colDairyAvg, dairyAvg);
-      if (dairyAvg > 0)
+      pLayer->GetData( idu, m_colDairyAvg, dairyAvg );
+      if ( dairyAvg > 0 )
          {
-         m_dairyCount += dairyAvg;
+         m_dairyCount  += dairyAvg;
          m_dairyAreaHa += area;
          }
 
       float pigAvg = 0;
-      pLayer->GetData(idu, m_colPigsAvg, pigAvg);
-      if (pigAvg > 0)
+      pLayer->GetData( idu, m_colPigsAvg, pigAvg );
+      if ( pigAvg > 0 )
          {
          m_pigCount += pigAvg;
          m_pigAreaHa += area;
          }
 
       float poultryAvg = 0;
-      pLayer->GetData(idu, m_colPoultryAvg, poultryAvg);
-      if (poultryAvg > 0)
+      pLayer->GetData( idu, m_colPoultryAvg, poultryAvg );
+      if ( poultryAvg > 0 )
          {
          m_poultryCount += poultryAvg;
          m_poultryAreaHa += area;
          }
       }
 
-   m_pctCashCrop *= (100 / m_totalIDUAreaAg);
-   m_pctHayPasture *= (100 / m_totalIDUAreaAg);
+   m_pctCashCrop    *= ( 100 / m_totalIDUAreaAg );
+   m_pctHayPasture  *= ( 100 / m_totalIDUAreaAg );
 
-   m_cashCropRatio = 100 * m_pctCashCrop / (m_pctCashCrop + m_pctHayPasture);
-   m_hayPastureRatio = 100 * m_pctHayPasture / (m_pctCashCrop + m_pctHayPasture);
+   m_cashCropRatio   = 100 * m_pctCashCrop   / ( m_pctCashCrop + m_pctHayPasture );
+   m_hayPastureRatio = 100 * m_pctHayPasture / ( m_pctCashCrop + m_pctHayPasture );
 
-   m_hayPastureAreaHa /= M2_PER_HA;
-   m_bioenergyAreaHa /= M2_PER_HA;
+   m_hayPastureAreaHa   /= M2_PER_HA;
+   m_bioenergyAreaHa    /= M2_PER_HA;
    m_cropRotationAreaHa /= M2_PER_HA;
-   m_fruitAreaHa /= M2_PER_HA;
-   m_vegAreaHa /= M2_PER_HA;
+   m_fruitAreaHa        /= M2_PER_HA;
+   m_vegAreaHa          /= M2_PER_HA;
 
-   m_beefAreaHa /= M2_PER_HA;
-   m_dairyAreaHa /= M2_PER_HA;
-   m_pigAreaHa /= M2_PER_HA;
+   m_beefAreaHa    /= M2_PER_HA;
+   m_dairyAreaHa   /= M2_PER_HA;
+   m_pigAreaHa     /= M2_PER_HA;
    m_poultryAreaHa /= M2_PER_HA;
 
    return TRUE;
    }
 
 
-bool F2RReport::IsCashCrop(int lulcC)
+bool F2RReport::IsCashCrop( int lulcC )
    {
-   switch (lulcC)
+   switch( lulcC )
       {
       case 167:      // Beans
       case 162:      // Peas
@@ -646,114 +643,114 @@ bool F2RReport::IsCashCrop(int lulcC)
 //---------------------------------------------------------------------------
 
 
-bool F2RProcess::BuildSLCs(MapLayer* pLayer)
+bool F2RProcess::BuildSLCs( MapLayer *pLayer )
    {
    m_slcArray.RemoveAll();
    m_slcIDtoIndexMap.RemoveAll();
-
-   if (m_colSLC < 0)
+   
+   if ( m_colSLC < 0 )
       return false;
 
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
       // get SLC
       int slcID = -1;
-      pLayer->GetData(idu, m_colSLC, slcID);
-
-      if (slcID < 0)
+      pLayer->GetData( idu, m_colSLC, slcID );
+      
+      if ( slcID < 0 )
          continue;
 
-      SLC* pSLC = NULL;
+      SLC *pSLC = NULL;
 
       int index = -1;
-      bool ok = m_slcIDtoIndexMap.Lookup(slcID, index);
+      bool ok = m_slcIDtoIndexMap.Lookup( slcID, index );
 
-      if (ok) // already seen this one?  then no further action required
-         pSLC = m_slcArray[index];
+      if  ( ok ) // already seen this one?  then no further action required
+         pSLC = m_slcArray[ index ];
       else
          {
          pSLC = new SLC;
-         INT_PTR index = m_slcArray.Add(pSLC);
-         m_slcIDtoIndexMap.SetAt(slcID, (int)index);
+         INT_PTR index = m_slcArray.Add( pSLC );
+         m_slcIDtoIndexMap.SetAt( slcID, (int) index );
 
-         pSLC->m_slcNumber = slcID;
+         pSLC->m_slcNumber=slcID;
          }
 
-      pSLC->m_iduArray.Add(idu);
-
+      pSLC->m_iduArray.Add( idu );
+      
       float area = 0;
-      pLayer->GetData(idu, m_colArea, area);
+      pLayer->GetData( idu, m_colArea, area );
       pSLC->m_area += area;
       }  // end of: for ( idu < iduCount )
 
    return true;
    }
 
-bool F2RProcess::BuildPopDens(MapLayer* pLayer)
+bool F2RProcess::BuildPopDens( MapLayer *pLayer )
    {
-   int colID = pLayer->GetFieldCol("DBUID");
-   int colArea = pLayer->GetFieldCol("AREA");
-   int colPop = pLayer->GetFieldCol("POPULATION");
-   int colPopDens = pLayer->GetFieldCol("POPDENS");
-
+   int colID   = pLayer->GetFieldCol( "DBUID" );
+   int colArea = pLayer->GetFieldCol( "AREA" );
+   int colPop  = pLayer->GetFieldCol( "POPULATION" );
+   int colPopDens  = pLayer->GetFieldCol( "POPDENS" );
+   
    CStringArray idArray;
-   pLayer->GetUniqueValues(colID, idArray);
+   pLayer->GetUniqueValues( colID, idArray );
 
-   QueryEngine qe(pLayer);
+   QueryEngine qe( pLayer );
 
    CArray< float > cuAreaArray;
-   cuAreaArray.SetSize(idArray.GetSize());
+   cuAreaArray.SetSize( idArray.GetSize() );
 
    CArray< float > cuPopArray;
-   cuPopArray.SetSize(idArray.GetSize());
+   cuPopArray.SetSize( idArray.GetSize() );
 
-   for (int i = 0; i < (int)idArray.GetSize(); i++)
+   for ( int i=0; i < (int) idArray.GetSize(); i++ )
       {
-      cuAreaArray[i] = 0;
-      cuPopArray[i] = 0;
+      cuAreaArray[ i ] = 0;
+      cuPopArray[ i ] = 0;
       }
 
    CString msg;
-   msg.Format("Initializing PopDens - %i Census units found", (int)idArray.GetSize());
-   Report::Log(msg);
+   msg.Format( "Initializing PopDens - %i Census units found", (int) idArray.GetSize() );
+   Report::Log( msg );
 
-   for (int i = 0; i < (int)idArray.GetSize(); i++)
+   for ( int i=0; i < (int) idArray.GetSize(); i++ )
       {
-      if (i % 10 == 0)
+      if ( i % 10 == 0 )
          {
          CString msg;
-         msg.Format("PopDens: processing %i of %i census units", i, (int)idArray.GetSize());
-         Report::StatusMsg(msg);
+         msg.Format( "PopDens: processing %i of %i census units", i, (int) idArray.GetSize() );
+         Report::StatusMsg( msg );
          }
-
+      
       CString query;
-      query.Format("CDUID=%s", idArray[i]);
+      query.Format( "CDUID=%s", idArray[ i ] );
 
-      Query* pQuery = qe.ParseQuery(query, 0, "");
+      Query *pQuery = qe.ParseQuery( query, 0, "" );
 
-      int selCount = pQuery->Select(true);
+      int selCount = pQuery->Select( true );
 
-      for (int j = 0; j < selCount; j++)
+      for ( int j=0; j < selCount; j++ )
          {
-         int idu = pLayer->GetSelection(j);
-
+         int idu = pLayer->GetSelection( j );
+          
          float area = 0;
-         pLayer->GetData(idu, colArea, area);
+         pLayer->GetData( idu, colArea, area );
 
          float pop = 0;
-         pLayer->GetData(idu, colPop, pop);
+         pLayer->GetData( idu, colPop, pop );
 
-         cuAreaArray[i] += area;
-         cuPopArray[i] += pop;
+         cuAreaArray[ i ] += area;
+         cuPopArray[ i ]  += pop;
          }
 
       // have sums, now distribute to IDUs
-      float popDens = cuPopArray[i] / cuAreaArray[i];
+      float popDens = cuPopArray[ i ] / cuAreaArray[ i ];
 
-      for (int j = 0; j < selCount; j++)
+      for ( int j=0; j < selCount; j++ )
          {
-         int idu = pLayer->GetSelection(j);
-         pLayer->SetData(idu, colPopDens, popDens);
+         int idu = pLayer->GetSelection( j );
+         pLayer->SetData( idu, colPopDens, popDens );
          }
       }
 

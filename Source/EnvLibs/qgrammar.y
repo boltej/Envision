@@ -2,7 +2,7 @@
 
 %{
 #include "stdafx.h"
-#include "libs.h"
+#include "EnvLibs.h"
 #pragma hdrstop
 
 #include <QueryEngine.h>
@@ -13,15 +13,14 @@
 extern QueryEngine *_gpQueryEngine;
 extern char *gQueryBuffer;
 extern MapLayer *gFieldLayer;
+extern int gUserFnIndex;
 char functionBuffer[ 128 ];
 bool QShowCompilerErrors = true;
 TCHAR QSource[ 256 ];
 TCHAR QQueryStr[ 512 ];
 int   QCurrentLineNo = 0;
 
-
 //#define YYDEBUG
-
 
 //---- prototypes -----
 
@@ -30,7 +29,7 @@ int   QIsReserved ( char **p );
 int   QIsFunction( char **p );
 int   QIsFieldCol( char **p );
 MapLayer *QIsMapLayer( char **p );
-QExternal *QIsExtern( char **p );
+QExternal *QIsExternal( char **p );
 char *QParseString( char **p );
 void  QCompilerError( LPCSTR errMsg, LPSTR buffer );
 void  yyerror( const char* );
@@ -62,13 +61,14 @@ int   yylex( void );
 %token <pStr>   STRING
 %token <pExternal> EXTERNAL 
 %token <ivalue> FIELD
-%token <ivalue> INDEX NEXTTO NEXTTOAREA WITHIN WITHINAREA EXPAND MOVAVG CHANGED TIME DELTA
+%token <ivalue> INDEX NEXTTO NEXTTOAREA WITHIN WITHINAREA EXPAND MOVAVG CHANGED TIME DELTA USERFN2
 %token <ivalue> EQ LT LE GT GE NE CAND COR CONTAINS 
-%token <ivalue> AND OR
+%token <ivalue> AND OR NOT
 %token <pMapLayer> MAPLAYER
 
 %right AND
 %right OR
+%right NOT
 %left  GE LE EQ NE LT GT CAN COR CONTAINS
 %left FIELD 
 %left  '+' '-'
@@ -113,6 +113,7 @@ querySet:
 
 queryExpr:
    queryExpr logicalOp queryExpr   { $$ = new QNode( $1, $2, $3 ); }
+|  NOT queryExpr                 { $$ = new QNode( (QNode*)NULL, NOT, $2 ); }
 |  conditional                     { $$ = $1; }
 |  '(' queryExpr ')'               { $$ = $2; }
 ;
@@ -154,7 +155,7 @@ conditionalOp:
 *     AREA          <-- simple fieldRef expression
 *     AREA * 10     <-- numeric expression
 *     13            <-- numeric value
-*     $TotalValue   <-- external value set at runtime by some other process
+*     @TotalValue   <-- external value set at runtime by some other process
 *     [1,2,5,6]     <-- a set of values
 */
 
@@ -209,9 +210,8 @@ function:
 |  CHANGED    '(' FIELD ')'                            { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3 ); }
 |  TIME       '(' ')'                                  { $$ = _gpQueryEngine->AddFunctionArgs( $1 ); }
 |  DELTA      '(' fieldExpr ',' fieldExpr ')'          { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5 ); }
+|  USERFN2    '(' INTEGER ',' INTEGER ')'              { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5 ); }
 ;
-
-
 %%
 
 struct KEYWORD { int type; const char *keyword; int ivalue; };
@@ -224,6 +224,7 @@ const int BUILTIN_FN   = 2;
 KEYWORD fKeywordArray[] = 
 { { OPERATOR,      "and ",       AND  },
   { OPERATOR,      "or ",        OR   },
+  { OPERATOR,      "not ",       NOT   },
   { OPERATOR,      "contains ",  CONTAINS   },
 
   //-- integer constants --//
@@ -254,7 +255,7 @@ top:
       p +=2;
 cycle:
       char *end = strchr( p, '*' );
-      if ( end == '\0' )
+      if ( end == (char*) '\0' )
         {
         QCompilerError( "Unterminated comment found", p );
         //QCurrentLineNo = 0;
@@ -475,15 +476,14 @@ cycle:
       return FIELD;
       }
 
-	// or a appvar name?
+	// or an external/appvar name?
 	QExternal *pExt = QIsExternal( &p );
 	if ( pExt != NULL )
 	   {
        gQueryBuffer = p;
-       yylval.ivalue = col;
+       yylval.pExternal = pExt;
        return EXTERNAL;
-	
-
+       }
 
    // is it a number?
    bool negative = false;
@@ -592,32 +592,33 @@ int QIsFieldCol( char **p )
    }
 
 // check to see if the string is a External Variable (AppVar).  If so, increment cursor to
-// following character and return variable name (id).  Othewise, do nothing and return -1
+// following character and return variable name (id).  Othewise, do nothing and return NULL
 
-QExternal *QIsExternal( char **p )
-   {
-   if ( ! isalpha( (int) (**p ) ) && **p != '_' )	// has to start with alpha or underscore
-      return -1;
+   QExternal *QIsExternal(char **p)
+      {
+      if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
+         return NULL;
 
-	TCHAR name[64];
-	memset( name, 0, 64 );
-	TCHAR *ptr = *p;
-	int index = 0;
-	while (( isalnum( (int) (*ptr ) ) || *ptr == '_' || *ptr == '.'  )	// has to start with alpha or underscore
-		{
-		name[index] = *ptr;
-		ptr++;
-		}
+      TCHAR name[64];
+      memset(name, 0, 64);
+      TCHAR *ptr = *p;
+      int index = 0;
+      while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// can only contain 'a-Z', '0-9', '_','.'  with alpha or underscore
+         {
+         name[index] = *ptr;
+         index++;
+         ptr++;
+         }
 
-	// ptr pts to the first position after the name.  See if the name matches an extern id
-	QExternal *pExt = _gpQueryEngine->FindExternal( name );
-	if ( pExt == NULL )
-	   return NULL;
+      // ptr pts to the first position after the name.  See if the name matches an extern id
+      QExternal *pExt = _gpQueryEngine->FindExternal(name);
+      if (pExt == NULL)
+         return NULL;
 
-	// found, so return found external
-	*p = ptr;
-	return pExt;
-	}
+      // found, so return found external
+      *p = ptr;
+      return pExt;
+      }
 
 
 MapLayer *QIsMapLayer( char **p )
@@ -708,6 +709,26 @@ int QIsFunction( char **p )
       return TIME;
       }
 
+    // is it a user defined function?
+    for (int i=0; i < _gpQueryEngine->GetUserFnCount();i++)
+        {
+        QUserFn *pFn = _gpQueryEngine->GetUserFn(i);
+        if ( _strnicmp(pFn->m_name, *p, pFn->m_name.GetLength()) == 0 )
+            {
+            gUserFnIndex = i;
+            *p += pFn->m_name.GetLength();
+
+            switch( pFn->m_nArgs)
+                {
+                //case 0:
+                //    return USERFN0;
+                //case 1:
+                //    return USERFN1;
+                case 2:
+                    return USERFN2;
+                }
+            }
+        }
 
    return -1;
    }
@@ -721,7 +742,7 @@ int QIsReserved( char **p )
    int i=0;
    while ( fKeywordArray[ i ].keyword != NULL )
       {
-      char *keyword = fKeywordArray[ i ].keyword;
+      const char *keyword = fKeywordArray[ i ].keyword;
       if ( _strnicmp( *p, keyword, lstrlen( keyword ) ) == 0 )
          {
          *p += lstrlen( keyword );
@@ -774,7 +795,7 @@ void QCompilerError( LPCSTR errorStr, LPSTR buffer )
 
 
 
-void yyerror( char *msg )
+void yyerror( const char *msg )
    {
    QCompilerError( msg, gQueryBuffer );
    }

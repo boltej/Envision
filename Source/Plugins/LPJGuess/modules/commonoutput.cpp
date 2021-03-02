@@ -31,6 +31,9 @@ REGISTER_OUTPUT_MODULE("common", CommonOutput)
 CommonOutput::CommonOutput() {
 	// Annual output variables
 	declare_parameter("file_cmass", &file_cmass, 300, "C biomass output file");
+
+	declare_parameter("file_age", &file_age, 300, "age output file");
+
 	declare_parameter("file_anpp", &file_anpp, 300, "Annual NPP output file");
 	declare_parameter("file_agpp", &file_agpp, 300, "Annual GPP output file");
 	declare_parameter("file_fpc", &file_fpc, 300, "FPC output file");
@@ -149,6 +152,9 @@ void CommonOutput::define_output_tables() {
 	cmass_columns += ColumnDescriptors(pfts,               8, 3);
 	cmass_columns += ColumnDescriptor("Total",             8, 3);
 	cmass_columns += ColumnDescriptors(landcovers,        13, 3);
+
+	// AGE
+	ColumnDescriptors age_columns = cmass_columns;
 
 	// ANPP
 	ColumnDescriptors anpp_columns = cmass_columns;
@@ -338,6 +344,8 @@ void CommonOutput::define_output_tables() {
 	create_output_table(out_vmaxnlim,       file_vmaxnlim,       vmaxnlim_columns);
 	create_output_table(out_nflux,          file_nflux,          nflux_columns);
 	create_output_table(out_ngases,         file_ngases,         ngases_columns);
+
+	create_output_table(out_age, file_age, age_columns);
 
 	// *** MONTHLY OUTPUT VARIABLES ***
 
@@ -628,8 +636,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double landcover_amon[NLANDCOVERTYPES]={0.0};
 	double landcover_nuptake[NLANDCOVERTYPES]={0.0};
 	double landcover_vmaxnlim[NLANDCOVERTYPES]={0.0};
+	double landcover_age[NLANDCOVERTYPES] = { 0.0 };
 
 	double mean_standpft_cmass=0.0;
+	double mean_standpft_age = 0.0;
 	double mean_standpft_nmass=0.0;
 	double mean_standpft_cmass_leaf=0.0;
 	double mean_standpft_nmass_leaf=0.0;
@@ -649,6 +659,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double mean_standpft_vmaxnlim=0.0;
 
 	double cmass_gridcell=0.0;
+	double age_gridcell = 0.0;
 	double nmass_gridcell= 0.0;
 	double cmass_leaf_gridcell=0.0;
 	double nmass_leaf_gridcell=0.0;
@@ -699,7 +710,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	double standpft_amon=0.0;
 	double standpft_nuptake=0.0;
 	double standpft_vmaxnlim=0.0;
-
+	double standpft_age = 0.0;
 
 	// *** Loop through PFTs ***
 
@@ -773,9 +784,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			standpft_amon=0.0;
 			standpft_nuptake=0.0;
 			standpft_vmaxnlim=0.0;
+			standpft_age = 0.0;
 
 			stand.firstobj();
-
+			int numPfts = 0;
 			// Loop through Patches
 			while (stand.isobj) {
 				Patch& patch = stand.getobj();
@@ -789,11 +801,11 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 
 				standpft_clitter += patchpft.litter_leaf + patchpft.litter_root + patchpft.litter_sap + patchpft.litter_heart + patchpft.litter_repr;
 				standpft_nlitter += patchpft.nmass_litter_leaf + patchpft.nmass_litter_root + patchpft.nmass_litter_sap + patchpft.nmass_litter_heart;
-
+				
 					vegetation.firstobj();
 					while (vegetation.isobj) {
 						Individual& indiv=vegetation.getobj();
-
+						
 						if (indiv.id!=-1 && indiv.alive) {
 
 							if (indiv.pft.id==pft.id) {
@@ -806,13 +818,14 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								standpft_fpc += indiv.fpc;
 								standpft_aaet += indiv.aaet;
 								standpft_lai += indiv.lai;
+								standpft_age += indiv.age;
 								if (pft.lifeform==TREE) {	
 									standpft_densindiv_total += indiv.densindiv;
 									heightindiv_total += indiv.height * indiv.densindiv;
 								}
 								standpft_vmaxnlim += indiv.avmaxnlim * indiv.cmass_leaf;
 								standpft_nuptake += indiv.anuptake;
-
+								
 								if(pft.landcover == CROPLAND) {
 									standpft_cmass_veg += indiv.cmass_leaf + indiv.cmass_root;
 									if(indiv.cropindiv) {
@@ -824,14 +837,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 								else {
 
 									standpft_cmass_veg += indiv.cmass_veg;
-
+								
 								}
+							numPfts++;
 							}
 
 						} // alive?
 						vegetation.nextobj();
 					}
-
+				//	standpft_age += patch.age;
 					stand.nextobj();
 				} // end of patch loop
 
@@ -854,6 +868,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				standpft_nuptake/=(double)stand.npatch();
 				standpft_vmaxnlim/=(double)stand.npatch();
 				heightindiv_total/=(double)stand.npatch(); // missing above!
+				standpft_age/=(double)stand.npatch();
+				if (numPfts > 0.0f)
+				   standpft_age/=numPfts;
 
 				if (!negligible(standpft_cmass_leaf))
 					standpft_vmaxnlim /= standpft_cmass_leaf;
@@ -879,9 +896,10 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				landcover_amon[stand.landcover]+=standpft_amon*stand.get_landcover_fraction();
 				landcover_nuptake[stand.landcover]+=standpft_nuptake*stand.get_landcover_fraction();
 				landcover_vmaxnlim[stand.landcover]+=standpft_vmaxnlim*stand.get_landcover_fraction();
-
+				landcover_age[stand.landcover] += standpft_age * stand.get_landcover_fraction();
 				//Update pft means for active stands
 				mean_standpft_cmass += standpft_cmass * stand.get_gridcell_fraction() / active_fraction;
+				mean_standpft_age += standpft_age * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_nmass += standpft_nmass * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_cmass_leaf += standpft_cmass_leaf * stand.get_gridcell_fraction() / active_fraction;
 				mean_standpft_nmass_leaf += standpft_nmass_leaf * stand.get_gridcell_fraction() / active_fraction;
@@ -903,11 +921,15 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				//Update stand totals
 				stand.anpp += standpft_anpp;
 				stand.cmass += standpft_cmass;
+				
 
 				// Update gridcell totals
 				double fraction_of_gridcell = stand.get_gridcell_fraction();
 
 				cmass_gridcell+=standpft_cmass*fraction_of_gridcell;
+
+				age_gridcell += standpft_age * fraction_of_gridcell;
+
 				nmass_gridcell+=standpft_nmass*fraction_of_gridcell;
 				cmass_leaf_gridcell+=standpft_cmass_leaf*fraction_of_gridcell;
 				nmass_leaf_gridcell+=standpft_nmass_leaf*fraction_of_gridcell;
@@ -951,6 +973,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		double standpft_mean_cton_leaf = limited_cton(mean_standpft_cmass_leaf, mean_standpft_nmass_leaf);
 
 		outlimit(out,out_cmass,     mean_standpft_cmass);
+		outlimit(out, out_age,      mean_standpft_age);
 		outlimit(out,out_anpp,      mean_standpft_anpp);
 		outlimit(out,out_agpp,      mean_standpft_agpp);
 		outlimit(out,out_fpc,       mean_standpft_fpc);
@@ -967,7 +990,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 		outlimit(out,out_nlitter,   mean_standpft_nlitter * m2toha);
 
 	//	if (mean_standpft_lai > 0.0f)
-		   gridcell.pHRU->m_biomass = mean_standpft_lai;//kbv
+		//HRU* pHRU = gridcell.m_hruArray[0];
+		HRU* pHRU = gridcell.pHRU;
+		pHRU->m_biomass = mean_standpft_lai;//kbv
 		// print species heights
 		double height = 0.0;
 		if (mean_standpft_densindiv_total > 0.0)
@@ -1147,6 +1172,9 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 	}
 
 	outlimit(out,out_cmass,  cmass_gridcell);
+
+	outlimit(out, out_age, age_gridcell);
+
 	outlimit(out,out_anpp,   anpp_gridcell);
 	outlimit(out,out_agpp,   agpp_gridcell);
 	outlimit(out,out_fpc,    fpc_gridcell);
@@ -1199,6 +1227,8 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 				if (landcover_cmass_leaf[i] > 0.0) {
 					landcover_vmaxnlim[i] /= landcover_cmass_leaf[i];
 				}
+
+				outlimit(out, out_age, landcover_age[i]);
 
 				outlimit(out,out_nmass,     (landcover_nmass[i] + landcover_nlitter[i]) * m2toha);
 				outlimit(out,out_cton_leaf, landcover_cton_leaf);
@@ -1441,7 +1471,7 @@ void CommonOutput::outannual(Gridcell& gridcell) {
 			output_vegetation(gridcell, pftlist);
 		}
 	}
-//	gridcell.pHRU->m_biomass = mean_standpft_lai;
+	gridcell.pHRU->m_biomass = mean_standpft_lai;
 }
 
 /// Output of simulation results at the end of each day

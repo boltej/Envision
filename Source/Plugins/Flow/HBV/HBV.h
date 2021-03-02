@@ -89,6 +89,7 @@ public:
    float GroundWaterRechargeFraction(float precip,float waterDepth, float FC,  float Beta); 
    float Percolation(float waterDepth, float kPerc);
    float PercolationHBV(float waterDepth, float kPerc);
+   float PercolationHBV_GW(float waterVolume, float kPerc);
 
    //HBV Horizontal
    float Q0( float waterDepth, float k0, float k1, float UZL );
@@ -102,6 +103,9 @@ public:
 public:  // these should be phased out
    float HBV_HorizontalwSnow( FlowContext *pFlowContext );
    float HBV_VerticalwSnow( FlowContext *pFlowContext );
+
+   float ExchangeFlowToCalvin(FlowContext *pFlowContext);
+   float ExchangeCalvinToFlow(FlowContext *pFlowContext);
 
 protected:
    float ET( float waterDepth, float fc, float lp, float wp, float temp, int month, int doy, float &etRc);
@@ -118,6 +122,8 @@ protected:
 	int   m_colIDUArea;				// IDU area from IDU layer
 	int   m_colUGB;					// IDU UGB from IDU layer
 
+
+   float GetMean(FDataObj *pData, int col, int startRow, int numRows);
 // public (exported) methods
 public:
    //-------------------------------------------------------------------

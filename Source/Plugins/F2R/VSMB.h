@@ -54,6 +54,7 @@ class SoilLayerParams
       float m_DUL;                  //  Drained upper limit = "FIELDCAP" / 100 (ratio)
       float m_PLL;                  //  lower limit of plant extractable soil water = "WILTINGPT" / 100 (ratio)
       float m_AWHC;                 //  zone available water holding capacity = calculated from values above (mm)
+      float m_permWilt;
       //float voidCapacity;         //  void capacity(total porosity) for each zone
       // float m_WF;                //  weighting factor??? - calculated and used only in determineInfiltrationAndRunoff() not needed here
    };
@@ -79,14 +80,14 @@ class SoilLayerInfo
 
       // constructor
       SoilLayerInfo(SoilLayerParams *pParams)
-         : m_soilMoistContent(0)
+         : m_soilMoistContent(100.f)
          , m_kCoef(0)
          , m_SW(0)
          , m_SWX(0)
          , m_flux(0)
          , m_waterLoss(0)
          , m_drain(0)
-         , m_content2(0)
+         , m_content2(100.f)
          , m_delta(0)
          , m_pLayerParams(pParams)
          { }
@@ -128,8 +129,29 @@ class SoilInfo
          , m_soilTempHistory(3)   // three day window
          , m_snowLoss(0)
          , m_snowCover(0)
-         , m_petMethod(VPM_PRIESTLEY_TAYLOR)
+         , m_petMethod(VPM_BAIER_ROBERTSON)
+         , m_runoff(0)
+         , m_runoffFrozen(0)
+         , m_surfaceWater(0)
+         , m_percentAWC(0)
+         , m_avSWC(0)
+         , m_percentSat(0)
+         , m_pResults(NULL)
+         , m_pSoilMoistureResults(NULL)
+         , m_pRootCoefficientTable(NULL)
          { }
+
+      SoilInfo::~SoilInfo(void)
+      {
+         if (m_pSoilMoistureResults != NULL)
+            delete m_pSoilMoistureResults;
+
+         if (m_pResults != NULL)
+            delete m_pResults;
+
+         if (m_pRootCoefficientTable != NULL)//Should be member of VSMBModel
+            delete m_pRootCoefficientTable;
+      }
 
       // dynamic variables
       float m_tMin;
@@ -153,7 +175,12 @@ class SoilInfo
       float m_soilTempLast;
       float m_deficitTotal;
       float m_snowLoss;
-
+      float m_runoff;
+      float m_runoffFrozen;
+      float m_surfaceWater;
+      float m_percentAWC;
+      float m_avSWC;
+      float m_percentSat;
       MovingWindow m_soilTempHistory;
 
       // state variables
@@ -165,24 +192,27 @@ class SoilInfo
       // static variables
       int m_idu;
       ClimateStation *m_pClimateStation;
-
       PtrArray<SoilLayerInfo> m_soilLayerArray;
-      
-      bool UpdateSoilMoisture(int year, int doy);
+      FDataObj *m_pResults;
+      FDataObj *m_pSoilMoistureResults;
+      FDataObj *m_pRootCoefficientTable;
 
+      
+      bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation);
+      int WriteSoilResults(LPCTSTR name);
    protected:
-      bool DeterminePrecipitationType(int year, int doy);   // sets m_rain, m_snow based on m_precip
+      bool DeterminePrecipitationType(int year, int doy, ClimateStation* pStation);   // sets m_rain, m_snow based on m_precip
 
       bool DetermineSnowEquivalent(float snowCoef);
 
       //bool DetermineDayAverageTemp();               // obsolete - just call climate station
       //bool CalculatePhenology(int currentDate);     // Calculate the proper Phenology - not implemented in Python code
       
-      bool DetermineAdjustedPET(int year, int doy);    // determine adjustedPET(adjustment based on snow cover)
+      bool DetermineAdjustedPET(int year, int doy, ClimateStation* pStation);    // determine adjustedPET(adjustment based on snow cover)
       bool DetermineSoilSurfaceTemp(int year, int doy);   //  determine soil surface temperature
       bool DetermineThreeDaySoilSurfaceAverage();         //  determine 3 day running average for soil temperature
       bool DetermineSnowBudget();                     //  determine snow budget
-      bool DeterminePotentialDailyMelt();
+      bool DeterminePotentialDailyMelt(int doy, float tAvg);
       bool DetermineRetentionAndLoss();
       bool DetermineInfiltrationAndRunoff();
       bool DetermineSnowDepletion();
@@ -191,31 +221,58 @@ class SoilInfo
       bool CalculateDrainageAndSoilWaterDistribution();        //  calculate drainage and soil water distribution
       bool AccountForMoistureRedistributionOrUnsaturatedFlow();
 
+      float GetMcKayValue(int iDayOfYear, float dMeanTemp);
+      float  get_z_table1(int val);
+      float  get_z_table2(int val);
+     // float GetTempIndex(float dTemperature);
+
       // new
       int GetLayerCount() { return (int)m_soilLayerArray.GetSize(); }
       float GetTotalSoilMoistContent();
+      int OutputDayVSMBResults(int doy);
+      float PopulateF2R();
    };
 
 
 class VSMBModel
    {
    public:
+      VSMBModel(void);
+      ~VSMBModel(void);
       bool LoadParamFile(LPCTSTR paramFile);
       bool AllocateSoilArray(int size);
-      bool SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation);
+      SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, bool saveResults=false);
 
-      bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy);
+      bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation);
 
-      SoilInfo *GetSoilInfo(int idu) { return NULL; } ///?????
+      SoilInfo *GetSoilInfo(int idu);///?????
 
       //  Wrting output CSV
       int OutputDayVSMBResults(int currentDate) { return -1; }//  calculate stress index = 1 - AET / PET
+      float GetSoilMoisture(int idu, int layer);
+      float GetSWE(int idu);
+      float GetPercentAWC(int idu);
+      float GetAverageSWC(int idu);
+      float GetPercentSaturated(int idu);
+      bool WriteResults(int idu, LPCTSTR name);
+
+
+
+      //kbv
+      static int m_kntrol;//VSMBModel::m_kntrol.  Initialize in the cpp file.
+      static int m_dcurve2;
+      static float  m_drs2;
+      static int m_iTotalStages;
+      static int m_iKAdjustStage;
+      static int m_iYearlyStages;
 
    public:
       PtrArray<SoilInfo> m_soilInfoArray;    // loaded from CSV file during LoadXml
 
-      PtrArray<SoilLayerParams> m_soilLayerParams;
+      static PtrArray<FDataObj> m_pOutputObjArray;
 
+      PtrArray<SoilLayerParams> m_soilLayerParams;
+      static FDataObj* m_pNAISSnowMeltTable;//kbv
       // lookup map fpr soil param - key=soilID, value=array of ptrs to associated SoilLayerParams
       std::map < int, std::vector<SoilLayerParams*> > m_soilLayerParamsMap;
    };

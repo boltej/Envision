@@ -2234,9 +2234,22 @@ double Gridcell::get_lat() const {
 	return lat;
 }
 
+double Gridcell::get_northing() const {
+	return northing;
+}
+
+double Gridcell::get_easting() const {
+	return easting;
+}
+
 void Gridcell::set_coordinates(double longitude, double latitude) {
 	lon = longitude;
 	lat = latitude;
+	}
+
+void Gridcell::set_utm_coordinates(double north, double east) {
+	northing = north;
+	easting = east;
 }
 
 Stand& Gridcell::create_stand_lu(StandType& st, double fraction, int no_patch) {

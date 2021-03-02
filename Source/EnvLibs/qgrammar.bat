@@ -1,5 +1,4 @@
-k:
-cd \pcyacc
-pcyacc -Cd:\envision\src\libs\qgrammar.cpp -Dd:\envision\src\libs\qgrammar.h -n d:\envision\src\libs\qgrammar.y
 d:
-cd \envision\src\libs
+cd \pcyacc
+pcyacc -Cd:\envision\source\envlibs\qgrammar.cpp -Dd:\envision\source\envlibs\qgrammar.h -n d:\envision\source\envlibs\qgrammar.y
+cd \envision\source\envlibs

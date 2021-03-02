@@ -20,7 +20,7 @@
 
 #include "bvoc.h"
 #include "landcover.h"
-
+#include <PathManager.h>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -45,18 +45,18 @@ bool LPJGuess::Guess_Standalone(FlowContext *pFlowContext, LPCTSTR initStr)
 	//framework(args);
 
 	set_shell(new CommandLineShell(file_log));
-	framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
-
+	//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
+	framework(pFlowContext, "cru_ncep", "C:\\Envision\\StudyAreas\\CalFEWS\\4km\\4km\\lpjGuess\\inputs\\global_cru.ins");
    return TRUE;
    }
 
 bool LPJGuess::Guess_Flow(FlowContext *pFlowContext, bool useInitialSeed)
    {
 	if (pFlowContext->timing & GMT_INIT) // Init()
-		return LPJGuess::Init_Guess(pFlowContext, "envision", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
+		return LPJGuess::Init_Guess(pFlowContext, "envision", pFlowContext->initInfo);
 
 	if (pFlowContext->timing & GMT_CATCHMENT) // Init()
-		return LPJGuess::Run_Guess(pFlowContext, "envision", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
+		return LPJGuess::Run_Guess(pFlowContext, "envision", "\\LPJGuess\\inputs\\global_cru_new.ins");
 	
    return TRUE;
    }
@@ -160,8 +160,8 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 			date.year = state_year;
 		}
 
-		float y = pGridcell->get_lat();
-		float x = pGridcell->get_lon();
+		float y = pGridcell->get_easting();
+		float x = pGridcell->get_northing();
 
 		int hruCount = pFlow->GetHRUCount();
 		HRU *pHRU = nullptr;
@@ -198,7 +198,7 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 				pHRU = pFlowContext->pFlowModel->GetHRU(h);
 				Vertex cen = pHRU->m_centroid;
 				float dist = sqrt((cen.x - x)*(cen.x - x) + (cen.y - y)*(cen.y - y));
-				if (dist < 3000.0f && added[h] != 1)//then this hru is close to this LPJ gridcell
+				if (dist < 1414.0f && added[h] != 1)//then this hru is close to this LPJ gridcell
 				    {
 					pGridcell->m_hruArray.Add(pHRU);//then add the HRU to the gridcell
 					added[h] = 1;//and flag this HRU so we don't add it to another gridcell
@@ -206,7 +206,7 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 				    }
 				
 			    }
-			
+			//ASSERT(hruAddedCount > 0);
 		  //  }
 
 	}// end of while
@@ -235,7 +235,15 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 	//GuessOutput::OutputModuleContainer output_modules;
 	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(m_output_modules);
 
-	read_instruction_file(instruction_file);
+	CString path;
+	if (PathManager::FindPath(instruction_file, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), instruction_file);
+		Report::LogError(msg);
+	}
+
+	read_instruction_file(path);
 	m_input_module->init();
 	m_output_modules.init();
 
@@ -295,8 +303,6 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		   
       m_gridCellArray.Add(pGridcell);
 
-
-
 		// Initialise certain climate and soil drivers
       pGridcell->climate.initdrivers(pGridcell->get_lat());
 
@@ -314,8 +320,8 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 			date.year = state_year;
 		}
 
-		float y = pGridcell->get_lat();
-		float x = pGridcell->get_lon();
+		float y = pGridcell->get_easting();
+		float x = pGridcell->get_northing();
     
       int hruCount = pFlow->GetHRUCount();
       HRU *pHRU = nullptr;
@@ -360,49 +366,6 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
 
-	//using std::auto_ptr;
-
-
-
-	//auto_ptr<InputModule> input_module(InputModuleRegistry::get_instance().create_input_module(input_module_name));
-
-	//GuessOutput::OutputModuleContainer output_modules;
-	//GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(output_modules);
-
-
-	//read_instruction_file(instruction_file);
-
-
-
-	//input_module->init();
-	//output_modules.init();
-
-//	print_logfile_heading();
-
-
-//	if (ifnlim && !ifcentury) {
-//		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
-//	}
-
-
-//	if (ifbvoc) {
-//		initbvoc();
-//	}
-
-	/*
-	auto_ptr<GuessSerializer> serializer;
-	auto_ptr<GuessDeserializer> deserializer;
-
-	if (save_state) {
-		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
-	}
-
-	if (restart) {
-		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
-	}
-	*/
-
-	// int catchmentCount = pFlowContext->pFlowModel->GetCatchmentCount();
 	int hruCount = pFlowContext->pFlowModel->GetHRUCount();
 
 	ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
@@ -435,6 +398,8 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 
 			m_output_modules.outdaily(*pGridcell);
 
+			move_to_flow(*pGridcell);
+
 			if (date.islastday && date.islastmonth) {
 				// LAST DAY OF YEAR
 				// Call output module to output results for end of year
@@ -452,24 +417,63 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 				if (abort_request_received()) {
 					return 99;
 				}
-
-
-
-
-				// End of loop through simulation days
+			// End of loop through simulation days
 			//}	//while (getclimate())
 
 				//pGridcell->balance.check_period(*pGridcell);
 			}
 			// Advance timer to next simulation day
-
-
 		}
 	}
 	date.next();
-	//Assume each HRU has a array of pointers to guess gridcells
-	//framework(pFlowContext, "cru_ncep", "C:\\envision\\studyareas\\CalFEWS\\LPJGuess\\input\\global_cru_new.ins");
 	return TRUE;
+}
+
+void LPJGuess::move_to_flow(Gridcell& gridcell)
+   {
+	int standCount = 0;
+	int patchCount = 0;
+	Gridcell::iterator gc_itr = gridcell.begin();
+	HRU* pHRU = gridcell.pHRU;
+	while (gc_itr != gridcell.end()) 
+	   {
+		standCount++;
+		// START OF LOOP THROUGH STANDS
+		Stand& stand = *gc_itr;
+		stand.firstobj();
+		while (stand.isobj) 
+		   {
+			// START OF LOOP THROUGH PATCHES
+			patchCount++;
+			// Get reference to this patch
+			Patch& patch = stand.getobj();
+			// Update daily soil drivers including soil temperature
+			//dailyaccounting_patch(patch);
+			float patchLAI=0;
+			Vegetation& vegetation = patch.vegetation;
+			vegetation.firstobj();
+			int vegCount=0;
+			while (vegetation.isobj) 
+			   {
+				patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
+				patchLAI+=vegetation.getobj().lai_today();
+				if (vegetation.getobj().lai > 0.0f)
+				   vegCount++;
+				vegetation.nextobj();
+			   }
+			// Calculate rescaling factor to account for overlap between populations/
+			// cohorts/individuals (i.e. total FPC > 1)
+			//patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
+			
+			pHRU->m_meanAge += patch.age;
+			pHRU->m_meanLAI =+ patchLAI;
+			stand.nextobj();
+		   }
+		++gc_itr;
+		   // End of loop through stands
+		}// End of loop through patches
+		pHRU->m_meanAge/=patchCount;
+		pHRU->m_meanLAI /= patchCount;
 }
 
 bool LPJGuess::Run_Guess_Complete(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)

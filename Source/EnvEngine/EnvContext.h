@@ -276,6 +276,8 @@ public:
       , score( 0 )
       , rawScore( 0 )
       , pDataObj( NULL )
+      , exportMapInterval(0)
+      , extra(0)
       { }
 };
 

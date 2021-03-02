@@ -17,6 +17,12 @@ along with Envision.  If not, see <http://www.gnu.org/licenses/>
 Copywrite 2012 - Oregon State University
 
 */
+/* CHANGELOG
+1) Added CS_DORMANT to crop stage enum
+2) Added generate Crop class
+
+*/
+
 #pragma once
 
 #include <EnvExtension.h>
@@ -30,6 +36,7 @@ Copywrite 2012 - Oregon State University
 #include "F2R.h"
 #include "ClimateManager.h"
 #include "VSMB.h"
+#include "CSModel.h"   // crop stage model
 
 
 const int ANNUAL_CROP    = 2;   // LULC_A codes
@@ -56,31 +63,52 @@ enum { DO_PRECIP=0, DO_TMIN, DO_TMEAN, DO_TMAX,
        DO_ALFGDD, DO_PDAYS, DO_COUNT /* DO_COUNT is always last*/ };
 
 // crop stage flags
-enum { CS_NONCROP=-99, CS_PREPLANT=1, CS_PLANTED=2, CS_LATEVEGETATION=3, CS_POLLINATION=4, CS_REPRODUCTIVE=5, CS_HARVESTED=6, CS_FAILED=7 };
+enum { CS_NONCROP=-99, CS_PREPLANT=1, CS_PLANTED=2, CS_LATEVEGETATION=3, CS_POLLINATION=4, CS_REPRODUCTIVE=5, CS_HARVESTED=6, CS_HARDENED=7, CS_ACTIVE_GROWTH=8, CS_DORMANT=9, CS_SPRING_REGROWTH=10, CS_FAILED=11 };
 
 //-----------------------------------------------------------------------------------------------------
-// crop event (status) flags
+// built-in crop event (status) flags
 // Note: to add new crop events:
 //     1) add an approriate enum below, making sure that CE_EVENTCOUNT is always the LAST enum, 
 //     2) add an appropriate "AddCropEvent()" call in FarmModel::CheckCropConditions()
 //     3) add a label for the event in proper location in gCropEventNames (in FarmModel.cpp)
 //     4) Add a data column to the outputs in SetupOutputVars
 //-----------------------------------------------------------------------------------------------------
-enum { CE_UNDEFINED=-99, CE_PLANTED=0, CE_POORSEEDCOND, 
-       CE_EARLY_FROST, CE_MID_FROST, CE_FALL_FROST, CE_WINTER_FROST, CE_COOL_NIGHTS,
-       CE_WARM_NIGHTS, CE_POL_HEAT, CE_R2_HEAT, CE_EXTREME_HEAT,
-       CE_VEG_DROUGHT, CE_POL_DROUGHT, CE_R2_DROUGHT, CE_R3_DROUGHT, CE_R5_DROUGHT, CE_POD_DROUGHT, CE_SEED_DROUGHT,
-       CE_EARLY_FLOOD_DELAY_CORN_PLANTING,
-       CE_EARLY_FLOOD_DELAY_SOY_PLANTING,
-       CE_EARLY_FLOOD_DELAY_SOY_A,
-       CE_EARLY_FLOOD_DELAY_SOY_B,
-       CE_EARLY_FLOOD_DELAY_SOY_C,
-       CE_COOL_SPRING, CE_EARLY_FLOOD_KILL, CE_MID_FLOOD,
-       CE_CORN_TO_SOY, CE_CORN_TO_FALLOW, CE_SOY_TO_FALLOW,
-       CE_WHEAT_TO_CORN, CE_BARLEY_TO_CORN,
-       CE_HARVEST, CE_YIELD_FAILURE, CE_INCOMPLETE,
-       CE_EVENTCOUNT /* this must always be last */ 
-      };
+enum { CE_UNDEFINED=-99, 
+   CE_PLANTED=0, 
+   CE_POORSEEDCOND=-1, 
+   CE_EARLY_FROST=-2, 
+   CE_MID_FROST=-3, 
+   CE_FALL_FROST=-4, 
+   CE_WINTER_FROST=-5, 
+   CE_COOL_NIGHTS=-6,
+   CE_WARM_NIGHTS=-7, 
+   CE_POL_HEAT=-8, 
+   CE_R2_HEAT=-9, 
+   CE_EXTREME_HEAT=-10,
+   CE_VEG_DROUGHT=-11, 
+   CE_POL_DROUGHT=-12, 
+   CE_R2_DROUGHT=-13, 
+   CE_R3_DROUGHT=-14, 
+   CE_R5_DROUGHT=-15, 
+   CE_POD_DROUGHT=-16, 
+   CE_SEED_DROUGHT=-17,
+   CE_EARLY_FLOOD_DELAY_CORN_PLANTING=-18,
+   CE_EARLY_FLOOD_DELAY_SOY_PLANTING=-19,
+   CE_EARLY_FLOOD_DELAY_SOY_A=-20,
+   CE_EARLY_FLOOD_DELAY_SOY_B=-21,
+   CE_EARLY_FLOOD_DELAY_SOY_C=-22,
+   CE_COOL_SPRING=-23, 
+   CE_EARLY_FLOOD_KILL=-24, 
+   CE_MID_FLOOD=-25,
+   CE_CORN_TO_SOY=-26, 
+   CE_CORN_TO_FALLOW=-27, 
+   CE_SOY_TO_FALLOW=-28,
+   CE_WHEAT_TO_CORN=-29, 
+   CE_BARLEY_TO_CORN=-30,
+   CE_HARVEST=-31, 
+   CE_YIELD_FAILURE=-32, 
+   CE_INCOMPLETE=-33
+   };
 
 // corn stages
 enum { C_PREPLANTING=0, C_PLANTING, C_EMERGENCE, C_V1, C_V4, C_V6, C_V8, C_V12, C_VT, C_R1, C_R2, C_R3, C_R4, C_R5, C_R6 };
@@ -96,6 +124,9 @@ enum { B_PREEMERGENCE, B_GERMINATION, B_LEAF_PRODUCTION, B_TILLERING, B_STEM_ELO
 
 // soybeans
 enum { S_PREPLANTING, S_PREEMERGENCE, S_VE, S_VC, S_V2, S_V3, S_V4, S_V5, S_V6, S_R1, S_R2, S_R3, S_R4, S_R5, S_R6, S_R7, S_R8 };
+
+// generic woody
+//enum {};
 
 
 // Farm Events
@@ -137,8 +168,100 @@ enum FARMTYPE {
    FT_COUNT = 23
    };
 
+/*
+class Crop
+   {
+   public:
+      CString m_name;
+      CString m_code;
+      int m_lulc;
+      bool m_isAnnual;
+
+      int m_minPlantingDate; // DOY
+      int m_maxPlantingDate; // DOY
+      int m_plantingDate;    // DOY
+
+      float m_plantingDateTempThreshold;   // avg temp must exceed this to plant
+      int m_plantingDateTempPeriod;  // days
+      float m_fieldAccessVMCThreshold;
+
+      // dormancy stuff
+      //bool m_isDormant;
+      //int m_dormancyUserCriticalDate;
+      //int m_dormancyDynamicCriticalDate;
+      //int m_dormancyPretrackPeriod;
+
+      //CArray<int, int> m_stages;   // see crop stage enum (CS_xxxx)
+      //CArray<int, int> m_harvestTriggers;
+      //
+      //CArray<int, int> m_cropEvents;     // see crop event enum (CE_xxxx)
+
+   // methods
+   public:
+      Crop() :
+           m_minPlantingDate(JAN1)
+         , m_maxPlantingDate(DEC31)
+         , m_plantingDate(JUN14)
+         , m_fieldAccessVMCThreshold(0.92) 
+         {}
+
+      virtual float CheckCondition(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF) { return 0; };
+      virtual bool LoadXml();
+   };
+
+class WoodyCrop : public Crop 
+   {
+   public:
+      int m_fieldAccessVMCThreshold;  // Volumentric Moisture Content (e.g. 0.92)
+      int m_dormancyCriticalDate;  // DOY
+      float m_highTempThreshold;
+      float m_highPrecipThreshold;
+
+      int m_startHarvestYr;
+      int m_harvFreqYr;
+
+   public:
+      WoodyCrop() : Crop()
+         , m_dormancyCriticalDate(SEP21)
+         , m_highTempThreshold(0)
+         , m_highPrecipThreshold(0)
+         , m_startHarvestYr(0)
+         , m_harvFreqYr(0)
+      {}
+
+      virtual float CheckCondition(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF);
+
+   };
+
+class NativeHerbaceousCrop : public Crop
+   {
+   public:
+      float m_hardeningCriticalDate; // DOY
+      float m_highTempThresh;
+      float m_highPrecipThresh;
+      float m_growthCessationCriticalDate;  // DOY
+      float m_springCriticalDate;  // DOY
+
+   public:
+      NativeHerbaceousCrop() : Crop() {}
+
+      virtual float CheckCondition(EnvContext* pContext, FarmModel *pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF);
+
+   };
+
+
+   */
+
+
 class Farm;
 
+struct CropEventType
+   {
+   int id;
+   CString label;   
+
+   CropEventType(int _id, LPCTSTR _label) : id(_id), label(_label) {}
+   };
 
 
 // farm count trajectory info.  One of these is created for each <fct> entry
@@ -229,8 +352,8 @@ public:
    Farm *m_pFarm;      // current owner of the field
    float m_totalArea;  // area of the field (m2)
    CArray< int, int > m_iduArray;   // initially, a single IDU
-
-   SoilInfo *m_pSoil;  // for VSMB, mmemory is managed by the VSMB Model Instance
+   CArray< SoilInfo*, SoilInfo* > m_pSoilArray;
+  // SoilInfo *m_pSoil;  // for VSMB, mmemory is managed by the VSMB Model Instance
 };
 
 
@@ -278,6 +401,7 @@ public:
 public:
    PtrArray< FarmField > m_fieldArray;
 
+
    // runtime support  
    float m_totalArea;                     // m2
    float m_dailyPlantingAcresAvailable;   // Acres
@@ -306,6 +430,8 @@ public:
 
 class FarmModel
 {
+friend class CSModel;
+
 public:
    FarmModel( void );
    ~FarmModel( void );
@@ -324,7 +450,7 @@ public:
    PtrArray< FarmRotation > m_rotationArray;
 
    ClimateManager m_climateManager;
-
+  int m_numIDUsToSave;
 // exposed variables
 protected:
    int m_climateScenarioID;
@@ -359,8 +485,6 @@ public:
    int m_colSLC;        // soil landscapoe unit
    int m_colLulcA;      // ????? check this!!!
    int m_colCropStatus; // "CROPSTATUS"        - output
-   int m_colCropStage;  // "CROPSTAGE"        - output
-   int m_colPlantDate;  // "PLANTDATE"       - output
    int m_colYieldRed;   // "YIELDRED"      - output
    int m_colYield;      // "YIELD" - output
 
@@ -372,6 +496,9 @@ public:
    int m_colCadID;      // "CAD_ID"
    int m_colSoilID;     //
 
+   int m_colSWC;
+   int m_colSWE;
+
    // the following are accessed by multiple classes
    static int m_colFarmHQ;
    static int m_colFarmID;     // FARM_ID
@@ -381,8 +508,15 @@ public:
    static int m_colFarmType;   // FARM_TYPE
    static int m_colRotation;   // rotation code (id) for current rotation scheme
    static int m_colRotIndex;   // 0-based index of current location in sequence, no data if not in sequence
+   static int m_colCropStage;  // "CROPSTAGE"        - output
+   static int m_colCropYear;   // years of establishment of a perennial/woody crop
    static int m_colArea;       // "AREA"
    static int m_colCLI;        // "CLI_d_upda"
+   static int m_colPlantDate;  // "PLANTDATE"       - output
+   static int m_colHarvDate;   // "HARVDATE"        - output
+
+   static int m_colDormancy;  // "DORMANCY" - used during runtime
+
 
    // output variables
    float m_avgYieldReduction;
@@ -392,7 +526,13 @@ public:
    float m_adjFieldAreaHa;
    float m_avgFieldSizeHa;
 
-   float m_cropEvents[ 1+CE_EVENTCOUNT ];  // current year crop event hectares
+   PtrArray<CropEventType> m_cropEventTypes;
+   CMap<int, int, int, int> m_cropEventIndexLookup;   // key = id, value = index
+   int AddCropEventType(int id, LPCTSTR label) { int index = (int) m_cropEventTypes.Add(new CropEventType(id, label)); m_cropEventIndexLookup.SetAt(id, index); return index; }
+   int AddBuiltInCropEventTypes();
+
+
+   CArray<float> m_cropEvents;  //  [1 + CE_EVENTCOUNT] ;  // current year crop event hectares
    float m_farmEvents[ 1+FE_EVENTCOUNT];   // current year farm event hectares
 
    float m_yrfThreshold;   // max yield reduction factor before crop is considered failed
@@ -478,11 +618,11 @@ protected:
    int  ConsolidateFields( EnvContext* );
    void UpdateAnnualOutputs( EnvContext*, bool useAddDelta );
    void UpdateDailyOutputs( int doy, EnvContext* );   // doy is one-based
-   float AddCropEvent( EnvContext*, int idu, int status, float areaHa, int doy, float yrf, float priorCumYRF );
 
    void  AddFarmEvent( EnvContext*, int idu, int eventID, int farmID, int farmType, float areaHa );
 
-   bool IsAnnualCrop( Farm *pFarm, MapLayer *pLayer );
+   bool IsCrop( Farm *pFarm, MapLayer *pLayer );
+   bool IsAnnualCrop(Farm* pFarm, MapLayer* pLayer);
    bool IsAg( MapLayer*, int idu );
    float CheckCropConditions( EnvContext*, Farm*, MapLayer*, int idu, int doy, int year, float priorCumYRF );
    void GetAnnualYield( int lulc,float precipJun1toAugust1, float heatUnitsAbove10, float &yield );
@@ -493,7 +633,13 @@ protected:
    bool UpdateAvgFarmSizeByRegion( MapLayer *pLayer, bool initialize );
    bool UpdateFSTInfo(MapLayer *pLayer, Farm *pFarm, Farm *pNeighborFarm);
 
+
    VSMBModel m_vsmb;
+   CSModel m_csModel;
+
+   public:
+      float AddCropEvent(EnvContext*, int idu, int eventID, LPCTSTR eventLabel, float areaHa, int doy, float yrf, float priorCumYRF);
+
 
 protected:
    int m_maxProcessors;

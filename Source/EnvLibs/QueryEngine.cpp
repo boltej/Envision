@@ -32,15 +32,14 @@ Copywrite 2012 - Oregon State University
 #include <fcntl.h> 
 #include "PathManager.h"
 
-
 int yyparse( void );
-//extern bool reset;
 
 #include "Qgrammar.h"
 
 // globals for use by the yacc parser
 QueryEngine *_gpQueryEngine = NULL;
 char        *gQueryBuffer;
+int          gUserFnIndex;
 MapLayer    *gFieldLayer;
 CString      fQueryTextBuffer;
 extern int   QCurrentLineNo;
@@ -176,7 +175,7 @@ QNode::QNode( MapLayer *pLayer, int fieldCol, INT_PTR record )          // // fr
    }
     
 
-QNode::QNode( QFNARG &fnArg )
+QNode::QNode( QFNARG &fnArg)
    : m_value( -1 ),
      m_pLeft( NULL ),
      m_pRight( NULL ),
@@ -647,8 +646,6 @@ bool QNode::Solve( void )
             QArgList *pArgList = (QArgList*)m_extra;
             ASSERT(pArgList->GetCount() == 2);
 
-
-
             QArgument &arg0 = pArgList->GetAt(0);
             ASSERT(arg0.m_pNode);
 
@@ -683,7 +680,41 @@ bool QNode::Solve( void )
             return true;
             }
 
-            
+         case USERFN2:
+            {
+            // Arg List should be: 0) function index, 1) int (keyword), 2) fn ptr for user defined function
+            QArgList* pArgList = (QArgList*)m_extra;
+            ASSERT(pArgList->GetCount() == 3);
+
+            QArgument& fnIndex = pArgList->GetAt(0);
+            int _fnIndex;
+            bool ok = fnIndex.GetAsInt(_fnIndex);
+
+            QArgument& arg0 = pArgList->GetAt(1);
+            int _arg0;
+            ok = arg0.GetAsInt(_arg0);
+
+            QArgument& arg1 = pArgList->GetAt(2);
+            int _arg1;
+            ok = arg1.GetAsInt(_arg1);
+            try {
+               USERFN2PROC pFn = (USERFN2PROC)_gpQueryEngine->GetUserFn(_fnIndex)->m_pFn;
+               m_value = pFn(_arg0, _arg1);
+               }
+            catch (...) {};
+
+            //for (int i = 0; i < _gpQueryEngine->GetUserFnCount(); i++)
+            //   {
+            //   if (_gpQueryEngine->GetUserFn(i)->m_nArgs == 2) 
+            //      {
+            //      USERFN2PROC pFn = (USERFN2PROC)_gpQueryEngine->GetUserFn(i)->m_pFn;
+            //      m_value = pFn(_arg0, _arg1);
+            //      break;
+            //      }
+            //   }
+            return true;
+            }
+
             /*
          case POLYINDEX:
             {
@@ -795,13 +826,14 @@ bool QNode::Solve( void )
       }  // end of: IsTerminal();
     
     // non terminal, so handle remaining cases by examining children
-    ASSERT( m_pLeft != NULL );
+    //ASSERT( m_pLeft != NULL );
     ASSERT( m_pRight != NULL );
     
     switch( m_nodeType )
        {
        case AND:   // a logical "AND" node...
        case OR:    // logical "OR" node
+       case NOT:
           return SolveLogical();
              
        case '+':
@@ -882,16 +914,20 @@ void QNode::GetNeighbors( Poly *pPoly, CMap< int, int, bool, bool > &foundPolyMa
 
 bool QNode::SolveLogical( void )
     {
-    bool lvalue;
-    bool ok = m_pLeft->GetValueAsBool( lvalue );
-    
-    if ( !ok )
+    bool lvalue = false;
+    bool rvalue = false;
+    bool ok = false;
+    if (m_nodeType != NOT)
        {
-       _gpQueryEngine->RuntimeError( "Error getting LH boolean value while evaluating 'AND/OR' " );
-       return false;
+       ok = m_pLeft->GetValueAsBool(lvalue);
+
+       if (!ok)
+          {
+          _gpQueryEngine->RuntimeError("Error getting LH boolean value while evaluating 'AND/OR' ");
+          return false;
+          }
        }
     
-    bool rvalue;
     ok = m_pRight->GetValueAsBool( rvalue );
                
     if ( !ok )
@@ -900,10 +936,20 @@ bool QNode::SolveLogical( void )
        return false;
        }
     
-    if ( m_nodeType == AND )
-       m_value = (bool) (lvalue && rvalue);      // make sure vdata can handle this
-    else
-       m_value = (bool) (lvalue || rvalue);
+    switch (m_nodeType)
+       {
+       case AND:
+          m_value = (bool)(lvalue && rvalue);      // make sure vdata can handle this
+          break;
+
+       case OR:
+          m_value = (bool)(lvalue || rvalue);
+          break;
+
+       case NOT:
+          m_value = ! rvalue;
+             break;
+       }
 
     return true;
     }
@@ -1709,7 +1755,7 @@ bool QueryEngine::RemoveQuery( Query *pQuery )
    }
 
 
-QFNARG QueryEngine::AddFunctionArgs(int functionID )
+QFNARG QueryEngine::AddFunctionArgs(int functionID )  // e.g. Next()
    {
    _gpQueryEngine = this;
 
@@ -1733,7 +1779,7 @@ QFNARG QueryEngine::AddFunctionArgs(int functionID )
    }
 
 
-QFNARG QueryEngine::AddFunctionArgs(int functionID, int polyIndex)
+QFNARG QueryEngine::AddFunctionArgs(int functionID, int polyIndex)  // eg. ?
    {
    _gpQueryEngine = this;
 
@@ -1842,6 +1888,49 @@ QFNARG QueryEngine::AddFunctionArgs( int functionID, QNode *pNode, double value 
    
    return fnArg;
    }
+
+
+// USERFN2
+QFNARG QueryEngine::AddFunctionArgs(int functionID, int arg0, int arg1)
+   {
+   _gpQueryEngine = this;
+
+   QArgList* pArgList = new QArgList;
+   QArgument _arg0(arg0);
+   QArgument _arg1(arg1);
+
+   if (functionID == USERFN2)
+      {
+      QArgument _fnIndex(gUserFnIndex);
+      pArgList->Add(_fnIndex);
+      }
+
+   pArgList->Add(_arg0);
+   pArgList->Add(_arg1);
+
+   m_argListArray.Add(pArgList);
+
+   QFNARG fnArg;
+   fnArg.function = functionID;
+   fnArg.pArgList = pArgList;
+
+   if (functionID == USERFN2)
+      {
+
+      }
+
+   //fnArg
+   if (m_debug)
+      {
+      CString msg;
+      msg.Format("AddFunctionArgs(functionID=%i,arg0=%i,arg1=%i)\n", functionID, arg0, arg1);
+      m_debugInfo += msg;
+      }
+
+   return fnArg;
+   }
+
+
 
 
 QFNARG QueryEngine::AddFunctionArgs( int functionID, QNode *pNode, double value, double value2 )

@@ -27,6 +27,7 @@ Copywrite 2012 - Oregon State University
 #include "F2R.h"
 //#include "VSMB.h"
 
+#include <doy_enum.h>
 
 // column references for ClimateStation::GetData() calls
 const int TMIN      = -2;
@@ -41,26 +42,6 @@ const int GDD5MAY1  = -14;
 const int CHUCMAY1  = -15;
 const int PDAYS     = -16;
 
-// day of year constants (one-based)
-const int JAN1   = 1;
-const int APR1   = 91;
-const int APR15  = 106;
-const int MAY1   = 121;
-const int MAY10  = 130;
-const int MAY15  = 135;
-const int MAY24  = 144;
-const int MAY31  = 151;
-const int JUN1   = 152;
-const int JUN7   = 158;
-const int JUN10  = 161;
-const int JUN20  = 171;
-const int JUL6   = 187;
-const int JUL7   = 188;
-const int AUG1   = 213;
-const int AUG3   = 215;
-const int AUG31  = 243;
-const int SEP1   = 244;
-const int SEP20  = 263;
 
 class ClimateStation
 {
@@ -99,18 +80,18 @@ public:
    bool GetMaxConsDryDays( int startDOY, int endDOY, int year, float threshold );   
    bool GetGrowingSeasonLength( int year, int &length, int &startDOY, int &endDOY );
 
-   float GetPET(int method);
+   float GetPET(int method, int doy, int year);
 
 
    // calculated climate variables (for each day of the year)
-   float m_cumDegDays0[ 365 ];        // cumulative GDD - base temp=0, one per station
+   float m_cumDegDays0[365];        // cumulative GDD - base temp=0, one per station
    //float m_cumDegDays5[ 365 ];        // cumulative GDD - base temp=5, one per station
-   float m_cumDegDays0Apr15[ 365 ];   // cumulative GDD - base temp=0, from Apr 15 only, one per station
-   float m_cumDegDays5Apr1[ 365 ];    // cumulative GDD - base temp=5, from Apr 1 only, one per station
-   float m_cumDegDays5May1[ 365 ];    // cumulative GDD - base temp=5, from May 1 only, one per station
-   float m_chuCornMay1[ 365 ];        // cumulative heat units - corn
-   float m_cummDegDayAlfafa[ 365 ];
-   float m_pDays[ 365 ];              // potato days
+   float m_cumDegDays0Apr15[365];   // cumulative GDD - base temp=0, from Apr 15 only, one per station
+   float m_cumDegDays5Apr1[365];    // cumulative GDD - base temp=5, from Apr 1 only, one per station
+   float m_cumDegDays5May1[365];    // cumulative GDD - base temp=5, from May 1 only, one per station
+   float m_chuCornMay1[365];        // cumulative heat units - corn
+   float m_cummDegDayAlfafa[365];
+   float m_pDays[365];              // potato days
 
    int m_doyCHU0;
    int m_doyCHU600;
@@ -127,8 +108,8 @@ public:
    float m_annualTMax;
    float m_annualTMean;
 
-   float m_rx1[ 12 ];            // monthly Max 1 Day Precip;
-   float m_rx3[ 12 ];            // monthly Max 3 Day Precip;
+   float m_rx1[12];            // monthly Max 1 Day Precip;
+   float m_rx3[12];            // monthly Max 3 Day Precip;
    int   m_r10mmDays;            // number of days with more than 10mm precip
    int   m_r10yrDays;            // number of days precip > 74mm (10 year storm)
    int   m_r100yrDays;           // number of days precip > 106mm (100 year storm)
@@ -136,11 +117,11 @@ public:
    int   m_maxConsDryDays;
    int   m_extHeatDays;          // number of days Tmax >= 30
    int   m_extColdDays;          // number of days Tmin <= -20
-   int   m_gslDays;              // (Number of days between 5 days with Tmean>5°C and 5 days with Tmean<5°C)
+   int   m_gslDays;              // (Number of days between 5 days with Tmean>5ï¿½C and 5 days with Tmean<5ï¿½C)
 
    // climate data for this station
-   FDataObj *m_pClimateData;
-   FDataObj *m_pHistoricMeans;
+   FDataObj* m_pClimateData;
+   FDataObj* m_pHistoricMeans;
 
    // various maps
    CMap< CString, LPCTSTR, int, int > m_colMap;    // key=col name, value=col index

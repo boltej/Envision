@@ -108,6 +108,9 @@ bool ReachRouting::SolveReach2KW(FlowContext *pFlowContext)
    return true;
 }
 
+
+
+
 bool ReachRouting::SolveReachKinematicWave( FlowContext *pFlowContext )
    {
    pFlowContext->Reset();
@@ -120,7 +123,7 @@ bool ReachRouting::SolveReachKinematicWave( FlowContext *pFlowContext )
    for ( int i=0; i < reachCount; i++ )
       {
       Reach *pReach = m_pFlowModel->GetReach( i );     // Note: these are guaranteed to be non-phantom
-    
+
       ReachNode *pN = (ReachNode*) pReach;
 
       for ( int l=0; l < pReach->GetSubnodeCount(); l++ )

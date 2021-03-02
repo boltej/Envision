@@ -50,7 +50,7 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	// OUTPUT PARAMETERS
 	// rain_melt = rainfall and snow melt today (mm)
 
-	const double TSNOW = 0.0;
+	const double TSNOW = 3.0;
 		// maximum temperature for precipitation as snow (deg C)
 		// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
 	const double SNOWPACK_MAX = 10000.0;
@@ -58,7 +58,7 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 
 	double melt;
 	if (temp < TSNOW) {						// snowing today
-		melt = -min(prec, SNOWPACK_MAX-snowpack);
+		melt = -min(prec*1.2f, SNOWPACK_MAX-snowpack);
 	} else {								// raining today
 		// New snow melt formulation
 		// Dieter Gerten 021121
@@ -300,23 +300,25 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 	Gridcell& gridcell = patch.stand.get_gridcell();
 	
-	//for (int k = 0; k < gridcell.m_hruArray.GetSize(); k++)
-	 //  {
+	int si = gridcell.m_hruArray.GetSize();
+//	for (int k = 0; k < gridcell.m_hruArray.GetSize(); k++)
+//	   {
 	
-		//HRU *pHRU = gridcell.m_hruArray[k];
+	//	HRU *pHRU = gridcell.m_hruArray[k];
 	    HRU *pHRU = gridcell.pHRU;
 		HRUPool *pHRUPool = pHRU->GetPool(0);
 		pHRUPool->AddFluxFromGlobalHandler(runoff*pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d
 		//pHRUPool->AddFluxFromGlobalHandler((aet_layer[0]+evap) *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
 		//HRUPool *pHRUPool2 = pHRU->GetPool(1);
 		//pHRUPool2->AddFluxFromGlobalHandler(aet_layer[1] *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
-		gridcell.pHRU->m_currentET = aet_total+evap;
+		//pHRU->m_currentET = aet_total+evap;
+		pHRU->m_currentET = aet_total + evap;
 		pHRU->m_currentRunoff = runoff_surf;
 		pHRU->m_swc = wcont[0];
 	//	Reach * pReach = pHRUPool->GetReach();
 	//	if (pReach)
 	//		pReach->AddFluxFromGlobalHandler(((runoff_surf) / 1000.0f*pHRU->m_area)); //m3/d
-	  // }
+	//   }
 	patch.asurfrunoff += runoff_surf;
 	patch.adrainrunoff += runoff_drain;
 	patch.abaserunoff += runoff_baseflow;
@@ -386,6 +388,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 		soil.wcont_evap = soil.wcont[0];
 	}
 	Gridcell& gridcell = patch.stand.get_gridcell();
+	//HRU* pHRU = gridcell.m_hruArray[0];
 	HRU *pHRU = gridcell.pHRU;
 	pHRU->m_depthSWE = soil.snowpack;
 

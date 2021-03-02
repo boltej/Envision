@@ -20,6 +20,8 @@
 #include <utility>
 #include <vector>
 #include <algorithm>
+#include <PathManager.h>
+
 #include <..\Plugins\Flow\Flow.h>
 REGISTER_INPUT_MODULE("envision", ENVInput)
 
@@ -74,7 +76,7 @@ void ENVInput::init() {
 	// This file should consist of any number of one-line records in the format:
 	//   <longitude> <latitude> [<description>]
 
-	double dlon, dlat;
+	double dlon, dlat, dnorth, deast;
 	bool eof = false;
 	xtring descrip;
 
@@ -83,7 +85,17 @@ void ENVInput::init() {
 	// Retrieve name of grid list file as read from ins file
 	xtring file_gridlist = param["file_gridlist"].str;
 
-	FILE* in_grid = fopen(file_gridlist, "r");
+
+	CString path;
+	//tmpPath = PathManager::GetPath(PM_IDU_DIR);//directory with the idu
+	if (PathManager::FindPath(file_gridlist, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_gridlist);
+		Report::LogError(msg);
+	}
+
+	FILE* in_grid = fopen(path, "r");
 	if (!in_grid) fail("initio: could not open %s for input", (char*)file_gridlist);
 
 	//file_cru=param["file_cru"].str;
@@ -103,13 +115,15 @@ void ENVInput::init() {
 	while (!eof) {
 
 		// Read next record in file
-		eof = !readfor(in_grid, "f,f,a#", &dlon, &dlat, &descrip);
+		eof = !readfor(in_grid, "f,f,f,f,a#", &dlon, &dlat,&dnorth,&deast, &descrip);
 
 		if (!eof && !(dlon == 0.0 && dlat == 0.0)) { // ignore blank lines at end (if any)
 			Coord& c = gridlist.createobj(); // add new coordinate to grid list
 
 			c.lon = dlon;
 			c.lat = dlat;
+			c.north=dnorth;
+			c.east=deast;
 			c.descrip = descrip;
 		}
 	}
@@ -295,6 +309,8 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 		// Tell framework the coordinates of this grid cell
 		gridcell.set_coordinates(gridlist.getobj().lon, gridlist.getobj().lat);
 
+		gridcell.set_utm_coordinates(gridlist.getobj().north, gridlist.getobj().east);
+
 		// Get nitrogen deposition data. 
 		/* Since the historic data set does not reach decade 2010-2019,
 		 * we need to use the RCP data for the last decade. */
@@ -336,8 +352,10 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 	Climate& climate = gridcell.climate;
 
 
-
-	climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+	if (FIRSTHISTYEAR + date.year <= pFlowContext->pEnvContext->endYear)
+	   climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+	else
+		climate.co2 = 414.01;
 
 	//	climate.temp  = dtemp[date.day];
 	//	climate.prec  = dprec[date.day];
@@ -347,6 +365,7 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 	float prec = 0.0f; float temp = 0.0f; float insol = 0.0f;
 	//HRU *pHRU = pFlowContext->pFlowModel->GetHRU(0);
 	HRU *pHRU = gridcell.pHRU;
+	//HRU* pHRU = gridcell.m_hruArray[0];
 	pFlowContext->pFlowModel->GetHRUClimate(CDT_PRECIP, pHRU, pFlowContext->dayOfYear, prec);//mm
 	pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, pFlowContext->dayOfYear, temp);//C
 	pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, pFlowContext->dayOfYear, insol);//C

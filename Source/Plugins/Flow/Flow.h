@@ -502,6 +502,7 @@ public:
    float m_storage_yr;        // mm/year?
    float m_percentIrrigated;  // fraction of area (0-1)
    float m_meanLAI;           // dimensionless
+   float m_meanAge;
 
    int m_climateIndex;  //the index of the climate grid cell representing the HRU
    int m_climateRow;    // row, column for this HRU in the climate data grid
@@ -542,6 +543,9 @@ public:
    static MTDOUBLE m_mvElws; 
    static MTDOUBLE m_mvDepthToWT;
    static MTDOUBLE m_mvCurrentSediment;
+
+   static MTDOUBLE m_mvCurrentSWC;
+
    static MTDOUBLE m_mvCumRecharge;
    static MTDOUBLE m_mvCumGwFlowOut;
 
@@ -691,7 +695,8 @@ enum ResType
 {
 	ResType_FloodControl = 1,
 	ResType_RiverRun = 2,
-	ResType_CtrlPointControl = 4
+	ResType_CtrlPointControl = 4,
+   ResType_Optimized = 8
 };
 
 class FLOWAPI Reservoir : public FluxContainer, public StateVarContainer
@@ -800,7 +805,9 @@ protected:
    void  CalculateHydropowerOutput( Reservoir *pRes );
 
    ResConstraint *FindResConstraint( LPCTSTR name );
-   
+   // data collection
+public:
+   FDataObj *m_pResData;                              // (memory managed here)
 protected:
    FDataObj *m_pAreaVolCurveTable;                    // (memory managed here)
    FDataObj *m_pRuleCurveTable;                       // (memory managed here)
@@ -811,8 +818,7 @@ protected:
 	FDataObj *m_pDemandTable;									// (memory managed here)
    VDataObj *m_pRulePriorityTable;                    // (memory managed here)
 
-   // data collection
-   FDataObj *m_pResData;                              // (memory managed here)
+
    //FDataObj *m_pResMetData;
    
    //Comparison with ResSIM
@@ -1052,7 +1058,7 @@ protected:
 
 public:
    bool Init( EnvContext*, LPCTSTR initStr);
-   bool InitRun( EnvContext* );
+   bool InitRun( EnvContext*, bool useInitialSeed);
    bool Run( EnvContext*  );
    bool EndRun( EnvContext* );
       
@@ -1227,10 +1233,11 @@ protected:
    PtrArray< Catchment > m_catchmentArray;         // list of catchments included in this model
    PtrArray< HRU >       m_hruArray;               // list of HRUs included in this model
    IDataObj              *m_pHruGrid;               // a gridded form of the HRU array (useful for gridded models only)
-   PtrArray< Reservoir > m_reservoirArray;         // list of reservoirs included in this model
+
    PtrArray< ControlPoint > m_controlPointArray;   // list of control points included in this model
      
 public:
+   PtrArray< Reservoir > m_reservoirArray;         // list of reservoirs included in this model
    CArray< Reach*, Reach* > m_reachArray;       // list of reaches included in this model (note: memory managed by ReachTree)
    MapLayer *m_pGrid;
    int  m_detailedSaveInterval;

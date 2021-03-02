@@ -110,6 +110,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="ClimateManager.cpp" />
+    <ClCompile Include="CSModel.cpp" />
     <ClCompile Include="FarmModel.cpp" />
     <ClCompile Include="dllmain.cpp">
       <CompileAsManaged Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</CompileAsManaged>
@@ -132,6 +133,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ClimateManager.h" />
+    <ClInclude Include="CSModel.h" />
     <ClInclude Include="F2R.h" />
     <ClInclude Include="FarmModel.h" />
     <ClInclude Include="NAESI.h" />
@@ -145,6 +147,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="F2R.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="notes.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
