@@ -14,7 +14,7 @@ using namespace std;
 
 class Farm;
 
-enum CSKEYWORD { CS_TMIN, CS_TMEAN, CS_TMAX, CS_PRECIP, CS_HPRECIP, CS_AVC };
+enum CSKEYWORD { CS_TMIN, CS_TMEAN, CS_TMAX, CS_PRECIP, CS_AVC };
 
 
 
@@ -38,14 +38,7 @@ struct CSCropEvent
    CString when;
    Query* pWhen;
 
-
-   CSCropEvent() {}
-
-   CSCropEvent(TCHAR* _name, float _yrf, TCHAR* _when)
-      : name(_name)
-      , yrf(_yrf)
-      , when(_when)
-      {}
+   CSCropEvent() : id(-1), yrf(0), pWhen(NULL) {}
 
    Query* CompileWhen(QueryEngine* pQE);
    };
@@ -86,10 +79,10 @@ struct CSEvalExpr
    int col;
    
    CSEvalExpr(void) : pWhen(NULL), pOutcomeExpr(NULL), col(-1) {}
-   ~CSEvalExpr(void) { if (pOutcomeExpr != NULL) delete pOutcomeExpr; }
+   ~CSEvalExpr(void) { /*if (pOutcomeExpr != NULL) delete pOutcomeExpr;*/ }
 
    Query* CompileWhen(QueryEngine* pQE);
-   MapExpr* CompileOutcome(MapExprEngine* pME, LPCTSTR name);
+   MapExpr* CompileOutcome(MapExprEngine* pME, LPCTSTR name, MapLayer*);
    };
 
 
@@ -114,14 +107,13 @@ class CSCrop
       int m_id;
       CString m_code;
       bool m_isRotation;
-      bool m_isAnnual;
       int m_harvestStartYr;
       int m_harvestFreq;
 
       PtrArray<CSCropStage> m_cropStages;
       PtrArray<CSField> m_fields;
 
-      CSCrop() : m_id(-1), m_isRotation(true), m_isAnnual(true), m_harvestFreq(0), m_harvestStartYr(0) {}
+      CSCrop() : m_id(-1), m_isRotation(true), m_harvestFreq(0), m_harvestStartYr(0) {}
    };
 
 
@@ -141,13 +133,20 @@ class CSModel
       static float m_tMin;
       static float m_tMax;
       static float m_gdd0;
-      static float m_gdd5;
+      //static float m_gdd5;
       static float m_gdd0Apr15;
       static float m_gdd5Apr1;
       static float m_gdd5May1;
-      static float m_pctAVC;
-      static float m_AVC;
+      static float m_chuMay1;
+      static float m_pET;
 
+      // available soil variables
+      static float m_pctAWC;
+      static float m_pctSat;
+      static float m_swc;
+      static float m_swe;
+
+      // other stuff
       static MapLayer* m_pMapLayer;
 
       static ClimateStation *m_pClimateStation; // refererence to FarmModel climate station
@@ -164,7 +163,8 @@ class CSModel
       //int SolveWhen(TCHAR* expr);
 
       static float Avg(int kw, int period);
-      
+      static float AbovePeriod(int kw, int period);
+
       float UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, 
          ClimateStation* pStation, MapLayer* pLayer, int idu, float areaHa, int doy, int year,
          int lulc, int cropStage, float priorCumYRF);

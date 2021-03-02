@@ -32,15 +32,14 @@ Copywrite 2012 - Oregon State University
 #include <fcntl.h> 
 #include "PathManager.h"
 
-
 int yyparse( void );
-//extern bool reset;
 
 #include "Qgrammar.h"
 
 // globals for use by the yacc parser
 QueryEngine *_gpQueryEngine = NULL;
 char        *gQueryBuffer;
+int          gUserFnIndex;
 MapLayer    *gFieldLayer;
 CString      fQueryTextBuffer;
 extern int   QCurrentLineNo;
@@ -683,27 +682,36 @@ bool QNode::Solve( void )
 
          case USERFN2:
             {
-            // Arg List should be: 1) int (keyword), 2) fn ptr for user defined function
+            // Arg List should be: 0) function index, 1) int (keyword), 2) fn ptr for user defined function
             QArgList* pArgList = (QArgList*)m_extra;
-            ASSERT(pArgList->GetCount() == 2);
+            ASSERT(pArgList->GetCount() == 3);
 
-            QArgument& arg0 = pArgList->GetAt(0);
+            QArgument& fnIndex = pArgList->GetAt(0);
+            int _fnIndex;
+            bool ok = fnIndex.GetAsInt(_fnIndex);
+
+            QArgument& arg0 = pArgList->GetAt(1);
             int _arg0;
-            bool ok = arg0.GetAsInt(_arg0);
+            ok = arg0.GetAsInt(_arg0);
 
-            QArgument& arg1 = pArgList->GetAt(1);
+            QArgument& arg1 = pArgList->GetAt(2);
             int _arg1;
             ok = arg1.GetAsInt(_arg1);
-
-            for (int i = 0; i < _gpQueryEngine->GetUserFnCount(); i++)
-               {
-               if (_gpQueryEngine->GetUserFn(i)->m_nArgs == 2) 
-                  {
-                  USERFN2PROC pFn = (USERFN2PROC)_gpQueryEngine->GetUserFn(i)->m_pFn;
-                  m_value = pFn(_arg0, _arg1);
-                  break;
-                  }
+            try {
+               USERFN2PROC pFn = (USERFN2PROC)_gpQueryEngine->GetUserFn(_fnIndex)->m_pFn;
+               m_value = pFn(_arg0, _arg1);
                }
+            catch (...) {};
+
+            //for (int i = 0; i < _gpQueryEngine->GetUserFnCount(); i++)
+            //   {
+            //   if (_gpQueryEngine->GetUserFn(i)->m_nArgs == 2) 
+            //      {
+            //      USERFN2PROC pFn = (USERFN2PROC)_gpQueryEngine->GetUserFn(i)->m_pFn;
+            //      m_value = pFn(_arg0, _arg1);
+            //      break;
+            //      }
+            //   }
             return true;
             }
 
@@ -1890,6 +1898,13 @@ QFNARG QueryEngine::AddFunctionArgs(int functionID, int arg0, int arg1)
    QArgList* pArgList = new QArgList;
    QArgument _arg0(arg0);
    QArgument _arg1(arg1);
+
+   if (functionID == USERFN2)
+      {
+      QArgument _fnIndex(gUserFnIndex);
+      pArgList->Add(_fnIndex);
+      }
+
    pArgList->Add(_arg0);
    pArgList->Add(_arg1);
 
@@ -1898,12 +1913,17 @@ QFNARG QueryEngine::AddFunctionArgs(int functionID, int arg0, int arg1)
    QFNARG fnArg;
    fnArg.function = functionID;
    fnArg.pArgList = pArgList;
-   //fnArg
 
+   if (functionID == USERFN2)
+      {
+
+      }
+
+   //fnArg
    if (m_debug)
       {
       CString msg;
-      msg.Format("AddFunctionArgs(functionID=%i,arg0=%s,arg1=%i)\n", functionID, arg0, arg1);
+      msg.Format("AddFunctionArgs(functionID=%i,arg0=%i,arg1=%i)\n", functionID, arg0, arg1);
       m_debugInfo += msg;
       }
 

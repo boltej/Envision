@@ -49,9 +49,10 @@ int FarmModel::m_colLulc = -1;
 int FarmModel::m_colRegion = -1;
 int FarmModel::m_colCLI = -1;
 int FarmModel::m_colFarmType = -1;
-int FarmModel::m_colCropAge = -1;
+int FarmModel::m_colCropYear = -1;
 int FarmModel::m_colCropStage = -1;
 int FarmModel::m_colPlantDate = -1;  // "PLANTDATE"       - output
+int FarmModel::m_colHarvDate = -1;   // "HARVDATE"       - output
 int FarmModel::m_colDormancy;  // "DORMANCY" - used during runtime
 
 int FarmModel::m_maxFieldArea = int(80 * M2_PER_HA);
@@ -619,54 +620,22 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    if (!ok)
       return false;
 
-   // initialize submodels
-   m_climateManager.Init(pContext, initStr);
-   m_csModel.Init(this, pMapLayer, pContext->pQueryEngine, pContext->pExprEngine);
-
-   if (m_doInit > 0)
-      InitializeFarms(pMapLayer);   // populates FarmType, FT_Code fields based on FT_Extent strings
-
    // these are hard coded columns (for now)
    ok = theProcess->CheckCol(pMapLayer, m_colArea, "Area", TYPE_FLOAT, CC_MUST_EXIST);
    if (!ok)
       return false;
-
-   theProcess->CheckCol(pMapLayer, m_colFieldID, "Field_ID", TYPE_INT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colSLC, "SLC", TYPE_INT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colRotIndex, "ROT_INDEX", TYPE_INT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colCropStatus, "CropStatus", TYPE_INT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colCropStage, "CropStage", TYPE_INT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colCropAge, "CropAge", TYPE_INT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colPlantDate, "PlantDate", TYPE_INT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colYieldRed, "YieldRed", TYPE_FLOAT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colYield, "Yield", TYPE_FLOAT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colDormancy, "DORMANCY", TYPE_INT, CC_AUTOADD);
-
-   theProcess->CheckCol(pMapLayer, m_colDairyAvg, "DairyAvg", TYPE_FLOAT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colBeefAvg, "BeefAvg", TYPE_FLOAT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colPigsAvg, "PigsAvg", TYPE_FLOAT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colPoultryAvg, "Poultry_Av", TYPE_FLOAT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colCadID, "CAD_ID", TYPE_INT, CC_MUST_EXIST);
-   theProcess->CheckCol(pMapLayer, m_colCLI, "CLI_d_code", TYPE_INT, CC_MUST_EXIST);
-
-   pMapLayer->SetColNoData(m_colRotIndex);
-   pMapLayer->SetColNoData(m_colCropStatus);
-   pMapLayer->SetColNoData(m_colCropStage);
-   pMapLayer->SetColNoData(m_colPlantDate);
-   pMapLayer->SetColNoData(m_colYieldRed);
-   pMapLayer->SetColNoData(m_colYield);
-
-   // initialize dormancys to 0
-   pMapLayer->SetColData(m_colDormancy, VData(0), true);
 
    theProcess->CheckCol( pMapLayer, m_colFieldID,    "Field_ID",   TYPE_INT,  CC_AUTOADD);
    theProcess->CheckCol( pMapLayer, m_colSLC,        "SLC",        TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol( pMapLayer, m_colRotIndex,   "ROT_INDEX",  TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol( pMapLayer, m_colCropStatus, "CropStatus", TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol( pMapLayer, m_colCropStage,  "CropStage",  TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol(pMapLayer, m_colCropYear,    "CropYear",   TYPE_INT,  CC_AUTOADD);
    theProcess->CheckCol( pMapLayer, m_colPlantDate,  "PlantDate",  TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol(pMapLayer, m_colHarvDate,    "HarvDate",   TYPE_INT,  CC_AUTOADD);
    theProcess->CheckCol( pMapLayer, m_colYieldRed,   "YieldRed",   TYPE_FLOAT, CC_AUTOADD );
    theProcess->CheckCol( pMapLayer, m_colYield,      "Yield",      TYPE_FLOAT, CC_AUTOADD );
+   theProcess->CheckCol(pMapLayer, m_colDormancy,    "DORMANCY",   TYPE_INT,  CC_AUTOADD);
 
    theProcess->CheckCol( pMapLayer, m_colDairyAvg,   "DairyAvg",   TYPE_FLOAT, CC_AUTOADD );
    theProcess->CheckCol( pMapLayer, m_colBeefAvg,    "BeefAvg",    TYPE_FLOAT, CC_AUTOADD );
@@ -674,10 +643,22 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    theProcess->CheckCol( pMapLayer, m_colPoultryAvg, "Poultry_Av", TYPE_FLOAT, CC_AUTOADD );
    theProcess->CheckCol( pMapLayer, m_colCadID,      "CAD_ID",     TYPE_INT,  CC_MUST_EXIST );
    //theProcess->CheckCol( pMapLayer, m_colCLI,        "CLI_d_code", TYPE_INT,  CC_MUST_EXIST );
-   theProcess->CheckCol(pMapLayer, m_colCLI, "CLI_d", TYPE_INT, CC_MUST_EXIST);
+   theProcess->CheckCol(pMapLayer, m_colCLI,         "CLI_d",      TYPE_INT, CC_MUST_EXIST);
 
-   theProcess->CheckCol(pMapLayer, m_colSWC, "SWC", TYPE_FLOAT, CC_AUTOADD);
-   theProcess->CheckCol(pMapLayer, m_colSWE, "SWE", TYPE_FLOAT, CC_AUTOADD);
+   theProcess->CheckCol(pMapLayer, m_colSWC,         "SWC",        TYPE_FLOAT, CC_AUTOADD);
+   theProcess->CheckCol(pMapLayer, m_colSWE,         "SWE",        TYPE_FLOAT, CC_AUTOADD);
+
+   pMapLayer->SetColNoData(m_colRotIndex);
+   pMapLayer->SetColNoData(m_colCropStatus);
+   pMapLayer->SetColNoData(m_colCropStage);
+   pMapLayer->SetColNoData(m_colCropYear);
+   pMapLayer->SetColNoData(m_colPlantDate);
+   pMapLayer->SetColNoData(m_colHarvDate);
+   pMapLayer->SetColNoData(m_colYieldRed);
+   pMapLayer->SetColNoData(m_colYield);
+
+   // initialize dormancys to 0
+   pMapLayer->SetColData(m_colDormancy, VData(0), true);
 
    pMapLayer->SetColNoData( m_colRotIndex );
    pMapLayer->SetColNoData( m_colCropStatus );
@@ -685,6 +666,13 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    pMapLayer->SetColNoData( m_colPlantDate );
    pMapLayer->SetColNoData( m_colYieldRed );
    pMapLayer->SetColNoData( m_colYield );
+
+   // initialize submodels
+   m_climateManager.Init(pContext, initStr);
+   m_csModel.Init(this, pMapLayer, pContext->pQueryEngine, pContext->pExprEngine);
+
+   if (m_doInit > 0)
+      InitializeFarms(pMapLayer);   // populates FarmType, FT_Code fields based on FT_Extent strings
 
    // build the farm aggregations
    int farmCount = BuildFarms(pMapLayer);
@@ -703,8 +691,6 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    msg.Format("Farm Model: Success building %i farms, %i farm types, %i rotations", (int)m_farmArray.GetSize(),
       (int)m_farmTypeArray.GetSize(), (int)m_rotationArray.GetSize());
    Report::Log(msg);
-
-
 
    return true;
    }
@@ -1764,7 +1750,6 @@ bool FarmModel::RotateCrops(EnvContext* pContext, bool useAddDelta)
                   theProcess->UpdateIDU(pContext, idu, m_colRotIndex, -1, useAddDelta ? ADD_DELTA : SET_DATA);
                continue;
                }
-
             else
                {
                // this IDU is Ag, and is in a rotation, so rotate through...
@@ -1874,7 +1859,6 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
 
       float tArea = 0;
       float tYRF = 0;
-
 
       // update individual farms
 //#pragma omp parallel for
@@ -4767,6 +4751,16 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
    if (!ok)
       return false;
 
+   if (m_useVSMB)
+      {
+      TiXmlElement* pXmlVSMB = pXmlFarmModel->FirstChildElement("vsmb");
+      if (pXmlVSMB)
+         {
+         LPCTSTR paramFile = pXmlVSMB->Attribute("param_file");
+         m_vsmb.LoadParamFile(paramFile);
+         }
+      }
+
    // verify columns exist
    theProcess->CheckCol(pLayer, m_colFarmID, m_farmIDField, TYPE_INT, m_doInit ? CC_AUTOADD : CC_MUST_EXIST);
    theProcess->CheckCol(pLayer, m_colFarmType, m_farmTypeField, TYPE_INT, m_doInit ? CC_AUTOADD : CC_MUST_EXIST);
@@ -4821,10 +4815,24 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
 
             while (token != NULL)
                {
-               int attrCode = atoi(token);
+               TCHAR* p = _tcschr(token, '*');  // multiple?
+               if (p != NULL) // multiple?
+                  {           // first is crop, second is duration
+                  int attrCode = atoi(token);
+                  int duration = atoi(p + 1);
 
-               int index = (int)pRotation->m_sequenceArray.Add(attrCode);
-               pRotation->m_sequenceMap.SetAt(attrCode, index);    // BUG ALERT!~!!! fails if the same crops shows up twice in thw sequence
+                  for (int i = 0; i < duration; i++)
+                     {
+                     int index = (int)pRotation->m_sequenceArray.Add(attrCode);
+                     pRotation->m_sequenceMap.SetAt(attrCode, index);    // BUG ALERT!~!!! fails if the same crops shows up twice in thw sequence
+                     }
+                  }
+               else   // annual crop specified
+                  {
+                  int attrCode = atoi(token);
+                  int index = (int)pRotation->m_sequenceArray.Add(attrCode);  // add crop to sequence
+                  pRotation->m_sequenceMap.SetAt(attrCode, index);    // BUG ALERT!~!!! fails if the same crops shows up twice in the sequence
+                  }
                token = _tcstok_s(NULL, _T(","), &next);
                }
             delete[] buffer;
@@ -5162,14 +5170,6 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
             }
 
          pXmlFST = pXmlFST->NextSiblingElement("fst");
-         }
-
-      TiXmlElement* pXmlVSMB = pXmlFarmModel->FirstChildElement("vsmb");
-
-      if (pXmlVSMB)
-         {
-         LPCTSTR paramFile = pXmlVSMB->Attribute("param_file");
-         m_vsmb.LoadParamFile(paramFile);
          }
 
       }

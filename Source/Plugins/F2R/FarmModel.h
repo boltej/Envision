@@ -509,10 +509,12 @@ public:
    static int m_colRotation;   // rotation code (id) for current rotation scheme
    static int m_colRotIndex;   // 0-based index of current location in sequence, no data if not in sequence
    static int m_colCropStage;  // "CROPSTAGE"        - output
-   static int m_colCropAge;    // age (years of establishment) of a perennial/woody crop
+   static int m_colCropYear;   // years of establishment of a perennial/woody crop
    static int m_colArea;       // "AREA"
    static int m_colCLI;        // "CLI_d_upda"
    static int m_colPlantDate;  // "PLANTDATE"       - output
+   static int m_colHarvDate;   // "HARVDATE"        - output
+
    static int m_colDormancy;  // "DORMANCY" - used during runtime
 
 

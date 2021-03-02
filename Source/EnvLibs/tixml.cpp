@@ -83,6 +83,10 @@ bool GetXmlStr( LPCTSTR input, CString &output )
             output.Append( _T("&amp;") );
             break;
 
+         //case '%':
+         //   output.Append(_T("&amp;"));
+         //   break;
+
          case '<':
          case '>':
             {

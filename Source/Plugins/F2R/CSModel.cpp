@@ -19,12 +19,16 @@ float CSModel::m_tMean = 0;
 float CSModel::m_tMin = 0;
 float CSModel::m_tMax = 0;
 float CSModel::m_gdd0 = 0;
-float CSModel::m_gdd5 = 0;
+//float CSModel::m_gdd5 = 0;
 float CSModel::m_gdd0Apr15 = 0;
 float CSModel::m_gdd5Apr1 = 0;
 float CSModel::m_gdd5May1 = 0;
-float CSModel::m_pctAVC = 0;
-float CSModel::m_AVC = 0;
+float CSModel::m_pctAWC = 0;
+float CSModel::m_pctSat = 0;
+float CSModel::m_swc = 0;
+float CSModel::m_swe = 0;
+float CSModel::m_chuMay1 = 0;
+float CSModel::m_pET = 0;
 
 
 MapLayer* CSModel::m_pMapLayer = NULL;
@@ -36,9 +40,7 @@ extern F2RProcess* theProcess;
 Query* ParseQuery(QueryEngine* pQE, CString& query, LPCTSTR source);
 int ReplaceDates(CString& query);
 bool ReplaceDate(CString& query, int index, int month);
-int ReplaceKeywordArgs(CString& query);
-
-
+int ReplaceKeywordArgs(CString& query, LPCTSTR fnName);
 
 Query* CSCropEvent::CompileWhen(QueryEngine* pQE)
    {
@@ -94,7 +96,7 @@ Query* CSEvalExpr::CompileWhen(QueryEngine* pQE)
    return pWhen;
    }
 
-MapExpr *CSEvalExpr::CompileOutcome(MapExprEngine *pME, LPCTSTR name)
+MapExpr *CSEvalExpr::CompileOutcome(MapExprEngine *pME, LPCTSTR name, MapLayer *pLayer)
    {   
    // if outcome defined, parse it
    if (outcome.IsEmpty())
@@ -107,8 +109,11 @@ MapExpr *CSEvalExpr::CompileOutcome(MapExprEngine *pME, LPCTSTR name)
       return NULL;
       }
 
-   outcomeTarget = outcome.Left(index);
-   outcomeExpr = outcome.Mid(index + 1);
+   outcomeTarget = outcome.Left(index).Trim();
+   outcomeExpr = outcome.Mid(index + 1).Trim();
+
+   // outcome target should be an IDU field
+   theProcess->CheckCol(pLayer, this->col, this->outcomeTarget, TYPE_INT, CC_MUST_EXIST);
 
    // see the if outcomeExpr is a constant
    bool isConstant = true;
@@ -151,54 +156,36 @@ MapExpr *CSEvalExpr::CompileOutcome(MapExprEngine *pME, LPCTSTR name)
 int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, MapExprEngine *pME)
    {
    m_pMapLayer = pIDULayer;
+   m_pVSMB = pFarmModel->m_useVSMB ? &(pFarmModel->m_vsmb) : NULL;
 
-   //m_csModel.m_pClimateStation = this-> 
-   m_pVSMB = &(pFarmModel->m_vsmb);
-
+   // install query engine functions
    pQE->AddUserFn("Avg", CSModel::Avg);
+   pQE->AddUserFn("AbovePeriod", CSModel::AbovePeriod);
 
-   // externals????
-   QExternal* pExt = pQE->AddExternal("DOY");
-   pExt->SetValue(VData(&m_doy, TYPE_PINT, true));
+   // ad query engine externals
+   QExternal* pExt = pQE->AddExternal("DOY"); pExt->SetValue(VData(&m_doy, TYPE_PINT, true));
 
-   pExt = pQE->AddExternal("PDAYS");
-   pExt->SetValue(VData(&m_pDays, TYPE_PINT, true));
+   pExt = pQE->AddExternal("PDAYS");      pExt->SetValue(VData(&m_pDays, TYPE_PFLOAT, true));
 
-   pExt = pQE->AddExternal("PRECIP");
-   pExt->SetValue(VData(&m_precip, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("PRECIP");     pExt->SetValue(VData(&m_precip, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("HPRECIP");    pExt->SetValue(VData(&m_hMeanPrecip, TYPE_PFLOAT, true));
+   
+   pExt = pQE->AddExternal("GDD0");       pExt->SetValue(VData(&m_gdd0, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("GDD0APR15");  pExt->SetValue(VData(&m_gdd0Apr15, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("GDD5APR1");   pExt->SetValue(VData(&m_gdd5Apr1, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("GDD5MAY1");   pExt->SetValue(VData(&m_gdd5May1, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("CHUMAY1");    pExt->SetValue(VData(&m_chuMay1, TYPE_PFLOAT, true));
 
-   pExt = pQE->AddExternal("HPRECIP");
-   pExt->SetValue(VData(&m_hMeanPrecip, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("TMIN");       pExt->SetValue(VData(&m_tMin, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("TMAX");       pExt->SetValue(VData(&m_tMax, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("TMEAN");      pExt->SetValue(VData(&m_tMean, TYPE_PFLOAT, true));
+   
+   pExt = pQE->AddExternal("PET");        pExt->SetValue(VData(&m_pET, TYPE_PFLOAT, true));
 
-   pExt = pQE->AddExternal("GDD0");
-   pExt->SetValue(VData(&m_gdd0, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("GDD5");
-   pExt->SetValue(VData(&m_gdd5, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("GDD0APR15");
-   pExt->SetValue(VData(&m_gdd0Apr15, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("GDD5APR1");
-   pExt->SetValue(VData(&m_gdd5Apr1, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("GDD5MAY1");
-   pExt->SetValue(VData(&m_gdd5May1, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("TMIN");
-   pExt->SetValue(VData(&m_tMin, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("TAMX");
-   pExt->SetValue(VData(&m_tMax, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("TMEAN");
-   pExt->SetValue(VData(&m_tMean, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("AVC");
-   pExt->SetValue(VData(&m_AVC, TYPE_PFLOAT, true));
-
-   pExt = pQE->AddExternal("pAVC");
-   pExt->SetValue(VData(&m_pctAVC, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("pAWC");       pExt->SetValue(VData(&m_pctAWC, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("pSAT");       pExt->SetValue(VData(&m_pctSat, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("SWC");        pExt->SetValue(VData(&m_swc, TYPE_PFLOAT, true));
+   pExt = pQE->AddExternal("SWE");        pExt->SetValue(VData(&m_swe, TYPE_PFLOAT, true));
 
    // initialize crops by compiling expressions as needed
    for (int i = 0; i < m_crops.GetSize(); i++)
@@ -234,7 +221,7 @@ int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, M
             {
             CSEvalExpr* pExpr = pStage->m_evalExprs[k];
             pExpr->CompileWhen(pQE);
-            pExpr->CompileOutcome(pME, "EvalExpr");
+            pExpr->CompileOutcome(pME, "EvalExpr", pIDULayer);
             }
          }
       }
@@ -268,7 +255,6 @@ int CSModel::InitRun( EnvContext *pContext)
    return true;
    }
 
-
 float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, 
       ClimateStation* pStation, MapLayer* pIDULayer, int idu, float areaHa, 
       int doy, int year, int lulc, int cropStage, float priorCumYRF)
@@ -290,11 +276,21 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
    m_pClimateStation->GetData(doy, year, TMAX, m_tMax);
 
    m_gdd0 = m_pClimateStation->m_cumDegDays0[doy-1];
-   //m_gdd5 = m_pClimateStation->m_cum;
    m_gdd0Apr15 = m_pClimateStation->m_cumDegDays0Apr15[doy-1];
    m_gdd5Apr1 = m_pClimateStation->m_cumDegDays5Apr1[doy-1];
    m_gdd5May1 = m_pClimateStation->m_cumDegDays5May1[doy-1];
 
+   m_chuMay1 = m_pClimateStation->m_chuCornMay1[doy - 1];
+   m_pET = m_pClimateStation->GetPET(VPM_PRIESTLEY_TAYLOR, doy, year);
+
+   // soil properties
+   if (m_pVSMB)
+      {
+      m_swc = m_pVSMB->GetAverageSWC(idu);
+      m_pctSat = m_pVSMB->GetPercentSaturated(idu);
+      m_pctAWC = m_pVSMB->GetPercentAWC(idu);
+      m_swe = m_pVSMB->GetSWE(idu);
+      }
    CSCrop* pCrop = NULL;
    bool ok = m_cropLookup.Lookup(lulc, pCrop);
 
@@ -352,7 +348,7 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
          yrf = pFarmModel->AddCropEvent(pContext, idu, pEvent->id, pEvent->name, areaHa, doy, pEvent->yrf, priorCumYRF);
 
          CString msg;
-         msg.Format("CSModel: Crop Event %s fired on day %i on IDU %i", pEvent->name, doy, idu);
+         msg.Format("CSModel: Crop Event %s fired on day %i on IDU %i", (LPCTSTR) pEvent->name, doy, idu);
          Report::LogInfo(msg);
          }
       }
@@ -380,11 +376,14 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
                theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, pCrop->m_cropStages[j]->m_id, SET_DATA);
 
                // fire a crop event indicating the transition
-               pFarmModel->AddCropEvent(pContext, idu, -999, pTrans->toStage, areaHa, doy, 0, priorCumYRF);
+               pFarmModel->AddCropEvent(pContext, idu, -99, pTrans->toStage, areaHa, doy, 0, priorCumYRF);
 
-               // special case - signal planting date
-               if (pTrans->toStage.CompareNoCase("Planting") == 0 )
+               // special cases - signal planting date
+               if (pTrans->toStage.CompareNoCase("Planted") == 0 )
                   theProcess->UpdateIDU(pContext, idu, FarmModel::m_colPlantDate, doy, SET_DATA);
+               
+               else if (pTrans->toStage.CompareNoCase("Harvested") == 0)
+                  theProcess->UpdateIDU(pContext, idu, FarmModel::m_colHarvDate, doy, SET_DATA);
 
                CString msg;
                msg.Format("CSModel: Crop %s transitioning to stage %s on day %i on IDU %i", (LPCTSTR) pCrop->m_name, (LPCTSTR) pTrans->toStage, doy, idu);
@@ -398,22 +397,11 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
    return yrf;
    }
 
-
 // QUserFn
 float CSModel::Avg(int kw, int period)
    {
    switch (kw)
       {
-      //case DOY:   
-      //   return m_doy;
-      //
-      //case GDD:
-      //   {
-      //   float gdd = 0;
-      //   m_pMapLayer->GetData(m_idu, m_colGDD, gdd);
-      //   return gdd;
-      //   }
-
       case CS_TMIN:
       case CS_TMEAN:
       case CS_TMAX:
@@ -425,26 +413,37 @@ float CSModel::Avg(int kw, int period)
             TVAR = TMAX;
 
          float temp = 0;
+         int _period = 0;
          for (int i = 0; i < period; i++)
             {
             float _temp = 0;
-            m_pClimateStation->GetData(m_doy - i - 1, m_year, TVAR, _temp);
+            if (m_doy - i - 1 >= 0)
+               {
+               m_pClimateStation->GetData(m_doy - i - 1, m_year, TVAR, _temp);
+               _period++;
+               }
             temp += _temp;
             }
-         return temp/period;
+         return temp / _period;
          }
 
       case CS_PRECIP:
-      case CS_HPRECIP:
-         
-
-      case CS_AVC:
          {
-         float avc = 0;
-         //if (m_pVSMB != NULL)
-         //   m_pVSMB->DoSomething();
-         return avc;
+         float precip = 0;
+         int _period = 0;
+         for (int i = 0; i < period; i++)
+            {
+            float _precip = 0;
+            if (m_doy - i - 1 >= 1)
+               {
+               m_pClimateStation->GetData(m_doy - i - 1, m_year, PRECIP, _precip);
+               _period++;
+               }
+            precip += _precip;
+            }
+         return precip / _period;
          }
+
 
       //case CS_PHOTO:
       //   break;
@@ -452,6 +451,47 @@ float CSModel::Avg(int kw, int period)
 
    return 0;
    }
+
+float CSModel::AbovePeriod(int kw, int threshold)
+   {
+   switch (kw)
+      {
+      case CS_TMIN:
+      case CS_TMEAN:
+      case CS_TMAX:
+      case PRECIP:
+         {
+         int period = 0;
+
+         int VAR = PRECIP;
+         if (kw == CS_TMIN)
+            VAR = TMIN;
+         else if (kw == CS_TMAX)
+            VAR = TMAX;
+         else if (kw == CS_TMEAN)
+            VAR = TMEAN;
+
+         float value = 0;
+         while (true)
+            {
+            if (m_doy - period - 1 < 1)
+               return period;
+
+            m_pClimateStation->GetData(m_doy - period - 1, m_year, VAR, value);
+            if (value < threshold)
+               return period;
+
+            period++;
+            }
+         return period;
+         }
+
+      }
+
+   return 0;
+   }
+
+
 
 bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
    {
@@ -468,8 +508,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                          { "name",          TYPE_CSTRING,  &pCrop->m_name,          true,  0 },
                          { "id",            TYPE_INT,      &pCrop->m_id,            true, 0 },
                          { "code",          TYPE_CSTRING,  &pCrop->m_code,          true, 0 },
-                         { "rotation",      TYPE_BOOL,     &pCrop->m_isRotation,    true,  0 },
-                         { "annual",        TYPE_BOOL,     &pCrop->m_isAnnual,      true, 0 },
+                         //{ "rotation",      TYPE_BOOL,     &pCrop->m_isRotation,    true,  0 },
                          { "harvestStartYr",TYPE_INT,      &pCrop->m_harvestStartYr,false, 0 },
                          { "harvestFreq",   TYPE_INT,      &pCrop->m_harvestFreq,   false, 0 },
                          { NULL,           TYPE_NULL,     NULL,          false, 0 } };
@@ -534,8 +573,8 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
             pStage->m_id = (int) pCrop->m_cropStages.Add(pStage);
             pStage->m_id += 1;   // make 1-based
 
-            // process <eval>s
-            TiXmlElement* pXmlEval = pXmlStage->FirstChildElement("eval");
+            // process <do>s
+            TiXmlElement* pXmlEval = pXmlStage->FirstChildElement("do");
             while (pXmlEval != NULL)
                {
                CSEvalExpr* pEval = new CSEvalExpr;
@@ -543,7 +582,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                XML_ATTR attrs[] = { // attr type           address        isReq checkCol
                                   { "name", TYPE_CSTRING,  &pEval->name,  true, 0 },
                                   { "when", TYPE_CSTRING,  &pEval->when,     true, 0 },
-                                  { "expr", TYPE_CSTRING,  &pEval->outcome,  false, 0 },
+                                  { "action", TYPE_CSTRING,  &pEval->outcome,  false, 0 },
                                   { NULL,   TYPE_NULL,     NULL,           false,0 } };
 
                if (TiXmlGetAttributes(pXmlEval, attrs, path, NULL) == false)
@@ -553,14 +592,14 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                   msg += "'";
                   Report::LogError(msg);
                   delete pEval;
-                  continue;
+                  return false;
                   }
 
                // pEvent->CompileWhen(pQueryE);  NEED TO DO THIS SOMEWHERE!
                pStage->m_evalExprs.Add(pEval);
                
 
-               pXmlEval = pXmlEval->NextSiblingElement("eval");
+               pXmlEval = pXmlEval->NextSiblingElement("do");
                }
 
             // process <crop_event>
@@ -571,7 +610,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
 
                XML_ATTR attrs[] = { // attr  type           address        isReq checkCol
                                   { "name", TYPE_CSTRING,  &pEvent->name,  true, 0 },
-                                  { "id",   TYPE_INT,      &pEvent->id,    true, 0 },
+                                  { "id",   TYPE_INT,      &pEvent->id,    false, 0 },
                                   { "yrf",  TYPE_FLOAT,    &pEvent->yrf,   true, 0 },
                                   { "when", TYPE_CSTRING,  &pEvent->when,  true, 0 },
                                   { NULL,   TYPE_NULL,     NULL,           false,0 } };
@@ -583,11 +622,14 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                   msg += "'";
                   Report::LogError(msg);
                   delete pEvent;
-                  continue;
+                  return false;
                   }
 
                // pEvent->CompileWhen(pQueryE);  NEED TO DO THIS SOMEWHERE!
-               pStage->m_events.Add(pEvent);
+               int index = pStage->m_events.Add(pEvent);
+
+               if (pEvent->id == -1)
+                  pEvent->id = index+1;
 
                pXmlEvent = pXmlEvent->NextSiblingElement("crop_event");
                }
@@ -611,7 +653,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                   msg += "'";
                   Report::LogError(msg);
                   delete pTrans;
-                  continue;
+                  return false;;
                   }
 
                // pEvent->CompileWhen(pQueryE);  NEED TO DO THIS SOMEWHERE!
@@ -622,11 +664,21 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
 
             pXmlStage = pXmlStage->NextSiblingElement("stage");
             }
+         }      
 
-         }
-      
+         CString msg;
+         msg.Format("  CSModel: Added crop %s with %i stages", (LPCTSTR) pCrop->m_name, (int) pCrop->m_cropStages.GetSize());
+         Report::LogInfo(msg);
 
-      pXmlCrop = pXmlCrop->NextSiblingElement("crop");
+         for (int i = 0; i < pCrop->m_cropStages.GetSize(); i++)
+            {
+            CSCropStage* pStage = pCrop->m_cropStages[i];
+            msg.Format("    Stage [%s]: %i <evals>, %i <crop_events>, %i <transitions>", (LPCTSTR) pStage->m_name, 
+               (int)pStage->m_evalExprs.GetSize(), (int)pStage->m_events.GetSize(), (int)pStage->m_transitions.GetSize());
+            Report::LogInfo(msg);
+            }
+
+         pXmlCrop = pXmlCrop->NextSiblingElement("crop");
       }
 
    return true;
@@ -635,18 +687,19 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
 Query* ParseQuery(QueryEngine* pQE, CString& query, LPCTSTR source) //"CSModel.CSCropEvent");
    {
    ReplaceDates(query);
-   ReplaceKeywordArgs(query);
+   ReplaceKeywordArgs(query, "Avg(");
+   ReplaceKeywordArgs(query, "Count(");
 
    Query* pQuery = pQE->ParseQuery(query, 0, source);
    return pQuery;
    }
 
-int ReplaceKeywordArgs(CString& query)
+int ReplaceKeywordArgs(CString& query, LPCTSTR fnName)
    {
    // only look inside "Avg(xxx)" statements
    TCHAR buffer[8];
 
-   int index = query.Find("Avg(");
+   int index = query.Find(fnName);  // e.g. Avg(, Count(
    while (index >= 0)
       {
       int start = index + 4;
@@ -665,9 +718,6 @@ int ReplaceKeywordArgs(CString& query)
 
       CString args = query.Mid(start, end - start - 1);
 
-      _itoa(CS_HPRECIP, buffer, 10);
-      args.Replace("HPRECIP", buffer);
-
       _itoa(CS_PRECIP, buffer, 10);
       args.Replace("PRECIP", buffer);
 
@@ -683,7 +733,7 @@ int ReplaceKeywordArgs(CString& query)
       query.Delete(start,end-start-1);
       query.Insert(start,args);
       
-      index = query.Find("Avg", index+6);
+      index = query.Find(fnName, index+6);
       }
    return 1;
    }
@@ -695,7 +745,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("JAN", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if ( index==0 || ! isalnum(query[index-1]))
             ReplaceDate(query, index, 0);
@@ -707,7 +757,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("FEB", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 1);
@@ -719,7 +769,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("MAR", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 2);
@@ -731,7 +781,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("APR",index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 3);
@@ -743,7 +793,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("MAY", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 4);
@@ -754,7 +804,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("JUN", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 5);
@@ -765,7 +815,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("JUL", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 6);
@@ -776,7 +826,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("AUG", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 7);
@@ -787,7 +837,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("SEP", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 8);
@@ -798,7 +848,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("OCT", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 9);
@@ -809,7 +859,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("NOV", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 10);
@@ -820,7 +870,7 @@ int ReplaceDates(CString &query)
    while (index >= 0)
       {
       index = query.Find("DEC", index);
-      if (index >= 0 && query.GetLength() > index + 4 && isdigit(query[index + 3]))
+      if (index >= 0 && query.GetLength() >= index + 4 && isdigit(query[index + 3]))
          {
          if (index == 0 || !isalnum(query[index - 1]))
             ReplaceDate(query, index, 11);

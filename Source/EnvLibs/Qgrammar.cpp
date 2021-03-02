@@ -10,15 +10,14 @@
 extern QueryEngine *_gpQueryEngine;
 extern char *gQueryBuffer;
 extern MapLayer *gFieldLayer;
+extern int gUserFnIndex;
 char functionBuffer[ 128 ];
 bool QShowCompilerErrors = true;
 TCHAR QSource[ 256 ];
 TCHAR QQueryStr[ 512 ];
 int   QCurrentLineNo = 0;
 
-
 //#define YYDEBUG
-
 
 //---- prototypes -----
 
@@ -586,6 +585,7 @@ int QIsFunction( char **p )
         QUserFn *pFn = _gpQueryEngine->GetUserFn(i);
         if ( _strnicmp(pFn->m_name, *p, pFn->m_name.GetLength()) == 0 )
             {
+            gUserFnIndex = i;
             *p += pFn->m_name.GetLength();
 
             switch( pFn->m_nArgs)
