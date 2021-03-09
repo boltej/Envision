@@ -327,10 +327,14 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
          pExpr->outcomeValue = pExpr->pOutcomeExpr->GetValue();
 
          // is the target a field?
-         if ( pExpr->col >= 0 )
-            theProcess->UpdateIDU(pContext, idu, pExpr->col, pExpr->outcomeValue.GetFloat(), SET_DATA);
-         // or a global variable?
-         //.... ?????
+         if (pExpr->col >= 0)
+            {
+            float value = 0;
+            pExpr->outcomeValue.GetAsFloat(value);
+            theProcess->UpdateIDU(pContext, idu, pExpr->col, value, SET_DATA);
+            // or a global variable?
+            //.... ?????
+            }
          }
       }
 
@@ -385,9 +389,9 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
                else if (pTrans->toStage.CompareNoCase("Harvested") == 0)
                   theProcess->UpdateIDU(pContext, idu, FarmModel::m_colHarvDate, doy, SET_DATA);
 
-               CString msg;
-               msg.Format("CSModel: Crop %s transitioning to stage %s on day %i on IDU %i", (LPCTSTR) pCrop->m_name, (LPCTSTR) pTrans->toStage, doy, idu);
-               Report::LogInfo(msg);
+               //CString msg;
+               //msg.Format("CSModel: Crop %s transitioning to stage %s on day %i on IDU %i", (LPCTSTR) pCrop->m_name, (LPCTSTR) pTrans->toStage, doy, idu);
+               //Report::LogInfo(msg);
 
                break;
                }
@@ -417,9 +421,9 @@ float CSModel::Avg(int kw, int period)
          for (int i = 0; i < period; i++)
             {
             float _temp = 0;
-            if (m_doy - i - 1 >= 0)
+            if (m_doy - i >= JAN1)
                {
-               m_pClimateStation->GetData(m_doy - i - 1, m_year, TVAR, _temp);
+               m_pClimateStation->GetData(m_doy - i, m_year, TVAR, _temp);
                _period++;
                }
             temp += _temp;
@@ -434,9 +438,9 @@ float CSModel::Avg(int kw, int period)
          for (int i = 0; i < period; i++)
             {
             float _precip = 0;
-            if (m_doy - i - 1 >= 1)
+            if (m_doy - i >= JAN1)
                {
-               m_pClimateStation->GetData(m_doy - i - 1, m_year, PRECIP, _precip);
+               m_pClimateStation->GetData(m_doy - i, m_year, PRECIP, _precip);
                _period++;
                }
             precip += _precip;
@@ -474,10 +478,10 @@ float CSModel::AbovePeriod(int kw, int threshold)
          float value = 0;
          while (true)
             {
-            if (m_doy - period - 1 < 1)
+            if (m_doy - period < 1)
                return period;
 
-            m_pClimateStation->GetData(m_doy - period - 1, m_year, VAR, value);
+            m_pClimateStation->GetData(m_doy - period, m_year, VAR, value);
             if (value < threshold)
                return period;
 
