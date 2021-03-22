@@ -109,11 +109,13 @@ class CSCrop
       bool m_isRotation;
       int m_harvestStartYr;
       int m_harvestFreq;
+      FDataObj* m_rootCoefficentTable;
 
       PtrArray<CSCropStage> m_cropStages;
       PtrArray<CSField> m_fields;
 
       CSCrop() : m_id(-1), m_isRotation(true), m_harvestFreq(0), m_harvestStartYr(0) {}
+      ~CSCrop() { if (m_rootCoefficentTable != NULL) delete m_rootCoefficentTable;  }
    };
 
 

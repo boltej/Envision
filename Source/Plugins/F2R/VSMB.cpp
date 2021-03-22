@@ -47,14 +47,14 @@ VSMBModel::~VSMBModel(void)
       delete m_pNAISSnowMeltTable;
    }
 
-bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation)
+bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation, int currentStage,  FDataObj* pRoot)
    {
    SoilInfo *pSoilInfo = GetSoilInfo(idu);//this is already in the IDU layer
 
    if (pSoilInfo == NULL)
       return false;
 
-   return pSoilInfo->UpdateSoilMoisture(year, doy, pStation, dayOfSimulation);
+   return pSoilInfo->UpdateSoilMoisture(year, doy, pStation, dayOfSimulation, currentStage, pRoot);
    }
 
 float VSMBModel::GetSoilMoisture(int idu, int layer)
@@ -302,7 +302,7 @@ SoilInfo* VSMBModel::GetSoilInfo(int idu)
 
 
 // TODO:  Verify VSMB model working correctly
-bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation)
+bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation, int currentStage, FDataObj* pRoot)
    {
    //
    //  Initial strategy to implement VBMS within the Envision F2R plugin. 2/10/2019
@@ -343,7 +343,7 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, i
    // determine snow depletion
    DetermineSnowDepletion();
    // determine ET
-   DetermineET();
+   DetermineET(currentStage, pRoot);
    // apply precipitation and evaporation to layers
    ApplyPrecipitationAndEvaporationToLayers();
    // calculate drainage and soil water distribution
@@ -714,7 +714,7 @@ bool SoilInfo::DetermineSnowDepletion()
    }
 
 
-bool SoilInfo::DetermineET()
+bool SoilInfo::DetermineET(int currentStage, FDataObj* pRoot)
    {
    // find the ET for each layer
    float actEvap = 0.0f;
@@ -743,27 +743,9 @@ bool SoilInfo::DetermineET()
 
          //pLayer->m_kCoef = self.get_root_coeff(self.iCurrentCropStage, i);  // TODO
          //Should depend on crop stage.  See RootCoeffients.csv.
-         switch (i)
-         {
-         case 0:
-            pLayer->m_kCoef=0.75f;
-            break;
-         case 1:
-            pLayer->m_kCoef = 0.25f;
-            break;
+         pLayer->m_kCoef = pRoot->Get(currentStage,i);
 
-         case 2:
-            pLayer->m_kCoef = 0.1f;
-            break;
-         case 3:
-            pLayer->m_kCoef = 0.05f;
-            break;
-
-         default:
-            break;
-         }
-
-         int iCurrentCropStage=4;//this should vary over time.  Done in determineCropPhenology in the VB code.  This has been replaced??
+         int iCurrentCropStage=currentStage;
          int iKAdjustStage = 2 ;//crop stage for k-adjustment start.  Should be member of VSMB
          if ((iCurrentCropStage >= iKAdjustStage - 1) && (i != 0))  // TODO
             {

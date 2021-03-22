@@ -33,7 +33,7 @@ Copywrite 2012 - Oregon State University
 
 #include <map>
 #include <vector>
-
+#include <FDATAOBJ.H>
 
 enum VSMB_PET_METHOD
    {
@@ -198,7 +198,7 @@ class SoilInfo
       FDataObj *m_pRootCoefficientTable;
 
       
-      bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation);
+      bool UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation, int currentStage, FDataObj* pRoot);
       int WriteSoilResults(LPCTSTR name);
    protected:
       bool DeterminePrecipitationType(int year, int doy, ClimateStation* pStation);   // sets m_rain, m_snow based on m_precip
@@ -216,7 +216,7 @@ class SoilInfo
       bool DetermineRetentionAndLoss();
       bool DetermineInfiltrationAndRunoff();
       bool DetermineSnowDepletion();
-      bool DetermineET();
+      bool DetermineET(int currentStage, FDataObj* pRoot);
       bool ApplyPrecipitationAndEvaporationToLayers(); //  determine potential daily melt from snow
       bool CalculateDrainageAndSoilWaterDistribution();        //  calculate drainage and soil water distribution
       bool AccountForMoistureRedistributionOrUnsaturatedFlow();
@@ -243,7 +243,7 @@ class VSMBModel
       bool AllocateSoilArray(int size);
       SoilInfo* SetSoilInfo(int idu, LPCTSTR soilCode, ClimateStation *pStation, bool saveResults=false);
 
-      bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation);
+      bool UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation, int currentStage, FDataObj *pRoot);
 
       SoilInfo *GetSoilInfo(int idu);///?????
 
