@@ -249,6 +249,7 @@ int CSModel::InitRun( EnvContext *pContext)
 
          // initialize crop stage as well
          theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, pCrop->m_cropStages[0]->m_id, SET_DATA);
+         theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, pCrop->m_cropStages[0]->m_vsmbStage, SET_DATA);
          }
       }  
 
@@ -378,6 +379,7 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
                {
                // tell the IDU it is in a the new state
                theProcess->UpdateIDU(pContext, idu, FarmModel::m_colCropStage, pCrop->m_cropStages[j]->m_id, SET_DATA);
+               theProcess->UpdateIDU(pContext, idu, FarmModel::m_colVSMBStage, pCrop->m_cropStages[j]->m_vsmbStage, SET_DATA);
 
                // fire a crop event indicating the transition
                pFarmModel->AddCropEvent(pContext, idu, -99, pTrans->toStage, areaHa, doy, 0, priorCumYRF);
@@ -571,18 +573,30 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
 
       // process <stages>
       TiXmlElement* pXmlStage= pXmlCrop->FirstChildElement("stage");
+      CString name;
+      int vsmbRoot=-1;
       while (pXmlStage != NULL)
          {
-         LPCTSTR name = pXmlStage->Attribute("name");
-         if (name == NULL)
+         XML_ATTR attrs[] = { // attr type           address        isReq checkCol
+                   { "name", TYPE_CSTRING,  &name,          true,  0 },
+                   { "vsmb", TYPE_INT,      &vsmbRoot,      false, 0 },
+                   { NULL,   TYPE_NULL,     NULL,           false, 0 } };
+
+         if (TiXmlGetAttributes(pXmlStage, attrs, path, NULL) == false)
             {
-            Report::LogError("CSModel::LoadXml() - Missing 'name' attribute when reading <stage> tag");
+            CString msg("CSModel::LoadXml() - Error reading <eval> tag while loading stage '");
+            msg += name;
+            msg += "'";
+            Report::LogError(msg);
+            return false;
             }
+           
          else
             {
             CSCropStage* pStage = new CSCropStage(name);
             pStage->m_id = (int) pCrop->m_cropStages.Add(pStage);
             pStage->m_id += 1;   // make 1-based
+            pStage->m_vsmbStage = vsmbRoot;
 
             // process <do>s
             TiXmlElement* pXmlEval = pXmlStage->FirstChildElement("do");

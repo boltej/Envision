@@ -90,13 +90,14 @@ class CSCropStage
    {
    public:
       int m_id;   // 1-based offset in FarmModel::m_crops array
+      int m_vsmbStage;
       CString m_name;
 
       PtrArray<CSCropEvent> m_events;
       PtrArray<CSTransition> m_transitions;
       PtrArray<CSEvalExpr> m_evalExprs;
 
-      CSCropStage(LPCTSTR name) : m_id(-1), m_name(name) {}
+      CSCropStage(LPCTSTR name) : m_id(-1), m_name(name) , m_vsmbStage(0){}
    };
 
 

@@ -51,6 +51,7 @@ int FarmModel::m_colCLI = -1;
 int FarmModel::m_colFarmType = -1;
 int FarmModel::m_colCropYear = -1;
 int FarmModel::m_colCropStage = -1;
+int FarmModel::m_colVSMBStage = -1;
 int FarmModel::m_colPlantDate = -1;  // "PLANTDATE"       - output
 int FarmModel::m_colHarvDate = -1;   // "HARVDATE"       - output
 int FarmModel::m_colDormancy;  // "DORMANCY" - used during runtime
@@ -630,6 +631,7 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    theProcess->CheckCol( pMapLayer, m_colRotIndex,   "ROT_INDEX",  TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol( pMapLayer, m_colCropStatus, "CropStatus", TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol( pMapLayer, m_colCropStage,  "CropStage",  TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol(pMapLayer, m_colVSMBStage,   "VSMBStage",  TYPE_INT, CC_AUTOADD);
    theProcess->CheckCol(pMapLayer, m_colCropYear,    "CropYear",   TYPE_INT,  CC_AUTOADD);
    theProcess->CheckCol( pMapLayer, m_colPlantDate,  "PlantDate",  TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol(pMapLayer, m_colHarvDate,    "HarvDate",   TYPE_INT,  CC_AUTOADD);
@@ -1911,25 +1913,8 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                   { 
                   int dayOfSimulation=((pContext->currentYear-pContext->startYear)*365)+doy;
                   int currentStage=-1;
-                  int vsmb_stage=0;
-                  pLayer->GetData(idu, m_colCropStage, currentStage);
-                  //Note: currently defined stages do not include FULL_COVER, GROWTH_CESSATION, or PRE_EMERGENCE
-                  switch (currentStage)
-                     {
-                     case CS_PREPLANT:       vsmb_stage = 0;    break;
-                     case CS_PLANTED:        vsmb_stage = 0;     break;
-                     case CS_LATEVEGETATION: vsmb_stage = 2;     break;
-                     case CS_POLLINATION:    vsmb_stage = 2;     break;
-                     case CS_REPRODUCTIVE:   vsmb_stage = 2;     break;
-                     case CS_SPRING_REGROWTH:vsmb_stage = 1;     break;
-                     case CS_HARVESTED:      vsmb_stage = 1;     break;
-                     case CS_HARDENED:       vsmb_stage = 1;     break;
-                     case CS_ACTIVE_GROWTH:  vsmb_stage = 1;     break;
-                     case CS_DORMANT:        vsmb_stage = 0;     break; 
-                     case CS_FAILED:         vsmb_stage = 0;     break;
-                     default:                vsmb_stage = 0;     break;
-                     }
-                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation, vsmb_stage, pCrop->m_rootCoefficentTable);
+                  pLayer->GetData(idu, m_colVSMBStage, currentStage);
+                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation, currentStage, pCrop->m_rootCoefficentTable);
                   float swc=m_vsmb.GetSoilMoisture(idu,0);
                   float swe= m_vsmb.GetSWE(idu);
 
