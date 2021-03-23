@@ -1,20 +1,68 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.30517.126
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{54435603-DBB4-11D2-8724-00A0C9A8B90C}") = "Setup-x64", "Setup1.vdproj", "{DC6E48DB-6D73-4032-880C-00187F485BF7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Default = Debug|Default
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		MinSizeRel|Default = MinSizeRel|Default
+		MinSizeRel|x64 = MinSizeRel|x64
+		MinSizeRel|x86 = MinSizeRel|x86
 		Release|Default = Release|Default
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+		RelWithDebInfo|Default = RelWithDebInfo|Default
+		RelWithDebInfo|x64 = RelWithDebInfo|x64
+		RelWithDebInfo|x86 = RelWithDebInfo|x86
+		Template|Default = Template|Default
+		Template|x64 = Template|x64
+		Template|x86 = Template|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|Default.ActiveCfg = Debug
 		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|Default.Build.0 = Debug
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|x64.ActiveCfg = Debug
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|x64.Build.0 = Debug
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|x86.ActiveCfg = Debug
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Debug|x86.Build.0 = Debug
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.MinSizeRel|Default.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.MinSizeRel|Default.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.MinSizeRel|x64.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.MinSizeRel|x64.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.MinSizeRel|x86.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.MinSizeRel|x86.Build.0 = Release
 		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|Default.ActiveCfg = Release
 		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|Default.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|x64.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|x64.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|x86.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Release|x86.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.RelWithDebInfo|Default.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.RelWithDebInfo|Default.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.RelWithDebInfo|x64.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.RelWithDebInfo|x64.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.RelWithDebInfo|x86.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.RelWithDebInfo|x86.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Template|Default.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Template|Default.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Template|x64.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Template|x64.Build.0 = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Template|x86.ActiveCfg = Release
+		{DC6E48DB-6D73-4032-880C-00187F485BF7}.Template|x86.Build.0 = Release
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {52514752-196C-4E68-B7F5-AFDD2CFE24E0}
+	EndGlobalSection
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Default = Debug|Default
+		Release|Default = Release|Default
 	EndGlobalSection
 EndGlobal

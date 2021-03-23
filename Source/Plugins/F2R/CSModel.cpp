@@ -161,6 +161,7 @@ int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, M
    // install query engine functions
    pQE->AddUserFn("Avg", CSModel::Avg);
    pQE->AddUserFn("AbovePeriod", CSModel::AbovePeriod);
+   pQE->AddUserFn("BelowPeriod", CSModel::BelowPeriod);
 
    // ad query engine externals
    QExternal* pExt = pQE->AddExternal("DOY"); pExt->SetValue(VData(&m_doy, TYPE_PINT, true));
@@ -282,15 +283,15 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
    m_gdd5May1 = m_pClimateStation->m_cumDegDays5May1[doy-1];
 
    m_chuMay1 = m_pClimateStation->m_chuCornMay1[doy - 1];
-   m_pET = m_pClimateStation->GetPET(VPM_PRIESTLEY_TAYLOR, doy, year);
+   m_pET     = m_pClimateStation->GetPET(VPM_PRIESTLEY_TAYLOR, doy, year);
 
    // soil properties
    if (m_pVSMB)
       {
-      m_swc = m_pVSMB->GetAverageSWC(idu);
+      m_swc    = m_pVSMB->GetAverageSWC(idu);
       m_pctSat = m_pVSMB->GetPercentSaturated(idu);
       m_pctAWC = m_pVSMB->GetPercentAWC(idu);
-      m_swe = m_pVSMB->GetSWE(idu);
+      m_swe    = m_pVSMB->GetSWE(idu);
       }
    CSCrop* pCrop = NULL;
    bool ok = m_cropLookup.Lookup(lulc, pCrop);
@@ -352,9 +353,9 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
          {
          yrf = pFarmModel->AddCropEvent(pContext, idu, pEvent->id, pEvent->name, areaHa, doy, pEvent->yrf, priorCumYRF);
 
-         CString msg;
-         msg.Format("CSModel: Crop Event %s fired on day %i on IDU %i", (LPCTSTR) pEvent->name, doy, idu);
-         Report::LogInfo(msg);
+         //CString msg;
+         //msg.Format("CSModel: Crop Event %s fired on day %i on IDU %i", (LPCTSTR) pEvent->name, doy, idu);
+         //Report::LogInfo(msg);
          }
       }
 
@@ -450,8 +451,22 @@ float CSModel::Avg(int kw, int period)
          return precip / _period;
          }
 
-
-      //case CS_PHOTO:
+      case CS_HPRECIP:
+         float precip = 0;
+         int _period = 0;
+         for (int i = 0; i < period; i++)
+            {
+            float _precip = 0;
+            if (m_doy - i >= JAN1)
+               {
+               m_pClimateStation->GetHistoricMean(m_doy - i, PRECIP, _precip);
+               _period++;
+               }
+            precip += _precip;
+            }
+         return precip / _period;
+   
+   //case CS_PHOTO:
       //   break;
       }
 
@@ -481,22 +496,61 @@ float CSModel::AbovePeriod(int kw, int threshold)
          while (true)
             {
             if (m_doy - period < 1)
-               return period;
+               return (float) period;
 
             m_pClimateStation->GetData(m_doy - period, m_year, VAR, value);
             if (value < threshold)
-               return period;
+               return (float) period;
 
             period++;
             }
-         return period;
+         return (float) period;
          }
 
       }
 
-   return 0;
+   return 0.0;
    }
 
+
+float CSModel::BelowPeriod(int kw, int threshold)
+   {
+   switch (kw)
+      {
+      case CS_TMIN:
+      case CS_TMEAN:
+      case CS_TMAX:
+      case PRECIP:
+         {
+         int period = 0;
+
+         int VAR = PRECIP;
+         if (kw == CS_TMIN)
+            VAR = TMIN;
+         else if (kw == CS_TMAX)
+            VAR = TMAX;
+         else if (kw == CS_TMEAN)
+            VAR = TMEAN;
+
+         float value = 0;
+         while (true)
+            {
+            if (m_doy - period < 1)
+               return (float)period;
+
+            m_pClimateStation->GetData(m_doy - period, m_year, VAR, value);
+            if (value > threshold)
+               return (float)period;
+
+            period++;
+            }
+         return (float)period;
+         }
+
+      }
+
+   return 0.0;
+   }
 
 
 bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
@@ -518,6 +572,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                          //{ "rotation",      TYPE_BOOL,     &pCrop->m_isRotation,    true,  0 },
                          { "harvestStartYr",TYPE_INT,      &pCrop->m_harvestStartYr,false, 0 },
                          { "harvestFreq",   TYPE_INT,      &pCrop->m_harvestFreq,   false, 0 },
+                         { "yrfThreshold",  TYPE_FLOAT,    &pCrop->m_yrfThreshold,  false, 0 },
                          { "root",          TYPE_CSTRING,  &root,                   false, 0 },
                          { NULL,           TYPE_NULL,     NULL,          false, 0 } };
 
@@ -530,7 +585,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
       m_crops.Add(pCrop);
       m_cropLookup.SetAt(pCrop->m_id, pCrop);
 
-      if (root)
+      if (root.GetLength() > 0)
          { 
          pCrop->m_rootCoefficentTable = new FDataObj;
          pCrop->m_rootCoefficentTable->ReadAscii(root);
