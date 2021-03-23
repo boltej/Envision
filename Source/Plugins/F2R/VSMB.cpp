@@ -745,7 +745,7 @@ bool SoilInfo::DetermineET(int currentStage, FDataObj* pRoot)
          //Should depend on crop stage.  See RootCoeffients.csv.
 
          pLayer->m_kCoef = 0.0f;
-         if (pRoot)
+         if (pRoot && currentStage < pRoot->GetColCount() && i < m_soilLayerArray.GetSize())
             pLayer->m_kCoef = pRoot->Get(currentStage,i);
 
          int iCurrentCropStage=currentStage;
