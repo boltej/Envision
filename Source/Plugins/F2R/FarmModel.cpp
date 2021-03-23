@@ -51,6 +51,7 @@ int FarmModel::m_colCLI = -1;
 int FarmModel::m_colFarmType = -1;
 int FarmModel::m_colCropYear = -1;
 int FarmModel::m_colCropStage = -1;
+int FarmModel::m_colVSMBStage = -1;
 int FarmModel::m_colPlantDate = -1;  // "PLANTDATE"       - output
 int FarmModel::m_colHarvDate = -1;   // "HARVDATE"       - output
 int FarmModel::m_colDormancy;  // "DORMANCY" - used during runtime
@@ -503,7 +504,6 @@ FarmModel::FarmModel(void)
    , m_outputPivotTable(true)
    , m_vsmb()
    , m_colSWC(0)
-   , m_numIDUsToSave(2)
    {
    // zero out event array
    //memset(m_cropEvents, 0, sizeof(float) * (1 + CE_EVENTCOUNT));
@@ -630,6 +630,7 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    theProcess->CheckCol( pMapLayer, m_colRotIndex,   "ROT_INDEX",  TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol( pMapLayer, m_colCropStatus, "CropStatus", TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol( pMapLayer, m_colCropStage,  "CropStage",  TYPE_INT,  CC_AUTOADD  );
+   theProcess->CheckCol(pMapLayer, m_colVSMBStage,   "VSMBStage",  TYPE_INT, CC_AUTOADD);
    theProcess->CheckCol(pMapLayer, m_colCropYear,    "CropYear",   TYPE_INT,  CC_AUTOADD);
    theProcess->CheckCol( pMapLayer, m_colPlantDate,  "PlantDate",  TYPE_INT,  CC_AUTOADD  );
    theProcess->CheckCol(pMapLayer, m_colHarvDate,    "HarvDate",   TYPE_INT,  CC_AUTOADD);
@@ -1518,20 +1519,29 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B and Region", m_pFldSizeLRData, "");
 
    theProcess->AddOutputVar( "Daily Farm Model Data", m_pDailyData, "" );   
-   int counter=0;
-   for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
-      {
-      CString outName;
-      if (fmod((float)i,2.0f)==0.0)
+   //int counter=0;
+   //for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
+   //   {
+   //   CString outName;
+   //   if (fmod((float)i,2.0f)==0.0)
+   //      {
+   //      outName.Format("VSMB_IDU_%i",m_trackIDUArray[i]);
+   //      counter++;
+   //      }
+   //   else
+   //      outName.Format("VSMB_SM_IDU_%i", m_trackIDUArray[i-counter]);
+
+      int counter = 0;
+      for (int i = 0; i < m_trackIDUArray.GetSize(); i++)
          {
-         outName.Format("VSMB_Site_%i",i);
+         CString outName;
+         outName.Format("VSMB_IDU_%i", m_trackIDUArray[i]);
+         theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
+         counter++;
+         outName.Format("VSMB_SM_IDU_%i", m_trackIDUArray[i]);
+         theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
          counter++;
          }
-      else
-         outName.Format("VSMB_SM_Site_%i", i-counter);
-      
-      theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(i), "");
-      }
 
 
    theProcess->AddOutputVar("Crop Event Data", m_pCropEventData, "");
@@ -1929,6 +1939,7 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                int lulc = -1;
                pLayer->GetData(idu, m_colLulc, lulc);
                CSCrop* pCrop = NULL;
+               
                bool ok = m_csModel.m_cropLookup.Lookup(lulc, pCrop);
                
                // TODO: Verify VSMB
@@ -1937,25 +1948,8 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                   { 
                   int dayOfSimulation=((pContext->currentYear-pContext->startYear)*365)+doy;
                   int currentStage=-1;
-                  int vsmb_stage=0;
-                  pLayer->GetData(idu, m_colCropStage, currentStage);
-                  //Note: currently defined stages do not include FULL_COVER, GROWTH_CESSATION, or PRE_EMERGENCE
-                  switch (currentStage)
-                     {
-                     case CS_PREPLANT:       vsmb_stage = 0;    break;
-                     case CS_PLANTED:        vsmb_stage = 0;     break;
-                     case CS_LATEVEGETATION: vsmb_stage = 2;     break;
-                     case CS_POLLINATION:    vsmb_stage = 2;     break;
-                     case CS_REPRODUCTIVE:   vsmb_stage = 2;     break;
-                     case CS_SPRING_REGROWTH:vsmb_stage = 1;     break;
-                     case CS_HARVESTED:      vsmb_stage = 1;     break;
-                     case CS_HARDENED:       vsmb_stage = 1;     break;
-                     case CS_ACTIVE_GROWTH:  vsmb_stage = 1;     break;
-                     case CS_DORMANT:        vsmb_stage = 0;     break; 
-                     case CS_FAILED:         vsmb_stage = 0;     break;
-                     default:                vsmb_stage = 0;     break;
-                     }
-                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation, vsmb_stage, pCrop->m_rootCoefficentTable);
+                  pLayer->GetData(idu, m_colVSMBStage, currentStage);
+                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation, currentStage, pCrop->m_rootCoefficentTable);
                   float swc=m_vsmb.GetSoilMoisture(idu,0);
                   float swe= m_vsmb.GetSWE(idu);
 
@@ -2195,12 +2189,15 @@ int FarmModel::BuildFarms( MapLayer *pLayer)
       if (m_useVSMB)
          {
          bool saveResults=false;
-        // pLayer->GetData(idu, m_colSoilID, soilIndex);
          LPCTSTR code="NotUsed";
-        // m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID));
-         if (numIDU < m_numIDUsToSave && numIDU > 0)
+       
+        // if (numIDU < m_numIDUsToSave && numIDU > 0)
+        //    saveResults=true;
+
+      // are we tracking this IDU?
+         int index = -1;
+         if (m_trackIDUArray.GetSize() > 0 && m_trackIDUMap.Lookup(idu, index) == TRUE)
             saveResults=true;
-         
          pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID),  saveResults));
          }
       // TODO:  Need to populate soil properties, layers according to soil type

@@ -371,7 +371,6 @@ public:
    PtrArray< FarmRotation > m_rotationArray;
 
    ClimateManager m_climateManager;
-  int m_numIDUsToSave;
 // exposed variables
 protected:
    int m_climateScenarioID;
@@ -432,6 +431,7 @@ public:
    static int m_colRotation;   // rotation code (id) for current rotation scheme
    static int m_colRotIndex;   // 0-based index of current location in sequence, no data if not in sequence
    static int m_colCropStage;  // "CROPSTAGE"        - output
+   static int m_colVSMBStage;  // "CROPSTAGE"        - output
    static int m_colCropYear;   // years of establishment of a perennial/woody crop
    static int m_colArea;       // "AREA"
    static int m_colCLI;        // "CLI_d_upda"
