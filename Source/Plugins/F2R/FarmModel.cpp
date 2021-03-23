@@ -504,7 +504,6 @@ FarmModel::FarmModel(void)
    , m_outputPivotTable(true)
    , m_vsmb()
    , m_colSWC(0)
-   , m_numIDUsToSave(2)
    {
    // zero out event array
    //memset(m_cropEvents, 0, sizeof(float) * (1 + CE_EVENTCOUNT));
@@ -1520,20 +1519,29 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B and Region", m_pFldSizeLRData, "");
 
    theProcess->AddOutputVar( "Daily Farm Model Data", m_pDailyData, "" );   
-   int counter=0;
-   for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
-      {
-      CString outName;
-      if (fmod((float)i,2.0f)==0.0)
+   //int counter=0;
+   //for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
+   //   {
+   //   CString outName;
+   //   if (fmod((float)i,2.0f)==0.0)
+   //      {
+   //      outName.Format("VSMB_IDU_%i",m_trackIDUArray[i]);
+   //      counter++;
+   //      }
+   //   else
+   //      outName.Format("VSMB_SM_IDU_%i", m_trackIDUArray[i-counter]);
+
+      int counter = 0;
+      for (int i = 0; i < m_trackIDUArray.GetSize(); i++)
          {
-         outName.Format("VSMB_Site_%i",i);
+         CString outName;
+         outName.Format("VSMB_IDU_%i", m_trackIDUArray[i]);
+         theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
+         counter++;
+         outName.Format("VSMB_SM_IDU_%i", m_trackIDUArray[i]);
+         theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
          counter++;
          }
-      else
-         outName.Format("VSMB_SM_Site_%i", i-counter);
-      
-      theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(i), "");
-      }
 
 
    theProcess->AddOutputVar("Crop Event Data", m_pCropEventData, "");
@@ -1931,6 +1939,7 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                int lulc = -1;
                pLayer->GetData(idu, m_colLulc, lulc);
                CSCrop* pCrop = NULL;
+               
                bool ok = m_csModel.m_cropLookup.Lookup(lulc, pCrop);
                
                // TODO: Verify VSMB
@@ -2180,12 +2189,15 @@ int FarmModel::BuildFarms( MapLayer *pLayer)
       if (m_useVSMB)
          {
          bool saveResults=false;
-        // pLayer->GetData(idu, m_colSoilID, soilIndex);
          LPCTSTR code="NotUsed";
-        // m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID));
-         if (numIDU < m_numIDUsToSave && numIDU > 0)
+       
+        // if (numIDU < m_numIDUsToSave && numIDU > 0)
+        //    saveResults=true;
+
+      // are we tracking this IDU?
+         int index = -1;
+         if (m_trackIDUArray.GetSize() > 0 && m_trackIDUMap.Lookup(idu, index) == TRUE)
             saveResults=true;
-         
          pField->m_pSoilArray.Add(m_vsmb.SetSoilInfo(idu, code, m_climateManager.GetStationFromID(pFarm->m_climateStationID),  saveResults));
          }
       // TODO:  Need to populate soil properties, layers according to soil type

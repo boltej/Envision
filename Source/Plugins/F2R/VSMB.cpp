@@ -743,7 +743,10 @@ bool SoilInfo::DetermineET(int currentStage, FDataObj* pRoot)
 
          //pLayer->m_kCoef = self.get_root_coeff(self.iCurrentCropStage, i);  // TODO
          //Should depend on crop stage.  See RootCoeffients.csv.
-         pLayer->m_kCoef = pRoot->Get(currentStage,i);
+
+         pLayer->m_kCoef = 0.0f;
+         if (pRoot)
+            pLayer->m_kCoef = pRoot->Get(currentStage,i);
 
          int iCurrentCropStage=currentStage;
          int iKAdjustStage = 2 ;//crop stage for k-adjustment start.  Should be member of VSMB

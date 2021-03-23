@@ -456,7 +456,6 @@ public:
    PtrArray< FarmRotation > m_rotationArray;
 
    ClimateManager m_climateManager;
-  int m_numIDUsToSave;
 // exposed variables
 protected:
    int m_climateScenarioID;

@@ -629,13 +629,13 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
       // process <stages>
       TiXmlElement* pXmlStage= pXmlCrop->FirstChildElement("stage");
       CString name;
-      int vsmbRoot=-1;
+      int vsmbRoot=0;
       while (pXmlStage != NULL)
          {
          XML_ATTR attrs[] = { // attr type           address        isReq checkCol
-                   { "name", TYPE_CSTRING,  &name,          true,  0 },
-                   { "vsmb", TYPE_INT,      &vsmbRoot,      false, 0 },
-                   { NULL,   TYPE_NULL,     NULL,           false, 0 } };
+                   { "name",      TYPE_CSTRING,  &name,          true,  0 },
+                   { "rootStage", TYPE_INT,      &vsmbRoot,      false, 0 },
+                   { NULL,        TYPE_NULL,     NULL,           false, 0 } };
 
          if (TiXmlGetAttributes(pXmlStage, attrs, path, NULL) == false)
             {
