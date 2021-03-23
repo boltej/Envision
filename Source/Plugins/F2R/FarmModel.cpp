@@ -719,6 +719,9 @@ bool FarmModel::InitRun(EnvContext* pContext)
    for (int i = 0; i < (int)m_dailyCIArray.GetSize(); i++)
       m_dailyCIArray[i]->ClearRows();
 
+   //for (int i = 0; i < (int)m_csmVarsArray.GetSize(); i++)
+   //   m_csmVarsArray[i]->ClearRows();
+
    m_pDailyData->ClearRows();
    m_pCropEventData->ClearRows();
    m_pFarmEventData->ClearRows();
@@ -1216,7 +1219,7 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    {
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
-   // set up any output data objs   
+   // set up any output data objs 
    ASSERT( m_pDailyData == NULL );
    m_pDailyData = new FDataObj( 5, 0 );
    m_pDailyData->SetName( "Farm Model Daily Data" );
@@ -1514,7 +1517,7 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B", m_pFldSizeLData, "");
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B and Region", m_pFldSizeLRData, "");
 
-   theProcess->AddOutputVar( "Daily Data", m_pDailyData, "" );   
+   theProcess->AddOutputVar( "Daily Farm Model Data", m_pDailyData, "" );   
    int counter=0;
    for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
       {
@@ -1607,6 +1610,18 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily Tmean (C)", true));
    m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily Tmax (C)", true));
 
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily PDAYS", true));
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily HPRECIP (mm)", true));
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily GDD0", true));      
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily GDD0APR15", true)); 
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily GDD5APR1", true));  
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily GDD5MAY1", true));  
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily CHUMAY1", true));   
+   m_dailyCIArray.Add(BuildOutputClimateDataObj("Daily PET (mm)", true));       
+   //m_csmVarsArray.Add(BuildOutputClimateDataObj("pAWC", true));      
+   //m_csmVarsArray.Add(BuildOutputClimateDataObj("pSAT", true));      
+   //m_csmVarsArray.Add(BuildOutputClimateDataObj("SWC", true));       
+   //m_csmVarsArray.Add(BuildOutputClimateDataObj("SWE", true));       
 
    // note - following order must match the "output data object indices" enum in FarmModel.h
    m_annualCIArray.Add(BuildOutputClimateDataObj("Annual Precip (mm)", false));
@@ -1724,6 +1739,7 @@ bool FarmModel::RotateCrops(EnvContext* pContext, bool useAddDelta)
       if (pFarm->IsActive() == false)      // skip farms that are retired or purchased
          continue;
 
+      // iterate through fields->IDUs for this farm
       for (int j = 0; j < (int)pFarm->m_fieldArray.GetSize(); j++)
          {
          FarmField* pField = pFarm->m_fieldArray[j];
@@ -1735,13 +1751,14 @@ bool FarmModel::RotateCrops(EnvContext* pContext, bool useAddDelta)
             int lulcA = -1;
             pLayer->GetData(idu, m_colLulcA, lulcA);
 
+            // is this an agricultural crop?
             if (lulcA != ANNUAL_CROP && lulcA != PERENNIAL_CROP)
                continue;
 
             int rotationID = 0;
             pLayer->GetData(idu, m_colRotation, rotationID);
 
-            int rotIndex = 0;
+            int rotIndex = 0;  // what year are we at in the rotation?
             pLayer->GetData(idu, m_colRotIndex, rotIndex);
 
             if (rotationID <= 0)  // check for case where rotation < 0, make sure rotIndex = -1
@@ -1796,7 +1813,16 @@ bool FarmModel::RotateCrops(EnvContext* pContext, bool useAddDelta)
                // get next LULC value in the rotation
                int nextLulc = pRotation->m_sequenceArray[rotIndex];
                if (nextLulc != lulc)
+                  {
                   theProcess->UpdateIDU(pContext, idu, m_colLulc, nextLulc, useAddDelta ? ADD_DELTA : SET_DATA);
+                  theProcess->UpdateIDU(pContext, idu, m_colCropYear, 0, useAddDelta ? ADD_DELTA : SET_DATA);
+                  }
+               else
+                  {
+                  int cropYear = 0;
+                  pLayer->GetData(idu, m_colCropYear, cropYear);
+                  theProcess->UpdateIDU(pContext, idu, m_colCropYear, cropYear+1, useAddDelta ? ADD_DELTA : SET_DATA);
+                  }
 
                theProcess->UpdateIDU(pContext, idu, m_colRotIndex, rotIndex, useAddDelta ? ADD_DELTA : SET_DATA);
 
@@ -3129,6 +3155,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
          }
          break;
 
+         /*
       case ALFALFA:
          {
          // General approach: Start tracking cGDD on April 1.  Harvest at 375 GDD.
@@ -3278,7 +3305,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             }
 
          return yrf;
-         }
+         } */
 
       //case BARLEY:
       //   {
@@ -4121,27 +4148,67 @@ void FarmModel::UpdateDailyOutputs(int doy, EnvContext* pContext)
    m_pDailyData->AppendRow(data);
 
    // climate data
-   int stationCount = m_climateManager.GetStationCount();
+   INT_PTR stationCount = m_climateManager.GetStationCount();
    CArray< float, float > dataPrecip;  dataPrecip.SetSize(stationCount + 1); dataPrecip[0] = (float)day;
    CArray< float, float > dataTmin;    dataTmin.SetSize(stationCount + 1);   dataTmin[0] = (float)day;
    CArray< float, float > dataTmean;   dataTmean.SetSize(stationCount + 1);  dataTmean[0] = (float)day;
    CArray< float, float > dataTmax;    dataTmax.SetSize(stationCount + 1);   dataTmax[0] = (float)day;
 
+   CArray< float, float >  pDays;         pDays.SetSize(stationCount+1); pDays[0]=(float) day;
+   CArray< float, float >  hMeanPrecip;   hMeanPrecip.SetSize(stationCount + 1); hMeanPrecip[0]=(float) day;
+   CArray< float, float >  gdd0;          gdd0.SetSize(stationCount+1); gdd0[0]=(float) day;
+   CArray< float, float >  gdd0Apr15;     gdd0Apr15.SetSize(stationCount+1); gdd0Apr15[0]=(float) day;
+   CArray< float, float >  gdd5Apr1;      gdd5Apr1.SetSize(stationCount+1); gdd5Apr1[0]=(float) day;
+   CArray< float, float >  gdd5May1;      gdd5May1.SetSize(stationCount+1); gdd5May1[0]=(float) day;
+   CArray< float, float >  chuMay1;       chuMay1.SetSize(stationCount+1); chuMay1[0]=(float) day;
+   CArray< float, float >  pET;           pET.SetSize(stationCount+1); pET[0]=(float) day;
+   //CArray< float, float >  pctAWC;        pctAWC.SetSize(stationCount+1); pctAWC[0]=(float) day;
+   //CArray< float, float >  pctSat;        pctSat.SetSize(stationCount+1); pctSat[0]=(float) day;
+   //CArray< float, float >  swc;           swc.SetSize(stationCount+1); swc[0]=(float) day;
+   //CArray< float, float >  swe;           swe.SetSize(stationCount+1); swe[0]=(float) day;
+
    for (int i = 0; i < stationCount; i++)
       {
       ClimateStation* pStation = m_climateManager.GetStation(i);
 
-      float precip = 0, tMin = 0, tMax = 0, tMean = 0;
       pStation->GetData(doy, year, PRECIP, dataPrecip[i + 1]);
       pStation->GetData(doy, year, TMIN, dataTmin[i + 1]);
       pStation->GetData(doy, year, TMEAN, dataTmean[i + 1]);
       pStation->GetData(doy, year, TMAX, dataTmax[i + 1]);
+
+      // CSM variables
+      pStation->GetData(doy, year, PDAYS,  pDays[i+1] );   
+      pStation->GetHistoricMean(doy, PRECIP, hMeanPrecip[i+1]);
+      gdd0[i + 1] = pStation->m_cumDegDays0[doy - 1];
+      gdd0Apr15[i+1] = pStation->m_cumDegDays0Apr15[doy - 1];
+      gdd5Apr1[i + 1] = pStation->m_cumDegDays5Apr1[doy - 1];
+      gdd5May1[i + 1] = pStation->m_cumDegDays5May1[doy - 1];
+      chuMay1[i+1] = pStation->m_chuCornMay1[doy - 1]; 
+      pET[i+1] = pStation->GetPET(VPM_PRIESTLEY_TAYLOR, doy, year);
+      //if ( this->m_useVSMB )
+      //   {
+      //   pctAWC[i+1] = m_vsmb.GetAverageSWC(idu);
+      //   pctSat[i + 1] = m_vsmb.GetPercentSaturated(idu);
+      //   swc[i + 1] = m_vsmb.GetPercentAWC(idu);
+      //   swe[i + 1] = m_vsmb.GetSWE(idu);
       }
 
    m_dailyCIArray[DO_PRECIP]->AppendRow(dataPrecip);
    m_dailyCIArray[DO_TMIN]->AppendRow(dataTmin);
    m_dailyCIArray[DO_TMEAN]->AppendRow(dataTmean);
    m_dailyCIArray[DO_TMAX]->AppendRow(dataTmax);
+   m_dailyCIArray[CSM_PDAYS]->AppendRow(pDays);
+   m_dailyCIArray[CSM_HPRECIP]->AppendRow(hMeanPrecip);
+   m_dailyCIArray[CSM_GDD0]->AppendRow(gdd0);
+   m_dailyCIArray[CSM_GDD0APR15]->AppendRow(gdd0Apr15);
+   m_dailyCIArray[CSM_GDD5APR1]->AppendRow(gdd5Apr1);
+   m_dailyCIArray[CSM_GDD5MAY1]->AppendRow(gdd5May1);
+   m_dailyCIArray[CSM_CHUMAY1]->AppendRow(chuMay1);
+   m_dailyCIArray[CSM_PET]->AppendRow(pET);
+   //m_csmVarsArray[CSM_pAWC]->AppendRow(       pctAWC);
+   //m_csmVarsArray[CSM_pSAT]->AppendRow(       pctSat);
+   //m_csmVarsArray[CSM_SWC]->AppendRow(        swc);
+   //m_csmVarsArray[CSM_SWE]->AppendRow(        swe);
    }
 
 
@@ -4188,11 +4255,11 @@ float FarmModel::AddCropEvent(EnvContext* pContext, int idu, int eventID, LPCTST
       switch (lulc)
          {
          case CORN:           lulcName = "Corn";       break;
-         case SOYBEANS:       lulcName = "Soybeans";   break;
-         case ALFALFA:        lulcName = "Alfalfa";    break;
-         case SPRING_WHEAT:   lulcName = "SprWheat";   break;
-         case BARLEY:         lulcName = "Barley";     break;
-         case POTATOES:       lulcName = "Potatoes";   break;
+         //case SOYBEANS:       lulcName = "Soybeans";   break;
+         //case ALFALFA:        lulcName = "Alfalfa";    break;
+         //case SPRING_WHEAT:   lulcName = "SprWheat";   break;
+         //case BARLEY:         lulcName = "Barley";     break;
+         //case POTATOES:       lulcName = "Potatoes";   break;
          default:
             {
             // is it in our dynamic crop list?
@@ -4756,7 +4823,8 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    // lookup fields
-   LPCTSTR trackIDs = NULL;
+   LPCTSTR trackEvents = NULL;
+   LPCTSTR trackIDUs = NULL;
    float yrfThreshold = 0.90f;
    XML_ATTR attrs[] = {
       // attr            type           address              isReq checkCol
@@ -4767,7 +4835,8 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
       { "region_col",    TYPE_CSTRING,  &m_regionField,      true,  0 },
       { "init",          TYPE_INT,      &m_doInit,           false, 0 },
       { "output_pivot_table", TYPE_BOOL,&m_outputPivotTable, false, 0 },
-      { "track",         TYPE_STRING,   &trackIDs,           false, 0 },
+      { "track_events",  TYPE_STRING,   &trackEvents,        false, 0 },
+      { "track_idus",    TYPE_STRING,   &trackIDUs,          false, 0 },
       { "use_VSMB",      TYPE_BOOL,     &m_useVSMB,          false, 0 },
       { "yrf_threshold", TYPE_FLOAT,    &yrfThreshold,       false, 0 },
       { NULL,            TYPE_NULL,     NULL,                false, 0 } };
@@ -5197,15 +5266,13 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
 
          pXmlFST = pXmlFST->NextSiblingElement("fst");
          }
-
       }
 
-
    // process tracking IDs (if any)
-   if (trackIDs != NULL && trackIDs[0] != '*')   // 'track' tag defined?
+   if (trackEvents != NULL && trackEvents[0] != '*')   // 'track' tag defined?
       {
       CStringArray idArray;
-      ::Tokenize(trackIDs, ",", idArray);
+      ::Tokenize(trackEvents, ",", idArray);
 
       for (int i = 0; i < (int)idArray.GetSize(); i++)
          {
@@ -5233,17 +5300,28 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
                m_trackCropEventMap.SetAt(eventID, index);
                }
             }
-         else
-            {
-            // it's an idu index 
-            }
+         }
+      }
 
-         int idu = atoi((LPCTSTR)idArray[i]);
+   // process tracking IDUs (if any)
+   if (trackIDUs != NULL && trackIDUs[0] != '*')   // 'track' tag defined?
+      {
+      CStringArray idArray;
+      ::Tokenize(trackIDUs, ",", idArray);
+
+      for (int i = 0; i < (int)idArray.GetSize(); i++)
+         {
+         CString token(idArray[i]);
+         token.Trim();
+
+         if (token.GetLength() == 0)
+            continue;
+
+         int idu = atoi((LPCTSTR)token);
          int index = (int)m_trackIDUArray.Add(idu);
          m_trackIDUMap.SetAt(idu, index);
          }
       }
-
 
    CString msg;
    msg.Format("Farm Model: %i farm types, %i rotations found while reading %s", (int)m_farmTypeArray.GetSize(), (int)m_rotationArray.GetSize(),

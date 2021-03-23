@@ -14,7 +14,7 @@ using namespace std;
 
 class Farm;
 
-enum CSKEYWORD { CS_TMIN, CS_TMEAN, CS_TMAX, CS_PRECIP, CS_AVC };
+enum CSKEYWORD { CS_TMIN, CS_TMEAN, CS_TMAX, CS_PRECIP, CS_HPRECIP, CS_AVC };
 
 
 
@@ -115,9 +115,10 @@ class CSCrop
       PtrArray<CSCropStage> m_cropStages;
       PtrArray<CSField> m_fields;
 
-      CSCrop() : m_id(-1), m_isRotation(true), m_harvestFreq(0), m_harvestStartYr(0) {}
       ~CSCrop() { if (m_rootCoefficentTable != NULL) delete m_rootCoefficentTable;  }
-      CSCrop() : m_id(-1), m_isRotation(true), m_harvestFreq(0), m_harvestStartYr(0), m_yrfThreshold(-1.0f) {}
+      CSCrop() : m_id(-1), m_isRotation(true), m_harvestFreq(0), 
+         m_harvestStartYr(0), m_rootCoefficentTable(NULL),
+         m_yrfThreshold(-1.0f) {}
    };
 
 
@@ -167,7 +168,8 @@ class CSModel
       //int SolveWhen(TCHAR* expr);
 
       static float Avg(int kw, int period);
-      static float AbovePeriod(int kw, int period);
+      static float AbovePeriod(int kw, int threshold);
+      static float BelowPeriod(int kw, int threshold);
 
       float UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, 
          ClimateStation* pStation, MapLayer* pLayer, int idu, float areaHa, int doy, int year,

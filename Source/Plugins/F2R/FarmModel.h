@@ -62,6 +62,12 @@ enum { DO_PRECIP=0, DO_TMIN, DO_TMEAN, DO_TMAX,
        DO_SHORTDURPRECIP, DO_EXTHEAT, DO_EXTCOLD, DO_GSL, DO_CHU, DO_CERGDD, 
        DO_ALFGDD, DO_PDAYS, DO_COUNT /* DO_COUNT is always last*/ };
 
+enum {  // CSM Vars output indices
+   CSM_PDAYS = DO_TMAX+1, CSM_HPRECIP, CSM_GDD0, CSM_GDD0APR15, CSM_GDD5APR1, CSM_GDD5MAY1,
+   CSM_CHUMAY1, CSM_PET
+   };
+
+
 // crop stage flags
 enum { CS_NONCROP=-99, CS_PREPLANT=1, CS_PLANTED=2, CS_LATEVEGETATION=3, CS_POLLINATION=4, CS_REPRODUCTIVE=5, CS_HARVESTED=6, CS_HARDENED=7, CS_ACTIVE_GROWTH=8, CS_DORMANT=9, CS_SPRING_REGROWTH=10, CS_FAILED=11 };
 
@@ -531,7 +537,6 @@ public:
    int AddCropEventType(int id, LPCTSTR label) { int index = (int) m_cropEventTypes.Add(new CropEventType(id, label)); m_cropEventIndexLookup.SetAt(id, index); return index; }
    int AddBuiltInCropEventTypes();
 
-
    CArray<float> m_cropEvents;  //  [1 + CE_EVENTCOUNT] ;  // current year crop event hectares
    float m_farmEvents[ 1+FE_EVENTCOUNT];   // current year farm event hectares
 
@@ -546,11 +551,10 @@ public:
    FDataObj *m_pFarmEventData;  // Time + FE_EVENTCOUNT cols; each col= ha of each crop event type, time=year
    VDataObj *m_pFarmEventPivotTable; // year, doy, eventcode, ... , cropYRF - summaries for each day
 
-
-
    // climate indicators
    PtrArray< FDataObj > m_dailyCIArray;   // one for each station, one total, daily
    PtrArray< FDataObj > m_annualCIArray;  // one for each station, one total, annual
+   PtrArray< FDataObj > m_csmVarsArray;   // one for each station, one total, daily
 
    // farm expansion parameters
    bool m_enableFarmExpansion;

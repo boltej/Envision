@@ -43,6 +43,8 @@ const int CHUCMAY1  = -15;
 const int PDAYS     = -16;
 
 
+
+
 class ClimateStation
 {
 public:
