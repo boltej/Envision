@@ -312,6 +312,9 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
 
    QueryEngine* pQE = pContext->pQueryEngine;
 
+   // are we tracking this IDU?
+   bool track = pFarmModel->IsIDUTracked(idu);
+
    // we have a crop stage, check <eval>s
    for (int i = 0; i < pStage->m_evalExprs.GetSize(); i++)
       {
@@ -352,9 +355,12 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
          {
          yrf = pFarmModel->AddCropEvent(pContext, idu, pEvent->id, pEvent->name, areaHa, doy, pEvent->yrf, priorCumYRF);
 
-         //CString msg;
-         //msg.Format("CSModel: Crop Event %s fired on day %i on IDU %i", (LPCTSTR) pEvent->name, doy, idu);
-         //Report::LogInfo(msg);
+         if (track)
+            {
+            CString msg;
+            msg.Format("CSModel: Crop Event %s fired on day %i on IDU %i", (LPCTSTR)pEvent->name, doy, idu);
+            Report::LogInfo(msg);
+            }
          }
       }
 
@@ -390,9 +396,12 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
                else if (pTrans->toStage.CompareNoCase("Harvested") == 0)
                   theProcess->UpdateIDU(pContext, idu, FarmModel::m_colHarvDate, doy, SET_DATA);
 
-               //CString msg;
-               //msg.Format("CSModel: Crop %s transitioning to stage %s on day %i on IDU %i", (LPCTSTR) pCrop->m_name, (LPCTSTR) pTrans->toStage, doy, idu);
-               //Report::LogInfo(msg);
+               if (track)
+                  {
+                  CString msg;
+                  msg.Format("CSModel: Crop %s transitioning to stage %s on day %i on IDU %i", (LPCTSTR)pCrop->m_name, (LPCTSTR)pTrans->toStage, doy, idu);
+                  Report::LogInfo(msg);
+                  }
 
                break;
                }

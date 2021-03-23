@@ -174,91 +174,6 @@ enum FARMTYPE {
    FT_COUNT = 23
    };
 
-/*
-class Crop
-   {
-   public:
-      CString m_name;
-      CString m_code;
-      int m_lulc;
-      bool m_isAnnual;
-
-      int m_minPlantingDate; // DOY
-      int m_maxPlantingDate; // DOY
-      int m_plantingDate;    // DOY
-
-      float m_plantingDateTempThreshold;   // avg temp must exceed this to plant
-      int m_plantingDateTempPeriod;  // days
-      float m_fieldAccessVMCThreshold;
-
-      // dormancy stuff
-      //bool m_isDormant;
-      //int m_dormancyUserCriticalDate;
-      //int m_dormancyDynamicCriticalDate;
-      //int m_dormancyPretrackPeriod;
-
-      //CArray<int, int> m_stages;   // see crop stage enum (CS_xxxx)
-      //CArray<int, int> m_harvestTriggers;
-      //
-      //CArray<int, int> m_cropEvents;     // see crop event enum (CE_xxxx)
-
-   // methods
-   public:
-      Crop() :
-           m_minPlantingDate(JAN1)
-         , m_maxPlantingDate(DEC31)
-         , m_plantingDate(JUN14)
-         , m_fieldAccessVMCThreshold(0.92) 
-         {}
-
-      virtual float CheckCondition(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF) { return 0; };
-      virtual bool LoadXml();
-   };
-
-class WoodyCrop : public Crop 
-   {
-   public:
-      int m_fieldAccessVMCThreshold;  // Volumentric Moisture Content (e.g. 0.92)
-      int m_dormancyCriticalDate;  // DOY
-      float m_highTempThreshold;
-      float m_highPrecipThreshold;
-
-      int m_startHarvestYr;
-      int m_harvFreqYr;
-
-   public:
-      WoodyCrop() : Crop()
-         , m_dormancyCriticalDate(SEP21)
-         , m_highTempThreshold(0)
-         , m_highPrecipThreshold(0)
-         , m_startHarvestYr(0)
-         , m_harvFreqYr(0)
-      {}
-
-      virtual float CheckCondition(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF);
-
-   };
-
-class NativeHerbaceousCrop : public Crop
-   {
-   public:
-      float m_hardeningCriticalDate; // DOY
-      float m_highTempThresh;
-      float m_highPrecipThresh;
-      float m_growthCessationCriticalDate;  // DOY
-      float m_springCriticalDate;  // DOY
-
-   public:
-      NativeHerbaceousCrop() : Crop() {}
-
-      virtual float CheckCondition(EnvContext* pContext, FarmModel *pFarmModel, Farm* pFarm, ClimateStation* pStation, MapLayer* pLayer, int idu, int cropStage, int doy, int year, float priorCumYRF);
-
-   };
-
-
-   */
-
-
 class Farm;
 
 struct CropEventType
@@ -486,6 +401,8 @@ protected:
    CMap< int, int, int, int > m_trackFarmEventMap;   // key=event to track, value=index in m_trackEventArray for this event
 
 public:
+   bool IsIDUTracked(int iduIndex) { int index=-1; return m_trackIDUArray.GetSize() > 0 && m_trackIDUMap.Lookup(iduIndex, index); }
+
    static RandUniform m_rn;
 
    int m_colSLC;        // soil landscapoe unit
