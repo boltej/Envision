@@ -515,6 +515,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                          //{ "rotation",      TYPE_BOOL,     &pCrop->m_isRotation,    true,  0 },
                          { "harvestStartYr",TYPE_INT,      &pCrop->m_harvestStartYr,false, 0 },
                          { "harvestFreq",   TYPE_INT,      &pCrop->m_harvestFreq,   false, 0 },
+                         { "yrfThreshold",  TYPE_FLOAT,    &pCrop->m_yrfThreshold,  false, 0 }
                          { NULL,           TYPE_NULL,     NULL,          false, 0 } };
 
       if (TiXmlGetAttributes(pXmlCrop, attrs, path, NULL) == false)
