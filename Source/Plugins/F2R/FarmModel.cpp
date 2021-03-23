@@ -503,7 +503,7 @@ FarmModel::FarmModel(void)
    , m_outputPivotTable(true)
    , m_vsmb()
    , m_colSWC(0)
-   , m_numIDUsToSave(35)
+   , m_numIDUsToSave(2)
    {
    // zero out event array
    //memset(m_cropEvents, 0, sizeof(float) * (1 + CE_EVENTCOUNT));
@@ -1887,6 +1887,8 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
             if (pStation == NULL)
                continue;
 
+            
+
             //ASSERT( pStation == pFarm->m_pClimateStation );
 
             // initial daily farm data
@@ -1897,13 +1899,37 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
             for (int j = 0; j < (int)pField->m_iduArray.GetSize(); j++)
                {
                idu = pField->m_iduArray[j];
-
+               
+               int lulc = -1;
+               pLayer->GetData(idu, m_colLulc, lulc);
+               CSCrop* pCrop = NULL;
+               bool ok = m_csModel.m_cropLookup.Lookup(lulc, pCrop);
+               
                // TODO: Verify VSMB
                // Update the current IDU's soil moisture status
-               if ( m_useVSMB )
+               if ( m_useVSMB && pCrop)
                   { 
                   int dayOfSimulation=((pContext->currentYear-pContext->startYear)*365)+doy;
-                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation);
+                  int currentStage=-1;
+                  int vsmb_stage=0;
+                  pLayer->GetData(idu, m_colCropStage, currentStage);
+                  //Note: currently defined stages do not include FULL_COVER, GROWTH_CESSATION, or PRE_EMERGENCE
+                  switch (currentStage)
+                     {
+                     case CS_PREPLANT:       vsmb_stage = 0;    break;
+                     case CS_PLANTED:        vsmb_stage = 0;     break;
+                     case CS_LATEVEGETATION: vsmb_stage = 2;     break;
+                     case CS_POLLINATION:    vsmb_stage = 2;     break;
+                     case CS_REPRODUCTIVE:   vsmb_stage = 2;     break;
+                     case CS_SPRING_REGROWTH:vsmb_stage = 1;     break;
+                     case CS_HARVESTED:      vsmb_stage = 1;     break;
+                     case CS_HARDENED:       vsmb_stage = 1;     break;
+                     case CS_ACTIVE_GROWTH:  vsmb_stage = 1;     break;
+                     case CS_DORMANT:        vsmb_stage = 0;     break; 
+                     case CS_FAILED:         vsmb_stage = 0;     break;
+                     default:                vsmb_stage = 0;     break;
+                     }
+                  m_vsmb.UpdateSoilMoisture(idu, pStation, year, doy, dayOfSimulation, vsmb_stage, pCrop->m_rootCoefficentTable);
                   float swc=m_vsmb.GetSoilMoisture(idu,0);
                   float swe= m_vsmb.GetSWE(idu);
 

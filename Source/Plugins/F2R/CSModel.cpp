@@ -507,6 +507,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
    while (pXmlCrop != NULL)
       {
       CSCrop* pCrop = new CSCrop;
+      CString root = NULL;
 
       XML_ATTR attrs[] = { // attr          type           address                  isReq checkCol
                          { "name",          TYPE_CSTRING,  &pCrop->m_name,          true,  0 },
@@ -516,6 +517,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                          { "harvestStartYr",TYPE_INT,      &pCrop->m_harvestStartYr,false, 0 },
                          { "harvestFreq",   TYPE_INT,      &pCrop->m_harvestFreq,   false, 0 },
                          { "yrfThreshold",  TYPE_FLOAT,    &pCrop->m_yrfThreshold,  false, 0 }
+                         { "root",          TYPE_CSTRING,  &root,                   false, 0 },
                          { NULL,           TYPE_NULL,     NULL,          false, 0 } };
 
       if (TiXmlGetAttributes(pXmlCrop, attrs, path, NULL) == false)
@@ -527,6 +529,11 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
       m_crops.Add(pCrop);
       m_cropLookup.SetAt(pCrop->m_id, pCrop);
 
+      if (root)
+         { 
+         pCrop->m_rootCoefficentTable = new FDataObj;
+         pCrop->m_rootCoefficentTable->ReadAscii(root);
+         }
       // process <fields>
       TiXmlElement* pXmlField = pXmlCrop->FirstChildElement("field");
       while (pXmlField != NULL)

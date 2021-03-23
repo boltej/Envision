@@ -19,7 +19,7 @@ namespace CRU_TS30 {
 const int NYEAR_HIST=56;
 
 /// calendar year corresponding to first year in CRU climate data set
-static const int FIRSTHISTYEAR=1950;
+static const int FIRSTHISTYEAR=1979;
 
 /// Determine temp, precip, sunshine & soilcode
 bool searchcru(char* cruark,double dlon,double dlat,int& soilcode,

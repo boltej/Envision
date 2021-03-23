@@ -145,6 +145,17 @@ void ENVInput::init() {
 
 	tprogress.settimer();
 	tmute.settimer(MUTESEC);
+
+	if (save_state)
+	{
+		CString msg;
+		msg.Format("Simulation is set with spinup time of %i years.  It will generate the 500 years of climate from the CRU data and will save the system state for later.",nyear_spinup);
+		Report::Log(msg);
+
+		msg.Format("After completion, rerun Envision without restart=1 to start from saved state and run forward using Envision climate data.");
+		Report::Log(msg);
+
+	}
 }
 
 //
@@ -166,23 +177,133 @@ bool ENVInput::searchmydata(double longitude, double latitude) {
 	double mwet[12] = { 31,28,31,30,31,30,31,31,30,31,30,31 }; // number of rain days per month
 
 	double mdtr[12];		// monthly mean diurnal temperature range (oC)
-	//for (int m = 0; m < 12; m++) {
-		//mdtr[m] = 0.;
-		//if (ifbvoc) {
-			//dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");
-		//}
-	//}
+	for (int m = 0; m < 12; m++) {
+		mdtr[m] = 0.;
+		if (ifbvoc) {
+			dprintf("WARNING: No data available for dtr in sample data set!\nNo daytime temperature correction for BVOC calculations applied.");
+		}
+	}
 	for (j = 0; j < NYEAR_HIST; j++) {
 		for (i = 0; i < 12; i++) {
 			hist_mwet[j][i] = mwet[i];
-			//hist_mdtr[j][i] = mdtr[i];
+			hist_mdtr[j][i] = mdtr[i];
 		}
 	}
 	// end of test
 
+	// temp
+	in = fopen(file_temp, "r");
 
+	if (!in) fail("readenv: could not open %s for input", (char*)file_temp);
+	found = false;
+	for (j = 0; j < NYEAR_HIST;) {
+		readfor(in, "f6.2,f5.2,f5.0,12f4.1", &dlon, &dlat, &elev, mtemp);
+		//dprintf("Temperature %g\n", mtemp[0]);
+
+		if (equal(longitude, dlon) && equal(latitude, dlat)) {
+			for (i = 0; i < 12; i++) {
+				hist_mtemp[j][i] = mtemp[i];
+				//dprintf("Find Tmp for (%g,%g,%g,%g)\n",
+				//	dlon,dlat,elev,hist_mtemp[j][i]);
+			}
+			j++;
+			found = true;
+		}
+
+		if (feof(in) && !found) {
+			dprintf("readenv: could not find record for (%g,%g) in %s",
+				longitude, latitude, (char*)file_temp);
+			fclose(in);
+			return false;
+		}
+	}
+	elevation = elev;
+	fclose(in);
+
+	// dtr
+	in = fopen(file_dtr, "r");
+
+	if (!in) fail("readenv: could not open %s for input", (char*)file_dtr);
+	found = false;
+	for (j = 0; j < NYEAR_HIST;) {
+		readfor(in, "f6.2,f5.2,f5.0,12f4.1", &dlon, &dlat, &elev, mdtr);
+		//	dprintf("(%g,%g,%g,%g)\n", dlon, dlat, elev, mdtr[0]);
+
+		if (equal(longitude, dlon) && equal(latitude, dlat)) {
+			for (i = 0; i < 12; i++) {
+				hist_mdtr[j][i] = mdtr[i];
+				//	dprintf(" find dtr for (%g,%g,%g,%g)\n",
+					//	dlon,dlat,elev,hist_mdtr[j][i]);
+			}
+			j++;
+			found = true;
+		}
+
+		if (feof(in) && !found) {
+			//dprintf("readenv: could not find record for (%g,%g) in %s",
+			//	longitude, latitude, (char*)file_dtr);
+			fclose(in);
+			return false;
+		}
+	}
+	fclose(in);
+
+	// prec
+	in = fopen(file_prec, "r");
+
+	if (!in) fail("readenv: could not open %s for input", (char*)file_prec);
+	found = false;
+	for (j = 0; j < NYEAR_HIST;) {
+		readfor(in, "f6.2,f5.2,f5.0,12f4", &dlon, &dlat, &elev, mprec);
+
+		if (equal(longitude, dlon) && equal(latitude, dlat)) {
+			for (i = 0; i < 12; i++) {
+				hist_mprec[j][i] = mprec[i];
+				//dprintf("find prec for (%g,%g,%g)\n",
+				//	dlon, dlat, hist_mprec[j][i]);
+			}
+			j++;
+			found = true;
+		}
+
+		if (feof(in) && !found) {
+			dprintf("readenv: could not find record for (%g,%g) in %s",
+				longitude, latitude, (char*)file_prec);
+			fclose(in);
+			return false;
+		}
+	}
+	fclose(in);
+
+	// sun
+	in = fopen(file_sun, "r");
+
+	if (!in) fail("readenv: could not open %s for input", (char*)file_sun);
+	found = false;
+	for (j = 0; j < NYEAR_HIST;) {
+		readfor(in, "f6.2,f5.2,f5.0,12f4", &dlon, &dlat, &elev, msun); //I think it can turn to another line
+		//dprintf("sun %g\n", msun[0]);
+		if (equal(longitude, dlon) && equal(latitude, dlat)) {
+			for (i = 0; i < 12; i++) {
+				hist_msun[j][i] = msun[i];
+				//dprintf("Find sun for (%g,%g,%g)\n",
+				//	dlon, dlat, hist_msun[j][i]);
+			}
+			j++;
+			found = true;
+		}
+
+		if (feof(in) && !found) {
+			dprintf("readenv: could not find record for (%g,%g) in %s",
+				longitude, latitude, (char*)file_sun);
+			fclose(in);
+			return false;
+		}
+	}
+	fclose(in);
 
 	// soiltype
+
 
 
 	return found;
@@ -223,7 +344,7 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 	//weichao
 	soilcode = 2;
 
-	//
+
 
 	// Make sure we use the first gridcell in the first call to this function,
 	// and then step through the gridlist in subsequent calls.
@@ -242,20 +363,16 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 		bool LUerror = false;
 		double lon;
 		double lat;
-
+		if (save_state)
+		{
 		while (!gridfound) {
 
 			if (gridlist.isobj) {
 
 				lon = gridlist.getobj().lon;
 				lat = gridlist.getobj().lat;
-				gridfound = searchmydata(lon, lat);
-				//gridfound = CRU_TS30::findnearestCRUdata(searchradius, file_cru, lon, lat, soilcode,
-					//hist_mtemp, hist_mprec, hist_msun);
-
-				//if (gridfound) // Get more historical CRU data for this grid cell
-					//gridfound = CRU_TS30::searchcru_misc(file_cru_misc, lon, lat, elevation,
-						//hist_mfrs, hist_mwet, hist_mdtr);
+				
+				   gridfound = searchmydata(lon, lat);
 
 				if (run_landcover && gridfound) {
 					LUerror = landcover_input.loadlandcover(lon, lat);
@@ -263,36 +380,36 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 						LUerror = management_input.loadmanagement(lon, lat);
 				}
 
-				if (!gridfound || LUerror) {
-					if (!gridfound)
-						dprintf("\nError: could not find stand at (%g,%g) in climate data files\n", gridlist.getobj().lon, gridlist.getobj().lat);
-					else if (LUerror)
-						dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", gridlist.getobj().lon, gridlist.getobj().lat);
-					gridfound = false;
-					gridlist.nextobj();
-				}
+				//if (!gridfound || LUerror) {
+				//	if (!gridfound)
+				//		dprintf("\nError: could not find stand at (%g,%g) in climate data files\n", gridlist.getobj().lon, gridlist.getobj().lat);
+				//	else if (LUerror)
+				//		dprintf("\nError: could not find stand at (%g,%g) in landcover/management data file(s)\n", gridlist.getobj().lon, gridlist.getobj().lat);
+				//	gridfound = false;
+				//	gridlist.nextobj();
+				//}
 			}
 			else return false;
 		}
 
 		// Give sub-classes a chance to modify the data
-	//	adjust_raw_forcing_data(gridlist.getobj().lon,
-	//		gridlist.getobj().lat,
-//			hist_mtemp, hist_mprec, hist_msun);
+		adjust_raw_forcing_data(gridlist.getobj().lon,
+			gridlist.getobj().lat,
+			hist_mtemp, hist_mprec, hist_msun);
 
 		// Build spinup data sets
-	//	spinup_mtemp.get_data_from(hist_mtemp);
-	//	spinup_mprec.get_data_from(hist_mprec);
-	//	spinup_msun.get_data_from(hist_msun);
+		spinup_mtemp.get_data_from(hist_mtemp);
+		spinup_mprec.get_data_from(hist_mprec);
+		spinup_msun.get_data_from(hist_msun);
 
 		// Detrend spinup temperature data
-	//	spinup_mtemp.detrend_data();
+		spinup_mtemp.detrend_data();
 
 		// guess2008 - new spinup data sets
-	//	spinup_mfrs.get_data_from(hist_mfrs);
-	//	spinup_mwet.get_data_from(hist_mwet);
-	//	spinup_mdtr.get_data_from(hist_mdtr);
-
+		spinup_mfrs.get_data_from(hist_mfrs);
+		spinup_mwet.get_data_from(hist_mwet);
+		spinup_mdtr.get_data_from(hist_mdtr);
+		}
 		// We wont detrend dtr for now. Partly because dtr is at the moment only
 		// used for BVOC, so what happens during the spinup is not affecting
 		// results in the period thereafter, and partly because the detrending
@@ -300,8 +417,6 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 		//spinup_mdtr.detrend_data();
 
 
-	//	dprintf("\nCommencing simulation for stand at (%g,%g)", gridlist.getobj().lon,
-	//		gridlist.getobj().lat);
 	//	if (gridlist.getobj().descrip != "") dprintf(" (%s)\n\n",
 	//		(char*)gridlist.getobj().descrip);
 	//	else dprintf("\n\n");
@@ -314,7 +429,7 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 		// Get nitrogen deposition data. 
 		/* Since the historic data set does not reach decade 2010-2019,
 		 * we need to use the RCP data for the last decade. */
-		ndep.getndep(param["file_ndep"].str, lon, lat, Lamarque::RCP60);
+		ndep.getndep(param["file_ndep"].str, gridlist.getobj().lon, gridlist.getobj().lat, Lamarque::RCP60);
 
 		// The insolation data will be sent (in function getclimate, below)
 		// as incoming shortwave radiation, averages are over 24 hours
@@ -350,31 +465,154 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 	double progress;
 
 	Climate& climate = gridcell.climate;
+	if (save_state)
+		{
+		if (date.day == 0) {
+
+			// First day of year ...
+
+			// Extract N deposition to use for this year,
+			// monthly means to be distributed into daily values further down
+			double mndrydep[12], mnwetdep[12];
+			ndep.get_one_calendar_year(date.year - nyear_spinup + FIRSTHISTYEAR,
+				mndrydep, mnwetdep);
+
+			if (date.year < nyear_spinup) {
+
+				// During spinup period
+
+				if (date.year == state_year && restart) {
+
+					int year_offset = state_year % NYEAR_SPINUP_DATA;
+
+					for (int y = 0; y < year_offset; y++) {
+						spinup_mtemp.nextyear();
+						spinup_mprec.nextyear();
+						spinup_msun.nextyear();
+						spinup_mfrs.nextyear();
+						spinup_mwet.nextyear();
+						spinup_mdtr.nextyear();
+					}
+				}
+
+				int m;
+				double mtemp[12], mprec[12], msun[12];
+				double mfrs[12], mwet[12], mdtr[12];
+
+				for (m = 0; m < 12; m++) {
+					mtemp[m] = spinup_mtemp[m];
+					mprec[m] = spinup_mprec[m];
+					msun[m] = spinup_msun[m];
+
+					mfrs[m] = spinup_mfrs[m];
+					mwet[m] = spinup_mwet[m];
+					mdtr[m] = spinup_mdtr[m];
+				}
+
+				// Interpolate monthly spinup data to quasi-daily values
+				interp_climate(mtemp, mprec, msun, mdtr, dtemp, dprec, dsun, ddtr);
+
+				// Only recalculate precipitation values using weather generator
+				// if rainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(mprec, dprec, mwet, gridcell.seed);
+				}
+
+				spinup_mtemp.nextyear();
+				spinup_mprec.nextyear();
+				spinup_msun.nextyear();
+
+				spinup_mfrs.nextyear();
+				spinup_mwet.nextyear();
+				spinup_mdtr.nextyear();
+
+			}
+			else if (date.year < nyear_spinup + NYEAR_HIST) {
+
+				// Historical period
+
+				// Interpolate this year's monthly data to quasi-daily values
+				interp_climate(hist_mtemp[date.year - nyear_spinup],
+					hist_mprec[date.year - nyear_spinup], hist_msun[date.year - nyear_spinup],
+					hist_mdtr[date.year - nyear_spinup],
+					dtemp, dprec, dsun, ddtr);
+
+				// Only recalculate precipitation values using weather generator
+				// if ifrainonwetdaysonly is true. Otherwise we assume that it rains a little every day.
+				if (ifrainonwetdaysonly) {
+					// (from Dieter Gerten 021121)
+					prdaily(hist_mprec[date.year - nyear_spinup], dprec, hist_mwet[date.year - nyear_spinup], gridcell.seed);
+				}
+			}
+			else {
+				// Return false if last year was the last for the simulation
+				return false;
+			}
+
+			// Distribute N deposition
+			distribute_ndep(mndrydep, mnwetdep, dprec, dndep);
+		}
 
 
-	if (FIRSTHISTYEAR + date.year <= pFlowContext->pEnvContext->endYear)
-	   climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+
+		if (FIRSTHISTYEAR + date.year <= pFlowContext->pEnvContext->endYear)
+			climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+		else
+			climate.co2 = 414.01;
+
+			climate.temp  = dtemp[date.day];
+			climate.prec  = dprec[date.day];
+			climate.insol = dsun[date.day];
+
+			// First day of year only ...
+
+			if (date.day == 0) {
+
+				// Progress report to user and update timer
+
+				if (tmute.getprogress() >= 1.0) 
+					{
+
+						float progress = (double)(gridlist.getobj().id * (nyear_spinup + NYEAR_HIST)
+							+ date.year) / (double)(gridlist.nobj * (nyear_spinup + NYEAR_HIST));
+
+						tprogress.setprogress(progress);
+						//CString msg;
+						//msg.Format(_T(" %3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),tprogress.elapsed.str, tprogress.remaining.str));
+						//Report::Log(msg);
+						dprintf("%3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),
+						   tprogress.elapsed.str, tprogress.remaining.str);
+						tmute.settimer(MUTESEC);
+					}
+
+			}
+
+		}
 	else
-		climate.co2 = 414.01;
+		{
 
-	//	climate.temp  = dtemp[date.day];
-	//	climate.prec  = dprec[date.day];
-	//	climate.insol = dsun[date.day];
+		float prec = 0.0f; float temp = 0.0f; float insol = 0.0f;float tmax=0;float tmin=0;
 
+		HRU *pHRU = gridcell.pHRU;
 
-	float prec = 0.0f; float temp = 0.0f; float insol = 0.0f;
-	//HRU *pHRU = pFlowContext->pFlowModel->GetHRU(0);
-	HRU *pHRU = gridcell.pHRU;
-	//HRU* pHRU = gridcell.m_hruArray[0];
-	pFlowContext->pFlowModel->GetHRUClimate(CDT_PRECIP, pHRU, pFlowContext->dayOfYear, prec);//mm
-	pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, pFlowContext->dayOfYear, temp);//C
-	pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, pFlowContext->dayOfYear, insol);//C
+		pFlowContext->pFlowModel->GetHRUClimate(CDT_PRECIP, pHRU, pFlowContext->dayOfYear, prec);//mm
+		pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, pFlowContext->dayOfYear, tmax);//C
+		pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, pFlowContext->dayOfYear, tmin);//C
+		pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, pFlowContext->dayOfYear, insol);//Incoming Short W/m2
 
-	climate.temp = temp;
-	climate.prec = prec;
-	climate.insol = insol;
+		climate.temp = (tmax+tmin)/2;
+		climate.prec = prec;
+		climate.insol = insol;
+		if (FIRSTHISTYEAR + date.year <= pFlowContext->pEnvContext->endYear)
+			climate.co2 = co2[FIRSTHISTYEAR + date.year - nyear_spinup];
+		else
+			climate.co2 = 414.01;
 
-
+		}
+		//climate.temp = dtemp[date.day];
+		//climate.prec = dprec[date.day];
+		//climate.insol = dsun[date.day];
 	// Nitrogen deposition
 	climate.dndep = dndep[date.day];
 
@@ -383,22 +621,7 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 		climate.dtr = ddtr[date.day];
 	}
 
-	// First day of year only ...
 
-/*	if (date.day == 0) {
-
-		// Progress report to user and update timer
-
-		if (tmute.getprogress() >= 1.0) {
-			progress = (double)(gridlist.getobj().id*(nyear_spinup + NYEAR_HIST)
-				+ date.year) / (double)(gridlist.nobj*(nyear_spinup + NYEAR_HIST));
-			tprogress.setprogress(progress);
-			dprintf("%3d%% complete, %s elapsed, %s remaining\n", (int)(progress*100.0),
-				tprogress.elapsed.str, tprogress.remaining.str);
-			tmute.settimer(MUTESEC);
-		}
-		
-	}*/
 
 	return true;
 }
