@@ -459,6 +459,9 @@ public:
 
    float m_yrfThreshold;   // max yield reduction factor before crop is considered failed
                            // in yield reduction factor that triggers tracking
+   //CString m_yrfThresholdExpr;
+   //MapExpr* m_pYrfThresholdExpr;  // memory managed by ??
+
    FDataObj *m_pDailyData;
 
    // crop event count, totals
@@ -560,7 +563,6 @@ protected:
 
    public:
       float AddCropEvent(EnvContext*, int idu, int eventID, LPCTSTR eventLabel, float areaHa, int doy, float yrf, float priorCumYRF);
-
 
 protected:
    int m_maxProcessors;

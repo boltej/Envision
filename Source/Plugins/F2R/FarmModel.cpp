@@ -478,6 +478,7 @@ FarmModel::FarmModel(void)
    , m_adjFieldAreaHa(0)
    , m_avgFieldSizeHa(0)
    , m_yrfThreshold(0.90f)
+   //, m_pYrfThresholdExpr(NULL)
    , m_pDailyData(NULL)
    , m_pCropEventData(NULL)
    , m_pCropEventPivotTable(NULL)
@@ -671,6 +672,22 @@ bool FarmModel::Init(EnvContext* pContext, LPCTSTR initStr)
    // initialize submodels
    m_climateManager.Init(pContext, initStr);
    m_csModel.Init(this, pMapLayer, pContext->pQueryEngine, pContext->pExprEngine);
+
+   // compile YRF threshold if needed
+   //if (this->m_yrfThreshold < 0)
+   //   {
+   //   MapExprEngine* pME = pContext->pExprEngine;
+   //   this->m_pYrfThresholdExpr = pME->AddExpr("yrfThreshold", m_yrfThresholdExpr, NULL);
+   //   bool ok = pME->Compile(m_pYrfThresholdExpr);
+   //
+   //   if (!ok)
+   //      {
+   //      CString msg("Farm Model: Unable to compile YRF Threshold expression '");
+   //      msg += m_yrfThresholdExpr;
+   //      msg += "'.  The expression will be ignored";
+   //      Report::ErrorMsg(msg);
+   //      }
+   //   }
 
    if (m_doInit > 0)
       InitializeFarms(pMapLayer);   // populates FarmType, FT_Code fields based on FT_Extent strings
@@ -4496,7 +4513,8 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
    // lookup fields
    LPCTSTR trackEvents = NULL;
    LPCTSTR trackIDUs = NULL;
-   float yrfThreshold = 0.90f;
+   //float yrfThreshold = 0.90f;
+   LPCTSTR yrfThreshold = NULL;
    XML_ATTR attrs[] = {
       // attr            type           address              isReq checkCol
       { "farmID_col",    TYPE_CSTRING,  &m_farmIDField,      true,  0 },
@@ -4509,7 +4527,8 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
       { "track_events",  TYPE_STRING,   &trackEvents,        false, 0 },
       { "track_idus",    TYPE_STRING,   &trackIDUs,          false, 0 },
       { "use_VSMB",      TYPE_BOOL,     &m_useVSMB,          false, 0 },
-      { "yrf_threshold", TYPE_FLOAT,    &yrfThreshold,       false, 0 },
+      //{ "yrf_threshold", TYPE_FLOAT,    &yrfThreshold,       false, 0 },
+      { "yrf_threshold", TYPE_STRING,   &yrfThreshold,       false, 0 },
       { NULL,            TYPE_NULL,     NULL,                false, 0 } };
 
    ok = TiXmlGetAttributes(pXmlFarmModel, attrs, filename, pLayer);
@@ -4536,7 +4555,18 @@ bool FarmModel::LoadXml(EnvContext* pContext, LPCTSTR filename)
    theProcess->CheckCol(pLayer, m_colLulcA, "LULC_A", TYPE_INT, CC_MUST_EXIST);
    theProcess->CheckCol(pLayer, m_colRegion, m_regionField, TYPE_INT, CC_MUST_EXIST);
 
-   m_yrfThreshold = yrfThreshold;
+   //if (yrfThreshold == NULL)
+   //   m_yrfThreshold = 0.9f;
+   //else if ( MapExprEngine::IsConstant(yrfThreshold) )
+   //   m_yrfThreshold = (float) atof(yrfThreshold);
+   //else
+   //   {
+   //   m_yrfThresholdExpr = yrfThreshold;
+   //   m_yrfThreshold = -1;
+   //   
+   //   // compile yrf Expr if needed
+   //   //MapExpr* m_pYrfThresholdExpr;  // memory managed by ??
+   //   }
 
    // next, <crops>
    TiXmlElement* pXmlCrops = pXmlFarmModel->FirstChildElement("crops");

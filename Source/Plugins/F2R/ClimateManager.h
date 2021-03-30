@@ -81,6 +81,7 @@ public:
    bool GetPeriodPrecip( int startDOY, int endDOY, int year, float &cumPrecip );
    bool GetMaxConsDryDays( int startDOY, int endDOY, int year, float threshold );   
    bool GetGrowingSeasonLength( int year, int &length, int &startDOY, int &endDOY );
+   bool GetDOYFromCHU(float chu, int &doy);
 
    float GetPET(int method, int doy, int year);
 

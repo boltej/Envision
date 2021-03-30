@@ -42,17 +42,18 @@ int ReplaceDates(CString& query);
 bool ReplaceDate(CString& query, int index, int month);
 int ReplaceKeywordArgs(CString& query, LPCTSTR fnName);
 
-Query* CSCropEvent::CompileWhen(QueryEngine* pQE)
+
+Query* CSWhen::CompileWhen(QueryEngine* pQE, LPCTSTR className)
    {
    // compile when query
    if (when.IsEmpty() == FALSE)
       {
-      pWhen = ParseQuery(pQE, when, "CSModel.CSCropEvent");
+      pWhen = ParseQuery(pQE, when, "CSModel 'When' Compiler");
 
       if (pWhen == NULL)
          {
          CString msg;
-         msg.Format("CSModel: Bad 'when' query encountered reading <crop_event>: 'When' Query is '%s'", (LPCTSTR)when);
+         msg.Format("CSModel 'When' Compiler: Bad 'when' query encountered reading <%s>: 'When' Query is '%s'", (LPCTSTR) className, (LPCTSTR)when);
          Report::ErrorMsg(msg);
          }
       }
@@ -60,43 +61,8 @@ Query* CSCropEvent::CompileWhen(QueryEngine* pQE)
    return pWhen;
    }
 
-Query* CSTransition::CompileWhen(QueryEngine* pQE)
-   {
-   // compile when query
-   if (when.IsEmpty() == FALSE)
-      {
-      pWhen = ParseQuery(pQE, when, "CSModel.CSTransition");
 
-      if (pWhen == NULL)
-         {
-         CString msg;
-         msg.Format("CSModel: Bad 'when' query encountered reading Transition - 'When' Query is '%s'", (LPCTSTR)when);
-         Report::ErrorMsg(msg);
-         }
-      }
-
-   return pWhen;
-   }
-
-Query* CSEvalExpr::CompileWhen(QueryEngine* pQE)
-   {
-   // compile when query
-   if (when.IsEmpty() == FALSE)
-      {
-      pWhen = ParseQuery(pQE, when, "CSModel.CSEvalExpr");
-
-      if (pWhen == NULL)
-         {
-         CString msg;
-         msg.Format("CSModel: Bad 'when' query encountered reading <eval> - 'when' Query is '%s'", (LPCTSTR)when);
-         Report::ErrorMsg(msg);
-         }
-      }
-
-   return pWhen;
-   }
-
-MapExpr *CSEvalExpr::CompileOutcome(MapExprEngine *pME, LPCTSTR name, MapLayer *pLayer)
+MapExpr *CSAction::CompileOutcome(MapExprEngine *pME, LPCTSTR name, MapLayer *pLayer)
    {   
    // if outcome defined, parse it
    if (outcome.IsEmpty())
@@ -153,6 +119,30 @@ MapExpr *CSEvalExpr::CompileOutcome(MapExprEngine *pME, LPCTSTR name, MapLayer *
    return this->pOutcomeExpr;
    }
 
+
+bool CSAction::TakeAction(EnvContext* pContext, int idu) 
+   {
+   // if there is an associated action, take it
+   if (pOutcomeExpr != NULL) // query satisfied?
+      {
+      // run outcome expression
+      pOutcomeExpr->Evaluate(idu);
+      outcomeValue = pOutcomeExpr->GetValue();
+
+      // is the target a field?
+      if (col >= 0)
+         {
+         float value = 0;
+         outcomeValue.GetAsFloat(value);
+         theProcess->UpdateIDU(pContext, idu, col, value, SET_DATA);
+         return true;
+         }
+      }
+   return false;
+   }
+
+
+
 int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, MapExprEngine *pME)
    {
    m_pMapLayer = pIDULayer;
@@ -162,6 +152,7 @@ int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, M
    pQE->AddUserFn("Avg", CSModel::Avg);
    pQE->AddUserFn("AbovePeriod", CSModel::AbovePeriod);
    pQE->AddUserFn("BelowPeriod", CSModel::BelowPeriod);
+   pQE->AddUserFn("DOYFromCHU", CSModel::DOYFromCHU);
 
    // ad query engine externals
    QExternal* pExt = pQE->AddExternal("DOY"); pExt->SetValue(VData(&m_doy, TYPE_PINT, true));
@@ -200,7 +191,7 @@ int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, M
          theProcess->CheckCol(m_pMapLayer, pField->col, pField->name, pField->type, CC_AUTOADD);
          }
 
-      // compile querys
+      // compile transitions, crop events, and do actions
       for (int j = 0; j < pCrop->m_cropStages.GetSize(); j++)
          {
          CSCropStage* pStage = pCrop->m_cropStages[j];
@@ -208,20 +199,36 @@ int CSModel::Init(FarmModel* pFarmModel,MapLayer *pIDULayer, QueryEngine *pQE, M
          for (int k = 0; k < pStage->m_transitions.GetSize(); k++)
             {
             CSTransition* pTrans = pStage->m_transitions[k];
-            pTrans->CompileWhen(pQE);
-            //pTrans->CompileOutcome(pME, "Transition");
+            pTrans->CompileWhen(pQE, "transition");
+            pTrans->CompileOutcome(pME, "Transition", pIDULayer);
             }
 
          for (int k = 0; k < pStage->m_events.GetSize(); k++)
             {
             CSCropEvent* pEvent= pStage->m_events[k];
-            pEvent->CompileWhen(pQE);
+            pEvent->CompileWhen(pQE, "crop_event");
+            pEvent->CompileOutcome(pME, "CropEvent", pIDULayer);
+
+            // compile YRF expression if needed
+            if (pEvent->yrf < 0)
+               {
+               pEvent->pYrfExpr = pME->AddExpr("yrf", pEvent->yrfExpr, NULL);
+               bool ok = pME->Compile(pEvent->pYrfExpr);
+            
+               if (!ok)
+                  {
+                  CString msg("  CS Model: Unable to compile YRF expression '");
+                  msg +=pEvent->yrfExpr;
+                  msg += "'.  The expression will be ignored";
+                  Report::ErrorMsg(msg);
+                  }
+               }
             }
 
          for (int k = 0; k < pStage->m_evalExprs.GetSize(); k++)
             {
             CSEvalExpr* pExpr = pStage->m_evalExprs[k];
-            pExpr->CompileWhen(pQE);
+            pExpr->CompileWhen(pQE, "do");
             pExpr->CompileOutcome(pME, "EvalExpr", pIDULayer);
             }
          }
@@ -325,21 +332,10 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
       bool result;
       ok = pExpr->pWhen->Run(idu, result);  // run the query
 
-      if (ok && result && pExpr->pOutcomeExpr != NULL) // query satisfied?
+      if (ok && result) // query satisfied?
          {
-         // run outcome expression
-         pExpr->pOutcomeExpr->Evaluate(idu);
-         pExpr->outcomeValue = pExpr->pOutcomeExpr->GetValue();
-
-         // is the target a field?
-         if (pExpr->col >= 0)
-            {
-            float value = 0;
-            pExpr->outcomeValue.GetAsFloat(value);
-            theProcess->UpdateIDU(pContext, idu, pExpr->col, value, SET_DATA);
-            // or a global variable?
-            //.... ?????
-            }
+         // if there is an associated action, take it
+         pExpr->TakeAction(pContext, idu);
          }
       }
 
@@ -354,7 +350,11 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
 
       if (ok && result) // query satisfied?
          {
-         yrf = pFarmModel->AddCropEvent(pContext, idu, pEvent->id, pEvent->name, areaHa, doy, pEvent->yrf, priorCumYRF);
+         float eventYRF = pEvent->GetYRF(idu);
+         yrf = pFarmModel->AddCropEvent(pContext, idu, pEvent->id, pEvent->name, areaHa, doy, eventYRF, priorCumYRF);
+
+         // if there is an associated action, take it
+         pEvent->TakeAction(pContext,idu);
 
          if (track)
             {
@@ -397,6 +397,9 @@ float CSModel::UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Far
                
                else if (pTrans->toStage.CompareNoCase("Harvested") == 0)
                   theProcess->UpdateIDU(pContext, idu, FarmModel::m_colHarvDate, doy, SET_DATA);
+
+               // if there is an associated action, take it
+               pTrans->TakeAction(pContext, idu);
 
                if (track)
                   {
@@ -519,6 +522,15 @@ float CSModel::AbovePeriod(int kw, int threshold)
       }
 
    return 0.0;
+   }
+
+
+float CSModel::DOYFromCHU(int chu, int)
+   {
+   int doy = 0;
+   m_pClimateStation->GetDOYFromCHU(chu, doy);
+   
+   return (float)doy;
    }
 
 
@@ -668,10 +680,10 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                {
                CSEvalExpr* pEval = new CSEvalExpr;
 
-               XML_ATTR attrs[] = { // attr type           address        isReq checkCol
-                                  { "name", TYPE_CSTRING,  &pEval->name,  true, 0 },
-                                  { "when", TYPE_CSTRING,  &pEval->when,     true, 0 },
-                                  { "action", TYPE_CSTRING,  &pEval->outcome,  false, 0 },
+               XML_ATTR attrs[] = { // attr   type           address          isReq checkCol
+                                  { "name",   TYPE_CSTRING,  &pEval->name,    true, 0 },
+                                  { "when",   TYPE_CSTRING,  &pEval->when,    true, 0 },
+                                  { "action", TYPE_CSTRING,  &pEval->outcome, true, 0 },
                                   { NULL,   TYPE_NULL,     NULL,           false,0 } };
 
                if (TiXmlGetAttributes(pXmlEval, attrs, path, NULL) == false)
@@ -685,8 +697,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                   }
 
                // pEvent->CompileWhen(pQueryE);  NEED TO DO THIS SOMEWHERE!
-               pStage->m_evalExprs.Add(pEval);
-               
+               pStage->m_evalExprs.Add(pEval);              
 
                pXmlEval = pXmlEval->NextSiblingElement("do");
                }
@@ -696,13 +707,16 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
             while (pXmlEvent != NULL)
                {
                CSCropEvent* pEvent = new CSCropEvent;
+               LPCTSTR yrf = NULL;
 
-               XML_ATTR attrs[] = { // attr  type           address        isReq checkCol
-                                  { "name", TYPE_CSTRING,  &pEvent->name,  true, 0 },
-                                  { "id",   TYPE_INT,      &pEvent->id,    false, 0 },
-                                  { "yrf",  TYPE_FLOAT,    &pEvent->yrf,   true, 0 },
-                                  { "when", TYPE_CSTRING,  &pEvent->when,  true, 0 },
-                                  { NULL,   TYPE_NULL,     NULL,           false,0 } };
+               XML_ATTR attrs[] = { // attr   type           address        isReq checkCol
+                                  { "name",   TYPE_CSTRING,  &pEvent->name,  true, 0 },
+                                  { "id",     TYPE_INT,      &pEvent->id,    false, 0 },
+                                  { "yrf",    TYPE_STRING,   &yrf,   false, 0 },
+                                  //{ "yrf",    TYPE_FLOAT,    &pEvent->yrf,   true, 0 },
+                                  { "when",   TYPE_CSTRING,  &pEvent->when,  true, 0 },
+                                  { "action", TYPE_CSTRING,  &pEvent->outcome,  false, 0},
+                                  { NULL,     TYPE_NULL,     NULL,           false,0 } };
 
                if (TiXmlGetAttributes(pXmlEvent, attrs, path, NULL) == false)
                   {
@@ -720,6 +734,16 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                if (pEvent->id == -1)
                   pEvent->id = index+1;
 
+               if (yrf == NULL)
+                  pEvent->yrf = 1;
+               else if ( MapExprEngine::IsConstant(yrf) )
+                  pEvent->yrf= (float) atof(yrf);
+               else
+                  {
+                  pEvent->yrfExpr = yrf;
+                  pEvent->yrf = -1;  // this signals that expr should be compiled
+                  }
+
                pXmlEvent = pXmlEvent->NextSiblingElement("crop_event");
                }
 
@@ -732,7 +756,7 @@ bool CSModel::LoadXml(TiXmlElement* pXmlRoot, LPCTSTR path, MapLayer *pIDULayer)
                XML_ATTR attrs[] = { // attr    type          address         isReq checkCol
                                   { "to",      TYPE_CSTRING, &pTrans->toStage,  true, 0 },
                                   { "when",    TYPE_CSTRING, &pTrans->when,     true, 0 },
-                                  //{ "outcome", TYPE_CSTRING, &pTrans->outcome,  false, 0 },
+                                  { "action",  TYPE_CSTRING, &pTrans->outcome,  false, 0 },
                                   { NULL,   TYPE_NULL,     NULL,             false,0 } };
 
                if (TiXmlGetAttributes(pXmlTrans, attrs, path, NULL) == false)
