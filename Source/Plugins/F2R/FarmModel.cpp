@@ -1938,9 +1938,7 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
 
             ClimateStation* pStation = m_climateManager.GetStationFromID(stationID);
             if (pStation == NULL)
-               continue;
-
-            
+               continue;            
 
             //ASSERT( pStation == pFarm->m_pClimateStation );
 
@@ -2564,6 +2562,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
 
    switch (lulc)
       {
+      /*
       case CORN:
          {
          float chu = pStation->m_chuCornMay1[doy - 1];
@@ -3168,7 +3167,7 @@ float FarmModel::CheckCropConditions(EnvContext* pContext, Farm* pFarm, MapLayer
             }
          }
          break;
-
+         */
          /*
       case ALFALFA:
          {
