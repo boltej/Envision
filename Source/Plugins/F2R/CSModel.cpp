@@ -801,7 +801,8 @@ Query* ParseQuery(QueryEngine* pQE, CString& query, LPCTSTR source) //"CSModel.C
    {
    ReplaceDates(query);
    ReplaceKeywordArgs(query, "Avg(");
-   ReplaceKeywordArgs(query, "Count(");
+   ReplaceKeywordArgs(query, "AbovePeriod(");
+   ReplaceKeywordArgs(query, "BelowPeriod(");
 
    Query* pQuery = pQE->ParseQuery(query, 0, source);
    return pQuery;
@@ -815,7 +816,7 @@ int ReplaceKeywordArgs(CString& query, LPCTSTR fnName)
    int index = query.Find(fnName);  // e.g. Avg(, Count(
    while (index >= 0)
       {
-      int start = index + 4;
+      int start = index + lstrlen(fnName);
       int end = start + 1;
 
       int match = 1;
