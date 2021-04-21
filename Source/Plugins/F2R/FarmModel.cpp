@@ -1552,12 +1552,17 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
       for (int i = 0; i < m_trackIDUArray.GetSize(); i++)
          {
          CString outName;
-         outName.Format("VSMB_IDU_%i", m_trackIDUArray[i]);
-         theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
-         counter++;
-         outName.Format("VSMB_SM_IDU_%i", m_trackIDUArray[i]);
-         theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
-         counter++;
+         int numObjs= VSMBModel::m_pOutputObjArray.GetSize();
+         if (numObjs>=counter)//if there is a dataob
+            {
+            outName.Format("VSMB_IDU_%i", m_trackIDUArray[i]);
+            theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
+            counter++;
+            outName.Format("VSMB_SM_IDU_%i", m_trackIDUArray[i]);
+            theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
+            counter++;
+            }
+         
          }
 
 

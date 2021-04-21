@@ -389,7 +389,7 @@ int SoilInfo::OutputDayVSMBResults(int doy)
 
    CArray< float, float > data1;
    data1.Add((float)doy);
-   //float a1= 
+
    data1.Add(m_soilLayerArray.GetAt(0)->m_soilMoistContent/ m_soilLayerArray.GetAt(0)->m_pLayerParams->m_AWHC);
    data1.Add(m_soilLayerArray.GetAt(1)->m_soilMoistContent/ m_soilLayerArray.GetAt(1)->m_pLayerParams->m_AWHC);
    data1.Add(m_soilLayerArray.GetAt(2)->m_soilMoistContent/ m_soilLayerArray.GetAt(2)->m_pLayerParams->m_AWHC);
