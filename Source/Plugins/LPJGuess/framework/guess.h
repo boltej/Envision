@@ -52,16 +52,16 @@
 // GLOBAL ENUMERATED TYPE DEFINITIONS
 
 /// Life form class for PFTs (trees, grasses)
-typedef enum {NOLIFEFORM, TREE, GRASS} lifeformtype;
+typedef enum { NOLIFEFORM, TREE, GRASS } lifeformtype;
 
 /// Phenology class for PFTs
-typedef enum {NOPHENOLOGY, EVERGREEN, RAINGREEN, SUMMERGREEN, CROPGREEN, ANY} phenologytype;
+typedef enum { NOPHENOLOGY, EVERGREEN, RAINGREEN, SUMMERGREEN, CROPGREEN, ANY } phenologytype;
 
 /// Biochemical pathway for photosynthesis (C3 or C4)
-typedef enum {NOPATHWAY, C3, C4} pathwaytype;
+typedef enum { NOPATHWAY, C3, C4 } pathwaytype;
 
 /// Leaf physiognomy types for PFTs
-typedef enum {NOLEAFTYPE, NEEDLELEAF, BROADLEAF} leafphysiognomytype;
+typedef enum { NOLEAFTYPE, NEEDLELEAF, BROADLEAF } leafphysiognomytype;
 
 /// Units for insolation driving data
 /** Insolation can be expressed as:
@@ -92,13 +92,15 @@ typedef enum {
 } insoltype;
 
 /// CENTURY pool names, NSOMPOOL number of SOM pools
-typedef enum {SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
-	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL} pooltype;
+typedef enum {
+	SURFSTRUCT, SOILSTRUCT, SOILMICRO, SURFHUMUS, SURFMICRO, SURFMETA, SURFFWD, SURFCWD,
+	SOILMETA, SLOWSOM, PASSIVESOM, LEACHED, NSOMPOOL
+} pooltype;
 
 /// Irrigation type for PFTs
-typedef enum {RAINFED, IRRIGATED} hydrologytype;
+typedef enum { RAINFED, IRRIGATED } hydrologytype;
 /// Intercrop type for PFTs
-typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;
+typedef enum { NOINTERCROP, NATURALGRASS } intercroptype;
 
 /// Seasonality type of gridcell
 /** 0:SEASONALITY_NO			No seasonality
@@ -108,7 +110,7 @@ typedef enum {NOINTERCROP, NATURALGRASS} intercroptype;
  *  4:SEASONALITY_TEMPPREC		Both temperature and precipitation seasonality, but temperature most important (coldest month < 10degC)
  *  5:SEASONALITY_TEMPWARM		Temperature seasonality, always above 10 degrees (currently not used)
  */
-typedef enum {SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALITY_TEMP, SEASONALITY_TEMPPREC} seasonality_type;
+typedef enum { SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALITY_TEMP, SEASONALITY_TEMPPREC } seasonality_type;
 
 /// Precipitation seasonality type of gridcell
 /** 0:DRY						(minprec_pet20<=0.5 && maxprec_pet20<=0.5)
@@ -118,7 +120,7 @@ typedef enum {SEASONALITY_NO, SEASONALITY_PREC, SEASONALITY_PRECTEMP, SEASONALIT
  *  4:INTERMEDIATE_WET			(minprec_pet20>0.5 && minprec_pet20<=1.0 && maxprec_pet20>1.0)
  *  5:WET						(minprec_pet20>1.0 && maxprec_pet20>1.0)
  */
-typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WET} prec_seasonality_type;
+typedef enum { DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WET } prec_seasonality_type;
 
 
 /// Temperature seasonality type of gridcell
@@ -129,7 +131,7 @@ typedef enum {DRY, DRY_INTERMEDIATE, DRY_WET, INTERMEDIATE, INTERMEDIATE_WET, WE
  *  4:WARM_HOT					(mtemp_min20>10 && mtemp_max20>30)
  *  5:HOT						(mtemp_min20>30)
  */
-typedef enum {COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT} temp_seasonality_type;
+typedef enum { COLD, COLD_WARM, COLD_HOT, WARM, WARM_HOT, HOT } temp_seasonality_type;
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // GLOBAL CONSTANTS
@@ -145,7 +147,7 @@ const double SOILDEPTH_UPPER = 500.0;
 const double SOILDEPTH_LOWER = 1000.0;
 
 /// Year at which to calculate equilibrium soil carbon
-const int SOLVESOM_END=400;
+const int SOLVESOM_END = 400;
 
 /// Year at which to begin documenting means for calculation of equilibrium soil carbon
 const int SOLVESOM_BEGIN = 350;
@@ -180,9 +182,9 @@ const double PRIESTLEY_TAYLOR = 1.32;
 // Solving Century SOM pools
 
 /// fraction of nyear_spinup minus freenyears at which to begin documenting for calculation of Century equilibrium
-const double SOLVESOMCENT_SPINBEGIN  = 0.1;
+const double SOLVESOMCENT_SPINBEGIN = 0.1;
 /// fraction of nyear_spinup minus freenyears at which to end documentation and start calculation of Century equilibrium
-const double SOLVESOMCENT_SPINEND    = 0.3;
+const double SOLVESOMCENT_SPINEND = 0.3;
 
 /// Kelvin to deg c conversion
 const double K2degC = 273.15;
@@ -291,10 +293,10 @@ public:
 	/// Constructor function called automatically when Date object is created
 	/** Do not call explicitly. Initialises some member variables. */
 	Date() {
-		const int data[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
+		const int data[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
 		int month;
 		int dayct = 0;
-		for (month=0; month<12; month++) {
+		for (month = 0; month < 12; month++) {
 			ndaymonth[month] = data[month];
 			middaymonth[month] = dayct + data[month] / 2;
 			dayct += data[month];
@@ -309,9 +311,9 @@ public:
 	 *
 	 *  \param nyearsim  Intended number of simulation years
 	 */
-	void init(int nyearsim)	{
+	void init(int nyearsim) {
 		nyear = nyearsim;
-		day = month=year = dayofmonth = 0;
+		day = month = year = dayofmonth = 0;
 		islastmonth = islastday = ismidday = false;
 		if (nyear == 1) islastyear = true;
 		else islastyear = false;
@@ -355,7 +357,7 @@ public:
 
 	/// \returns index of next month (0 if currently month 11)
 	int nextmonth() {
-		if (month < 11) return month+1;
+		if (month < 11) return month + 1;
 		return 0;
 	}
 
@@ -400,16 +402,16 @@ public:
 	}
 
 	/// Step n days from a date.
-	/** Current implementation does not consider leap days, and the same 
+	/** Current implementation does not consider leap days, and the same
 	  * apply for the current use of the function through-out the model.
-      */
+		*/
 	static int stepfromdate(int day, int step) {
 
-		if(day < 0)			// a negative value should not be a valid day
+		if (day < 0)			// a negative value should not be a valid day
 			return -1;
-		else if(day + step > 0)
+		else if (day + step > 0)
 			return (day + step) % MAX_YEAR_LENGTH;
-		else if(day + step < 0)
+		else if (day + step < 0)
 			return day + step + MAX_YEAR_LENGTH;
 		else
 			return 0;
@@ -441,7 +443,7 @@ public:
 };
 
 /// Object updating gridcell mass balance; currently used in framework()
-class MassBalance : public Serializable  {
+class MassBalance : public Serializable {
 
 	int start_year;
 	double ccont;
@@ -518,13 +520,13 @@ struct PhotosynthesisResult : public Serializable {
 	 *  takes place.
 	 */
 	void clear() {
-		agd_g       = 0;
-		adtmm       = 0;
-		rd_g        = 0;
-		vm          = 0;
-		je          = 0;
+		agd_g = 0;
+		adtmm = 0;
+		rd_g = 0;
+		vm = 0;
+		je = 0;
 		nactive_opt = 0.0;
-		vmaxnlim    = 1.0;
+		vmaxnlim = 1.0;
 	}
 
 	/// RuBisCO capacity (gC/m2/day)
@@ -535,13 +537,13 @@ struct PhotosynthesisResult : public Serializable {
 
 	/// leaf-level net daytime photosynthesis
 	/** expressed in CO2 diffusion units (mm/m2/day) */
-    double adtmm;
+	double adtmm;
 
 	/// leaf respiration (gC/m2/day)
 	double rd_g;
 
 	/// PAR-limited photosynthesis rate (gC/m2/h)
-    double je;
+	double je;
 
 	/// optimal leaf nitrogen associated with photosynthesis (kgN/m2)
 	double nactive_opt;
@@ -550,9 +552,9 @@ struct PhotosynthesisResult : public Serializable {
 	double vmaxnlim;
 
 	/// net C-assimilation (gross photosynthesis minus leaf respiration) (kgC/m2/day)
-    double net_assimilation() const {
+	double net_assimilation() const {
 		return (agd_g - rd_g) * 1e-3;
-    }
+	}
 
 	void serialize(ArchiveStream& arch);
 };
@@ -779,9 +781,9 @@ public:
 
 public:
 	/// constructor function: initialises gridcell member
-	Climate(Gridcell& gc):gridcell(gc) {
+	Climate(Gridcell& gc) :gridcell(gc) {
 
-		for(int m=0;m<12;m++) {
+		for (int m = 0; m < 12; m++) {
 
 			mtemp20[m] = 0.0;
 			mprec20[m] = 0.0;
@@ -789,7 +791,7 @@ public:
 			mpet_year[m] = 0.0;
 			mprec_pet20[m] = 0.0;
 
-			for(int y=0;y<20;y++) {
+			for (int y = 0; y < 20; y++) {
 				mtemp_20[y][m] = 0.0;
 				mprec_20[y][m] = 0.0;
 				mpet_20[y][m] = 0.0;
@@ -797,26 +799,26 @@ public:
 			}
 		}
 
-		for(int y=0;y<20;y++) {
+		for (int y = 0; y < 20; y++) {
 
 			mprec_petmin_20[y] = 0.0;
 			mprec_petmax_20[y] = 0.0;
 		}
 
-		mprec_petmin20=0.0;
-		mprec_petmax20=0.0;
+		mprec_petmin20 = 0.0;
+		mprec_petmax20 = 0.0;
 
-		seasonality=SEASONALITY_NO;
-		seasonality_lastyear=SEASONALITY_NO;
-		prec_seasonality=DRY;
-		prec_seasonality_lastyear=DRY;
-		prec_range=DRY;
-		prec_range_lastyear=DRY;
-		temp_seasonality=COLD;
-		temp_seasonality_lastyear=COLD;
-		biseasonal=false;
+		seasonality = SEASONALITY_NO;
+		seasonality_lastyear = SEASONALITY_NO;
+		prec_seasonality = DRY;
+		prec_seasonality_lastyear = DRY;
+		prec_range = DRY;
+		prec_range_lastyear = DRY;
+		temp_seasonality = COLD;
+		temp_seasonality_lastyear = COLD;
+		biseasonal = false;
 
-		eet=0.0;
+		eet = 0.0;
 	};
 
 	/// Initialises certain member variables
@@ -1024,7 +1026,7 @@ public:
 		selection = "";
 		nyears = 1.0;
 		hydrology = RAINFED;
-//		firr = 0.0;
+		//		firr = 0.0;
 		sdate = -1;
 		hdate = -1;
 		nfert = -1.0;
@@ -1047,7 +1049,7 @@ public:
 	bool is_managed() {
 
 		// Add new management parameters here
-		if(pftname != "" || planting_system != "" || selection != ""||  harvest_system != "" ||  hydrology == IRRIGATED || fallow || nfert > -1.0)
+		if (pftname != "" || planting_system != "" || selection != "" || harvest_system != "" || hydrology == IRRIGATED || fallow || nfert > -1.0)
 			return true;
 		else
 			return false;
@@ -1057,25 +1059,24 @@ public:
 	int pftinselection(const char* name) {
 
 		bool found = false;
-		char *p = NULL, string_copy[200] = {0};
+		char* p = NULL, string_copy[200] = { 0 };
 
 		strcpy(string_copy, selection);
 		p = strtok(string_copy, "\t\n ");
-		if(p) {
-			if(!strcmp(name, p)) {
+		if (p) {
+			if (!strcmp(name, p)) {
 				found = true;
 			}
 		}
 
 		do {
 			p = strtok(NULL, "\t\n ");
-			if(p) {
-				if(!strcmp(name, p)) {
+			if (p) {
+				if (!strcmp(name, p)) {
 					found = true;
 				}
 			}
-		}
-		while(p && !found);
+		} while (p && !found);
 
 		return found;
 	}
@@ -1111,10 +1112,10 @@ public:
 
 		int id = -1;
 
-		for(unsigned int i=0; i< this->nobj; i++) {
+		for (unsigned int i = 0; i < this->nobj; i++) {
 
 			ManagementType& mt = (*this)[i];
-			if(mt.name == mtname) {
+			if (mt.name == mtname) {
 				id = mt.id;
 				break;
 			}
@@ -1186,7 +1187,7 @@ public:
 
 	ManagementType& get_management(int rot = 0) {
 
-		if(rotation.ncrops > 1) {
+		if (rotation.ncrops > 1) {
 			return mtlist[mtlist.getmtid(mtnames[rot])];
 		}
 		else {
@@ -1198,8 +1199,8 @@ public:
 	int mtinrotation(xtring name) {
 
 		int mtno = -1;
-		for(int i=0; i<rotation.ncrops; i++) {
-			if(name == mtnames[i])
+		for (int i = 0; i < rotation.ncrops; i++) {
+			if (name == mtnames[i])
 				mtno = i;
 		}
 
@@ -1210,8 +1211,8 @@ public:
 	int pftinrotation(xtring name) {
 
 		int cropno = -1;
-		for(int i=0; i<rotation.ncrops; i++) {
-			if(name == get_management(i).pftname)
+		for (int i = 0; i < rotation.ncrops; i++) {
+			if (name == get_management(i).pftname)
 				cropno = i;
 		}
 
@@ -1524,7 +1525,7 @@ public:
 	double trg;
 	/// default number of vernalising days required
 	int pvd;
-    /// sensitivity to the photoperiod effect [0-1]
+	/// sensitivity to the photoperiod effect [0-1]
 	double psens;
 	/// basal photoperiod (h) (pb<ps for longer days plants)
 	double pb;
@@ -1604,7 +1605,7 @@ public:
 		pvd = -1;
 		psens = -1.0;
 		pb = -1.0;
-		vern_lag=0;
+		vern_lag = 0;
 		ps = -1.0;
 		phu = -1.0;
 		phu_red_spring_sow = 1.0;
@@ -1630,31 +1631,31 @@ public:
 
 		N_appfert = 0.0;
 
-		T_vn_min=0.0;
-		T_vn_opt=0.0;
-		T_vn_max=0.0;
-		T_veg_min=0.0;
-		T_veg_opt=0.0;
-		T_veg_max=0.0;
-		T_rep_min=0.0;
-		T_rep_opt=0.0;
-		T_rep_max=0.0;
+		T_vn_min = 0.0;
+		T_vn_opt = 0.0;
+		T_vn_max = 0.0;
+		T_veg_min = 0.0;
+		T_veg_opt = 0.0;
+		T_veg_max = 0.0;
+		T_rep_min = 0.0;
+		T_rep_opt = 0.0;
+		T_rep_max = 0.0;
 
-		a1=0.0;
-		b1=0.0;
-		c1=0.0;
-		d1=0.0;
-		a2=0.0;
-		b2=0.0;
-		c2=0.0;
-		d2=0.0;
-		a3=0.0;
-		b3=0.0;
-		c3=0.0;
-		d3=0.0;
+		a1 = 0.0;
+		b1 = 0.0;
+		c1 = 0.0;
+		d1 = 0.0;
+		a2 = 0.0;
+		b2 = 0.0;
+		c2 = 0.0;
+		d2 = 0.0;
+		a3 = 0.0;
+		b3 = 0.0;
+		c3 = 0.0;
+		d3 = 0.0;
 
-		for (int i=0; i<3; i++)
-			photo[i]=0.0;
+		for (int i = 0; i < 3; i++)
+			photo[i] = 0.0;
 	}
 
 	/// Calculates SLA given leaf longevity
@@ -1718,21 +1719,22 @@ public:
 		cton_root_avr = avg_cton(cton_root_min, cton_root_max);
 
 		// Maximum sap C:N ratio
-		cton_sap_max  = cton_leaf_max * frac_leaftosap;
+		cton_sap_max = cton_leaf_max * frac_leaftosap;
 
 		double cton_sap_min = cton_sap_max * frac_maxtomin;
 
 		// Average sap C:N ratio
-		cton_sap_avr  = avg_cton(cton_sap_min, cton_sap_max);
+		cton_sap_avr = avg_cton(cton_sap_min, cton_sap_max);
 
 		if (lifeform == GRASS) {
 			respcoeff /= 2.0 * cton_root / (cton_root_avr + cton_root_min);
-		} else {
-			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
-			             cton_sap  / (cton_sap_avr  + cton_sap_min);
 		}
-		cton_stem_max = 1.0/(2.0*0.0034); //Maize params
-		cton_stem_avr = 1.0/(2.0*0.0068);
+		else {
+			respcoeff /= cton_root / (cton_root_avr + cton_root_min) +
+				cton_sap / (cton_sap_avr + cton_sap_min);
+		}
+		cton_stem_max = 1.0 / (2.0 * 0.0034); //Maize params
+		cton_stem_avr = 1.0 / (2.0 * 0.0068);
 	}
 
 	/// Calculates coefficient to compensate for different vertical distribution of fine root on nitrogen uptake
@@ -1816,10 +1818,10 @@ public:
 
 		int id = -1;
 
-		for(unsigned int i=0; i< this->nobj; i++) {
+		for (unsigned int i = 0; i < this->nobj; i++) {
 
 			Pft& pft = (*this)[i];
-			if(pft.name == pftname) {
+			if (pft.name == pftname) {
 				id = pft.id;
 				break;
 			}
@@ -1985,75 +1987,75 @@ struct cropindiv_struct : public Serializable {
 	bool isintercropgrass;
 
 	cropindiv_struct() {
-		cmass_ho=0.0;
-		cmass_agpool=0.0;
+		cmass_ho = 0.0;
+		cmass_agpool = 0.0;
 		cmass_stem = 0.0;
-		cmass_leaf_max=0.0;
-		cmass_leaf_sen=0.0;
-		yield=0.0;
-		yield_harvest[0]=0.0;
-		yield_harvest[1]=0.0;
-		dcmass_leaf=0.0;
-		dcmass_root=0.0;
-		dcmass_plant=0.0;
-		dcmass_ho=0.0;
-		dcmass_agpool=0.0;
-		grs_cmass_leaf=0.0;
-		grs_cmass_root=0.0;
-		grs_cmass_plant=0.0;
-		grs_cmass_ho=0.0;
-		grs_cmass_agpool=0.0;
+		cmass_leaf_max = 0.0;
+		cmass_leaf_sen = 0.0;
+		yield = 0.0;
+		yield_harvest[0] = 0.0;
+		yield_harvest[1] = 0.0;
+		dcmass_leaf = 0.0;
+		dcmass_root = 0.0;
+		dcmass_plant = 0.0;
+		dcmass_ho = 0.0;
+		dcmass_agpool = 0.0;
+		grs_cmass_leaf = 0.0;
+		grs_cmass_root = 0.0;
+		grs_cmass_plant = 0.0;
+		grs_cmass_ho = 0.0;
+		grs_cmass_agpool = 0.0;
 		grs_cmass_stem = 0.0;
 		grs_cmass_dead_leaf = 0.0;
-		grs_cmass_leaf_luc=0.0;
-		grs_cmass_root_luc=0.0;
-		grs_cmass_ho_luc=0.0;
-		grs_cmass_agpool_luc=0.0;
+		grs_cmass_leaf_luc = 0.0;
+		grs_cmass_root_luc = 0.0;
+		grs_cmass_ho_luc = 0.0;
+		grs_cmass_agpool_luc = 0.0;
 		grs_cmass_dead_leaf_luc = 0.0;
 		grs_cmass_stem_luc = 0.0;
-		nmass_ho=0.0;
-		nmass_agpool=0.0;
+		nmass_ho = 0.0;
+		nmass_agpool = 0.0;
 		nmass_dead_leaf = 0.0;
-		ycmass_leaf=0.0;
-		ycmass_root=0.0;
-		ycmass_plant=0.0;
-		ycmass_ho=0.0;
-		ycmass_agpool=0.0;
+		ycmass_leaf = 0.0;
+		ycmass_root = 0.0;
+		ycmass_plant = 0.0;
+		ycmass_ho = 0.0;
+		ycmass_agpool = 0.0;
 		ycmass_stem = 0.0;
 		ycmass_dead_leaf = 0.0;
-		harv_cmass_leaf=0.0;
-		harv_cmass_root=0.0;
-		harv_cmass_root=0.0;
-		harv_cmass_ho=0.0;
-		harv_yield=0.0;
-		harv_cmass_agpool=0.0;
+		harv_cmass_leaf = 0.0;
+		harv_cmass_root = 0.0;
+		harv_cmass_root = 0.0;
+		harv_cmass_ho = 0.0;
+		harv_yield = 0.0;
+		harv_cmass_agpool = 0.0;
 		harv_cmass_stem = 0.0;
-		cmass_ho_harvest[0]=0.0;
-		cmass_ho_harvest[1]=0.0;
+		cmass_ho_harvest[0] = 0.0;
+		cmass_ho_harvest[1] = 0.0;
 
 		//Nitrogen
-		dnmass_leaf=0.0;
-		dnmass_root=0.0;
-		dnmass_ho=0.0;
-		dnmass_agpool=0.0;
-		ynmass_leaf=0.0;
-		ynmass_root=0.0;
-		ynmass_ho=0.0;
-		ynmass_agpool=0.0;
+		dnmass_leaf = 0.0;
+		dnmass_root = 0.0;
+		dnmass_ho = 0.0;
+		dnmass_agpool = 0.0;
+		ynmass_leaf = 0.0;
+		ynmass_root = 0.0;
+		ynmass_ho = 0.0;
+		ynmass_agpool = 0.0;
 		ynmass_dead_leaf = 0.0;
-		harv_nmass_leaf=0.0;
-		harv_nmass_root=0.0;
-		harv_nmass_root=0.0;
-		harv_nmass_ho=0.0;
-		harv_nmass_agpool=0.0;
+		harv_nmass_leaf = 0.0;
+		harv_nmass_root = 0.0;
+		harv_nmass_root = 0.0;
+		harv_nmass_ho = 0.0;
+		harv_nmass_agpool = 0.0;
 		nmass_dead_leaf_luc = 0.0;
-		nmass_ho_harvest[0]=0.0;
-		nmass_ho_harvest[1]=0.0;
+		nmass_ho_harvest[0] = 0.0;
+		nmass_ho_harvest[1] = 0.0;
 
-		isprimarycrop=false;
-		isprimarycovegetation=false;
-//		issecondarycrop=false;
-		isintercropgrass=false;
+		isprimarycrop = false;
+		isprimarycovegetation = false;
+		//		issecondarycrop=false;
+		isintercropgrass = false;
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -2287,7 +2289,7 @@ public:
 	double fvocseas;
 
 	/// Pointer to struct with crop-specific data
-	cropindiv_struct *cropindiv;
+	cropindiv_struct* cropindiv;
 
 	// MEMBER FUNCTIONS
 
@@ -2296,7 +2298,7 @@ public:
 	// Constructor function for objects of class Individual
 	// Initialisation of certain member variables
 
-	Individual(int i,Pft& p,Vegetation& v);
+	Individual(int i, Pft& p, Vegetation& v);
 	~Individual();
 
 	/// Access functions for cropindiv:
@@ -2315,7 +2317,7 @@ public:
 
 	/// Whether an individual is either a true crop or a cover crop grass
 	inline bool istruecrop_or_intercropgrass() const {
-		return (pft.landcover==CROPLAND && (pft.phenology==CROPGREEN || cropindiv->isintercropgrass));
+		return (pft.landcover == CROPLAND && (pft.phenology == CROPGREEN || cropindiv->isintercropgrass));
 	}
 
 	/// Whether harvest and turnover is done on actual C and N on harvest or turnover day, which can occur any day of the year.
@@ -2453,7 +2455,7 @@ public:
  *      vegetation.nextobj();
  *    }
  */
-class Vegetation : public ListArray_idin2<Individual,Pft,Vegetation>, public Serializable {
+class Vegetation : public ListArray_idin2<Individual, Pft, Vegetation>, public Serializable {
 
 public:
 	// MEMBER VARIABLES
@@ -2464,7 +2466,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	/// constructor (initialises member variable patch)
-	Vegetation(Patch& p):patch(p) {};
+	Vegetation(Patch& p) :patch(p) {};
 
 	void serialize(ArchiveStream& arch);
 };
@@ -2519,6 +2521,12 @@ public:
 	/// fraction of soil that is silt
 	double silt_frac;
 
+	// For Envision
+	double sd_upper;
+	double sd_lower;
+	double depth_;
+	double k_aet_depth;
+
 	// MEMBER FUNCTIONS
 
 public:
@@ -2572,7 +2580,7 @@ public:
 	/// (potential) decrease in nitrogen following decomposition today (kgN/m2)
 	double ndec;
 	/// daily change in carbon and nitrogen
-	double delta_cmass,delta_nmass;
+	double delta_cmass, delta_nmass;
 	/// lignin fractions
 	double ligcfrac;
 	/// fraction of pool remaining after decomposition
@@ -2611,10 +2619,10 @@ struct LitterSolveSOM : public Serializable {
 	}
 
 	/// Add litter
-    void add_litter(double cvalue, double nvalue, int pool) {
+	void add_litter(double cvalue, double nvalue, int pool) {
 		clitter[pool] += cvalue;
 		nlitter[pool] += nvalue;
-    }
+	}
 
 	double get_clitter(int pool) {
 		return clitter[pool];
@@ -2712,8 +2720,8 @@ public:
 	/// whether to percolate today
 	bool percolate;
 
-//////////////////////////////////////////////////////////////////////////////////
-// CENTURY SOM pools and other variables
+	//////////////////////////////////////////////////////////////////////////////////
+	// CENTURY SOM pools and other variables
 
 	Sompool sompool[NSOMPOOL];
 
@@ -2738,7 +2746,7 @@ public:
 	/// calculated annual mean nitrogen fixation
 	double anfix_calc;
 	/// annual leaching of organics nitrogen from carbon pool
-	double aorgCleach;	
+	double aorgCleach;
 
 	// Variables for fast spinup of SOM pools
 
@@ -2770,8 +2778,8 @@ public:
 
 public:
 	/// constructor (initialises member variable patch)
-	Soil(Patch& p,Soiltype& s):patch(p),soiltype(s) {
-			initdrivers();
+	Soil(Patch& p, Soiltype& s) :patch(p), soiltype(s) {
+		initdrivers();
 	}
 
 	void initdrivers() {
@@ -2794,7 +2802,7 @@ public:
 
 		mwcontupper = 0.0;
 		mwcontlower = 0.0;
-		for (int mth=0; mth<12; mth++) {
+		for (int mth = 0; mth < 12; mth++) {
 			mwcont[mth][0] = 0.0;
 			mwcont[mth][1] = 0.0;
 			fnuptake_mean[mth] = 0.0;
@@ -2833,7 +2841,7 @@ public:
 		dperc = 0.0;
 
 		solvesomcent_beginyr = (int)(SOLVESOMCENT_SPINBEGIN * (nyear_spinup - freenyears) + freenyears);
-		solvesomcent_endyr   = (int)(SOLVESOMCENT_SPINEND   * (nyear_spinup - freenyears) + freenyears);
+		solvesomcent_endyr = (int)(SOLVESOMCENT_SPINEND * (nyear_spinup - freenyears) + freenyears);
 	}
 
 	void serialize(ArchiveStream& arch);
@@ -2951,63 +2959,63 @@ struct cropphen_struct : public Serializable {
 	bool fertilised[3];
 
 	cropphen_struct() {
-		sdate=-1;
-		sdate_harv=-1;
-		nsow=0;
-		sownlastyear=false;
-		sendate=-1;
-		hdate=-1;
-		hlimitdate=-1;
-		hucountend=-1;
-		nharv=0;
-		tb=0.0;
-		pvd=0;
-		vdsum=0;
-		vrf=1.0;
-		phu=0.0;
-		phu_old=0.0;
-		husum_max=0.0;
-		husum_sampled=0.0;
-		husum_max_10=0.0;
+		sdate = -1;
+		sdate_harv = -1;
+		nsow = 0;
+		sownlastyear = false;
+		sendate = -1;
+		hdate = -1;
+		hlimitdate = -1;
+		hucountend = -1;
+		nharv = 0;
+		tb = 0.0;
+		pvd = 0;
+		vdsum = 0;
+		vrf = 1.0;
+		phu = 0.0;
+		phu_old = 0.0;
+		husum_max = 0.0;
+		husum_sampled = 0.0;
+		husum_max_10 = 0.0;
 		nyears_hu_sample = 0;
-		prf=1.0;
-		husum=0.0;
-		fphu=0.0;
-		fphu_harv=0.0;
-		hu_samplingdays=0;
-		hu_samplingperiod=false;
+		prf = 1.0;
+		husum = 0.0;
+		fphu = 0.0;
+		fphu_harv = 0.0;
+		hu_samplingdays = 0;
+		hu_samplingperiod = false;
 
-		hi=0.0;
-		fhi=0.0;
-		fhi_phen=0.0;
-		fhi_water=1.0;
-		fhi_harv=0.0;
-		demandsum_crop=0.0;
-		supplysum_crop=0.0;
+		hi = 0.0;
+		fhi = 0.0;
+		fhi_phen = 0.0;
+		fhi_water = 1.0;
+		fhi_harv = 0.0;
+		demandsum_crop = 0.0;
+		supplysum_crop = 0.0;
 
-		growingseason=false;	//Initialized to true for normal grass growth (CC3G & CC4G) in establishment
-		growingseason_ystd=false;
-		senescence=false;
-		senescence_ystd=false;
-		intercropseason=false;
-		bicdate=-1;
-		eicdate=-1;
-		growingdays=0;
-		growingdays_y=0;
-		lgp=0;
+		growingseason = false;	//Initialized to true for normal grass growth (CC3G & CC4G) in establishment
+		growingseason_ystd = false;
+		senescence = false;
+		senescence_ystd = false;
+		intercropseason = false;
+		bicdate = -1;
+		eicdate = -1;
+		growingdays = 0;
+		growingdays_y = 0;
+		lgp = 0;
 
-		for(int j=0;j<2;j++) {
-			sdate_harvest[j]=-1;
-			hdate_harvest[j]=-1;
-			sdate_thisyear[j]=-1;
+		for (int j = 0; j < 2; j++) {
+			sdate_harvest[j] = -1;
+			hdate_harvest[j] = -1;
+			sdate_thisyear[j] = -1;
 		}
 
-		vdsum_alloc=0.0;
+		vdsum_alloc = 0.0;
 		vd = 0.0;
-		f_alloc_root=0.0;
-		f_alloc_leaf=0.0;
-		f_alloc_horg=0.0;
-		f_alloc_stem=0.0;
+		f_alloc_root = 0.0;
+		f_alloc_leaf = 0.0;
+		f_alloc_horg = 0.0;
+		f_alloc_stem = 0.0;
 		dev_stage = 0.0;
 
 		fertilised[0] = false;
@@ -3110,25 +3118,25 @@ public:
 	double water_deficit_y;
 
 	/// Struct for crop-specific variables
-	cropphen_struct *cropphen;
+	cropphen_struct* cropphen;
 
 	// MEMBER FUNCTIONS:
 
 	/// Constructor: initialises id, pft and data members
-	Patchpft(int i,Pft& p):id(i),pft(p) {
+	Patchpft(int i, Pft& p) :id(i), pft(p) {
 
 		litter_leaf = 0.0;
 		litter_root = 0.0;
-		litter_sap   = 0.0;
+		litter_sap = 0.0;
 		litter_sap_year = 0.0;
 		litter_heart = 0.0;
 		litter_heart_year = 0.0;
 		litter_repr = 0.0;
 
-		nmass_litter_leaf  = 0.0;
-		nmass_litter_root  = 0.0;
-		nmass_litter_sap   = 0.0;
-		nmass_litter_sap_year   = 0.0;
+		nmass_litter_leaf = 0.0;
+		nmass_litter_root = 0.0;
+		nmass_litter_sap = 0.0;
+		nmass_litter_sap_year = 0.0;
 		nmass_litter_heart = 0.0;
 		nmass_litter_heart_year = 0.0;
 
@@ -3144,24 +3152,24 @@ public:
 		wscal_mean_est = 0.0;
 		nsapling = 0;
 
-		for(int i=0;i<NSOILLAYER;i++)
-			fwuptake[i]=0.0;
+		for (int i = 0; i < NSOILLAYER; i++)
+			fwuptake[i] = 0.0;
 
 		cropphen = NULL;
 		harvested_products_slow = 0.0;
 		harvested_products_slow_nmass = 0.0;
 
-		swindow[0]=-1;
-		swindow[1]=-1;
+		swindow[0] = -1;
+		swindow[1] = -1;
 
-		if(pft.landcover==CROPLAND)
+		if (pft.landcover == CROPLAND)
 		{
-			cropphen=new cropphen_struct;
+			cropphen = new cropphen_struct;
 		}
 	}
 
 	~Patchpft() {
-		if(cropphen) {
+		if (cropphen) {
 			delete cropphen;
 		}
 	}
@@ -3195,7 +3203,7 @@ public:
 	/// reference to parent Stand object
 	Stand& stand;
 	/// list array [0...npft-1] of Patchpft objects (initialised in constructor)
-	ListArray_idin1<Patchpft,Pft> pft;
+	ListArray_idin1<Patchpft, Pft> pft;
 	/// vegetation for this patch
 	Vegetation vegetation;
 	/// soil for this patch
@@ -3303,7 +3311,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	/// Constructor: initialises various members and builds list array of Patchpft objects.
-	Patch(int i,Stand& s,Soiltype& st);
+	Patch(int i, Stand& s, Soiltype& st);
 
 	void serialize(ArchiveStream& arch);
 
@@ -3327,26 +3335,26 @@ public:
 	double cflux();
 	/// Total patch nitrogen fluxes so far this year
 	double nflux();
-	
+
 	/// Get 5-year mean of wood C mass increase (periodic annual increment)
 	double get_cmass_wood_inc_5() {
 		double cmass_wood_inc_5_mean = 0.0;
-		for (unsigned int i=0; i<vegetation.nobj; i++) {
+		for (unsigned int i = 0; i < vegetation.nobj; i++) {
 
 			// Disregard shrubs (crownarea_max = 10)
 			Individual& indiv = vegetation[i];
-			if(indiv.pft.lifeform == TREE && indiv.pft.crownarea_max > 10) {
-				if(indiv.cmass_wood_inc_5.size())
+			if (indiv.pft.lifeform == TREE && indiv.pft.crownarea_max > 10) {
+				if (indiv.cmass_wood_inc_5.size())
 					cmass_wood_inc_5_mean += indiv.cmass_wood_inc_5.mean();
 			}
 		}
 		return cmass_wood_inc_5_mean;
 	}
-	
+
 	/// Get cmass_wood of all individuals in patch
 	double cmass_wood() {
 		double cmass_wood = 0.0;
-		for (unsigned int i=0; i<vegetation.nobj; i++) {
+		for (unsigned int i = 0; i < vegetation.nobj; i++) {
 
 			Individual& indiv = vegetation[i];
 			cmass_wood += indiv.cmass_wood();
@@ -3394,7 +3402,7 @@ public:
 	// MEMBER FUNCTIONS
 
 	/// Constructor: initialises various data members
-	Standpft(int i,Pft& p):id(i),pft(p) {
+	Standpft(int i, Pft& p) :id(i), pft(p) {
 
 		anetps_ff_max = 0.0;
 		active = !run_landcover;
@@ -3412,14 +3420,14 @@ public:
 /// The stand class corresponds to a modelled area of a specific landcover type in a grid cell.
 /** There may be several stands of the same landcover type (but with different settings).
  */
-class Stand : public ListArray_idin2<Patch,Stand,Soiltype>, public Serializable {
+class Stand : public ListArray_idin2<Patch, Stand, Soiltype>, public Serializable {
 
 public:
 
 	// MEMBER VARIABLES
 
 	/// list array [0...npft-1] of Standpft (initialised in constructor)
-	ListArray_idin1<Standpft,Pft> pft;
+	ListArray_idin1<Standpft, Pft> pft;
 
 	/// A number identifying this Stand within the grid cell
 	int id;
@@ -3465,7 +3473,7 @@ public:
 	/// Returns true if this stand is cloned from another stand
 	bool cloned;
 	/// pointer to array of fractions transferred from this stand to other stand types
-	double *transfer_area_st;
+	double* transfer_area_st;
 	/// land cover origin of this stand
 	landcovertype origin;
 	/// used for output from separate stands
@@ -3529,7 +3537,7 @@ public:
 
 	/// Returns true if stand is true crop stand, as opposed to pasture grass grown on cropland or other land cover
 	inline bool is_true_crop_stand() {
-		return landcover==CROPLAND && pft[pftid].pft.phenology==CROPGREEN;	// OK also for fallow (pftid always cropgreen)
+		return landcover == CROPLAND && pft[pftid].pft.phenology == CROPGREEN;	// OK also for fallow (pftid always cropgreen)
 	}
 	/// Moves crop rotation forward
 	void rotate();
@@ -3546,12 +3554,12 @@ public:
 	/// Total stand nitrogen fluxes so far this year
 	double nflux();
 
-    /// Creates a duplicate stand with a new landcovertype
-    /** The new stand is added to this stand's gridcell.
-     *
-     *  \returns reference to the new stand
-     */
-    Stand& clone(StandType& st, double fraction);
+	/// Creates a duplicate stand with a new landcovertype
+	/** The new stand is added to this stand's gridcell.
+	 *
+	 *  \returns reference to the new stand
+	 */
+	Stand& clone(StandType& st, double fraction);
 
 	void serialize(ArchiveStream& arch);
 
@@ -3664,35 +3672,35 @@ public:
 	/** \param i   The id for this object
 	 *  \param p   A reference to the Pft for this Gridcellpft
 	 */
-	Gridcellpft(int i,Pft& p):id(i),pft(p) {
+	Gridcellpft(int i, Pft& p) :id(i), pft(p) {
 		addtw = 0.0;
 		Km = 0.0;
 
-		autumnoccurred=false;
-		springoccurred=false;
-		vernstartoccurred=false;
-		vernendoccurred=false;
-		first_autumndate=-1;
-		first_autumndate20=-1;
-		last_springdate=-1;
-		last_springdate20=-1;
-		last_verndate=-1;
-		last_verndate20=-1;
-		for (int year=0;year<20;year++) {
-			first_autumndate_20[year]=-1;
-			last_springdate_20[year]=-1;
-			last_verndate_20[year]=-1;
+		autumnoccurred = false;
+		springoccurred = false;
+		vernstartoccurred = false;
+		vernendoccurred = false;
+		first_autumndate = -1;
+		first_autumndate20 = -1;
+		last_springdate = -1;
+		last_springdate20 = -1;
+		last_verndate = -1;
+		last_verndate20 = -1;
+		for (int year = 0; year < 20; year++) {
+			first_autumndate_20[year] = -1;
+			last_springdate_20[year] = -1;
+			last_verndate_20[year] = -1;
 		}
-		sdate_default=-1;
-		sdate_force=-1;
-		hdate_force=-1;
-		Nfert_read=-1;
-		sdatecalc_temp=-1;
-		sdatecalc_prec=-1;
-		hlimitdate_default=-1;
-		wintertype=false;
-		swindow[0]=-1;
-		swindow[1]=-1;
+		sdate_default = -1;
+		sdate_force = -1;
+		hdate_force = -1;
+		Nfert_read = -1;
+		sdatecalc_temp = -1;
+		sdatecalc_prec = -1;
+		hlimitdate_default = -1;
+		wintertype = false;
+		swindow[0] = -1;
+		swindow[1] = -1;
 		sowing_restriction = false;
 	}
 
@@ -3737,7 +3745,7 @@ public:
 	/** \param i   The id for this object
 	 *  \param s   A reference to the StandType for this Gridcellst
 	 */
-	Gridcellst(int i,StandType& s):id(i),st(s) {
+	Gridcellst(int i, StandType& s) :id(i), st(s) {
 		frac = 1.0;
 		frac_old = 0.0;
 		protected_frac = 0.0;
@@ -3831,20 +3839,20 @@ public:
 	/// climate, insolation and CO2 for this grid cell
 	Climate climate;
 
-    /// soil static parameters for this grid cell
+	/// soil static parameters for this grid cell
 	Soiltype soiltype;
 
 	/// landcover fractions and landcover-specific variables
 	Landcover landcover;
 
-	HRU *pHRU;
+	HRU* pHRU;
 	PtrArray< HRU > m_hruArray;
 
 	/// list array [0...npft-1] of Gridcellpft (initialised in constructor)
-	ListArray_idin1<Gridcellpft,Pft> pft;
+	ListArray_idin1<Gridcellpft, Pft> pft;
 
 	/// list array [0...nst-1] of Gridcellst (initialised in constructor)
-	ListArray_idin1<Gridcellst,StandType> st;
+	ListArray_idin1<Gridcellst, StandType> st;
 
 	/// object for keeping track of carbon and nitrogen balance
 	MassBalance balance;
