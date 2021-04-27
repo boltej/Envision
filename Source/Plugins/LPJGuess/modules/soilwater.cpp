@@ -50,7 +50,7 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	// OUTPUT PARAMETERS
 	// rain_melt = rainfall and snow melt today (mm)
 
-	const double TSNOW = 3.0;
+	const double TSNOW = 0.0;
 	// maximum temperature for precipitation as snow (deg C)
 	// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
 	const double SNOWPACK_MAX = 10000.0;
@@ -64,7 +64,8 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	// New snow melt formulation
 	// Dieter Gerten 021121
 	// Ref: Choudhury et al 1998
-		melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
+		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
+		melt = min((2.0 + 0.007 * prec) * (temp - TSNOW), snowpack);
 	}
 	snowpack -= melt;
 	rain_melt = prec + melt;
@@ -137,7 +138,8 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
 
-	const double SOILDEPTH_EVAP = 200.0;
+	//const double SOILDEPTH_EVAP = 200.0;
+	double SOILDEPTH_EVAP=patch.soil.soiltype.sd_upper;
 	// depth of sublayer at top of upper soil layer, from which evaporation is
 	// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 	const double BASEFLOW_FRAC = 0.95;
@@ -151,7 +153,8 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 //const double K_AET_DEPTH = (SOILDEPTH_UPPER / SOILDEPTH_EVAP - 1.0) *
 	//						(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
 
-	double K_AET_DEPTH = patch.soil.soiltype.k_aet_depth;
+	double K_AET_DEPTH = patch.soil.soiltype.k_aet_depth = (patch.soil.soiltype.sd_upper / SOILDEPTH_EVAP - 1.0) *
+		(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
 	// Weighting coefficient for AET flux from evaporation layer, assuming active
 	//   root density decreases with soil depth
 	// Equates to 1.3 given SOILDEPTH_EVAP=200 mm, SOILDEPTH_UPPER=500 mm,

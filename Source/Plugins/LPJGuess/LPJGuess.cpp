@@ -356,11 +356,14 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 			 if (found)
 				{
-				// add this gridcell to this HRU's grid cell array
-				m_hruGridCells[h]->Add(gridCellIndex);
-				hruGridCellCount++;
-				m_gridCellArray.Add(pGridcell);
-            //m_gridCellHRUArray.Add(pHRU);
+				 m_hruGridCells[h]->Add(gridCellIndex);
+				 hruGridCellCount++;
+				 m_gridCellArray.Add(pGridcell);
+				 //m_gridCellHRUArray.Add(pHRU);
+				 float depth = 1.0f;
+				 int col_sd = pFlowContext->pEnvContext->pMapLayer->GetFieldCol("SOILDEPTH");
+				 pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_sd, depth);
+				 soilparametersEnvision(pGridcell->soiltype, 2, depth);
 				}
 		   }
       gridCellIndex++;
