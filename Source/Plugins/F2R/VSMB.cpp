@@ -127,9 +127,6 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
    for (int i = 0; i < rows; i++)
       {
       SoilLayerParams *pParams = new SoilLayerParams;
-      float po= (paramData.GetAsFloat(colPorosity, i));
-      float wpp= (paramData.GetAsFloat(colPermWilt, i));
-      float wp=po/100*30;
       pParams->m_iduID = paramData.GetAsInt(colIduID, i);
       pParams->m_zoneThick = paramData.GetAsFloat(colZoneThick, i);               //  zone depth
       //pParams->m_AWHC = (((paramData.GetAsFloat(colPorosity, i)) - (paramData.GetAsFloat(colPermWilt, i))) / 100.0f)* pParams->m_zoneThick;//length
