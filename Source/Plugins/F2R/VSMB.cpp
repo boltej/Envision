@@ -132,31 +132,19 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
    for (int i = 0; i < rows; i++)
       {
       SoilLayerParams *pParams = new SoilLayerParams;
-
-      //pParams->m_iduID     = paramData.GetAsInt( colIduID,  i);
-      //pParams->m_zoneThick = paramData.GetAsFloat( colZoneThick, i );               //  zone depth
-      //pParams->m_sat       = (paramData.GetAsFloat( colPorosity , i )) / 100.0f;     //  zone saturation (ratio)
-     // pParams->m_DUL       = ((paramData.GetAsFloat( colFieldCap , i )) / 100.0f)* pParams->m_zoneThick;     //  drained upper limit (ratio)
-      //pParams->m_PLL       = (paramData.GetAsFloat( colPermWilt , i )) / 100.0f;     //  plant lower limit (ratio)
-      //pParams->m_permWilt = pParams->m_PLL * pParams->m_zoneThick;  //mm
-      //pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) * pParams->m_zoneThick;
-      //pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) / 100.0f ;  //  zone available water holding capacity (mm)
-      //Params->m_WF is calculated in determineInfiltrationAndRunoff() found below
       float po= (paramData.GetAsFloat(colPorosity, i));
       float wpp= (paramData.GetAsFloat(colPermWilt, i));
       float wp=po/100*30;
       pParams->m_iduID = paramData.GetAsInt(colIduID, i);
       pParams->m_zoneThick = paramData.GetAsFloat(colZoneThick, i);               //  zone depth
-      pParams->m_AWHC = (((paramData.GetAsFloat(colPorosity, i)) - (paramData.GetAsFloat(colPermWilt, i))) / 100.0f)* pParams->m_zoneThick;//length
+      //pParams->m_AWHC = (((paramData.GetAsFloat(colPorosity, i)) - (paramData.GetAsFloat(colPermWilt, i))) / 100.0f)* pParams->m_zoneThick;//length
       pParams->m_permWilt = ((paramData.GetAsFloat(colPermWilt, i)) / 100.0f)*pParams->m_zoneThick;//length
       pParams->m_sat = ((paramData.GetAsFloat(colPorosity, i)) / 100.0f) ;     //  zone saturation (ratio)
      // pParams->m_DUL = (pParams->m_AWHC + pParams->m_permWilt)/ pParams->m_zoneThick;     //  drained upper limit (ratio)
       pParams->m_DUL = ((paramData.GetAsFloat(colFieldCap, i)) / 100.0f) ;     //  drained upper limit (ratio)
      pParams->m_PLL = pParams->m_permWilt / pParams->m_zoneThick;     //  plant lower limit (ratio)
-      
+     pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) * pParams->m_zoneThick;
      
-
-
       // add to params list
       m_soilLayerParams.Add(pParams);
 
@@ -1045,11 +1033,11 @@ float SoilInfo::PopulateF2R()
 
    m_avSWC = waterDepth/totalDepth;
 
-   float totalAWC = 0;
+   float totalAWHC = 0;
    for (int i = 0; i < GetLayerCount(); i++)
-      totalAWC += m_soilLayerArray[i]->m_pLayerParams->m_AWHC;
+      totalAWHC += m_soilLayerArray[i]->m_pLayerParams->m_AWHC;
 
-   m_percentAWC = waterDepth/totalAWC*100.0f;
+   m_percentAWC = waterDepth/totalAWHC*100.0f;
 
    m_percentSat = m_avSWC*100;
 
