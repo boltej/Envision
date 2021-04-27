@@ -363,7 +363,12 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 				 float depth = 1.0f;
 				 int col_sd = pFlowContext->pEnvContext->pMapLayer->GetFieldCol("SOILDEPTH");
 				 pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_sd, depth);
-				 soilparametersEnvision(pGridcell->soiltype, 2, depth);
+
+				 int soil = 1.0f;
+				 int col_soil = pFlowContext->pEnvContext->pMapLayer->GetFieldCol("soil");
+				 pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_soil, soil);
+
+				 soilparametersEnvision(pGridcell->soiltype, soil, depth);
 				 gridCellIndex++;
 				}
 			 
