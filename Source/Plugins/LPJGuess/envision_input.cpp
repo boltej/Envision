@@ -437,7 +437,7 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 		gridcell.climate.instype = SWRAD_TS;
 
 		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype, soilcode);
+//		soilparameters(gridcell.soiltype, soilcode);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
