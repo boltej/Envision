@@ -122,11 +122,6 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
    int colPorosity  = paramData.GetCol("POROSITY"); // soil porosity (%)
    int colFieldCap  = paramData.GetCol("FIELDCAP"); // field capacity (%)
    int colPermWilt  = paramData.GetCol("WILTINGPT");     // wilting point (%)
-//   int colAWHC      = paramData.GetCol("AHWC");   // zone available water holding capacity (mm)
-//   int colDUL       = paramData.GetCol("DUL");    // Drained upper limit (ratio)
-//   int colPLL       = paramData.GetCol("PLL");    // lower limit of plant extractable soil water (ratio)
-//   int colSat       = paramData.GetCol("SAT");    // zone saturation (ratio)
-//   int colWF        = paramData.GetCol("WF");     // weighting factor ??? only used in determineInfiltrationAndRunoff() below
 
    // add layers
    for (int i = 0; i < rows; i++)
