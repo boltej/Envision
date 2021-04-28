@@ -153,7 +153,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 //const double K_AET_DEPTH = (SOILDEPTH_UPPER / SOILDEPTH_EVAP - 1.0) *
 	//						(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
 
-	double K_AET_DEPTH = patch.soil.soiltype.k_aet_depth = (patch.soil.soiltype.sd_upper / SOILDEPTH_EVAP - 1.0) *
+	double K_AET_DEPTH = (patch.soil.soiltype.sd_upper / SOILDEPTH_EVAP - 1.0) *
 		(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
 	// Weighting coefficient for AET flux from evaporation layer, assuming active
 	//   root density decreases with soil depth
