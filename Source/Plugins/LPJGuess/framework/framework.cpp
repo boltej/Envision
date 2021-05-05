@@ -258,7 +258,7 @@ int framework(FlowContext *pFlowContext, const char* input_module_name, const ch
 
 				// Check whether to abort
 				if (abort_request_received()) {
-					return 99;
+                   return 99;
 				}
 			}
 

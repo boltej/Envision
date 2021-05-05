@@ -35,6 +35,7 @@
 #include "config.h"
 #include "soilwater.h"
 
+
 void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
@@ -50,7 +51,9 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	// OUTPUT PARAMETERS
 	// rain_melt = rainfall and snow melt today (mm)
 
-	const double TSNOW = 0.0;
+	//const double TSNOW = 0.0;
+	double TSNOW = tt;
+	
 	// maximum temperature for precipitation as snow (deg C)
 	// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
 	const double SNOWPACK_MAX = 10000.0;
@@ -58,14 +61,14 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 
 	double melt;
 	if (temp < TSNOW) {						// snowing today
-		melt = -min(prec * 1.2f, SNOWPACK_MAX - snowpack);
+		melt = -min(prec * 1.0f, SNOWPACK_MAX - snowpack);
 	}
 	else {								// raining today
 	// New snow melt formulation
 	// Dieter Gerten 021121
 	// Ref: Choudhury et al 1998
 		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
-		melt = min((2.0 + 0.007 * prec) * (temp - TSNOW), snowpack);
+		melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
 	}
 	snowpack -= melt;
 	rain_melt = prec + melt;

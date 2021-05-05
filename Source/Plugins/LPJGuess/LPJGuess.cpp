@@ -362,11 +362,13 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 				 //m_gridCellHRUArray.Add(pHRU);
 				 float depth = 1.0f;
 				 int col_sd = pFlowContext->pEnvContext->pMapLayer->GetFieldCol("SOILDEPTH");
-				 pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_sd, depth);
+			     if (col_sd>-1)
+				    pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_sd, depth);
 
-				 int soil = 1.0f;
+				 int soil = 2;
 				 int col_soil = pFlowContext->pEnvContext->pMapLayer->GetFieldCol("soil");
-				 pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_soil, soil);
+				 if (col_soil > -1)
+				    pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_soil, soil);
 
 				 soilparametersEnvision(pGridcell->soiltype, soil, depth);
 				 gridCellIndex++;
@@ -456,17 +458,32 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 
 	int hruCount = pFlowContext->pFlowModel->GetHRUCount();
 
-	ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
+	//ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
+	ParamTable* pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");
+	int m_col_cfmax = pHBVTable->GetFieldCol("CFMAX");         // get the location of the parameter in the table   
+	int m_col_tt = pHBVTable->GetFieldCol("TT");
+	float CFMAX_, TT_ = 0.0f;
+	VData key;            // lookup key connecting rows in the csv files with IDU records
+	// Get Model Parameters
+	HRU* pHRU = pFlowContext->pFlowModel->GetHRU(0);
+	pFlowContext->pFlowModel->GetHRUData(pHRU, pHBVTable->m_iduCol, key, DAM_FIRST);  // get HRU key info for lookups
+	if (pHBVTable->m_type == DOT_FLOAT)
+		key.ChangeType(TYPE_FLOAT);
 
+	bool ok = pHBVTable->Lookup(key, m_col_cfmax, CFMAX_);
+	ok = pHBVTable->Lookup(key, m_col_tt, TT_);
+	cfmax = CFMAX_;
+	tt = TT_;
 	int doy = pFlowContext->dayOfYear;  // int( fmod( timeInRun, 364 ) );  // zero based day of year
 	int _month = 0; int _day; int _year;
-	BOOL ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
+	ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
 
 	// iterate through hrus/hrulayers 
 
 	for (int h = 0; h < hruCount; h++)
 	{
 		HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
+
 
 		int gridCellCount = m_hruGridCells[h]->GetSize();
 

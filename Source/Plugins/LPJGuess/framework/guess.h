@@ -141,7 +141,7 @@ const int NSOILLAYER = 2;
 
 // SOIL DEPTH VALUES
 
-/// soil upper layer depth (mm)
+/// soil /pper layer depth (mm)
 const double SOILDEPTH_UPPER = 500.0;
 /// soil lower layer depth (mm)
 const double SOILDEPTH_LOWER = 1000.0;
@@ -228,6 +228,8 @@ extern int nst_lc[NLANDCOVERTYPES];
 /// Number of management types in stlist
 extern int nmt;
 
+extern double cfmax; //cfmaxx
+extern double tt;
 /// General purpose object for handling simulation timing.
 /** In general, frameworks should use a single Date object for all simulation
  *  timing.

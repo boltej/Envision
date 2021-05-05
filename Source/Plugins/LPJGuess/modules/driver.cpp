@@ -198,7 +198,7 @@ void soilparametersEnvision(Soiltype& soiltype, int soilcode, float depth) {
 		{   0.935, 0.114,   0.2, 0.500,   0.4,	0.286,	0.482,	0.22,	0.58}     // 12	Clay
 	};
 
-	if (soilcode < 1 || soilcode>9)
+	if (soilcode < 1 || soilcode>12)
 		fail("soilparameters: invalid LPJ soil code (%d)", soilcode);
 
 

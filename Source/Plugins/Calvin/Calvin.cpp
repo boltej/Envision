@@ -106,7 +106,7 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    for (int i = 0; i < m_reservoirNameArray.GetSize(); i++)
       {
       FDataObj *pData = new FDataObj(4,0);
-
+	  pData->SetName(m_reservoirNameArray.GetAt(i));
       pData->SetLabel(0, _T("Time"));
       pData->SetLabel(1, _T("Inflow (m3/s)"));
       pData->SetLabel(2, _T("Storage (acre/feet)"));
@@ -132,7 +132,7 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 			}
       int numIn=offset->GetSize();
 		FDataObj* pData = new FDataObj(3+ numIn, 0);
-
+		pData->SetName(m_gwBasinArray.GetAt(i));
 		pData->SetLabel(0, _T("Time"));
 		//pData->SetLabel(1, _T("Inflow"));
 		pData->SetLabel(1, _T("Storage (acre/feet)"));
@@ -375,7 +375,7 @@ bool Calvin::InitPython()
 	// launch a python instance and run the model
 	wchar_t path[1024];
 
-	Py_SetProgramName(L"C:\\Users\\kelli\\anaconda3\\envs\\calvin35d\\python");  // argv[0]
+	Py_SetProgramName(L"C:\\Users\\vachek\\anaconda3\\envs\\calvin35d\\calvin35d\\python");  // argv[0]
 //	Py_SetProgramName(L"python");
 //	Py_SetPythonHome(L"Envision");
 //	Py_SetProgramName(L"Envision");  // argv[0]
@@ -411,7 +411,7 @@ sys.stdout = StdoutCatcher()");
 
 	CString code;
 	//code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
-	code.Format("sys.path.append('%s')", (LPCTSTR)"C:\\Users\\kelli\\anaconda3\\envs\\calvin35d\\Library\\bin");
+	code.Format("sys.path.append('%s')", (LPCTSTR)"C:\\Users\\vachek\\anaconda3\\envs\\calvin35d\\calvin35d\\Library\\bin");
 	int retVal = PyRun_SimpleString(code);
 	FILE* file = _Py_fopen("test.py", "r+");
 	int retVal23 = PyRun_SimpleFile(file, "test.py");
