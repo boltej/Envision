@@ -55,6 +55,8 @@ bool LPJGuess::Guess_Flow(FlowContext *pFlowContext, bool useInitialSeed)
 	if (pFlowContext->timing & GMT_INIT) // Init()
 		return LPJGuess::Init_Guess(pFlowContext, "envision", pFlowContext->initInfo);
 
+	if (pFlowContext->timing & GMT_INITRUN) // Init()
+		return LPJGuess::InitRun_Guess(pFlowContext, "envision", pFlowContext->initInfo);
 
 	if (pFlowContext->timing & GMT_CATCHMENT) // Init()
 		return LPJGuess::Run_Guess(pFlowContext, "envision", "\\LPJGuess\\inputs\\global_cru_new.ins");
@@ -218,6 +220,31 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 	return TRUE;
 }
 
+
+bool LPJGuess::InitRun_Guess(FlowContext* pFlowContext, const char* input_module_name, const char* instruction_file)
+	{
+	if (pFlowContext->pEnvContext->run > 0)
+	   {
+		for (int i = 0; i < m_gridCellArray.GetSize(); i++)
+		   {
+			Gridcell* pGridcell = m_gridCellArray.GetAt(i);
+			if (restart)
+			   {
+				auto_ptr<GuessDeserializer> deserializer;
+				deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+				// Get the whole grid cell from file...
+				CString msg;
+				msg.Format("Deserializing gridcell at (%g,%g) from disk \n", pGridcell->get_lon(), pGridcell->get_lat());
+				//Report::Log(msg);
+				deserializer->deserialize_gridcell(*pGridcell);
+				// ...and jump to the restart year
+				date.year = state_year;
+			   }
+		    }
+	    }
+	return true;
+	}
+
 bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
 	//need to pass name of *.ins file. {insfile="C:\\LPJ_GUESS\\input\\global_cru.ins" help=false parallel=false ...}	CommandLineArguments
@@ -372,74 +399,61 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 				 soilparametersEnvision(pGridcell->soiltype, soil, depth);
 				 gridCellIndex++;
-				}
-			 
-		   }
+
+				 if (save_state)
+				    {
+					 // Call input/output to obtain climate, insolation and CO2 for this
+					 // day of the simulation. Function getclimate returns false if last year
+					 // has already been simulated for this grid cell
+					 CString msg;
+					 msg.Format("\n");
+					 Report::Log(msg);
+					 dprintf("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
+					 cfmax = 1.5f;
+				     tt = 1.0f;
+					 while (m_input_module->getclimate(*pGridcell, pFlowContext)) {
+						 // START OF LOOP THROUGH SIMULATION DAYS
+						 simulate_day(*pGridcell, m_input_module);
+						 m_output_modules.outdaily(*pGridcell);
+						 if (date.islastday && date.islastmonth) {
+							 // LAST DAY OF YEAR
+							 // Call output module to output results for end of year
+							 // or end of simulation for this grid cell
+							 m_output_modules.outannual(*pGridcell);
+
+							 pGridcell->balance.check_year(*pGridcell);
+
+							 // Time to save state?
+							 if (date.year == state_year - 1 && save_state) {
+								 serializer->serialize_gridcell(*pGridcell);
+							 }
+
+							 // Check whether to abort
+							 if (abort_request_received()) {
+								 return 99;
+							 }
+						 }
+						 // Advance timer to next simulation day
+						 date.next();
+						 // End of loop through simulation days
+					   }	//while (getclimate())
+				     }
+
+				 if (restart) {
+					 // Get the whole grid cell from file...
+
+					 CString msg;
+					 msg.Format("Deserializing gridcell at (%g,%g) from disk \n", pGridcell->get_lon(), pGridcell->get_lat());
+					 Report::Log(msg);
+					 deserializer->deserialize_gridcell(*pGridcell);
+					 // ...and jump to the restart year
+					 date.year = state_year;
+
+				 }
+
+				 }			 
+		     }
      
-
-
-
-		if (restart) {
-			// Get the whole grid cell from file...
-			
-			CString msg;
-			msg.Format("Deserializing gridcell at (%g,%g) from disk \n", pGridcell->get_lon(), pGridcell->get_lat());
-			Report::Log(msg);
-			deserializer->deserialize_gridcell(*pGridcell);
-			// ...and jump to the restart year
-			date.year = state_year;
-
-		}
-
-		if (save_state)
-			{ 
-
-			// Call input/output to obtain climate, insolation and CO2 for this
-			// day of the simulation. Function getclimate returns false if last year
-			// has already been simulated for this grid cell
-			CString msg;
-			msg.Format("\n");
-			Report::Log(msg);
-			dprintf("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
-
-			while (m_input_module->getclimate(*pGridcell, pFlowContext)) {
-
-				// START OF LOOP THROUGH SIMULATION DAYS
-
-
-				simulate_day(*pGridcell, m_input_module);
-
-				m_output_modules.outdaily(*pGridcell);
-
-				if (date.islastday && date.islastmonth) {
-					// LAST DAY OF YEAR
-					// Call output module to output results for end of year
-					// or end of simulation for this grid cell
-					m_output_modules.outannual(*pGridcell);
-
-					pGridcell->balance.check_year(*pGridcell);
-
-					// Time to save state?
-					if (date.year == state_year - 1 && save_state) {
-						serializer->serialize_gridcell(*pGridcell);
-					}
-
-					// Check whether to abort
-					if (abort_request_received()) {
-						return 99;
-					}
-				}
-
-				// Advance timer to next simulation day
-				date.next();
-
-				// End of loop through simulation days
-			}	//while (getclimate())
-
-
-		}
-
-
 
 
 

@@ -2243,9 +2243,12 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
       int initYear = pEnvContext->currentYear + 1;//the value of pEnvContext lags the current year by 1????  see envmodel.cpp ln 3008 and 3050
       for (int i = 0; i < m_numberOfRuns; i++)
          {
+
          UpdateMonteCarloInput(pEnvContext, i);
          pEnvContext->run = i;
          pEnvContext->currentYear = initYear;
+         if (i > 0)
+             GlobalMethodManager::InitRun(&m_flowContext);
          //ResetStateVariables();
          for (int j = 0; j < m_numberOfYears; j++)
             {
