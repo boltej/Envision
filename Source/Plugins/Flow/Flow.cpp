@@ -3736,9 +3736,9 @@ bool FlowModel::StartYear(FlowContext *pFlowContext)
    CUIntArray nonIrrigArray;
    for ( int i=0; i < this->m_poolInfoArray.GetSize(); i++ )
       {
-      if ( this->m_poolInfoArray[ i ]->m_type = PT_SOIL )
+      if ( this->m_poolInfoArray[ i ]->m_type == PT_SOIL )
          nonIrrigArray.Add( i );
-      else if (this->m_poolInfoArray[i]->m_type = PT_IRRIGATED )
+      else if (this->m_poolInfoArray[i]->m_type == PT_IRRIGATED )
          irrigArray.Add( i );
       }
 
@@ -5097,12 +5097,14 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
          HRU *pHRU = pCatchment->GetHRU(j);
          for ( int k=0; k < this->m_poolInfoArray.GetSize(); k++ )
             {
-            if ( this->m_poolInfoArray[k]->m_type == PT_SNOW || this->m_poolInfoArray[k]->m_type == PT_MELT )
-               totalSnow += (float)pHRU->GetPool( k)->m_volumeWater; //get the current year snowpack
+            if ( this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/ )
+                if ((float)pHRU->GetPool(k)->m_volumeWater > 0.0f)
+                   totalSnow += (float)pHRU->GetPool( k)->m_volumeWater/1e6; //get the current year snowpack
             }
          }
       }
-
+   if (totalSnow < 0)
+       totalSnow = 0;
    // then compare the total volume to the previously defined maximum volume
    if (totalSnow > m_volumeMaxSWE)
       {
@@ -5117,7 +5119,7 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
          float volSnow = 0;
          for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
             {
-            if (this->m_poolInfoArray[k]->m_type == PT_SNOW || this->m_poolInfoArray[k]->m_type == PT_MELT)
+            if (this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/)
                volSnow += (float)pHRU->GetPool(k)->m_volumeWater; //get the current year snowpack
             }
 
@@ -5157,7 +5159,7 @@ void FlowModel::UpdateAprilDeltas(EnvContext *pEnvContext)
                float volSnow = 0;
                for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
                   {
-                  if (this->m_poolInfoArray[k]->m_type == PT_SNOW || this->m_poolInfoArray[k]->m_type == PT_MELT)
+                  if (this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/)
                      volSnow += (float) pHRU->GetPool( k)->m_volumeWater; //get the current year snowpack
                   }
 
@@ -9995,7 +9997,14 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
       GetHRUClimate(CDT_TMIN, pHRU, (int)currTime, pHRU->m_currentMinTemp);
       GetHRUClimate(CDT_TMAX, pHRU, (int)currTime, pHRU->m_currentMaxTemp);
       GetHRUClimate(CDT_SOLARRAD, pHRU, (int)currTime, pHRU->m_currentRadiation);
-      ASSERT(pHRU->m_currentMaxTemp > -100.0f);
+      //ASSERT(pHRU->m_currentMaxTemp > -100.0f);
+      if (pHRU->m_currentAirTemp < -100)
+      {
+          pHRU->m_currentAirTemp = 5;
+          pHRU->m_currentPrecip = 0;
+          pHRU->m_currentMinTemp = 5;
+          pHRU->m_currentMaxTemp = 5;
+      }
       pHRU->m_precip_yr += (float) (pHRU->m_currentPrecip*m_timeStep);         // mm
       pHRU->m_precip_wateryr += (float) (pHRU->m_currentPrecip*m_timeStep);         // mm
       pHRU->m_rainfall_yr += (float) (pHRU->m_currentRainfall*m_timeStep);       // mm

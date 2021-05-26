@@ -406,10 +406,10 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 					 // day of the simulation. Function getclimate returns false if last year
 					 // has already been simulated for this grid cell
 					 CString msg;
-					 msg.Format("\n");
+					 msg.Format("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
 					 Report::Log(msg);
-					 dprintf("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
-					 cfmax = 1.5f;
+					 //dprintf("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
+					 cfmax = 2.5f;
 				     tt = 1.0f;
 					 while (m_input_module->getclimate(*pGridcell, pFlowContext)) {
 						 // START OF LOOP THROUGH SIMULATION DAYS
