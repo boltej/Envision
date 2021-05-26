@@ -10015,17 +10015,17 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
 
       // hydrology
       pHRU->m_depthMelt = 0;
-  //    pHRU->m_depthSWE  = 0;
+     // pHRU->m_depthSWE  = 0;
       for ( int j=0; j < this->m_poolInfoArray.GetSize(); j++ )
          {
          switch(this->m_poolInfoArray[j]->m_type )
             {
             case PT_VEG:
-               pHRU->m_depthMelt += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
+           //    pHRU->m_depthMelt += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
                break;
 
             case PT_SNOW:
-  //             pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
+            //   pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
                break;
             }
          }

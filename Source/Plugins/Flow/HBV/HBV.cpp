@@ -351,6 +351,7 @@ float HBV::HBV_Basic(FlowContext *pFlowContext)
                pHRUPool->AddFluxFromGlobalHandler( snowing*pHRU->m_area/1000.0f,  FL_TOP_SOURCE );     //m3/d
                pHRUPool->AddFluxFromGlobalHandler( melting*pHRU->m_area/1000.0f,  FL_BOTTOM_SINK );     //m3/d
                pHRUPool->AddFluxFromGlobalHandler( refreezing*pHRU->m_area/1000.0f,  FL_BOTTOM_SOURCE );     //m3/d
+               pHRU->m_depthSWE = pHRUPool->m_wDepth / 1000;
                break;             
 
             case 1://Melt
