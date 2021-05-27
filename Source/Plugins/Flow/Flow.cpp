@@ -5211,10 +5211,12 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
       //#pragma omp parallel for  // firstprivate( pEnvContext )
       for (int h = 0; h < hruCount; h++)
          {
-         float airTemp = -999.0f;
+         float airTempMin = -999.0f; float airTempMax = 0.0f; float airTemp = 0.0f;
          float prec = 0.0f;
          HRU *pHRU = m_hruArray[h];
-         GetHRUClimate(CDT_TMEAN, pHRU, (int)currTime, airTemp);
+         GetHRUClimate(CDT_TMIN, pHRU, (int)currTime, airTempMin);
+         GetHRUClimate(CDT_TMAX, pHRU, (int)currTime, airTempMax);
+         airTemp = (airTempMin + airTempMax) / 2.0f;
          GetHRUClimate(CDT_PRECIP, pHRU, (int)currTime, prec);
          for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
             {

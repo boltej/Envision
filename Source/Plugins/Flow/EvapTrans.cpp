@@ -1064,11 +1064,11 @@ void EvapTrans::CalculateReferenceET(FlowContext *pFlowContext, HRU *pHRU, unsig
       case ETEquation::HARGREAVES_1985:
          {
          float tMean = 0.0f, tMin=0.0f, tMax = 0.0f, solarRad = 0.0f;
-         pFlowContext->pFlowModel->GetHRUClimate(CDT_TMEAN, pHRU, doy, tMean);
+         //pFlowContext->pFlowModel->GetHRUClimate(CDT_TMEAN, pHRU, doy, tMean);
          pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, doy, tMin);
          pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, doy, tMax);
         // pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, doy, solarRad);
-
+         tMean = (tMax + tMin) / 2;
          m_ETEq.SetDailyMinTemperature(tMin);                                  //
          m_ETEq.SetDailyMaxTemperature(tMax);                                  //from Climate data
          m_ETEq.SetDailyMeanTemperature(tMean);                                //from Climate data 
