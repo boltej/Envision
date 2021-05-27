@@ -330,7 +330,7 @@ float HBV::HBV_Basic(FlowContext *pFlowContext)
             meltToSoil = meltWater-(snow*0.1f);
 
          if (snow < melting)
-            melting = snow;// don't melt (transfer to the soil) any more than the water that is available in the 'Snow' and 'Melt' layers
+            melting = snow*0.1f;// don't melt (transfer to the soil) any more than the water that is available in the 'Snow' and 'Melt' layers
          }
 
       //Calculate the source/sink term for each HRUPool
@@ -351,7 +351,7 @@ float HBV::HBV_Basic(FlowContext *pFlowContext)
                pHRUPool->AddFluxFromGlobalHandler( snowing*pHRU->m_area/1000.0f,  FL_TOP_SOURCE );     //m3/d
                pHRUPool->AddFluxFromGlobalHandler( melting*pHRU->m_area/1000.0f,  FL_BOTTOM_SINK );     //m3/d
                pHRUPool->AddFluxFromGlobalHandler( refreezing*pHRU->m_area/1000.0f,  FL_BOTTOM_SOURCE );     //m3/d
-               pHRU->m_depthSWE = pHRUPool->m_wDepth / 1000;
+               pHRU->m_depthSWE = pHRUPool->m_wDepth;
                break;             
 
             case 1://Melt
