@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 #include <EnvExtension.h>
 #include <mtparser\mtparser.h>
 #include <PtrArray.h>
-
+#include <FMATRIX.HPP>
 #define _EXPORT __declspec( dllexport )
 
 class QueryEngine;
@@ -84,6 +84,52 @@ public:
 };
 
 
+class TTable
+   {
+   public:
+      CString m_name;
+      CString m_field;    // lookup field in IDU coverage for table index values
+      int m_col;          // lookup field in IDU coverage for table index values
+
+      //CStringArray names;
+      CMap<VData, VData&, int, int> m_index;   // key = column value, value=row
+      CArray<float, float> m_years;
+      FloatMatrix m_data;
+
+      TTable() : m_col(-1) {}
+
+      float Lookup(VData indexValue, int year) {
+         int row = -1;
+         BOOL ok = m_index.Lookup(indexValue, row);
+         int cols = (int)m_years.GetSize();
+
+         if (ok && row >= 0)
+            {
+            int col = 0; 
+
+            while (year > m_years[col] && col < cols)
+               col++;
+
+            if (col == 0)  // off on left side
+               return m_data.Get(row, 0);
+
+            if (col == m_years.GetSize())  // off on right side
+               return m_data.Get(row, cols - 1);
+
+            float dx = m_years[col] - m_years[col - 1];
+            float dy = m_data.Get(row, col) - m_data.Get(row, col - 1);
+            float x0 = m_years[col];
+            float y0 = m_data.Get(row, col);
+            float y = y0 + (year - x0) * dy / dx;
+            return y;
+            }
+         }
+
+      void SetYears(float* years, int count) { m_years.SetSize(count); for (int i = 0; i < count; i++) m_years[i] = years[i]; m_data.Resize(0, count); }
+      int AddRecord(VData indexValue, float* data) { int row = m_data.AppendRow(data, (int)m_years.GetSize()); m_index.SetAt(indexValue, row); return row; }
+   };
+
+
 
 // this corresponds to an <allocation> element in the target file
 
@@ -107,15 +153,12 @@ struct PREFERENCE
 
 
    ///
-   MTParser parser;
-   UINT parserVarCount;
-   PARSER_VAR *parserVars;  // array of parser variable
+   //MTParser parser;
+   //UINT parserVarCount;
+   //PARSER_VAR *parserVars;  // array of parser variable
 
-   ///
-
-   //PREFERENCE() : pTarget(NULL), pQuery( NULL ), value( 1.0f ), target( -1 ), currentValue( 0 ) { }
-   PREFERENCE( LPCTSTR _name, Target *_pTarget, LPCTSTR query, float _value ) : name( _name ),
-      pTarget(_pTarget), queryStr( query ), pQuery( NULL ), value( _value ), currentValue( 0 ), target( -1 ) { }
+   PREFERENCE(LPCTSTR _name, Target* _pTarget, LPCTSTR query, float _value) : name(_name),
+      pTarget(_pTarget), queryStr(query), pQuery(NULL), value(_value), currentValue(0), target(-1) {}
 
    // the following are for estimating parameters (value)
    float currentValue;  // this has units of #
@@ -172,11 +215,12 @@ class PreferenceArray : public PtrArray< PREFERENCE >
 class AllocationSet : public PtrArray< ALLOCATION >
    {
    public:
-      AllocationSet() : m_id( -1 ) { }
+      AllocationSet() : m_id( -1 ), m_refCount(0) { }
 
       int     m_id;
       CString m_name;
       CString m_description;
+      int m_refCount;
 
       PreferenceArray m_preferences;
 
@@ -184,7 +228,21 @@ class AllocationSet : public PtrArray< ALLOCATION >
       PREFERENCE *AddPreference( LPCTSTR name, Target*, LPCTSTR queryStr, float value );
    };
 
-class AllocationSetArray : public PtrArray< AllocationSet > { };
+
+
+class AllocationSetArray : public CArray< AllocationSet*,AllocationSet* > 
+   {
+   public:
+      ~AllocationSetArray() {
+         for (int i = 0; i < GetSize(); i++) {
+            AllocationSet* pSet = GetAt(i);
+            if (pSet->m_refCount == 1)
+               delete pSet;
+            else
+               pSet->m_refCount--;
+            }
+         }
+   };
 
 
 class TargetReport
@@ -309,7 +367,7 @@ public:
  
 protected:
    void PopulateCapacity( EnvContext *pContext, bool useAddDelta );
-   float GetCurrentTargetValue( EnvContext *pEnvContext );
+   float GetCurrentTargetValue( EnvContext *pEnvContext, int idu );
    float GetCurrentActualValue( EnvContext *pEnvContext );
 
 public:
@@ -384,9 +442,16 @@ protected:
    float   m_totalPercentAvailable;         // (avail/total) - decimal percent
 
 public:
+   int GetTargetCount() { return (int)m_targetArray.GetSize(); }
+   Target* GetTarget(int i) { return m_targetArray[i]; }
+
    // globally defined constants
    CArray< Constant*, Constant* > m_constArray;
    Constant *AddConstant(LPCTSTR name, LPCTSTR expr);
+
+   PtrArray < TTable > m_tableArray;
+   TTable* AddTable(LPCTSTR name) { TTable* pTable = new TTable; m_tableArray.Add(pTable); return pTable; }
+
 };
 
 

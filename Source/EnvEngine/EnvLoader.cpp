@@ -352,6 +352,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
          int data = 1;
          int records = -1;
          int labelSize = 0;
+         int linesize = 0;
          int expandLegend = 0;
          LPTSTR color = _T("140,140,140");    // lt gray
          LPTSTR labelColor = _T("255,255,255");     // white
@@ -364,7 +365,8 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
             { _T("path"),            TYPE_STRING,   &path,             true,   0 },
             { _T("initField"),       TYPE_STRING,   &initField,        false,  0 },
             { _T("overlayFields"),   TYPE_STRING,   &overlayFields,    false,  0 },
-            { _T("color"),           TYPE_STRING,   &color,            false,   0 },
+            { _T("color"),           TYPE_STRING,   &color,            false,  0 },
+            { _T("size"),            TYPE_INT,      &linesize,         false,  0 },
             { _T("fieldInfoFile"),   TYPE_STRING,   &fieldInfoFile,    false,  0 },
             { _T("labelField"),      TYPE_STRING,   &labelField,       false,  0 },
             { _T("labelFont"),       TYPE_STRING,   &labelFont,        false,  0 },
@@ -375,6 +377,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
             { _T("records"),         TYPE_INT,      &records,          false,  0 },
             { _T("includeData"),     TYPE_INT,      &data,             false,  0 },  // deprecated. ignored
             { _T("expandLegend"),    TYPE_INT,      &expandLegend,     false,  0 },
+
             { NULL,                  TYPE_NULL,     NULL,              false,  0 } };
 		 
 		
@@ -404,6 +407,9 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
             Report::ErrorMsg( msg );
             return -4;
             }
+
+         if (linesize > 0)
+            m_pMap->GetLayer(layerIndex)->m_lineWidth = linesize;
 
          // if IDU, add path for shape file to the PathManager
          if ( layerIndex == 0 )

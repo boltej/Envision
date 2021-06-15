@@ -1746,7 +1746,6 @@ bool QueryEngine::RemoveQuery( Query *pQuery )
       if ( m_queryArray[ i ] == pQuery )
          {
          m_queryArray.RemoveAt( i );
-         pQuery = NULL;
          return true;
          }
       }
