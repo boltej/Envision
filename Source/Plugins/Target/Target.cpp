@@ -331,6 +331,9 @@ bool Target::InitRun( EnvContext *pEnvContext )
    {
    m_pQueryEngine = pEnvContext->pQueryEngine;
 
+   //if ( this->m_method == )
+   //this->LoadTableValues();
+
    // allocate internal arrays if needed and not already allocated
    if ( m_preferenceArray.size() == 0 )
       {
@@ -694,6 +697,39 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    }  // end of : PopulateCapacity()
 
 
+void Target::LoadTableValues()
+   {
+   CStringArray ti;
+   int count = ::Tokenize(this->m_targetValues, ".", ti);
+
+   if (count != 2)
+      {
+      Report::WarningMsg("Bad table value");
+      return;
+      }
+
+   TTable* pTable = this->m_pProcess->GetTTable(ti[0]);
+   if (pTable == NULL)
+      {
+      CString msg("Target: Couldn't find table ");
+      msg += ti[0];      
+      Report::WarningMsg(msg);
+      return;
+      }
+
+   this->m_pTargetData->ClearRows();
+
+   float pair[2];
+   for (int i = 0; i < pTable->GetYearCount(); i++)
+      {
+      pair[0] = pTable->GetYear(i);
+      pair[1] = pTable->Lookup(ti[1], pTable->GetYear(i));
+      this->m_pTargetData->AppendRow(pair, 2);
+      }
+   }
+
+
+
 bool Target::Run( EnvContext *pEnvContext )
    {
    // Basic idea:
@@ -897,6 +933,7 @@ float Target::GetCurrentTargetValue( EnvContext *pEnvContext, int idu )
          break;
 
       case TM_TIMESERIES:
+      case TM_TABLE:
          ASSERT( m_pTargetData != NULL );
          actualProjTarget =  m_pTargetData->IGet((float) pEnvContext->currentYear, 0, 1, IM_LINEAR);
          break;
@@ -905,9 +942,6 @@ float Target::GetCurrentTargetValue( EnvContext *pEnvContext, int idu )
          ASSERT( m_pTargetData != NULL );
          actualProjTarget =  m_pTargetData->IGet((float) pEnvContext->currentYear, 0, 1, IM_CONSTANT_RATE);
          break;
-
-      //case TM_TABLE:
-      //   pEnvContext->pMapLayer->GetData(idu, pTable)
 
       default:
          ASSERT( 0 );
@@ -944,7 +978,6 @@ float Target::GetCurrentActualValue( EnvContext *pEnvContext )
       curActualValue += targetValue;
       }
 
-
    float _curActualValue = 0;     // actual target is the current popDens * area = # of target
    for (MapLayer::Iterator _idu = pLayer->Begin(); _idu < pLayer->End(); _idu++)
       {
@@ -958,8 +991,6 @@ float Target::GetCurrentActualValue( EnvContext *pEnvContext )
 
       _curActualValue += targetValue;
       }
-
-
 
    return curActualValue;
    }
@@ -1221,7 +1252,6 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
    while (pXmlTable != NULL)
       {
       LPCTSTR name = pXmlTable->Attribute(_T("name"));
-      LPCTSTR field = pXmlTable->Attribute(_T("col"));
       LPCTSTR years = pXmlTable->Attribute(_T("years"));
 
       if (name == NULL || years== NULL)
@@ -1233,35 +1263,37 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          }
 
       TTable* pTable = this->AddTable(name);
-      pTable->m_field = field;
-      pTable->m_col = pEnvContext->pMapLayer->GetFieldCol(field);
+      //pTable->m_field = field;
+      //pTable->m_col = pEnvContext->pMapLayer->GetFieldCol(field);
 
       CStringArray tokens;
       int count = ::Tokenize(years, ",", tokens);
 
-      float* values = new float[count];
+      int* _years= new int[count];
       for (int i = 0; i < count; i++)
-         values[i] = atof(tokens[i]);
-      pTable->SetYears(values, count);
+         _years[i] = atoi(tokens[i]);
+      pTable->SetYears(_years, count);
+      delete[] _years;
+
+      float* values = new float[count];
 
       // get individual records
       TiXmlElement* pXmlRecord = pXmlTable->FirstChildElement(_T("record"));
       while (pXmlRecord != NULL)
          {
          LPCTSTR name = pXmlRecord->Attribute(_T("name"));
-         LPCTSTR indexValue= pXmlRecord->Attribute(_T("value"));
+         LPCTSTR value= pXmlRecord->Attribute(_T("value"));
          LPCTSTR data = pXmlRecord->Attribute(_T("data"));
 
          // parse data
          int count = ::Tokenize(data, ",", tokens);
-         int index = atoi(tokens[0]);
-         for (int i = 0; i < count-1; i++)
-            values[i] = atof(tokens[i+1]);
+         //int index = atoi(tokens[0]);
+         for (int i = 0; i < count; i++)
+            values[i] = atof(tokens[i]);
 
-         VData _indexValue;
-         _indexValue.Parse(indexValue);
-
-         pTable->AddRecord(_indexValue, values);
+         //VData _name(name);  // TYPE_DSTRING
+         pTable->AddRecord(name, atoi(value), values);
+         pXmlRecord = pXmlRecord->NextSiblingElement(_T("record"));
          }
 
       delete[] values;
@@ -1387,6 +1419,8 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          pTarget->m_method = TM_TIMESERIES_CONSTANT_RATE;
       else if ( lstrcmpi( method, _T("timeseries") ) == 0 )
          pTarget->m_method = TM_TIMESERIES;
+      else if (lstrcmpi(method, _T("table")) == 0)
+         pTarget->m_method = TM_TABLE;
       else
          {
          CString msg;
@@ -1395,11 +1429,11 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          pTarget->m_method = TM_UNDEFINED;
          }
 
-      switch( pTarget->m_method )
+      switch (pTarget->m_method)
          {
          case TM_RATE_LINEAR:
          case TM_RATE_EXP:
-            pXmlTarget->Attribute( _T("value"), &(pTarget->m_rate) );
+            pXmlTarget->Attribute(_T("value"), &(pTarget->m_rate));
             break;
 
          case TM_TIMESERIES:
@@ -1407,29 +1441,43 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
             {
             pTarget->m_targetValues = value;
 
-            ASSERT( pTarget->m_pTargetData == NULL );
-            pTarget->m_pTargetData = new FDataObj( 2, 0, U_YEARS );
+            ASSERT(pTarget->m_pTargetData == NULL);
+            pTarget->m_pTargetData = new FDataObj(2, 0, U_YEARS);
 
-            TCHAR *targetValues = new TCHAR[ lstrlen( value ) + 2 ];
-            lstrcpy( targetValues, value );
+            TCHAR* targetValues = new TCHAR[lstrlen(value) + 2];
+            lstrcpy(targetValues, value);
 
-            TCHAR *nextToken = NULL;
-            LPTSTR token = _tcstok_s( targetValues, _T(",() ;\r\n"), &nextToken );
+            TCHAR* nextToken = NULL;
+            LPTSTR token = _tcstok_s(targetValues, _T(",() ;\r\n"), &nextToken);
 
             float pair[2];
-            while ( token != NULL )
+            while (token != NULL)
                {
-               pair[0] = (float) atof( token );
-               token   = _tcstok_s( NULL, _T(",() ;\r\n"), &nextToken );
-               pair[1] = (float) atof( token );
-               token   = _tcstok_s( NULL, _T(",() ;\r\n"), &nextToken );
-   
-               pTarget->m_pTargetData->AppendRow( pair, 2 );
+               pair[0] = (float)atof(token);
+               token = _tcstok_s(NULL, _T(",() ;\r\n"), &nextToken);
+               pair[1] = (float)atof(token);
+               token = _tcstok_s(NULL, _T(",() ;\r\n"), &nextToken);
+
+               pTarget->m_pTargetData->AppendRow(pair, 2);
                }
 
-            delete [] targetValues;
+            delete[] targetValues;
 
-            pTarget->m_targetData_year0 = pTarget->m_pTargetData->GetAsFloat(1,0);
+            pTarget->m_targetData_year0 = pTarget->m_pTargetData->GetAsFloat(1, 0);
+            ASSERT(pTarget->m_targetData_year0 >= 0);
+            }
+            break;
+
+         case TM_TABLE:
+            {
+            pTarget->m_targetValues = value;
+
+            ASSERT(pTarget->m_pTargetData == NULL);
+            pTarget->m_pTargetData = new FDataObj(2, 0, U_YEARS);
+
+            pTarget->LoadTableValues();
+         
+            pTarget->m_targetData_year0 = pTarget->m_pTargetData->GetAsFloat(1, 0);
             ASSERT(pTarget->m_targetData_year0 >= 0);
             }
             break;
@@ -1526,6 +1574,8 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          //   }
 
          AllocationSet* pAllocationSet = NULL;
+         // is a reference to another allocation defined?
+         // then just set a reference to it
          if (ref != NULL)
             {
             CStringArray tokens;
@@ -1804,6 +1854,10 @@ bool TargetProcess::SaveXml( LPCTSTR filename, MapLayer *pLayer )
          case TM_TIMESERIES:
             pMethod = _T( "timeSeries");
             break;
+
+         case TM_TABLE:
+            pMethod = _T("table");
+            break;
          }  // end of: switch( pTarget->m_method )
             
       TCHAR *col         = pTarget->m_colTarget >= 0           ? pLayer->GetFieldLabel( pTarget->m_colTarget ) : "" ;
@@ -1910,7 +1964,7 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
       
    // set up exposed variables
 
-   // only one input variable - allocation set to use
+   // only one input variable - allocation set to use (NOTE THIS IS GLOBAL TO ALL TARGETS)
    CString description( _T("Identifier for the allocation scenario to use.  Valid values are: " ) );
    Target *pTarget = m_targetArray[ 0 ];
    for ( int i=0; i < pTarget->m_allocationSetArray.GetSize(); i++ )
@@ -1935,6 +1989,9 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
 
    AddInputVar( _T("Allocation Scenario"), pTarget->m_activeAllocSetID, description );
    AddInputVar( _T("Growth Rate"), pTarget->m_rate, _T("Growth Rate (decimal percent/year)" ) );
+
+   for (int i = 0; i < this->m_tableArray.GetSize(); i++)
+      AddInputVar(this->m_tableArray[i]->m_name, this->m_tableArray[i]->m_value, _T("Table Lookup Value"));
 
    // global outputs
    AddOutputVar( "Target", m_totalTargetValue, _T("") );

@@ -69,7 +69,8 @@ enum TARGET_METHOD
    TM_RATE_LINEAR =  0,
    TM_RATE_EXP    =  1,
    TM_TIMESERIES  =  2,   // not currently implemented
-   TM_TIMESERIES_CONSTANT_RATE=3
+   TM_TIMESERIES_CONSTANT_RATE=3,
+   TM_TABLE = 4
    };
 #define TM_TIMESERIES_LINEAR TM_TIMESERIES
 
@@ -83,29 +84,47 @@ public:
    Constant( ) : m_value( 0 ) {} 
 };
 
+#include <map>
 
 class TTable
    {
+   struct TTIndex{
+      CString name;
+      int value;
+
+      TTIndex(LPCTSTR _name, int _value) : name(_name), value(_value) {}
+
+       bool operator==(const TTIndex& o) const {
+           return (name.Compare(o.name) == 0) && (value == o.value);
+       }
+
+       bool operator<(const TTIndex& o)  const {
+          if (name.Compare(o.name) < 0)
+             return true;
+          else if (name.Compare(o.name) == 0)
+             return value < o.value;
+          else
+             return false;
+          }
+      };
+
    public:
       CString m_name;
-      CString m_field;    // lookup field in IDU coverage for table index values
-      int m_col;          // lookup field in IDU coverage for table index values
+      int m_value;                  // this is an exposed input variable
 
-      //CStringArray names;
-      CMap<VData, VData&, int, int> m_index;   // key = column value, value=row
-      CArray<float, float> m_years;
-      FloatMatrix m_data;
+      std::map<TTIndex, int> m_index;  // value=row in table
+      CArray<int,int> m_years;         // x-data
+      FloatMatrix m_data;              // y-data
 
-      TTable() : m_col(-1) {}
+      TTable() : m_value(0) {}
 
-      float Lookup(VData indexValue, int year) {
-         int row = -1;
-         BOOL ok = m_index.Lookup(indexValue, row);
-         int cols = (int)m_years.GetSize();
+      float Lookup(CString name, int year) {
+         auto it = m_index.find(TTIndex(name, m_value));
+         if (it != m_index.end()) {
+            int row = it->second;
+            int cols = (int)m_years.GetSize();
 
-         if (ok && row >= 0)
-            {
-            int col = 0; 
+            int col = 0;
 
             while (year > m_years[col] && col < cols)
                col++;
@@ -116,17 +135,24 @@ class TTable
             if (col == m_years.GetSize())  // off on right side
                return m_data.Get(row, cols - 1);
 
-            float dx = m_years[col] - m_years[col - 1];
+            float dx = float(m_years[col] - m_years[col - 1]);
             float dy = m_data.Get(row, col) - m_data.Get(row, col - 1);
-            float x0 = m_years[col];
+            float x0 = (float) m_years[col];
             float y0 = m_data.Get(row, col);
             float y = y0 + (year - x0) * dy / dx;
             return y;
             }
+         return 0; 
          }
 
-      void SetYears(float* years, int count) { m_years.SetSize(count); for (int i = 0; i < count; i++) m_years[i] = years[i]; m_data.Resize(0, count); }
-      int AddRecord(VData indexValue, float* data) { int row = m_data.AppendRow(data, (int)m_years.GetSize()); m_index.SetAt(indexValue, row); return row; }
+      void SetYears(int* years, int count) { m_years.SetSize(count); for (int i = 0; i < count; i++) m_years[i] = years[i]; m_data.Resize(0, count); }
+      int GetYearCount() { return (int) m_years.GetSize(); }
+      int GetYear(int i) { return m_years[i]; }
+      int AddRecord(LPCTSTR name, int value, float* data) {
+         int row = m_data.AppendRow(data, (int)m_years.GetSize()); 
+         m_index[TTIndex(name, value)] = row;
+         return row; 
+         }
    };
 
 
@@ -353,6 +379,7 @@ public:
 
    AllocationSet *GetActiveAllocationSet() { return GetAllocationSetFromID( m_activeAllocSetID ); }
    AllocationSet *GetAllocationSetFromID( int id, int *index=NULL );
+   void LoadTableValues();
 
 public:
    AllocationSetArray m_allocationSetArray; // array of allocation pointers
@@ -415,7 +442,7 @@ protected:
 protected:
    PtrArray< Target > m_targetArray;
    int m_colArea;
-
+   //int m_activeTargetID;
    bool m_initialized;
 
    // Notes on naming conventions
@@ -450,8 +477,16 @@ public:
    Constant *AddConstant(LPCTSTR name, LPCTSTR expr);
 
    PtrArray < TTable > m_tableArray;
-   TTable* AddTable(LPCTSTR name) { TTable* pTable = new TTable; m_tableArray.Add(pTable); return pTable; }
+   TTable* AddTable(LPCTSTR name) { TTable* pTable = new TTable; m_tableArray.Add(pTable); pTable->m_name = name; return pTable; }
 
+   TTable* GetTTable(LPCTSTR name) {
+      for (int i = 0; i < m_tableArray.GetSize(); i++)
+         {
+         if (m_tableArray[i]->m_name.CompareNoCase(name) == 0)
+            return m_tableArray[i];
+         }
+      return NULL;
+      }
 };
 
 
