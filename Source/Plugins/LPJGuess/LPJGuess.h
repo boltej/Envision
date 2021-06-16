@@ -56,6 +56,7 @@ public:
 	bool Guess_Standalone(FlowContext *pFlowContext, LPCTSTR initStr);
 	bool Guess_Flow(FlowContext *pFlowContext, bool useInitialSeed);
 	bool Init_Guess(FlowContext *pFlowContext,  const char* input_module_name, const char* instruction_file);
+	bool InitRun_Guess(FlowContext* pFlowContext, const char* input_module_name, const char* instruction_file);
 	bool Init_Guess_Complete(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file);
 	bool Run_Guess(FlowContext *pFlowContext,  const char* input_module_name, const char* instruction_file);
 	bool Run_Guess_Complete(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file);

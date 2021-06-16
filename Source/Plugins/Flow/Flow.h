@@ -586,7 +586,7 @@ public:
    float m_currentGroundLoss;
    float m_meltRate;
    float m_contributionToReach;    // m3/day
-
+   int m_climateIndex;
    CArray< HRU*, HRU* > m_hruArray;     // (memory managed in FlowModel::m_hruArray)
 
 
@@ -1383,6 +1383,8 @@ public:
 
 // boolean that Initial Conditions file is successfully read
    bool m_isReadStateOK;
+
+   int m_provenClimateIndex;
 
 // layer structures
    Map *m_pMap;

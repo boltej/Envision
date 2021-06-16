@@ -35,6 +35,7 @@
 #include "config.h"
 #include "soilwater.h"
 
+
 void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
@@ -50,20 +51,24 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	// OUTPUT PARAMETERS
 	// rain_melt = rainfall and snow melt today (mm)
 
-	const double TSNOW = 3.0;
-		// maximum temperature for precipitation as snow (deg C)
-		// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
+	//const double TSNOW = 0.0;
+	double TSNOW = tt;
+	
+	// maximum temperature for precipitation as snow (deg C)
+	// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
 	const double SNOWPACK_MAX = 10000.0;
-		// maximum size of snowpack (mm) (S. Sitch, pers. comm. 2001-11-28)
+	// maximum size of snowpack (mm) (S. Sitch, pers. comm. 2001-11-28)
 
 	double melt;
 	if (temp < TSNOW) {						// snowing today
-		melt = -min(prec*1.2f, SNOWPACK_MAX-snowpack);
-	} else {								// raining today
-		// New snow melt formulation
-		// Dieter Gerten 021121
-		// Ref: Choudhury et al 1998
-		melt = min((1.5+0.007*prec)*(temp-TSNOW), snowpack);
+		melt = -min(prec * 1.0f, SNOWPACK_MAX - snowpack);
+	}
+	else {								// raining today
+	// New snow melt formulation
+	// Dieter Gerten 021121
+	// Ref: Choudhury et al 1998
+		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
+		melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
 	}
 	snowpack -= melt;
 	rain_melt = prec + melt;
@@ -75,7 +80,7 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
  *  fertilization goes to the soil available mineral nitrogen pool.
  */
 void snow_ninput(double prec, double snowpack_after, double rain_melt,
-	           double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
+	double dndep, double dnfert, double& snowpack_nmass, double& ninput) {
 
 	// calculates this day melt and original snowpack size
 	double melt = max(0.0, rain_melt - prec);
@@ -87,10 +92,10 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 		// if some snow is melted, fraction of nitrogen in snowpack
 		// will go to soil available nitrogen pool
 		if (melt > 0.0) {
-			double frac_melt  = melt / snowpack;
+			double frac_melt = melt / snowpack;
 			double melt_nmass = frac_melt * snowpack_nmass;
-			ninput            = melt_nmass + dndep + dnfert;
-			snowpack_nmass   -= melt_nmass;
+			ninput = melt_nmass + dndep + dnfert;
+			snowpack_nmass -= melt_nmass;
 		}
 		// if no snow is melted, then add daily nitrogen deposition
 		// and fertilization to snowpack nitrogen pool
@@ -105,9 +110,9 @@ void snow_ninput(double prec, double snowpack_after, double rain_melt,
 }
 
 void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double perc_base,
-		double perc_exp, double awc[NSOILLAYER], double fevap, double snowpack,
-		bool percolate, double max_rain_melt, double awcont[NSOILLAYER],
-		double wcont[NSOILLAYER], double& wcont_evap, double& runoff, double& dperc) {
+	double perc_exp, double awc[NSOILLAYER], double fevap, double snowpack,
+	bool percolate, double max_rain_melt, double awcont[NSOILLAYER],
+	double wcont[NSOILLAYER], double& wcont_evap, double& runoff, double& dperc) {
 
 	// Daily update of water content for each soil layer given snow melt, rainfall,
 	// evapotranspiration from vegetation (AET) and percolation between layers;
@@ -136,23 +141,28 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// OUTPUT PARAMETER
 	// runoff     = total daily runoff from all soil layers (mm/day)
 
-	const double SOILDEPTH_EVAP = 200.0;
-		// depth of sublayer at top of upper soil layer, from which evaporation is
-		// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
+	//const double SOILDEPTH_EVAP = 200.0;
+	double SOILDEPTH_EVAP=patch.soil.soiltype.sd_upper;
+	// depth of sublayer at top of upper soil layer, from which evaporation is
+	// possible (NB: must not exceed value of global constant SOILDEPTH_UPPER)
 	const double BASEFLOW_FRAC = 0.95;
-		// Fraction of standard percolation amount from lower soil layer that is
-		// diverted to baseflow runoff
-	const double K_DEPTH = 0.4;
+	// Fraction of standard percolation amount from lower soil layer that is
+	// diverted to baseflow runoff
+	double K_DEPTH = patch.soil.soiltype.depth_;
 	const double K_AET = 0.52;
-		// Fraction of total (vegetation) AET from upper soil layer that is derived
-		// from the top K_DEPTH (fraction) of the upper soil layer
-		// (parameters for calculating K_AET_DEPTH below)
-	const double K_AET_DEPTH = (SOILDEPTH_UPPER / SOILDEPTH_EVAP - 1.0) *
-								(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
-		// Weighting coefficient for AET flux from evaporation layer, assuming active
-		//   root density decreases with soil depth
-		// Equates to 1.3 given SOILDEPTH_EVAP=200 mm, SOILDEPTH_UPPER=500 mm,
-		//   K_DEPTH=0.4, K_AET=0.52
+	// Fraction of total (vegetation) AET from upper soil layer that is derived
+	// from the top K_DEPTH (fraction) of the upper soil layer
+	// (parameters for calculating K_AET_DEPTH below)
+//const double K_AET_DEPTH = (SOILDEPTH_UPPER / SOILDEPTH_EVAP - 1.0) *
+	//						(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
+
+	double K_AET_DEPTH = (patch.soil.soiltype.sd_upper / SOILDEPTH_EVAP - 1.0) *
+		(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
+	// Weighting coefficient for AET flux from evaporation layer, assuming active
+	//   root density decreases with soil depth
+	// Equates to 1.3 given SOILDEPTH_EVAP=200 mm, SOILDEPTH_UPPER=500 mm,
+	//   K_DEPTH=0.4, K_AET=0.52
+	double SOILDEPTH_UPPER = patch.soil.soiltype.sd_upper;
 
 	int s;
 
@@ -176,18 +186,18 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	double perc_frac;
 
 
-	for (s=0; s<NSOILLAYER; s++) {
+	for (s = 0; s < NSOILLAYER; s++) {
 		aet_layer[s] = 0.0;
 	}
 	double aet_total = 0.0;
 
 	// Sum AET for across all vegetation individuals
-	Vegetation& vegetation=patch.vegetation;
+	Vegetation& vegetation = patch.vegetation;
 	vegetation.firstobj();
 	while (vegetation.isobj) {
 		Individual& indiv = vegetation.getobj();
 
-		for (s=0; s<NSOILLAYER; s++) {
+		for (s = 0; s < NSOILLAYER; s++) {
 			aet = patch.pft[indiv.pft.id].fwuptake[s] * indiv.aet;
 			aet_layer[s] += aet;
 			aet_total += aet;
@@ -217,14 +227,14 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// Surface runoff
 	double runoff_surf = 0.0;
 	if (wcont[0] > 1.0) {
-		runoff_surf = (wcont[0]-1.0) * awc[0];
+		runoff_surf = (wcont[0] - 1.0) * awc[0];
 		wcont[0] = 1.0;
 	}
 
 	// Update water content in evaporation layer for tomorrow
 
-	wcont_evap += (rain_melt-aet_layer[0]*SOILDEPTH_EVAP*K_AET_DEPTH/SOILDEPTH_UPPER-evap)
-		/awc[0];
+	wcont_evap += (rain_melt - aet_layer[0] * SOILDEPTH_EVAP * K_AET_DEPTH / SOILDEPTH_UPPER - evap)
+		/ awc[0];
 
 	if (wcont_evap < 0) {
 		wcont_evap = 0;
@@ -237,10 +247,10 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// Percolation from evaporation layer
 	double perc = 0.0;
 	if (percolate) {
-		perc = min(SOILDEPTH_EVAP/SOILDEPTH_UPPER*perc_base*pow(wcont_evap,perc_exp),
-													max_rain_melt);
+		perc = min(SOILDEPTH_EVAP / SOILDEPTH_UPPER * perc_base * pow(wcont_evap, perc_exp),
+			max_rain_melt);
 	}
-	wcont_evap -= perc/awc[0];
+	wcont_evap -= perc / awc[0];
 
 	// Percolation and fluxes to and from lower soil layer(s)
 
@@ -250,22 +260,23 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	double runoff_drain = 0.0;
 
-	for (s=1; s<NSOILLAYER; s++) {
+	for (s = 1; s < NSOILLAYER; s++) {
 
 		// Percolation
 		// Allow only on days with rain or snowmelt (Dieter Gerten, 021216)
 
 		if (percolate) {
-			perc = min(perc_base*pow(wcont[s-1],perc_exp), max_rain_melt);
-		} else {
-			perc=0.0;
+			perc = min(perc_base * pow(wcont[s - 1], perc_exp), max_rain_melt);
 		}
-		perc_frac = min(perc/awc[s-1], wcont[s-1]);
+		else {
+			perc = 0.0;
+		}
+		perc_frac = min(perc / awc[s - 1], wcont[s - 1]);
 
-		wcont[s-1] -= perc_frac;
-		wcont[s] += perc_frac * awc[s-1] / awc[s];
+		wcont[s - 1] -= perc_frac;
+		wcont[s] += perc_frac * awc[s - 1] / awc[s];
 		if (wcont[s] > 1.0) {
-			runoff_drain += (wcont[s]-1.0)*awc[s];
+			runoff_drain += (wcont[s] - 1.0) * awc[s];
 			wcont[s] = 1.0;
 		}
 
@@ -281,7 +292,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	// Baseflow runoff (Dieter Gerten 021216) (rain or snowmelt days only)
 	double runoff_baseflow = 0.0;
 	if (percolate) {
-		double perc_baseflow=BASEFLOW_FRAC*perc_base*pow(wcont[NSOILLAYER-1],perc_exp);
+		double perc_baseflow = BASEFLOW_FRAC * perc_base * pow(wcont[NSOILLAYER - 1], perc_exp);
 		// guess2008 - Added "&& rain_melt >= runoff_surf" to guarantee nonnegative baseflow.
 		if (perc_baseflow > rain_melt - runoff_surf && rain_melt >= runoff_surf) {
 			perc_baseflow = rain_melt - runoff_surf;
@@ -289,9 +300,9 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 		// Deduct from water content of bottom soil layer
 
-		perc_frac = min(perc_baseflow/awc[NSOILLAYER-1], wcont[NSOILLAYER-1]);
-		wcont[NSOILLAYER-1] -= perc_frac;
-		runoff_baseflow = perc_frac * awc[NSOILLAYER-1];
+		perc_frac = min(perc_baseflow / awc[NSOILLAYER - 1], wcont[NSOILLAYER - 1]);
+		wcont[NSOILLAYER - 1] -= perc_frac;
+		runoff_baseflow = perc_frac * awc[NSOILLAYER - 1];
 	}
 
 	// save percolation from system (needed in leaching())
@@ -299,22 +310,23 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	runoff = runoff_surf + runoff_drain + runoff_baseflow;
 	Gridcell& gridcell = patch.stand.get_gridcell();
-	
+
 	int si = gridcell.m_hruArray.GetSize();
-//	for (int k = 0; k < gridcell.m_hruArray.GetSize(); k++)
-//	   {
-	
-	//	HRU *pHRU = gridcell.m_hruArray[k];
-	    HRU *pHRU = gridcell.pHRU;
-		HRUPool *pHRUPool = pHRU->GetPool(0);
-		pHRUPool->AddFluxFromGlobalHandler(runoff*pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d
-		//pHRUPool->AddFluxFromGlobalHandler((aet_layer[0]+evap) *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
-		//HRUPool *pHRUPool2 = pHRU->GetPool(1);
-		//pHRUPool2->AddFluxFromGlobalHandler(aet_layer[1] *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
-		//pHRU->m_currentET = aet_total+evap;
-		pHRU->m_currentET = aet_total + evap;
-		pHRU->m_currentRunoff = runoff_surf;
-		pHRU->m_swc = wcont[0];
+	//	for (int k = 0; k < gridcell.m_hruArray.GetSize(); k++)
+	//	   {
+
+		//	HRU *pHRU = gridcell.m_hruArray[k];
+	HRU* pHRU = gridcell.pHRU;
+	HRUPool* pHRUPool = pHRU->GetPool(0);
+	pHRUPool->AddFluxFromGlobalHandler(runoff * pHRU->m_area / 1000.0f, FL_TOP_SOURCE);     //m3/d
+	//pHRUPool->AddFluxFromGlobalHandler((aet_layer[0]+evap) *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
+	//HRUPool *pHRUPool2 = pHRU->GetPool(1);
+	//pHRUPool2->AddFluxFromGlobalHandler(aet_layer[1] *pHRU->m_area / 1000.0f , FL_TOP_SINK);     //m3/d
+	//pHRU->m_currentET = aet_total+evap;
+	pHRU->m_currentET = aet_total + evap;
+	pHRU->m_currentRunoff = runoff_surf;
+	pHRU->m_swc = wcont[0];
+	pHRU->m_currentGWRecharge = wcont[1];
 	//	Reach * pReach = pHRUPool->GetReach();
 	//	if (pReach)
 	//		pReach->AddFluxFromGlobalHandler(((runoff_surf) / 1000.0f*pHRU->m_area)); //m3/d
@@ -332,7 +344,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 
 	// guess2008 - DLE - update awcont
 	// Original algorithm by Thomas Hickler
-	for (s=0; s<NSOILLAYER; s++) {
+	for (s = 0; s < NSOILLAYER; s++) {
 
 		// Reset the awcont array on the first day of every year
 		if (date.day == 0) {
@@ -345,7 +357,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 		// If it's warm enough for growth, update awcont with this day's wcont
 		if (climate.temp > 5.0) {
 			awcont[s] += wcont[s];
-			if (s==0) {
+			if (s == 0) {
 				patch.growingseasondays++;
 			}
 		}
@@ -381,7 +393,8 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 		if (soil.wcont[0] > 1) {
 			soil.rain_melt = (soil.wcont[0] - 1) * soil.soiltype.awc[0];
 			soil.wcont[0] = 1;
-		} else {
+		}
+		else {
 			soil.rain_melt = 0;
 		}
 
@@ -389,7 +402,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 	}
 	Gridcell& gridcell = patch.stand.get_gridcell();
 	//HRU* pHRU = gridcell.m_hruArray[0];
-	HRU *pHRU = gridcell.pHRU;
+	HRU* pHRU = gridcell.pHRU;
 	pHRU->m_depthSWE = soil.snowpack;
 
 }
@@ -453,9 +466,9 @@ void soilwater(Patch& patch, Climate& climate) {
 	Soil& soil = patch.soil;
 
 	hydrology_lpjf(patch, climate, soil.rain_melt, soil.soiltype.perc_base,
-			soil.soiltype.perc_exp, soil.soiltype.awc, max(1.0-fpc_phen_total,0.0),
-			soil.snowpack, soil.percolate, soil.max_rain_melt, soil.awcont, soil.wcont,
-			soil.wcont_evap, soil.runoff, soil.dperc);
+		soil.soiltype.perc_exp, soil.soiltype.awc, max(1.0 - fpc_phen_total, 0.0),
+		soil.snowpack, soil.percolate, soil.max_rain_melt, soil.awcont, soil.wcont,
+		soil.wcont_evap, soil.runoff, soil.dperc);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////

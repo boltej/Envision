@@ -1536,22 +1536,15 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    theProcess->AddOutputVar("Avg Field Size (ha) by LULC_B and Region", m_pFldSizeLRData, "");
 
    theProcess->AddOutputVar( "Daily Farm Model Data", m_pDailyData, "" );   
-   //int counter=0;
-   //for (int i=0;i<VSMBModel::m_pOutputObjArray.GetSize();i++)
-   //   {
-   //   CString outName;
-   //   if (fmod((float)i,2.0f)==0.0)
-   //      {
-   //      outName.Format("VSMB_IDU_%i",m_trackIDUArray[i]);
-   //      counter++;
-   //      }
-   //   else
-   //      outName.Format("VSMB_SM_IDU_%i", m_trackIDUArray[i-counter]);
 
-      int counter = 0;
-      for (int i = 0; i < m_trackIDUArray.GetSize(); i++)
+
+   int counter = 0;
+   for (int i = 0; i < m_trackIDUArray.GetSize(); i++)//list of idus to track.  Assumes the list includes idus that represent fields with growing crops.  If not, the dataobjs will be blank.
+      {
+      CString outName;
+      int numObjs= VSMBModel::m_pOutputObjArray.GetSize();
+      if (numObjs>=counter)//if there is a dataobj
          {
-         CString outName;
          outName.Format("VSMB_IDU_%i", m_trackIDUArray[i]);
          theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
          counter++;
@@ -1559,6 +1552,8 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
          theProcess->AddOutputVar(outName, VSMBModel::m_pOutputObjArray.GetAt(counter), "");
          counter++;
          }
+         
+      }
 
 
    theProcess->AddOutputVar("Crop Event Data", m_pCropEventData, "");
@@ -1959,6 +1954,7 @@ bool FarmModel::GrowCrops(EnvContext* pContext, bool useAddDelta)
                
                // TODO: Verify VSMB
                // Update the current IDU's soil moisture status
+               // vsmb runs only for idus in fields, that are in farms, and that have a growing crop
                if ( m_useVSMB && pCrop)
                   { 
                   int dayOfSimulation=((pContext->currentYear-pContext->startYear)*365)+doy;

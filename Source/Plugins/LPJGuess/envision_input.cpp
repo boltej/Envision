@@ -149,7 +149,7 @@ void ENVInput::init() {
 	if (save_state)
 	{
 		CString msg;
-		msg.Format("Simulation is set with spinup time of %i years.  It will generate the 500 years of climate from the CRU data and will save the system state for later.",nyear_spinup);
+		msg.Format("Simulation is set with spinup time of %i years.  It will generate the %i years of climate from the CRU data and will save the system state for later.",nyear_spinup,nyear_spinup);
 		Report::Log(msg);
 
 		msg.Format("After completion, rerun Envision without restart=1 to start from saved state and run forward using Envision climate data.");
@@ -437,7 +437,7 @@ bool ENVInput::getgridcell(Gridcell& gridcell) {
 		gridcell.climate.instype = SWRAD_TS;
 
 		// Tell framework the soil type of this grid cell
-		soilparameters(gridcell.soiltype, soilcode);
+//		soilparameters(gridcell.soiltype, soilcode);
 
 		// For Windows shell - clear graphical output
 		// (ignored on other platforms)
@@ -578,11 +578,11 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 							+ date.year) / (double)(gridlist.nobj * (nyear_spinup + NYEAR_HIST));
 
 						tprogress.setprogress(progress);
-						//CString msg;
-						//msg.Format(_T(" %3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),tprogress.elapsed.str, tprogress.remaining.str));
-						//Report::Log(msg);
-						dprintf("%3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),
-						   tprogress.elapsed.str, tprogress.remaining.str);
+						CString msg;
+						msg.Format(_T(" %3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),tprogress.elapsed.str, tprogress.remaining.str));
+						Report::Log(msg);
+						//dprintf("%3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),
+						  // tprogress.elapsed.str, tprogress.remaining.str);
 						tmute.settimer(MUTESEC);
 					}
 

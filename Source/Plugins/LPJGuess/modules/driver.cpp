@@ -69,9 +69,9 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 	// soil = patch soil
 
 	const double PERC_EXP = 2.0;
-		// exponent in percolation equation [k2; LPJF]
-		// (Eqn 31, Haxeltine & Prentice 1996)
-		// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
+	// exponent in percolation equation [k2; LPJF]
+	// (Eqn 31, Haxeltine & Prentice 1996)
+	// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
 
 	double data[9][9] = {
 
@@ -104,32 +104,33 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 		{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.10,	0.80}     // 9	Vertisols (values not know for wp)
 	};
 
-	if (soilcode<1 || soilcode>9)
-		fail("soilparameters: invalid LPJ soil code (%d)",soilcode);
+	if (soilcode < 1 || soilcode>9)
+		fail("soilparameters: invalid LPJ soil code (%d)", soilcode);
 
 
 	if (textured_soil) {
-		soiltype.sand_frac = data[soilcode-1][7];
-		soiltype.clay_frac = data[soilcode-1][8];
-	} else {
+		soiltype.sand_frac = data[soilcode - 1][7];
+		soiltype.clay_frac = data[soilcode - 1][8];
+	}
+	else {
 		// Using fixed values from Parton et al. (2010)
 		soiltype.sand_frac = 0.28;
 		soiltype.clay_frac = 0.12;
 	}
 
 	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
-	soiltype.perc_base = data[soilcode-1][0];
+	soiltype.perc_base = data[soilcode - 1][0];
 	soiltype.perc_exp = PERC_EXP;
-	soiltype.awc[0] = SOILDEPTH_UPPER * data[soilcode-1][1];
-	soiltype.awc[1] = SOILDEPTH_LOWER * data[soilcode-1][1];
-	soiltype.thermdiff_0 = data[soilcode-1][2];
-	soiltype.thermdiff_15 = data[soilcode-1][3];
-	soiltype.thermdiff_100 = data[soilcode-1][4];
-	soiltype.wp[0] = SOILDEPTH_UPPER * data[soilcode-1][5];
-	soiltype.wp[1] = SOILDEPTH_LOWER * data[soilcode-1][5];
-	soiltype.wsats[0] = SOILDEPTH_UPPER * data[soilcode-1][6];
-	soiltype.wsats[1] = SOILDEPTH_LOWER * data[soilcode-1][6];
-	soiltype.wtot = (data[soilcode-1][1] + data[soilcode-1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
+	soiltype.awc[0] = SOILDEPTH_UPPER * data[soilcode - 1][1];
+	soiltype.awc[1] = SOILDEPTH_LOWER * data[soilcode - 1][1];
+	soiltype.thermdiff_0 = data[soilcode - 1][2];
+	soiltype.thermdiff_15 = data[soilcode - 1][3];
+	soiltype.thermdiff_100 = data[soilcode - 1][4];
+	soiltype.wp[0] = SOILDEPTH_UPPER * data[soilcode - 1][5];
+	soiltype.wp[1] = SOILDEPTH_LOWER * data[soilcode - 1][5];
+	soiltype.wsats[0] = SOILDEPTH_UPPER * data[soilcode - 1][6];
+	soiltype.wsats[1] = SOILDEPTH_LOWER * data[soilcode - 1][6];
+	soiltype.wtot = (data[soilcode - 1][1] + data[soilcode - 1][5]) * (SOILDEPTH_UPPER + SOILDEPTH_LOWER);
 
 	if (!ifcentury) {
 		// override the default SOM years with 70-80% of the spin-up period
@@ -137,6 +138,113 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
 	}
 }
 
+void soilparametersEnvision(Soiltype& soiltype, int soilcode, float depth) {
+
+	// DESCRIPTION
+	// Derivation of soil physical parameters given LPJ soil code
+
+	// INPUT AND OUTPUT PARAMETER
+	// soil = patch soil
+
+	const double PERC_EXP = 4.0;
+	// exponent in percolation equation [k2; LPJF]
+	// (Eqn 31, Haxeltine & Prentice 1996)
+	// Changed from 4 to 2 (Sitch, Thonicke, pers comm 26/11/01)
+
+	double data[12][9] = {
+
+		//    0  empirical parameter in percolation equation (k1) (mm/day)
+		//    1  volumetric water holding capacity at field capacity minus vol water
+		//       holding capacity at wilting point (Hmax), as fraction of soil layer
+		//       depth
+		//    2  thermal diffusivity (mm2/s) at wilting point (0% WHC)
+		//    3  thermal diffusivity (mm2/s) at 15% WHC
+		//    4  thermal diffusivity at field capacity (100% WHC)
+		//       Thermal diffusivities follow van Duin (1963),
+		//       Jury et al (1991), Fig 5.11.
+		//    5  wilting point as fraction of depth (calculation method described in
+		//       Prentice et al 1992)
+		//    6  saturation capacity following Cosby (1984)
+		//    7  sand fraction
+		//    8  clay fraction
+
+		//    0      1      2      3      4      5      6       7       8         soilcode
+		//  ------------------------------------------------------------------
+
+		//{   5.0, 0.110,   0.2, 0.800,   0.4,	0.074,	0.395,	0.90,	0.05},    // 1	Coarse
+		//{   4.0, 0.150,   0.2, 0.650,   0.4,	0.184,	0.439,	0.35,	0.15},    // 2	Medium
+		//{   3.0, 0.120,   0.2, 0.500,   0.4,	0.274,	0.454,	0.30,	0.45},    // 3	Fine
+		//{   4.5, 0.130,   0.2, 0.725,   0.4,	0.129,	0.417,	0.60,	0.15},    // 4	Medium-coarse
+		//{   4.0, 0.115,   0.2, 0.650,   0.4,	0.174,	0.425,	0.60,	0.30},    // 5	Fine-coarse
+		//{   3.5, 0.135,   0.2, 0.575,   0.4,	0.229,	0.447,	0.20,	0.30},    // 6	Fine-medium
+		//{   4.0, 0.127,   0.2, 0.650,   0.4,	0.177,	0.430,	0.45,	0.25},    // 7	Fine-medium-coarse
+		//{   9.0, 0.300,   0.1, 0.100,   0.1,	0.200,	0.600,	0.28,	0.12},    // 8	Organic (values not know for wp), sand and clay are from Parton 2010
+		//{   0.2, 0.100,   0.2, 0.500,   0.4,	0.100,	0.250,	0.10,	0.80}     // 9	Vertisols (values not know for wp)
+		{   7.036, 0.128,   0.2, 0.800,   0.4,	0.070,	0.395,	0.92,	0.03},    // 1	Sand
+		{   4.767, 0.149,   0.2, 0.770,   0.4,	0.075,	0.441,	0.82,	0.06},    // 2	Loamy Sand
+		{   2.495, 0.136,   0.2, 0.740,   0.4,	0.114,	0.435,	0.58,	0.10},    // 3	Sandy Loam
+		//{   1.960, 0.138,   0.2, 0.653,   0.4,	0.179,	0.485,	0.17,	0.13},    // 4	Silt Loam
+		{   1.960, 0.228,   0.2, 0.653,   0.4, 0.139,	0.485,	0.17,	0.13},    // 4	Silt Loam (the best_et right now)
+		{   1.988, 0.133,   0.2, 0.625,   0.4,	0.203,	0.519,	0.10,	0.05},    // 5	Silt
+		{   1.932, 0.143,   0.2, 0.680,   0.4,	0.155,	0.451,	0.43,	0.18},    // 6	Loam
+		//{   1.960, 0.328,   0.2, 0.653,   0.4,	0.139,	0.485,	0.17,	0.13},    // 4	Silt Loam
+		//{   1.988, 0.333,   0.2, 0.625,   0.4,	0.203,	0.519,	0.10,	0.05},    // 5	Silt
+		//{   1.932, 0.343,   0.2, 0.680,   0.4,	0.155,	0.451,	0.43,	0.18},    // 6	Loam
+		{   1.917, 0.128,   0.2, 0.650,   0.4,	0.175,	0.420,	0.58,	0.27},    // 7	Sandy Clay Loam
+		{   0.692, 0.139,   0.2, 0.620,   0.4,	0.218,	0.477,	0.10,	0.34},    // 8	Silty Clay Loam
+		{   0.920, 0.113,   0.2, 0.590,   0.4,	0.250,	0.476,	0.32,	0.34},    // 9	Clay Loam
+		{   1.095, 0.124,   0.2, 0.560,   0.4,	0.219,	0.426,	0.52,	0.42},    // 10	Sandy Clay
+		{   1.054, 0.126,   0.2, 0.530,   0.4,	0.283,	0.492,	0.06,	0.47},    // 11	Silty Clay
+		{   0.935, 0.114,   0.2, 0.500,   0.4,	0.286,	0.482,	0.22,	0.58}     // 12	Clay
+	};
+
+	if (soilcode < 1 || soilcode>12)
+		fail("soilparameters: invalid LPJ soil code (%d)", soilcode);
+
+
+	if (textured_soil) {
+		soiltype.sand_frac = data[soilcode - 1][7];
+		soiltype.clay_frac = data[soilcode - 1][8];
+	}
+	else {
+		// Using fixed values from Parton et al. (2010)
+		soiltype.sand_frac = 0.28;
+		soiltype.clay_frac = 0.12;
+	}
+	float sd_upper = depth / 3 * 5 * 10;//multiply by 10 to convert from centimeters to millimeters
+	float sd_lower = depth / 3 * 2 * 5 * 10;
+
+	soiltype.silt_frac = 1 - soiltype.sand_frac - soiltype.clay_frac;
+	soiltype.perc_base = data[soilcode - 1][0];
+	soiltype.perc_exp = PERC_EXP;
+	soiltype.awc[0] = sd_upper * data[soilcode - 1][1];
+	soiltype.awc[1] = sd_lower * data[soilcode - 1][1];
+	soiltype.thermdiff_0 = data[soilcode - 1][2];
+	soiltype.thermdiff_15 = data[soilcode - 1][3];
+	soiltype.thermdiff_100 = data[soilcode - 1][4];
+	soiltype.wp[0] = sd_upper * data[soilcode - 1][5];
+	soiltype.wp[1] = sd_lower * data[soilcode - 1][5];
+	soiltype.wsats[0] = sd_upper * data[soilcode - 1][6];
+	soiltype.wsats[1] = sd_lower * data[soilcode - 1][6];
+	soiltype.wtot = (data[soilcode - 1][1] + data[soilcode - 1][5]) * (sd_upper + sd_lower);
+	soiltype.sd_lower = sd_lower;
+	soiltype.sd_upper = sd_upper;
+	soiltype.depth_ = sd_upper * 0.0005;
+	double K_DEPTH = 0.4;
+	double K_AET = 0.52;
+	const double SOILDEPTH_EVAP = 200.0;
+	// Fraction of total (vegetation) AET from upper soil layer that is derived
+	// from the top K_DEPTH (fraction) of the upper soil layer
+	// (parameters for calculating K_AET_DEPTH below)
+	soiltype.k_aet_depth = (sd_upper / SOILDEPTH_EVAP - 1.0) *
+		(K_AET / K_DEPTH - 1.0) / (1.0 / K_DEPTH - 1.0) + 1.0;
+
+
+	if (!ifcentury) {
+		// override the default SOM years with 70-80% of the spin-up period
+		soiltype.updateSolveSOMvalues(nyear_spinup);
+	}
+}
 
 /// Generates quasi-daily values for a single month, based on monthly means
 /**
@@ -159,12 +267,12 @@ void soilparameters(Soiltype& soiltype, int soilcode) {
  *
  */
 void interp_single_month(double preceding_mean,
-                         double this_mean,
-                         double succeeding_mean,
-                         int time_steps,
-                         double* result,
-                         double minimum = -std::numeric_limits<double>::max(),
-                         double maximum = std::numeric_limits<double>::max()) {
+	double this_mean,
+	double succeeding_mean,
+	int time_steps,
+	double* result,
+	double minimum = -std::numeric_limits<double>::max(),
+	double maximum = std::numeric_limits<double>::max()) {
 
 	// The values for the beginning and the end of the month are determined
 	// from the average of the two adjacent monthly means
@@ -179,26 +287,26 @@ void interp_single_month(double preceding_mean,
 	// determined as monthly mean + 2 degrees, so that the monthly mean is
 	// conserved.
 	const double average_deviation =
-		mean(first_value-this_mean, last_value-this_mean);
+		mean(first_value - this_mean, last_value - this_mean);
 
-	const double middle_value = this_mean-average_deviation;
-	const double half_time = time_steps/2.0;
+	const double middle_value = this_mean - average_deviation;
+	const double half_time = time_steps / 2.0;
 
-	const double first_slope = (middle_value-first_value)/half_time;
-	const double second_slope = (last_value-middle_value)/half_time;
+	const double first_slope = (middle_value - first_value) / half_time;
+	const double second_slope = (last_value - middle_value) / half_time;
 
 	double sum = 0;
 	int i = 0;
 
 	// Interpolate the first half
-	for (; i < time_steps/2; ++i) {
-		double current_time = i+0.5; // middle of day i
-		result[i] = first_value + first_slope*current_time;
+	for (; i < time_steps / 2; ++i) {
+		double current_time = i + 0.5; // middle of day i
+		result[i] = first_value + first_slope * current_time;
 		sum += result[i];
 	}
 
 	// Special case for dealing with the middle day if time_steps is odd
-	if (time_steps%2 == 1) {
+	if (time_steps % 2 == 1) {
 		// In this case we can't use the value corresponding to the middle
 		// of the day. We'll simply skip it and calculate it based on
 		// whatever the other days sum up to.
@@ -207,15 +315,15 @@ void interp_single_month(double preceding_mean,
 
 	// Interpolate the other half
 	for (; i < time_steps; ++i) {
-		double current_time = i+0.5; // middle of day i
-		result[i] = middle_value + second_slope*(current_time-half_time);
+		double current_time = i + 0.5; // middle of day i
+		result[i] = middle_value + second_slope * (current_time - half_time);
 		sum += result[i];
 	}
 
-	if (time_steps%2 == 1) {
+	if (time_steps % 2 == 1) {
 		// Go back and set the middle value to whatever is needed to
 		// conserve the mean
-		result[time_steps/2] = time_steps*this_mean-sum;
+		result[time_steps / 2] = time_steps * this_mean - sum;
 	}
 
 	// Go through all values and make sure they're all above the minimum
@@ -280,7 +388,7 @@ void interp_single_month(double preceding_mean,
  *  \param dvals The generated daily values
  */
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
-                                   double minimum, double maximum) {
+	double minimum, double maximum) {
 
 	Date date;
 	int start_of_month = 0;
@@ -288,20 +396,20 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals,
 	for (int m = 0; m < 12; m++) {
 
 		// Index of previous and next month, with wrap-around
-		int next = (m+1)%12;
-		int prev = (m+11)%12;
+		int next = (m + 1) % 12;
+		int prev = (m + 11) % 12;
 
 		// If a monthly mean value is outside of the allowed limits for daily
 		// values (for instance negative radiation), we'll fail to make sure
 		// the user knows the forcing data is broken.
 		if (mvals[m] < minimum || mvals[m] > maximum) {
 			fail("interp_monthly_means_conserve: Invalid monthly value given (%g), min = %g, max = %g",
-				  mvals[m], minimum, maximum);
+				mvals[m], minimum, maximum);
 		}
 
 		interp_single_month(mvals[prev], mvals[m], mvals[next],
-		                    date.ndaymonth[m], dvals+start_of_month,
-		                    minimum, maximum);
+			date.ndaymonth[m], dvals + start_of_month,
+			minimum, maximum);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -319,13 +427,13 @@ void interp_monthly_means_conserve(const double* mvals, double* dvals,
  *  \param dvals The generated daily values
  */
 void interp_monthly_totals_conserve(const double* mvals, double* dvals,
-                                    double minimum, double maximum) {
+	double minimum, double maximum) {
 	// Local date object just used to get number of days for each month
 	Date date;
 
 	// Convert monthly totals to mean daily values
 	double mvals_daily[12];
-	for (int m=0; m<12; m++)
+	for (int m = 0; m < 12; m++)
 		mvals_daily[m] = mvals[m] / (double)date.ndaymonth[m];
 
 	interp_monthly_means_conserve(mvals_daily, dvals, minimum, maximum);
@@ -345,10 +453,10 @@ void interp_monthly_totals_conserve(const double* mvals, double* dvals,
  *  \param dndep       Output, total N deposition for each day
  */
 void distribute_ndep_single_month(double ndry,
-                                  double nwet,
-                                  int time_steps,
-                                  const double* dprec,
-                                  double* dndep) {
+	double nwet,
+	int time_steps,
+	const double* dprec,
+	double* dndep) {
 
 	// First count number of days with precipitation
 	int raindays = 0;
@@ -369,7 +477,7 @@ void distribute_ndep_single_month(double ndry,
 			dndep[i] += nwet;
 		}
 		else if (!negligible(dprec[i])) {
-			dndep[i] += (nwet*time_steps)/raindays;
+			dndep[i] += (nwet * time_steps) / raindays;
 		}
 	}
 }
@@ -384,14 +492,14 @@ void distribute_ndep_single_month(double ndry,
  *  \param dndep Output, total N deposition for each day
  */
 void distribute_ndep(const double* mndry, const double* mnwet,
-                     const double* dprec, double* dndep) {
+	const double* dprec, double* dndep) {
 
 	Date date;
 	int start_of_month = 0;
 
 	for (int m = 0; m < 12; m++) {
 		distribute_ndep_single_month(mndry[m], mnwet[m], date.ndaymonth[m],
-		                             dprec+start_of_month, dndep+start_of_month);
+			dprec + start_of_month, dndep + start_of_month);
 
 		start_of_month += date.ndaymonth[m];
 	}
@@ -407,8 +515,8 @@ void distribute_ndep(const double* mndry, const double* mnwet,
  */
 void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed, bool truncate /* = true */) {
 
-//  Distribution of monthly precipitation totals to quasi-daily values
-//  (From Dieter Gerten 021121)
+	//  Distribution of monthly precipitation totals to quasi-daily values
+	//  (From Dieter Gerten 021121)
 
 	const double c1 = 1.0; // normalising coefficient for exponential distribution
 	const double c2 = 1.2; // power for exponential distribution
@@ -424,13 +532,13 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 	dy = 0;
 	daysum = 0;
 
-	for (m=0; m<12; m++) {
+	for (m = 0; m < 12; m++) {
 
 		if (mval_prec[m] < 0.1) {
 
 			// Special case if no rainfall expected for month
 
-			for (d=0; d<date.ndaymonth[m]; d++) {
+			for (d = 0; d < date.ndaymonth[m]; d++) {
 				dval_prec[dy] = 0.0;
 				dy++;
 			}
@@ -439,11 +547,11 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 
 			mprec_sum = 0.0;
 
-			mval_wet[m] = max (mval_wet[m], 1.0);
-				// force at least one rain day per month
+			mval_wet[m] = max(mval_wet[m], 1.0);
+			// force at least one rain day per month
 
-			// rain on wet days (should be at least 0.1)
-			mprec = max(mval_prec[m]/mval_wet[m], 0.1);
+		// rain on wet days (should be at least 0.1)
+			mprec = max(mval_prec[m] / mval_wet[m], 0.1);
 			mval_wet[m] = mval_prec[m] / mprec;
 
 			prob_rain = mval_wet[m] / (double)date.ndaymonth[m];
@@ -454,7 +562,7 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 
 				dy = dy_hold;
 
-				for (d=0; d<date.ndaymonth[m]; d++) {
+				for (d = 0; d < date.ndaymonth[m]; d++) {
 
 					// Transitional probabilities (Geng et al 1986)
 
@@ -462,7 +570,7 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 						prob = 0.75 * prob_rain;
 					}
 					else {
-						if (dval_prec[dy-1] < 0.1)
+						if (dval_prec[dy - 1] < 0.1)
 							prob = 0.75 * prob_rain;
 						else
 							prob = 0.25 + (0.75 * prob_rain);
@@ -471,10 +579,10 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 					// Determine wet days randomly and use Krysanova/Cramer estimates of
 					// parameter values (c1,c2) for an exponential distribution
 
-					if (randfrac(seed)>prob)
+					if (randfrac(seed) > prob)
 						dval_prec[dy] = 0.0;
 					else {
-						double x=randfrac(seed);
+						double x = randfrac(seed);
 						dval_prec[dy] = pow(-log(x), c2) * mprec * c1;
 						if (dval_prec[dy] < 0.1) dval_prec[dy] = 0.0;
 					}
@@ -486,7 +594,7 @@ void prdaily(double* mval_prec, double* dval_prec, double* mval_wet, long& seed,
 				// Normalise generated precipitation by prescribed monthly totals
 
 				if (!negligible(mprec_sum)) {
-					for (d=0; d<date.ndaymonth[m]; d++) {
+					for (d = 0; d < date.ndaymonth[m]; d++) {
 						dyy = daysum + d;
 						dval_prec[dyy] *= mval_prec[m] / mprec_sum;
 						if (truncate && dval_prec[dyy] < 0.1) dval_prec[dyy] = 0.0;
@@ -551,18 +659,18 @@ void soiltemp(const Climate& climate, Soil& soil) {
 	// Fig 5.11).
 
 	const double DIFFUS_CONV = 0.0864;
-		// conversion factor for soil thermal diffusivity from mm2/s to m2/day
+	// conversion factor for soil thermal diffusivity from mm2/s to m2/day
 	const double HALF_OMEGA = 8.607E-3; // corresponds to omega/2 = pi/365 (Eqn 1)
 	const double DEPTH = SOILDEPTH_UPPER * 0.0005;
-		// soil depth at which to estimate temperature (m)
+	// soil depth at which to estimate temperature (m)
 	const double LAG_CONV = 58.09;
-		// conversion factor for oscillation lag from angular units to days (=365/(2*PI))
+	// conversion factor for oscillation lag from angular units to days (=365/(2*PI))
 
 	double a, b; // regression parameters
 	double k; // soil thermal diffusivity (m2/day)
 	double temp_lag; // air temperature 'lag' days ago (see above; deg C)
-	double day[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
-		16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30};
+	double day[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15,
+		16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 };
 
 	if ((date.year == 0 || date.year == soil.patch.stand.first_year) && date.month == 0 && !date.islastday) {
 
@@ -602,7 +710,7 @@ void soiltemp(const Climate& climate, Soil& soil) {
 
 		temp_lag = a + b * (30.0 - soil.alag * LAG_CONV);
 		soil.temp = climate.atemp_mean + soil.exp_alag * (temp_lag - climate.atemp_mean);
-			// Eqn 2
+		// Eqn 2
 	}
 }
 
@@ -632,19 +740,19 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 		climate.agdd5 = 0.0;
 
 		// reset annual nitrogen input variables
-		climate.andep  = 0.0;
+		climate.andep = 0.0;
 
 		// reset gridcell-level harvest fluxes
-		gridcell.landcover.acflux_landuse_change=0.0;
-		gridcell.landcover.acflux_harvest_slow=0.0;
-		gridcell.landcover.anflux_landuse_change=0.0;
-		gridcell.landcover.anflux_harvest_slow=0.0;
+		gridcell.landcover.acflux_landuse_change = 0.0;
+		gridcell.landcover.acflux_harvest_slow = 0.0;
+		gridcell.landcover.anflux_landuse_change = 0.0;
+		gridcell.landcover.anflux_harvest_slow = 0.0;
 
-		for(int i=0;i<NLANDCOVERTYPES;i++) {
-			gridcell.landcover.acflux_landuse_change_lc[i]=0.0;
-			gridcell.landcover.acflux_harvest_slow_lc[i]=0.0;
-			gridcell.landcover.anflux_landuse_change_lc[i]=0.0;
-			gridcell.landcover.anflux_harvest_slow_lc[i]=0.0;
+		for (int i = 0; i < NLANDCOVERTYPES; i++) {
+			gridcell.landcover.acflux_landuse_change_lc[i] = 0.0;
+			gridcell.landcover.acflux_harvest_slow_lc[i] = 0.0;
+			gridcell.landcover.anflux_landuse_change_lc[i] = 0.0;
+			gridcell.landcover.anflux_harvest_slow_lc[i] = 0.0;
 		}
 
 		if (date.year == 0) {
@@ -690,14 +798,14 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			++gc_itr;
 		}
 	}
-	else if ( (climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
-	          (climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE) ) {
+	else if ((climate.lat >= 0.0 && date.day == COLDEST_DAY_NHEMISPHERE) ||
+		(climate.lat < 0.0 && date.day == COLDEST_DAY_SHEMISPHERE)) {
 		// In midwinter, reset GDD counter for summergreen phenology
 		climate.gdd5 = 0.0;
 		climate.ifsensechill = false;
 	}
-	else if ( (climate.lat >= 0.0 && date.day == WARMEST_DAY_NHEMISPHERE) ||
-	          (climate.lat < 0.0 && date.day == WARMEST_DAY_SHEMISPHERE) ) {
+	else if ((climate.lat >= 0.0 && date.day == WARMEST_DAY_NHEMISPHERE) ||
+		(climate.lat < 0.0 && date.day == WARMEST_DAY_SHEMISPHERE)) {
 		climate.ifsensechill = true;
 	}
 
@@ -710,7 +818,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	// Calculate gtemp (daily/sub-daily depending on the mode)
 	if (date.diurnal()) {
 		climate.gtemps.assign(date.subdaily, 0);
-		for (int i=0; i<date.subdaily; i++) {
+		for (int i = 0; i < date.subdaily; i++) {
 			respiration_temperature_response(climate.temps[i], climate.gtemps[i]);
 		}
 	}
@@ -719,7 +827,7 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 	}
 
 	// Sum annual nitrogen addition to system
-	climate.andep  += climate.dndep;
+	climate.andep += climate.dndep;
 
 	// Save yesterday's mean temperature for the last month
 	mtemp_last = climate.mtemp;
@@ -764,10 +872,10 @@ void dailyaccounting_gridcell(Gridcell& gridcell) {
 			climate.mtemp_min20 = climate.mtemp_min;
 			climate.mtemp_max20 = climate.mtemp_max;
 
-			for (y=startyear; y<20; y++) {
-				climate.mtemp_min_20[y-1] = climate.mtemp_min_20[y];
+			for (y = startyear; y < 20; y++) {
+				climate.mtemp_min_20[y - 1] = climate.mtemp_min_20[y];
 				climate.mtemp_min20 += climate.mtemp_min_20[y];
-				climate.mtemp_max_20[y-1] = climate.mtemp_max_20[y];
+				climate.mtemp_max_20[y - 1] = climate.mtemp_max_20[y];
 				climate.mtemp_max20 += climate.mtemp_max_20[y];
 			}
 
@@ -796,7 +904,7 @@ void dailyaccounting_patch_lc(Patch& patch) {
 	double scale = patch.stand.get_gridcell_fraction() / (double)patch.stand.nobj;
 
 	pftlist.firstobj();
-	while(pftlist.isobj) {				// NB. also inactive pft's
+	while (pftlist.isobj) {				// NB. also inactive pft's
 		Pft& pft = pftlist.getobj();
 		Patchpft& ppft = patch.pft[pft.id];
 
@@ -846,10 +954,10 @@ void dailyaccounting_patch(Patch& patch) {
 
 		patch.maet[date.month] = 0.0;
 		patch.mintercep[date.month] = 0.0;
-		patch.mpet[date.month]=0.0;
+		patch.mpet[date.month] = 0.0;
 	}
 
-	if(run_landcover)
+	if (run_landcover)
 		dailyaccounting_patch_lc(patch);
 
 	// Store daily soil water in both layers
@@ -881,7 +989,7 @@ void dailyaccounting_patch(Patch& patch) {
 	soil.dtemp[date.dayofmonth] = soil.temp;
 
 	if (date.islastday)
-		soil.mtemp = mean(soil.dtemp,date.ndaymonth[date.month]);
+		soil.mtemp = mean(soil.dtemp, date.ndaymonth[date.month]);
 
 	patch.is_litter_day = false;
 	patch.isharvestday = false;
@@ -893,7 +1001,7 @@ void dailyaccounting_patch(Patch& patch) {
 // Called by dailyaccounting_patch and dailyaccounting_gridcell to calculate
 // response of respiration to temperature
 
-void respiration_temperature_response(double temp,double& gtemp) {
+void respiration_temperature_response(double temp, double& gtemp) {
 
 	// DESCRIPTION
 	// Calculates g(T), response of respiration rate to temperature (T), based on
@@ -912,7 +1020,8 @@ void respiration_temperature_response(double temp,double& gtemp) {
 
 	if (temp >= -40.0) {
 		gtemp = exp(308.56 * (1.0 / 56.02 - 1.0 / (temp + 46.02)));
-	} else {
+	}
+	else {
 		gtemp = 0.0;
 	}
 }
@@ -940,8 +1049,8 @@ void daylengthinsoleet(Climate& climate) {
 	const double D = 0.5;
 	const double K = 13750.98708;
 	const double FRADPAR = 0.5;
-		// fraction of net incident shortwave radiation that is photosynthetically
-		// active (PAR)
+	// fraction of net incident shortwave radiation that is photosynthetically
+	// active (PAR)
 
 	double w, hn;
 
@@ -1011,9 +1120,9 @@ void daylengthinsoleet(Climate& climate) {
 
 		// Calculate values of saved parameters for this day
 		climate.qo[date.day] = QOO * (1.0 + 2.0 * 0.01675 *
-							cos(2.0 * PI * ((double)date.day + 0.5) / date.year_length())); // Eqn 2
+			cos(2.0 * PI * ((double)date.day + 0.5) / date.year_length())); // Eqn 2
 		double delta = -23.4 * DEGTORAD * cos(2.0 * PI * ((double)date.day + 10.5) / date.year_length());
-				// Eqn 4, solar declination angle (radians)
+		// Eqn 4, solar declination angle (radians)
 		climate.u[date.day] = climate.sinelat * sin(delta); // Eqn 9
 		climate.v[date.day] = climate.cosinelat * cos(delta); // Eqn 10
 
@@ -1035,9 +1144,9 @@ void daylengthinsoleet(Climate& climate) {
 
 	if (climate.instype == SUNSHINE) {		// insolation is percentage sunshine
 
-		w = (C+D * climate.insol / 100.0) * (1.0 - BETA) * climate.qo[date.day]; // Eqn 13
+		w = (C + D * climate.insol / 100.0) * (1.0 - BETA) * climate.qo[date.day]; // Eqn 13
 		climate.rad = 2.0 * w * (climate.u[date.day] * climate.hh[date.day] +
-				climate.v[date.day] * climate.sinehh[date.day]) * K; // Eqn 14
+			climate.v[date.day] * climate.sinehh[date.day]) * K; // Eqn 14
 
 	}
 	else { // insolation provided as instantaneous downward shortwave radiation flux
@@ -1063,7 +1172,7 @@ void daylengthinsoleet(Climate& climate) {
 		if (date.diurnal()) {
 			climate.pars.resize(date.subdaily);
 			climate.rads.resize(date.subdaily);
-			for (int i=0; i<date.subdaily; i++) {
+			for (int i = 0; i < date.subdaily; i++) {
 				climate.rads[i] = climate.insols[i] * net_coeff * averaging_period;
 				climate.pars[i] = climate.rads[i] * FRADPAR;
 			}
@@ -1074,8 +1183,8 @@ void daylengthinsoleet(Climate& climate) {
 			w = 0;
 		}
 		else {
-			w = climate.rad/2.0/(climate.u[date.day]*climate.hh[date.day]
-				+climate.v[date.day]*climate.sinehh[date.day])/K; // from Eqn 14
+			w = climate.rad / 2.0 / (climate.u[date.day] * climate.hh[date.day]
+				+ climate.v[date.day] * climate.sinehh[date.day]) / K; // from Eqn 14
 		}
 	}
 
@@ -1135,9 +1244,9 @@ void daylengthinsoleet(Climate& climate) {
 	//	               ( uu*hn + vv*sin(hn) ) * k
 
 	double rl = (B + (1.0 - B) * (w / climate.qo[date.day] / (1.0 - BETA) - C) / D) *
-				(A - climate.temp); // Eqn 19: instantaneous net upward longwave radiation flux (W/m2)
+		(A - climate.temp); // Eqn 19: instantaneous net upward longwave radiation flux (W/m2)
 
-	//	Calculate gamma and lambda
+//	Calculate gamma and lambda
 	double gamma = 65.05 + climate.temp * 0.064;
 	double lambda = 2.495e6 - climate.temp * 2380.;
 
@@ -1151,9 +1260,9 @@ void daylengthinsoleet(Climate& climate) {
 	// In Eqn (25), hn defined for uu in range -vv to vv
 	// For uu >= vv, hn = pi (12 hours, i.e. polar day)
 	// For uu <= -vv, hn = 0 (i.e. polar night)
-	if (uu>=vv) hn = PI; // polar day
-	else if (uu<=-vv) hn = 0.0; // polar night
-	else hn=acos(-uu / vv); // Eqn 25
+	if (uu >= vv) hn = PI; // polar day
+	else if (uu <= -vv) hn = 0.0; // polar night
+	else hn = acos(-uu / vv); // Eqn 25
 
 	// Calculate total EET (equilibrium evapotranspiration) for this day, mm/day
 	climate.eet = 2.0 * (s / (s + gamma) / lambda) * (uu * hn + vv * sin(hn)) * K;	// Eqn 26;

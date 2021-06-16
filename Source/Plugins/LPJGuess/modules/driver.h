@@ -27,6 +27,7 @@
 
 double randfrac(long& seed);
 void soilparameters(Soiltype& soiltype,int soilcode);
+void soilparametersEnvision(Soiltype& soiltype, int soilcode, float depth);
 void interp_monthly_means_conserve(const double* mvals, double* dvals,
                                    double minimum = -std::numeric_limits<double>::max(),
                                    double maximum = std::numeric_limits<double>::max());
