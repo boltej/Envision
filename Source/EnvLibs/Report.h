@@ -111,7 +111,7 @@ public:
    static void StatusMsg (LPCTSTR msg);
 
    // log messages
-   static int  Log           (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE ) { return LogMsg(msg, action, RT_INFO); }
+   static int  Log           (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE, REPORT_TYPE type=RT_INFO ) { return LogMsg(msg, action, type); }
    static int  LogInfo       (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE ) { return LogMsg(msg, action, RT_INFO); }
    static int  LogWarning    (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE ) { return LogMsg(msg, action, RT_WARNING); }
    static int  LogError      (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE ) { return LogMsg(msg, action, RT_ERROR); }
