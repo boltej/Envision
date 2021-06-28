@@ -2674,6 +2674,31 @@ void CEnvDoc::OnDataEvaluativeModelLearning()
    }
 
 
+
+int LoadMapProc(Map* pMap, NOTIFY_TYPE type, int a0, LONG_PTR a1, LONG_PTR extra);
+int LoadMapProc(Map* pMap, NOTIFY_TYPE type, int a0, LONG_PTR a1, LONG_PTR extra)
+   {
+   switch (type)
+      {
+      case NT_BUILDSPATIALINDEX:  // moved to SpatialIndexDlg
+         {
+         //if (a0 == 0) // first time?
+         //   Report::LogpDlg->m_progress.SetRange32(0, (int)a1);
+
+         if ((a0 % 100) == 0)
+            {
+            CString msg;
+            msg.Format("Building index for poly %i of %i", (int)a0, (int)a1);
+            gpMain->SetStatusMsg(msg);
+            }
+         }
+         break;
+      }  // endof switch:
+
+   return 1;
+   }
+
+
 int CEnvDoc::OpenDocXml( LPCTSTR filename )
    {
    Clear();
@@ -2681,9 +2706,19 @@ int CEnvDoc::OpenDocXml( LPCTSTR filename )
    //InitDoc();
 
    EnvLoader loader;
-   loader.LoadProject( filename, gpMapPanel->m_pMap, &m_model);
-   
+   loader.LoadProject( filename, gpMapPanel->m_pMap, &m_model, LoadMapProc);
    gpCellLayer = m_model.m_pIDULayer;
+
+   // spatial index?
+   //if (this->m_model.m_spatialIndexDistance > 0 && gpCellLayer->LoadSpatialIndex(NULL, (float)this->m_model.m_spatialIndexDistance) < 0)
+   //   {
+   //   SpatialIndexDlg dlg;
+   //   //gpCellLayer = m_pIDULayer;
+   //   dlg.m_maxDistance = this->m_model.m_spatialIndexDistance;
+   //
+   //   if (dlg.DoModal() == IDOK)
+   //      this->m_model.m_spatialIndexDistance = dlg.m_maxDistance;
+   //   }
 
    gpMapPanel->m_pMap->m_pExtraPtr = gpMapPanel->m_pMapWnd;
    gpMapPanel->m_pMapWnd->LoadBkgrImage();

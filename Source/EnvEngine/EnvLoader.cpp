@@ -67,7 +67,7 @@ EnvLoader::~EnvLoader()
    }
 
 
-int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
+int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MAPPROC mapFn/*=NULL*/ )
    {
    //AFX_MANAGE_STATE(AfxGetStaticModuleState());
    m_pMap    = pMap;
@@ -435,6 +435,25 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
                if ( dlg.DoModal() == IDOK )
                   m_pEnvModel->m_spatialIndexDistance = dlg.m_maxDistance;
 #endif
+               Report::LogInfo("Starting Spatial Index Build");
+               if ( mapFn != NULL )
+                  m_pIDULayer->m_pMap->InstallNotifyHandler(mapFn, (LONG_PTR)this);
+
+               m_pIDULayer->CreateSpatialIndex(NULL, 10000, m_pEnvModel->m_spatialIndexDistance, SIM_NEAREST);
+
+               if( mapFn != NULL )
+                  m_pIDULayer->m_pMap->RemoveNotifyHandler(mapFn, (LONG_PTR)this);
+
+               Report::LogInfo("Saving Spatial Index...");
+
+               //if (!m_canceled)
+               //   {
+               //   MessageBox(_T("Successful creating spatial index"), _T("Success"), MB_OK);
+               //   CDialog::OnOK();
+               //   }
+
+
+
                }
 
             CString fullPath;
