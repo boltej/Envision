@@ -213,6 +213,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="AltWaterMaster.cpp" />
+    <ClCompile Include="Climate_Metrics.cpp" />
     <ClCompile Include="DailyurbanWaterDemand.cpp" />
     <ClCompile Include="DataProvider.cpp" />
     <ClCompile Include="dllmain.cpp">

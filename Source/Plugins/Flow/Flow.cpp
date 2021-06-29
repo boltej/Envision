@@ -8505,6 +8505,15 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                }
 
             // daily urban water demand 
+            else if (_tcsicmp(tagName, _T("climate_metrics")) == 0)
+            {
+                GlobalMethod* pMethod = Climate_Metrics::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
+                if (pMethod != NULL)
+                    GlobalMethodManager::AddGlobalMethod(pMethod);
+            }
+
+
+            // daily urban water demand 
             else if (_tcsicmp(tagName, _T("Urban_Water_Demand")) == 0)
                {
                GlobalMethod *pMethod = DailyUrbanWaterDemand::LoadXml(pXmlGlobalChild, pIDULayer, filename,this);

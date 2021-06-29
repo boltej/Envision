@@ -119,6 +119,7 @@ EvapTrans::EvapTrans(FlowModel *pFlowModel, LPCTSTR name)
    {
    this->m_timing = GMT_CATCHMENT | GMT_START_STEP;               // Called during GetCatchmentDerivatives()
    this->m_ETEq.SetMode(ETEquation::HARGREAVES);                // default reference ET is Hargreaves
+
    }
 
 
