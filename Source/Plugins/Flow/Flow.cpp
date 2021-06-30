@@ -10970,14 +10970,14 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
                  double x = pHRU->m_centroid.x;
                  double y = pHRU->m_centroid.y;
                  value = pInfo->m_pNetCDFData->Get(x, y, pHRU->m_climateIndex, dayOfYear, m_projectionWKT, false);
-                 if (value > -100 && m_provenClimateIndex == -1)
+                 if (value > -100 && m_provenClimateIndex == -1) 
                      m_provenClimateIndex = pHRU->m_climateIndex;
 
                  if (value < -100) //missing data in the file. Code identifies a nearby gridcell that does have data
                      {
                      pHRU->m_climateIndex = pHRU->m_pCatchment->m_climateIndex;
-                     if (pHRU->m_climateIndex == 1)
-                         pHRU->m_climateIndex = m_provenClimateIndex;
+                     //if (pHRU->m_climateIndex == 1)
+                        // pHRU->m_climateIndex = m_provenClimateIndex;
                      value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
                      pHRU->m_pCatchment->m_climateIndex = pHRU->m_climateIndex;
                      }
