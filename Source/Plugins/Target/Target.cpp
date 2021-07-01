@@ -113,7 +113,7 @@ PREFERENCE *AllocationSet::AddPreference( LPCTSTR name, Target *pTarget, LPCTSTR
          {
          CString msg( "Unable to compile allocation query: " );
          msg += query;
-         AfxMessageBox( msg );
+         Report::LogWarning( msg );
          pPref->pQuery = NULL;
          }
       }
@@ -141,7 +141,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
          {
          CString msg( "Unable to compile allocation query: " );
          msg += queryStr;
-         AfxMessageBox( msg );
+         Report::LogWarning( msg );
          pQuery = NULL;
          }
       }
@@ -188,7 +188,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
                msg += var;
                msg += "' - Target will not be able to continue...";
 
-               AfxMessageBox( msg );
+               Report::LogError( msg );
                break;
                }
             
@@ -202,7 +202,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
       CString msg( _T("Error encountered parsing target allocation 'value' expression: ") );
       msg += expression;
       msg += _T("... setting to zero" );
-      AfxMessageBox( msg );
+      Report::LogWarning( msg );
 
       parser.compile( _T("0") );
       }
@@ -421,7 +421,7 @@ TargetReport *Target::AddReport( LPCTSTR name, LPCTSTR query )
       {
       CString msg( "Unable to compile report query: " );
       msg += query;
-      AfxMessageBox( msg );
+      Report::LogWarning( msg );
       pReport->m_pQuery = NULL;
       }
 
@@ -704,7 +704,7 @@ void Target::LoadTableValues()
 
    if (count != 2)
       {
-      Report::WarningMsg("Bad table value");
+      Report::LogWarning("Bad table value");
       return;
       }
 
@@ -713,7 +713,7 @@ void Target::LoadTableValues()
       {
       CString msg("Target: Couldn't find table ");
       msg += ti[0];      
-      Report::WarningMsg(msg);
+      Report::LogWarning(msg);
       return;
       }
 
@@ -722,7 +722,7 @@ void Target::LoadTableValues()
    float pair[2];
    for (int i = 0; i < pTable->GetYearCount(); i++)
       {
-      pair[0] = pTable->GetYear(i);
+      pair[0] = (float)pTable->GetYear(i);
       pair[1] = pTable->Lookup(ti[1], pTable->GetYear(i));
       this->m_pTargetData->AppendRow(pair, 2);
       }
@@ -856,12 +856,12 @@ bool Target::Run( EnvContext *pEnvContext )
       {
       char msg[ 128 ];
       e->GetErrorMessage( msg, 128 );
-      AfxMessageBox( msg );
+      Report::LogError( msg );
       }
 
    catch( ... )
       {
-      AfxMessageBox(_T("Unknown exception thrown in Target.dll") );
+      Report::LogError(_T("Unknown exception thrown in Target.dll") );
       }
 
    // update report variables
@@ -1115,7 +1115,7 @@ bool Target::SetQuery( LPCTSTR query )
          {
          CString msg( "Target: Unable to compile target query: " );
          msg += query;
-         AfxMessageBox( msg );
+         Report::LogWarning( msg );
          return false;
          }
       }
@@ -1289,7 +1289,7 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          int count = ::Tokenize(data, ",", tokens);
          //int index = atoi(tokens[0]);
          for (int i = 0; i < count; i++)
-            values[i] = atof(tokens[i]);
+            values[i] = (float)atof(tokens[i]);
 
          //VData _name(name);  // TYPE_DSTRING
          pTable->AddRecord(name, atoi(value), values);
@@ -1610,7 +1610,7 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
                {
                CString msg;
                msg.Format("Allocation set reference %s not found", ref);
-               Report::WarningMsg(msg);
+               Report::LogWarning(msg);
                }
             }
          else
