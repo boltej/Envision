@@ -40,8 +40,9 @@ using namespace std;
 Climate_Metrics::Climate_Metrics(FlowModel* pFlowModel, LPCTSTR name)
 	: GlobalMethod(pFlowModel, name, GM_CLIMATE_METRICS)
 	, m_colTemp90(-1)// Calculated Daily Urband Water Demand m3/day
-	, m_colTemp70(0)
+	, m_colTemp70(-1)
     , m_maxYearlyTemp90(0)
+	, m_minYearlyTemp70(0)
 	{
 	this->m_timing = GMT_START_STEP;
 	}
@@ -59,7 +60,7 @@ bool Climate_Metrics::Init(FlowContext* pFlowContext)
 	int iduCount = pIDULayer->GetRecordCount();
 
 	pIDULayer->CheckCol(m_colTemp90, _T("Temp90"), TYPE_INT, CC_AUTOADD);
-	pIDULayer->CheckCol(m_colTemp90, _T("Temp70"), TYPE_INT, CC_AUTOADD);
+	pIDULayer->CheckCol(m_colTemp70, _T("Temp70"), TYPE_INT, CC_AUTOADD);
 
 	//bool readOnlyFlag = pIDULayer->m_readOnly;
 	//pIDULayer->m_readOnly = false;
