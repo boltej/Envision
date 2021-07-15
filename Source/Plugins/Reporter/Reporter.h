@@ -96,7 +96,9 @@ enum VAR_TYPE {           //  Description                                       
                           //  query area is further restricted to those IDUs in which
                           //  a change, specified by the useDelta list, occured 
 
-   VT_MEAN         = 4,   // "mean" - mean of the "value" expression,    | always global extent |   yes   |
+   VT_LENWTMEAN = 4,      //
+
+   VT_MEAN         = 5    // "mean" - mean of the "value" expression,    | always global extent |   yes   |
                           // summed over the query area. If "use_delta" specified, the 
                           //  query area is further restricted to those IDUs in which
                           //  a change, specified by the useDelta list, occured    

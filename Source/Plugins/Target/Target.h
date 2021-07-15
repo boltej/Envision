@@ -132,14 +132,16 @@ class TTable
             if (col == 0)  // off on left side
                return m_data.Get(row, 0);
 
-            if (col == m_years.GetSize())  // off on right side
+            if (col >= m_years.GetSize())  // off on right side
                return m_data.Get(row, cols - 1);
 
-            float dx = float(m_years[col] - m_years[col - 1]);
-            float dy = m_data.Get(row, col) - m_data.Get(row, col - 1);
-            float x0 = (float) m_years[col];
-            float y0 = m_data.Get(row, col);
-            float y = y0 + (year - x0) * dy / dx;
+
+            //float dx = float(m_years[col] - m_years[col - 1]);
+            //float dy = m_data.Get(row, col) - m_data.Get(row, col - 1);
+            //float x0 = (float) m_years[col-1];
+            //float y0 = m_data.Get(row, col-1);
+            //float y = y0 + (year - x0) * dy / dx;
+            float y = m_data.Get(row, col);
             return y;
             }
          return 0; 
@@ -149,7 +151,7 @@ class TTable
       int GetYearCount() { return (int) m_years.GetSize(); }
       int GetYear(int i) { return m_years[i]; }
       int AddRecord(LPCTSTR name, int value, float* data) {
-         int row = m_data.AppendRow(data, (int)m_years.GetSize()); 
+         int row = m_data.AppendRow(data, (int)m_years.GetSize())-1; 
          m_index[TTIndex(name, value)] = row;
          return row; 
          }
@@ -366,7 +368,7 @@ public:
    int m_inVarStartIndex;    // always one input 
    int m_outVarStartIndex;   // variable number of outputs
    int m_outVarCount; 
-
+                                                                                                                                         
    Constant     *AddConstant( LPCTSTR name, LPCTSTR expr );
    TargetReport *AddReport( LPCTSTR name, LPCTSTR query );
 

@@ -920,6 +920,7 @@ class  LIBSAPI  MapLayer
       bool GetData(int rec, int col, short &value) const;
       bool GetData(int rec, int col, CString &value) const;
       bool GetData(int rec, int col, bool &value) const;
+      bool GetData(int rec, int col, char& value) const;
 
       bool GetDataMinMax(int col, float *pMin, float *pMax) const;  // note: col=-1 gets min/max for ALL columns
       bool GetGridDataMinMax(float *pMin, float *pMax) const;      // specially for grids
@@ -1350,6 +1351,15 @@ bool MapLayer::GetData(int rec, int col, bool &value) const
    return true;
    }
 
+inline
+bool MapLayer::GetData(int rec, int col, char& value) const
+   {
+   ASSERT(m_pData != NULL);
+   ASSERT(rec < m_pData->GetRowCount());
+   ASSERT(col < m_pData->GetColCount());
+   m_pData->Get(col, rec, value);      // NULL type returns false
+   return true;
+   }
 
 
 inline

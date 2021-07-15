@@ -331,8 +331,8 @@ bool Target::InitRun( EnvContext *pEnvContext )
    {
    m_pQueryEngine = pEnvContext->pQueryEngine;
 
-   //if ( this->m_method == )
-   //this->LoadTableValues();
+   if ( this->m_method == TM_TABLE )
+      this->LoadTableValues();
 
    // allocate internal arrays if needed and not already allocated
    if ( m_preferenceArray.size() == 0 )
@@ -1470,8 +1470,10 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
 
          case TM_TABLE:
             {
+            // store table info, e.g 'TableName.ReecordName'
             pTarget->m_targetValues = value;
 
+            // allocate 2 col dataobj, year and populate from record
             ASSERT(pTarget->m_pTargetData == NULL);
             pTarget->m_pTargetData = new FDataObj(2, 0, U_YEARS);
 
