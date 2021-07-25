@@ -170,7 +170,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
       int runParallel = 0;
       int addReturnsToBudget = 0;
       double exportBmpSize=0;
-      int exportMaps = 0;   // deprecated
+      int exportMaps = -1;
       int exportMapInterval = 0;
       int exportBmpInterval = 0;
       int exportOutputs = 0;
@@ -222,6 +222,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
          // output control
          { _T("collectPolicyData" ),         TYPE_INT,      &collectPolicyData,     false,  0 },
+         { _T("exportMaps"),                 TYPE_INT,      &exportMaps,            false,  0 },
          { _T("exportMapInterval"),          TYPE_INT,      &exportMapInterval,     false,  0 },
          { _T("exportBmpInterval"),          TYPE_INT,      &exportBmpInterval,     false,  0 },
          { _T("exportBmpPixelSize"),         TYPE_DOUBLE,   &exportBmpSize,         false,  0 },
@@ -269,8 +270,11 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
       m_pEnvModel->m_runParallel   = runParallel ? true : false;
       m_pEnvModel->m_addReturnsToBudget = addReturnsToBudget ? true : false;
-      //m_pEnvModel->m_exportMaps = exportMaps ? true : false;
-      m_pEnvModel->m_exportMaps = exportMapInterval > 0 ? true : false;
+      if ( exportMaps < 0) // not specified
+         m_pEnvModel->m_exportMaps = exportMapInterval > 0 ? true : false;
+      else
+         m_pEnvModel->m_exportMaps = exportMaps > 0 ? true : false;
+      
       m_pEnvModel->m_exportMapInterval = exportMapInterval;
 
       m_pEnvModel->m_exportBmps = (exportBmpSize > 0 && exportBmpInterval > 0 ) ? true : false;
@@ -439,7 +443,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
                if ( mapFn != NULL )
                   m_pIDULayer->m_pMap->InstallNotifyHandler(mapFn, (LONG_PTR)this);
 
-               m_pIDULayer->CreateSpatialIndex(NULL, 10000, m_pEnvModel->m_spatialIndexDistance, SIM_NEAREST);
+               m_pIDULayer->CreateSpatialIndex(NULL, 10000, (float) m_pEnvModel->m_spatialIndexDistance, SIM_NEAREST);
 
                if( mapFn != NULL )
                   m_pIDULayer->m_pMap->RemoveNotifyHandler(mapFn, (LONG_PTR)this);

@@ -148,6 +148,7 @@ public:
    int  GetRunLength( void );
    int  GetExportMapInterval( void );
    bool GetExportOutputs( void ) { return m_pExportOutputs->IsChecked() ? true : false; }
+   //bool GetExportMaps(void) { return m_pExportMaps->IsChecked() ? true : false; }
    void SetExportDeltaFieldList( LPCTSTR fieldList );
    int  GetExportDeltaFieldList( CString &fieldList );
 
