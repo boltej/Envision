@@ -2105,7 +2105,7 @@ FDataObj *DataManager::CalculatePolicyEffectivenessTrendStatic( int run /*= -1*/
 
    FDataObj *pData = new FDataObj( goalCount+1, years, U_YEARS);
    pData->SetName( "Policy Effectiveness Trend" );
-   pData->SetLabel( 0, "Year" );
+   pData->SetLabel( 0, "Time (Years)" );
    for ( int i=0; i < goalCount; i++ )
       {
       //int modelIndex = this->m_pEnvModel->GetModelIndexFromMetagoalIndex( i );

@@ -39,7 +39,7 @@ class ENVAPI EnvLoader
       EnvLoader( void );
       ~EnvLoader();
 
-      int LoadProject(LPCTSTR filename, Map *pMap, EnvModel *pEnvModel);
+      int LoadProject(LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MAPPROC mapFn=NULL);
       int LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, int red, int green, int blue, int extraCols, int records, LPCTSTR initField, LPCTSTR overlayFields, bool loadFieldInfo, bool expandLegend );
       
       //int LoadFieldInfoXml( MapLayer *pLayer, LPCTSTR _filename );

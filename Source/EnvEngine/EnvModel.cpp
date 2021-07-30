@@ -1313,7 +1313,8 @@ int EnvModel::Run( int runFlag )
      
    m_pIDULayer->m_readOnly = true;
 
-   if ( m_exportMaps && m_exportMapInterval > 0 )
+   // always export map at beginning of run 
+   if ( m_exportMaps )
       m_pDataManager->ExportRunMap( exportPath );
 
    if ( m_exportBmps &&  this->m_exportBmpSize > 0 )
@@ -1431,7 +1432,7 @@ int EnvModel::Run( int runFlag )
             RunCulturalMetaprocess();
 
          // map export required?         
-         if ( ( m_exportMaps && m_exportMapInterval > 0 ) && (yearOfRun % m_exportMapInterval ) == 0 )   // && yearOfRun != 0 )
+         if ( ( m_exportMaps && m_exportMapInterval > 0 ) && (yearOfRun % m_exportMapInterval ) == 0 && yearOfRun != 0  && yearOfRun != this->m_yearsToRun-1)
             m_pDataManager->ExportRunMap( exportPath ); //yearOfRun );
 
          if ( ( m_exportBmps && m_exportBmpInterval > 0 ) && (yearOfRun % m_exportBmpInterval ) == 0 )   // && yearOfRun != 0 )

@@ -47,14 +47,14 @@ VSMBModel::~VSMBModel(void)
       delete m_pNAISSnowMeltTable;
    }
 
-bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation)
+bool VSMBModel::UpdateSoilMoisture(int idu, ClimateStation *pStation, int year, int doy, int dayOfSimulation, int currentStage,  FDataObj* pRoot)
    {
    SoilInfo *pSoilInfo = GetSoilInfo(idu);//this is already in the IDU layer
 
    if (pSoilInfo == NULL)
       return false;
 
-   return pSoilInfo->UpdateSoilMoisture(year, doy, pStation, dayOfSimulation);
+   return pSoilInfo->UpdateSoilMoisture(year, doy, pStation, dayOfSimulation, currentStage, pRoot);
    }
 
 float VSMBModel::GetSoilMoisture(int idu, int layer)
@@ -122,41 +122,21 @@ bool VSMBModel::LoadParamFile(LPCTSTR paramFile)
    int colPorosity  = paramData.GetCol("POROSITY"); // soil porosity (%)
    int colFieldCap  = paramData.GetCol("FIELDCAP"); // field capacity (%)
    int colPermWilt  = paramData.GetCol("WILTINGPT");     // wilting point (%)
-//   int colAWHC      = paramData.GetCol("AHWC");   // zone available water holding capacity (mm)
-//   int colDUL       = paramData.GetCol("DUL");    // Drained upper limit (ratio)
-//   int colPLL       = paramData.GetCol("PLL");    // lower limit of plant extractable soil water (ratio)
-//   int colSat       = paramData.GetCol("SAT");    // zone saturation (ratio)
-//   int colWF        = paramData.GetCol("WF");     // weighting factor ??? only used in determineInfiltrationAndRunoff() below
 
    // add layers
    for (int i = 0; i < rows; i++)
       {
       SoilLayerParams *pParams = new SoilLayerParams;
-
-      //pParams->m_iduID     = paramData.GetAsInt( colIduID,  i);
-      //pParams->m_zoneThick = paramData.GetAsFloat( colZoneThick, i );               //  zone depth
-      //pParams->m_sat       = (paramData.GetAsFloat( colPorosity , i )) / 100.0f;     //  zone saturation (ratio)
-     // pParams->m_DUL       = ((paramData.GetAsFloat( colFieldCap , i )) / 100.0f)* pParams->m_zoneThick;     //  drained upper limit (ratio)
-      //pParams->m_PLL       = (paramData.GetAsFloat( colPermWilt , i )) / 100.0f;     //  plant lower limit (ratio)
-      //pParams->m_permWilt = pParams->m_PLL * pParams->m_zoneThick;  //mm
-      //pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) * pParams->m_zoneThick;
-      //pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) / 100.0f ;  //  zone available water holding capacity (mm)
-      //Params->m_WF is calculated in determineInfiltrationAndRunoff() found below
-      float po= (paramData.GetAsFloat(colPorosity, i));
-      float wpp= (paramData.GetAsFloat(colPermWilt, i));
-      float wp=po/100*30;
       pParams->m_iduID = paramData.GetAsInt(colIduID, i);
       pParams->m_zoneThick = paramData.GetAsFloat(colZoneThick, i);               //  zone depth
-      pParams->m_AWHC = (((paramData.GetAsFloat(colPorosity, i)) - (paramData.GetAsFloat(colPermWilt, i))) / 100.0f)* pParams->m_zoneThick;//length
+      //pParams->m_AWHC = (((paramData.GetAsFloat(colPorosity, i)) - (paramData.GetAsFloat(colPermWilt, i))) / 100.0f)* pParams->m_zoneThick;//length
       pParams->m_permWilt = ((paramData.GetAsFloat(colPermWilt, i)) / 100.0f)*pParams->m_zoneThick;//length
       pParams->m_sat = ((paramData.GetAsFloat(colPorosity, i)) / 100.0f) ;     //  zone saturation (ratio)
      // pParams->m_DUL = (pParams->m_AWHC + pParams->m_permWilt)/ pParams->m_zoneThick;     //  drained upper limit (ratio)
       pParams->m_DUL = ((paramData.GetAsFloat(colFieldCap, i)) / 100.0f) ;     //  drained upper limit (ratio)
      pParams->m_PLL = pParams->m_permWilt / pParams->m_zoneThick;     //  plant lower limit (ratio)
-      
+     pParams->m_AWHC = (pParams->m_DUL - pParams->m_PLL) * pParams->m_zoneThick;
      
-
-
       // add to params list
       m_soilLayerParams.Add(pParams);
 
@@ -302,7 +282,7 @@ SoilInfo* VSMBModel::GetSoilInfo(int idu)
 
 
 // TODO:  Verify VSMB model working correctly
-bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation)
+bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, int dayOfSimulation, int currentStage, FDataObj* pRoot)
    {
    //
    //  Initial strategy to implement VBMS within the Envision F2R plugin. 2/10/2019
@@ -343,7 +323,7 @@ bool SoilInfo::UpdateSoilMoisture(int year, int doy, ClimateStation* pStation, i
    // determine snow depletion
    DetermineSnowDepletion();
    // determine ET
-   DetermineET();
+   DetermineET(currentStage, pRoot);
    // apply precipitation and evaporation to layers
    ApplyPrecipitationAndEvaporationToLayers();
    // calculate drainage and soil water distribution
@@ -389,7 +369,7 @@ int SoilInfo::OutputDayVSMBResults(int doy)
 
    CArray< float, float > data1;
    data1.Add((float)doy);
-   //float a1= 
+
    data1.Add(m_soilLayerArray.GetAt(0)->m_soilMoistContent/ m_soilLayerArray.GetAt(0)->m_pLayerParams->m_AWHC);
    data1.Add(m_soilLayerArray.GetAt(1)->m_soilMoistContent/ m_soilLayerArray.GetAt(1)->m_pLayerParams->m_AWHC);
    data1.Add(m_soilLayerArray.GetAt(2)->m_soilMoistContent/ m_soilLayerArray.GetAt(2)->m_pLayerParams->m_AWHC);
@@ -714,7 +694,7 @@ bool SoilInfo::DetermineSnowDepletion()
    }
 
 
-bool SoilInfo::DetermineET()
+bool SoilInfo::DetermineET(int currentStage, FDataObj* pRoot)
    {
    // find the ET for each layer
    float actEvap = 0.0f;
@@ -743,27 +723,12 @@ bool SoilInfo::DetermineET()
 
          //pLayer->m_kCoef = self.get_root_coeff(self.iCurrentCropStage, i);  // TODO
          //Should depend on crop stage.  See RootCoeffients.csv.
-         switch (i)
-         {
-         case 0:
-            pLayer->m_kCoef=0.75f;
-            break;
-         case 1:
-            pLayer->m_kCoef = 0.25f;
-            break;
 
-         case 2:
-            pLayer->m_kCoef = 0.1f;
-            break;
-         case 3:
-            pLayer->m_kCoef = 0.05f;
-            break;
+         pLayer->m_kCoef = 0.0f;
+         if (pRoot && currentStage < pRoot->GetColCount() && i < m_soilLayerArray.GetSize())
+            pLayer->m_kCoef = pRoot->Get(currentStage,i);
 
-         default:
-            break;
-         }
-
-         int iCurrentCropStage=4;//this should vary over time.  Done in determineCropPhenology in the VB code.  This has been replaced??
+         int iCurrentCropStage=currentStage;
          int iKAdjustStage = 2 ;//crop stage for k-adjustment start.  Should be member of VSMB
          if ((iCurrentCropStage >= iKAdjustStage - 1) && (i != 0))  // TODO
             {
@@ -1060,11 +1025,11 @@ float SoilInfo::PopulateF2R()
 
    m_avSWC = waterDepth/totalDepth;
 
-   float totalAWC = 0;
+   float totalAWHC = 0;
    for (int i = 0; i < GetLayerCount(); i++)
-      totalAWC += m_soilLayerArray[i]->m_pLayerParams->m_AWHC;
+      totalAWHC += m_soilLayerArray[i]->m_pLayerParams->m_AWHC;
 
-   m_percentAWC = waterDepth/totalAWC*100.0f;
+   m_percentAWC = waterDepth/totalAWHC*100.0f;
 
    m_percentSat = m_avSWC*100;
 

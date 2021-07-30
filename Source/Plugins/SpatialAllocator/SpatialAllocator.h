@@ -338,7 +338,7 @@ public:
    bool m_inUse;
    //bool m_shuffleIDUs;
 
-   MapExpr  *m_pTargetMapExpr;
+   MapExpr  *m_pTargetMapExpr;  // memory managed by?
    
    PtrArray< Allocation > m_allocationArray;
 

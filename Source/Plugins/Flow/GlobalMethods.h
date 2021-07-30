@@ -61,7 +61,8 @@ enum GM_METHOD
    GM_WATER_RIGHTS, GM_EXPR_ALLOCATOR, GM_ALTWM,         // WaterAllocation
    GM_FLUX_EXPR,                                         // FluxExpr
    GM_DEMAND_EXPR,                                       // DemandExpr
-   GM_EXTERNAL
+   GM_EXTERNAL,
+   GM_CLIMATE_METRICS
    };
 
 
@@ -495,6 +496,35 @@ protected:
 	float m_iduWoodbWaterDmdDy;   // UGB 71 Woodb daily urban water demand ccf/day
 	
 	FDataObj m_timeSeriesMunDemandSummaries; // for graph daily urban water demand (ccf/day)
+
+};
+
+
+class Climate_Metrics : public GlobalMethod
+{
+public:
+    Climate_Metrics(FlowModel*, LPCTSTR name); // : GlobalMethod( name, GM_PENMAN_MONTIETH ) { }
+    ~Climate_Metrics(void);
+
+    virtual bool Init(FlowContext*);
+    virtual bool StartYear(FlowContext*);    // start of Flow::StartYear() invocation 
+    virtual bool StartStep(FlowContext*);    // start of Flow::StartStep() invocation 
+    virtual bool EndStep(FlowContext*);      // end of Flow timestep
+
+    virtual bool SetMethod(GM_METHOD method) { m_method = GM_CLIMATE_METRICS; return true; }
+
+    bool CalcClimateMetrics(FlowContext* pFlowContext);
+    static Climate_Metrics* LoadXml(TiXmlElement* pXmlClimateMetrics, MapLayer* pIDULayer, LPCTSTR filename, FlowModel* pFlowModel);
+    //-------------------------------------------------------------------  
+    //------- Climate metrics ----------------------------------------
+    //-------------------------------------------------------------------  
+
+protected:
+    int   m_colTemp90;	// num days max temperature above 90F
+    int   m_colTemp70;	// num days min temperature above 70F
+    int   m_maxYearlyTemp90;
+    int   m_minYearlyTemp70;
+
 
 };
 

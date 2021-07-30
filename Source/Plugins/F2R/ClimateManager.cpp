@@ -220,6 +220,23 @@ bool ClimateStation::GetGrowingSeasonLength( int year, int &length, int &startDO
    return true;
    }
 
+
+bool ClimateStation::GetDOYFromCHU(float chu, int &doy)
+   {
+   int _doy = 0;
+   for (_doy = 0; _doy < 355; _doy++)
+      {
+      if (m_chuCornMay1[_doy] >= chu)
+         {
+         doy = _doy + 1;
+         return true;
+         }
+      }
+   doy = -1;
+   return false;
+   }
+
+
 //    def get_pe(self, dDay, dSnowIceCover):
 //        """ calculate potential evapotranspiration
 //        

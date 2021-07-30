@@ -197,11 +197,13 @@ public:
 
    int   GetUsedColCount( void ) { return (int) m_usedParserVars.GetSize(); }
    int   GetUsedCol( int index ) { return (int) m_usedParserVars[ index ]; }
+
+   static bool IsConstant(LPCTSTR expr);
    
    float m_currentTime;      // this must be set using SetCurrentTime(); 
  
 protected:
-   PtrArray< MapExpr > m_exprArray;
+   PtrArray< MapExpr > m_exprArray;     // deletes MapExprs when done, so clients shouldn't.
    PtrArray< MapVar > m_varArray;       // externally added variables
 
    int        m_currentRecord;      // polygon index currently beign evaluated
@@ -233,4 +235,25 @@ inline
 int MapExpr::SetCurrentRecord( int polyIndex )
    {
    return m_pEngine->SetCurrentRecord( polyIndex ); 
+   }
+
+
+inline
+bool MapExprEngine::IsConstant(LPCTSTR expr)
+   {
+   // see the if outcomeExpr is a constant
+   bool isConstant = true;
+   //bool isInt = true;
+   for (int i = 0; i < lstrlen(expr); i++)
+      {
+      if (!(isdigit(expr[i]) || expr[i] == '-' || expr[i] == '.'))
+         {
+         isConstant = false;
+         break;
+         }
+      //else if (expr[i] == '.')
+      //   isInt = false;
+      }
+
+   return isConstant;
    }

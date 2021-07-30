@@ -587,7 +587,7 @@ int IDataObj::WriteAscii( LPCTSTR fileName, TCHAR delimiter, int colWidth )
    //-- put out labels, comma-delimited
    for ( col=0; col < cols-1; col++ )
       {
-      fprintf( fp, "%s%c ", GetLabel( col ), delimiter );
+      fprintf( fp, "%s%c", GetLabel( col ), delimiter );
 
       if ( colWidth == 0 )
          colWidthArray[ col ] = lstrlen( GetLabel( col ) ) + 1;

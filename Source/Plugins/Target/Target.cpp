@@ -113,7 +113,7 @@ PREFERENCE *AllocationSet::AddPreference( LPCTSTR name, Target *pTarget, LPCTSTR
          {
          CString msg( "Unable to compile allocation query: " );
          msg += query;
-         AfxMessageBox( msg );
+         Report::LogWarning( msg );
          pPref->pQuery = NULL;
          }
       }
@@ -141,7 +141,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
          {
          CString msg( "Unable to compile allocation query: " );
          msg += queryStr;
-         AfxMessageBox( msg );
+         Report::LogWarning( msg );
          pQuery = NULL;
          }
       }
@@ -188,7 +188,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
                msg += var;
                msg += "' - Target will not be able to continue...";
 
-               AfxMessageBox( msg );
+               Report::LogError( msg );
                break;
                }
             
@@ -202,7 +202,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
       CString msg( _T("Error encountered parsing target allocation 'value' expression: ") );
       msg += expression;
       msg += _T("... setting to zero" );
-      AfxMessageBox( msg );
+      Report::LogWarning( msg );
 
       parser.compile( _T("0") );
       }
@@ -277,6 +277,10 @@ bool Target::Init( EnvContext *pEnvContext )
    m_startTotalActualValue = m_lastTotalActualValue = m_curTotalActualValue;   
 
    // calculates total value for capacities, populated IDUs 
+
+   if (this->m_pQuery != NULL)
+      m_pQueryEngine->SelectQuery(this->m_pQuery, true);
+
    PopulateCapacity( pEnvContext, false );
 
    // initialize TargetReport variables
@@ -287,7 +291,7 @@ bool Target::Init( EnvContext *pEnvContext )
       pReport->m_value = 0;
       }
 
-   if ( m_pQuery == NULL )
+   if ( this->m_pQuery != NULL )
       ((MapLayer*) pEnvContext->pMapLayer)->ClearSelection();
 
    // generate initial report
@@ -299,19 +303,19 @@ bool Target::Init( EnvContext *pEnvContext )
       msg.Format(_T("   Allocation Set %s (%i): Initial Allocation Values\n"), (LPCTSTR)pAllocationSet->m_name, pAllocationSet->m_id);
       Report::LogInfo( msg );
 
-	  float totalValue = 0;
-	  float totalCapacity = 0;
+     float totalValue = 0;
+     float totalCapacity = 0;
       for (int j = 0; j < pAllocationSet->GetSize(); j++)
          {
          ALLOCATION *pAlloc = pAllocationSet->GetAt(j);
 
-         msg.Format( _T("      %s - Current: %g, Capacity: %g, Area (ha): %.0g\n"), (LPCTSTR) pAlloc->name, pAlloc->currentValue, pAlloc->currentCapacity, pAlloc->currentArea/ M2_PER_HA );
-         Report::LogInfo( msg );
-		 totalValue += pAlloc->currentValue;
-		 totalCapacity += pAlloc->currentCapacity;
+         //msg.Format( _T("      %s - Current: %g, Capacity: %g, Area (ha): %.0g\n"), (LPCTSTR) pAlloc->name, pAlloc->currentValue, pAlloc->currentCapacity, pAlloc->currentArea/ M2_PER_HA );
+         //Report::LogInfo( msg );
+         totalValue += pAlloc->currentValue;
+         totalCapacity += pAlloc->currentCapacity;
          }
-	  msg.Format(_T("      Total: Current: %g, Capacity: %g\n"), totalValue, totalCapacity);
-	  Report::LogInfo(msg);
+     msg.Format(_T("      Total: Current: %g, Capacity: %g\n"), totalValue, totalCapacity);
+     Report::LogInfo(msg);
    }
 
    //msg.Format( _T("   Starting %s: %g, Capacity: %g, Available: %g, Over Capacity: %g\n"),
@@ -326,6 +330,9 @@ bool Target::Init( EnvContext *pEnvContext )
 bool Target::InitRun( EnvContext *pEnvContext )
    {
    m_pQueryEngine = pEnvContext->pQueryEngine;
+
+   if ( this->m_method == TM_TABLE )
+      this->LoadTableValues();
 
    // allocate internal arrays if needed and not already allocated
    if ( m_preferenceArray.size() == 0 )
@@ -344,12 +351,15 @@ bool Target::InitRun( EnvContext *pEnvContext )
    
    // get existing total, target totals
    m_curTotalActualValue = GetCurrentActualValue( pEnvContext );
-   m_curTotalTargetValue = GetCurrentTargetValue( pEnvContext );
+   m_curTotalTargetValue = GetCurrentTargetValue( pEnvContext,-1);
 
    // initialize various summary variables
    m_startTotalActualValue = m_lastTotalActualValue = m_curTotalActualValue;   
 
    // updates targetCapacity, availableCapacity, pctAvailCapacity and IDU-level values
+   if (this->m_pQuery != NULL)
+      m_pQueryEngine->SelectQuery(this->m_pQuery, true);
+
    PopulateCapacity( pEnvContext, false );
 
    // initialize TargetReport variables
@@ -369,7 +379,7 @@ bool Target::InitRun( EnvContext *pEnvContext )
 
    CString msg;
    msg.Format( _T("%s (%i) - Starting: %g, Capacity: %g, Available: %g, Over Capacity: %g\n"),
-	   (LPCTSTR) m_name, pAllocationSet->m_id, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, m_totalOverCapacity );
+      (LPCTSTR) m_name, pAllocationSet->m_id, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, m_totalOverCapacity );
    Report::LogInfo( msg );
 
    return true;
@@ -411,7 +421,7 @@ TargetReport *Target::AddReport( LPCTSTR name, LPCTSTR query )
       {
       CString msg( "Unable to compile report query: " );
       msg += query;
-      AfxMessageBox( msg );
+      Report::LogWarning( msg );
       pReport->m_pQuery = NULL;
       }
 
@@ -437,14 +447,6 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    m_totalModifiedAvailCapacity = 0;
    m_totalOverCapacity = 0;   
 
-
-   MapLayer::ML_RECORD_SET iteratorType = MapLayer::ACTIVE;
-   if (this->m_pQuery != NULL)
-      {
-      iteratorType = MapLayer::SELECTION;
-      m_pQueryEngine->SelectQuery(this->m_pQuery, true);
-      }
-   
    //for ( MapLayer::Iterator _idu=pLayer->Begin(MapLayer::ACTIVE); _idu < pLayer->End(MapLayer::ACTIVE); _idu++ )
    //   {
    //   int idu = (int)_idu;
@@ -465,9 +467,6 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    std::fill(m_availCapacityArray.begin(), m_availCapacityArray.end(), (float)LONG_MIN - 1);
    std::fill(m_preferenceArray.begin(), m_preferenceArray.end(), 1.0f);
 
-   int colIDUIndex = pLayer->GetFieldCol("IDU_ID");
-
-
    // basic idea:  for each allocation specified in the input file:
    //   1) Run the associated spatial query to get IDU's contained within that allocation
    //   2) Execute the allocation formula to compute a non-normalized population capacity surface (spatial distribution).
@@ -480,6 +479,10 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
 
    AllocationSet *pAllocationSet = GetActiveAllocationSet();
    ASSERT( pAllocationSet != NULL );
+
+   MapLayer::ML_RECORD_SET iteratorType = MapLayer::ACTIVE;
+   if (this->m_pQuery != NULL)
+      iteratorType = MapLayer::SELECTION;
    
    for ( int i=0; i < (int) pAllocationSet->GetCount(); i++ )
       {
@@ -501,9 +504,9 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
             }
 
          queryCount++;
-		 float area = 0;
-		 pLayer->GetData(idu, m_colArea, area);
-		 pAlloc->currentArea += area;
+         float area = 0;
+         pLayer->GetData(idu, m_colArea, area);
+         pAlloc->currentArea += area;
 
          if ( m_availCapacityArray[ idu ] > float( LONG_MIN )  )
             {
@@ -687,8 +690,44 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    //   m_totalOverCapacity
    m_totalPercentAvailable = (m_totalAvailCapacity/m_totalCapacity)*100;
 
+   //if (this->m_pQuery != NULL)
+   //   ((MapLayer*)pLayer)->ClearSelection();
+
    return;
    }  // end of : PopulateCapacity()
+
+
+void Target::LoadTableValues()
+   {
+   CStringArray ti;
+   int count = ::Tokenize(this->m_targetValues, ".", ti);
+
+   if (count != 2)
+      {
+      Report::LogWarning("Bad table value");
+      return;
+      }
+
+   TTable* pTable = this->m_pProcess->GetTTable(ti[0]);
+   if (pTable == NULL)
+      {
+      CString msg("Target: Couldn't find table ");
+      msg += ti[0];      
+      Report::LogWarning(msg);
+      return;
+      }
+
+   this->m_pTargetData->ClearRows();
+
+   float pair[2];
+   for (int i = 0; i < pTable->GetYearCount(); i++)
+      {
+      pair[0] = (float)pTable->GetYear(i);
+      pair[1] = pTable->Lookup(ti[1], pTable->GetYear(i));
+      this->m_pTargetData->AppendRow(pair, 2);
+      }
+   }
+
 
 
 bool Target::Run( EnvContext *pEnvContext )
@@ -710,9 +749,9 @@ bool Target::Run( EnvContext *pEnvContext )
    if (this->m_pQuery != NULL)
       {
       iteratorType = MapLayer::SELECTION;
-//      m_pQueryEngine->SelectQuery(this->m_pQuery, true);
+      m_pQueryEngine->SelectQuery(this->m_pQuery, true);
       }
-   
+
    try
       {
       PopulateCapacity( pEnvContext, true );   // generate basic allocation information, sets selection set in IDUs if target    query defiend
@@ -722,6 +761,9 @@ bool Target::Run( EnvContext *pEnvContext )
          CString msg;
          msg.Format( _T("%s capacity exceeded in year %i - no new %s will be allocated!!!"), (LPCTSTR) m_name, pEnvContext->currentYear, (LPCTSTR) m_name );
          Report::LogError( msg);
+
+         msg.Format(_T("  "));
+
          //TRACE( msg );
          return true;
          }
@@ -730,7 +772,7 @@ bool Target::Run( EnvContext *pEnvContext )
       // Note: relative available capacity is the IDU delta/total growth capacity
       
       // get the current estimate of the target
-      m_curTotalTargetValue = GetCurrentTargetValue( pEnvContext );
+      m_curTotalTargetValue = GetCurrentTargetValue( pEnvContext,-1 );
 
       // new growth to be allocated is the difernece between what is there vs what is desired
       float newGrowth = m_curTotalTargetValue - m_lastTotalActualValue;   // this is new growth needed to achieve the projection
@@ -814,12 +856,12 @@ bool Target::Run( EnvContext *pEnvContext )
       {
       char msg[ 128 ];
       e->GetErrorMessage( msg, 128 );
-      AfxMessageBox( msg );
+      Report::LogError( msg );
       }
 
    catch( ... )
       {
-      AfxMessageBox(_T("Unknown exception thrown in Target.dll") );
+      Report::LogError(_T("Unknown exception thrown in Target.dll") );
       }
 
    // update report variables
@@ -852,8 +894,6 @@ bool Target::Run( EnvContext *pEnvContext )
          }
       }
 
-   ((MapLayer*)pLayer)->ClearSelection();
-
    AllocationSet *pActiveSet = GetActiveAllocationSet();
    
    float totalAllocCap = 0;
@@ -868,6 +908,9 @@ bool Target::Run( EnvContext *pEnvContext )
       totalAllocCap += pAlloc->currentCapacity;
       totalAllocVal += pAlloc->currentValue;
       }
+
+   if (this->m_pQuery != NULL)
+      ((MapLayer*)pLayer)->ClearSelection();
     
    //TRACE("ALLOCATION Total: Capacity=%.1f, Existing=%.1f\n", totalAllocCap, totalAllocVal);
    
@@ -875,7 +918,7 @@ bool Target::Run( EnvContext *pEnvContext )
    }
 
    
-float Target::GetCurrentTargetValue( EnvContext *pEnvContext )
+float Target::GetCurrentTargetValue( EnvContext *pEnvContext, int idu )
    {
    // calculate actual target growth rate.
    float actualProjTarget = 0;  // not density, rather, total value of target
@@ -890,6 +933,7 @@ float Target::GetCurrentTargetValue( EnvContext *pEnvContext )
          break;
 
       case TM_TIMESERIES:
+      case TM_TABLE:
          ASSERT( m_pTargetData != NULL );
          actualProjTarget =  m_pTargetData->IGet((float) pEnvContext->currentYear, 0, 1, IM_LINEAR);
          break;
@@ -932,6 +976,20 @@ float Target::GetCurrentActualValue( EnvContext *pEnvContext )
       float targetValue = existingDensity * area;
 
       curActualValue += targetValue;
+      }
+
+   float _curActualValue = 0;     // actual target is the current popDens * area = # of target
+   for (MapLayer::Iterator _idu = pLayer->Begin(); _idu < pLayer->End(); _idu++)
+      {
+      float area;
+      float existingDensity; // NOTE: Assumes target is expressed as DENSITY, in units consistent with map area
+
+      pLayer->GetData(_idu, m_colArea, area);
+      pLayer->GetData(_idu, m_colTarget, existingDensity);
+
+      float targetValue = existingDensity * area;
+
+      _curActualValue += targetValue;
       }
 
    return curActualValue;
@@ -1057,7 +1115,7 @@ bool Target::SetQuery( LPCTSTR query )
          {
          CString msg( "Target: Unable to compile target query: " );
          msg += query;
-         AfxMessageBox( msg );
+         Report::LogWarning( msg );
          return false;
          }
       }
@@ -1120,12 +1178,12 @@ bool TargetProcess::LoadXml(LPCTSTR _filename, EnvContext *pEnvContext)
 
    m_configFile = (LPCTSTR) filename;
 
-   FileToString(filename, m_configStr);
+   //FileToString(filename, m_configStr);
 
    // start parsing input file
    TiXmlDocument doc;
-   bool ok = doc.Parse(m_configStr.c_str());
-   //bool ok = doc.LoadFile(filename);
+   //bool ok = doc.Parse(m_configStr.c_str());
+   bool ok = doc.LoadFile(filename);
 
    if (!ok)
       {
@@ -1165,6 +1223,7 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
    int modifierCount = 0;
    int reportCount = 0;
    int constCount = 0;
+   int tableCount = 0;
 
    int modelID = 0;
 
@@ -1189,19 +1248,67 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
       pXmlGlobalConst = pXmlGlobalConst->NextSiblingElement(_T("const"));
       }
 
-
-   Target *pTarget = new Target(this, modelID++, "Target" );
-   if (pTarget == NULL)
+   TiXmlElement* pXmlTable = pXmlRoot->FirstChildElement(_T("table"));
+   while (pXmlTable != NULL)
       {
-      Report::ErrorMsg("Target: Unable to create Target instance ");
-      return false;
+      LPCTSTR name = pXmlTable->Attribute(_T("name"));
+      LPCTSTR years = pXmlTable->Attribute(_T("years"));
+
+      if (name == NULL || years== NULL)
+         {
+         CString msg(_T("Error in <table> specification (Global)"));
+         msg += _T("); a required attribute (name/years) is missing");
+         Report::ErrorMsg(msg);
+         continue;
+         }
+
+      TTable* pTable = this->AddTable(name);
+      //pTable->m_field = field;
+      //pTable->m_col = pEnvContext->pMapLayer->GetFieldCol(field);
+
+      CStringArray tokens;
+      int count = ::Tokenize(years, ",", tokens);
+
+      int* _years= new int[count];
+      for (int i = 0; i < count; i++)
+         _years[i] = atoi(tokens[i]);
+      pTable->SetYears(_years, count);
+      delete[] _years;
+
+      float* values = new float[count];
+
+      // get individual records
+      TiXmlElement* pXmlRecord = pXmlTable->FirstChildElement(_T("record"));
+      while (pXmlRecord != NULL)
+         {
+         LPCTSTR name = pXmlRecord->Attribute(_T("name"));
+         LPCTSTR value= pXmlRecord->Attribute(_T("value"));
+         LPCTSTR data = pXmlRecord->Attribute(_T("data"));
+
+         // parse data
+         int count = ::Tokenize(data, ",", tokens);
+         //int index = atoi(tokens[0]);
+         for (int i = 0; i < count; i++)
+            values[i] = (float)atof(tokens[i]);
+
+         //VData _name(name);  // TYPE_DSTRING
+         pTable->AddRecord(name, atoi(value), values);
+         pXmlRecord = pXmlRecord->NextSiblingElement(_T("record"));
+         }
+
+      delete[] values;
+      tableCount++;
+      pXmlTable = pXmlTable->NextSiblingElement(_T("table"));
       }
 
-   pTarget->m_pQueryEngine = pEnvContext->pQueryEngine;
 
    TiXmlElement *pXmlTarget = pXmlRoot->FirstChildElement( _T("target") );
    while( pXmlTarget != NULL )
       {
+      LPTSTR name = NULL;  //
+      LPTSTR descr = NULL; //
+      LPTSTR queryStr = NULL; //
+      bool estParams = false;
       LPTSTR method = NULL;
       LPTSTR value  = NULL;
       LPTSTR colTarget = NULL;
@@ -1216,8 +1323,8 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
 
       XML_ATTR attrs[] = {
          // attr            type           address                         isReq checkCol
-            { "name",         TYPE_CSTRING,  &pTarget->m_name,             false,  0 },
-            { "description",  TYPE_CSTRING,  &pTarget->m_description,      false,  0 },
+            { "name",         TYPE_STRING,  &name,                      false,  0 },
+            { "description",  TYPE_STRING,  &descr,                       false,  0 },
             { "method",       TYPE_STRING,   &method,                      true,  0 },
             { "value",        TYPE_STRING,   &value,                       true,  0 },
             { "col",          TYPE_STRING,   &colTarget,                   true,  0 },
@@ -1229,26 +1336,42 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
             { "availDensCol", TYPE_STRING,   &colAvailDens,                false, 0 },
             { "areaCol",      TYPE_STRING,   &colArea,                     false, 0 },
             { "prefsCol",     TYPE_STRING,   &colPrefs,                    false, 0 },
-            { "query",        TYPE_CSTRING,   &pTarget->m_queryStr,         false, 0 },
-            { "estimate_params", TYPE_BOOL, &pTarget->m_estimateParams,   false, 0 },
+            { "query",        TYPE_STRING,  &queryStr,         false, 0 },
+            { "estimate_params", TYPE_BOOL,  &estParams,   false, 0 },
             { NULL,            TYPE_NULL,     NULL,                false, 0 } };
 
-     MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
+      MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
       bool ok = TiXmlGetAttributes( pXmlTarget, attrs, m_configFile.c_str(), pLayer);
 
       if (!ok) 
          {
          CString msg(_T("Error in target specification for <target> "));
-         msg += pTarget->m_name;
+         msg += name;
          msg += _T("; a required attribute (name/method/value) is missing");
          Report::ErrorMsg(msg);
-         delete pTarget;
          return false;
          }
-      
-      this->m_targetArray.Add( pTarget );
 
+      Target* pTarget = new Target(this, modelID++, "Target");
+      if (pTarget == NULL)
+         {
+         Report::ErrorMsg("Target: Unable to create Target instance ");
+         return false;
+         }
+
+      if ( name != NULL )
+         pTarget->m_name = name;
+      if ( descr != NULL)
+         pTarget->m_description = descr;
+      if ( queryStr != NULL )
+         pTarget->m_queryStr = queryStr;
+      if ( estParams != NULL )
+         pTarget->m_estimateParams = estParams;
+
+      pTarget->m_pQueryEngine = pEnvContext->pQueryEngine;
+
+      this->m_targetArray.Add( pTarget );
 
       EnvExtension::CheckCol( pLayer, pTarget->m_colTarget, colTarget, TYPE_FLOAT, CC_AUTOADD );
 
@@ -1296,6 +1419,8 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          pTarget->m_method = TM_TIMESERIES_CONSTANT_RATE;
       else if ( lstrcmpi( method, _T("timeseries") ) == 0 )
          pTarget->m_method = TM_TIMESERIES;
+      else if (lstrcmpi(method, _T("table")) == 0)
+         pTarget->m_method = TM_TABLE;
       else
          {
          CString msg;
@@ -1304,11 +1429,11 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          pTarget->m_method = TM_UNDEFINED;
          }
 
-      switch( pTarget->m_method )
+      switch (pTarget->m_method)
          {
          case TM_RATE_LINEAR:
          case TM_RATE_EXP:
-            pXmlTarget->Attribute( _T("value"), &(pTarget->m_rate) );
+            pXmlTarget->Attribute(_T("value"), &(pTarget->m_rate));
             break;
 
          case TM_TIMESERIES:
@@ -1316,29 +1441,45 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
             {
             pTarget->m_targetValues = value;
 
-            ASSERT( pTarget->m_pTargetData == NULL );
-            pTarget->m_pTargetData = new FDataObj( 2, 0, U_YEARS );
+            ASSERT(pTarget->m_pTargetData == NULL);
+            pTarget->m_pTargetData = new FDataObj(2, 0, U_YEARS);
 
-            TCHAR *targetValues = new TCHAR[ lstrlen( value ) + 2 ];
-            lstrcpy( targetValues, value );
+            TCHAR* targetValues = new TCHAR[lstrlen(value) + 2];
+            lstrcpy(targetValues, value);
 
-            TCHAR *nextToken = NULL;
-            LPTSTR token = _tcstok_s( targetValues, _T(",() ;\r\n"), &nextToken );
+            TCHAR* nextToken = NULL;
+            LPTSTR token = _tcstok_s(targetValues, _T(",() ;\r\n"), &nextToken);
 
             float pair[2];
-            while ( token != NULL )
+            while (token != NULL)
                {
-               pair[0] = (float) atof( token );
-               token   = _tcstok_s( NULL, _T(",() ;\r\n"), &nextToken );
-               pair[1] = (float) atof( token );
-               token   = _tcstok_s( NULL, _T(",() ;\r\n"), &nextToken );
-   
-               pTarget->m_pTargetData->AppendRow( pair, 2 );
+               pair[0] = (float)atof(token);
+               token = _tcstok_s(NULL, _T(",() ;\r\n"), &nextToken);
+               pair[1] = (float)atof(token);
+               token = _tcstok_s(NULL, _T(",() ;\r\n"), &nextToken);
+
+               pTarget->m_pTargetData->AppendRow(pair, 2);
                }
 
-            delete [] targetValues;
+            delete[] targetValues;
 
-            pTarget->m_targetData_year0 = pTarget->m_pTargetData->GetAsFloat(1,0);
+            pTarget->m_targetData_year0 = pTarget->m_pTargetData->GetAsFloat(1, 0);
+            ASSERT(pTarget->m_targetData_year0 >= 0);
+            }
+            break;
+
+         case TM_TABLE:
+            {
+            // store table info, e.g 'TableName.ReecordName'
+            pTarget->m_targetValues = value;
+
+            // allocate 2 col dataobj, year and populate from record
+            ASSERT(pTarget->m_pTargetData == NULL);
+            pTarget->m_pTargetData = new FDataObj(2, 0, U_YEARS);
+
+            pTarget->LoadTableValues();
+         
+            pTarget->m_targetData_year0 = pTarget->m_pTargetData->GetAsFloat(1, 0);
             ASSERT(pTarget->m_targetData_year0 >= 0);
             }
             break;
@@ -1418,132 +1559,172 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
       if ( pXmlAllocationSet == NULL )
          Report::ErrorMsg( _T("Error finding <allocation_set> section reading target input file" ) );
 
-      while( pXmlAllocationSet != NULL )
+      while (pXmlAllocationSet != NULL)
          {
-         LPCTSTR id   = pXmlAllocationSet->Attribute(_T("id") );
-         LPCTSTR name = pXmlAllocationSet->Attribute( _T("name") );
-         LPCTSTR description = pXmlAllocationSet->Attribute( _T("description") );
+         LPCTSTR id = pXmlAllocationSet->Attribute(_T("id"));
+         LPCTSTR name = pXmlAllocationSet->Attribute(_T("name"));
+         LPCTSTR description = pXmlAllocationSet->Attribute(_T("description"));
+         LPCTSTR ref = pXmlAllocationSet->Attribute(_T("ref"));
 
-         if ( name == NULL || id == NULL )
+         //if (name == NULL || id == NULL)
+         //   {
+         //   CString msg(_T("Error in <allocation_set> specification ("));
+         //   msg += pTarget->m_name;
+         //   msg += _T("); a required attribute (name/id) is missing");
+         //   Report::ErrorMsg(msg);
+         //   continue;
+         //   }
+
+         AllocationSet* pAllocationSet = NULL;
+         // is a reference to another allocation defined?
+         // then just set a reference to it
+         if (ref != NULL)
             {
-            CString msg( _T("Error in <allocation_set> specification (" ) );
-            msg += pTarget->m_name;
-            msg += _T("); a required attribute (name/id) is missing" );
-            Report::ErrorMsg( msg );
-            continue;
-            }
-
-         AllocationSet *pAllocationSet = new AllocationSet;
-         pTarget->m_allocationSetArray.Add( pAllocationSet );
-         allocationSetCount++;
-
-         pAllocationSet->m_id = atoi( id );
-         pAllocationSet->m_name = name;
-         pAllocationSet->m_description = description;
-
-         if ( pTarget->m_activeAllocSetID < 0 ) // first allocation set is the default
-            pTarget->m_activeAllocSetID = pAllocationSet->m_id;
-
-         // AllocationSet created, now get associated allocation
-
-         // iterate through individual allocations for this set
-         const TiXmlElement *pXmlAllocation = pXmlAllocationSet->FirstChildElement( _T("capacity") );
-
-         while ( pXmlAllocation != NULL )
-            {
-            LPCTSTR _name  = pXmlAllocation->Attribute( _T("name") );
-            LPCTSTR _query = pXmlAllocation->Attribute( _T("query") );
-            LPCTSTR _value = pXmlAllocation->Attribute( _T("value") );
-            LPCTSTR _multiplier  = pXmlAllocation->Attribute( _T("multiplier") );
-
-            if ( _name == NULL || _value == NULL ) //_query == NULL || _value == NULL  )
+            CStringArray tokens;
+            int count = ::Tokenize(ref, ".", tokens);
+            bool found = false;
+            
+            for (int i = 0; i < this->GetTargetCount(); i++)
                {
-               CString msg( _T("Error in <capacity> specification (" ) );
-               msg += _name;
-               msg += _T("); a required attribute (name/value) is missing" );
-               Report::ErrorMsg( msg );
-               continue;
+               Target* _pTarget = this->GetTarget(i);
+               if (lstrcmpi(tokens[0], _pTarget->m_name) == 0)
+                  {
+                  for (int j = 0; j < _pTarget->m_allocationSetArray.GetSize(); j++)
+                     {
+                     AllocationSet* pSet = _pTarget->m_allocationSetArray[j];
+                     if (lstrcmpi(pSet->m_name, tokens[1]) == 0)
+                        {
+                        pTarget->m_allocationSetArray.Add(pSet);
+                        allocationSetCount++;
+                        pSet->m_refCount++;
+
+                        if (pTarget->m_activeAllocSetID < 0) // first allocation set is the default
+                           pTarget->m_activeAllocSetID = pSet->m_id;
+
+                        found = true;
+                        break;
+                        }
+                     }
+                  break;
+                  }
+               }
+            if (!found)
+               {
+               CString msg;
+               msg.Format("Allocation set reference %s not found", ref);
+               Report::LogWarning(msg);
+               }
+            }
+         else
+            {
+            pAllocationSet = new AllocationSet;
+            pTarget->m_allocationSetArray.Add(pAllocationSet);
+            allocationSetCount++;
+
+            pAllocationSet->m_id = atoi(id);
+            pAllocationSet->m_name = name;
+            pAllocationSet->m_description = description;
+
+            if (pTarget->m_activeAllocSetID < 0) // first allocation set is the default
+               pTarget->m_activeAllocSetID = pAllocationSet->m_id;
+            // iterate through individual allocations for this set
+            const TiXmlElement* pXmlAllocation = pXmlAllocationSet->FirstChildElement(_T("capacity"));
+
+            while (pXmlAllocation != NULL)
+               {
+               LPCTSTR _name = pXmlAllocation->Attribute(_T("name"));
+               LPCTSTR _query = pXmlAllocation->Attribute(_T("query"));
+               LPCTSTR _value = pXmlAllocation->Attribute(_T("value"));
+               LPCTSTR _multiplier = pXmlAllocation->Attribute(_T("multiplier"));
+
+               if (_name == NULL || _value == NULL) //_query == NULL || _value == NULL  )
+                  {
+                  CString msg(_T("Error in <capacity> specification ("));
+                  msg += _name;
+                  msg += _T("); a required attribute (name/value) is missing");
+                  Report::ErrorMsg(msg);
+                  continue;
+                  }
+
+               // take care of multiplier if defined
+               float multiplier = 1.0f;
+               if (_multiplier != NULL)
+                  multiplier = (float)atof(_multiplier);
+
+               ALLOCATION* pAllocation = pAllocationSet->AddAllocation(_name, pTarget, _query, _value, multiplier);
+               ASSERT(pAllocation != NULL);
+               pAllocation->Compile(pTarget, pLayer);
+
+               allocationCount++;
+               pXmlAllocation = pXmlAllocation->NextSiblingElement(_T("capacity"));
                }
 
-            // take care of multiplier if defined
-            float multiplier = 1.0f;
-            if ( _multiplier != NULL )
-               multiplier = (float) atof( _multiplier );
+            //////////////////////////////////////////////////////////////////////
+            /// the next section is for backward compatibility only!!!!!
 
-            ALLOCATION *pAllocation = pAllocationSet->AddAllocation( _name, pTarget, _query, _value, multiplier );
-            ASSERT( pAllocation != NULL );
-            pAllocation->Compile( pTarget, pLayer );
+            // iterate through individual allocations for this set
+            pXmlAllocation = pXmlAllocationSet->FirstChildElement(_T("allocation"));
 
-            allocationCount++;
-            pXmlAllocation = pXmlAllocation->NextSiblingElement( _T("capacity" ) );
-            }
-
-         //////////////////////////////////////////////////////////////////////
-         /// the next section is for backward compatibility only!!!!!
-
-         // iterate through individual allocations for this set
-         pXmlAllocation = pXmlAllocationSet->FirstChildElement( _T("allocation") );
-
-         while ( pXmlAllocation != NULL )
-            {
-            LPCTSTR _name  = pXmlAllocation->Attribute( _T("name") );
-            LPCTSTR _query = pXmlAllocation->Attribute( _T("query") );
-            LPCTSTR _value = pXmlAllocation->Attribute( _T("value") );
-            LPCTSTR _multiplier  = pXmlAllocation->Attribute( _T("multiplier") );
-
-            if ( _name == NULL || _value == NULL ) //_query == NULL || _value == NULL  )
+            while (pXmlAllocation != NULL)
                {
-               CString msg( _T("Error in <allocation> specification (" ) );
-               msg += _name;
-               msg += _T("); a required attribute (name/value) is missing" );
-               Report::ErrorMsg( msg );
-               continue;
+               LPCTSTR _name = pXmlAllocation->Attribute(_T("name"));
+               LPCTSTR _query = pXmlAllocation->Attribute(_T("query"));
+               LPCTSTR _value = pXmlAllocation->Attribute(_T("value"));
+               LPCTSTR _multiplier = pXmlAllocation->Attribute(_T("multiplier"));
+
+               if (_name == NULL || _value == NULL) //_query == NULL || _value == NULL  )
+                  {
+                  CString msg(_T("Error in <allocation> specification ("));
+                  msg += _name;
+                  msg += _T("); a required attribute (name/value) is missing");
+                  Report::ErrorMsg(msg);
+                  continue;
+                  }
+
+               // take care of multiplier if defined
+               float multiplier = 1.0f;
+               if (_multiplier != NULL)
+                  multiplier = (float)atof(_multiplier);
+
+               ALLOCATION* pAllocation = pAllocationSet->AddAllocation(_name, pTarget, _query, _value, multiplier);
+               ASSERT(pAllocation != NULL);
+               pAllocation->Compile(pTarget, pLayer);
+
+               allocationCount++;
+               pXmlAllocation = pXmlAllocation->NextSiblingElement(_T("allocation"));
                }
+            ////////////////////////////////////////
 
-            // take care of multiplier if defined
-            float multiplier = 1.0f;
-            if ( _multiplier != NULL )
-               multiplier = (float) atof( _multiplier );
+            // iterate through preferences for this set
+            const TiXmlElement* pXmlPreference = pXmlAllocationSet->FirstChildElement(_T("preference"));
 
-            ALLOCATION *pAllocation = pAllocationSet->AddAllocation( _name, pTarget, _query, _value, multiplier );
-            ASSERT( pAllocation != NULL );
-            pAllocation->Compile( pTarget, pLayer );
-
-            allocationCount++;
-            pXmlAllocation = pXmlAllocation->NextSiblingElement( _T("allocation" ) );
-            }
-         ////////////////////////////////////////
-
-         // iterate through preferences for this set
-         const TiXmlElement *pXmlPreference = pXmlAllocationSet->FirstChildElement( _T("preference") );
-
-         while ( pXmlPreference != NULL )
-            {
-            LPCTSTR _name   = pXmlPreference->Attribute( _T("name") );
-            LPCTSTR _query  = pXmlPreference->Attribute( _T("query") );
-            LPCTSTR _value  = pXmlPreference->Attribute( _T("value") );
-            LPCTSTR _target = pXmlPreference->Attribute( _T("target") );
-
-            if ( _name == NULL || _value == NULL || _query == NULL )
+            while (pXmlPreference != NULL)
                {
-               CString msg( _T("Error in <preference> specification (" ) );
-               msg += _name;
-               msg += _T("); a required attribute (name/query/value) is missing" );
-               Report::ErrorMsg( msg );
-               continue;
+               LPCTSTR _name = pXmlPreference->Attribute(_T("name"));
+               LPCTSTR _query = pXmlPreference->Attribute(_T("query"));
+               LPCTSTR _value = pXmlPreference->Attribute(_T("value"));
+               LPCTSTR _target = pXmlPreference->Attribute(_T("target"));
+
+               if (_name == NULL || _value == NULL || _query == NULL)
+                  {
+                  CString msg(_T("Error in <preference> specification ("));
+                  msg += _name;
+                  msg += _T("); a required attribute (name/query/value) is missing");
+                  Report::ErrorMsg(msg);
+                  continue;
+                  }
+
+               float value = float(atof(_value));
+               PREFERENCE* pModifier = pAllocationSet->AddPreference(_name, pTarget, _query, value);
+               ASSERT(pModifier != NULL);
+               modifierCount++;
+
+               if (_target != NULL)
+                  pModifier->target = (float)atof(_target);
+
+               pXmlPreference = pXmlPreference->NextSiblingElement(_T("preference"));
                }
-
-            float value = float( atof( _value ) );
-            PREFERENCE *pModifier = pAllocationSet->AddPreference( _name, pTarget, _query, value );
-            ASSERT( pModifier != NULL );
-            modifierCount++;
-
-            if ( _target != NULL )
-               pModifier->target = (float) atof( _target );
-
-            pXmlPreference = pXmlPreference->NextSiblingElement( _T("preference" ) );
             }
-
          pXmlAllocationSet = pXmlAllocationSet->NextSiblingElement( _T("allocation_set") );
          }  // end of <allocations>
 
@@ -1675,6 +1856,10 @@ bool TargetProcess::SaveXml( LPCTSTR filename, MapLayer *pLayer )
          case TM_TIMESERIES:
             pMethod = _T( "timeSeries");
             break;
+
+         case TM_TABLE:
+            pMethod = _T("table");
+            break;
          }  // end of: switch( pTarget->m_method )
             
       TCHAR *col         = pTarget->m_colTarget >= 0           ? pLayer->GetFieldLabel( pTarget->m_colTarget ) : "" ;
@@ -1781,7 +1966,7 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
       
    // set up exposed variables
 
-   // only one input variable - allocation set to use
+   // only one input variable - allocation set to use (NOTE THIS IS GLOBAL TO ALL TARGETS)
    CString description( _T("Identifier for the allocation scenario to use.  Valid values are: " ) );
    Target *pTarget = m_targetArray[ 0 ];
    for ( int i=0; i < pTarget->m_allocationSetArray.GetSize(); i++ )
@@ -1806,6 +1991,9 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
 
    AddInputVar( _T("Allocation Scenario"), pTarget->m_activeAllocSetID, description );
    AddInputVar( _T("Growth Rate"), pTarget->m_rate, _T("Growth Rate (decimal percent/year)" ) );
+
+   for (int i = 0; i < this->m_tableArray.GetSize(); i++)
+      AddInputVar(this->m_tableArray[i]->m_name, this->m_tableArray[i]->m_value, _T("Table Lookup Value"));
 
    // global outputs
    AddOutputVar( "Target", m_totalTargetValue, _T("") );

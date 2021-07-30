@@ -55,6 +55,9 @@ bool LPJGuess::Guess_Flow(FlowContext *pFlowContext, bool useInitialSeed)
 	if (pFlowContext->timing & GMT_INIT) // Init()
 		return LPJGuess::Init_Guess(pFlowContext, "envision", pFlowContext->initInfo);
 
+	if (pFlowContext->timing & GMT_INITRUN) // Init()
+		return LPJGuess::InitRun_Guess(pFlowContext, "envision", pFlowContext->initInfo);
+
 	if (pFlowContext->timing & GMT_CATCHMENT) // Init()
 		return LPJGuess::Run_Guess(pFlowContext, "envision", "\\LPJGuess\\inputs\\global_cru_new.ins");
 	
@@ -63,159 +66,184 @@ bool LPJGuess::Guess_Flow(FlowContext *pFlowContext, bool useInitialSeed)
 
 bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
-	//need to pass name of *.ins file. {insfile="C:\\LPJ_GUESS\\input\\global_cru.ins" help=false parallel=false ...}	CommandLineArguments
-	//int argc=2, char* argv[]
-   //CommandLineArguments args(arg.argc, arg.argv);
-		// Call the framework
-	//framework(args);
+	////need to pass name of *.ins file. {insfile="C:\\LPJ_GUESS\\input\\global_cru.ins" help=false parallel=false ...}	CommandLineArguments
+	////int argc=2, char* argv[]
+ //  //CommandLineArguments args(arg.argc, arg.argv);
+	//	// Call the framework
+	////framework(args);
 
-	set_shell(new CommandLineShell(file_log));
+	//set_shell(new CommandLineShell(file_log));
 
-	// The 'mission control' of the model, responsible for maintaining the
-	// primary model data structures and containing all explicit loops through
-	// space (grid cells/stands) and time (days and years).
-	using std::auto_ptr;
-	m_input_module = InputModuleRegistry::get_instance().create_input_module(input_module_name);
-	//GuessOutput::OutputModuleContainer output_modules;
-	GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(m_output_modules);
+	//// The 'mission control' of the model, responsible for maintaining the
+	//// primary model data structures and containing all explicit loops through
+	//// space (grid cells/stands) and time (days and years).
+	//using std::auto_ptr;
+	//m_input_module = InputModuleRegistry::get_instance().create_input_module(input_module_name);
+	////GuessOutput::OutputModuleContainer output_modules;
+	//GuessOutput::OutputModuleRegistry::get_instance().create_all_modules(m_output_modules);
 
-	read_instruction_file(instruction_file);
-	m_input_module->init();
-	m_output_modules.init();
+	//read_instruction_file(instruction_file);
+	//m_input_module->init();
+	//m_output_modules.init();
 
-	print_logfile_heading();
-
-
-	if (ifnlim && !ifcentury) {
-		fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
-	}
+	//print_logfile_heading();
 
 
-	if (ifbvoc) {
-		initbvoc();
-	}
-
-	//auto_ptr<GuessSerializer> serializer;
-	//auto_ptr<GuessDeserializer> deserializer;
-
-	if (save_state) {
-		m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
-	}
-
-	if (restart) {
-		m_deserializer = new GuessDeserializer(state_path);
-	}
+	//if (ifnlim && !ifcentury) {
+	//	fail("\n\nIf nitrogen limitation is switched on then century soil module also needs to be switched on!");
+	//}
 
 
-	FlowModel *pFlow = pFlowContext->pFlowModel;
-	EnvModel *pEnvModel = pFlowContext->pEnvContext->pEnvModel;
+	//if (ifbvoc) {
+	//	initbvoc();
+	//}
 
-	MapLayer *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
+	////auto_ptr<GuessSerializer> serializer;
+	////auto_ptr<GuessDeserializer> deserializer;
 
-	m_hruGridCells.SetSize(pFlow->GetHRUCount());
-	for (int i = 0; i < pFlow->GetHRUCount(); i++)
-		m_hruGridCells[i] = new GridCellIndexArray;
+	//if (save_state) {
+	//	m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
+	//}
 
-	UINT gridCellIndex = 0;
-	UINT hruGridCellCount = 0;
-	UINT hruAddedCount = 0;
-	CUIntArray added;
-	added.SetSize(pFlow->GetHRUCount());
-	for (int p = 0; p < added.GetSize(); p++)
-		added[p] = 0;
-
-	while (true) {
-
-		// START OF LOOP THROUGH GRID CELLS
-
-		// Initialise global variable date
-		// (argument nyear not used in this implementation)
-		date.init(1);
-
-		// Create and initialise a new Gridcell object for each locality
-		Gridcell *pGridcell = new Gridcell;
-		gridCellIndex++;
-		//	read_instruction_file(instruction_file);
-		  // Call input module to obtain latitude and driver data for this grid cell.
-		if (!m_input_module->getgridcell(*pGridcell))
-		{
-			delete pGridcell;
-			break;
-		}
-
-		// Initialise certain climate and soil drivers
-		pGridcell->climate.initdrivers(pGridcell->get_lat());
-
-		if (run_landcover && !restart)
-		{
-			// Read landcover and cft fraction data from 
-			// data files for the spinup period and create stands
-			landcover_init(*pGridcell, m_input_module);
-		}
-
-		if (restart) {
-			// Get the whole grid cell from file...
-			m_deserializer->deserialize_gridcell(*pGridcell);
-			// ...and jump to the restart year
-			date.year = state_year;
-		}
-
-		float y = pGridcell->get_easting();
-		float x = pGridcell->get_northing();
-
-		int hruCount = pFlow->GetHRUCount();
-		HRU *pHRU = nullptr;
-
-		//Check that this gridcell is contained by the map. 
-		//Add it to the m_gridCellArray if it is.
-		//If it isn't, we do not want to include it in the simulation
-		for (int h = 0; h < hruCount; h++)
-		   {
-			pHRU = pFlowContext->pFlowModel->GetHRU(h);
-			// if center of grid cell is in an hru poly 
-			bool found = false;
-
-			for (int i = 0; i < pHRU->m_polyIndexArray.GetSize(); i++)
-				{
-				Poly *pPoly = pIDULayer->GetPolygon(pHRU->m_polyIndexArray[i]);
-
-				if (pPoly->IsPointInPoly(Vertex(x, y)))
-					{
-					m_gridCellArray.Add(pGridcell);
-					hruGridCellCount++;
-					found = true;
-					break;
-					}
-				}
-		   }
+	//if (restart) {
+	//	m_deserializer = new GuessDeserializer(state_path);
+	//}
 
 
-		//Find all the HRUs that will be represented by gridcells
-	//	for (int z = 0; z < m_gridCellArray.GetSize(); z++)
-		 //   {
-			for (int h = 0; h < hruCount; h++)
-			   {
-				pHRU = pFlowContext->pFlowModel->GetHRU(h);
-				Vertex cen = pHRU->m_centroid;
-				float dist = sqrt((cen.x - x)*(cen.x - x) + (cen.y - y)*(cen.y - y));
-				if (dist < 1414.0f && added[h] != 1)//then this hru is close to this LPJ gridcell
-				    {
-					pGridcell->m_hruArray.Add(pHRU);//then add the HRU to the gridcell
-					added[h] = 1;//and flag this HRU so we don't add it to another gridcell
-					hruAddedCount++;
-				    }
-				
-			    }
-			//ASSERT(hruAddedCount > 0);
-		  //  }
+	//FlowModel *pFlow = pFlowContext->pFlowModel;
+	//EnvModel *pEnvModel = pFlowContext->pEnvContext->pEnvModel;
 
-	}// end of while
+	//MapLayer *pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 
-	CString msgStart;
-	msgStart.Format(_T("LPJGuess:  %i gridcells read. %i gridcells associated with %i HRUs"), gridCellIndex, hruGridCellCount, hruAddedCount);
-	Report::Log(msgStart);
+	//m_hruGridCells.SetSize(pFlow->GetHRUCount());
+	//for (int i = 0; i < pFlow->GetHRUCount(); i++)
+	//	m_hruGridCells[i] = new GridCellIndexArray;
+
+	//UINT gridCellIndex = 0;
+	//UINT hruGridCellCount = 0;
+	//UINT hruAddedCount = 0;
+	//CUIntArray added;
+	//added.SetSize(pFlow->GetHRUCount());
+	//for (int p = 0; p < added.GetSize(); p++)
+	//	added[p] = 0;
+
+	//while (true) {
+
+	//	// START OF LOOP THROUGH GRID CELLS
+
+	//	// Initialise global variable date
+	//	// (argument nyear not used in this implementation)
+	//	date.init(1);
+
+	//	// Create and initialise a new Gridcell object for each locality
+	//	Gridcell *pGridcell = new Gridcell;
+	//	gridCellIndex++;
+	//	//	read_instruction_file(instruction_file);
+	//	  // Call input module to obtain latitude and driver data for this grid cell.
+	//	if (!m_input_module->getgridcell(*pGridcell))
+	//	{
+	//		delete pGridcell;
+	//		break;
+	//	}
+
+	//	// Initialise certain climate and soil drivers
+	//	pGridcell->climate.initdrivers(pGridcell->get_lat());
+
+	//	if (run_landcover && !restart)
+	//	{
+	//		// Read landcover and cft fraction data from 
+	//		// data files for the spinup period and create stands
+	//		landcover_init(*pGridcell, m_input_module);
+	//	}
+
+	//	if (restart) {
+	//		// Get the whole grid cell from file...
+	//		m_deserializer->deserialize_gridcell(*pGridcell);
+	//		// ...and jump to the restart year
+	//		date.year = state_year;
+	//	}
+
+	//	float y = pGridcell->get_easting();
+	//	float x = pGridcell->get_northing();
+
+	//	int hruCount = pFlow->GetHRUCount();
+	//	HRU *pHRU = nullptr;
+
+	//	//Check that this gridcell is contained by the map. 
+	//	//Add it to the m_gridCellArray if it is.
+	//	//If it isn't, we do not want to include it in the simulation
+	//	for (int h = 0; h < hruCount; h++)
+	//	   {
+	//		pHRU = pFlowContext->pFlowModel->GetHRU(h);
+	//		// if center of grid cell is in an hru poly 
+	//		bool found = false;
+
+	//		for (int i = 0; i < pHRU->m_polyIndexArray.GetSize(); i++)
+	//			{
+	//			Poly *pPoly = pIDULayer->GetPolygon(pHRU->m_polyIndexArray[i]);
+
+	//			if (pPoly->IsPointInPoly(Vertex(x, y)))
+	//				{
+	//				m_gridCellArray.Add(*pGridcell);
+	//				hruGridCellCount++;
+	//				found = true;
+	//				break;
+	//				}
+	//			}
+	//	   }
+
+
+	//	//Find all the HRUs that will be represented by gridcells
+	////	for (int z = 0; z < m_gridCellArray.GetSize(); z++)
+	//	 //   {
+	//		for (int h = 0; h < hruCount; h++)
+	//		   {
+	//			pHRU = pFlowContext->pFlowModel->GetHRU(h);
+	//			Vertex cen = pHRU->m_centroid;
+	//			float dist = sqrt((cen.x - x)*(cen.x - x) + (cen.y - y)*(cen.y - y));
+	//			if (dist < 1414.0f && added[h] != 1)//then this hru is close to this LPJ gridcell
+	//			    {
+	//				pGridcell->m_hruArray.Add(pHRU);//then add the HRU to the gridcell
+	//				added[h] = 1;//and flag this HRU so we don't add it to another gridcell
+	//				hruAddedCount++;
+	//			    }
+	//			
+	//		    }
+	//		//ASSERT(hruAddedCount > 0);
+	//	  //  }
+
+	//}// end of while
+
+	//CString msgStart;
+	//msgStart.Format(_T("LPJGuess:  %i gridcells read. %i gridcells associated with %i HRUs"), gridCellIndex, hruGridCellCount, hruAddedCount);
+	//Report::Log(msgStart);
 	return TRUE;
 }
+
+
+bool LPJGuess::InitRun_Guess(FlowContext* pFlowContext, const char* input_module_name, const char* instruction_file)
+	{
+	if (pFlowContext->pEnvContext->run > 0)
+	   {
+		for (int i = 0; i < m_gridCellArray.GetSize(); i++)
+		   {
+			Gridcell* pGridcell = m_gridCellArray.GetAt(i);
+			if (restart)
+			   {
+				auto_ptr<GuessDeserializer> deserializer;
+				deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+				// Get the whole grid cell from file...
+				CString msg;
+				msg.Format("Deserializing gridcell at (%g,%g) from disk \n", pGridcell->get_lon(), pGridcell->get_lat());
+				//Report::Log(msg);
+				deserializer->deserialize_gridcell(*pGridcell);
+				// ...and jump to the restart year
+				date.year = state_year;
+			   }
+		    }
+	    }
+	return true;
+	}
 
 bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
@@ -259,17 +287,24 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		initbvoc();
 	}
 
-	//auto_ptr<GuessSerializer> serializer;
-	//auto_ptr<GuessDeserializer> deserializer;
+	auto_ptr<GuessSerializer> serializer;
+	auto_ptr<GuessDeserializer> deserializer;
 
-	if (save_state) {
+	/*if (save_state) {
 		m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
 	}
 
 	if (restart) {
 		m_deserializer =  new GuessDeserializer(state_path);
+	}*/
+	
+	if (save_state) {
+		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
 	}
 
+	if (restart) {
+		deserializer = auto_ptr<GuessDeserializer>(new GuessDeserializer(state_path));
+	}
 	
    FlowModel *pFlow = pFlowContext->pFlowModel;
    EnvModel *pEnvModel = pFlowContext->pEnvContext->pEnvModel;
@@ -292,16 +327,22 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 		date.init(1);
 
 		// Create and initialise a new Gridcell object for each locality
+		
 		Gridcell *pGridcell = new Gridcell;
+
+
+    //  Gridcell pGridcell;
+
 	//	read_instruction_file(instruction_file);
       // Call input module to obtain latitude and driver data for this grid cell.
 		if (!m_input_module->getgridcell(*pGridcell))
 			 {
 			 delete pGridcell;
+			 
 			 break;
 			 }
 		   
-      m_gridCellArray.Add(pGridcell);
+
 
 		// Initialise certain climate and soil drivers
       pGridcell->climate.initdrivers(pGridcell->get_lat());
@@ -313,12 +354,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 			landcover_init(*pGridcell, m_input_module);
 		   }
 
-		if (restart) {
-			// Get the whole grid cell from file...
-			m_deserializer->deserialize_gridcell(*pGridcell);
-			// ...and jump to the restart year
-			date.year = state_year;
-		}
+
 
 		float y = pGridcell->get_easting();
 		float x = pGridcell->get_northing();
@@ -347,15 +383,83 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 			 if (found)
 				{
-				// add this gridcell to this HRU's grid cell array
-				m_hruGridCells[h]->Add(gridCellIndex);
-				hruGridCellCount++;
-   				m_gridCellHRUArray.Add(pHRU);
-				}
-		   }
-      gridCellIndex++;
+				 m_hruGridCells[h]->Add(gridCellIndex);
+				 hruGridCellCount++;
+				 m_gridCellArray.Add(pGridcell);
+				 //m_gridCellHRUArray.Add(pHRU);
+				 float depth = 1.0f;
+				 int col_sd = pFlowContext->pEnvContext->pMapLayer->GetFieldCol("SOILDEPTH");
+			     if (col_sd>-1)
+				    pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_sd, depth);
 
-	}// end of while
+				 int soil = 2;
+				 int col_soil = pFlowContext->pEnvContext->pMapLayer->GetFieldCol("soil");
+				 if (col_soil > -1)
+				    pFlowContext->pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[0], col_soil, soil);
+
+				 soilparametersEnvision(pGridcell->soiltype, soil, depth);
+				 gridCellIndex++;
+
+				 if (save_state)
+				    {
+					 // Call input/output to obtain climate, insolation and CO2 for this
+					 // day of the simulation. Function getclimate returns false if last year
+					 // has already been simulated for this grid cell
+					 CString msg;
+					 msg.Format("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
+					 Report::Log(msg);
+					 //dprintf("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
+					 cfmax = 2.5f;
+				     tt = 1.0f;
+					 while (m_input_module->getclimate(*pGridcell, pFlowContext)) {
+						 // START OF LOOP THROUGH SIMULATION DAYS
+						 simulate_day(*pGridcell, m_input_module);
+						 m_output_modules.outdaily(*pGridcell);
+						 if (date.islastday && date.islastmonth) {
+							 // LAST DAY OF YEAR
+							 // Call output module to output results for end of year
+							 // or end of simulation for this grid cell
+							 m_output_modules.outannual(*pGridcell);
+
+							 pGridcell->balance.check_year(*pGridcell);
+
+							 // Time to save state?
+							 if (date.year == state_year - 1 && save_state) {
+								 serializer->serialize_gridcell(*pGridcell);
+							 }
+
+							 // Check whether to abort
+							 if (abort_request_received()) {
+								 return 99;
+							 }
+						 }
+						 // Advance timer to next simulation day
+						 date.next();
+						 // End of loop through simulation days
+					   }	//while (getclimate())
+				     }
+
+				 if (restart) {
+					 // Get the whole grid cell from file...
+
+					 CString msg;
+					 msg.Format("Deserializing gridcell at (%g,%g) from disk \n", pGridcell->get_lon(), pGridcell->get_lat());
+					 Report::Log(msg);
+					 deserializer->deserialize_gridcell(*pGridcell);
+					 // ...and jump to the restart year
+					 date.year = state_year;
+
+				 }
+
+				 }			 
+		     }
+     
+
+
+
+
+
+	}// end of while (true)
 
    CString msgStart;
    msgStart.Format(_T("LPJGuess:  %i gridcells read. %i associated with HRUs"), gridCellIndex, hruGridCellCount);
@@ -368,17 +472,32 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 
 	int hruCount = pFlowContext->pFlowModel->GetHRUCount();
 
-	ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
+	//ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
+	ParamTable* pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");
+	int m_col_cfmax = pHBVTable->GetFieldCol("CFMAX");         // get the location of the parameter in the table   
+	int m_col_tt = pHBVTable->GetFieldCol("TT");
+	float CFMAX_, TT_ = 0.0f;
+	VData key;            // lookup key connecting rows in the csv files with IDU records
+	// Get Model Parameters
+	HRU* pHRU = pFlowContext->pFlowModel->GetHRU(0);
+	pFlowContext->pFlowModel->GetHRUData(pHRU, pHBVTable->m_iduCol, key, DAM_FIRST);  // get HRU key info for lookups
+	if (pHBVTable->m_type == DOT_FLOAT)
+		key.ChangeType(TYPE_FLOAT);
 
+	bool ok = pHBVTable->Lookup(key, m_col_cfmax, CFMAX_);
+	ok = pHBVTable->Lookup(key, m_col_tt, TT_);
+	cfmax = CFMAX_;
+	tt = TT_;
 	int doy = pFlowContext->dayOfYear;  // int( fmod( timeInRun, 364 ) );  // zero based day of year
 	int _month = 0; int _day; int _year;
-	BOOL ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
+	ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
 
 	// iterate through hrus/hrulayers 
 
 	for (int h = 0; h < hruCount; h++)
 	{
 		HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
+
 
 		int gridCellCount = m_hruGridCells[h]->GetSize();
 
@@ -409,9 +528,9 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 				pGridcell->balance.check_year(*pGridcell);
 
 				// Time to save state?
-				if (date.year == state_year - 1 && save_state) {
-					m_serializer->serialize_gridcell(*pGridcell);
-				}
+	//			if (date.year == state_year - 1 && save_state) {
+	//				m_serializer->serialize_gridcell(*pGridcell);
+	//			}
 
 				// Check whether to abort
 				if (abort_request_received()) {
@@ -455,7 +574,6 @@ void LPJGuess::move_to_flow(Gridcell& gridcell)
 			int vegCount=0;
 			while (vegetation.isobj) 
 			   {
-				patch.fpc_total += vegetation.getobj().fpc;		// indiv.fpc
 				patchLAI+=vegetation.getobj().lai_today();
 				if (vegetation.getobj().lai > 0.0f)
 				   vegCount++;
@@ -479,46 +597,46 @@ void LPJGuess::move_to_flow(Gridcell& gridcell)
 bool LPJGuess::Run_Guess_Complete(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
 
-	int hruCount = pFlowContext->pFlowModel->GetHRUCount();
-	int gridCellCount = m_gridCellArray.GetSize();
-	ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
+	////int hruCount = pFlowContext->pFlowModel->GetHRUCount();
+	////int gridCellCount = m_gridCellArray.GetSize();
+	////ParamTable *pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");   // store this pointer (and check to make sure it's not NULL)
 
-	int doy = pFlowContext->dayOfYear;  // int( fmod( timeInRun, 364 ) );  // zero based day of year
-	int _month = 0; int _day; int _year;
-	BOOL ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
+	////int doy = pFlowContext->dayOfYear;  // int( fmod( timeInRun, 364 ) );  // zero based day of year
+	////int _month = 0; int _day; int _year;
+	////BOOL ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
 
-	// iterate through hrus/hrulayers 
+	////// iterate through hrus/hrulayers 
 
-	for (int h = 0; h < gridCellCount; h++)
-	   {
-			Gridcell *pGridcell = m_gridCellArray[h];
+	////for (int h = 0; h < gridCellCount; h++)
+	////   {
+	////		Gridcell *pGridcell = m_gridCellArray[h];
 
-			m_input_module->getclimate(*pGridcell, pFlowContext);
+	////		m_input_module->getclimate(*pGridcell, pFlowContext);
 
-			simulate_day(*pGridcell, m_input_module);
+	////		simulate_day(*pGridcell, m_input_module);
 
-			m_output_modules.outdaily(*pGridcell);
+	////		m_output_modules.outdaily(*pGridcell);
 
-			if (date.islastday && date.islastmonth) {
-				// LAST DAY OF YEAR
-				// Call output module to output results for end of year
-				// or end of simulation for this grid cell
-				m_output_modules.outannual(*pGridcell);
+	////		if (date.islastday && date.islastmonth) {
+	////			// LAST DAY OF YEAR
+	////			// Call output module to output results for end of year
+	////			// or end of simulation for this grid cell
+	////			m_output_modules.outannual(*pGridcell);
 
-				pGridcell->balance.check_year(*pGridcell);
+	////			pGridcell->balance.check_year(*pGridcell);
 
-				// Time to save state?
-				if (date.year == state_year - 1 && save_state) {
-					m_serializer->serialize_gridcell(*pGridcell);
-				}
+	////			// Time to save state?
+	////			if (date.year == state_year - 1 && save_state) {
+	////				m_serializer->serialize_gridcell(*pGridcell);
+	////			}
 
-				// Check whether to abort
-				if (abort_request_received()) {
-					return 99;
-				}
+	////			// Check whether to abort
+	////			if (abort_request_received()) {
+	////				return 99;
+	////			}
 
-			}
-	}
-	date.next();
+	////		}
+	////}
+	////date.next();
 	return TRUE;
 }

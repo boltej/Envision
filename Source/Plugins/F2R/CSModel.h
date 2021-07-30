@@ -14,7 +14,7 @@ using namespace std;
 
 class Farm;
 
-enum CSKEYWORD { CS_TMIN, CS_TMEAN, CS_TMAX, CS_PRECIP, CS_AVC };
+enum CSKEYWORD { CS_TMIN, CS_TMEAN, CS_TMAX, CS_PRECIP, CS_HPRECIP, CS_AVC };
 
 
 
@@ -30,59 +30,69 @@ struct CSField
    };
 
 
-struct CSCropEvent
+struct CSAction 
+   {
+   CString outcome;
+   CString outcomeTarget;
+   CString outcomeExpr;
+   VData outcomeValue;
+   MapExpr* pOutcomeExpr;   // memory managed by MapExprEngine?
+   int col;
+ 
+   CSAction() : pOutcomeExpr(NULL), col(-1) {}
+ 
+   MapExpr* CompileOutcome(MapExprEngine* pME, LPCTSTR name, MapLayer*);
+
+   bool TakeAction(EnvContext* pContext, int idu);
+   };
+
+
+struct CSWhen 
+   {
+   CString when;
+   Query* pWhen;
+
+   CSWhen() : pWhen(NULL) {}
+   Query* CompileWhen(QueryEngine* pQE, LPCTSTR className);  // memory managed by QueryEngine?
+   };
+
+
+// a "Crop Event" includes When and (optional) Action functionalities.
+// name: name of event
+// id: event identifer specified in input file
+// yrf: yield reduction factor associated with event
+struct CSCropEvent : public CSWhen, public CSAction
    {
    CString name;
    int id;
    float yrf;
-   CString when;
-   Query* pWhen;
 
-   CSCropEvent() : id(-1), yrf(0), pWhen(NULL) {}
+   CString yrfExpr;
+   MapExpr* pYrfExpr;  // memory managed by ??
 
-   Query* CompileWhen(QueryEngine* pQE);
+   CSCropEvent() : id(-1), yrf(0), pYrfExpr(NULL) {}
+   
+   float GetYRF(int idu) {
+      if (pYrfExpr == NULL)
+         return yrf;
+      else 
+         {
+         pYrfExpr->Evaluate(idu);
+         return (float) pYrfExpr->GetValue();
+         }
+      }
    };
 
 
-struct CSTransition
+
+struct CSTransition : public CSWhen, public CSAction
    {
    CString toStage;
-   CString when;
-   Query* pWhen;
-   //CString outcome;
-   //CString outcomeTarget;
-   //CString outcomeExpr;
-   //MapExpr* pOutcomeExpr;
-   //VData outcomeValue;
-
-   //CSTransition(TCHAR* _toStage, TCHAR* _when, TCHAR* _outcome);
-   //~CSTransition(void) { if (pOutcomeExpr != NULL) delete pOutcomeExpr; }
-
-   Query *CompileWhen(QueryEngine* pQE);
-   //MapExpr *CompileOutcome(MapExprEngine* pME, LPCTSTR name);
-
    };
 
-struct CSEvalExpr
+struct CSEvalExpr : public CSWhen, public CSAction
    {
    CString name;
-   CString outcome;
-   CString when;
-
-   CString outcomeTarget;
-   CString outcomeExpr;
-   VData outcomeValue;
-
-   Query* pWhen;  // memory managed by engine
-   MapExpr* pOutcomeExpr;
-
-   int col;
-   
-   CSEvalExpr(void) : pWhen(NULL), pOutcomeExpr(NULL), col(-1) {}
-   ~CSEvalExpr(void) { /*if (pOutcomeExpr != NULL) delete pOutcomeExpr;*/ }
-
-   Query* CompileWhen(QueryEngine* pQE);
-   MapExpr* CompileOutcome(MapExprEngine* pME, LPCTSTR name, MapLayer*);
    };
 
 
@@ -90,13 +100,14 @@ class CSCropStage
    {
    public:
       int m_id;   // 1-based offset in FarmModel::m_crops array
+      int m_vsmbStage;
       CString m_name;
 
       PtrArray<CSCropEvent> m_events;
       PtrArray<CSTransition> m_transitions;
       PtrArray<CSEvalExpr> m_evalExprs;
 
-      CSCropStage(LPCTSTR name) : m_id(-1), m_name(name) {}
+      CSCropStage(LPCTSTR name) : m_id(-1), m_name(name) , m_vsmbStage(0){}
    };
 
 
@@ -109,11 +120,16 @@ class CSCrop
       bool m_isRotation;
       int m_harvestStartYr;
       int m_harvestFreq;
+      FDataObj* m_rootCoefficentTable;
+      float m_yrfThreshold;
 
       PtrArray<CSCropStage> m_cropStages;
       PtrArray<CSField> m_fields;
 
-      CSCrop() : m_id(-1), m_isRotation(true), m_harvestFreq(0), m_harvestStartYr(0) {}
+      ~CSCrop() { if (m_rootCoefficentTable != NULL) delete m_rootCoefficentTable;  }
+      CSCrop() : m_id(-1), m_isRotation(true), m_harvestFreq(0), 
+         m_harvestStartYr(0), m_rootCoefficentTable(NULL),
+         m_yrfThreshold(-1.0f) {}
    };
 
 
@@ -163,7 +179,9 @@ class CSModel
       //int SolveWhen(TCHAR* expr);
 
       static float Avg(int kw, int period);
-      static float AbovePeriod(int kw, int period);
+      static float AbovePeriod(int kw, int threshold);
+      static float BelowPeriod(int kw, int threshold);
+      static float DOYFromCHU(int idu, int chu);
 
       float UpdateCropStatus(EnvContext* pContext, FarmModel* pFarmModel, Farm* pFarm, 
          ClimateStation* pStation, MapLayer* pLayer, int idu, float areaHa, int doy, int year,

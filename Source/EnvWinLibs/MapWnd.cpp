@@ -2940,7 +2940,9 @@ void MapWindow::OnLButtonUp(UINT nFlags, CPoint point)
 
 BOOL MapWindow::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt)
    {
-   if ( zDelta > 0 )
+   //this->CenterAt(pt, false);
+
+   if ( zDelta < 0 )
       this->ZoomOut();
    else
       this->ZoomIn();
