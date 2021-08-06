@@ -468,6 +468,7 @@ public:
    float m_soilTemp;
    float m_biomass;
    float m_swc;
+   float m_irr; //irrigation rate
 
    // SWE-related variables
    float     m_depthMelt;          // depth of water in snow (m)
@@ -545,6 +546,7 @@ public:
    static MTDOUBLE m_mvCurrentSediment;
 
    static MTDOUBLE m_mvCurrentSWC;
+   static MTDOUBLE m_mvCurrentIrr;
 
    static MTDOUBLE m_mvCumRecharge;
    static MTDOUBLE m_mvCumGwFlowOut;

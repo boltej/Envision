@@ -8,7 +8,7 @@
     
  !  contains    
   
-   subroutine FlowRunDay(day,precip,sz) !bind(C,name = "FlowRunDay")
+   subroutine FlowRunDay(day,precip, tmax, tmin, sz, lulc, gwRecharge, pet, aet, swc, irr) !bind(C,name = "FlowRunDay")
 !DEC$ ATTRIBUTES DLLEXPORT :: FlowRunDay
 
     use parm
@@ -23,9 +23,30 @@
       integer :: eof
       integer, parameter :: DP = kind(0d0)
       real(kind=DP), dimension(sz) :: precip
+      real(kind=DP), dimension(sz) :: tmax
+      real(kind=DP), dimension(sz) :: tmin
+      real(kind=DP), dimension(sz) :: gwRecharge
+      real(kind=DP), dimension(sz) :: pet
+      real(kind=DP), dimension(sz) :: aet
+      real(kind=DP), dimension(sz) :: swc  
+      real(kind=DP), dimension(sz) :: irr
+      !real*8, dimension (:,:), allocatable ::  irr
+      integer, dimension(sz) :: lulc
       eof = 0
+      idplt=lulc !kbv set the plant array to incoming Envision values.  these must correspond to SWAT plant database offset values
+      
+     ! mgtop(nop(j),j) 2=scheduled irrigation, 10=automatic irrigation
+! Do not change the number of options (nop) for any HRU
+      !case (2)  !! irrigation operation
+      !      irr_sc(ihru) = mgt2iop(nop(j),j)     irrigation source  (1: reach 2: res 3 and 4: subbasin 0 - none)
+      !      irr_no(ihru) = mgt10iop(nop(j),j)     source location.   needs to be a number reflecting the reach, sub, etc (1: reach 2: res 3 and 4: subbasin 0 - none)
+      !      irramt(ihru) = mgt4op(nop(j),j)       irramt: amount of daily irrigation (mm).  
+      !      irrsalt(ihru) = mgt5op(nop(j),j)
+      !      irrefm(ihru) = mgt6op(nop(j),j)    ! efficiency (0-1)
+      !      irrsq(ihru) = mgt7op(nop(j),j)     !(surface runoff ration (0-1 (0.1=10% runoff)
+      
 
-       
+      
   !      do i = id1, idlst                            !! begin daily loop
           iida=day
           i=day
@@ -102,6 +123,14 @@
           
           do k = 1, nhru
             subp(k) = precip(k)
+            tmx(k) = tmax(k)
+            tmn(k) = tmin(k)
+            tmpav(k)=(tmax(k)+tmin(k))/2
+            tmpavp(k)=tmpav(k)
+            
+          !  mgtop(4,k) = 2 ! management type, switch from 10 (auto irrig) to 2 (scheduled irr).  this is the 4th option, as defined in the mgt files.  This is temporary code
+          !  mgt4op(4,k) = irr(k) ! irrigation amount
+            
           end do
 
            !! call resetlu
@@ -109,6 +138,8 @@
               call resetlu
               no_lup = no_lup + 1
            end if
+           
+  
 
           call command              !! command loop
 
@@ -156,11 +187,18 @@
                   IHX(K-1)=IHX(K)
               END DO
               IHX(4)=II
-          END IF
+           END IF
          
 
   !      end do                                        !! end daily loop
-
+           !!pass data back to Envision
+         do k = 1, nhru
+            gwRecharge(k) = rchrg(k) * rchrg_dp(k)
+            pet(k)=pet_env(k)
+            aet(k)=aet_env(k)
+            swc(k)=sol_sw(k)
+            irr(k)=irr_env(k)
+         end do
   
    end
  !  end module showarr

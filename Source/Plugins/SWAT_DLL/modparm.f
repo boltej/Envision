@@ -170,6 +170,10 @@
       real*8, dimension (:), allocatable :: fcoli, bio_ntr, bz_perc
       real*8, dimension (:), allocatable :: plqm,sep_cap,bz_area
       real*8, dimension (:), allocatable :: bz_z, bz_thk,  bio_bd
+      
+       !! kbv.  Store ET rates for HRUs    
+      real*8, dimension (:), allocatable :: aet_env, pet_env, irr_env
+
 !! carbon outputs for .hru file
       real*8, dimension (:), allocatable :: cmup_kgh, cmtot_kgh
 !! carbon outputs for .hru file
