@@ -80,6 +80,8 @@ void StatusMsgProc( LPCTSTR msg )
 
 
 // called whenever a Report message is invoked (e.g. Report::Log();
+bool showMsg = true;
+bool redirectToLog = false;
 int PopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extra)
    {
    int retVal = 0;
@@ -91,12 +93,25 @@ int PopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extr
       case RT_ERROR:
       case RT_FATAL:
          {
-         ReportBox dlg;
-         dlg.m_msg = msg;
-         dlg.m_hdr = hdr;
-         dlg.m_noShow = 0;
-         dlg.m_flags = flags;
-         retVal = (int)dlg.DoModal();
+         if (showMsg)
+            {
+            ReportBox dlg;
+            dlg.m_msg = msg;
+            dlg.m_hdr = hdr;
+            dlg.m_noShow = 0;
+            //dlg.m_output = ( reportFlag & RF_CALLBACK ) ? 1 : 0;
+            dlg.m_flags = flags;
+            retVal = (int)dlg.DoModal();
+
+            // suppress in future?
+            if (dlg.m_noShow)
+               showMsg = false;
+            // direct to log window?
+            if (dlg.m_output)
+               redirectToLog = true;
+            }
+         if (redirectToLog)
+            Report::Log(msg, REPORT_ACTION::RA_NEWLINE, type);
          }
          break;
 

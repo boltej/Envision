@@ -531,6 +531,7 @@ Catchment::Catchment(void)
    , m_currentGroundLoss(0)
    , m_meltRate(0)
    , m_contributionToReach(0.0f)    // m3/day
+   , m_climateIndex(1)
    , m_pDownslopeCatchment(NULL)
    , m_pReach(NULL)
    , m_pGW(NULL)
@@ -1668,6 +1669,7 @@ FlowModel::FlowModel()
    , m_colCsvRelHumidity(-1)
    , m_colCsvSpHumidity(-1)
    , m_colCsvVPD(-1)
+   , m_provenClimateIndex(-1)
    , m_colStreamCumArea(-1)
    , m_colCatchmentCumArea(-1)
    , m_colTreeID(-1)
@@ -2246,9 +2248,12 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
       int initYear = pEnvContext->currentYear + 1;//the value of pEnvContext lags the current year by 1????  see envmodel.cpp ln 3008 and 3050
       for (int i = 0; i < m_numberOfRuns; i++)
          {
+
          UpdateMonteCarloInput(pEnvContext, i);
          pEnvContext->run = i;
          pEnvContext->currentYear = initYear;
+         if (i > 0)
+             GlobalMethodManager::InitRun(&m_flowContext);
          //ResetStateVariables();
          for (int j = 0; j < m_numberOfYears; j++)
             {
@@ -3736,9 +3741,9 @@ bool FlowModel::StartYear(FlowContext *pFlowContext)
    CUIntArray nonIrrigArray;
    for ( int i=0; i < this->m_poolInfoArray.GetSize(); i++ )
       {
-      if ( this->m_poolInfoArray[ i ]->m_type = PT_SOIL )
+      if ( this->m_poolInfoArray[ i ]->m_type == PT_SOIL )
          nonIrrigArray.Add( i );
-      else if (this->m_poolInfoArray[i]->m_type = PT_IRRIGATED )
+      else if (this->m_poolInfoArray[i]->m_type == PT_IRRIGATED )
          irrigArray.Add( i );
       }
 
@@ -5097,12 +5102,14 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
          HRU *pHRU = pCatchment->GetHRU(j);
          for ( int k=0; k < this->m_poolInfoArray.GetSize(); k++ )
             {
-            if ( this->m_poolInfoArray[k]->m_type == PT_SNOW || this->m_poolInfoArray[k]->m_type == PT_MELT )
-               totalSnow += (float)pHRU->GetPool( k)->m_volumeWater; //get the current year snowpack
+            if ( this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/ )
+                if ((float)pHRU->GetPool(k)->m_volumeWater > 0.0f)
+                   totalSnow += (float)pHRU->GetPool( k)->m_volumeWater/1e6; //get the current year snowpack
             }
          }
       }
-
+   if (totalSnow < 0)
+       totalSnow = 0;
    // then compare the total volume to the previously defined maximum volume
    if (totalSnow > m_volumeMaxSWE)
       {
@@ -5117,7 +5124,7 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
          float volSnow = 0;
          for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
             {
-            if (this->m_poolInfoArray[k]->m_type == PT_SNOW || this->m_poolInfoArray[k]->m_type == PT_MELT)
+            if (this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/)
                volSnow += (float)pHRU->GetPool(k)->m_volumeWater; //get the current year snowpack
             }
 
@@ -5157,7 +5164,7 @@ void FlowModel::UpdateAprilDeltas(EnvContext *pEnvContext)
                float volSnow = 0;
                for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
                   {
-                  if (this->m_poolInfoArray[k]->m_type == PT_SNOW || this->m_poolInfoArray[k]->m_type == PT_MELT)
+                  if (this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/)
                      volSnow += (float) pHRU->GetPool( k)->m_volumeWater; //get the current year snowpack
                   }
 
@@ -5207,10 +5214,12 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
       //#pragma omp parallel for  // firstprivate( pEnvContext )
       for (int h = 0; h < hruCount; h++)
          {
-         float airTemp = -999.0f;
+         float airTempMin = -999.0f; float airTempMax = 0.0f; float airTemp = 0.0f;
          float prec = 0.0f;
          HRU *pHRU = m_hruArray[h];
-         GetHRUClimate(CDT_TMEAN, pHRU, (int)currTime, airTemp);
+         GetHRUClimate(CDT_TMIN, pHRU, (int)currTime, airTempMin);
+         GetHRUClimate(CDT_TMAX, pHRU, (int)currTime, airTempMax);
+         airTemp = (airTempMin + airTempMax) / 2.0f;
          GetHRUClimate(CDT_PRECIP, pHRU, (int)currTime, prec);
          for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
             {
@@ -8500,6 +8509,15 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                }
 
             // daily urban water demand 
+            else if (_tcsicmp(tagName, _T("climate_metrics")) == 0)
+            {
+                GlobalMethod* pMethod = Climate_Metrics::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
+                if (pMethod != NULL)
+                    GlobalMethodManager::AddGlobalMethod(pMethod);
+            }
+
+
+            // daily urban water demand 
             else if (_tcsicmp(tagName, _T("Urban_Water_Demand")) == 0)
                {
                GlobalMethod *pMethod = DailyUrbanWaterDemand::LoadXml(pXmlGlobalChild, pIDULayer, filename,this);
@@ -9996,7 +10014,14 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
       GetHRUClimate(CDT_TMIN, pHRU, (int)currTime, pHRU->m_currentMinTemp);
       GetHRUClimate(CDT_TMAX, pHRU, (int)currTime, pHRU->m_currentMaxTemp);
       GetHRUClimate(CDT_SOLARRAD, pHRU, (int)currTime, pHRU->m_currentRadiation);
-      ASSERT(pHRU->m_currentMaxTemp > -100.0f);
+      //ASSERT(pHRU->m_currentMaxTemp > -100.0f);
+      if (pHRU->m_currentAirTemp < -100)
+      {
+          pHRU->m_currentAirTemp = 5;
+          pHRU->m_currentPrecip = 0;
+          pHRU->m_currentMinTemp = 5;
+          pHRU->m_currentMaxTemp = 5;
+      }
       pHRU->m_precip_yr += (float) (pHRU->m_currentPrecip*m_timeStep);         // mm
       pHRU->m_precip_wateryr += (float) (pHRU->m_currentPrecip*m_timeStep);         // mm
       pHRU->m_rainfall_yr += (float) (pHRU->m_currentRainfall*m_timeStep);       // mm
@@ -10007,17 +10032,17 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
 
       // hydrology
       pHRU->m_depthMelt = 0;
-  //    pHRU->m_depthSWE  = 0;
+     // pHRU->m_depthSWE  = 0;
       for ( int j=0; j < this->m_poolInfoArray.GetSize(); j++ )
          {
          switch(this->m_poolInfoArray[j]->m_type )
             {
             case PT_VEG:
-               pHRU->m_depthMelt += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
+           //    pHRU->m_depthMelt += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
                break;
 
             case PT_SNOW:
-  //             pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
+            //   pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
                break;
             }
          }
@@ -10944,16 +10969,26 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
          {
          if (pInfo != NULL && pInfo->m_pNetCDFData != NULL)   // find a data object?
             {
-            if (pHRU->m_climateIndex < 0)
-               {
-               double x = pHRU->m_centroid.x;
-               double y = pHRU->m_centroid.y;
-               value = pInfo->m_pNetCDFData->Get(x, y, pHRU->m_climateIndex, dayOfYear, m_projectionWKT, false);   // units?????!!!!
-               }
+             if (pHRU->m_climateIndex < 0)
+                 {
+                 double x = pHRU->m_centroid.x;
+                 double y = pHRU->m_centroid.y;
+                 value = pInfo->m_pNetCDFData->Get(x, y, pHRU->m_climateIndex, dayOfYear, m_projectionWKT, false);
+                 if (value > -100 && m_provenClimateIndex == -1) 
+                     m_provenClimateIndex = pHRU->m_climateIndex;
+
+                 if (value < -100) //missing data in the file. Code identifies a nearby gridcell that does have data
+                     {
+                     pHRU->m_climateIndex = pHRU->m_pCatchment->m_climateIndex;
+                     //if (pHRU->m_climateIndex == 1)
+                        // pHRU->m_climateIndex = m_provenClimateIndex;
+                     value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
+                     pHRU->m_pCatchment->m_climateIndex = pHRU->m_climateIndex;
+                     }
+                 }
             else
-               {
                value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
-               }
+
 
             if (pInfo->m_useDelta)
                value += (pInfo->m_delta * this->GetCurrentYearOfRun());

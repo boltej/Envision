@@ -129,21 +129,35 @@ bool IsPrime(int number)
    }
 
 
+#include <fstream>
+#include <vector>
+#include <cerrno>
 
 inline
 bool FileToString(LPCTSTR filename, std::string &str)
    {
-   FILE *fp;
-   errno_t err;
-   if ((err = fopen_s(&fp, filename, "rb")) != 0)
-      return false;
+   //FILE *fp;
+   //errno_t err;
+   //if ((err = fopen_s(&fp, filename, "rt")) != 0)
+   //   return false;
+   //
+   //std::fseek(fp, 0, SEEK_END);
+   //str.resize(std::ftell(fp));
+   //std::rewind(fp);
+   //std::fread(&str[0], 1, str.size(), fp);
+   //std::fclose(fp);
+   //return true;
 
-   std::fseek(fp, 0, SEEK_END);
-   str.resize(std::ftell(fp));
-   std::rewind(fp);
-   std::fread(&str[0], 1, str.size(), fp);
-   std::fclose(fp);
-   return true;
+      std::ifstream ifs(filename, std::ios::in | std::ios::binary | std::ios::ate);
+
+      std::ifstream::pos_type fileSize = ifs.tellg();
+      ifs.seekg(0, std::ios::beg);
+
+      std::vector<char> bytes(fileSize);
+      ifs.read(bytes.data(), fileSize);
+
+      str = std::string(bytes.data(), fileSize);
+      return true;
    }
    
 

@@ -1533,7 +1533,7 @@ bool CoastalHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
                                                     // set the data into the RBF
          pLookupTable->m_rbf.SetPoints(pLookupTable->m_data);  // rows are input points, col0=x, col1=y, col2=z, col3=f0, col4=f1 etc...
 
-                                                               // build the RBF
+         // build the RBF
          pLookupTable->m_rbf.Build();
 
          std::string str;

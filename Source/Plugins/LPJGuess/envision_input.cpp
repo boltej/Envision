@@ -149,7 +149,7 @@ void ENVInput::init() {
 	if (save_state)
 	{
 		CString msg;
-		msg.Format("Simulation is set with spinup time of %i years.  It will generate the 500 years of climate from the CRU data and will save the system state for later.",nyear_spinup);
+		msg.Format("Simulation is set with spinup time of %i years.  It will generate the %i years of climate from the CRU data and will save the system state for later.",nyear_spinup,nyear_spinup);
 		Report::Log(msg);
 
 		msg.Format("After completion, rerun Envision without restart=1 to start from saved state and run forward using Envision climate data.");
@@ -578,11 +578,11 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 							+ date.year) / (double)(gridlist.nobj * (nyear_spinup + NYEAR_HIST));
 
 						tprogress.setprogress(progress);
-						//CString msg;
-						//msg.Format(_T(" %3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),tprogress.elapsed.str, tprogress.remaining.str));
-						//Report::Log(msg);
-						dprintf("%3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),
-						   tprogress.elapsed.str, tprogress.remaining.str);
+						CString msg;
+						msg.Format(_T(" %3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),tprogress.elapsed.str, tprogress.remaining.str));
+						Report::Log(msg);
+						//dprintf("%3d%% complete, %s elapsed, %s remaining\n", (int)(progress * 100.0),
+						  // tprogress.elapsed.str, tprogress.remaining.str);
 						tmute.settimer(MUTESEC);
 					}
 
@@ -600,7 +600,7 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 		pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, pFlowContext->dayOfYear, tmax);//C
 		pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, pFlowContext->dayOfYear, tmin);//C
 		pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, pFlowContext->dayOfYear, insol);//Incoming Short W/m2
-
+		bool t = isnan(tmax);
 		climate.temp = (tmax+tmin)/2;
 		climate.prec = prec;
 		climate.insol = insol;

@@ -119,6 +119,7 @@ EvapTrans::EvapTrans(FlowModel *pFlowModel, LPCTSTR name)
    {
    this->m_timing = GMT_CATCHMENT | GMT_START_STEP;               // Called during GetCatchmentDerivatives()
    this->m_ETEq.SetMode(ETEquation::HARGREAVES);                // default reference ET is Hargreaves
+
    }
 
 
@@ -160,7 +161,7 @@ bool EvapTrans::Init(FlowContext *pFlowContext)
 
    FlowModel *pFlowModel = pFlowContext->pFlowModel;
 
-   if (m_method != GM_PENMAN_MONTIETH && m_method != GM_BAIER_ROBERTSON)
+   if (m_method != GM_PENMAN_MONTIETH && m_method != GM_BAIER_ROBERTSON && m_method != GM_HARGREAVES_1985)
       {
       // DEBUGGING: use to output reference ET for a particular HRU
 
@@ -207,7 +208,7 @@ bool EvapTrans::Init(FlowContext *pFlowContext)
    pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAnnAvgET, _T("ET_YR"), TYPE_FLOAT, CC_AUTOADD);
    pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colAnnAvgMaxET, _T("MAX_ET_YR"), TYPE_FLOAT, CC_AUTOADD);
    pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colDailySoilMoisture, _T("SM_DAY"), TYPE_FLOAT, CC_AUTOADD);
-   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIDUIndex, _T("IDU_INDEX"), TYPE_INT, CC_MUST_EXIST);
+   pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIDUIndex, _T("IDU_INDEX"), TYPE_INT, CC_AUTOADD);
    //pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIrrigation, _T("IRRIGATION"), TYPE_INT, CC_MUST_EXIST);
    //pFlowModel->CheckCol(pFlowContext->pEnvContext->pMapLayer, m_colIduSoilID, _T("SoilID"), TYPE_LONG, CC_AUTOADD);
 
@@ -1064,15 +1065,15 @@ void EvapTrans::CalculateReferenceET(FlowContext *pFlowContext, HRU *pHRU, unsig
       case ETEquation::HARGREAVES_1985:
          {
          float tMean = 0.0f, tMin=0.0f, tMax = 0.0f, solarRad = 0.0f;
-         pFlowContext->pFlowModel->GetHRUClimate(CDT_TMEAN, pHRU, doy, tMean);
+         //pFlowContext->pFlowModel->GetHRUClimate(CDT_TMEAN, pHRU, doy, tMean);
          pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, doy, tMin);
          pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, doy, tMax);
-         pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, doy, solarRad);
-
+        // pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, doy, solarRad);
+         tMean = (tMax + tMin) / 2;
          m_ETEq.SetDailyMinTemperature(tMin);                                  //
          m_ETEq.SetDailyMaxTemperature(tMax);                                  //from Climate data
          m_ETEq.SetDailyMeanTemperature(tMean);                                //from Climate data 
-         m_ETEq.SetSolarRadiation(solarRad);                                   //from Climate data
+       //  m_ETEq.SetSolarRadiation(solarRad);                                   //from Climate data
 
          m_ETEq.SetStationLatitude(m_latitude);                             // ??? ; can be culled if long wave radiation info can be pulled from elsewhere 
          m_ETEq.SetStationLongitude(m_longitude);                           // ??? ; can be culled if long wave radiation info can be pulled from elsewhere
@@ -1378,8 +1379,6 @@ void EvapTrans::GetHruET(FlowContext *pFlowContext, HRU *pHRU, int hruIndex)
          switch (GetMethod())
             {
             case GM_FAO56:
-            case GM_HARGREAVES:
-            case GM_HARGREAVES_1985:
             case GM_KIMBERLY_PENNMAN:
                maxET = referenceET * landCover_coefficient;
                ASSERT(maxET >= 0.0f && maxET <= 1.0E10f);
@@ -1388,7 +1387,10 @@ void EvapTrans::GetHruET(FlowContext *pFlowContext, HRU *pHRU, int hruIndex)
                   else
                   depletionFraction = pFraction + 0.04f * (5.0f - maxET);    */
                break;
-
+            case GM_HARGREAVES:
+            case GM_HARGREAVES_1985:
+                maxET = referenceET;
+                break;
             case GM_BAIER_ROBERTSON:
                maxET = referenceET * landCover_coefficient;;
                break;
@@ -1841,7 +1843,7 @@ EvapTrans *EvapTrans::LoadXml(TiXmlElement *pXmlEvapTrans, MapLayer *pIDULayer, 
          }
       }  // end of: if ( method != NULL )
 
-   if (pEvapTrans->m_method != GM_PENMAN_MONTIETH && pEvapTrans->m_method != GM_BAIER_ROBERTSON) //Assuming penman montieth is not a reference crop method (we don't need crop coefficients)
+   if (pEvapTrans->m_method != GM_PENMAN_MONTIETH && pEvapTrans->m_method != GM_BAIER_ROBERTSON && pEvapTrans->m_method != GM_HARGREAVES_1985) //Assuming penman montieth is not a reference crop method (we don't need crop coefficients)
       {
       CString tmpPath;
 

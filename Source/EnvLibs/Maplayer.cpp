@@ -12850,7 +12850,155 @@ float MapLayer::AddExpandPoly(int idu, CArray< int, int > &expandArray, int colV
    }
 
 
-int MapLayer::GetPatchSizes(int colValue, VData &value, OPERATOR op, int colArea, Query *pAreaToConsider, CArray< float, float > patchSizeArray)
+
+//------------------------------------------------------------------------------------------------------------------------------------
+// GetExpandPolysFromQuery() generates a list of all polys in a patch around the given polygon (idu) that satisfy a specified query.
+//  The index of the patch polygons is returned in 'expandArray', the first of which is the polygon index (kernal) that was passed in.
+//
+// Inputs:
+//   idu = index of the kernal (nucleus) polygon
+//   pPatchQuery = the column storing the value to be compared to the value
+//   colArea = column containing poly area.  if -1, areas are ignored, including maxExpandArea; only the expand array is populated
+//   maxExpandArea = upper limit expansion size, if a positive value.  If negative, it is ignored and the max patch size is not limited
+//
+// returns: 
+//   1) area of the expansion area (NOT including the nucleus polygon) and 
+//   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
+//      were included in the patch, negative values indicate they were considered but where not included in the patch
+//------------------------------------------------------------------------------------------------------------------------------------
+
+float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int colArea, float maxExpandArea, /* bool *visited,*/ CArray< int, int >& expandArray)
+   {
+   // basic idea - expand in concentric circles aroud the idu (subject to constraints)
+   // until necessary area is found.  We do this keeping track of candidate expansion IDUs
+   // in m_expansionArray, starting with the "nucleus" IDU and iteratively expanding outward.
+   // for the expansion array, we track the index in the expansion array of location of
+   // the lastExpandedIndex and the number of unprocessed IDUs that are expandable (poolSize).
+   //int neighbors[ 64 ];
+   CArray< int, int >_neighbors;
+
+   bool addToPool = false;
+   INT_PTR lastExpandedIndex = 0;   // this is the index in the expandArray of the last expanded IDU
+   int poolSize = 1;       // number of unprocessed IDUs that are expandable
+
+   // note: values in m_expansionArray are -(index+1)
+   //int startingIDU = this->GetSelection(startingIndex);
+
+   expandArray.RemoveAll();
+   expandArray.Add(startingIDU);  // the first one (nucleus) is added whether it passes the query or not
+                                  // note: this means the nucleus IDU gets treated the same as any
+                                  // added IDU's passing the test, meaning the expand outcome gets applied
+                                  // to the nucleus as well as the neighbors.  However, the nucleus
+                                  // idu is NOT included in the "areaSoFar" calculation, and so does not
+                                  // contribute to the area count to the max expansion area
+   float areaSoFar = 0;
+
+   // We collect all the idus that are next to the idus already processed that we haven't seen already
+   while (poolSize > 0 && (colArea < 0 || maxExpandArea < 0 || areaSoFar < maxExpandArea))
+      {
+      INT_PTR countSoFar = expandArray.GetSize();
+
+      // iterate from the last expanded IDU on the list to the end of the current list,
+      // adding any neighbor IDU's that satisfy the expansion criteria.
+
+      for (INT_PTR i = lastExpandedIndex; i < countSoFar; i++)
+         {
+         int nextIDU = expandArray[i];  // initially, this is the kernal IDU
+
+         if (nextIDU >= 0)   // is this an expandable IDU?
+            {
+            // get neighbors
+            Poly* pPoly = GetPolygon(nextIDU);  // -1 );    // why -1?
+            int count = GetNextToPolys(nextIDU, _neighbors);
+
+            // iterate through neighbors, adding any IDUs that satisfies the query
+            for (int i = 0; i < count; i++)
+               {
+               // should we add the neighbor to the expanded IDU list?infind any additional expansion IDUs in the neighbors.
+               float area = AddExpandPolyFromQuery(_neighbors[i], expandArray, pPatchQuery, colArea, addToPool, areaSoFar, maxExpandArea);
+
+               if (addToPool)  // add to the expansion array AND it is an expandable IDU?
+                  {
+                  poolSize++;
+                  areaSoFar += area;
+                  ASSERT(maxExpandArea < 0 || areaSoFar <= maxExpandArea);
+                  // have we reached the max area?
+                  //if ( colArea >= 0 &&  maxExpandArea > 0 && area >= maxExpandArea )
+                  //   goto finished;
+                  }
+               }
+
+            poolSize--;    // remove the "i"th idu just processed from the pool of unexpanded IDUs 
+                           // (if it was in the pool to start with)
+            }  // end of: if ( nextIDU > 0 ) 
+         }  // end of: for ( i < countSoFar ) - iterated through last round of unexpanded IDUs
+
+      lastExpandedIndex = countSoFar;
+      }
+
+   //finished:
+      // at this point, the expansion area has been determined (it's stored in the expandArrays) 
+   return areaSoFar;  // note: areaSoFar only includes expansion area
+   }
+
+
+// returns area of the idu if colArea >= 0.  Adds the given IDU to the expandArray if it hasn't been seen yet, otherwise just sets addToPool to false.
+float MapLayer::AddExpandPolyFromQuery(int idu, CArray< int, int >& expandArray, Query *pQuery, int colArea, bool& addToPool, float areaSoFar, float maxArea)
+   {
+   //int selectedIDU = this->GetSelection(selectedIndex);
+
+   // have we seen this on already? If so, no need to go further, just return.
+   // Note that expandArray contains IDU indexes, not selected indexes
+   for (int i = 0; i < expandArray.GetSize(); i++)
+      {
+      int expansionIndex = expandArray[i];
+
+      if ((expansionIndex < 0 && -(expansionIndex + 1) == idu)   // seen but not an expandable IDU
+         || (expansionIndex >= 0 && expansionIndex == idu))      // seen and is an expandable IDU
+         {
+         addToPool = false;
+         return 0;
+         }
+      }
+
+   // so, we haven't seen this one before. Is the constraint satisified?
+   addToPool = false;
+
+   // does it pass a query?
+   bool result = false;
+   bool ok = pQuery->Run(idu, result);
+
+   if (ok && result)  // yes, so add it to the pool
+      addToPool = true;
+
+   //if ( pAlloc->m_pExpandQuery )
+   //   {
+   //   bool result = false;
+   //   bool ok = pAlloc->m_pExpandQuery->Run( idu, result );
+   //   if ( ! ok || ! result )
+   //      addToPool = false;
+   //   }
+
+   float area = 0;
+   if (colArea >= 0)
+      {
+      // would this IDU cause the area limit to be exceeded?
+      GetData(idu, colArea, area);
+      if (addToPool && (maxArea > 0) && ((areaSoFar + area) > maxArea))
+         addToPool = false;
+      }
+
+   if (addToPool)
+      expandArray.Add(idu/*+1*/);
+   else
+      expandArray.Add(-(idu + 1)); // Note: what gets added to the expansion array is -(index+1)
+
+   return area;
+   }
+
+
+
+int MapLayer::GetPatchSizes(int colValue, VData &value, OPERATOR op, int colArea, Query *pAreaToConsider, CArray< float, float > &patchSizeArray)
    {
    patchSizeArray.RemoveAll();
 
@@ -12905,6 +13053,69 @@ int MapLayer::GetPatchSizes(int colValue, VData &value, OPERATOR op, int colArea
 
    return (int)patchSizeArray.GetSize();
    }
+
+
+int MapLayer::GetPatchSizes(Query* pPatchQuery, int colArea, CArray< float, float > &patchSizeArray)
+   {
+   patchSizeArray.RemoveAll();
+
+   if (pPatchQuery == NULL)
+      return -1;
+
+   if (pPatchQuery->GetQueryEngine()->GetMapLayer() != this)
+      return -2;
+
+   int iduCount = this->GetRecordCount(); // pPatchQuery->Select(true); //false;  // clear prior query
+   
+   bool* visited = new bool[iduCount];   // Note: only IDUs that match selection
+   for (int i = 0; i < iduCount; i++)
+      visited[i] = true;
+   
+   // initial all IDU's are visited initially.  But, we'll mask any that satify the query
+   
+   int selCount = pPatchQuery->Select(true); //false;  // clear prior query
+   for (int i = 0; i < selCount; i++)
+      {
+      int idu = this->GetSelection(i);
+      visited[idu] = false;
+      }
+
+   this->ClearSelection();
+   
+   // note: i is the index of the *selected* IDU
+   for (int i = 0; i < iduCount; i++)
+      {
+      if (!visited[i])
+         {
+         int idu = i;
+         // Get the patch.  Returns:
+         //   1) area of the expansion area (NOT including the nucleus polygon) and 
+         //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
+         //      were included in the patch, negative values indicate they were considered but where not included in the patch
+         CArray< int, int > expandArray;
+         float expandArea = this->GetExpandPolysFromQuery(idu, pPatchQuery, colArea, -1, /*visited,*/ expandArray);
+
+         float iduArea = 0;
+         this->GetData(idu, colArea, iduArea);
+         float patchArea = iduArea + expandArea;
+
+         patchSizeArray.Add(patchArea);
+
+         for (int j = 0; j < (int)expandArray.GetSize(); j++)
+            {
+            int expandIDU = expandArray[j];
+            if (expandIDU < 0)
+               expandIDU = (-expandIDU) - 1;
+
+            visited[expandIDU] = true;
+            }
+         }
+      }
+
+   delete[] visited;
+   return patchSizeArray.GetSize();
+   }
+
 
 
 

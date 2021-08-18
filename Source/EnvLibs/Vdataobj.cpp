@@ -876,6 +876,10 @@ int VDataObj::_ReadAscii( HANDLE hFile, TCHAR delimiter, BOOL showMsg )
 
       AppendRow( data, cols );
       rowcount++;
+
+      if (*p == NULL)
+         break;
+
       p++;
       }
 

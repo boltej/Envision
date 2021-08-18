@@ -530,6 +530,7 @@ void CMainFrame::AddDataCategory()
 	CMFCRibbonPanel* pPanelOther = pCategoryData->AddPanel( _T("Other"), m_PanelImages.ExtractIcon(27));
 
 	pPanelOther->Add(new CMFCRibbonButton(ID_DATA_IDUINFO,                 _T("IDU Layer Info"), 20, 20));     // EnvView
+   pPanelOther->Add(new CMFCRibbonButton(ID_DATA_IDUDOC ,                 _T("Document IDUs"), 5,5));     // EnvDoc
 	pPanelOther->Add(new CMFCRibbonButton(ID_DATA_VERIFYCELLLAYER,         _T("Verify IDU Layer"), 21, 21));   // EnvDoc
 	pPanelOther->Add(new CMFCRibbonButton(ID_DATA_PROJECT3D,               _T("Project to 3D"), 22, 22));      // EnvView
 	pPanelOther->Add(new CMFCRibbonButton(ID_DATA_BUILDNETWORKTREE,        _T("Build Network Tree"), 23, 23)); // EnvDoc

@@ -47,9 +47,6 @@
     <ClInclude Include="SSTM.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\EnvExtension.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="TransMatrix.h">
       <Filter>Header Files</Filter>
     </ClInclude>

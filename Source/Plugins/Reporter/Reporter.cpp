@@ -95,7 +95,7 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
 
    m_stratifyByStr = stratifyBy;
 
-   // parse field name is needed - {field} or {field} [v1,v2,v3] are valid
+   // parse field name if needed - {field} or {field}=[v1,v2,v3] are valid
    TCHAR *p = _tcschr( buffer, '=' );
 
    if ( p != NULL )  // '=' found?
@@ -169,7 +169,10 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
       for ( int i=0; i < pInfo->GetAttributeCount(); i++ )
          {
          FIELD_ATTR &fa = pInfo->GetAttribute( i );
-         m_stratifiedAttrs.Add( fa.value );
+         if (pInfo->mfiType == MFIT_CATEGORYBINS)
+            m_stratifiedAttrs.Add(fa.value);
+         else if (pInfo->mfiType == MFIT_QUANTITYBINS)
+            m_stratifiedAttrs.Add(VData(fa.maxVal));      // for quantity bins, use max value of bin
          }
       }
 
@@ -178,7 +181,7 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
    for ( int i=0; i < attrCount; i++ )
       {
       int attrIndex = -1;
-      FIELD_ATTR *fa = pInfo->FindAttribute( m_stratifiedAttrs[ i ], &attrIndex );
+      FIELD_ATTR* fa = pInfo->FindAttribute(m_stratifiedAttrs[i], &attrIndex);
 
       ASSERT( fa != NULL );
 
@@ -471,7 +474,7 @@ bool Reporter::Run( EnvContext *pEnvContext  )
       // iterate over ACTIVE records, evaluating expressions as we go
       for ( MapLayer::Iterator i = pLayer->Begin(); i != pLayer->End(); i++ )
          {
-         float area = 0;
+         float area = 0;    // "LENGTH" forline layers
          if ( colArea >= 0 )
             {
             pLayer->GetData( i, colArea, area );
@@ -565,7 +568,7 @@ void Reporter::ResetOutputs( PtrArray< Output > &outputArray )
    }
 
 
- void Reporter::EvaluateOutputs( PtrArray < Output > &outputArray, MapLayer *pLayer, int currentIDU, float area )
+ void Reporter::EvaluateOutputs( PtrArray < Output > &outputArray, MapLayer *pLayer, int currentIDU, float area /*or length*/ )
    {
    // for each output in the passed in array, calculate a values for the give IDU and accummulate it
    // ditto for any stratified variables
@@ -596,6 +599,7 @@ void Reporter::ResetOutputs( PtrArray< Output > &outputArray )
                   break;
 
                case VT_AREAWTMEAN:
+               case VT_LENWTMEAN:
                   pOutput->m_value += area * pOutput->m_pMapExpr->GetValue();
                   break;
                } // end of: switch()
@@ -627,6 +631,7 @@ void Reporter::ResetOutputs( PtrArray< Output > &outputArray )
                            break;
 
                         case VT_AREAWTMEAN:
+                        case VT_LENWTMEAN:
                            pOutput->m_stratifiedValues[ index ] += float(  area * pOutput->m_pMapExpr->GetValue() );
                            break;
                         } // end of: switch()
@@ -661,6 +666,11 @@ void Reporter::NormalizeOutputs( PtrArray < Output > &outputArray, MapLayer *pLa
                   pOutput->m_value /= pOutput->m_queryArea;  // normalize to query area
                break;
 
+            case VT_LENWTMEAN:
+               if (pOutput->m_queryArea > 0)
+                  pOutput->m_value /= pOutput->m_queryArea;  // normalize to query area
+               break;
+
             case VT_MEAN:
                if ( pOutput->m_count > 0 )
                   pOutput->m_value /= pOutput->m_count;
@@ -681,6 +691,7 @@ void Reporter::NormalizeOutputs( PtrArray < Output > &outputArray, MapLayer *pLa
                      break;      // nothing extra needed
           
                   case VT_AREAWTMEAN:
+                  case VT_LENWTMEAN:
                      if ( pOutput->m_queryArea > 0 )
                         pOutput->m_stratifiedValues[ i ] /= pOutput->m_queryArea;  // normalize to query area
                      break;
@@ -1151,8 +1162,10 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
             case 'S':      pOutput->m_varType = VT_SUM_AREA;     break;
             case 'p':      
             case 'P':      pOutput->m_varType = VT_PCT_AREA;     break;
-            case 'a':      
+            case 'a':
             case 'A':      pOutput->m_varType = VT_AREAWTMEAN;   break;
+            case 'l':
+            case 'L':      pOutput->m_varType = VT_LENWTMEAN;   break;
             case 'm':
             case 'M':      pOutput->m_varType = VT_MEAN;   break;
 
@@ -1160,7 +1173,7 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
             default:
                {
                CString msg;
-               msg.Format( "Reporter: Unrecognized 'type' attribute for output '%s'- must be 'sum', 'pctArea', 'mean', or 'areaWtMean'.  This output will be ignored...", (LPCTSTR) pOutput->m_name );
+               msg.Format( "Reporter: Unrecognized 'type' attribute for output '%s'- must be 'sum', 'pctArea', 'mean', lenWtMean, or 'areaWtMean'.  This output will be ignored...", (LPCTSTR) pOutput->m_name );
 
                Report::LogError( msg );
                pOutput->m_use = false;
@@ -1181,7 +1194,11 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
             if ( pEngine == NULL )
                {
                m_mapExprEngineArray.Add( pEngine = new MapExprEngine( pOutput->m_pMapLayer, pQueryEngine ) );
-               m_colAreaArray.Add( pOutput->m_pMapLayer->GetFieldCol( "AREA"));
+
+               if (pOutput->m_pMapLayer->GetType() == LT_LINE)
+                  m_colAreaArray.Add(pOutput->m_pMapLayer->GetFieldCol("LENGTH"));
+               else
+                  m_colAreaArray.Add( pOutput->m_pMapLayer->GetFieldCol( "AREA"));
                }
 
             pOutput->m_pMapExprEngine = pEngine;

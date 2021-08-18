@@ -67,7 +67,7 @@ EnvLoader::~EnvLoader()
    }
 
 
-int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
+int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MAPPROC mapFn/*=NULL*/ )
    {
    //AFX_MANAGE_STATE(AfxGetStaticModuleState());
    m_pMap    = pMap;
@@ -170,7 +170,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
       int runParallel = 0;
       int addReturnsToBudget = 0;
       double exportBmpSize=0;
-      int exportMaps = 0;   // deprecated
+      int exportMaps = -1;
       int exportMapInterval = 0;
       int exportBmpInterval = 0;
       int exportOutputs = 0;
@@ -222,6 +222,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
 
          // output control
          { _T("collectPolicyData" ),         TYPE_INT,      &collectPolicyData,     false,  0 },
+         { _T("exportMaps"),                 TYPE_INT,      &exportMaps,            false,  0 },
          { _T("exportMapInterval"),          TYPE_INT,      &exportMapInterval,     false,  0 },
          { _T("exportBmpInterval"),          TYPE_INT,      &exportBmpInterval,     false,  0 },
          { _T("exportBmpPixelSize"),         TYPE_DOUBLE,   &exportBmpSize,         false,  0 },
@@ -269,8 +270,11 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
 
       m_pEnvModel->m_runParallel   = runParallel ? true : false;
       m_pEnvModel->m_addReturnsToBudget = addReturnsToBudget ? true : false;
-      //m_pEnvModel->m_exportMaps = exportMaps ? true : false;
-      m_pEnvModel->m_exportMaps = exportMapInterval > 0 ? true : false;
+      if ( exportMaps < 0) // not specified
+         m_pEnvModel->m_exportMaps = exportMapInterval > 0 ? true : false;
+      else
+         m_pEnvModel->m_exportMaps = exportMaps > 0 ? true : false;
+      
       m_pEnvModel->m_exportMapInterval = exportMapInterval;
 
       m_pEnvModel->m_exportBmps = (exportBmpSize > 0 && exportBmpInterval > 0 ) ? true : false;
@@ -352,6 +356,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
          int data = 1;
          int records = -1;
          int labelSize = 0;
+         int linesize = 0;
          int expandLegend = 0;
          LPTSTR color = _T("140,140,140");    // lt gray
          LPTSTR labelColor = _T("255,255,255");     // white
@@ -364,7 +369,8 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
             { _T("path"),            TYPE_STRING,   &path,             true,   0 },
             { _T("initField"),       TYPE_STRING,   &initField,        false,  0 },
             { _T("overlayFields"),   TYPE_STRING,   &overlayFields,    false,  0 },
-            { _T("color"),           TYPE_STRING,   &color,            false,   0 },
+            { _T("color"),           TYPE_STRING,   &color,            false,  0 },
+            { _T("size"),            TYPE_INT,      &linesize,         false,  0 },
             { _T("fieldInfoFile"),   TYPE_STRING,   &fieldInfoFile,    false,  0 },
             { _T("labelField"),      TYPE_STRING,   &labelField,       false,  0 },
             { _T("labelFont"),       TYPE_STRING,   &labelFont,        false,  0 },
@@ -375,6 +381,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
             { _T("records"),         TYPE_INT,      &records,          false,  0 },
             { _T("includeData"),     TYPE_INT,      &data,             false,  0 },  // deprecated. ignored
             { _T("expandLegend"),    TYPE_INT,      &expandLegend,     false,  0 },
+
             { NULL,                  TYPE_NULL,     NULL,              false,  0 } };
 		 
 		
@@ -405,6 +412,9 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
             return -4;
             }
 
+         if (linesize > 0)
+            m_pMap->GetLayer(layerIndex)->m_lineWidth = linesize;
+
          // if IDU, add path for shape file to the PathManager
          if ( layerIndex == 0 )
             {
@@ -429,6 +439,25 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel )
                if ( dlg.DoModal() == IDOK )
                   m_pEnvModel->m_spatialIndexDistance = dlg.m_maxDistance;
 #endif
+               Report::LogInfo("Starting Spatial Index Build");
+               if ( mapFn != NULL )
+                  m_pIDULayer->m_pMap->InstallNotifyHandler(mapFn, (LONG_PTR)this);
+
+               m_pIDULayer->CreateSpatialIndex(NULL, 10000, (float) m_pEnvModel->m_spatialIndexDistance, SIM_NEAREST);
+
+               if( mapFn != NULL )
+                  m_pIDULayer->m_pMap->RemoveNotifyHandler(mapFn, (LONG_PTR)this);
+
+               Report::LogInfo("Saving Spatial Index...");
+
+               //if (!m_canceled)
+               //   {
+               //   MessageBox(_T("Successful creating spatial index"), _T("Success"), MB_OK);
+               //   CDialog::OnOK();
+               //   }
+
+
+
                }
 
             CString fullPath;

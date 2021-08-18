@@ -596,7 +596,7 @@ void photosynthesis(double co2, double temp, double par, double daylength,
 	//  * with pre-calculated Vmax (sub-daily and water-stressed)
 	assert(vm >= 0 || lambda == pft.lambda_max);
 	assert(lambda <= pft.lambda_max);
-
+	assert(!isnan(temp));
 	const double PATMOS = 1e5;	// atmospheric pressure (Pa)
 
 	// No photosynthesis during polar night, outside of temperature range or no RuBisCO activity

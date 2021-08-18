@@ -285,6 +285,7 @@ public:
    afx_msg void OnDataIntersect();
    afx_msg void OnDataReclass();
    afx_msg void OnDataPopulateIduIndex();
+   afx_msg void OnDataGenerateFieldDocumentation();
 
    afx_msg void OnMapAreaSummary();
    afx_msg void OnMapAddDotDensityMap();
