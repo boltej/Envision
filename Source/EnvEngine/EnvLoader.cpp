@@ -1376,7 +1376,7 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
          ASSERT( pLayer->m_pDbTable != NULL );
          }
 
-      CString msg( "Loading map layer: " );
+      CString msg( "Success loaded map layer: " );
       msg += path;
       Report::Log( msg );
 
