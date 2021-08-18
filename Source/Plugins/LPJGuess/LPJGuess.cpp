@@ -245,6 +245,7 @@ bool LPJGuess::InitRun_Guess(FlowContext* pFlowContext, const char* input_module
 	return true;
 	}
 
+
 bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
 	//need to pass name of *.ins file. {insfile="C:\\LPJ_GUESS\\input\\global_cru.ins" help=false parallel=false ...}	CommandLineArguments
