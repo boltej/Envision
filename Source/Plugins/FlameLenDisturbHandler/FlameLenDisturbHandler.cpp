@@ -34,6 +34,7 @@ Copywrite 2012 - Oregon State University
 #include <algorithm>
 #include <vector>
 #include <afxtempl.h>
+#include <PathManager.h>
 #include "AlgLib\ap.h"
 
 #ifdef _DEBUG
@@ -127,14 +128,24 @@ bool FlameLenDisturbHandler::Init( EnvContext *pEnvContext, LPCTSTR initStr )
 	m_colPotentialDisturb = pLayer->GetFieldCol("PDISTURB");
 	m_colPotentialFlameLen = pLayer->GetFieldCol("PFlameLen");
    
-	VDataObj data(U_UNDEFINED);
-    
-   int rows = data.ReadAscii( m_fireLookupFile.firelookup_filename );
+
+   // read fire lookup file
+   CString path;
+   if (PathManager::FindPath(m_fireLookupFile.firelookup_filename, path) < 0) //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
+      {
+      CString msg;
+      msg.Format("FlameLenDisturbHandler: Input file %s not found!", (LPCTSTR)m_fireLookupFile.firelookup_filename);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   VDataObj data(U_UNDEFINED);
+   int rows = data.ReadAscii( path );
    
    if ( rows <= 0 )
       {
-      CString msg( "FlameLenDisturbHandler initialization error:  Unable to read initialization file '" );
-      msg += initStr;
+      CString msg( "FlameLenDisturbHandler initialization error:  Unable to read  file " );
+      msg += path;
       Report::ErrorMsg( msg );
       return FALSE;
       }
