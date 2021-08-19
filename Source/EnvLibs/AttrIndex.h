@@ -77,8 +77,8 @@ return (DWORD)(((DWORD_PTR)v.val.vInt)>>4);
 #endif
 
 
-// this class provide a persistent index to one or more columns in a MapLayer.  Each columns info is stored in an ATTR_INFO_ARRAY,
-// where the actual indexing occurs.
+// this class provide a persistent index to one or more columns in a DbTable.  
+// Each columns info is stored in an ATTR_INFO_ARRAY, where the actual indexing occurs.
 
 class LIBSAPI AttrIndex
 {
@@ -86,7 +86,7 @@ friend class MapLayer;
 
 public:
    AttrIndex(void) : m_isBuilt( false ), m_isChanged( false ), m_pDbTable( NULL ) { }
- AttrIndex(AttrIndex &a) : m_pDbTable(a.m_pDbTable), m_filename(a.m_filename), m_isBuilt(a.m_isBuilt), m_isChanged(a.m_isChanged) { m_attrInfoArray.Copy(a.m_attrInfoArray); IntMap::CPair* pCurVal; pCurVal = a.m_colIndexMap.PGetFirstAssoc(); while (pCurVal != NULL) { m_colIndexMap.SetAt(CPAIR_PTR_KEY(pCurVal), CPAIR_PTR_VALUE(pCurVal)); } };
+   AttrIndex(AttrIndex &a) : m_pDbTable(a.m_pDbTable), m_filename(a.m_filename), m_isBuilt(a.m_isBuilt), m_isChanged(a.m_isChanged) { m_attrInfoArray.Copy(a.m_attrInfoArray); IntMap::CPair* pCurVal; pCurVal = a.m_colIndexMap.PGetFirstAssoc(); while (pCurVal != NULL) { m_colIndexMap.SetAt(CPAIR_PTR_KEY(pCurVal), CPAIR_PTR_VALUE(pCurVal)); } };
    ~AttrIndex(void);
 
 protected:

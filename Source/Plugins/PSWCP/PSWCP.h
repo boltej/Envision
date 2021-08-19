@@ -2,6 +2,9 @@
 
 #include <EnvExtension.h>
 
+#include <vdataobj.h>
+#include <AttrIndex.h>
+
 #define _EXPORT __declspec( dllexport )
 
 
@@ -17,41 +20,60 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
       bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);
 
-      // water quality inportance (Model 1) 
-
-      int m_colS;
-      int m_colS_Q;
-      int m_colS_Code;
-
-      int m_colP;
-      int m_colP_Q;
-      int m_colP_Code;
-
-      int m_colM;
-      int m_colM_Q;
-      int m_colM_Code;
-
-      int m_colN;
-      int m_colN_Q;
-      int m_colN_Code;
-
-      int m_colPa;
-      int m_colPa_Q;
-      int m_colPa_Code;
-
+      // idu columns
       MapLayer* m_pIDULayer;
-      MapLayer* m_pWQ_RP;
+      int m_col_IDU_AUIndex;
+
+      int m_col_IDU_WqS_rp;
+      int m_col_IDU_WqP_rp;
+      int m_col_IDU_WqMe_rp;
+      int m_col_IDU_WqN_rp;
+      int m_col_IDU_WqPa_rp;
 
 
+      // water quality inportance (Model 1) 
+      // WQ_RP.csv columns
+      int m_col_WQ_AU;
+      int m_col_WQ_S;
+      int m_col_WQ_P;
+      int m_col_WQ_Me;
+      int m_col_WQ_N;
+      int m_col_WQ_Pa;
+      
+      int m_col_WQ_S_rp;  // priority codes
+      int m_col_WQ_P_rp;
+      int m_col_WQ_Me_rp;
+      int m_col_WQ_N_rp;
+      int m_col_WQ_Pa_rp;
+      
+      int m_col_WQ_S_Q;
+      int m_col_WQ_P_Q;
+      int m_col_WQ_Me_Q;
+      int m_col_WQ_N_Q;
+      int m_col_WQ_Pa_Q;
+
+      VDataObj* m_pWqRpTable;
+      VDataObj* m_pWfRpTable;
+      AttrIndex m_index_IDU;  // for IDUs, key=AUIndex,value=IDU rows containing key  
+
+      // water flow assessment 
+
+      // habitat assessment
+
+      // HCI assessment
+
+
+
+      // methods
       bool InitWQAssessment(EnvContext*);
       bool InitWFAssessment(EnvContext*);
       bool InitHabAssessment(EnvContext*);
-      bool InitHCIAssessment(EnvContext*;
+      bool InitHCIAssessment(EnvContext*);
 
       bool RunWQAssessment(EnvContext*);
       bool RunWFAssessment(EnvContext*);
       bool RunHabAssessment(EnvContext*);
-      bool RunHCIAssessment(EnvContext*;
+      bool RunHCIAssessment(EnvContext*);
 
 
       //virtual bool EndRun(EnvContext *pContext) { return true; }
