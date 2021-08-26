@@ -23,40 +23,184 @@ extern "C" _EXPORT EnvExtension * Factory(EnvContext*) { return (EnvExtension*) 
 //                 PSWCP
 ///////////////////////////////////////////////////////
 
+
+TABLECOL colInfo[] = {
+      { WQ_DB_TABLE, NULL, -1, "AU_ID"     },
+      { WQ_DB_TABLE, NULL, -1, "LG_M1"     },
+      { WQ_DB_TABLE, NULL, -1, "LG_M2"     },
+      { WQ_DB_TABLE, NULL, -1, "ACRES"  },
+      { WQ_DB_TABLE, NULL, -1, "SQ_MILES"  },
+      { WQ_DB_TABLE, NULL, -1, "STRM_MI"   },
+      { WQ_DB_TABLE, NULL, -1, "ASMI"      },  // not using?
+      { WQ_DB_TABLE, NULL, -1, "RE"        },
+      { WQ_DB_TABLE, NULL, -1, "K"         },
+      { WQ_DB_TABLE, NULL, -1, "SLP"       },
+      { WQ_DB_TABLE, NULL, -1, "LH"        },
+      { WQ_DB_TABLE, NULL, -1, "ERSTMI"    },
+      { WQ_DB_TABLE, NULL, -1, "SRP"       },
+      { WQ_DB_TABLE, NULL, -1, "SRM"       },
+      { WQ_DB_TABLE, NULL, -1, "RDN_MI"    },
+                                           
+      { WQ_M1_TABLE, NULL, -1, "MW"        },
+      { WQ_M1_TABLE, NULL, -1, "S_MW"      },
+      { WQ_M1_TABLE, NULL, -1, "ERST"      },
+      { WQ_M1_TABLE, NULL, -1, "S_SE"      },
+      { WQ_M1_TABLE, NULL, -1, "S_CE"      },
+      { WQ_M1_TABLE, NULL, -1, "S_M1"      },
+      { WQ_M1_TABLE, NULL, -1, "S_M1_CAL"  },
+      { WQ_M1_TABLE, NULL, -1, "PSO"       },
+      { WQ_M1_TABLE, NULL, -1, "PSI"       },
+      { WQ_M1_TABLE, NULL, -1, "P_SO"      },
+      { WQ_M1_TABLE, NULL, -1, "P_SI"      },
+      { WQ_M1_TABLE, NULL, -1, "P_M1"      },
+      { WQ_M1_TABLE, NULL, -1, "P_M1_CAL"  },
+      { WQ_M1_TABLE, NULL, -1, "MSI"       },
+      { WQ_M1_TABLE, NULL, -1, "M_M1"      },
+      { WQ_M1_TABLE, NULL, -1, "M_M1_CAL"  },
+      { WQ_M1_TABLE, NULL, -1, "NSI"       },
+      { WQ_M1_TABLE, NULL, -1, "N_M1"      },
+      { WQ_M1_TABLE, NULL, -1, "N_M1_CAL"  },
+      { WQ_M1_TABLE, NULL, -1, "PA_SI"     },
+      { WQ_M1_TABLE, NULL, -1, "PA_M1"     },
+      { WQ_M1_TABLE, NULL, -1, "PA_M1_CAL" },
+
+      { WQ_RP_TABLE, NULL, -1, "SED_RP"    },
+      { WQ_RP_TABLE, NULL, -1, "P_RP"      },
+      { WQ_RP_TABLE, NULL, -1, "ME_RP"     },
+      { WQ_RP_TABLE, NULL, -1, "N_RP"      },
+      { WQ_RP_TABLE, NULL, -1, "Pa_RP"     },
+      //{ WQ_RP_TABLE, NULL, -1, "S_M1_CAL"  },  duplicates
+      //{ WQ_RP_TABLE, NULL, -1, "P_M1_CAL"  },
+      //{ WQ_RP_TABLE, NULL, -1, "M_M1_CAL"  },
+      //{ WQ_RP_TABLE, NULL, -1, "N_M1_CAL"  },
+      { WQ_RP_TABLE, NULL, -1, "S_PA1_CAL" },
+
+      { WF_DB1_TABLE, NULL, -1, "AV_PREC"  },
+      { WF_DB1_TABLE, NULL, -1, "SRS_PCT"  },
+      { WF_DB1_TABLE, NULL, -1, "DPWT_PCT" },
+      { WF_DB1_TABLE, NULL, -1, "LK_PCT"   },
+      { WF_DB1_TABLE, NULL, -1, "UC_MI"    },
+      { WF_DB1_TABLE, NULL, -1, "MC_MI"    },
+      { WF_DB1_TABLE, NULL, -1, "HPERM"    },
+      { WF_DB1_TABLE, NULL, -1, "LPERM"    },
+      //{ WF_DB1_TABLE, NULL, -1, "ACRES"    }, duplicate
+      { WF_DB1_TABLE, NULL, -1, "UCHP_AREA"},
+      { WF_DB1_TABLE, NULL, -1, "SLPWT_AC" },
+      { WF_DB1_TABLE, NULL, -1, "SLPWT_PCT"},
+
+      { WF_DB2_TABLE, NULL, -1, "FL_PCT"   },
+      { WF_DB2_TABLE, NULL, -1, "IMP_AC"   },
+      { WF_DB2_TABLE, NULL, -1, "IMP_PCT"  },
+      { WF_DB2_TABLE, NULL, -1, "W_UR_AC"  },
+      { WF_DB2_TABLE, NULL, -1, "W_RU_AC"  },
+      { WF_DB2_TABLE, NULL, -1, "UC_ALT_MI"},
+      { WF_DB2_TABLE, NULL, -1, "U_AC"     },
+      { WF_DB2_TABLE, NULL, -1, "BU_AC"    },
+      { WF_DB2_TABLE, NULL, -1, "LI_AC"    },
+      { WF_DB2_TABLE, NULL, -1, "RD_MI"    },
+      { WF_DB2_TABLE, NULL, -1, "RD_DEN"   },
+      { WF_DB2_TABLE, NULL, -1, "WELL_CNT" },
+      { WF_DB2_TABLE, NULL, -1, "WELL_DEN" },
+      { WF_DB2_TABLE, NULL, -1, "UCHP_U"   },
+      { WF_DB2_TABLE, NULL, -1, "UCHP_R"   },
+      { WF_DB2_TABLE, NULL, -1, "SLPW_U"   },
+      { WF_DB2_TABLE, NULL, -1, "SLPW_R"   },
+
+      { WF_M1_TABLE, NULL, -1, "I_SS"      },
+      { WF_M1_TABLE, NULL, -1, "WLS"       },
+      { WF_M1_TABLE, NULL, -1, "P"         },
+      { WF_M1_TABLE, NULL, -1, "RS"        },
+      { WF_M1_TABLE, NULL, -1, "IDE"       },
+      { WF_M1_TABLE, NULL, -1, "I_DE"      },
+      { WF_M1_TABLE, NULL, -1, "RECHH"     },
+      { WF_M1_TABLE, NULL, -1, "RECHL"     },
+      { WF_M1_TABLE, NULL, -1, "IR"        },
+      { WF_M1_TABLE, NULL, -1, "I_R"       },
+      { WF_M1_TABLE, NULL, -1, "SD"        },
+      { WF_M1_TABLE, NULL, -1, "SWD"       },
+      { WF_M1_TABLE, NULL, -1, "IDI"       },
+      { WF_M1_TABLE, NULL, -1, "I_DI"      },
+
+      { WF_M2_TABLE, NULL, -1, "UW"        },
+      { WF_M2_TABLE, NULL, -1, "RW"        },
+      { WF_M2_TABLE, NULL, -1, "DW"        },
+      { WF_M2_TABLE, NULL, -1, "D_WS"      },
+      { WF_M2_TABLE, NULL, -1, "UDS"       },
+      { WF_M2_TABLE, NULL, -1, "MDS"       },
+      { WF_M2_TABLE, NULL, -1, "DST"       },
+      { WF_M2_TABLE, NULL, -1, "D_STS"     },
+      { WF_M2_TABLE, NULL, -1, "D_RD"      },
+      { WF_M2_TABLE, NULL, -1, "D_WEL"     },
+      { WF_M2_TABLE, NULL, -1, "UUS"       },
+      { WF_M2_TABLE, NULL, -1, "URS"       },
+      { WF_M2_TABLE, NULL, -1, "SWU"       },
+      { WF_M2_TABLE, NULL, -1, "SWR"       },
+      { WF_M2_TABLE, NULL, -1, "WD"        },
+      { WF_M2_TABLE, NULL, -1, "D_WD"      },
+
+      { NULL_TABLE,  NULL, -1, NULL }
+   };
+
+CMapStringToPtr colMap;    // key = fieldname, value=ptr to COL
+
+
+
 PSWCP::PSWCP(void)
    : EnvModelProcess()
+   , m_pIDULayer(NULL)
+   , m_pWqDbTable(NULL)
+   , m_pWqM1Table(NULL)
+   , m_pWqRpTable(NULL)
+   , m_pWfDb1Table(NULL)
+   , m_pWfDb2Table(NULL)
+   , m_pWfM1Table(NULL)
+   , m_pWfM2Table(NULL)
+   , m_pWfRpTable(NULL)
+   , m_index_IDU()
    , m_col_IDU_AUIndex(-1)
    , m_col_IDU_WqS_rp(-1)
    , m_col_IDU_WqP_rp(-1)
    , m_col_IDU_WqMe_rp(-1)
    , m_col_IDU_WqN_rp(-1)
    , m_col_IDU_WqPa_rp(-1)
-   , m_col_WQ_AU(-1)
-   , m_col_WQ_S(-1)
-   , m_col_WQ_S_Q(-1)
-   , m_col_WQ_S_rp(-1)
-   , m_col_WQ_P(-1)
-   , m_col_WQ_P_Q(-1)
-   , m_col_WQ_P_rp(-1)
-   , m_col_WQ_Me(-1)
-   , m_col_WQ_Me_Q(-1)
-   , m_col_WQ_Me_rp(-1)
-   , m_col_WQ_N(-1)
-   , m_col_WQ_N_Q(-1)
-   , m_col_WQ_N_rp(-1)
-   , m_col_WQ_Pa(-1)
-   , m_col_WQ_Pa_Q(-1)
-   , m_col_WQ_Pa_rp(-1)
-   , m_pIDULayer(NULL)
-   , m_pWqRpTable(NULL)
-   , m_pWfRpTable(NULL)
-   , m_index_IDU()
-   { }
+   { 
+   int i = 0;
+   while (colInfo[i].table >= 0)
+      {
+      void *pCol;
+      if (colMap.Lookup(colInfo[i].field, pCol) == TRUE)
+         {
+         CString msg;
+         msg.Format("  PSWCP: Duplicate table field encountered: Table: %i, field: %s", (int)colInfo[i].table, (LPCTSTR) colInfo[i].field);
+         Report::LogInfo(msg);
+         }
+      else
+         {
+         // add to map
+         }
+         colMap[colInfo[i].field] = &colInfo[i];
+      i++;
+      }
+   
+   }
 
 PSWCP::~PSWCP(void)
    {
+   if (m_pWqDbTable != NULL)
+      delete m_pWqDbTable;
+   if (m_pWqM1Table != NULL)
+      delete m_pWqM1Table;
    if (m_pWqRpTable != NULL)
       delete m_pWqRpTable;
+
+   if (m_pWfDb1Table != NULL)
+      delete m_pWfRpTable;
+   if (m_pWfDb2Table != NULL)
+      delete m_pWfRpTable;
+   if (m_pWfM1Table != NULL)
+      delete m_pWfM1Table;
+   if (m_pWfM2Table != NULL)
+      delete m_pWfM2Table;
    if (m_pWfRpTable != NULL)
       delete m_pWfRpTable;
    }
@@ -72,13 +216,13 @@ bool PSWCP::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
 
    // water quality model
-   InitWQAssessment(pEnvContext);
+   InitAssessment(pEnvContext);
 
    // water flow model
-   InitWFAssessment(pEnvContext);
+   //InitWFAssessment(pEnvContext);
 
    // habitat
-   InitHabAssessment(pEnvContext);
+   //(pEnvContext);
 
    // HCI
    InitHCIAssessment(pEnvContext);
@@ -195,8 +339,7 @@ bool PSWCP::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    }
 
 
-
-bool PSWCP::InitWQAssessment(EnvContext* pEnvContext)
+bool PSWCP::InitAssessment(EnvContext* pEnvContext)
    {
    this->CheckCol(m_pIDULayer, m_col_IDU_AUIndex, "AU_INDEX", TYPE_INT, CC_MUST_EXIST);
    this->CheckCol(m_pIDULayer, m_col_IDU_WqS_rp,  "WqS_rp", TYPE_STRING, CC_MUST_EXIST);
@@ -205,34 +348,42 @@ bool PSWCP::InitWQAssessment(EnvContext* pEnvContext)
    this->CheckCol(m_pIDULayer, m_col_IDU_WqN_rp,  "WqN_rp", TYPE_STRING, CC_MUST_EXIST);
    this->CheckCol(m_pIDULayer, m_col_IDU_WqPa_rp, "WqPa_rp", TYPE_STRING, CC_MUST_EXIST);
 
-   // load database
-   m_pWqRpTable = new VDataObj(UNIT_MEASURE::U_UNDEFINED);
-   CString path;
-   if (PathManager::FindPath("PSWCP/WQ_RP.csv", path) < 0) //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
+   // load databases
+   LoadTable(WQ_DB_TABLE);
+   LoadTable(WQ_M1_TABLE);
+   LoadTable(WQ_RP_TABLE);
+   LoadTable(WF_DB1_TABLE);
+   LoadTable(WF_DB2_TABLE);
+   LoadTable(WF_M1_TABLE);
+   LoadTable(WF_M2_TABLE);
+   LoadTable(WF_RP_TABLE);
+
+   // update colInfos
+   int i = 0;
+   while (colInfo[i].table != NULL_TABLE)
       {
-      Report::ErrorMsg("PSWCP: Input file WQ_RP.csv not found - this process will be disabled");
-      return false;
+      switch (colInfo[i].table)
+         {
+         case WQ_DB_TABLE:  colInfo[i].pTable = m_pWqDbTable;   break;
+         case WQ_M1_TABLE:  colInfo[i].pTable = m_pWqM1Table;   break;
+         case WQ_RP_TABLE:  colInfo[i].pTable = m_pWqRpTable;   break;
+         case WF_DB1_TABLE: colInfo[i].pTable = m_pWfDb1Table; break;
+         case WF_DB2_TABLE: colInfo[i].pTable = m_pWfDb2Table; break;
+         case WF_M1_TABLE:  colInfo[i].pTable = m_pWfM1Table;   break;
+         case WF_M2_TABLE:  colInfo[i].pTable = m_pWfM2Table;   break;
+         case WF_RP_TABLE:  colInfo[i].pTable = m_pWfRpTable;   break;
+         }
+
+      colInfo[i].col = colInfo[i].pTable->GetCol(colInfo[i].field);
+      i++;
       }
 
-   int rows = m_pWqRpTable->ReadAscii(path, ',');
-   CString msg;
-   msg.Format("PSWCP: Loaded %i records from %s", rows, (LPCTSTR)path);
-   Report::LogInfo(msg);
-
-   // set col values for useful columns
-   this->m_col_WQ_AU    = m_pWqRpTable->GetCol("AU_ID");
-   this->m_col_WQ_S_rp  = m_pWqRpTable->GetCol("SED_RP");
-   this->m_col_WQ_P_rp  = m_pWqRpTable->GetCol("P_RP");
-   this->m_col_WQ_Me_rp = m_pWqRpTable->GetCol("ME_RP");
-   this->m_col_WQ_N_rp  = m_pWqRpTable->GetCol("N_RP");
-   this->m_col_WQ_Pa_rp = m_pWqRpTable->GetCol("Pa_RP");
-
-   // load/create index
+   // load/create index for getting IDUs for each AU from the idu layer
    CString indexPath;
    if (PathManager::FindPath("PSWCP/WQ_RP.idx", indexPath) < 0)
       {
       // doesn't exist, build (and save) it
-      Report::LogInfo("PSWCP: Building index WQ_RP.idx");
+      Report::LogInfo("  PSWCP: Building index WQ_RP.idx");
       m_index_IDU.BuildIndex(m_pIDULayer->m_pDbTable, m_col_IDU_AUIndex);
 
       indexPath = PathManager::GetPath(PM_PROJECT_DIR);
@@ -250,15 +401,17 @@ bool PSWCP::InitWQAssessment(EnvContext* pEnvContext)
    for (int row = 0; row < m_pWqRpTable->GetRowCount(); row++)
       {
       // get the AU_ID for this record
-      int auID = m_pWqRpTable->GetAsInt(m_col_WQ_AU, row);
+      int auID = 0;
+      GetTableValue(WQ_DB_TABLE, "AU_ID", row, auID);
+
       int count = m_index_IDU.GetRecordArray(m_col_IDU_AUIndex, VData(auID), recordArray);
 
       CString s_rp, p_rp, me_rp, n_rp, pa_rp;
-      m_pWqRpTable->Get(m_col_WQ_S_rp, row, s_rp);
-      m_pWqRpTable->Get(m_col_WQ_P_rp, row, p_rp);
-      m_pWqRpTable->Get(m_col_WQ_Me_rp, row, me_rp);
-      m_pWqRpTable->Get(m_col_WQ_N_rp, row, n_rp);
-      m_pWqRpTable->Get(m_col_WQ_Pa_rp, row, pa_rp);
+      GetTableValue(WQ_RP_TABLE, "SED_RP", row, s_rp);
+      GetTableValue(WQ_RP_TABLE, "P_RP",   row, p_rp);
+      GetTableValue(WQ_RP_TABLE, "ME_RP",  row, me_rp);
+      GetTableValue(WQ_RP_TABLE, "N_RP",   row, n_rp);
+      GetTableValue(WQ_RP_TABLE, "Pa_RP",  row, pa_rp);
 
       for (int j = 0; j < count; j++)
          {
@@ -290,43 +443,44 @@ bool PSWCP::InitWQAssessment(EnvContext* pEnvContext)
    }
 
 
-
-bool PSWCP::InitWFAssessment(EnvContext* pEnvContext)
-   {
-   return true;
-   }
-
-bool PSWCP::InitHabAssessment(EnvContext* pEnvContext)
-   {
-   return true;
-   }
-
 bool PSWCP::InitHCIAssessment(EnvContext* pEnvContext)
    {
    return true;
    }
 
 
+bool PSWCP::RunWFAssessment(EnvContext* pEnvContext)
+   {
+   // Model 1:  Importance Value
+   // (Precip + Timing of Delivery) + (Surface Storage) + subsurface flow + (recharge + discharge);
+   
+   SolveWfM1WatDel();
+   SolveWfM1SurfStorage();
+   SolveWfM1RechargeDischarge();
 
+   // Model 2: degradation
+   SolveWfM2WatDel();
+   SolveWfM2SurfStorage();
+   SolveWfM2Recharge();    // NEEDS WORK, DOCS UNCLEAR
+   SolveWfM2Discharge();
+   SolveWfM2EvapTrans();
+   
+   return true;
+   }
 
 
 bool PSWCP::RunWQAssessment(EnvContext* pEnvContext)
    {
-   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
-      {
-      float imprValue = 0;
-   //   pIDULayer->GetData(idu, m_colIduImprValue, imprValue);
-   
-      }
+   SolveWqM1Sed();
+   SolveWqM1Phos();
+   SolveWqM1Metals();
+   SolveWqM1Nit();
+   SolveWqM1Path();
 
+   // SolveWqM2();
    return true;
    }
 
-
-bool PSWCP::RunWFAssessment(EnvContext* pEnvContext)
-   {
-   return true;
-   }
 
 bool PSWCP::RunHabAssessment(EnvContext* pEnvContext)
    {
@@ -336,4 +490,1112 @@ bool PSWCP::RunHabAssessment(EnvContext* pEnvContext)
 bool PSWCP::RunHCIAssessment(EnvContext* pEnvContext)
    {
    return true;
+   }
+
+
+
+//-------------------------------------------------
+//-------- sediment export potential --------------
+//-------------------------------------------------
+int PSWCP::SolveWqM1Sed()
+   {
+   // normalizing arrays 
+   float maxSE[LG_COUNT] = { 0,0,0,0,0 };
+   float maxCE[LG_COUNT] = { 0,0,0,0,0 };
+   float maxMW[LG_COUNT] = { 0,0,0,0,0 };
+   float maxSM1[LG_COUNT] = { 0,0,0,0,0 };
+
+   // pass one - compute normalizing array
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+
+      if (lgIndex == LG_NULL)
+         continue;
+
+      // collect data for calculations
+      float re = 0;     // rainfall erosivity
+      float k = 0;
+      float slp = 0;    // slope
+      float lh = 0;
+      float erstMi = 0; // total stream miles
+      float streamMiles = 0;
+      float areaSqMi = 0;
+      GetTableValue(WQ_DB_TABLE, "SQ_MILES", row, areaSqMi);
+      GetTableValue(WQ_DB_TABLE, "STRM_MI", row, streamMiles);
+      GetTableValue(WQ_DB_TABLE, "RE", row, re);
+      GetTableValue(WQ_DB_TABLE, "K", row, k);
+      GetTableValue(WQ_DB_TABLE, "SLP", row, slp);
+      GetTableValue(WQ_DB_TABLE, "LH", row, lh);
+      GetTableValue(WQ_DB_TABLE, "ERST_MI", row, erstMi);
+
+      float asd = streamMiles / areaSqMi;
+      float erst = erstMi / streamMiles;
+
+      // sources
+      float se = re * k * slp;      // surface erosion
+      float mw = lh * asd;          // mass wasting
+      float ce = slp * erst;      // channel erosion
+
+      // update values in WQ_M1 table
+      SetTableValue(WQ_M1_TABLE, "SE", row, se);
+      SetTableValue(WQ_M1_TABLE, "MW", row, mw);
+      SetTableValue(WQ_M1_TABLE, "ERST", row, erst);
+      SetTableValue(WQ_M1_TABLE, "CE", row, ce);
+
+      // update values in WQ_RP table
+      //SetTableValue(WQ_RP_TABLE, "S_M1_CAL", row, sed_m1);
+
+      // check for normalizing max NEED TO ORG BY LANDSCAPE GROUP
+      if (ce > maxCE[lgIndex])
+         maxCE[lgIndex] = ce;
+
+      if (mw > maxMW[lgIndex])
+         mw = maxMW[lgIndex];
+
+      if (se > maxSE[lgIndex])
+         maxSE[lgIndex] = se;
+      }
+
+   // pass 2
+   // normalize and write sed-related  variables
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float mw = 0, se = 0, ce = 0;
+      GetTableValue(WQ_M1_TABLE, "MW", row, mw);
+      GetTableValue(WQ_M1_TABLE, "SE", row, se);
+      GetTableValue(WQ_M1_TABLE, "CE", row, ce);
+
+      // update normalized values in WQ_M1 table
+      float s_mw = mw / maxMW[lgIndex];
+      float s_ce = ce / maxCE[lgIndex];
+      float s_se = se / maxSE[lgIndex];
+      SetTableValue(WQ_M1_TABLE, "S_MW", row, s_mw);
+      SetTableValue(WQ_M1_TABLE, "S_SE", row, s_se);
+      SetTableValue(WQ_M1_TABLE, "S_CE", row, s_ce);
+
+      // update normalized values in WQ_RP table
+
+      // solve source model
+      // sinks
+      float iss = 0;   // water flow process surface storage subcomponent
+      GetTableValue(WQ_RP_TABLE, "I_SS", row, iss);
+
+      float sed_m1 = (se + mw + ce) - iss;        // model 1 (export) score for sediments, unnormalized
+      SetTableValue(WQ_M1_TABLE, "S_M1", row, sed_m1);
+
+      if (sed_m1 > maxSM1[lgIndex])
+         maxSM1[lgIndex] = sed_m1;
+      }
+
+   // pass 3
+   // normalize and write s_m1
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float sed_m1 = 0;
+      GetTableValue(WQ_M1_TABLE, "S_M1", row, sed_m1);
+
+      float sed_m1_cal = sed_m1 / maxSM1[lgIndex];
+      SetTableValue(WQ_M1_TABLE, "S_M1_CAL", row, sed_m1_cal);
+      //SetTableValue(WQ_RP_TABLE, "S_M1_CAL", row, sed_m1_cal);   // duplicate name!
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- phosphorus export potential --------------
+//---------------------------------------------------
+int PSWCP::SolveWqM1Phos()
+   {
+   float maxPE[LG_COUNT] = { 0,0,0,0,0 };
+   float maxPSO[LG_COUNT] = { 0,0,0,0,0 };
+   float maxPSI[LG_COUNT] = { 0,0,0,0,0 };
+   float maxSRP[LG_COUNT] = { 0,0,0,0,0 };
+   float maxPM1[LG_COUNT] = { 0,0,0,0,0 };
+   
+   // pass 1
+   // find max PE values for normalizing
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float pe = 1;     // ????? can't find field "PC" in the datasets(Phosphorus content)
+      if (pe > maxPE[lgIndex])
+         maxPE[lgIndex] = pe;
+
+      float srp = 0;
+      GetTableValue(WQ_DB_TABLE, "SRP", row, srp);
+      if (srp > maxSRP[lgIndex])
+         maxSRP[lgIndex] = srp;
+      }
+
+   // pass 2
+   // compute model for each AU
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float pe = 0;     // phosphorus enrichment
+      //GetTableValue(WQ_M1_TABLE, "PE", row, pe);   // ???????? NEED TO CALCULATE THIS!!
+      float i_pe = pe / maxPE[lgIndex];
+
+      // sources
+      float s_se = 0, s_mw = 0, s_ce = 0;
+      GetTableValue(WQ_M1_TABLE, "S_MW", row, s_mw);     // mass wasting
+      GetTableValue(WQ_M1_TABLE, "S_SE", row, s_se);     // surface erosion
+      GetTableValue(WQ_M1_TABLE, "S_CE", row, s_ce);     // channel resion
+      float pso = (s_se + s_mw + s_ce + pe);  // un-normalized
+
+      // sinks
+      float srp = 0;    // soil retention of phosphorus
+      GetTableValue(WQ_DB_TABLE, "SRP", row, srp);
+      float p_sr = srp / maxSRP[lgIndex];    // normalized version
+
+      float i_ss = 0;  // surface storage (from water flow process)
+      GetTableValue(WF_M1_TABLE, "I_SS", row, i_ss);
+
+      // sink model
+      float psi = p_sr + i_ss;  // un-nnormalized 
+
+      // update tables with intermediate values
+      SetTableValue(WQ_M1_TABLE, "P_SR", row, p_sr);
+      SetTableValue(WQ_M1_TABLE, "PSO", row, pso);   // p source (un-normalized)
+      SetTableValue(WQ_M1_TABLE, "PSI", row, psi);
+      }
+
+   // pass 3
+   // compute final model for each AU
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float pso = 0, psi = 0;
+      GetTableValue(WQ_M1_TABLE, "PSO", row, pso);   // p source (un-normalized)
+      GetTableValue(WQ_M1_TABLE, "PSI", row, psi);
+
+      float p_so = pso / maxPSO[lgIndex];    // normalized source
+      float p_si = psi / maxPSI[lgIndex];    // normalized sink
+
+      float p_m1 = p_so - p_si;
+      if (p_m1 > maxPM1[lgIndex])
+         maxPM1[lgIndex] = p_m1;
+
+      // update tables with intermediate values
+      SetTableValue(WQ_M1_TABLE, "P_SO", row, p_so);   // p source (unnormalized)
+      SetTableValue(WQ_M1_TABLE, "P_SI", row, p_si);
+      SetTableValue(WQ_M1_TABLE, "P_M1", row, p_m1);
+      }
+
+   // pass 4
+   // normalize and write p_m1
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float p_m1 = 0;
+      GetTableValue(WQ_M1_TABLE, "P_M1", row, p_m1);
+
+      float p_m1_cal = p_m1 / maxPM1[lgIndex];
+      SetTableValue(WQ_M1_TABLE, "P_M1_CAL", row, p_m1_cal);
+      SetTableValue(WQ_RP_TABLE, "P_M1_CAL", row, p_m1_cal);
+      }
+
+   return 1;
+   }
+
+//---------------------------------------------------
+//-------- metals export potential --------------
+//---------------------------------------------------
+int PSWCP::SolveWqM1Metals()
+   {
+   float maxMSI[LG_COUNT] = { 0,0,0,0,0 };
+
+   // pass 1
+   // find max PE values for normalizing
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float m_srm = 0;     // soil retention - metals
+      GetTableValue(WQ_M1_TABLE, "M_SRM", row, m_srm);
+
+      float i_ss = 0;  // surface storage (from water flow process)
+      GetTableValue(WF_M1_TABLE, "I_SS", row, i_ss);
+
+      // update tables with intermediate values
+      float msi = m_srm - i_ss;
+      SetTableValue(WQ_M1_TABLE, "MSI", row, msi);
+
+      if (msi > maxMSI[lgIndex])
+         maxMSI[lgIndex] = msi;
+      }
+
+   // pass 2
+   // compute final model for each AU
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float msi = 0;
+      GetTableValue(WQ_M1_TABLE, "MSI", row, msi);   // msi (un-normalized)
+
+      float m_m1 = msi/ maxMSI[lgIndex];    // normalized sink
+
+      // update tables with intermediate values
+      SetTableValue(WQ_M1_TABLE, "M_M1", row, m_m1);
+      SetTableValue(WQ_M1_TABLE, "M_M1_CAL", row, m_m1);   // NOTE: cal same a non-cal
+      SetTableValue(WQ_RP_TABLE, "M_M1_CAL", row, m_m1);
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- nitrogen export export potential --------------
+//---------------------------------------------------
+int PSWCP::SolveWqM1Nit()
+   {
+   float maxRDN[LG_COUNT] = { 0,0,0,0,0 };
+   float maxNSI[LG_COUNT] = { 0,0,0,0,0 };
+
+   // pass 1
+   // find max values for normalizing
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float rdn_mi = 0;    // riparian area denitrification potential
+      GetTableValue(WQ_DB_TABLE, "RDN_MI", row, rdn_mi);
+
+      float sqMi = 0;
+      GetTableValue(WQ_DB_TABLE, "SQ_MILES", row, sqMi);
+
+      float rdn = rdn_mi / sqMi;
+      SetTableValue(WQ_M1_TABLE, "RDN", row, rdn);
+
+      if (rdn > maxRDN[lgIndex])
+         maxRDN[lgIndex] = rdn;
+      }
+
+   // pass 2
+   // update NSI values
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float rdn = 0;    // riparian denitrogen potential
+      GetTableValue(WQ_M1_TABLE, "RDN", row, rdn);   // msi (un-normalized)
+
+      float wls = 0;    // wetland/lake storage
+      GetTableValue(WF_M1_TABLE, "WLS", row, wls);
+
+      float n_rdn = rdn / maxRDN[lgIndex];    // normalized sink
+
+      float nsi = wls + n_rdn;     // 
+      // update tables with intermediate values
+      SetTableValue(WQ_M1_TABLE, "NSI", row, nsi);
+
+      if (nsi > maxNSI[lgIndex])
+         maxNSI[lgIndex] = nsi;
+      }
+
+   // pass 3
+   // compute final model for each AU
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float nsi = 0;
+      GetTableValue(WF_M1_TABLE, "NSI", row, nsi);
+      float n_si = nsi / maxNSI[lgIndex];
+
+      SetTableValue(WQ_M1_TABLE, "N_SI", row, n_si);
+      SetTableValue(WQ_M1_TABLE, "N_M1", row, 1-n_si);
+      SetTableValue(WQ_M1_TABLE, "N_M1_CAL", row, 1-n_si);   // NOTE: cal same a non-cal
+      SetTableValue(WQ_RP_TABLE, "N_M1_CAL", row, 1 - n_si);
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- pathogen export export potential ---------
+//---------------------------------------------------
+int PSWCP::SolveWqM1Path()
+   {
+   float maxDPWT[LG_COUNT] = { 0,0,0,0,0 };
+
+   // pass 1
+   // find max values for normalizing
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float dpwt = 0;    // riparian area denitrification potential
+      GetTableValue(WF_DB1_TABLE, "DPWT_PCT", row, dpwt);
+
+      if (dpwt > maxDPWT[lgIndex])
+         maxDPWT[lgIndex] = dpwt;
+      }
+
+   // pass 2
+   // update values
+   for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float dpwt = 0;    // riparian denitrogen potential
+      GetTableValue(WF_DB1_TABLE, "DPWT_PCT", row, dpwt);   // msi (un-normalized)
+
+      // update tables with intermediate values
+      float pa_si = dpwt/maxDPWT[lgIndex];
+      SetTableValue(WQ_M1_TABLE, "PA_SI", row, pa_si);
+
+
+      SetTableValue(WQ_M1_TABLE, "N_SI", row, pa_si);
+      SetTableValue(WQ_M1_TABLE, "PA_M1", row, 1 - pa_si);
+      SetTableValue(WQ_M1_TABLE, "PA_M1_CAL", row, 1 - pa_si);   // NOTE: cal same a non-cal
+      SetTableValue(WQ_RP_TABLE, "PA_M1_CAL", row, 1 - pa_si);
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- water delivery importance ----------------
+//---------------------------------------------------
+int PSWCP::SolveWfM1WatDel()
+   {
+   // normalizing arrays 
+   float maxP[LG_COUNT] = { 0,0,0,0,0 };
+   float maxSRS[LG_COUNT] = { 0,0,0,0,0 };
+   float maxIDE[LG_COUNT] = { 0,0,0,0,0 };
+
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float av_prec = 0;      // precip  [0-1] avg annual precip/unit area
+      GetTableValue(WF_DB1_TABLE, "AV_PREC", row, av_prec);
+
+      if (av_prec < maxP[lgIndex])
+         maxP[lgIndex] = av_prec;
+
+      float srs_pct = 0;      //snow/rain-on-snow timing effect
+      GetTableValue(WF_DB1_TABLE, "SRS_PCT", row, srs_pct);
+
+      if (srs_pct < maxSRS[lgIndex])
+         maxSRS[lgIndex] = srs_pct;
+      }
+
+   // pass 2 - intermediate calcs
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float av_prec = 0;      // precip  [0-1] avg annual precip/unit area
+      GetTableValue(WF_DB1_TABLE, "AV_PREC", row, av_prec);
+      float p = av_prec / maxP[lgIndex];
+
+      float srs_pct = 0;      // snow/rain-on-snow timing effect
+      GetTableValue(WF_DB1_TABLE, "SRS_PCT", row, srs_pct);
+
+      float rs =srs_pct/maxSRS[lgIndex];
+
+      float ide = p + rs;
+
+      if (ide > maxIDE[lgIndex])
+         maxIDE[lgIndex] = ide;
+      
+      SetTableValue(WF_M1_TABLE, "P", row, p);
+      SetTableValue(WF_M1_TABLE, "RS", row, rs);
+      SetTableValue(WF_M1_TABLE, "IDE", row, ide);
+      }
+
+   // pass 3 - final calcs
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float ide = 0;
+      GetTableValue(WF_M1_TABLE, "IDE", row, ide);
+
+      float i_de = ide / maxIDE[lgIndex];
+      SetTableValue(WF_M1_TABLE, "I_DE", row, i_de);
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- Surface Storage importance ---------------
+//---------------------------------------------------
+int PSWCP::SolveWfM1SurfStorage()
+   {
+   // normalizing arrays 
+   float maxWLS[LG_COUNT] = { 0,0,0,0,0 };
+   float maxSTS[LG_COUNT] = { 0,0,0,0,0 };
+
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+      
+      float dpwt_pct = 0;  // depressional wetlands storage
+      GetTableValue(WF_DB1_TABLE, "DPWT_PCT", row, dpwt_pct);
+
+      float lk_pct = 0;  // storage in lakes
+      GetTableValue(WF_DB1_TABLE, "LK_PCT", row, lk_pct);
+
+      float wt_lk = dpwt_pct + lk_pct;
+      SetTableValue(WF_M1_TABLE, "WT_LK", row, wt_lk);
+
+      if (wt_lk < maxWLS[lgIndex])
+         maxWLS[lgIndex] = wt_lk;
+
+      float uc_mi=0, mc_mi=0, sq_miles=0;   // unconfined/moderately confined floodplain storage
+      GetTableValue(WF_DB1_TABLE, "UC_MI", row, uc_mi);
+      GetTableValue(WF_DB1_TABLE, "MC_MI", row, mc_mi);
+      GetTableValue(WF_DB1_TABLE, "SQ_MILES", row, sq_miles);
+
+      float unss = 3 * uc_mi / sq_miles;
+      float mcss = 2 * mc_mi / sq_miles;
+      float un_mc = unss + mcss;
+      SetTableValue(WF_M1_TABLE, "UNSS", row, unss);
+      SetTableValue(WF_M1_TABLE, "MCSS", row, mcss);
+      SetTableValue(WF_M1_TABLE, "UN_MC", row, un_mc);
+
+      if (un_mc > maxSTS[lgIndex])
+         maxSTS[lgIndex] = un_mc;
+      }
+
+   // pass 2 - final calcs
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float wt_lk = 0;
+      GetTableValue(WF_M1_TABLE, "WT_LK", row, wt_lk);
+
+      float wls = wt_lk / maxWLS[lgIndex]; 
+      SetTableValue(WF_M1_TABLE, "WLS", row, wls);
+               
+      float un_mc = 0;
+      GetTableValue(WF_M1_TABLE, "UN_MC", row, un_mc);
+
+      float sts = un_mc / maxSTS[lgIndex];
+      SetTableValue(WF_M1_TABLE, "STS", row, sts);
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- Recharge/discharge importance ------------
+//---------------------------------------------------
+int PSWCP::SolveWfM1RechargeDischarge()
+   {
+   // normalizing arrays 
+   float maxIR[LG_COUNT] = { 0,0,0,0,0 };
+   float maxUCHP[LG_COUNT] = { 0,0,0,0,0 };
+   float maxSLPWT[LG_COUNT] = { 0,0,0,0,0 };
+   float maxIDI[LG_COUNT] = { 0,0,0,0,0 };
+
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float av_prec = 0, hperm = 0, lperm =0;  // 
+      GetTableValue(WF_DB1_TABLE, "AV_PREC", row, av_prec);
+      GetTableValue(WF_DB1_TABLE, "HPERM", row, hperm);
+      GetTableValue(WF_DB1_TABLE, "LPERM", row, lperm);
+
+      // NOTE: THIS PRODUCES RESULTS INCONSISTENT WITH ORIGINAL CALCS!!!!!!
+      float rechH = ((av_prec * 0.838f) - 9.77f) * hperm;
+      float rechL = ((av_prec * 0.497f) - 5.03f) * lperm;
+
+      // SO JUST READ FROM M1 FILE FOR NOW
+      GetTableValue(WF_M1_TABLE, "RECHH", row, rechH);
+      GetTableValue(WF_M1_TABLE, "RECHL", row, rechL);
+
+      float acres = 0;
+      GetTableValue(WQ_DB_TABLE, "ACRES", row, acres);
+
+      float ir = (rechH + rechL)/acres;    // importance 
+      SetTableValue(WF_M1_TABLE, "IR", row, ir);
+
+      if (ir < maxIR[lgIndex])
+         maxIR[lgIndex] = ir;
+
+      float uchp_area = 0;
+      GetTableValue(WF_DB1_TABLE, "UCHP_AREA", row, uchp_area);
+
+      if (uchp_area > maxUCHP[lgIndex])
+         maxUCHP[lgIndex] = uchp_area;
+
+      // slope wetland discharge
+      float slpwt_ac = 0;
+      GetTableValue(WF_DB1_TABLE, "SLPWT_AC", row, slpwt_ac);
+
+      float slpwt_pct = slpwt_ac / acres;  // NOTE: calls for *100 in docs, but this isn't in results so left out here
+      SetTableValue(WF_DB1_TABLE, "SLPWT_PCT", row, slpwt_pct);
+
+      if (slpwt_pct > maxSLPWT[lgIndex])
+         maxSLPWT[lgIndex] = slpwt_pct;
+      }
+
+   // pass 2 - intermdiate calcs
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float ir = 0;
+      GetTableValue(WF_M1_TABLE, "IR", row, ir);
+
+      float i_r = ir / maxIR[lgIndex];
+      SetTableValue(WF_M1_TABLE, "I_R", row, i_r);
+
+      float uchp_area = 0;
+      GetTableValue(WF_DB1_TABLE, "UCHP_AREA", row, uchp_area);
+
+      float sd = uchp_area/ maxUCHP[lgIndex];
+      SetTableValue(WF_M1_TABLE, "SD", row, sd);
+
+      float slpwt_pct = 0;
+      GetTableValue(WF_DB1_TABLE, "SLPWT_PCT", row, slpwt_pct);
+
+      float swd = slpwt_pct / maxSLPWT[lgIndex];
+      SetTableValue(WF_M1_TABLE, "SWD", row, swd);
+
+      float idi = sd + swd;
+      SetTableValue(WF_M1_TABLE, "IDI", row, idi);
+
+      if (idi > maxIDI[lgIndex])
+         maxIDI[lgIndex] = idi;
+      }
+
+   // pass 3
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float idi = 0;
+      GetTableValue(WF_M1_TABLE, "IDI", row, idi);
+
+      float i_di = idi / maxIDI[lgIndex];
+      SetTableValue(WF_M1_TABLE, "I_DI", row, i_di);
+      }
+   //??????  GROUNDWATER?  V2 ADDITION?
+
+
+   return 1;
+   }
+
+
+
+//---------------------------------------------------
+//-------- water delivery degredation  --------------
+//---------------------------------------------------
+int PSWCP::SolveWfM2WatDel()
+   {
+   // normalizing arrays 
+   float maxFL = 0;   // why X, U for LG_M2?????
+   float maxIMP = 0;
+   
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float fl_pct = 0;      // forest loss percent
+      GetTableValue(WF_DB2_TABLE, "FL_PCT", row, fl_pct);
+
+      if (fl_pct > maxFL)
+         maxFL = fl_pct;
+
+      float imp_ac = 0, acres = 0;      // percent impervious
+      GetTableValue(WF_DB2_TABLE, "IMP_AC", row, imp_ac);
+      GetTableValue(WQ_DB_TABLE, "ACRES", row, acres);
+      float imp_pct = imp_ac / acres;
+      SetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
+
+      if (imp_pct > maxIMP)
+         maxIMP = imp_pct;
+      }
+
+   // pass 2 - get normalizing factors
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float imp_pct = 0;
+      SetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
+
+      float imp = imp_pct / maxIMP;
+      SetTableValue(WF_M1_TABLE, "IMP", row, imp);
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- Surface Storage degradation --------------
+//---------------------------------------------------
+int PSWCP::SolveWfM2SurfStorage()
+   {
+   float maxDW = 0;
+   float maxSTS = 0;
+
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      // storage in wetlands
+      float w_ur_ac = 0, w_ru_ac = 0, acres = 0;
+      GetTableValue(WF_DB2_TABLE, "W_UR_AC", row, w_ur_ac);
+      GetTableValue(WF_DB2_TABLE, "W_RU_AC", row, w_ru_ac);
+      GetTableValue(WQ_DB_TABLE, "ACRES", row, acres);
+
+      float uw = 3 * w_ur_ac / acres;     // loss of storage wetlands in urban areas
+      float rw = 2 * w_ru_ac / acres;     // loss of storage wetlands in rural areas
+      SetTableValue(WF_M2_TABLE, "UW", row, uw);
+      SetTableValue(WF_M2_TABLE, "RW", row, uw);
+
+      if (uw + rw > maxDW)
+         maxDW = uw + rw;
+
+      // storage in floodplains
+      float uc_alt_mi = 0, mc_alt_mi=0, sq_miles=0;
+      GetTableValue(WF_DB2_TABLE, "UC_ALT_MI", row, uc_alt_mi);
+      GetTableValue(WF_DB2_TABLE, "MC_ALT_MI", row, mc_alt_mi);
+      GetTableValue(WF_DB2_TABLE, "MC_ALT_MI", row, sq_miles);
+
+      float uds = 3 * uc_alt_mi / sq_miles;   //???? NOTE: SLIGHT DEVIATION FROM SPREADSHEET VALUES
+      float mds = 2 * mc_alt_mi / sq_miles;
+      SetTableValue(WF_M2_TABLE, "UDS", row, uds);
+      SetTableValue(WF_M2_TABLE, "MDS", row, mds);
+
+      if (uds + mds > maxSTS)
+         maxSTS = uds + mds;
+      }
+
+   // pass 2 - final calcs
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float uw=0,rw=0;     // loss of storage wetlands
+      GetTableValue(WF_M2_TABLE, "UW", row, uw);
+      GetTableValue(WF_M2_TABLE, "RW", row, uw);
+
+      float dw = uw+rw;
+      float d_ws = dw / maxDW;
+      SetTableValue(WF_M1_TABLE, "DW", row, dw);
+      SetTableValue(WF_M1_TABLE, "D_WS", row, d_ws);
+
+      float uds = 0, mds = 0;     // loss of floodplain
+      GetTableValue(WF_M2_TABLE, "UDS", row, uds);
+      GetTableValue(WF_M2_TABLE, "MDS", row, mds);
+
+      float dst = uds + mds;
+      float d_sts = dst / maxSTS;
+      SetTableValue(WF_M1_TABLE, "DST", row, dst);
+      SetTableValue(WF_M1_TABLE, "D_STS", row, d_sts);
+      }
+
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- Recharge degradation -----------
+//---------------------------------------------------
+int PSWCP::SolveWfM2Recharge()
+   {
+
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      // degradation to recharge
+      float u_ac = 0, bu_ac = 0, li_ac = 0;
+      GetTableValue(WF_DB2_TABLE, "U_AC", row, u_ac);
+      GetTableValue(WF_DB2_TABLE, "BU_AC", row, bu_ac);
+      GetTableValue(WF_DB2_TABLE, "LI_AC", row, li_ac);
+
+      float rechCoeff = 0.9f * u_ac + 0.7f * bu_ac + 0.35f * li_ac;    // ???????? Wrong, not clear in docs
+      }
+
+   return 1;
+   }
+
+
+      
+//---------------------------------------------------
+//-------- Discharge degradation --------------------
+//---------------------------------------------------
+int PSWCP::SolveWfM2Discharge()
+   {
+   float maxRDDEN = 0;
+   float maxWELL = 0;
+   float maxUS = 0;
+   float maxSW = 0;
+
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      // degradation associated with roads 
+      float rd_mi = 0, sq_miles = 0;
+      GetTableValue(WF_DB2_TABLE, "RD_MI", row, rd_mi);
+      GetTableValue(WQ_DB_TABLE, "SQ_MILES", row, sq_miles);
+
+      float rd_den = rd_mi / sq_miles;
+      GetTableValue(WF_DB2_TABLE, "RD_DEN", row, rd_den);
+
+      if (rd_den < maxRDDEN)
+         maxRDDEN = rd_den;
+
+      // degradation due to groundwater extraction
+      float well_cnt=0;
+      GetTableValue(WF_DB2_TABLE, "WELL_CNT", row, well_cnt);
+
+      float well_den = well_cnt / sq_miles;
+      SetTableValue(WF_DB2_TABLE, "WELL_DEN", row, well_den);
+
+      // degradation due t discharge in floodplains with altered permeability
+      float uchp_u= 0, uchp_r=0;
+      GetTableValue(WF_DB2_TABLE, "UCHP_U", row, uchp_u);
+      GetTableValue(WF_DB2_TABLE, "UCHP_R", row, uchp_r);
+
+      float uus = 3 * uchp_u / sq_miles;
+      float urs = 2 * uchp_r / sq_miles;
+      SetTableValue(WF_M2_TABLE, "UUS", row, uus);
+      SetTableValue(WF_M2_TABLE, "URS", row, urs);
+
+      if (uus + urs > maxUS)
+         maxUS = uus + urs;
+
+      // degradation due to dischage in slope wetlands
+      float slpw_u = 0, slpw_r = 0;
+      GetTableValue(WF_DB2_TABLE, "SLPW_U", row, slpw_u);
+      GetTableValue(WF_DB2_TABLE, "SLPW_R", row, slpw_r);
+
+      float swu = 3 * slpw_u / sq_miles;
+      float swr = 2 * slpw_r / sq_miles;
+      SetTableValue(WF_M2_TABLE, "SWU", row, swu);
+      SetTableValue(WF_M2_TABLE, "SWR", row, swr);
+
+      if (swu + swr > maxSW)
+         maxSW = swu + swr;
+      }
+
+   // pass 2 - intermdiate calcs
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      float rd_den = 0;
+      GetTableValue(WF_DB2_TABLE, "RD_DEN", row, rd_den);
+
+      float d_rd = rd_den / maxRDDEN;
+      SetTableValue(WF_M2_TABLE, "D_RD", row, d_rd);
+
+      float well_den = 0;
+      GetTableValue(WF_DB2_TABLE, "WELL_DEN", row, well_den);
+
+      float d_wel = well_den / maxWELL;
+      SetTableValue(WF_M2_TABLE, "D_WEL", row, d_wel);
+
+      float uus = 0, urs = 0;
+      GetTableValue(WF_M2_TABLE, "UUS", row, uus);
+      GetTableValue(WF_M2_TABLE, "URS", row, urs);
+
+      float d_std = (uus + urs) / maxUS;
+      SetTableValue(WF_M2_TABLE, "STD", row, (uus+urs));
+      SetTableValue(WF_M2_TABLE, "D_STD", row, d_std);
+
+      float swu = 0, swr = 0;
+      GetTableValue(WF_M2_TABLE, "SWU", row, swu);
+      GetTableValue(WF_M2_TABLE, "SWR", row, swr);
+
+      float d_wd = (swu + swr) / maxSW;
+      SetTableValue(WF_M2_TABLE, "WD", row, (swu + swr));
+      SetTableValue(WF_M2_TABLE, "D_WD", row, d_wd);
+      }
+
+
+   return 1;
+   }
+
+
+
+//---------------------------------------------------
+//-------- evaptrans degradation --------------------
+//---------------------------------------------------
+int PSWCP::SolveWfM2EvapTrans()
+   {
+   float maxIMP = 0;
+
+   // pass 1 - get normalizing factors
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      // degradation associated with roads 
+      float imp_pct = 0;
+      GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
+
+      if (imp_pct > maxIMP)
+         maxIMP = imp_pct;
+      }
+
+   // pass 2 - intermdiate calcs
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      LSGROUP lgIndex = GetLSGroupIndex(row);
+      if (lgIndex == LG_NULL)
+         continue;
+
+      // degradation associated with roads 
+      float imp_pct = 0;
+      GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
+
+      float d_l = imp_pct / maxIMP;
+      SetTableValue(WF_M2_TABLE, "D_L", row, d_l);
+      }
+
+
+   return 1;
+   }
+
+
+   
+int PSWCP::LoadTable(TABLE t)
+   {
+   VDataObj* pTable = new VDataObj(UNIT_MEASURE::U_UNDEFINED);
+   CString filename;
+
+   switch (t)
+      {
+      case  WQ_DB_TABLE:   m_pWqDbTable =pTable; filename = "PSWCP/WQ_DB.csv"; break;
+      case  WQ_M1_TABLE:   m_pWqM1Table =pTable; filename = "PSWCP/WQ_M1.csv"; break;
+      case  WQ_RP_TABLE:   m_pWqRpTable =pTable; filename = "PSWCP/WQ_RP.csv"; break;
+      case  WF_DB1_TABLE:  m_pWfDb1Table=pTable; filename = "PSWCP/WF_DB1.csv"; break;
+      case  WF_DB2_TABLE:  m_pWfDb2Table=pTable; filename = "PSWCP/WF_DB2.csv"; break;
+      case  WF_M1_TABLE:   m_pWfM1Table = pTable; filename = "PSWCP/WF_M1.csv"; break;
+      case  WF_M2_TABLE:   m_pWfM2Table = pTable; filename = "PSWCP/WF_M2.csv"; break;
+      case  WF_RP_TABLE:   m_pWfRpTable =pTable; filename = "PSWCP/WF_RP.csv"; break;
+      }
+
+   CString path;
+   if (PathManager::FindPath(filename, path) < 0) //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
+      {
+      CString msg;
+      msg.Format("PSWCP: Input file %s not found", (LPCTSTR)filename);
+      Report::ErrorMsg(msg);
+      return -1;
+      }
+
+   int rows = pTable->ReadAscii(path, ',');
+   CString msg;
+   msg.Format("  PSWCP: Loaded %i records from %s", rows, (LPCTSTR)path);
+   Report::LogInfo(msg);
+
+   return rows;
+   }
+
+bool PSWCP::GetTableValue(TABLE table, LPCTSTR field, int row, int& value)
+   {
+   TABLECOL* pCol = (TABLECOL*)colMap[field];
+
+   if (pCol == NULL || pCol->table != table)
+      {
+      CString msg;
+      msg.Format("PSWCP: Bad table request! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   bool ok = pCol->pTable->Get(pCol->col, row, value);
+   if (!ok)
+      {
+      CString msg;
+      msg.Format("PSWCP: Unable to get table value! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   return true;
+   }
+
+
+bool PSWCP::GetTableValue(TABLE table, LPCTSTR field, int row, float& value)
+   {
+   TABLECOL* pCol = (TABLECOL*)colMap[field];
+
+   if (pCol == NULL || pCol->table != table)
+      {
+      CString msg;
+      msg.Format("PSWCP: Bad table request! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   bool ok = pCol->pTable->Get(pCol->col, row, value);
+   if (!ok)
+      {
+      CString msg;
+      msg.Format("PSWCP: Unable to get table value! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   return true;
+   }
+
+bool PSWCP::GetTableValue(TABLE table, LPCTSTR field, int row, CString& value)
+   {
+   TABLECOL* pCol = (TABLECOL*)colMap[field];
+
+   if (pCol == NULL || pCol->table != table)
+      {
+      CString msg;
+      msg.Format("PSWCP: Bad table request! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   bool ok = pCol->pTable->Get(pCol->col, row, value);
+   if (!ok)
+      {
+      CString msg;
+      msg.Format("PSWCP: Unable to get table value! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   return true;
+   }
+
+
+bool PSWCP::SetTableValue(TABLE table, LPCTSTR field, int row, VData &value)
+   {
+   TABLECOL* pCol = (TABLECOL*)colMap[field];
+
+   if (pCol == NULL || pCol->table != table)
+      {
+      CString msg;
+      msg.Format("PSWCP: Bad table request when setting value! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   bool ok = pCol->pTable->Set(pCol->col, row, value);
+   if (!ok)
+      {
+      CString msg;
+      msg.Format("PSWCP: Unable to set table value! Table %i, field %s", (int)table, (LPCTSTR)field);
+      Report::ErrorMsg(msg);
+      return false;
+      }
+
+   return true;
+   }
+
+LSGROUP PSWCP::GetLSGroupIndex(int row)
+   {
+   LSGROUP lgIndex = LG_NULL;
+   CString lg;
+   GetTableValue(WQ_DB_TABLE, "LG_M1", row, lg);
+   if (lg.GetLength() > 0)
+      {
+      if (lg[0] == 'D')  // delta
+         lgIndex = LG_DELTA;
+      else if (lg[0] == 'C')
+         lgIndex = LG_COASTAL;
+      else if (lg[0] == 'M')
+         lgIndex = LG_MOUNTAINOUS;
+      else if (lg[0] == 'L')
+         lgIndex = (lg.GetLength() == 1) ? LG_LOWLAND : LG_LAKE;
+      }
+   return lgIndex;
    }

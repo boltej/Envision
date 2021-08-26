@@ -7,6 +7,28 @@
 
 #define _EXPORT __declspec( dllexport )
 
+enum TABLE {
+   NULL_TABLE=-1,
+   WQ_DB_TABLE,
+   WQ_M1_TABLE,
+   WQ_RP_TABLE,
+
+   WF_DB1_TABLE,
+   WF_DB2_TABLE,
+   WF_M1_TABLE,
+   WF_M2_TABLE,
+   WF_RP_TABLE
+   };
+
+struct TABLECOL {
+   TABLE table;
+   VDataObj* pTable;
+   int   col;
+   LPCTSTR field;
+   };
+
+enum LSGROUP { LG_NULL=-1,LG_COASTAL=0, LG_LOWLAND, LG_MOUNTAINOUS, LG_LAKE, LG_DELTA, LG_COUNT };
+
 
 class _EXPORT PSWCP : public  EnvModelProcess
    {
@@ -23,37 +45,22 @@ class _EXPORT PSWCP : public  EnvModelProcess
       // idu columns
       MapLayer* m_pIDULayer;
       int m_col_IDU_AUIndex;
-
       int m_col_IDU_WqS_rp;
       int m_col_IDU_WqP_rp;
       int m_col_IDU_WqMe_rp;
       int m_col_IDU_WqN_rp;
       int m_col_IDU_WqPa_rp;
 
-
-      // water quality inportance (Model 1) 
-      // WQ_RP.csv columns
-      int m_col_WQ_AU;
-      int m_col_WQ_S;
-      int m_col_WQ_P;
-      int m_col_WQ_Me;
-      int m_col_WQ_N;
-      int m_col_WQ_Pa;
-      
-      int m_col_WQ_S_rp;  // priority codes
-      int m_col_WQ_P_rp;
-      int m_col_WQ_Me_rp;
-      int m_col_WQ_N_rp;
-      int m_col_WQ_Pa_rp;
-      
-      int m_col_WQ_S_Q;
-      int m_col_WQ_P_Q;
-      int m_col_WQ_Me_Q;
-      int m_col_WQ_N_Q;
-      int m_col_WQ_Pa_Q;
-
+      // data tables with model data
+      VDataObj* m_pWqDbTable;
+      VDataObj* m_pWqM1Table;
       VDataObj* m_pWqRpTable;
+      VDataObj* m_pWfDb1Table;
+      VDataObj* m_pWfDb2Table;
+      VDataObj* m_pWfM1Table;
+      VDataObj* m_pWfM2Table;
       VDataObj* m_pWfRpTable;
+
       AttrIndex m_index_IDU;  // for IDUs, key=AUIndex,value=IDU rows containing key  
 
       // water flow assessment 
@@ -65,13 +72,11 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
 
       // methods
-      bool InitWQAssessment(EnvContext*);
-      bool InitWFAssessment(EnvContext*);
-      bool InitHabAssessment(EnvContext*);
+      bool InitAssessment(EnvContext*);
       bool InitHCIAssessment(EnvContext*);
 
-      bool RunWQAssessment(EnvContext*);
       bool RunWFAssessment(EnvContext*);
+      bool RunWQAssessment(EnvContext*);
       bool RunHabAssessment(EnvContext*);
       bool RunHCIAssessment(EnvContext*);
 
@@ -84,7 +89,34 @@ class _EXPORT PSWCP : public  EnvModelProcess
       //virtual int  OutputVar(int id, MODEL_VAR** modelVar);
 
    protected:
-      int m_counter;
+      int SolveWqM1Sed();
+      int SolveWqM1Phos();
+      int SolveWqM1Metals();
+      int SolveWqM1Nit();
+      int SolveWqM1Path();
+
+      int SolveWfM1WatDel();
+      int SolveWfM1SurfStorage();
+      int SolveWfM1RechargeDischarge();
+
+      int SolveWfM2WatDel();
+      int SolveWfM2SurfStorage();
+      int SolveWfM2Recharge();    // NEEDS WORK, DOCS UNCLEAR
+      int SolveWfM2Discharge();
+      int SolveWfM2EvapTrans();
+
+      int LoadTable(TABLE);
+      bool GetTableValue(TABLE t, LPCTSTR field, int row, int& value);
+      bool GetTableValue(TABLE t, LPCTSTR field, int row, float& value);
+      bool GetTableValue(TABLE t, LPCTSTR field, int row, CString& value);
+      bool SetTableValue(TABLE t, LPCTSTR field, int row, int value)    { VData v(value); return SetTableValue(t, field, row, v); }
+      bool SetTableValue(TABLE t, LPCTSTR field, int row, float value)  { VData v(value); return SetTableValue(t, field, row, v); }
+      bool SetTableValue(TABLE t, LPCTSTR field, int row, LPCTSTR value){ VData v(value); return SetTableValue(t,field,row,v); }
+
+      bool SetTableValue(TABLE, LPCTSTR field, int row, VData& v);
+
+      LSGROUP GetLSGroupIndex(int row);
+
    };
 
 
