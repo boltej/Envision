@@ -263,6 +263,8 @@
         if (igro(j) == 1) call dormant
         !! compute actual ET for day in HRU
         etday = ep_day + es_day + canev
+        !! kbv envision array
+        aet_env(ihru)=etday
 
         !! write daily air and soil temperature file
         !! can be uncommmented if needed by user and also in readfile.f

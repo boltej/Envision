@@ -101,7 +101,7 @@
       integer :: eof
       
       eof = 0
-      
+
   !    do curyr = 1, nbyr
   !      write (*,1234) curyr
         

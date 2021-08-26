@@ -222,6 +222,10 @@
       allocate (isep_iyr(mhru))
       allocate (sep_strm_dist(mhru))
       allocate (sep_den(mhru))
+ !! kbv.  Store ET rates for HRUs     
+      allocate (aet_env(mhru))
+      allocate (pet_env(mhru))
+      allocate (irr_env(mhru))
 
 !! septic changes added 1/28/09 gsm
       allocate (qird(mhru))

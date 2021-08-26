@@ -20,56 +20,107 @@ Copywrite 2012 - Oregon State University
 #include <FDataObj.h>
 class FlowContext;
 class Reach;
+class HRU;
 
+#include <EnvExtension.h>
+#include <PtrArray.h>
+
+typedef void (*MODFLOW_GETNAMFILFN)  (char*);
+typedef void (*SWAT_RUNFN) ();
+typedef void (*SWAT_RUN_ALLFN) ();
+typedef void (*SWAT_ENDRUNFN) ();
+typedef void (*SWAT_RUN_DAYFN) (int*, void*, void*, void*, int*, void*, void*, void*, void*, void*, void*);
+typedef void (*SWAT_INIT_YEARFN) ();
+typedef void (*SWAT_INITFN) (int*, int*, void*, char*, int*);
+
+
+struct SWAT_OFFSET_INFO
+{
+   int    swat_HRU_Number;
+   int    idu_offset;     // offset in array
+   int    hru_offset;
+   HRU* pHRU;
+   SWAT_OFFSET_INFO(void) : swat_HRU_Number(-1), idu_offset(-1), hru_offset(-1), pHRU(NULL) { }
+};
+static PtrArray< SWAT_OFFSET_INFO > m_hruOffsetArray;
 
 class SWAT_Flow_Adapter
 {
 public:
-    SWAT_Flow_Adapter( void ) : m_pClimateData( NULL )
-      , m_col_cfmax (-1)      
-    { }
+   SWAT_Flow_Adapter(void) : m_pClimateData(NULL)
+      , m_col_cfmax(-1)
+      , m_swatPath("t")
+      , m_hInst(0)
+      , m_RunSWATFn(NULL)
+      , m_EndRunSWATFn(NULL)
+      , m_InitSWATFn(NULL)
+      , m_RunSWAT_AllFn(NULL)
+      , m_RunSWAT_DayFn(NULL)
+      , m_InitSWAT_YearFn(NULL)
+      , m_iGrid(1)
+      , m_nhru(0)
+      , m_pathSz(0)
+   { }
 
-   ~SWAT_Flow_Adapter( void ) { if ( m_pClimateData ) delete m_pClimateData; }
-
-  protected:
-   int m_col_cfmax ;      
-   FDataObj *m_pClimateData;
-
-   // initialization
-
-   float InitSWAT_Flow_Adapter(FlowContext *pFlowContext, LPCTSTR);
-   float RunSWAT_Flow_Adapter(FlowContext* pFlowContext, LPCTSTR initStr);
-   bool  Init(EnvContext* pEnvContext, LPCTSTR initStr);
-   bool  InitRun(FlowContext* pFlowContext, bool useInitialSeed);
-   bool  Run(EnvContext* pContext);
-   bool  InitYear(EnvContext* pContext);
-   bool  RunDay(FlowContext* pFlowContext);
-
-   bool EndYear(EnvContext* pContext);
-   void RunSWAT_All();
-   void RunSWAT();
-   void RunSWAT_Day(int* jiunit, void* prec, int* nhru);
-   void InitSWAT_Year();
-   void InitSWAT(int* jiunit, int* enviGrid, void* envCC, char* name, int* sz);
-   void EndRunSWAT();
-   bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);
-
-   m_RunSWAT_AllFn();
-    m_RunSWATFn();
-    m_RunSWAT_DayFn(jiunit, prec, nhru);
-    m_InitSWAT_YearFn();
-    m_InitSWATFn(jiunit, enviGrid, envCC, name, sz);
-    m_EndRunSWATFn();
-
+   ~SWAT_Flow_Adapter(void) { if (m_pClimateData) delete m_pClimateData; }
 
 protected:
-   CArray< float > m_tMaxArray;     // one for each reach calculated
-   int   m_colTMax;
+   int m_col_cfmax;
+   CString m_swatPath;
+   FDataObj* m_pClimateData;
+   HINSTANCE  m_hInst;
+   SWAT_RUNFN                   m_RunSWATFn;
+   SWAT_ENDRUNFN                m_EndRunSWATFn;
+   SWAT_RUN_ALLFN               m_RunSWAT_AllFn;
+   SWAT_INITFN                  m_InitSWATFn;
+   SWAT_RUN_DAYFN               m_RunSWAT_DayFn;
+   SWAT_INIT_YEARFN             m_InitSWAT_YearFn;
 
-// public (exported) methods
+   void* m_cc;
+   int* m_iunit;
+   int m_iGrid;
+   int m_nhru;
+   int m_pathSz;
 
+   double* m_precipArray;
+   double* m_tmnArray;
+   double* m_tmxArray;
+   double* m_gwRechargeArray;
+   double* m_swcArray;
+   double* m_aetArray;
+   double* m_petArray;
+   double* m_irrArray;
+   int* m_lulcArray;
 
+   void* m_irrEfficiency;
 
-   
+   double* m_irrToSWATArray;
+   //CArray< CPoint, CPoint > m_hruOffsetArray;
+   // initialization
+   float InitSWAT_Flow_Adapter(FlowContext* pFlowContext, LPCTSTR);
+
+   virtual bool Init(EnvContext* pEnvContext, LPCTSTR initStr);
+   virtual bool InitRun(FlowContext* pFlowContext, bool useInitialSeed);
+   virtual bool Run(EnvContext* pContext);
+   virtual bool RunDay(FlowContext* pFlowContext);
+   virtual bool EndYear(EnvContext* pEnvContext);
+   virtual bool InitYear(FlowContext* pFlowContext);
+
+   PtrArray< SWAT_OFFSET_INFO > SWAT_Flow_Adapter::m_hruOffsetArray;
+
+public:
+   //-------------------------------------------------------------------
+   //------ models -----------------------------------------------------
+   //-------------------------------------------------------------------
+   float RunSWAT_Flow_Adapter(FlowContext* pFlowContext, LPCTSTR initStr);
+
+   void InitSWAT(int*, int*, void*, char*, int*);
+   void RunSWAT();
+   void EndRunSWAT();
+   void RunSWAT_All();
+   void RunSWAT_Day(int*, void*, void*, void*, int*, void*, void*, void*, void*, void*, void*);
+   void InitSWAT_Year();
+
+   bool LoadXml(EnvContext*, LPCTSTR filename);
 
 };

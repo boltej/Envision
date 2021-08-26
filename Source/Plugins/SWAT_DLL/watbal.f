@@ -130,6 +130,13 @@
 !     endif
 
 !$$$$$$  100  format (i4, 20f8.3)
+      
+      
+!kbv add irrigation rate to array for envision
+      irr_env(j)=aird(j)
+ !kbv add rate to envision array for all hrus
+      aet_env(j)=etday     
+      
  101  format (' Water Balance Problem - Subbassin', i6,' Day/Year',2i4,
      *  f10.5,' mm')
       return

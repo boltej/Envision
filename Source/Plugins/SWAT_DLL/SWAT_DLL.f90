@@ -26,7 +26,7 @@ subroutine SWAT_DLL
 
 !! process input
 
-      status = CHANGEDIRQQ('C:\Envision\StudyAreas\CalFEWS\Swat\TxtInOut')
+      status = CHANGEDIRQQ('C:\Envision\StudyAreas\CalFEWS\Swat\Updated_files_SWAT_Tular')
       call getallo
       call allocate_parms
       call readfile

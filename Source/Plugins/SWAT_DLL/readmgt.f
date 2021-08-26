@@ -340,8 +340,8 @@
  !!     read (109,*) nrot(ihru)
       read (109,5000) titldum 
       read (109,5000) titldum
-
-
+!kbv test - set irrigation to on everyone, outside source
+ !     irrsc(ihru)=5
 !!    set pothole trigger
 !    if (ipot(ihru) == ihru) then
 !        do irot = 1, nrot(ihru)

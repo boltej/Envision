@@ -300,8 +300,7 @@
 
       !! calculate actual amount of evaporation from soil
       es_day = es_max - esleft
-      if (es_day < 0.) es_day = 0.
-
+      if (es_day < 0.) es_day = 0.     
       end if
 
       return

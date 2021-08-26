@@ -46,7 +46,8 @@
             curyr_mat(j) = mgt3iop(nop(j),j)
             if (curyr_mat(j) == 0) igrotree(j) = 1
             
-            idplt(j) = mgt1iop(nop(j),j)
+!     kbv  This is overridden by the Envision data       
+!            idplt(j) = mgt1iop(nop(j),j)
          
             if (mgt4op(nop(j),j) < 700.) mgt4op(nop(j),j) = 1700.
 !            if (mgt4op(nop(j),j) > 5000.) mgt4op(nop(j),j) = 5000.
@@ -219,9 +220,23 @@
             irr_mx(j) = mgt6op(nop(j),j)
             irr_asq(j) = mgt7op(nop(j),j)
             irr_sca(j) = mgt2iop(nop(j),j)
+            
+
+            
             irr_noa(j) = mgt10iop(nop(j),j)
             if (irr_noa(j) <= 0) irr_noa(j) = irrno(j)
             if (irr_noa(j) <= 0) irr_noa(j) = hru_sub(j)
+            
+           !kbv 
+            if (cpnm(idplt(j)) == "FRSD" .or. cpnm(idplt(j)) == "RNGE" .or. cpnm(idplt(j)) == "FRSE" ) then
+               irr_sca(j)=0
+            else              
+               irr_sca(j)=irr_sca(j)
+               irr_noa(j) = hru_sub(j)
+            end if 
+
+            
+            
             if (wstrs_id(j) <= 0) wstrs_id(j) = 1     
             if (irr_eff(j) > 1.) irr_eff(j) = 0.
             if (irr_eff(j) == 0.) irr_eff(j) = 1.

@@ -67,6 +67,8 @@
 
       aird(jj) = volmm * (1. - sq_rto)
       qird(jj) = volmm * sq_rto
+      
+
 
 !! summary calculations
       if (curyr > nyskip) then 

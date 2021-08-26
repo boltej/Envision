@@ -135,7 +135,7 @@ bool Calvin::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 		pData->SetName(m_gwBasinArray.GetAt(i));
 		pData->SetLabel(0, _T("Time"));
 		//pData->SetLabel(1, _T("Inflow"));
-		pData->SetLabel(1, _T("Storage (acre/feet)"));
+		pData->SetLabel(1, _T("Storage (acre-feet)"));
 		pData->SetLabel(2, _T("GW Outflow"));
 		for (int k = 0; k < numIn; k++)
 			pData->SetLabel(3 + k, _T(pExchange->GetLabel(offset->GetAt(k))));

@@ -83,6 +83,7 @@ MTDOUBLE HRU::m_mvCurrentCGDD = 0;
 MTDOUBLE HRU::m_mvCurrentSediment = 0;
 
 MTDOUBLE HRU::m_mvCurrentSWC = 0;
+MTDOUBLE HRU::m_mvCurrentIrr = 0;
 
 MTDOUBLE HRU::m_mvCumET = 0;
 MTDOUBLE HRU::m_mvCumRunoff = 0;
@@ -189,6 +190,7 @@ bool ModelOutput::Init(EnvContext *pEnvContext )
          pFlowModel->AddModelVar(_T("ET (mm)"), _T("hruET"), &HRU::m_mvCurrentET);
 
          pFlowModel->AddModelVar(_T("WC (mm/mm)"), _T("hruWC"), &HRU::m_mvCurrentSWC);
+         pFlowModel->AddModelVar(_T("Irrigation (mm/d)"), _T("hruIrr"), &HRU::m_mvCurrentIrr);
 
          pFlowModel->AddModelVar(_T("Maximum ET (mm)"), _T("hruMaxET"), &HRU::m_mvCurrentMaxET);
          pFlowModel->AddModelVar(_T("CGDD0 (heat units)"), _T("hruCGDD"), &HRU::m_mvCurrentCGDD);
@@ -448,6 +450,7 @@ HRU::HRU(void)
    , m_soilTemp(10.0f)
    , m_biomass(0.0f)
    , m_swc(0.0f)
+   , m_irr(0.0f)
    , m_pCatchment(NULL)
    { }
 
@@ -2768,10 +2771,10 @@ int FlowModel::SaveDetailedOutputIDU(CArray< FILE*, FILE* > &filePtrArray)
       float max_snow = 0.0f;
       m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colLai, lai);
       m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colAgeClass, age);
-      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colET_yr, et_yr);
-      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colMaxET_yr, MAX_ET_yr);
-      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colPrecip_yr, precip_yr);
-      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colIrrigation_yr, irrig_yr);
+      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colIrrigation, et_yr);
+      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colHruTemp, MAX_ET_yr);
+      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colHruPrecip, precip_yr);
+      m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colIrrigation, irrig_yr);
       m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colRunoff_yr, runoff_yr);
       m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colStorage_yr, storage_yr);
       m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colLulcB, lulcB);
@@ -5235,6 +5238,7 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
             m_pCatchmentLayer->SetData(idu, m_colHRUMeanLAI, pHRU->m_meanLAI); //lai
             m_pCatchmentLayer->SetData(idu, m_colAgeClass, pHRU->m_meanAge); //lai
             m_pCatchmentLayer->SetData( idu, m_colHruSWC,   pHRU->m_swc );
+            m_pCatchmentLayer->SetData(idu, m_colIrrigation, pHRU->m_irr);
             }
          }
 	  activeField = m_pCatchmentLayer->GetActiveField();
@@ -11406,6 +11410,7 @@ bool FlowModel::CollectModelOutput(void)
          HRU::m_mvCurrentGwFlowOut = pHRU->m_currentGWFlowOut;
 
          HRU::m_mvCurrentSWC = pHRU->m_swc;
+         HRU::m_mvCurrentIrr = pHRU->m_irr;
 
          HRU::m_mvCurrentET = pHRU->m_currentET;
          HRU::m_mvCurrentMaxET = pHRU->m_currentMaxET;

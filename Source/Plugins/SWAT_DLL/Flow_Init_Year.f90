@@ -99,7 +99,15 @@
       integer :: eof
       
       eof = 0
-      
+            !kbv 
+    !  do j = 1, mhru
+    !     if (cpnm(idplt(j)) == "FRSD" .or. cpnm(idplt(j)) == "WATR" .or. cpnm(idplt(j)) == "URBN" .or. cpnm(idplt(j)) == "FRSE") then
+    !        irr_sca(j)=0
+    !      else              
+    !        irr_sca(j)=5
+     !       irr_noa(j) = hru_sub(j)
+     !     end if 
+     ! enddo
   !    do curyr = 1, nbyr
   !      write (*,1234) curyr
         
@@ -195,6 +203,6 @@
 
        
 
-    curyr=curyr+1 !  added because we removed the loop through years
+    curyr=curyr+1 !  kbv added because we removed the loop through years (it now exists in Envision)
   
       end
