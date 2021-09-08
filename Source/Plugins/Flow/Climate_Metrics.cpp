@@ -41,11 +41,14 @@ Climate_Metrics::Climate_Metrics(FlowModel* pFlowModel, LPCTSTR name)
 	: GlobalMethod(pFlowModel, name, GM_CLIMATE_METRICS)
 	, m_colTemp90(-1)// Calculated Daily Urband Water Demand m3/day
 	, m_colTemp70(-1)
-    , m_maxYearlyTemp90(0)
+	, m_maxYearlyTemp90(0)
 	, m_minYearlyTemp70(0)
-	{
+	, m_meanYearlyTemp(0.0f)
+	, m_meanWinterTemp(0.0f)
+	, m_meanSummerTemp(0.0f)
+{
 	this->m_timing = GMT_START_STEP;
-	}
+}
 
 
 Climate_Metrics::~Climate_Metrics()
@@ -69,6 +72,9 @@ bool Climate_Metrics::Init(FlowContext* pFlowContext)
 
 	pFlowContext->pFlowModel->AddOutputVar(_T("#Days High > 90 Degrees F"), m_maxYearlyTemp90, "");
 	pFlowContext->pFlowModel->AddOutputVar(_T("#Days Low > 70 Degrees F"), m_minYearlyTemp70, "");
+	pFlowContext->pFlowModel->AddOutputVar(_T("Avg. Daily Air Temperature"), m_meanYearlyTemp, "");
+	pFlowContext->pFlowModel->AddOutputVar(_T("JFM - Avg. Daily Air Temperature"), m_meanWinterTemp, "");
+	pFlowContext->pFlowModel->AddOutputVar(_T("JAS - Avg. Daily Air Temperature"), m_meanSummerTemp, "");
 	return TRUE;
 }
 
@@ -76,7 +82,7 @@ bool Climate_Metrics::StartYear(FlowContext* pFlowContext)
 {
 	MapLayer* pLayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 	CalcClimateMetrics(pFlowContext);
-	
+
 	return true;
 }
 
@@ -96,7 +102,7 @@ bool Climate_Metrics::EndStep(FlowContext* pFlowContext)
 }
 
 bool Climate_Metrics::CalcClimateMetrics(FlowContext* pFlowContext)
-	{
+{
 	MapLayer* pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 	int hruCount = pFlowContext->pFlowModel->GetHRUCount();
 	float tMax = 0.f; // local tMax
@@ -104,36 +110,53 @@ bool Climate_Metrics::CalcClimateMetrics(FlowContext* pFlowContext)
 	int numDays = 0;  //local numDays above 90
 	int maxYearlyTemp90 = 0; int numDaysAbove70 = 0;
 	int minYearlyTemp70 = 0;
+	float meanTemp = 0;
+	float JFMTemp = 0.0f;
+	float JASTemp = 0.0f;
+	int numHRU = 0;
 	for (int hruIndex = 0; hruIndex < hruCount; hruIndex++)
-		{
+	{
 		HRU* pHRU = pFlowContext->pFlowModel->GetHRU(hruIndex);
+		numHRU++;
 		for (int doy = 0; doy < 365; doy++)
-			{
-			pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, doy , tMax);
+		{
+			pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, doy, tMax);
 			pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, doy, tMin);
 			if (tMax >= 32.220f)
+				//if (tMax >= 43.330f)
 				numDays++;
 			if (tMin > 21.11)
 				numDaysAbove70++;
-			}
+			meanTemp += (tMax + tMin) / 2.0f;
+			if (doy >= 0 && doy < 90)
+				JFMTemp += (tMax + tMin) / 2.0f;
+			if (doy >= 182 && doy < 274)
+				JASTemp += (tMax + tMin) / 2.0f;
+
+		}
 		if (numDays > maxYearlyTemp90)
 			maxYearlyTemp90 = numDays;
 		if (numDaysAbove70 > minYearlyTemp70)
 			minYearlyTemp70 = numDaysAbove70;
 
 		for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
-			{
+		{
 			int idu = pHRU->m_polyIndexArray[k];
-			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp90, numDays, ADD_DELTA);  
+			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp90, numDays, ADD_DELTA);
 			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp70, numDaysAbove70, ADD_DELTA);
-			}
+			//	pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp90, numDays, ADD_DELTA);  
+			//	pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp70, numDaysAbove70, ADD_DELTA);
+		}
 		numDays = 0;
 		numDaysAbove70 = 0;
-		}
+	}
 	m_maxYearlyTemp90 = maxYearlyTemp90;
 	m_minYearlyTemp70 = minYearlyTemp70;
+	m_meanYearlyTemp = meanTemp / 365 / numHRU;
+	m_meanWinterTemp = JFMTemp / 90 / numHRU;
+	m_meanSummerTemp = JASTemp / 90 / numHRU;
 	return TRUE;
-	}
+}
 
 Climate_Metrics* Climate_Metrics::LoadXml(TiXmlElement* pXmlClimateMetrics, MapLayer* pIDULayer, LPCTSTR filename, FlowModel* pFlowModel)
 {

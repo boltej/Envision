@@ -524,6 +524,9 @@ protected:
     int   m_colTemp70;	// num days min temperature above 70F
     int   m_maxYearlyTemp90;
     int   m_minYearlyTemp70;
+    float m_meanYearlyTemp;
+    float m_meanWinterTemp;
+    float m_meanSummerTemp;
 
 
 };
