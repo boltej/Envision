@@ -10,18 +10,108 @@
 #include <Path.h>
 #include <PathManager.h>
 #include <EnvConstants.h>
-
+#include <DeltaArray.h>
+#include <map>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
+//using namespace std;
 
 extern "C" _EXPORT EnvExtension * Factory(EnvContext*) { return (EnvExtension*) new PSWCP; }
 
 ///////////////////////////////////////////////////////
 //                 PSWCP
 ///////////////////////////////////////////////////////
+
+const short LULC_A = 0;
+const short LULC_A_AG = 1;
+const short LULC_A_FOREST = 2;
+const short LULC_A_DEVELOPED = 3;
+
+const short LULC_B = 1;
+
+
+
+
+/*
+11 Household, single family units 100 1000
+12 Household, 2 - 4 units 100 1000
+13 Household, multiunits(5 or more) 100 1000
+14 Residential condominiums 100 1000
+15 Mobile home parks or courts 100 1000
+16 Hotels / motels 1000 1000
+17 Institutional lodging 1000 1000
+18 All other residential not elsewhere coded 1000 1000
+19 Vacation and cabin 1000 1000
+21 Food and kindred products 1000 1000
+22 Textile mill products 1000 1000
+23 Apparel and other finished products made from fabrics, leather, and similar 1000 1000
+24 Lumber and wood products(except furniture) 1000 1000
+25 Furniture and fixtures 1000 1000
+26 Paper and allied products 1000 1000
+27 Printing and publishing 1000 1000
+28 Chemicals 1000 1000
+29 Petroleum refining and related industries 1000 1000
+30 Rubber and miscellaneous plastic products 1000 1000
+31 Leather and leather products 1000 1000
+32 Stone, clayand glass products 1000 1000
+33 Primary metal industries 1000 1000
+34 Fabricated metal products 1000 1000
+35 Professional scientific, and controlling instruments; photographicand optical 1000 1000
+39 Miscellaneous manufacturing 1000 1000
+41 Railroad / transit transportation 1000 1000
+42 Motor vehicle transportation 1000 1000
+43 Aircraft transportation 100 1000
+44 Marine craft transportation 1000 1000
+45 Highway and street right of way 1000 1000
+46 Automobile parking 1000 1000
+47 Communication 1000 1000
+48 Utilities 100 1000
+49 Other transportation, communication, and utilities not classified elsewhere 1000 1000
+50 Condominiums - other than residential condominiums 1000 1000
+51 Wholesale trade 1000 1000
+52 Retail trade - building materials, hardware, and farm equipment 1000 1000
+53 Retail trade - general merchandise 1000 1000
+54 Retail trade - food 1000 1000
+55 Retail trade - automotive, marine craft, aircraft, and accessories 1000 1000
+56 Retail trade - apparel and accessories 1000 1000
+57 Retail trade - furniture, home furnishingsand equipment 1000 1000
+58 Retail trade - eating and drinking 1000 1000
+59 Other retail trade 1000 1000
+61 Finance, insurance, and real estate services 1000 1000
+62 Personal services 1000 1000
+63 Business services 1000 1000
+64 Repair services 1000 1000
+65 Professional services 1000 1000
+66 Contract construction services 1000 1000
+
+67 Governmental services 100 1000
+68 Educational services 100 1000
+69 Miscellaneous services 100 1000
+71 Cultural activities and nature exhibitions 100 1000
+72 Public assembly 100 1000
+73 Amusements 100 1000
+74 Recreational activities 100 1000
+75 Resorts and group camps 100 1000
+76 Parks 100 1000
+79 Other cultural, entertainmentand recreational 100 100
+81 Agriculture(not classified under current use law) 100 100
+82 Agriculture related activities 100 100
+83 Agriculture classified under current use chapter 84.34 RCW 100 100
+84 Fishing activities and related services 100 100
+85 Mining activities and related services 100 1000
+88 Designated forest land under chapter 84.33 RCW 10 10
+89 Other resource production 10 1000
+91 Undeveloped land 10 1000
+92 Noncommercial forest 10 10
+93 Water areas 0 0
+94 Open space land classified under chapter 84.34 RCW 10 10
+95 Timberland classified under chapter 84.34 RCW 10 10
+99 Other undeveloped land 10 1000
+*/
+
 
 
 TABLECOL colInfo[] = {
@@ -36,18 +126,22 @@ TABLECOL colInfo[] = {
       { WQ_DB_TABLE, NULL, -1, "K"         },
       { WQ_DB_TABLE, NULL, -1, "SLP"       },
       { WQ_DB_TABLE, NULL, -1, "LH"        },
-      { WQ_DB_TABLE, NULL, -1, "ERSTMI"    },
+      { WQ_DB_TABLE, NULL, -1, "ERST_MI"   },
       { WQ_DB_TABLE, NULL, -1, "SRP"       },
       { WQ_DB_TABLE, NULL, -1, "SRM"       },
       { WQ_DB_TABLE, NULL, -1, "RDN_MI"    },
-                                           
+
       { WQ_M1_TABLE, NULL, -1, "MW"        },
+      { WQ_M1_TABLE, NULL, -1, "RDN"       },
       { WQ_M1_TABLE, NULL, -1, "S_MW"      },
       { WQ_M1_TABLE, NULL, -1, "ERST"      },
+      { WQ_M1_TABLE, NULL, -1, "SE"        },
       { WQ_M1_TABLE, NULL, -1, "S_SE"      },
+      { WQ_M1_TABLE, NULL, -1, "CE"        },
       { WQ_M1_TABLE, NULL, -1, "S_CE"      },
       { WQ_M1_TABLE, NULL, -1, "S_M1"      },
       { WQ_M1_TABLE, NULL, -1, "S_M1_CAL"  },
+      { WQ_M1_TABLE, NULL, -1, "P_SR"       },
       { WQ_M1_TABLE, NULL, -1, "PSO"       },
       { WQ_M1_TABLE, NULL, -1, "PSI"       },
       { WQ_M1_TABLE, NULL, -1, "P_SO"      },
@@ -55,9 +149,11 @@ TABLECOL colInfo[] = {
       { WQ_M1_TABLE, NULL, -1, "P_M1"      },
       { WQ_M1_TABLE, NULL, -1, "P_M1_CAL"  },
       { WQ_M1_TABLE, NULL, -1, "MSI"       },
+      { WQ_M1_TABLE, NULL, -1, "M_SRM"      },
       { WQ_M1_TABLE, NULL, -1, "M_M1"      },
       { WQ_M1_TABLE, NULL, -1, "M_M1_CAL"  },
       { WQ_M1_TABLE, NULL, -1, "NSI"       },
+      { WQ_M1_TABLE, NULL, -1, "N_SI"       },
       { WQ_M1_TABLE, NULL, -1, "N_M1"      },
       { WQ_M1_TABLE, NULL, -1, "N_M1_CAL"  },
       { WQ_M1_TABLE, NULL, -1, "PA_SI"     },
@@ -73,7 +169,6 @@ TABLECOL colInfo[] = {
       //{ WQ_RP_TABLE, NULL, -1, "P_M1_CAL"  },
       //{ WQ_RP_TABLE, NULL, -1, "M_M1_CAL"  },
       //{ WQ_RP_TABLE, NULL, -1, "N_M1_CAL"  },
-      { WQ_RP_TABLE, NULL, -1, "S_PA1_CAL" },
 
       { WF_DB1_TABLE, NULL, -1, "AV_PREC"  },
       { WF_DB1_TABLE, NULL, -1, "SRS_PCT"  },
@@ -89,6 +184,7 @@ TABLECOL colInfo[] = {
       { WF_DB1_TABLE, NULL, -1, "SLPWT_PCT"},
 
       { WF_DB2_TABLE, NULL, -1, "FL_PCT"   },
+      //{ WF_DB2_TABLE, NULL, -1, "LK_PCT"   },
       { WF_DB2_TABLE, NULL, -1, "IMP_AC"   },
       { WF_DB2_TABLE, NULL, -1, "IMP_PCT"  },
       { WF_DB2_TABLE, NULL, -1, "W_UR_AC"  },
@@ -108,6 +204,7 @@ TABLECOL colInfo[] = {
 
       { WF_M1_TABLE, NULL, -1, "I_SS"      },
       { WF_M1_TABLE, NULL, -1, "WLS"       },
+      { WF_M1_TABLE, NULL, -1, "WT_LK"     },
       { WF_M1_TABLE, NULL, -1, "P"         },
       { WF_M1_TABLE, NULL, -1, "RS"        },
       { WF_M1_TABLE, NULL, -1, "IDE"       },
@@ -141,13 +238,44 @@ TABLECOL colInfo[] = {
       { NULL_TABLE,  NULL, -1, NULL }
    };
 
+HAB_SCORE habScoreInfo[] = {
+         { LULC_A, LULC_A_AG, LULC_A_DEVELOPED, 0.5f },  // ag -> developed
+         { LULC_A, LULC_A_AG, LULC_A_DEVELOPED, 0.5f },  // ag -> developed
+         { -1,-1,-1,0.0f }
+   };
+
+
+
 CMapStringToPtr colMap;    // key = fieldname, value=ptr to COL
 
+CMap<int, int, LULCINFO*, LULCINFO*> lulcMap;   // key = lulc code, value =ptr to LULC_INFO
 
+//typedef std::pair<LONG,LONG> KEY;
+std::map<HAB_SCORE,float> habScoreMap;
 
 PSWCP::PSWCP(void)
    : EnvModelProcess()
    , m_pIDULayer(NULL)
+   , m_col_IDU_AUWIndex(-1)
+   , m_col_IDU_WqS_rp(-1)
+   , m_col_IDU_WqP_rp(-1)
+   , m_col_IDU_WqMe_rp(-1)
+   , m_col_IDU_WqN_rp(-1)
+   , m_col_IDU_WqPa_rp(-1)
+
+   , m_col_IDU_Hab_IntIndex(-1)
+   , m_col_IDU_Hab_PHS(-1)
+   , m_col_IDU_Hab_OakGrove(-1)
+   , m_col_IDU_Hab_OverallIndex(-1)
+   , m_col_IDU_LULC_A(-1)
+   , m_col_IDU_LULC_B(-1)
+   , m_col_IDU_CONSERVE(-1)
+
+
+   , m_pAUWLayer(NULL)
+   , m_pAUHLayer(NULL)
+   , m_pTerrHabLayer(NULL)
+
    , m_pWqDbTable(NULL)
    , m_pWqM1Table(NULL)
    , m_pWqRpTable(NULL)
@@ -156,31 +284,58 @@ PSWCP::PSWCP(void)
    , m_pWfM1Table(NULL)
    , m_pWfM2Table(NULL)
    , m_pWfRpTable(NULL)
-   , m_index_IDU()
-   , m_col_IDU_AUIndex(-1)
-   , m_col_IDU_WqS_rp(-1)
-   , m_col_IDU_WqP_rp(-1)
-   , m_col_IDU_WqMe_rp(-1)
-   , m_col_IDU_WqN_rp(-1)
-   , m_col_IDU_WqPa_rp(-1)
-   { 
+   , m_AUWIndex_IDU()
+   , m_AUHIndex_IDU()
+   {
    int i = 0;
    while (colInfo[i].table >= 0)
       {
-      void *pCol;
+      void* pCol;
       if (colMap.Lookup(colInfo[i].field, pCol) == TRUE)
          {
          CString msg;
-         msg.Format("  PSWCP: Duplicate table field encountered: Table: %i, field: %s", (int)colInfo[i].table, (LPCTSTR) colInfo[i].field);
+         msg.Format("  PSWCP: Duplicate table field encountered: Table: %i, field: %s", (int)colInfo[i].table, (LPCTSTR)colInfo[i].field);
          Report::LogInfo(msg);
          }
       else
          {
          // add to map
          }
-         colMap[colInfo[i].field] = &colInfo[i];
+      colMap[colInfo[i].field] = &colInfo[i];
       i++;
       }
+
+   lulcMap[0] = new LULCINFO("Background(0)", 10, 1000);
+   lulcMap[1] = new LULCINFO("Unclassified (1)", 10, 1000);
+   lulcMap[2] = new LULCINFO("Developed,  High  Intensity (2)", 100, 1000);
+   lulcMap[3] = new LULCINFO("Developed, Medium Intensity (3)", 100, 1000);
+   lulcMap[4] = new LULCINFO("Developed, Low Intensity (4)", 100, 1000);
+   lulcMap[5] = new LULCINFO("Developed,  Open  Space (5)", 100, 1000);
+   lulcMap[6] = new LULCINFO("Agricultural Land Cultivated Crops (6)", 100, 100);
+   lulcMap[7] = new LULCINFO("Pasture/Hay (7)", 100, 100);
+   lulcMap[8] = new LULCINFO("Grassland/Herbaceous (8)", 100, 100);
+   lulcMap[9] = new LULCINFO("Deciduous Forest (9)", 10, 10);
+   lulcMap[10] = new LULCINFO("Evergreen  Forest (10)", 10, 10);
+   lulcMap[11] = new LULCINFO("Mixed Forest (11)", 10, 10);
+   lulcMap[12] = new LULCINFO("Scrub/Shrub (12)", 10, 100);
+   lulcMap[13] = new LULCINFO("Palustrine  Forested  Wetland (13)", 10, 10);
+   lulcMap[14] = new LULCINFO("Palustrine Scrub/Shrub Wetland (14)", 10, 10);
+   lulcMap[15] = new LULCINFO("Palustrine Emergent Wetland (Persistent) (15)", 10, 10);
+   lulcMap[16] = new LULCINFO("Estuarine Forested Wetland (16)", 10, 10);
+   lulcMap[17] = new LULCINFO("Estuarine Scrub/Shrub Wetland (17)", 10, 10);
+   lulcMap[18] = new LULCINFO("Estuarine Emergent Wetland (18)", 10, 10);
+   lulcMap[19] = new LULCINFO("Unconsolidated Shore (19)", 0, 0);
+   lulcMap[20] = new LULCINFO("Barren Land (20)", 0, 0);
+   lulcMap[21] = new LULCINFO("Open Water (21)", 0, 0);
+   lulcMap[22] = new LULCINFO("Palustrine  Aquatic Bed (22)", 0, 0);
+   lulcMap[23] = new LULCINFO("Estuarine  Aquatic  Bed (23)", 0, 0);
+   lulcMap[24] = new LULCINFO("Tundra (24)", 0, 0);
+   lulcMap[25] = new LULCINFO("Ice/Snow  (25)", 0, 0);
+   
+   
+   //habScoreMap.insert(std::make_pair(KEY(MAKELONG(LULC_A,LULC_A_AG),MAKELONG(LULC_A,LULC_A_DEVELOPED)), -0.3f));
+
+   
    
    }
 
@@ -203,6 +358,18 @@ PSWCP::~PSWCP(void)
       delete m_pWfM2Table;
    if (m_pWfRpTable != NULL)
       delete m_pWfRpTable;
+
+   // delete allocated LULCINFO's
+   POSITION p = lulcMap.GetStartPosition();
+   LULCINFO* pInfo = NULL;
+   int lulcCode;
+
+   while (p != NULL) {
+      lulcMap.GetNextAssoc(p, lulcCode, pInfo);
+      delete pInfo;
+      }
+
+   lulcMap.RemoveAll();
    }
 
 // override API Methods
@@ -215,14 +382,11 @@ bool PSWCP::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    m_pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
 
-   // water quality model
-   InitAssessment(pEnvContext);
+   // water models
+   InitWaterAssessments(pEnvContext);
 
-   // water flow model
-   //InitWFAssessment(pEnvContext);
-
-   // habitat
-   //(pEnvContext);
+   // habitat models
+   InitHabAssessments(pEnvContext);
 
    // HCI
    InitHCIAssessment(pEnvContext);
@@ -242,16 +406,16 @@ bool PSWCP::Run(EnvContext* pEnvContext)
    {
    int currentYear = pEnvContext->currentYear;
 
-   RunWQAssessment(pEnvContext);
-
-   // water flow model
-   RunWFAssessment(pEnvContext);
-
-   // habitat
-   RunHabAssessment(pEnvContext);
-
-   // HCI
-   RunHCIAssessment(pEnvContext);
+   //RunWQAssessment(pEnvContext);
+   //
+   //// water flow model
+   //RunWFAssessment(pEnvContext);
+   //
+   //// habitat
+   //RunHabAssessment(pEnvContext);
+   //
+   //// HCI
+   //RunHCIAssessment(pEnvContext);
 
 
 
@@ -260,92 +424,13 @@ bool PSWCP::Run(EnvContext* pEnvContext)
 
 
 
-bool PSWCP::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
+bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
    {
-   // have xml string, start parsing
-   TiXmlDocument doc;
-   bool ok = doc.LoadFile(filename);
-
-   if (!ok)
-      {
-      Report::ErrorMsg(doc.ErrorDesc());
-      return false;
-      }
-
-   // start interating through the nodes
-   TiXmlElement* pXmlRoot = doc.RootElement();  // <acute_hazards>
-   CString codePath;
-
-   //XML_ATTR attrs[] = {
-   //   // attr            type           address            isReq checkCol
-   //   { "python_path",  TYPE_CSTRING,   &m_pythonPath,     true,  0 },
-   //   { NULL,           TYPE_NULL,     NULL,               false, 0 } };
-   //ok = TiXmlGetAttributes(pXmlRoot, attrs, filename, NULL);
-   //
-   //TiXmlElement* pXmlEvent = pXmlRoot->FirstChildElement("event");
-   //if (pXmlEvent == NULL)
-   //   {
-   //   CString msg("Acute Hazards: no <event>'s defined");
-   //   msg += filename;
-   //   Report::ErrorMsg(msg);
-   //   return false;
-   //   }
-   //
-   //while (pXmlEvent != NULL)
-   //   {
-   //   AHEvent* pEvent = new AHEvent;
-   //
-   //   CString pyModulePath;
-   //
-   //   XML_ATTR attrs[] = {
-   //      // attr                  type           address            isReq checkCol
-   //      { "year",                TYPE_INT,      &pEvent->m_year,           true,  0 },
-   //      { "name",                TYPE_CSTRING,  &pEvent->m_name,           true,  0 },
-   //      { "use",                 TYPE_INT,      &pEvent->m_use,            true,  0 },
-   //      { "py_function",         TYPE_CSTRING,  &pEvent->m_pyFunction,     true,  0 },
-   //      { "py_module",           TYPE_CSTRING,  &pyModulePath,             true,  0 },
-   //      { "env_output",          TYPE_CSTRING,  &pEvent->m_envOutputPath,  true,  0 },
-   //      { "earthquake_input",    TYPE_CSTRING,  &pEvent->m_earthquakeInputPath,   true,  0 },
-   //      { "tsunami_input",       TYPE_CSTRING,  &pEvent->m_tsunamiInputPath,   true,  0 },
-   //      { "earthquake_scenario", TYPE_CSTRING,  &pEvent->m_earthquakeScenario, true,  0 },
-   //      { "tsunami_scenario",    TYPE_CSTRING,  &pEvent->m_tsunamiScenario, true,  0 },
-   //      { NULL,                  TYPE_NULL,     NULL,        false, 0 } };
-   //
-   //   ok = TiXmlGetAttributes(pXmlEvent, attrs, filename, NULL);
-   //
-   //   if (!ok)
-   //      {
-   //      delete pEvent;
-   //      CString msg;
-   //      msg = "Acute Hazards Model:  Error reading <event> tag in input file ";
-   //      msg += filename;
-   //      Report::ErrorMsg(msg);
-   //      return false;
-   //      }
-   //   else
-   //      {
-   //      nsPath::CPath path(pyModulePath);
-   //      pEvent->m_pyModuleName = path.GetTitle();
-   //      pEvent->m_pyModulePath = path.GetPath();
-   //      pEvent->m_pAHModel = this;
-   //
-   //      m_events.Add(pEvent);
-   //      }
-   //
-   //   pXmlEvent = pXmlEvent->NextSiblingElement("event");
-   //   }
-
-   return true;
-   }
-
-
-bool PSWCP::InitAssessment(EnvContext* pEnvContext)
-   {
-   this->CheckCol(m_pIDULayer, m_col_IDU_AUIndex, "AU_INDEX", TYPE_INT, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqS_rp,  "WqS_rp", TYPE_STRING, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqP_rp,  "WqP_rp", TYPE_STRING, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_AUWIndex, "AUW_INDEX", TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WqS_rp, "WqS_rp", TYPE_STRING, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WqP_rp, "WqP_rp", TYPE_STRING, CC_MUST_EXIST);
    this->CheckCol(m_pIDULayer, m_col_IDU_WqMe_rp, "WqMe_rp", TYPE_STRING, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqN_rp,  "WqN_rp", TYPE_STRING, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WqN_rp, "WqN_rp", TYPE_STRING, CC_MUST_EXIST);
    this->CheckCol(m_pIDULayer, m_col_IDU_WqPa_rp, "WqPa_rp", TYPE_STRING, CC_MUST_EXIST);
 
    // load databases
@@ -384,15 +469,15 @@ bool PSWCP::InitAssessment(EnvContext* pEnvContext)
       {
       // doesn't exist, build (and save) it
       Report::LogInfo("  PSWCP: Building index WQ_RP.idx");
-      m_index_IDU.BuildIndex(m_pIDULayer->m_pDbTable, m_col_IDU_AUIndex);
+      m_AUWIndex_IDU.BuildIndex(m_pIDULayer->m_pDbTable, m_col_IDU_AUWIndex);
 
       indexPath = PathManager::GetPath(PM_PROJECT_DIR);
       indexPath += "PSWCP/WQ_RP.idx";
-      m_index_IDU.WriteIndex(indexPath);
+      m_AUWIndex_IDU.WriteIndex(indexPath);
       }
-   else 
+   else
       {
-      m_index_IDU.ReadIndex(m_pIDULayer->m_pDbTable, indexPath);
+      m_AUWIndex_IDU.ReadIndex(m_pIDULayer->m_pDbTable, indexPath);
       }
 
    // write WQ_RP values to IDUs by iterating through the WQ-RP table, writing
@@ -404,24 +489,27 @@ bool PSWCP::InitAssessment(EnvContext* pEnvContext)
       int auID = 0;
       GetTableValue(WQ_DB_TABLE, "AU_ID", row, auID);
 
-      int count = m_index_IDU.GetRecordArray(m_col_IDU_AUIndex, VData(auID), recordArray);
+      int count = m_AUWIndex_IDU.GetRecordArray(m_col_IDU_AUWIndex, VData(auID), recordArray);
 
       CString s_rp, p_rp, me_rp, n_rp, pa_rp;
       GetTableValue(WQ_RP_TABLE, "SED_RP", row, s_rp);
-      GetTableValue(WQ_RP_TABLE, "P_RP",   row, p_rp);
-      GetTableValue(WQ_RP_TABLE, "ME_RP",  row, me_rp);
-      GetTableValue(WQ_RP_TABLE, "N_RP",   row, n_rp);
-      GetTableValue(WQ_RP_TABLE, "Pa_RP",  row, pa_rp);
+      GetTableValue(WQ_RP_TABLE, "P_RP", row, p_rp);
+      GetTableValue(WQ_RP_TABLE, "ME_RP", row, me_rp);
+      GetTableValue(WQ_RP_TABLE, "N_RP", row, n_rp);
+      GetTableValue(WQ_RP_TABLE, "Pa_RP", row, pa_rp);
 
       for (int j = 0; j < count; j++)
          {
          int idu = recordArray[j];
 
-         m_pIDULayer->SetData(idu, m_col_IDU_WqS_rp, s_rp);
-         m_pIDULayer->SetData(idu, m_col_IDU_WqP_rp, p_rp);
-         m_pIDULayer->SetData(idu, m_col_IDU_WqMe_rp, me_rp);
-         m_pIDULayer->SetData(idu, m_col_IDU_WqN_rp, n_rp);
-         m_pIDULayer->SetData(idu, m_col_IDU_WqPa_rp, pa_rp);
+         if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
+            {
+            m_pIDULayer->SetData(idu, m_col_IDU_WqS_rp, s_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WqP_rp, p_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WqMe_rp, me_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WqN_rp, n_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WqPa_rp, pa_rp);
+            }
          }
       }  // end of: for each row in WQ_RP table
 
@@ -443,6 +531,75 @@ bool PSWCP::InitAssessment(EnvContext* pEnvContext)
    }
 
 
+bool PSWCP::InitHabAssessments(EnvContext* pEnvContext)
+   {
+   this->CheckCol(m_pIDULayer, m_col_IDU_AUHIndex, "AUH_INDEX", TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_Hab_IntIndex, "HabIntIndex", TYPE_FLOAT, CC_AUTOADD);
+   this->CheckCol(m_pIDULayer, m_col_IDU_Hab_PHS, "HabPHS", TYPE_FLOAT, CC_AUTOADD);
+   this->CheckCol(m_pIDULayer, m_col_IDU_Hab_OakGrove, "HabOakGrove", TYPE_FLOAT, CC_AUTOADD);
+   this->CheckCol(m_pIDULayer, m_col_IDU_Hab_OverallIndex, "HabOvrIndex", TYPE_FLOAT, CC_AUTOADD);
+   this->CheckCol(m_pIDULayer, m_col_IDU_LULC_B, "LULC_B", TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_LULC_A, "LULC_B", TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_CONSERVE, "CONSERVE", TYPE_INT, CC_MUST_EXIST);
+
+   // load databases
+   LoadTable(HAB_TERR_TABLE);
+   int colIntIndex = m_pHabTerrTable->GetCol("Integ_Inde");  // database columns
+   int colNormPHS = m_pHabTerrTable->GetCol("norm_PHS");
+   int colNormOakGr = m_pHabTerrTable->GetCol("norm_oakgr");
+   int colOvrallIND = m_pHabTerrTable->GetCol("ovrall_IND");
+
+   // load/create index for getting IDUs for each AU from the idu layer
+   CString indexPath;
+   if (PathManager::FindPath("PSWCP/HAB_TERR.idx", indexPath) < 0)
+      {
+      // doesn't exist, build (and save) it
+      Report::LogInfo("  PSWCP: Building index HAB_TERR.idx");
+      m_AUHIndex_IDU.BuildIndex(m_pIDULayer->m_pDbTable, m_col_IDU_AUHIndex);
+
+      indexPath = PathManager::GetPath(PM_PROJECT_DIR);
+      indexPath += "PSWCP/HAB_TERR.idx";
+      m_AUHIndex_IDU.WriteIndex(indexPath);
+      }
+   else
+      {
+      m_AUHIndex_IDU.ReadIndex(m_pIDULayer->m_pDbTable, indexPath);
+      }
+
+   // write HAB values to IDUs by iterating through the hab table, writing
+   // values to the IDU's using the index for 
+   CUIntArray recordArray;
+   for (int row = 0; row < m_pHabTerrTable->GetRowCount(); row++)
+      {
+      // get the AU_ID for this record
+      int auID = 0;
+      GetTableValue(HAB_TERR_TABLE, "AU_ID", row, auID);
+
+      int count = m_AUHIndex_IDU.GetRecordArray(m_col_IDU_AUWIndex, VData(auID), recordArray);
+
+      float integ_Inde = m_pHabTerrTable->GetAsFloat(colIntIndex, row);
+      float norm_PHS   = m_pHabTerrTable->GetAsFloat(colNormPHS, row);
+      float norm_oakgr = m_pHabTerrTable->GetAsFloat(colNormOakGr, row);
+      float ovrall_IND = m_pHabTerrTable->GetAsFloat(colOvrallIND, row);
+
+      for (int j = 0; j < count; j++)
+         {
+         int idu = recordArray[j];
+
+         if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
+            {
+            m_pIDULayer->SetData(idu, colIntIndex, integ_Inde);
+            m_pIDULayer->SetData(idu, colNormPHS, norm_PHS);
+            m_pIDULayer->SetData(idu, colNormOakGr, norm_oakgr);
+            m_pIDULayer->SetData(idu, colOvrallIND, ovrall_IND);
+            }
+         }
+      }  // end of: for each row in table
+
+   return true;
+   }
+
+
 bool PSWCP::InitHCIAssessment(EnvContext* pEnvContext)
    {
    return true;
@@ -453,7 +610,7 @@ bool PSWCP::RunWFAssessment(EnvContext* pEnvContext)
    {
    // Model 1:  Importance Value
    // (Precip + Timing of Delivery) + (Surface Storage) + subsurface flow + (recharge + discharge);
-   
+
    SolveWfM1WatDel();
    SolveWfM1SurfStorage();
    SolveWfM1RechargeDischarge();
@@ -464,7 +621,7 @@ bool PSWCP::RunWFAssessment(EnvContext* pEnvContext)
    SolveWfM2Recharge();    // NEEDS WORK, DOCS UNCLEAR
    SolveWfM2Discharge();
    SolveWfM2EvapTrans();
-   
+
    return true;
    }
 
@@ -484,6 +641,128 @@ bool PSWCP::RunWQAssessment(EnvContext* pEnvContext)
 
 bool PSWCP::RunHabAssessment(EnvContext* pEnvContext)
    {
+
+   // Set REL_Impact = 1000 for all records, then recalculate REL_Impact for following LandUse codes as follows :
+   // Commercialand industrial land uses; 249 = Dept of Corrections, 45 = Highways
+    /*
+   if ( LandUse in(16, 17, 18, 19, . . ., 41, 42, 44, 45, 46, 47, 49, 50, 51, . . ., 66, 249)
+      Then Rel_Impact = 1000
+#----------------------------------------------------------------------------------------------------------------------------------
+      # residential and recreational land uses
+      # not in Woodland / Prairie Mosaic Zone
+      If((LandUse <= 15) OR(LandUse in(43, 48, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 85)))
+      AND(veg_zone > 1) Then
+      Rel_Impact = -900 * [PR_High_Tr] + 1000 # relative impact score between 100 and 1000
+      # in Woodland / Prairie Mosaic Zone
+      if ((LandUse <= 15) OR(LandUse in(43, 48, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 85)))
+         AND(veg_zone = 1) Then
+         Rel_Impact = -900 * (0.33 * [PR_Low_Gra] + [PR_TreShrb]) + 1000 # [PR_Low_Gra] + [PR_TreShrb] < 1
+#----------------------------------------------------------------------------------------------------------------------------------
+         # undeveloped land use and not presently assigned codes(just to be safe)
+         # not in Woodland / Prairie Mosaic Zone
+         If(LandUse in(86, 89, 91, 96, 97, 98, 99)) AND(veg_zone > 1) Then
+         Rel_Impact = -990 * [PR_TreShrb] + 1000 # relative impact score between 10 and 1000
+         # in Woodland / Prairie Mosaic Zone
+         If(LandUse in(86, 89, 91, 96, 97, 98, 99)) AND(veg_zone = 1) Then
+         REl_Impact = -990 * (0.67 * [PR_Low_Gra] + [PR_TreShrb]) + 1000 # score between 10 and 1000
+#----------------------------------------------------------------------------------------------------------------------------------
+         If LandUse in(81, 82, 83, 84) Then REL_Impact = 100 # agriculture
+         # private timberland, commercial forest, WDFW(221, 222), and open space on Dept of Defense(341)
+         If LandUse in(87, 88, 92, 94, 95, 221, 222, 341) Then REL_Impact = 10
+         If LandUse in(101, 211, 351) Then REL_Impact = 8 #municipal watersheds, DNR, BLM
+         If LandUse in(311, 335) Then REL_Impact = 4 #USFWS, National Forest - recreation or undesignated
+         If LandUse in(231, 322) Then REL_Impact = 15 #WA State Parks, National Park - historic park
+         If LandUse = 321 Then REL_Impact = 1 #National Parks
+         If LandUse in(93, 331, 332) Then REL_Impact = 0 #water, federal wilderness, federal roadless areas  */
+
+   // Propagate IDU Changes - Habitat
+   // basic idea:
+   // 1) scan the delta array looking for changes to relevent columns.  Thes include any column with 
+   //    info affecting one of the three terrestrial habitat indicators (ecosystem integrity, PHS, oak grove)
+   // 2) when found, update the appropriate score in the habitat table for the AUH associated with the IDU,
+   //    proportional to the area of the IDU compared to the AUH.
+
+   // columns of interest in iclude
+   // conversions to developed (LULC_B?: EI, PHS, OAK)
+   // conversions to ag
+   // restoration (CONSERVE: EI, PHS, OAK) (note: conservation does not change any score)
+
+   DeltaArray* deltaArray = pEnvContext->pDeltaArray;
+   /*
+   if (deltaArray != NULL)
+      {
+      INT_PTR size = deltaArray->GetSize();
+      if (size > 0)
+         {
+         for (INT_PTR i = pEnvContext->firstUnseenDelta; i < size; i++)
+            {
+            DELTA& delta = ::EnvGetDelta(deltaArray, i);
+            if (delta.col == m_col_IDU_LULC_A)
+               {
+               float scalar = 0;
+
+               switch (delta.oldValue.GetInt())
+                  {
+                  case LULC_A_AG:
+                     if ( delta.newValue.GetInt() ==LULC_A_DEVELOPED ) // ag to developed
+                        scalar = 0.5
+                  case LULC_A_FOREST:
+                     break;
+
+                  case LULC_A_DEVELOPED:
+                     if (delta.oldValue.GetInt() == LULC_A_AG)
+                     break;
+                  }
+   
+               }
+               UpdateIDU(pContext, delta.cell, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA);
+            }
+   
+         //::EnvApplyDeltaArray(pContext->pEnvModel);
+         }
+
+
+
+  // basic idea - for each AUH, iterate through the associated IDUs, looking for changes look for changes in the IDU that impact one of the three terrestrial habitat indicators
+      // (ecosystem integrity, PHS, oak grove)
+   CUIntArray recordArray;
+   for (int row = 0; row < m_pHabTerrTable->GetRowCount(); row++)
+      {
+      // get the AU_ID for this record
+      int auID = 0;
+      GetTableValue(HAB_TERR_TABLE, "AU_ID", row, auID);
+
+      int count = m_AUHIndex_IDU.GetRecordArray(m_col_IDU_AUWIndex, VData(auID), recordArray);
+
+      float integ_Inde = m_pHabTerrTable->GetAsFloat(colIntIndex, row);
+      float norm_PHS = m_pHabTerrTable->GetAsFloat(colNormPHS, row);
+      float norm_oakgr = m_pHabTerrTable->GetAsFloat(colNormOakGr, row);
+      float ovrall_IND = m_pHabTerrTable->GetAsFloat(colOvrallIND, row);
+
+      for (int j = 0; j < count; j++)
+         {
+
+
+   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu != m_pIDULayer->End(); idu++)
+      {
+      
+
+
+      m_pIDULayer->GetData(idu, col, value);
+
+
+      int colIntIndex = m_pHabTerrTable->GetCol("Integ_Inde");
+      int colNormPHS = m_pHabTerrTable->GetCol("norm_PHS");
+      int colNormOakGr = m_pHabTerrTable->GetCol("norm_oakgr");
+      int colOvrallIND = m_pHabTerrTable->GetCol("ovrall_IND");
+
+
+      UINT idu = idus[i];
+      UpdateAppVars(idu, 0, 3);  // perhaps second arg should be 1?  as is, only updates AppVar, not coverage
+
+
+
+      }  */
    return true;
    }
 
@@ -504,6 +783,7 @@ int PSWCP::SolveWqM1Sed()
    float maxCE[LG_COUNT] = { 0,0,0,0,0 };
    float maxMW[LG_COUNT] = { 0,0,0,0,0 };
    float maxSM1[LG_COUNT] = { 0,0,0,0,0 };
+   float maxISS[LG_COUNT] = { 0,0,0,0,0 };
 
    // pass one - compute normalizing array
    for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
@@ -583,10 +863,10 @@ int PSWCP::SolveWqM1Sed()
 
       // solve source model
       // sinks
-      float iss = 0;   // water flow process surface storage subcomponent
-      GetTableValue(WQ_RP_TABLE, "I_SS", row, iss);
+      float i_ss = 0;   // water flow process surface storage subcomponent
+      GetTableValue(WF_M1_TABLE, "I_SS", row, i_ss);
 
-      float sed_m1 = (se + mw + ce) - iss;        // model 1 (export) score for sediments, unnormalized
+      float sed_m1 = (se + mw + ce) - i_ss;        // model 1 (export) score for sediments, unnormalized
       SetTableValue(WQ_M1_TABLE, "S_M1", row, sed_m1);
 
       if (sed_m1 > maxSM1[lgIndex])
@@ -624,7 +904,7 @@ int PSWCP::SolveWqM1Phos()
    float maxPSI[LG_COUNT] = { 0,0,0,0,0 };
    float maxSRP[LG_COUNT] = { 0,0,0,0,0 };
    float maxPM1[LG_COUNT] = { 0,0,0,0,0 };
-   
+
    // pass 1
    // find max PE values for normalizing
    for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
@@ -718,7 +998,7 @@ int PSWCP::SolveWqM1Phos()
 
       float p_m1_cal = p_m1 / maxPM1[lgIndex];
       SetTableValue(WQ_M1_TABLE, "P_M1_CAL", row, p_m1_cal);
-      SetTableValue(WQ_RP_TABLE, "P_M1_CAL", row, p_m1_cal);
+      //SetTableValue(WQ_RP_TABLE, "P_M1_CAL", row, p_m1_cal);  // duplicate
       }
 
    return 1;
@@ -764,12 +1044,12 @@ int PSWCP::SolveWqM1Metals()
       float msi = 0;
       GetTableValue(WQ_M1_TABLE, "MSI", row, msi);   // msi (un-normalized)
 
-      float m_m1 = msi/ maxMSI[lgIndex];    // normalized sink
+      float m_m1 = msi / maxMSI[lgIndex];    // normalized sink
 
       // update tables with intermediate values
       SetTableValue(WQ_M1_TABLE, "M_M1", row, m_m1);
       SetTableValue(WQ_M1_TABLE, "M_M1_CAL", row, m_m1);   // NOTE: cal same a non-cal
-      SetTableValue(WQ_RP_TABLE, "M_M1_CAL", row, m_m1);
+      //SetTableValue(WQ_RP_TABLE, "M_M1_CAL", row, m_m1);
       }
 
    return 1;
@@ -838,13 +1118,13 @@ int PSWCP::SolveWqM1Nit()
          continue;
 
       float nsi = 0;
-      GetTableValue(WF_M1_TABLE, "NSI", row, nsi);
+      GetTableValue(WQ_M1_TABLE, "NSI", row, nsi);
       float n_si = nsi / maxNSI[lgIndex];
 
       SetTableValue(WQ_M1_TABLE, "N_SI", row, n_si);
-      SetTableValue(WQ_M1_TABLE, "N_M1", row, 1-n_si);
-      SetTableValue(WQ_M1_TABLE, "N_M1_CAL", row, 1-n_si);   // NOTE: cal same a non-cal
-      SetTableValue(WQ_RP_TABLE, "N_M1_CAL", row, 1 - n_si);
+      SetTableValue(WQ_M1_TABLE, "N_M1", row, 1 - n_si);
+      SetTableValue(WQ_M1_TABLE, "N_M1_CAL", row, 1 - n_si);   // NOTE: cal same a non-cal
+      //SetTableValue(WQ_RP_TABLE, "N_M1_CAL", row, 1 - n_si);
       }
 
    return 1;
@@ -885,14 +1165,14 @@ int PSWCP::SolveWqM1Path()
       GetTableValue(WF_DB1_TABLE, "DPWT_PCT", row, dpwt);   // msi (un-normalized)
 
       // update tables with intermediate values
-      float pa_si = dpwt/maxDPWT[lgIndex];
+      float pa_si = dpwt / maxDPWT[lgIndex];
       SetTableValue(WQ_M1_TABLE, "PA_SI", row, pa_si);
 
 
       SetTableValue(WQ_M1_TABLE, "N_SI", row, pa_si);
       SetTableValue(WQ_M1_TABLE, "PA_M1", row, 1 - pa_si);
       SetTableValue(WQ_M1_TABLE, "PA_M1_CAL", row, 1 - pa_si);   // NOTE: cal same a non-cal
-      SetTableValue(WQ_RP_TABLE, "PA_M1_CAL", row, 1 - pa_si);
+      //SetTableValue(WQ_RP_TABLE, "PA_M1_CAL", row, 1 - pa_si);
       }
 
    return 1;
@@ -943,13 +1223,13 @@ int PSWCP::SolveWfM1WatDel()
       float srs_pct = 0;      // snow/rain-on-snow timing effect
       GetTableValue(WF_DB1_TABLE, "SRS_PCT", row, srs_pct);
 
-      float rs =srs_pct/maxSRS[lgIndex];
+      float rs = srs_pct / maxSRS[lgIndex];
 
       float ide = p + rs;
 
       if (ide > maxIDE[lgIndex])
          maxIDE[lgIndex] = ide;
-      
+
       SetTableValue(WF_M1_TABLE, "P", row, p);
       SetTableValue(WF_M1_TABLE, "RS", row, rs);
       SetTableValue(WF_M1_TABLE, "IDE", row, ide);
@@ -988,7 +1268,7 @@ int PSWCP::SolveWfM1SurfStorage()
       LSGROUP lgIndex = GetLSGroupIndex(row);
       if (lgIndex == LG_NULL)
          continue;
-      
+
       float dpwt_pct = 0;  // depressional wetlands storage
       GetTableValue(WF_DB1_TABLE, "DPWT_PCT", row, dpwt_pct);
 
@@ -1001,10 +1281,10 @@ int PSWCP::SolveWfM1SurfStorage()
       if (wt_lk < maxWLS[lgIndex])
          maxWLS[lgIndex] = wt_lk;
 
-      float uc_mi=0, mc_mi=0, sq_miles=0;   // unconfined/moderately confined floodplain storage
+      float uc_mi = 0, mc_mi = 0, sq_miles = 0;   // unconfined/moderately confined floodplain storage
       GetTableValue(WF_DB1_TABLE, "UC_MI", row, uc_mi);
       GetTableValue(WF_DB1_TABLE, "MC_MI", row, mc_mi);
-      GetTableValue(WF_DB1_TABLE, "SQ_MILES", row, sq_miles);
+      GetTableValue(WQ_DB_TABLE, "SQ_MILES", row, sq_miles);
 
       float unss = 3 * uc_mi / sq_miles;
       float mcss = 2 * mc_mi / sq_miles;
@@ -1027,9 +1307,9 @@ int PSWCP::SolveWfM1SurfStorage()
       float wt_lk = 0;
       GetTableValue(WF_M1_TABLE, "WT_LK", row, wt_lk);
 
-      float wls = wt_lk / maxWLS[lgIndex]; 
+      float wls = wt_lk / maxWLS[lgIndex];
       SetTableValue(WF_M1_TABLE, "WLS", row, wls);
-               
+
       float un_mc = 0;
       GetTableValue(WF_M1_TABLE, "UN_MC", row, un_mc);
 
@@ -1059,7 +1339,7 @@ int PSWCP::SolveWfM1RechargeDischarge()
       if (lgIndex == LG_NULL)
          continue;
 
-      float av_prec = 0, hperm = 0, lperm =0;  // 
+      float av_prec = 0, hperm = 0, lperm = 0;  // 
       GetTableValue(WF_DB1_TABLE, "AV_PREC", row, av_prec);
       GetTableValue(WF_DB1_TABLE, "HPERM", row, hperm);
       GetTableValue(WF_DB1_TABLE, "LPERM", row, lperm);
@@ -1075,7 +1355,7 @@ int PSWCP::SolveWfM1RechargeDischarge()
       float acres = 0;
       GetTableValue(WQ_DB_TABLE, "ACRES", row, acres);
 
-      float ir = (rechH + rechL)/acres;    // importance 
+      float ir = (rechH + rechL) / acres;    // importance 
       SetTableValue(WF_M1_TABLE, "IR", row, ir);
 
       if (ir < maxIR[lgIndex])
@@ -1114,7 +1394,7 @@ int PSWCP::SolveWfM1RechargeDischarge()
       float uchp_area = 0;
       GetTableValue(WF_DB1_TABLE, "UCHP_AREA", row, uchp_area);
 
-      float sd = uchp_area/ maxUCHP[lgIndex];
+      float sd = uchp_area / maxUCHP[lgIndex];
       SetTableValue(WF_M1_TABLE, "SD", row, sd);
 
       float slpwt_pct = 0;
@@ -1159,7 +1439,7 @@ int PSWCP::SolveWfM2WatDel()
    // normalizing arrays 
    float maxFL = 0;   // why X, U for LG_M2?????
    float maxIMP = 0;
-   
+
    // pass 1 - get normalizing factors
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
@@ -1231,7 +1511,7 @@ int PSWCP::SolveWfM2SurfStorage()
          maxDW = uw + rw;
 
       // storage in floodplains
-      float uc_alt_mi = 0, mc_alt_mi=0, sq_miles=0;
+      float uc_alt_mi = 0, mc_alt_mi = 0, sq_miles = 0;
       GetTableValue(WF_DB2_TABLE, "UC_ALT_MI", row, uc_alt_mi);
       GetTableValue(WF_DB2_TABLE, "MC_ALT_MI", row, mc_alt_mi);
       GetTableValue(WF_DB2_TABLE, "MC_ALT_MI", row, sq_miles);
@@ -1252,11 +1532,11 @@ int PSWCP::SolveWfM2SurfStorage()
       if (lgIndex == LG_NULL)
          continue;
 
-      float uw=0,rw=0;     // loss of storage wetlands
+      float uw = 0, rw = 0;     // loss of storage wetlands
       GetTableValue(WF_M2_TABLE, "UW", row, uw);
       GetTableValue(WF_M2_TABLE, "RW", row, uw);
 
-      float dw = uw+rw;
+      float dw = uw + rw;
       float d_ws = dw / maxDW;
       SetTableValue(WF_M1_TABLE, "DW", row, dw);
       SetTableValue(WF_M1_TABLE, "D_WS", row, d_ws);
@@ -1301,7 +1581,7 @@ int PSWCP::SolveWfM2Recharge()
    }
 
 
-      
+
 //---------------------------------------------------
 //-------- Discharge degradation --------------------
 //---------------------------------------------------
@@ -1331,14 +1611,14 @@ int PSWCP::SolveWfM2Discharge()
          maxRDDEN = rd_den;
 
       // degradation due to groundwater extraction
-      float well_cnt=0;
+      float well_cnt = 0;
       GetTableValue(WF_DB2_TABLE, "WELL_CNT", row, well_cnt);
 
       float well_den = well_cnt / sq_miles;
       SetTableValue(WF_DB2_TABLE, "WELL_DEN", row, well_den);
 
       // degradation due t discharge in floodplains with altered permeability
-      float uchp_u= 0, uchp_r=0;
+      float uchp_u = 0, uchp_r = 0;
       GetTableValue(WF_DB2_TABLE, "UCHP_U", row, uchp_u);
       GetTableValue(WF_DB2_TABLE, "UCHP_R", row, uchp_r);
 
@@ -1388,7 +1668,7 @@ int PSWCP::SolveWfM2Discharge()
       GetTableValue(WF_M2_TABLE, "URS", row, urs);
 
       float d_std = (uus + urs) / maxUS;
-      SetTableValue(WF_M2_TABLE, "STD", row, (uus+urs));
+      SetTableValue(WF_M2_TABLE, "STD", row, (uus + urs));
       SetTableValue(WF_M2_TABLE, "D_STD", row, d_std);
 
       float swu = 0, swr = 0;
@@ -1448,7 +1728,7 @@ int PSWCP::SolveWfM2EvapTrans()
    }
 
 
-   
+
 int PSWCP::LoadTable(TABLE t)
    {
    VDataObj* pTable = new VDataObj(UNIT_MEASURE::U_UNDEFINED);
@@ -1456,14 +1736,15 @@ int PSWCP::LoadTable(TABLE t)
 
    switch (t)
       {
-      case  WQ_DB_TABLE:   m_pWqDbTable =pTable; filename = "PSWCP/WQ_DB.csv"; break;
-      case  WQ_M1_TABLE:   m_pWqM1Table =pTable; filename = "PSWCP/WQ_M1.csv"; break;
-      case  WQ_RP_TABLE:   m_pWqRpTable =pTable; filename = "PSWCP/WQ_RP.csv"; break;
-      case  WF_DB1_TABLE:  m_pWfDb1Table=pTable; filename = "PSWCP/WF_DB1.csv"; break;
-      case  WF_DB2_TABLE:  m_pWfDb2Table=pTable; filename = "PSWCP/WF_DB2.csv"; break;
+      case  WQ_DB_TABLE:   m_pWqDbTable = pTable; filename = "PSWCP/WQ_DB.csv"; break;
+      case  WQ_M1_TABLE:   m_pWqM1Table = pTable; filename = "PSWCP/WQ_M1.csv"; break;
+      case  WQ_RP_TABLE:   m_pWqRpTable = pTable; filename = "PSWCP/WQ_RP.csv"; break;
+      case  WF_DB1_TABLE:  m_pWfDb1Table = pTable; filename = "PSWCP/WF_DB1.csv"; break;
+      case  WF_DB2_TABLE:  m_pWfDb2Table = pTable; filename = "PSWCP/WF_DB2.csv"; break;
       case  WF_M1_TABLE:   m_pWfM1Table = pTable; filename = "PSWCP/WF_M1.csv"; break;
       case  WF_M2_TABLE:   m_pWfM2Table = pTable; filename = "PSWCP/WF_M2.csv"; break;
-      case  WF_RP_TABLE:   m_pWfRpTable =pTable; filename = "PSWCP/WF_RP.csv"; break;
+      case  WF_RP_TABLE:   m_pWfRpTable = pTable; filename = "PSWCP/WF_RP.csv"; break;
+      case  HAB_TERR_TABLE: m_pHabTerrTable = pTable; filename = "PSWCP/AU_Terrestrial_Indicies_Aug2012.csv"; break;
       }
 
    CString path;
@@ -1506,7 +1787,6 @@ bool PSWCP::GetTableValue(TABLE table, LPCTSTR field, int row, int& value)
 
    return true;
    }
-
 
 bool PSWCP::GetTableValue(TABLE table, LPCTSTR field, int row, float& value)
    {
@@ -1556,8 +1836,7 @@ bool PSWCP::GetTableValue(TABLE table, LPCTSTR field, int row, CString& value)
    return true;
    }
 
-
-bool PSWCP::SetTableValue(TABLE table, LPCTSTR field, int row, VData &value)
+bool PSWCP::SetTableValue(TABLE table, LPCTSTR field, int row, VData& value)
    {
    TABLECOL* pCol = (TABLECOL*)colMap[field];
 
@@ -1599,3 +1878,83 @@ LSGROUP PSWCP::GetLSGroupIndex(int row)
       }
    return lgIndex;
    }
+
+bool PSWCP::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
+   {
+   // have xml string, start parsing
+   TiXmlDocument doc;
+   bool ok = doc.LoadFile(filename);
+
+   if (!ok)
+      {
+      Report::ErrorMsg(doc.ErrorDesc());
+      return false;
+      }
+
+   // start interating through the nodes
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <acute_hazards>
+   CString codePath;
+
+   //XML_ATTR attrs[] = {
+   //   // attr            type           address            isReq checkCol
+   //   { "python_path",  TYPE_CSTRING,   &m_pythonPath,     true,  0 },
+   //   { NULL,           TYPE_NULL,     NULL,               false, 0 } };
+   //ok = TiXmlGetAttributes(pXmlRoot, attrs, filename, NULL);
+   //
+   //TiXmlElement* pXmlEvent = pXmlRoot->FirstChildElement("event");
+   //if (pXmlEvent == NULL)
+   //   {
+   //   CString msg("Acute Hazards: no <event>'s defined");
+   //   msg += filename;
+   //   Report::ErrorMsg(msg);
+   //   return false;
+   //   }
+   //
+   //while (pXmlEvent != NULL)
+   //   {
+   //   AHEvent* pEvent = new AHEvent;
+   //
+   //   CString pyModulePath;
+   //
+   //   XML_ATTR attrs[] = {
+   //      // attr                  type           address            isReq checkCol
+   //      { "year",                TYPE_INT,      &pEvent->m_year,           true,  0 },
+   //      { "name",                TYPE_CSTRING,  &pEvent->m_name,           true,  0 },
+   //      { "use",                 TYPE_INT,      &pEvent->m_use,            true,  0 },
+   //      { "py_function",         TYPE_CSTRING,  &pEvent->m_pyFunction,     true,  0 },
+   //      { "py_module",           TYPE_CSTRING,  &pyModulePath,             true,  0 },
+   //      { "env_output",          TYPE_CSTRING,  &pEvent->m_envOutputPath,  true,  0 },
+   //      { "earthquake_input",    TYPE_CSTRING,  &pEvent->m_earthquakeInputPath,   true,  0 },
+   //      { "tsunami_input",       TYPE_CSTRING,  &pEvent->m_tsunamiInputPath,   true,  0 },
+   //      { "earthquake_scenario", TYPE_CSTRING,  &pEvent->m_earthquakeScenario, true,  0 },
+   //      { "tsunami_scenario",    TYPE_CSTRING,  &pEvent->m_tsunamiScenario, true,  0 },
+   //      { NULL,                  TYPE_NULL,     NULL,        false, 0 } };
+   //
+   //   ok = TiXmlGetAttributes(pXmlEvent, attrs, filename, NULL);
+   //
+   //   if (!ok)
+   //      {
+   //      delete pEvent;
+   //      CString msg;
+   //      msg = "Acute Hazards Model:  Error reading <event> tag in input file ";
+   //      msg += filename;
+   //      Report::ErrorMsg(msg);
+   //      return false;
+   //      }
+   //   else
+   //      {
+   //      nsPath::CPath path(pyModulePath);
+   //      pEvent->m_pyModuleName = path.GetTitle();
+   //      pEvent->m_pyModulePath = path.GetPath();
+   //      pEvent->m_pAHModel = this;
+   //
+   //      m_events.Add(pEvent);
+   //      }
+   //
+   //   pXmlEvent = pXmlEvent->NextSiblingElement("event");
+   //   }
+
+   return true;
+   }
+
+

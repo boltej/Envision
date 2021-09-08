@@ -7,6 +7,14 @@
 
 #define _EXPORT __declspec( dllexport )
 
+struct LULCINFO {
+   LPCTSTR label; 
+   int minImpactValue; 
+   int maxImpactValue; 
+   LULCINFO(LPCTSTR _label, int _min, int _max) : label(label), minImpactValue(_min), maxImpactValue(_max) {};
+   };
+
+
 enum TABLE {
    NULL_TABLE=-1,
    WQ_DB_TABLE,
@@ -17,7 +25,9 @@ enum TABLE {
    WF_DB2_TABLE,
    WF_M1_TABLE,
    WF_M2_TABLE,
-   WF_RP_TABLE
+   WF_RP_TABLE,
+
+   HAB_TERR_TABLE
    };
 
 struct TABLECOL {
@@ -25,6 +35,14 @@ struct TABLECOL {
    VDataObj* pTable;
    int   col;
    LPCTSTR field;
+   };
+
+
+struct HAB_SCORE {
+   int col;
+   int valOld;
+   int valNew;
+   float score;
    };
 
 enum LSGROUP { LG_NULL=-1,LG_COASTAL=0, LG_LOWLAND, LG_MOUNTAINOUS, LG_LAKE, LG_DELTA, LG_COUNT };
@@ -44,12 +62,27 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
       // idu columns
       MapLayer* m_pIDULayer;
-      int m_col_IDU_AUIndex;
+      int m_col_IDU_AUWIndex;    // water AU index
       int m_col_IDU_WqS_rp;
       int m_col_IDU_WqP_rp;
       int m_col_IDU_WqMe_rp;
       int m_col_IDU_WqN_rp;
       int m_col_IDU_WqPa_rp;
+
+      int m_col_IDU_AUHIndex;    // hab AU index
+      int m_col_IDU_Hab_IntIndex;
+      int m_col_IDU_Hab_PHS;
+      int m_col_IDU_Hab_OakGrove;
+      int m_col_IDU_Hab_OverallIndex;
+      int m_col_IDU_LULC_A;
+      int m_col_IDU_LULC_B;
+      int m_col_IDU_CONSERVE;
+
+
+      // AU coverage for geometry
+      MapLayer* m_pAUWLayer;
+      MapLayer* m_pAUHLayer;   // not currently used
+      MapLayer* m_pTerrHabLayer;
 
       // data tables with model data
       VDataObj* m_pWqDbTable;
@@ -61,7 +94,11 @@ class _EXPORT PSWCP : public  EnvModelProcess
       VDataObj* m_pWfM2Table;
       VDataObj* m_pWfRpTable;
 
-      AttrIndex m_index_IDU;  // for IDUs, key=AUIndex,value=IDU rows containing key  
+      VDataObj* m_pHabTerrTable;
+      // 
+
+      AttrIndex m_AUWIndex_IDU;  // for IDUs, key=AUWIndex,value=IDU rows containing key  
+      AttrIndex m_AUHIndex_IDU;  // for IDUs, key=AUHIndex,value=IDU rows containing key  
 
       // water flow assessment 
 
@@ -72,7 +109,8 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
 
       // methods
-      bool InitAssessment(EnvContext*);
+      bool InitWaterAssessments(EnvContext*);
+      bool InitHabAssessments(EnvContext*);
       bool InitHCIAssessment(EnvContext*);
 
       bool RunWFAssessment(EnvContext*);
