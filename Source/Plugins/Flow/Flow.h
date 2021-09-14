@@ -1244,12 +1244,12 @@ public:
    MapLayer *m_pGrid;
    int  m_detailedSaveInterval;
    int  m_detailedSaveAfterYears;
+   CString m_projectionWKT;
 
 protected:
    // state var information
    PtrArray< StateVar > m_stateVarArray;
    PtrArray< Vertex > m_vertexArray;
-   
 // XML attributes
 
 protected:
@@ -1265,7 +1265,7 @@ protected:
 
    CString m_streamQuery;
    CString m_catchmentQuery;
-   CString m_projectionWKT;
+   
 
    CString m_areaCol;      // polygon area
    CString m_catchmentAreaCol; //catchment area

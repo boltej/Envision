@@ -46,6 +46,9 @@ Climate_Metrics::Climate_Metrics(FlowModel* pFlowModel, LPCTSTR name)
 	, m_meanYearlyTemp(0.0f)
 	, m_meanWinterTemp(0.0f)
 	, m_meanSummerTemp(0.0f)
+	, m_pModeledTemperature(NULL)
+	, m_pCoeff(NULL)
+	, m_maxYearlyStreamTemp(0.0f)
 {
 	this->m_timing = GMT_START_STEP;
 }
@@ -53,7 +56,11 @@ Climate_Metrics::Climate_Metrics(FlowModel* pFlowModel, LPCTSTR name)
 
 Climate_Metrics::~Climate_Metrics()
 {
+	if (m_pModeledTemperature)
+		delete  m_pModeledTemperature;
 
+	if (m_pCoeff)
+		delete  m_pCoeff;
 }
 
 bool Climate_Metrics::Init(FlowContext* pFlowContext)
@@ -65,16 +72,33 @@ bool Climate_Metrics::Init(FlowContext* pFlowContext)
 	pIDULayer->CheckCol(m_colTemp90, _T("Temp90"), TYPE_INT, CC_AUTOADD);
 	pIDULayer->CheckCol(m_colTemp70, _T("Temp70"), TYPE_INT, CC_AUTOADD);
 
-	//bool readOnlyFlag = pIDULayer->m_readOnly;
-	//pIDULayer->m_readOnly = false;
-	//pIDULayer->SetColData(m_colDailyUrbanDemand, VData(0), true);
-	//pIDULayer->m_readOnly = readOnlyFlag;
 
 	pFlowContext->pFlowModel->AddOutputVar(_T("#Days High > 90 Degrees F"), m_maxYearlyTemp90, "");
 	pFlowContext->pFlowModel->AddOutputVar(_T("#Days Low > 70 Degrees F"), m_minYearlyTemp70, "");
 	pFlowContext->pFlowModel->AddOutputVar(_T("Avg. Daily Air Temperature"), m_meanYearlyTemp, "");
 	pFlowContext->pFlowModel->AddOutputVar(_T("JFM - Avg. Daily Air Temperature"), m_meanWinterTemp, "");
 	pFlowContext->pFlowModel->AddOutputVar(_T("JAS - Avg. Daily Air Temperature"), m_meanSummerTemp, "");
+	int numYears= pFlowContext->pEnvContext->endYear - pFlowContext->pEnvContext->startYear;
+
+	LPCTSTR filename = "CIG_Temp_Coefficients_UTM.csv";
+	m_pCoeff = new VDataObj(13,0, U_UNDEFINED);
+	m_pCoeff->ReadAscii(filename, _T(',')); 
+	m_pModeledTemperature = new FDataObj(m_pCoeff->GetRowCount()+1, 0, 0.0f, U_UNDEFINED);
+	pFlowContext->pFlowModel->AddOutputVar("Simulated Steam Temperature", m_pModeledTemperature, "");
+	pFlowContext->pFlowModel->AddOutputVar(_T("Max Summer Stream Temperature"), m_maxYearlyStreamTemp, "");
+	LPCTSTR name = "Date";
+	m_pModeledTemperature->SetLabel(0, name);
+	for (int i=0;i<m_pCoeff->GetRowCount();i++)
+	   { 
+		CString name = m_pCoeff->GetAsString(3, i);
+	   m_pModeledTemperature->SetLabel(i+1, (LPCTSTR)name);
+	   }
+
+
+	m_climateIndex.SetSize(1 + static_cast<INT_PTR>(m_pCoeff->GetRowCount()));   // includes 'year' and week
+	for (int i=0;i<m_climateIndex.GetSize();i++)
+	   m_climateIndex[i]=-1;
+
 	return TRUE;
 }
 
@@ -82,7 +106,7 @@ bool Climate_Metrics::StartYear(FlowContext* pFlowContext)
 {
 	MapLayer* pLayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 	CalcClimateMetrics(pFlowContext);
-
+	GetCIGWaterTemperature(pFlowContext);
 	return true;
 }
 
@@ -155,8 +179,63 @@ bool Climate_Metrics::CalcClimateMetrics(FlowContext* pFlowContext)
 	m_meanYearlyTemp = meanTemp / 365 / numHRU;
 	m_meanWinterTemp = JFMTemp / 90 / numHRU;
 	m_meanSummerTemp = JASTemp / 90 / numHRU;
+
+
+
 	return TRUE;
 }
+
+int Climate_Metrics::GetCIGWaterTemperature(FlowContext* pFlowContext)
+   {
+	ClimateDataInfo* pInfo = pFlowContext->pFlowModel->GetClimateDataInfo(CDT_TMAX);
+	ClimateDataInfo* pInfo2 = pFlowContext->pFlowModel->GetClimateDataInfo(CDT_TMIN);
+	//loop through cig parameter file
+	CArray<float, float> modeledTemperatureData;
+	int siteCount = m_pCoeff->GetRowCount();
+	modeledTemperatureData.SetSize(1 + static_cast<INT_PTR>(siteCount));   // includes 'year' and week
+	memset(modeledTemperatureData.GetData(), 0, (1 + static_cast<unsigned long long>(siteCount)) * sizeof(float));
+
+
+	float maxTemp = 20.0f;
+
+	int doy=0;
+	float avWkTemp=0;
+	for (int wk = 0; wk < 52; wk++)
+	   {
+		modeledTemperatureData[0] = (float)pFlowContext->pEnvContext->currentYear + (float)wk/52.0f;   // length = 2+numsites
+
+		for (int site = 0; site < siteCount; site++)
+			{		
+			float x = m_pCoeff->GetAsFloat(11, site);
+			float y = m_pCoeff->GetAsFloat(12, site);
+			float mu = m_pCoeff->GetAsFloat(9, site); 
+		   float gamma = m_pCoeff->GetAsFloat(8, site);
+			float beta = m_pCoeff->GetAsFloat(7, site);
+			float alpha = m_pCoeff->GetAsFloat(6, site);
+			//tw = mu + (alpha - mu) / 1 + exp^(gamma(beta-Tair))
+			float weekTempMin=0.0f; float weekTempMax = 0.0f;
+			for (int dy = 0; dy < 7; dy++)
+				{ 
+				if (m_climateIndex[site] < 0)
+				   weekTempMax += (pInfo->m_pNetCDFData->Get(x, y, m_climateIndex[site], doy+dy, pFlowContext->pFlowModel->m_projectionWKT, false))/7.0f;
+			   else
+					weekTempMax += (pInfo->m_pNetCDFData->Get(m_climateIndex[site], doy + dy)) / 7.0f;
+					
+				weekTempMin += (pInfo2->m_pNetCDFData->Get(m_climateIndex[site], doy + dy)) / 7.0f;
+				}
+         //for this site, we have the weekly temp.  Calculate water temp.
+			float weekTemp = (weekTempMax+weekTempMin)/2.0f;
+			float tw = mu + ((alpha - mu) / (1 + exp(gamma*(beta - weekTemp))));
+			modeledTemperatureData[static_cast<INT_PTR>(site)+1] = tw;
+			if (tw>maxTemp)
+			   maxTemp=tw;
+			}//end of sites
+		doy += 7;
+		m_pModeledTemperature->AppendRow(modeledTemperatureData);
+		}
+	m_maxYearlyStreamTemp = maxTemp;
+	return 0;
+   }
 
 Climate_Metrics* Climate_Metrics::LoadXml(TiXmlElement* pXmlClimateMetrics, MapLayer* pIDULayer, LPCTSTR filename, FlowModel* pFlowModel)
 {
