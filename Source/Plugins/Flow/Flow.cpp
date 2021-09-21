@@ -1754,6 +1754,7 @@ FlowModel::FlowModel()
    , m_numberOfYears(1)
    , m_nsThreshold(0.0f)
    , m_saveResultsEvery(10)
+   , m_climateStationRuns(false)
    //, m_pClimateStationData(NULL)
    , m_pHruGrid(NULL)
    , m_timeOffset(0)
@@ -1797,6 +1798,8 @@ FlowModel::FlowModel()
    AddInputVar(_T("Climate Scenario"), m_currentFlowScenarioIndex, _T("0=MIROC, 1=GFDL, 2=HadGEM, 3=Historic"));
    AddInputVar(_T("Use Parameter Estimation"), m_estimateParameters, _T("true if the model will be used to estimate parameters"));
    AddInputVar(_T("Grid Classification?"), m_gridClassification, _T("For Gridded Simulation:  Classify attribute 0,1,2?"));
+
+   AddInputVar(_T("Climate Station Runs"), m_climateStationRuns, _T("true if the model will be run multiple times based on external file"));
 
    AddOutputVar(_T("Date of Max Snow"), m_dateMaxSWE, _T("DOY of Max Snow"));
    AddOutputVar(_T("Volume Max Snow (cubic meters)"), m_volumeMaxSWE, _T("Volume Max Snow (m3)"));
@@ -2188,24 +2191,6 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
    m_pTotalFluxData->ClearRows();
 
-   // NOte - the following was moved to InitRunReservoirs();
-   // initial reservoir data objs
-   //for ( int i=0; i < (int) m_reservoirArray.GetSize(); i++ )
-   //   {
-   //   Reservoir *pRes = m_reservoirArray.GetAt( i );
-   //   ASSERT( pRes != NULL );
-   //   ASSERT( pRes->m_pResData != NULL );
-   //   ASSERT( pRes->m_pResSimFlowCompare != NULL ); 
-   //   ASSERT( pRes->m_pResSimRuleCompare != NULL );
-   //
-   //   pRes->m_filled = 0;
-   //
-   //   pRes->m_pResData->ClearRows();
-   //   pRes->m_pResMetData->ClearRows();
-   //   pRes->m_pResSimFlowCompare->ClearRows();
-   //   pRes->m_pResSimRuleCompare->ClearRows();   
-   //   }
-
    // if model outputs are in use, set up the data object
    for (int i = 0; i < (int)m_modelOutputGroupArray.GetSize(); i++)
       {
@@ -2225,6 +2210,55 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
       }
 
    OpenDetailedOutputFiles();
+   
+   if (m_climateStationRuns)
+      {
+      //Get the climate stations for this run.  These are coordinates for ALL the climate stations 
+      int siteCount=16;
+      int runNumber = m_flowContext.pEnvContext->run;
+
+      if (runNumber > 0)
+         siteCount = 4;
+
+      FDataObj *pGridLocationData = new FDataObj;
+      pGridLocationData->ReadAscii("GridLocations.csv");
+
+      //get the subset of stations to be used in this model run
+      FDataObj* pRealizationData = new FDataObj;
+      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\ClimateStationsForEachRealization.csv");
+      m_numberOfRuns = pRealizationData->GetRowCount();//override the value from the flow input xml (in ParameterEstimation)
+      //Have StationId, now write them into the IDU using nearest distance
+
+      Vertex v(1, 1);
+
+      for (int i = 0; i < m_flowContext.pEnvContext->pMapLayer->m_pPolyArray->GetSize(); i++)
+         {
+         Poly* pPoly = m_flowContext.pEnvContext->pMapLayer->m_pPolyArray->GetAt(i);
+         float minDist = 1e10; int location = 0;
+         for (int j=0;j<siteCount;j++)
+            { 
+            int realizRow = pRealizationData->GetAsInt(j+1 , runNumber);
+ 
+            float x = pGridLocationData->Get(8, realizRow-1);
+            float y = pGridLocationData->Get(9, realizRow-1);
+
+            //Have x and y, now get distance to this polygon
+            Vertex v = pPoly->GetCentroid();
+
+            float dist = sqrt((x - v.x) * (x - v.x) + (y - v.y) * (y - v.y));
+
+            if (dist<minDist)
+               { 
+               minDist=dist;
+               location= realizRow;
+               int s=1;
+               }
+            }
+
+         m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location , ADD_DELTA);
+         }
+      }
+
 
    if (m_estimateParameters)
       {
@@ -2244,6 +2278,8 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
             }
          }
 
+
+
       InitializeParameterEstimationSampleArray();
       int initYear = pEnvContext->currentYear + 1;//the value of pEnvContext lags the current year by 1????  see envmodel.cpp ln 3008 and 3050
       for (int i = 0; i < m_numberOfRuns; i++)
@@ -2254,7 +2290,7 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
          pEnvContext->currentYear = initYear;
          if (i > 0)
              GlobalMethodManager::InitRun(&m_flowContext);
-         //ResetStateVariables();
+
          for (int j = 0; j < m_numberOfYears; j++)
             {
             if (j != 0)
@@ -4099,6 +4135,49 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
    m_pParameterData->AppendRow(paramValueData, int(m_parameterArray.GetSize()) + 1);
    delete[] paramValueData;
 
+   if (m_climateStationRuns)//if climate data is being included in the mc runs...this is specific to UGA project
+   {
+      //Get the climate stations for this run.  These are coordinates for ALL the climate stations 
+      int siteCount = 4;
+      int runNumber = m_flowContext.pEnvContext->run;
+
+      FDataObj* pGridLocationData = new FDataObj;
+      pGridLocationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\GridLocations.csv");
+
+      //get the subset of stations to be used in this model run
+      FDataObj* pRealizationData = new FDataObj;
+      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\ClimateStationsForEachRealization.csv");
+
+      //Have StationId, now write them into the IDU using nearest distance
+
+      Vertex v(1, 1);
+
+      for (int i = 0; i < m_flowContext.pEnvContext->pMapLayer->m_pPolyArray->GetSize(); i++)
+      {
+         Poly* pPoly = m_flowContext.pEnvContext->pMapLayer->m_pPolyArray->GetAt(i);
+         float minDist = 1e10; int location = 0;
+         for (int j = 0; j < siteCount; j++)
+         {
+            int realizRow = pRealizationData->GetAsInt(j + 1, runNumber);
+            float x = pGridLocationData->Get(8, realizRow - 1);
+            float y = pGridLocationData->Get(9, realizRow - 1);
+
+            //Have x and y, now get distance to this polygon
+            Vertex v = pPoly->GetCentroid();
+
+            float dist = sqrt((x - v.x) * (x - v.x) + (y - v.y) * (y - v.y));
+
+            if (dist < minDist)
+            {
+               minDist = dist;
+               location = realizRow;
+               int s = 1;
+            }
+         }
+         m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location, ADD_DELTA);
+      }
+   }
+
    }
 
 
@@ -5792,7 +5871,7 @@ bool FlowModel::SetHRUAttributes()
       Poly *pPoly = m_pCatchmentLayer->GetPolygon(pHRU->m_polyIndexArray.GetAt(0));
       Vertex centroid = pPoly->GetCentroid();
 
-      pHRU->m_centroid = centroid;
+
       }
 
    return true;
@@ -8565,12 +8644,14 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       while (pXmlScenario != NULL)
          {
          LPCTSTR name = NULL;
+         LPCTSTR points = NULL;
          int id = -1;
 
          XML_ATTR scenarioAttrs[] = {
             // attr      type          address         isReq  checkCol
             { _T("name"),    TYPE_STRING,   &name,         false,   0 },
             { _T("id"),      TYPE_INT,      &id,           true,    0 },
+            { _T("points"),  TYPE_STRING,   &points,       false,   0 },
             { NULL,      TYPE_NULL,     NULL,          false,   0 } };
 
          bool ok = TiXmlGetAttributes(pXmlScenario, scenarioAttrs, filename);
@@ -8606,6 +8687,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                { _T("delta"),     TYPE_FLOAT,    &delta,    false,  0 },
                { _T("elev"),      TYPE_FLOAT,    &elev,     false,  0 },
                { _T("id"),        TYPE_INT,      &id,       false,  0 },
+               
                { NULL,        TYPE_NULL,     NULL,      false,  0 } };
 
             bool ok = TiXmlGetAttributes(pXmlClimate, climateAttrs, filename);
@@ -10401,7 +10483,7 @@ float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, f
    int offset = 0;
    int n = pData->GetRowCount();
    float obsMean = 0.0f, predMean = 0.0f, obsMeanL = 0.0f, predMeanL = 0.0f;
-   int firstSample = int( 100 / m_timeStep );
+   int firstSample = int( 180 / m_timeStep );
    for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values
       // might be unacceptable due to initial conditions...
       {
@@ -10456,7 +10538,7 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
    int n = pData->GetRowCount();
    FDataObj *pDataGrouped = new FDataObj(3, 0, 0.0f, U_UNDEFINED);     // MEMORY LEAK!!!!!!
    float obsMean = 0.0f, predMean = 0.0f, obsMeanL = 0.0f, predMeanL = 0.0f;
-   int firstSample = int( 1 / m_timeStep );
+   int firstSample = int( 180 / m_timeStep );
    for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values                                       // might be unacceptable due to initial conditions...
    {
       float time = 0.0f; float obs = 0.0f; float pred = 0.0f;

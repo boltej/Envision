@@ -30,8 +30,10 @@ Copywrite 2012 - Oregon State University
 #include <omp.h>
 #include <math.h>
 #include <UNITCONV.H>
-
-
+#include <alglib\AlgLib.h>
+//#include "AlgLib\ap.h"
+#include <AlgLib\interpolation.h>
+//using namespace alglib_impl;
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -40,6 +42,7 @@ Copywrite 2012 - Oregon State University
 
 float HBV::GetMean(FDataObj *pData, int col, int startRow, int numRows)
    {
+   
    int rows = pData->GetRowCount();
 
    if (rows <= 0 || (int)startRow+numRows >= rows)
@@ -190,6 +193,9 @@ float HBV::InitHBV(FlowContext *pFlowContext, LPCTSTR inti)
    m_col_sfcfCorrection = pHBVTable->GetFieldCol("SFCFCORRECTION");
 
    const char* p = pFlowContext->pFlowModel->GetPath();
+   
+   
+
    return -1.0f;
    }
 
@@ -219,6 +225,50 @@ float HBV::InitHBV_WithQuickflow(FlowContext *pFlowContext, LPCTSTR init)
    m_col_rain  = pHBVTable->GetFieldCol("RAIN");
    m_col_snow  = pHBVTable->GetFieldCol("SNOW");
    m_col_sfcfCorrection = pHBVTable->GetFieldCol("SFCFCORRECTION");
+   /*
+   double v=0.0f;
+   if (alglib::fp_eq(v, 0.0)){}
+
+   // from file
+   ALRadialBasisFunction3D rbf;
+
+   // optionally set type of model 
+   // (radius should be about avg distance between neighboring points)
+   rbf.SetQNN(1.0, 5.0);    // OR
+   //rbf.SetML(1.0, 5, 0.005);   // radius, layers, lambdaV 
+
+   // load the file (number of outputs inferred from file columns)
+   rbf.CreateFromCSV(csvFile);
+
+   // query for values
+   double value = rbf.GetAt(1, 1, 0);
+
+
+   // from data
+   ALRadialBasisFunction3D rbf;
+   rbf.Create(1);  // number of outputs
+
+   // optionally set type of model 
+   // (radius should be about avg distance between neighboring points)
+   rbf.SetML(1.0, 5, 0.005);   // radius, layers, lambdaV 
+
+   FDataObj inputData;
+   inputData.ReadAscii("somefile.csv");
+
+   rbf.SetPoints(inputData);  // rows are input points, col0=x, col1=y, col2=z, col3=f0, col4=f1 etc...
+
+   rbf.Build();
+
+   double value = rbf.GetAt(1, 1, 0);
+
+   //alglib_impl:::bfmodel model;
+   //alglib_impl::rbfcreate(2,1, model);
+   //v = alglib_impl::rbfcalc2(model, 0.0, 0.0);
+   //alglib::real_2d_array xy = "[[-1,0,2],[+1,0,3]]";
+   //alglib_impl::rbfsetpoints(model, xy);
+
+   //v = alglib::rbfcalc2(model, 0.0, 0.0);
+   */
    return -1.0f;
    }
 
@@ -247,6 +297,7 @@ float HBV::HBV_Basic(FlowContext *pFlowContext)
    for ( int h=0; h < hruCount; h++ )
       {
       HRU *pHRU = pFlowContext->pFlowModel->GetHRU(h);
+      
       int hruLayerCount = pHRU->GetPoolCount();
       //Initialize local variables
       float CFMAX,TT,CFR,SFCF,CWH,Beta,kPerc,WP=0.0f;
