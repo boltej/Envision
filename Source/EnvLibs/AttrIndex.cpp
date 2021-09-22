@@ -67,18 +67,21 @@ int AttrIndex::BuildIndex( DbTable *pDbTable, int col )
 
    int uniqueValues = 0;
 
-   // iterate through each record/polygon
-   for ( int i=0; i < count; i++ )
+   // iterate through each record/polygon in the table being index
+   for ( int row=0; row < count; row++ )
       {
-      bool ok = pDbTable->GetData( i, col, value );
+      bool ok = pDbTable->GetData( row, col, value );
       ASSERT( ok );
 
       // have we not seen this value yet?
+      // Note that the valueIndex map is key: attribute value (VData), value: index into the infoItems array
+      //   (infoItems contains information (value, array of indices of polygons containing this value)
+      //   about each attribute)
       int valueIndex;
       if ( pInfoArray->valueIndexMap.Lookup( value, valueIndex ) == FALSE )
          {
          // no, so create a new ATTR_INFO for this attribute value
-	   ATTR_INFO newInfo(value);
+         ATTR_INFO newInfo(value);
          valueIndex = (int) pInfoArray->infoItems.Add( newInfo );
 
          // add the value to the value index map
@@ -89,7 +92,7 @@ int AttrIndex::BuildIndex( DbTable *pDbTable, int col )
 
       // in any case, add the polygon index to the attributes polyIndexArray
       ATTR_INFO &attrInfo = pInfoArray->infoItems.GetAt( valueIndex );
-      attrInfo.polyIndexArray.Add( i );
+      attrInfo.polyIndexArray.Add( row );
       }
 
    m_isChanged = false;
@@ -192,6 +195,93 @@ int AttrIndex::WriteIndex( LPCTSTR filename /*=NULL*/ )
    fwrite( (void*) &eof, sizeof( int ), 1, fp );
 
    fclose( fp );
+   return indexCount;
+   }
+
+
+
+
+int AttrIndex::WriteIndexText(LPCTSTR filename /*=NULL*/)
+   {
+   int indexCount = GetIndexCount();
+
+   if (indexCount == 0)
+      return -1;
+
+   char _filename[256];
+   if (filename == NULL)
+      lstrcpy(_filename, m_filename);
+   else
+      lstrcpy(_filename, filename);
+
+   FILE* fp;
+   fopen_s(&fp, _filename, "wt");
+
+   if (fp == NULL)
+      {
+      CString msg("Unable to open ");
+      msg += _filename;
+      msg += " when writing attribute index - The index will not be created. ";
+      Report::LogError(msg);
+      return -2;
+      }
+
+   int byteCount = 0;
+
+   // file format:
+   // 1) header includes version, indexCount, record count,  path/name of source file (256 bytes)
+   // 2) for each ATTR_INFO_ARRAY,
+   //    2a) column
+   //    2b) number of unique attribute values stored in the index (this is the number of map items and the number of infoItems)
+   //    2c) for each ATTR_INFO stored in the infoItems array, 
+   //        3a) the associated VData structure
+   //        3b) the number of polygons associated with this value
+   //        3c) an array of the polygon indexes associated with this value
+   // 4) bytecount and end of file marker
+
+   // 1) header includes version, indexCount, record count,  path/name of source file (256 bytes)
+   int version = 1;
+   int recordCount = m_pDbTable->GetRecordCount();
+
+   fprintf(fp, "Version: %i\n", version);
+   fprintf(fp, "Index Count: %i\n", indexCount);
+   fprintf(fp, "Record Count: %i\n", recordCount);
+
+   // 2) for each ATTR_INFO_ARRAY,
+   for (int i = 0; i < indexCount; i++)
+      {
+      ATTR_INFO_ARRAY* pInfoArray = m_attrInfoArray[i];
+      ASSERT(pInfoArray != NULL);
+      // 2a) column
+      fprintf(fp, "Column: %i", pInfoArray->col);
+
+      // 2b) number of unique attribute values stored in the index (this is the number of map items and the number of infoItems)
+      int valueCount = (int)pInfoArray->infoItems.GetSize();
+      ASSERT(valueCount == pInfoArray->valueIndexMap.GetCount());
+      fprintf(fp, "  Value Count: %i\n  Values: \n", valueCount);
+
+      // 2c) for each ATTR_INFO stored in the infoItems array, 
+      for (int j = 0; j < valueCount; j++)
+         {
+         ATTR_INFO& info = pInfoArray->infoItems[j];
+         // 3a) the associated VData structure
+         fprintf(fp, "     %s ", info.attribute.GetAsString());
+
+         // 3b) the number of polygons associated with this value
+         int polyCount = (int)info.polyIndexArray.GetSize();
+         fprintf(fp, "(%i):", polyCount);
+
+         // 3c) an array of the polygon indexes associated with this value
+         UINT* pBase = info.polyIndexArray.GetData();
+         for (int k = 0; k < polyCount; k++)
+            fprintf(fp, " %i,", info.polyIndexArray[k]);
+
+         fprintf(fp, "\n");
+
+         }
+      }  // end of:  for ( i < indexCount )
+
+   fclose(fp);
    return indexCount;
    }
 

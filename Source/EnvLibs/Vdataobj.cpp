@@ -682,10 +682,9 @@ int VDataObj::ReadAscii( LPCTSTR _fileName, TCHAR delimiter, BOOL showMsg )
    if ( hFile == INVALID_HANDLE_VALUE && showMsg )
 //   if ( fp == NULL && showMsg )
       {
-      TCHAR buffer[ 128 ];
-      strcpy_s( buffer, 128, "VDataObj: Couldn't find file " );
-      strcat_s( buffer, 128 - strlen(buffer), _fileName);
-      Report::WarningMsg( buffer );
+      CString msg("VDataObj: Couldn't find file " );
+      msg += _fileName;
+      Report::WarningMsg( msg );
       return 0;
       }
 
