@@ -2227,7 +2227,7 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
       //get the subset of stations to be used in this model run
       FDataObj* pRealizationData = new FDataObj;
-      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\ClimateStationsForEachRealization.csv");
+      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA_HBV\\ClimateStationsForEachRealization.csv");
       m_numberOfRuns = pRealizationData->GetRowCount();//override the value from the flow input xml (in ParameterEstimation)
       //Have StationId, now write them into the IDU using nearest distance
 
@@ -4148,7 +4148,7 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
 
       //get the subset of stations to be used in this model run
       FDataObj* pRealizationData = new FDataObj;
-      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\ClimateStationsForEachRealization.csv");
+      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA_HBV\\ClimateStationsForEachRealization.csv");
 
       //Have StationId, now write them into the IDU using nearest distance
 
