@@ -1646,6 +1646,7 @@ public:
    int m_saveResultsEvery;
    float m_nsThreshold;
    bool m_climateStationRuns;
+   bool m_runFromFile;
    //CString m_paramEstOutputPath;   // defaults to 'm_path'\outputs\
 
    void UpdateMonteCarloOutput(EnvContext *pEnvContext, int runNumber);
