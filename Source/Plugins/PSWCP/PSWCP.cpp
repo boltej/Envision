@@ -241,6 +241,8 @@ TABLECOL colInfo[] = {
       { HAB_TERR_TABLE, NULL, -1, "norm_oakgr" },
       { HAB_TERR_TABLE, NULL, -1, "ovrall_IND" },
 
+      { HCI_CATCH_TABLE, NULL, -1, "HCI_CAT" },
+
       { NULL_TABLE,  NULL, -1, NULL }
    };
 
@@ -290,8 +292,12 @@ PSWCP::PSWCP(void)
    , m_pWfM1Table(NULL)
    , m_pWfM2Table(NULL)
    , m_pWfRpTable(NULL)
+   , m_pHCITable(NULL)
+   , m_pHPCTable(NULL)
    , m_AUWIndex_IDU()
    , m_AUHIndex_IDU()
+   , m_HCIIndex_IDU()
+   , m_numHCICat(-1)
    {
    int i = 0;
    while (colInfo[i].table >= 0)
@@ -365,6 +371,11 @@ PSWCP::~PSWCP(void)
    if (m_pWfRpTable != NULL)
       delete m_pWfRpTable;
 
+   if (m_pHCITable != NULL)
+      delete m_pHCITable;
+   if (m_pHPCTable != NULL)
+      delete m_pHPCTable;
+
    // delete allocated LULCINFO's
    POSITION p = lulcMap.GetStartPosition();
    LULCINFO* pInfo = NULL;
@@ -391,10 +402,10 @@ bool PSWCP::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    LoadTables();
 
    // water models
-   InitWaterAssessments(pEnvContext);
+ //  InitWaterAssessments(pEnvContext);
 
    // habitat models
-   InitHabAssessments(pEnvContext);
+ //  InitHabAssessments(pEnvContext);
 
    // HCI
    InitHCIAssessment(pEnvContext);
@@ -423,7 +434,7 @@ bool PSWCP::Run(EnvContext* pEnvContext)
    //RunHabAssessment(pEnvContext);
    //
    //// HCI
-   //RunHCIAssessment(pEnvContext);
+   RunHCIAssessment(pEnvContext);
 
 
 
@@ -619,8 +630,54 @@ bool PSWCP::InitHabAssessments(EnvContext* pEnvContext)
 
 bool PSWCP::InitHCIAssessment(EnvContext* pEnvContext)
    {
-   return true;
-   }
+      this->CheckCol(m_pIDULayer, m_col_IDU_HCI_Dist, "HCI_Dist", TYPE_FLOAT, CC_MUST_EXIST);
+      this->CheckCol(m_pIDULayer, m_col_IDU_HCI_Shed, "HCI_Cat", TYPE_INT, CC_MUST_EXIST);
+      this->CheckCol(m_pIDULayer, m_col_IDU_HCI_Value, "HCI", TYPE_FLOAT, CC_AUTOADD);
+      this->CheckCol(m_pIDULayer, m_col_IDU_LULC_B, "LULC_B", TYPE_INT, CC_MUST_EXIST);
+      // load databases
+      LoadTable(HCI_VALUE_TABLE);
+      LoadTable(HCI_CATCH_TABLE);
+
+
+      /*
+      // update colInfos
+      int i = 0;
+      while (colInfo[i].table != NULL_TABLE)
+      {
+         switch (colInfo[i].table)
+         {
+         case HCI_CATCH_TABLE:  colInfo[i].pTable = m_pHCITable;   break;
+         }
+
+         colInfo[i].col = colInfo[i].pTable->GetCol(colInfo[i].field);
+         i++;
+      }
+      */
+      // load/create index for getting IDUs for each HCI Watershed from the idu layer
+      CString indexPath;
+      if (PathManager::FindPath("PSWCP/HCI_RP.idx", indexPath) < 0)
+         {
+         // doesn't exist, build (and save) it
+         Report::LogInfo("  PSWCP: Building index HCI_RP.idx");
+         m_numHCICat = m_HCIIndex_IDU.BuildIndex(m_pIDULayer->m_pDbTable, m_col_IDU_HCI_Shed);
+
+         indexPath = PathManager::GetPath(PM_PROJECT_DIR);
+         indexPath += "PSWCP/HCI_RP.idx";
+         m_HCIIndex_IDU.WriteIndex(indexPath);
+         }
+      else
+         {
+         m_numHCICat = m_HCIIndex_IDU.ReadIndex(m_pIDULayer->m_pDbTable, indexPath);
+         }
+
+
+
+   // add output variables
+   //this->AddOutputVar("Annual Repair Expenditures", m_annualRepairCosts, "");
+
+
+      return true;
+      }
 
 
 bool PSWCP::RunWFAssessment(EnvContext* pEnvContext)
@@ -699,6 +756,7 @@ bool PSWCP::RunHabAssessment(EnvContext* pEnvContext)
 
 bool PSWCP::RunHCIAssessment(EnvContext* pEnvContext)
    {
+   SolveHCI();
    return true;
    }
 
@@ -1656,6 +1714,65 @@ int PSWCP::SolveWfM2EvapTrans()
    return 1;
    }
 
+//---------------------------------------------------
+//-------- evaptrans degradation --------------------
+//---------------------------------------------------
+int PSWCP::SolveHCI()
+   {
+// iterate IDUs using the HCI watershed index
+   ///calculate HPC (HCI_Dist * HPC coefficent) and sum for subwatersheds, along with calculating HCVworst
+        //write sums back to IDUs
+
+   m_pIDULayer->m_readOnly = false;
+   float value=0.0f;
+   int cat = 0;
+   VData lulc=-1;
+   int HPC_col = 0.0f;
+
+   CUIntArray recordArray;
+   for (int row = 0; row < m_pHCITable->GetRowCount(); row++)
+   {
+      // get the cat_ID for this record
+      int hciCat = 0;
+      //GetTableValue(HCI_CATCH_TABLE, "HCI_CAT", row, hciCat);
+      hciCat = m_pHCITable->GetAsInt(1,row);
+      float HCV=0;
+      float HCVworst=0;
+      //Get the HCI value for the watershed
+      int count = m_HCIIndex_IDU.GetRecordArray(m_col_IDU_HCI_Shed, VData(hciCat), recordArray);
+      for (int j = 0; j < count; j++)
+         {
+         int idu = recordArray[j];
+
+         if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
+            {
+            m_pIDULayer->GetData(idu, m_col_IDU_HCI_Dist, value);
+            m_pIDULayer->GetData(idu, m_col_IDU_HCI_Shed, cat);
+            m_pIDULayer->GetData(idu, m_col_IDU_LULC_B, lulc);
+           
+            int rowIndex = m_pHPCTable->Find(0, lulc,0);//get the row
+            float HPC = m_pHPCTable->GetAsFloat(1, rowIndex);
+            float HPCg = HPC * value;
+            HCVworst+=35.0f*value;
+            HCV+=HPCg;
+            }
+         }
+      
+      //Add the calculated HCI to the IDUs
+      for (int j = 0; j < count; j++)
+         {
+         int idu = recordArray[j];
+         if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
+            {
+            m_pIDULayer->SetData(idu, m_col_IDU_HCI_Value, HCV/HCVworst);
+            }     
+         }  // end of: for each row in HCI watershed index
+      }  
+   m_pIDULayer->m_readOnly = true;
+
+   return 1;
+}
+
 
 int PSWCP::SolveHabTerr(EnvContext* pEnvContext)
    {
@@ -1837,15 +1954,17 @@ bool PSWCP::LoadTables()
       {
       switch (colInfo[i].table)
          {
-         case WQ_DB_TABLE:  colInfo[i].pTable = m_pWqDbTable;   break;
-         case WQ_M1_TABLE:  colInfo[i].pTable = m_pWqM1Table;   break;
-         case WQ_RP_TABLE:  colInfo[i].pTable = m_pWqRpTable;   break;
-         case WF_DB1_TABLE: colInfo[i].pTable = m_pWfDb1Table; break;
-         case WF_DB2_TABLE: colInfo[i].pTable = m_pWfDb2Table; break;
-         case WF_M1_TABLE:  colInfo[i].pTable = m_pWfM1Table;   break;
-         case WF_M2_TABLE:  colInfo[i].pTable = m_pWfM2Table;   break;
-         case WF_RP_TABLE:  colInfo[i].pTable = m_pWfRpTable;   break;
-         case HAB_TERR_TABLE:  colInfo[i].pTable = m_pHabTerrTable; break;
+         case  WQ_DB_TABLE:   m_pWqDbTable = pTable; filename = "PSWCP/WQ_DB.csv"; break;
+         case  WQ_M1_TABLE:   m_pWqM1Table = pTable; filename = "PSWCP/WQ_M1.csv"; break;
+         case  WQ_RP_TABLE:   m_pWqRpTable = pTable; filename = "PSWCP/WQ_RP.csv"; break;
+         case  WF_DB1_TABLE:  m_pWfDb1Table = pTable; filename = "PSWCP/WF_DB1.csv"; break;
+         case  WF_DB2_TABLE:  m_pWfDb2Table = pTable; filename = "PSWCP/WF_DB2.csv"; break;
+         case  WF_M1_TABLE:   m_pWfM1Table = pTable; filename = "PSWCP/WF_M1.csv"; break;
+         case  WF_M2_TABLE:   m_pWfM2Table = pTable; filename = "PSWCP/WF_M2.csv"; break;
+         case  WF_RP_TABLE:   m_pWfRpTable = pTable; filename = "PSWCP/WF_RP.csv"; break;
+         case  HAB_TERR_TABLE: m_pHabTerrTable = pTable; filename = "PSWCP/AU_Terrestrial_Indicies_Aug2012.csv"; break;
+         case HCI_VALUE_TABLE: m_pHPCTable = pTable; filename="PSWCP/HCI_Values.csv"; break;
+         case HCI_CATCH_TABLE: m_pHCITable = pTable; filename = "PSWCP/HCI_Shed.csv"; break;
          }
 
       int col = colInfo[i].pTable->GetCol(colInfo[i].field);

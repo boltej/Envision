@@ -27,7 +27,10 @@ enum TABLE {
    WF_M2_TABLE,
    WF_RP_TABLE,
 
-   HAB_TERR_TABLE
+   HAB_TERR_TABLE,
+
+   HCI_VALUE_TABLE,
+   HCI_CATCH_TABLE
    };
 
 struct TABLECOL {
@@ -79,6 +82,11 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int m_col_IDU_CONSERVE;
       int m_col_IDU_AREA;
 
+      int m_col_IDU_HCI_Dist;
+      int m_col_IDU_HCI_Shed;
+      int m_col_IDU_HCI_Value;
+      int m_numHCICat;
+
       // AU coverage for geometry
       MapLayer* m_pAUWLayer;
       MapLayer* m_pAUHLayer;   // not currently used
@@ -95,10 +103,15 @@ class _EXPORT PSWCP : public  EnvModelProcess
       VDataObj* m_pWfRpTable;
 
       VDataObj* m_pHabTerrTable;
+      //data table to store HCI values
+      VDataObj* m_pHCITable;
+      // lookup table of lulc and hpc
+      VDataObj*  m_pHPCTable;
       // 
 
       AttrIndex m_AUWIndex_IDU;  // for IDUs, key=AUWIndex,value=IDU rows containing key  
       AttrIndex m_AUHIndex_IDU;  // for IDUs, key=AUHIndex,value=IDU rows containing key  
+      AttrIndex m_HCIIndex_IDU;
 
       // water flow assessment 
 
@@ -145,6 +158,8 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int SolveWfM2EvapTrans();
 
       int SolveHabTerr(EnvContext*);
+
+      int SolveHCI();
 
       bool LoadTables();
 

@@ -528,6 +528,12 @@ protected:
     float m_meanWinterTemp;
     float m_meanSummerTemp;
 
+    int GetCIGWaterTemperature(FlowContext* pFlowContext);
+    FDataObj *m_pModeledTemperature;
+    VDataObj* m_pCoeff;
+    float m_maxYearlyStreamTemp;
+
+    CArray<int, int> m_climateIndex;//index into netCDFs for each location (Stream Temperature)
 
 };
 
