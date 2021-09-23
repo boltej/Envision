@@ -698,6 +698,10 @@ int ReachTree::InitBuild( MapLayer *pLayer, REACHFACTORYFN pFactoryFn, int colRe
 
       pNode->m_slope = slope;
 
+      int colSlope = pLayer->GetFieldCol("SLOPE");
+      if (colSlope>0)
+         pLayer->GetData(m_polyIndex,colSlope,pNode->m_slope);
+
       // add reachID info?
       if ( colReachID >= 0 )
          {

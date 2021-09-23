@@ -2259,6 +2259,8 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
          m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location , ADD_DELTA);
          }
+      delete pGridLocationData;
+      delete pRealizationData;
       }
 
 
@@ -4178,6 +4180,8 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
          }
          m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location, ADD_DELTA);
       }
+      delete pGridLocationData;
+      delete pRealizationData;
    }
 
    }
