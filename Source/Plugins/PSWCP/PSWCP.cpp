@@ -1409,9 +1409,8 @@ int PSWCP::SolveWfM1RechargeDischarge()
       float i_di = idi / maxIDI[lgIndex];
       SetTableValue(WF_M1_TABLE, "I_DI", row, i_di);
       }
+
    //??????  GROUNDWATER?  V2 ADDITION?
-
-
    return 1;
    }
 
