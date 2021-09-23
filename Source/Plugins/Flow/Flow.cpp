@@ -1755,6 +1755,7 @@ FlowModel::FlowModel()
    , m_nsThreshold(0.0f)
    , m_saveResultsEvery(10)
    , m_climateStationRuns(false)
+   , m_runFromFile(false)
    //, m_pClimateStationData(NULL)
    , m_pHruGrid(NULL)
    , m_timeOffset(0)
@@ -1799,7 +1800,8 @@ FlowModel::FlowModel()
    AddInputVar(_T("Use Parameter Estimation"), m_estimateParameters, _T("true if the model will be used to estimate parameters"));
    AddInputVar(_T("Grid Classification?"), m_gridClassification, _T("For Gridded Simulation:  Classify attribute 0,1,2?"));
 
-   AddInputVar(_T("Climate Station Runs"), m_climateStationRuns, _T("true if the model will be run multiple times based on external file"));
+   AddInputVar(_T("Climate Station Runs"), m_climateStationRuns, _T("true if the model will be run using multiple climate files"));
+   AddInputVar(_T("Run From File"), m_runFromFile, _T("true if the model will be run multiple times based on external file"));
 
    AddOutputVar(_T("Date of Max Snow"), m_dateMaxSWE, _T("DOY of Max Snow"));
    AddOutputVar(_T("Volume Max Snow (cubic meters)"), m_volumeMaxSWE, _T("Volume Max Snow (m3)"));
@@ -2211,22 +2213,22 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
    OpenDetailedOutputFiles();
    
-   if (m_climateStationRuns)
+   if (m_climateStationRuns) //we need to find the closest station and write the offset to the IDU
       {
       //Get the climate stations for this run.  These are coordinates for ALL the climate stations 
       int siteCount=16;
       int runNumber = m_flowContext.pEnvContext->run;
 
-      if (runNumber > 0)
-         siteCount = 4;
+//      if (runNumber > 0)
+//         siteCount = 4;
 
       FDataObj *pGridLocationData = new FDataObj;
       pGridLocationData->ReadAscii("GridLocations.csv");
 
       //get the subset of stations to be used in this model run
       FDataObj* pRealizationData = new FDataObj;
-      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\ClimateStationsForEachRealization.csv");
-      m_numberOfRuns = pRealizationData->GetRowCount();//override the value from the flow input xml (in ParameterEstimation)
+      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA_HBV\\ClimateStationsForEachRealization.csv");
+      //m_numberOfRuns = pRealizationData->GetRowCount();//override the value from the flow input xml (in ParameterEstimation)
       //Have StationId, now write them into the IDU using nearest distance
 
       Vertex v(1, 1);
@@ -2257,6 +2259,8 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
          m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location , ADD_DELTA);
          }
+      delete pGridLocationData;
+      delete pRealizationData;
       }
 
 
@@ -4135,18 +4139,18 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
    m_pParameterData->AppendRow(paramValueData, int(m_parameterArray.GetSize()) + 1);
    delete[] paramValueData;
 
-   if (m_climateStationRuns)//if climate data is being included in the mc runs...this is specific to UGA project
+   if (m_runFromFile)//if we are running from a file...this is specific to UGA project
    {
       //Get the climate stations for this run.  These are coordinates for ALL the climate stations 
       int siteCount = 4;
       int runNumber = m_flowContext.pEnvContext->run;
 
       FDataObj* pGridLocationData = new FDataObj;
-      pGridLocationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\GridLocations.csv");
+      pGridLocationData->ReadAscii("GridLocations.csv");
 
       //get the subset of stations to be used in this model run
       FDataObj* pRealizationData = new FDataObj;
-      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA\\ClimateStationsForEachRealization.csv");
+      pRealizationData->ReadAscii("C:\\Envision\\StudyAreas\\UGA_HBV\\ClimateStationsForEachRealization.csv");
 
       //Have StationId, now write them into the IDU using nearest distance
 
@@ -4176,6 +4180,8 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
          }
          m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location, ADD_DELTA);
       }
+      delete pGridLocationData;
+      delete pRealizationData;
    }
 
    }
