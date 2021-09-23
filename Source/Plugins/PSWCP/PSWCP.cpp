@@ -241,7 +241,7 @@ TABLECOL colInfo[] = {
       { HAB_TERR_TABLE, NULL, -1, "norm_oakgr" },
       { HAB_TERR_TABLE, NULL, -1, "ovrall_IND" },
 
-      { HCI_CATCH_TABLE, NULL, -1, "HCI_CAT" },
+      { HCI_VALUE_TABLE, NULL, -1, "HCI_CAT" },
 
       { NULL_TABLE,  NULL, -1, NULL }
    };
@@ -635,9 +635,6 @@ bool PSWCP::InitHCIAssessment(EnvContext* pEnvContext)
       this->CheckCol(m_pIDULayer, m_col_IDU_HCI_Value, "HCI", TYPE_FLOAT, CC_AUTOADD);
       this->CheckCol(m_pIDULayer, m_col_IDU_LULC_B, "LULC_B", TYPE_INT, CC_MUST_EXIST);
       // load databases
-      LoadTable(HCI_VALUE_TABLE);
-      LoadTable(HCI_CATCH_TABLE);
-
 
       /*
       // update colInfos
@@ -1947,6 +1944,8 @@ bool PSWCP::LoadTables()
    m_pWfM2Table    = LoadTable(WF_M2_TABLE, "PSWCP/WF_M2.csv");
    m_pWfRpTable    = LoadTable(WF_RP_TABLE, "PSWCP/WF_RP.csv");
    m_pHabTerrTable = LoadTable(HAB_TERR_TABLE, "PSWCP/AU_Terrestrial_Indicies_Aug2012.csv");
+   m_pHCITable     = LoadTable(HCI_VALUE_TABLE, "PSWCP/HCI_Values.csv");
+   m_pHPCTable     = LoadTable(HCI_CATCH_TABLE, "PSWCP/HCI_Shed.csv" );
 
    // update colInfos
    int i = 0;
@@ -1954,17 +1953,17 @@ bool PSWCP::LoadTables()
       {
       switch (colInfo[i].table)
          {
-         case  WQ_DB_TABLE:   m_pWqDbTable = pTable; filename = "PSWCP/WQ_DB.csv"; break;
-         case  WQ_M1_TABLE:   m_pWqM1Table = pTable; filename = "PSWCP/WQ_M1.csv"; break;
-         case  WQ_RP_TABLE:   m_pWqRpTable = pTable; filename = "PSWCP/WQ_RP.csv"; break;
-         case  WF_DB1_TABLE:  m_pWfDb1Table = pTable; filename = "PSWCP/WF_DB1.csv"; break;
-         case  WF_DB2_TABLE:  m_pWfDb2Table = pTable; filename = "PSWCP/WF_DB2.csv"; break;
-         case  WF_M1_TABLE:   m_pWfM1Table = pTable; filename = "PSWCP/WF_M1.csv"; break;
-         case  WF_M2_TABLE:   m_pWfM2Table = pTable; filename = "PSWCP/WF_M2.csv"; break;
-         case  WF_RP_TABLE:   m_pWfRpTable = pTable; filename = "PSWCP/WF_RP.csv"; break;
-         case  HAB_TERR_TABLE: m_pHabTerrTable = pTable; filename = "PSWCP/AU_Terrestrial_Indicies_Aug2012.csv"; break;
-         case HCI_VALUE_TABLE: m_pHPCTable = pTable; filename="PSWCP/HCI_Values.csv"; break;
-         case HCI_CATCH_TABLE: m_pHCITable = pTable; filename = "PSWCP/HCI_Shed.csv"; break;
+         case  WQ_DB_TABLE:    colInfo[i].pTable = m_pWqDbTable;    break;
+         case  WQ_M1_TABLE:    colInfo[i].pTable = m_pWqM1Table;    break;
+         case  WQ_RP_TABLE:    colInfo[i].pTable = m_pWqRpTable;    break;
+         case  WF_DB1_TABLE:   colInfo[i].pTable = m_pWfDb1Table;   break;
+         case  WF_DB2_TABLE:   colInfo[i].pTable = m_pWfDb2Table;   break;
+         case  WF_M1_TABLE:    colInfo[i].pTable = m_pWfM1Table;    break;
+         case  WF_M2_TABLE:    colInfo[i].pTable = m_pWfM2Table;    break;
+         case  WF_RP_TABLE:    colInfo[i].pTable = m_pWfRpTable;    break;
+         case  HAB_TERR_TABLE: colInfo[i].pTable = m_pHabTerrTable; break;
+         case HCI_VALUE_TABLE: colInfo[i].pTable = m_pHPCTable;     break;
+         case HCI_CATCH_TABLE: colInfo[i].pTable = m_pHCITable;     break;
          }
 
       int col = colInfo[i].pTable->GetCol(colInfo[i].field);
