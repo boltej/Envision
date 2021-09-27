@@ -666,13 +666,6 @@ bool PSWCP::InitHCIAssessment(EnvContext* pEnvContext)
          {
          m_numHCICat = m_HCIIndex_IDU.ReadIndex(m_pIDULayer->m_pDbTable, indexPath);
          }
-
-
-
-   // add output variables
-   //this->AddOutputVar("Annual Repair Expenditures", m_annualRepairCosts, "");
-
-
       return true;
       }
 
@@ -1723,15 +1716,15 @@ int PSWCP::SolveHCI()
    float value=0.0f;
    int cat = 0;
    VData lulc=-1;
-   int HPC_col = 0.0f;
+   int HPC_col = 0;
 
    CUIntArray recordArray;
-   for (int row = 0; row < m_pHCITable->GetRowCount(); row++)
+   for (int row = 0; row < m_pHPCTable->GetRowCount(); row++)
    {
       // get the cat_ID for this record
       int hciCat = 0;
-      //GetTableValue(HCI_CATCH_TABLE, "HCI_CAT", row, hciCat);
-      hciCat = m_pHCITable->GetAsInt(1,row);
+      //
+      hciCat = m_pHPCTable->GetAsInt(1,row);
       float HCV=0;
       float HCVworst=0;
       //Get the HCI value for the watershed
@@ -1746,8 +1739,8 @@ int PSWCP::SolveHCI()
             m_pIDULayer->GetData(idu, m_col_IDU_HCI_Shed, cat);
             m_pIDULayer->GetData(idu, m_col_IDU_LULC_B, lulc);
            
-            int rowIndex = m_pHPCTable->Find(0, lulc,0);//get the row
-            float HPC = m_pHPCTable->GetAsFloat(1, rowIndex);
+            int rowIndex = m_pHCITable->Find(0, lulc,0);//get the row
+            float HPC = m_pHCITable->GetAsFloat(1, rowIndex);
             float HPCg = HPC * value;
             HCVworst+=35.0f*value;
             HCV+=HPCg;
