@@ -144,6 +144,7 @@ TABLECOL colInfo[] = {
       { WF_M1_TABLE, NULL, -1, "MCSS"      },
       { WF_M1_TABLE, NULL, -1, "UN_MC"     },
       { WF_M1_TABLE, NULL, -1, "STS"       },
+      { WF_M1_TABLE, NULL, -1, "WF_M1_CAL" },
 
       { WF_M2_TABLE, NULL, -1, "UW"        },
       { WF_M2_TABLE, NULL, -1, "RW"        },
@@ -165,6 +166,8 @@ TABLECOL colInfo[] = {
       { WF_M2_TABLE, NULL, -1, "D_WD"      },
       { WF_M2_TABLE, NULL, -1, "IMP"       },
       { WF_M2_TABLE, NULL, -1, "D_L"       },
+
+      { WF_RP_TABLE, NULL, -1, "WF_RP" },
 
       { HAB_TERR_TABLE, NULL, -1, "New_AU" },
       { HAB_TERR_TABLE, NULL, -1, "Integ_Inde" },
@@ -212,6 +215,8 @@ PSWCP::PSWCP(void)
    , m_col_IDU_IMPERVIOUS(-1)
    , m_col_IDU_IMP_PCT(-1)
    , m_col_IDU_AREA(-1)
+   , m_col_IDU_WF_M1_CAL(-1)
+   , m_col_IDU_WF_RP(-1)
 
    , m_pAUWLayer(NULL)
    , m_pAUHLayer(NULL)
@@ -386,6 +391,8 @@ bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
    this->CheckCol(m_pIDULayer, m_col_IDU_WqPa_rp, "WqPa_rp", TYPE_STRING, CC_MUST_EXIST);
    this->CheckCol(m_pIDULayer, m_col_IDU_IMPERVIOUS, "Impervious", TYPE_INT, CC_AUTOADD);
    this->CheckCol(m_pIDULayer, m_col_IDU_IMP_PCT, "IMP_PCT", TYPE_INT, CC_AUTOADD);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF_M1_CAL, "WF_M1_CAL", TYPE_FLOAT, CC_AUTOADD);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF_RP, "WF_RP", TYPE_STRING, CC_AUTOADD);
 
    // load/create index for getting IDUs for each AU from the idu layer
    CString indexPath;
@@ -423,6 +430,12 @@ bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
       GetTableValue(WQ_RP_TABLE, "N_RP", row, n_rp);
       GetTableValue(WQ_RP_TABLE, "Pa_RP", row, pa_rp);
       
+      float wf_m1_cal = 0;
+      GetTableValue(WF_M1_TABLE, "WF_M1_CAL", row, wf_m1_cal);
+
+      CString wf_rp;
+      GetTableValue(WF_RP_TABLE, "WF_RP", row, wf_rp);
+
       int imp_pct = 0;
       GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
 
@@ -437,6 +450,8 @@ bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
             m_pIDULayer->SetData(idu, m_col_IDU_WqMe_rp, me_rp);
             m_pIDULayer->SetData(idu, m_col_IDU_WqN_rp, n_rp);
             m_pIDULayer->SetData(idu, m_col_IDU_WqPa_rp, pa_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WF_M1_CAL, wf_m1_cal);
+            m_pIDULayer->SetData(idu, m_col_IDU_WF_RP, wf_rp);
             m_pIDULayer->SetData(idu, m_col_IDU_IMP_PCT, imp_pct);
             }
          }

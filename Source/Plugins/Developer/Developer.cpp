@@ -960,7 +960,7 @@ void Developer::CollectOutput( int year )
       // currentPopulation, currentArea, newPopulation, pctAvilCapacity
       int cols = 1 + ((int)m_pCurrentUxScenario->m_uxArray.GetSize() * 4);
 
-      float* data = new float(cols);
+      float* data = new float[cols];
       data[0] = year;
 
       int col = 1;
