@@ -102,7 +102,21 @@ bool Climate_Metrics::Init(FlowContext* pFlowContext)
 	return TRUE;
 }
 
+bool Climate_Metrics::InitRun(FlowContext* pFlowContext)
+   {
+	m_pModeledTemperature->ClearRows();
+	m_pModeledTemperature->SetSize(m_pModeledTemperature->GetColCount(), 0);
+	return true;
+   }
+
 bool Climate_Metrics::StartYear(FlowContext* pFlowContext)
+{
+	MapLayer* pLayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
+	//CalcClimateMetrics(pFlowContext);
+	//GetCIGWaterTemperature(pFlowContext);
+	return true;
+}
+bool Climate_Metrics::EndYear(FlowContext* pFlowContext)
 {
 	MapLayer* pLayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 	CalcClimateMetrics(pFlowContext);
