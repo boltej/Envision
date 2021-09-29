@@ -1486,7 +1486,7 @@ bool Developer::ExpandUGA(UGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
    float totalAreaAc = (resArea + commArea) * ACRE_PER_M2;
    startingArea *= ACRE_PER_M2;
    CString msg;
-   msg.Format("   Developer:  Expanded UGA %s by %.0f acres, from %.0f to 0.0f acres (Event=%i)", 
+   msg.Format("   Developer:  Expanded UGA %s by %.0f acres, from %.0f to %0.0f acres (Event=%i)", 
       pUGA->m_name, totalAreaAc, startingArea, startingArea+totalAreaAc, pUGA->m_currentEvent);
    Report::Log(msg);
    pUGA->m_currentEvent++;
