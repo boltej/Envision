@@ -80,6 +80,8 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int m_col_IDU_LULC_A;
       int m_col_IDU_LULC_B;
       int m_col_IDU_CONSERVE;
+      int m_col_IDU_IMPERVIOUS;
+      int m_col_IDU_IMP_PCT;
       int m_col_IDU_AREA;
 
       int m_col_IDU_HCI_Dist;
@@ -160,6 +162,8 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int SolveHabTerr(EnvContext*);
 
       int SolveHCI();
+
+      void UpdateIDUs(EnvContext*);
 
       bool LoadTables();
 

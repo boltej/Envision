@@ -96,12 +96,15 @@ enum VAR_TYPE {           //  Description                                       
                           //  query area is further restricted to those IDUs in which
                           //  a change, specified by the useDelta list, occured 
 
-   VT_LENWTMEAN = 4,      //
+   VT_LENWTMEAN    = 4,   // for line features
 
-   VT_MEAN         = 5    // "mean" - mean of the "value" expression,    | always global extent |   yes   |
+   VT_MEAN         = 5    // "mean" - mean of the "value" expression,                  | always global extent |   yes   |
                           // summed over the query area. If "use_delta" specified, the 
-                          //  query area is further restricted to those IDUs in which
-                          //  a change, specified by the useDelta list, occured    
+                          // query area is further restricted to those IDUs in which
+                          // a change, specified by the useDelta list, occured
+   //VT_DELTA        = 6,   // "delta" - report change in field
+   //VT_FRACTION     = 7    // "fraction" - percetn change in field (0-100)
+
    };
 
 

@@ -39,7 +39,7 @@ Copywrite 2012 - Oregon State University
 
 class Poly;
 class Map;
-class Raster;
+//class Raster;
 class EnvisionRasterizer;
 class CacheManager;
 

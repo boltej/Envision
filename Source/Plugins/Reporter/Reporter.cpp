@@ -602,6 +602,7 @@ void Reporter::ResetOutputs( PtrArray< Output > &outputArray )
                case VT_LENWTMEAN:
                   pOutput->m_value += area * pOutput->m_pMapExpr->GetValue();
                   break;
+
                } // end of: switch()
 
             // are we collecting sumarized data?
@@ -1159,16 +1160,19 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
          switch (type[0])
             {
             case 's':
-            case 'S':      pOutput->m_varType = VT_SUM_AREA;     break;
+            case 'S':      pOutput->m_varType = VT_SUM_AREA;     break;    // "sum"
             case 'p':      
-            case 'P':      pOutput->m_varType = VT_PCT_AREA;     break;
+            case 'P':      pOutput->m_varType = VT_PCT_AREA;     break;    // "pctArea"
             case 'a':
-            case 'A':      pOutput->m_varType = VT_AREAWTMEAN;   break;
+            case 'A':      pOutput->m_varType = VT_AREAWTMEAN;   break;    // "areaWtMean"
             case 'l':
-            case 'L':      pOutput->m_varType = VT_LENWTMEAN;   break;
+            case 'L':      pOutput->m_varType = VT_LENWTMEAN;   break;     // "lenWtMean"
             case 'm':
-            case 'M':      pOutput->m_varType = VT_MEAN;   break;
-
+            case 'M':      pOutput->m_varType = VT_MEAN;   break;          // "mean"
+            //case 'd':
+            //case 'D':      pOutput->m_varType = VT_DELTA;   break;          // "mean"
+            //case 'f':
+            //case 'F':      pOutput->m_varType = VT_FRACTION;   break;          // "mean"
 
             default:
                {

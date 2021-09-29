@@ -117,13 +117,13 @@ public:
 };
 
 
-class UGAExpansion
+class UGA
 {
 public:
-   UGAExpansion( void ) : m_id( -1 ), m_index( -1 ), m_use( true ), m_zoneRes( -1 ), m_zoneComm( -1 ), 
+   UGA( void ) : m_id( -1 ), /*m_index( -1 ),*/ m_use( true ), /*m_zoneRes( -1 ), m_zoneComm( -1 ), */
       m_pResQuery( NULL ), m_pCommQuery( NULL ),
       m_estGrowthRate( 0.01f ), m_newResDensity( 0.01f ), m_resCommRatio( 8 ), m_ppdu( 2.3f ),
-      m_startPopulation( -1.0f ), m_computeStartPop( false )
+      m_startPopulation( -1.0f ), m_computeStartPop( true )
       , m_currentArea( 0 )
       , m_currentResArea( 0 )
       , m_currentCommArea( 0 )   
@@ -134,7 +134,10 @@ public:
       , m_pctAvailCap( 0 )       
       , m_avgAllowedDensity( 0 ) 
       , m_avgActualDensity( 0 ) 
-      { }
+      , m_nextResPriority(0)     // ptrs to current spot in list
+      , m_nextCommPriority(0)
+      , m_currentEvent(1)
+   { }
 
 public:
    CString m_name;
@@ -147,8 +150,8 @@ public:
    int  m_id;               // uga code
    int  m_index;            // offset in ugaExpArray
    bool m_use;                  
-   int  m_zoneRes;
-   int  m_zoneComm;
+   //int  m_zoneRes;
+   //int  m_zoneComm;
    bool m_computeStartPop;
    
    float m_estGrowthRate;  // annual estimated growth rate, decimal percent (required)
@@ -168,8 +171,13 @@ public:
    float m_avgAllowedDensity;       // du/ac
    float m_avgActualDensity;        // du/ac
 
+   int m_nextResPriority;     // ptrs to current spot in list
+   int m_nextCommPriority;
+   int m_currentEvent;
+
    PtrArray< UGA_PRIORITY > m_priorityListRes;   // sorted lists of UGB Expansion areas
    PtrArray< UGA_PRIORITY > m_priorityListComm;
+
 };
 
 
@@ -181,7 +189,7 @@ public:
    int      m_id;
    CString  m_name;
 
-   PtrArray< UGAExpansion > m_uxArray;
+   PtrArray< UGA > m_uxArray;
 };
 
 
@@ -261,12 +269,13 @@ protected:
    //--------------------------------------------------
    //-- UGA Expansion ---------------------------------
    //--------------------------------------------------
-   int AddUGAExp( UxScenario *pScenario, UGAExpansion *pUgaExp );
+   int AddUGA( UxScenario *pScenario, UGA *pUGA );
    UxScenario   *FindUxScenarioFromID( int id );
-   UGAExpansion *FindUGAExpFromID( int id ) { UGAExpansion *pUgaExp= NULL;  BOOL ok = m_idToUGAExpMap.Lookup( id, pUgaExp );  if ( ok ) return pUgaExp; else return NULL; }
-   UGAExpansion *FindUGAExpFromName( LPCTSTR name );
-   void  ExpandUGAs( EnvContext *pContext, MapLayer *pLayer );
-   float UpdateUGAExpStats( EnvContext *pContext, bool outputStartInfo );
+   UGA *FindUGAFromID( int id ) { UGA *pUGA= NULL;  BOOL ok = m_idToUGAMap.Lookup( id, pUGA );  if ( ok ) return pUGA; else return NULL; }
+   UGA *FindUGAFromName( LPCTSTR name );
+   bool  ExpandUGAs( EnvContext *pContext, MapLayer *pLayer );
+   bool  ExpandUGA(UGA* pUGA, EnvContext* pContext, MapLayer* pLayer);
+   float UpdateUGAStats( EnvContext *pContext, bool outputStartInfo );
    bool  PrioritizeUxAreas( EnvContext *pContext );
 
    float GetAllowedDensity( MapLayer *pLayer, int idu, int zone );      // du/ac
@@ -276,10 +285,12 @@ protected:
    void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &m_randShuffle ); }
 
    int m_colUga;
-   int m_colZone;
+   int m_colZone;  
    int m_colPopCap;
-   int m_colUgaExpPriority;   // input (optional) - if defined, indicates priority of expansions (0=high)
-   int m_colUgaExpEvent;      // output, tags locations for each DUArea expansion event
+   int m_colUxNearDist;
+   int m_colUxNearUga;
+   int m_colUxPriority;   // input (optional) - if defined, indicates priority of expansions (0=high)
+   int m_colUxEvent;      // output, tags locations for each DUArea expansion event
    int m_colPopDensInit;      // initial population density
 
    // urban expansion data
@@ -287,7 +298,7 @@ protected:
    UxScenario *m_pCurrentUxScenario;
 
    PtrArray< UxScenario > m_uxScenarioArray;
-   CMap< int, int, UGAExpansion*, UGAExpansion* > m_idToUGAExpMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
+   CMap< int, int, UGA*, UGA* > m_idToUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
 
    PtrArray< ZoneInfo > m_resZoneArray;
    PtrArray< ZoneInfo > m_commZoneArray;
