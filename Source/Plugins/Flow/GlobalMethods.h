@@ -507,7 +507,9 @@ public:
     ~Climate_Metrics(void);
 
     virtual bool Init(FlowContext*);
-    virtual bool StartYear(FlowContext*);    // start of Flow::StartYear() invocation 
+    virtual bool InitRun(FlowContext*);
+    virtual bool StartYear(FlowContext*);  
+    virtual bool EndYear(FlowContext*); // start of Flow::StartYear() invocation 
     virtual bool StartStep(FlowContext*);    // start of Flow::StartStep() invocation 
     virtual bool EndStep(FlowContext*);      // end of Flow timestep
 

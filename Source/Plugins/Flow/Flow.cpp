@@ -1921,14 +1921,16 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    // <catchments>
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colCatchmentArea, m_areaCol, TYPE_FLOAT, CC_MUST_EXIST);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colElev, m_elevCol, TYPE_FLOAT, CC_AUTOADD);
-   EnvExtension::CheckCol(m_pCatchmentLayer, m_colLai, _T("LAI"), TYPE_FLOAT, CC_AUTOADD);
-   EnvExtension::CheckCol(m_pCatchmentLayer, m_colAgeClass, _T("AGECLASS"), TYPE_INT, CC_AUTOADD);
+   //EnvExtension::CheckCol(m_pCatchmentLayer, m_colLai, _T("LAI"), TYPE_FLOAT, CC_AUTOADD);
+  // EnvExtension::CheckCol(m_pCatchmentLayer, m_colAgeClass, _T("AGECLASS"), TYPE_INT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colLulcB, _T("LULC_B"), TYPE_INT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colLulcA, _T("LULC_A"), TYPE_INT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colCatchmentJoin, m_catchmentJoinCol, TYPE_INT, CC_MUST_EXIST);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colCatchmentCatchID, m_catchIDCol, TYPE_INT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colCatchmentHruID, m_hruIDCol, TYPE_INT, CC_AUTOADD);
-   //EnvExtension::CheckCol( m_pCatchmentLayer, m_colHruSWC,             _T("SWC"),          TYPE_FLOAT, CC_AUTOADD ); Not used
+
+   
+   EnvExtension::CheckCol( m_pCatchmentLayer, m_colHruSWC,             _T("SWC"),          TYPE_FLOAT, CC_AUTOADD ); //Not used
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruTemp, _T("TEMP"), TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruTempYr, _T("TEMP_YR"), TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruTemp10Yr, _T("TEMP_10YR"), TYPE_FLOAT, CC_AUTOADD);
@@ -1953,11 +1955,11 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colIrrigation, "IRRIGATION", TYPE_INT, CC_AUTOADD);
 
-   EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUPercentIrrigated, "HRU_IRR_P", TYPE_FLOAT, CC_AUTOADD);
+  EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUPercentIrrigated, "HRU_IRR_P", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUMeanLAI, "HRU_LAI", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colAgeClass, "HRU_AGE", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruSWC, "HRU_SWC", TYPE_FLOAT, CC_AUTOADD);
-
+   
    // <streams>
    EnvExtension::CheckCol(m_pStreamLayer, m_colStreamFrom, m_fromCol, TYPE_INT, CC_MUST_EXIST);  // required for building topology
    EnvExtension::CheckCol(m_pStreamLayer, m_colStreamTo, m_toCol, TYPE_INT, CC_MUST_EXIST);
@@ -2183,7 +2185,7 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    m_totalWaterInput = 0;
    m_totalWaterOutput = 0;
 
-   SummarizeIDULULC();
+  // SummarizeIDULULC();
 
    // ReadState();//read file including initial values for the state variables. This avoids model spin up issues
 
@@ -5213,8 +5215,8 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
                volSnow += (float)pHRU->GetPool(k)->m_volumeWater; //get the current year snowpack
             }
 
-         for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
-            this->UpdateIDU(pEnvContext, pHRU->m_polyIndexArray[k], m_colHruMaxSWE, volSnow, SET_DATA);
+//         for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
+ //           this->UpdateIDU(pEnvContext, pHRU->m_polyIndexArray[k], m_colHruMaxSWE, volSnow, SET_DATA);
          }
       }
    m_pCatchmentLayer->m_readOnly = true;
@@ -5876,7 +5878,7 @@ bool FlowModel::SetHRUAttributes()
 
       Poly *pPoly = m_pCatchmentLayer->GetPolygon(pHRU->m_polyIndexArray.GetAt(0));
       Vertex centroid = pPoly->GetCentroid();
-
+      pHRU->m_centroid = centroid;
 
       }
 
@@ -10142,6 +10144,7 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
       pHRU->m_runoff_yr += float( pHRU->m_currentRunoff*m_timeStep );
 
       // THIS SHOULDN"T BE HERE!!!!!!
+      /*
       for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
          {
          int idu = pHRU->m_polyIndexArray[k];
@@ -10158,6 +10161,7 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
 
          this->UpdateIDU(pEnvContext, idu, m_colHruSWE, pHRU->m_depthSWE, SET_DATA);  // SetData, not AddDelta   // m_colHruSWE_yr
          }
+         */
       }
 
    m_pCatchmentLayer->m_readOnly = true;
@@ -11062,17 +11066,16 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
                  double x = pHRU->m_centroid.x;
                  double y = pHRU->m_centroid.y;
                  value = pInfo->m_pNetCDFData->Get(x, y, pHRU->m_climateIndex, dayOfYear, m_projectionWKT, false);
-                 if (value > -100 && m_provenClimateIndex == -1) 
+                 if (value > -100 && m_provenClimateIndex == -1)
                      m_provenClimateIndex = pHRU->m_climateIndex;
 
                  if (value < -100) //missing data in the file. Code identifies a nearby gridcell that does have data
                      {
-                     pHRU->m_climateIndex = pHRU->m_pCatchment->m_climateIndex;
-                     //if (pHRU->m_climateIndex == 1)
-                        // pHRU->m_climateIndex = m_provenClimateIndex;
+                     pHRU->m_climateIndex = m_provenClimateIndex;
                      value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
                      pHRU->m_pCatchment->m_climateIndex = pHRU->m_climateIndex;
                      }
+                    
                  }
             else
                value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
