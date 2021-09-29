@@ -140,6 +140,10 @@ TABLECOL colInfo[] = {
       { WF_M1_TABLE, NULL, -1, "SWD"       },
       { WF_M1_TABLE, NULL, -1, "IDI"       },
       { WF_M1_TABLE, NULL, -1, "I_DI"      },
+      { WF_M1_TABLE, NULL, -1, "UNSS"      },
+      { WF_M1_TABLE, NULL, -1, "MCSS"      },
+      { WF_M1_TABLE, NULL, -1, "UN_MC"     },
+      { WF_M1_TABLE, NULL, -1, "STS"       },
 
       { WF_M2_TABLE, NULL, -1, "UW"        },
       { WF_M2_TABLE, NULL, -1, "RW"        },
@@ -149,14 +153,18 @@ TABLECOL colInfo[] = {
       { WF_M2_TABLE, NULL, -1, "MDS"       },
       { WF_M2_TABLE, NULL, -1, "DST"       },
       { WF_M2_TABLE, NULL, -1, "D_STS"     },
+      { WF_M2_TABLE, NULL, -1, "STD"       },
+      { WF_M2_TABLE, NULL, -1, "D_STD"     },
       { WF_M2_TABLE, NULL, -1, "D_RD"      },
       { WF_M2_TABLE, NULL, -1, "D_WEL"     },
       { WF_M2_TABLE, NULL, -1, "UUS"       },
       { WF_M2_TABLE, NULL, -1, "URS"       },
-      { WF_M2_TABLE, NULL, -1, "SWU" },
-      { WF_M2_TABLE, NULL, -1, "SWR" },
-      { WF_M2_TABLE, NULL, -1, "WD" },
-      { WF_M2_TABLE, NULL, -1, "D_WD" },
+      { WF_M2_TABLE, NULL, -1, "SWU"       },
+      { WF_M2_TABLE, NULL, -1, "SWR"       },
+      { WF_M2_TABLE, NULL, -1, "WD"        },
+      { WF_M2_TABLE, NULL, -1, "D_WD"      },
+      { WF_M2_TABLE, NULL, -1, "IMP"       },
+      { WF_M2_TABLE, NULL, -1, "D_L"       },
 
       { HAB_TERR_TABLE, NULL, -1, "New_AU" },
       { HAB_TERR_TABLE, NULL, -1, "Integ_Inde" },
@@ -1524,7 +1532,7 @@ int PSWCP::SolveWfM2WatDel()
       SetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
 
       float imp = imp_pct / maxIMP;
-      SetTableValue(WF_M1_TABLE, "IMP", row, imp);
+      SetTableValue(WF_M2_TABLE, "IMP", row, imp);
       }
 
    return 1;
@@ -1588,8 +1596,8 @@ int PSWCP::SolveWfM2SurfStorage()
 
       float dw = uw + rw;
       float d_ws = dw / maxDW;
-      SetTableValue(WF_M1_TABLE, "DW", row, dw);
-      SetTableValue(WF_M1_TABLE, "D_WS", row, d_ws);
+      SetTableValue(WF_M2_TABLE, "DW", row, dw);
+      SetTableValue(WF_M2_TABLE, "D_WS", row, d_ws);
 
       float uds = 0, mds = 0;     // loss of floodplain
       GetTableValue(WF_M2_TABLE, "UDS", row, uds);
@@ -1597,8 +1605,8 @@ int PSWCP::SolveWfM2SurfStorage()
 
       float dst = uds + mds;
       float d_sts = dst / maxSTS;
-      SetTableValue(WF_M1_TABLE, "DST", row, dst);
-      SetTableValue(WF_M1_TABLE, "D_STS", row, d_sts);
+      SetTableValue(WF_M2_TABLE, "DST", row, dst);
+      SetTableValue(WF_M2_TABLE, "D_STS", row, d_sts);
       }
 
    return 1;
