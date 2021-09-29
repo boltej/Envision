@@ -120,10 +120,18 @@ public:
 class UGA
 {
 public:
-   UGA( void ) : m_id( -1 ), /*m_index( -1 ),*/ m_use( true ), /*m_zoneRes( -1 ), m_zoneComm( -1 ), */
-      m_pResQuery( NULL ), m_pCommQuery( NULL ),
-      m_estGrowthRate( 0.01f ), m_newResDensity( 0.01f ), m_resCommRatio( 8 ), m_ppdu( 2.3f ),
-      m_startPopulation( -1.0f ), m_computeStartPop( true )
+   UGA( void ) 
+      : m_id( -1 )
+      , m_index( -1 )
+      , m_use( true )
+      , m_pResQuery( NULL )
+      , m_pCommQuery( NULL )
+      , m_estGrowthRate( 0.01f )
+      , m_newResDensity( 0.01f )
+      , m_resCommRatio( 8 )
+      , m_ppdu( 2.3f )
+      , m_startPopulation( -1.0f )
+      , m_computeStartPop( true )
       , m_currentArea( 0 )
       , m_currentResArea( 0 )
       , m_currentCommArea( 0 )   
@@ -210,12 +218,12 @@ class _EXPORT Developer : public EnvModelProcess
 {
 public:
    Developer( void );
-   ~Developer( void ) { } // if ( m_pQueryEngine ) delete m_pQueryEngine; }
+   ~Developer( void ) { if ( m_pUxData != NULL ) delete m_pUxData; }
 
    bool Init   ( EnvContext *pContext, LPCTSTR initStr );
    bool InitRun( EnvContext *pContext, bool useInitialSeed );
    bool Run    ( EnvContext *pContext );
-   bool Setup  ( EnvContext *pContext, HWND hWnd )          { return FALSE; }
+   bool Setup  ( EnvContext *pContext, HWND hWnd ) { return FALSE; }
 
 protected:
    bool Run( EnvContext *pContext, bool AddDelta );
@@ -225,6 +233,7 @@ protected:
    //-- Globals -------------------------------------
    //------------------------------------------------
    bool LoadXml( LPCTSTR filename, EnvContext* );
+   void InitOutputs();
    
    // operation flags
    bool m_allocatePopDens;   // true if <pop_dens> tags defined
@@ -304,7 +313,13 @@ protected:
    PtrArray< ZoneInfo > m_commZoneArray;
 
    //-- general --------------------------------------
-   void  CollectData( int year );
+   // data collection
+   FDataObj* m_pUxData;
+   
+   void InitOutput();
+   void CollectOutput( int year );
+   
+   
    
    int m_colPopDens;
    int m_colArea;

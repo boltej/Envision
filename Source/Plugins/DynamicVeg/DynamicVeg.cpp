@@ -595,7 +595,7 @@ bool DynamicVeg::DisturbanceTransition(EnvContext *pEnvContext, int idu)
 
          break;
 
-      case RESTORATION:
+      case RESTORATION_ACTIVITY:
 
          ProbabilityTransition(pEnvContext, idu);
 

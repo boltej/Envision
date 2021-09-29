@@ -71,7 +71,9 @@ Developer::Developer()
 , m_startPop( -1 )
 , m_nDUData( U_UNDEFINED )      // for each uga + totals
 , m_newDUData( U_UNDEFINED )
+, m_pUxData(NULL)
 { }
+
 
 
 bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
@@ -183,10 +185,9 @@ bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
    ///////      popOH += pop;
    ///////   }
       /////////////////////////
-
+   InitOutput();
    return TRUE; 
    }
-
 
 bool Developer::InitRun( EnvContext *pContext, bool useInitialSeed )
    {
@@ -325,7 +326,7 @@ bool Developer::Run( EnvContext *pContext )
       //   }  // end of: for each IDU
       }  // end of: if ( m_allocateDUs )
    
-   CollectData( pContext->currentYear );
+   CollectOutput( pContext->currentYear );
 
    return true;
    }
@@ -884,7 +885,40 @@ UxScenario *Developer::FindUxScenarioFromID( int id )
 //   }
 
 
-void Developer::CollectData( int year )
+void Developer::InitOutput()
+   {
+   if (this->m_expandUGAs)
+      {
+      if (m_pUxData == NULL)
+         {
+         m_pCurrentUxScenario = this->FindUxScenarioFromID(m_currUxScenarioID);
+
+
+         // currentPopulation, currentArea, newPopulation, pctAvilCapacity
+         int cols = 1 + ((int)m_pCurrentUxScenario->m_uxArray.GetSize() * 4);
+         m_pUxData = new FDataObj(cols, 0, U_YEARS);
+         ASSERT(m_pUxData != NULL);
+         m_pUxData->SetName("Developer");
+
+         m_pUxData->SetLabel(0, _T("Time"));
+
+         int col = 1;
+         for (int i = 0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++)
+            {
+            UGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+            CString name = pUGA->m_name;
+            m_pUxData->SetLabel(col++, _T(name + ".Population"));
+            m_pUxData->SetLabel(col++, _T(name + ".Area (ac)"));
+            m_pUxData->SetLabel(col++, _T(name + ".New Population"));
+            m_pUxData->SetLabel(col++, _T(name + ".Pct Available Capacity"));
+            }
+         }
+      }
+
+   this->AddOutputVar("Developer", m_pUxData, "");
+   }
+
+void Developer::CollectOutput( int year )
    {
    if (m_allocateDUs)  // <dwellings> tag defined
       {
@@ -916,6 +950,30 @@ void Developer::CollectData( int year )
       data[cols - 1] = (float)newdus;
       m_newDUData.AppendRow(data, cols);
 
+      delete[] data;
+      }
+
+   if (this->m_expandUGAs)
+      {
+      ASSERT(m_pUxData != NULL);
+
+      // currentPopulation, currentArea, newPopulation, pctAvilCapacity
+      int cols = 1 + ((int)m_pCurrentUxScenario->m_uxArray.GetSize() * 4);
+
+      float* data = new float(cols);
+      data[0] = year;
+
+      int col = 1;
+      for (int i = 0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++)
+         {
+         UGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+         data[col++] = pUGA->m_currentPopulation;
+         data[col++] = pUGA->m_currentArea * ACRE_PER_M2;
+         data[col++] = pUGA->m_newPopulation;
+         data[col++] = pUGA->m_pctAvailCap;
+         }
+
+      m_pUxData->AppendRow(data, cols);
       delete[] data;
       }
    }
@@ -1486,7 +1544,7 @@ bool Developer::ExpandUGA(UGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
    float totalAreaAc = (resArea + commArea) * ACRE_PER_M2;
    startingArea *= ACRE_PER_M2;
    CString msg;
-   msg.Format("   Developer:  Expanded UGA %s by %.0f acres, from %.0f to %0.0f acres (Event=%i)", 
+   msg.Format("   Developer:  Expanded UGA %s by %.0f acres, from %.0f to %.0f acres (Event=%i)", 
       pUGA->m_name, totalAreaAc, startingArea, startingArea+totalAreaAc, pUGA->m_currentEvent);
    Report::Log(msg);
    pUGA->m_currentEvent++;
