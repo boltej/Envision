@@ -562,7 +562,7 @@ bool PSWCP::InitHabAssessments(EnvContext* pEnvContext)
 
    CString msg;
    msg.Format("   PSWCP: Set %i IDUs from %i AUH", setIDUCount, usedAUCount );
-   Report::LogWarning(msg);
+   Report::Log(msg);
    return true;
    }
 
