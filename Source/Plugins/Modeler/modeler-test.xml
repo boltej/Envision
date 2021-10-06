@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+ NOTE:  ORDER IS IMPORTANT AND MUST MATCH ID's in the correspondign INI File!
+ 
+ evalType  : specifies how this evaluation is made.  One of the following (required)
+               HIGH - want to maximize the area within the range defined by the bounds (low values indicate scarcity)
+               LOW  - want to minimize the area within the range defined by the bounds (high values indicate scarcity)
+ 
+ method    : specifies how the calcualtion is made.  One of the following (required)
+               AREAWTMEAN - compute an area-weighted mean value
+               
+ lowerBound: the lower bound for this attribute, expressed in total area or percent area, depending on the valueof the "area" attribute (required)
+ upperBound: the upper bound for this attribute, expressed in total area or percent area, depending on the valueof the "area" attribute (required)
+ 
+ 
+ Autonomous Processes
+   
+   name (required)     name of model
+   id   (required)     id specified in ENVX file
+   col  (optional)     database field name for process to populate
+   value (optional)    computed value to populate into database
+   query (optional)    spatial query limiting scope of computation (ignored if useDelta specified)
+   constraints (optional)
+   useDelta  (optional) instead of iterating through map, iterate though delta array.   In this case
+                        usedelta must contain a field=value pair to look for in the delta array.
+
+
+
+   network_layer       name of the map layer containing the network
+   network_method      CMB (Cumulative Mass Balance)
+-->
+
+<modeler>
+
+  <network_model 
+    name="Sparrow Adapter"
+    
+    network_layer="Streams"
+    network_method="???"
+    network_col="SPARROW"
+    
+    id="11" 
+    value="1" 
+    query="UGA=1" 
+    evalType="HIGH" 
+    lowerBound="0.0" 
+    upperBound="1.0" 
+    method="AREAWTMEAN" 
+    useDelta="LULC_B=4" />
+
+</modeler>

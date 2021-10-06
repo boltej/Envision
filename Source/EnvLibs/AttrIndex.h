@@ -104,6 +104,7 @@ public:
    int  BuildIndex( DbTable *pDbTable, int col );
    
    int  WriteIndex( LPCTSTR filename=NULL );
+   int  WriteIndexText(LPCTSTR filename = NULL);
    int  ReadIndex( DbTable *pDbTable, LPCTSTR filename=NULL );
 
    bool GetIndexArray( int col, VData attr, CUIntArray& );

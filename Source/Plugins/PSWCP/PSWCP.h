@@ -65,21 +65,26 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
       // idu columns
       MapLayer* m_pIDULayer;
-      int m_col_IDU_AUWIndex;    // water AU index
+      int m_col_IDU_AUW_ID;    // water AU index
       int m_col_IDU_WqS_rp;
       int m_col_IDU_WqP_rp;
       int m_col_IDU_WqMe_rp;
       int m_col_IDU_WqN_rp;
       int m_col_IDU_WqPa_rp;
 
-      int m_col_IDU_AUHIndex;    // hab AU index
-      int m_col_IDU_Hab_IntIndex;
-      int m_col_IDU_Hab_PHS;
-      int m_col_IDU_Hab_OakGrove;
-      int m_col_IDU_Hab_OverallIndex;
+      int m_col_IDU_AUH_ID;            // hab AU ID
+      int m_col_IDU_Hab_IntIndex;      // habitat integrity index
+      int m_col_IDU_Hab_PHS;           // priority habitat for sppecies of interest
+      int m_col_IDU_Hab_OakGrove;         // oak grove habitat
+      int m_col_IDU_Hab_OverallIndex;  // overall (combined) index
       int m_col_IDU_LULC_A;
       int m_col_IDU_LULC_B;
       int m_col_IDU_CONSERVE;
+      int m_col_IDU_IMPERVIOUS;
+      int m_col_IDU_IMP_PCT;
+      int m_col_IDU_AREA;
+      int m_col_IDU_WF_M1_CAL;
+      int m_col_IDU_WF_RP;
 
       int m_col_IDU_HCI_Dist;
       int m_col_IDU_HCI_Shed;
@@ -115,6 +120,7 @@ class _EXPORT PSWCP : public  EnvModelProcess
       // water flow assessment 
 
       // habitat assessment
+
 
       // HCI assessment
 
@@ -155,11 +161,18 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int SolveWfM2Discharge();
       int SolveWfM2EvapTrans();
 
+      int SolveHabTerr(EnvContext*);
+
       int SolveHCI();
 
-      int LoadTable(TABLE);
+      void UpdateIDUs(EnvContext*);
+
+      bool LoadTables();
+
+      VDataObj* LoadTable(TABLE, LPCTSTR filename);
       bool GetTableValue(TABLE t, LPCTSTR field, int row, int& value);
       bool GetTableValue(TABLE t, LPCTSTR field, int row, float& value);
+      bool GetTableValue(TABLE t, LPCTSTR field, int row, double& value);
       bool GetTableValue(TABLE t, LPCTSTR field, int row, CString& value);
       bool SetTableValue(TABLE t, LPCTSTR field, int row, int value)    { VData v(value); return SetTableValue(t, field, row, v); }
       bool SetTableValue(TABLE t, LPCTSTR field, int row, float value)  { VData v(value); return SetTableValue(t, field, row, v); }
