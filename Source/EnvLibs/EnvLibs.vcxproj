@@ -232,6 +232,7 @@
     <ClInclude Include="mtparser\MTSearchFile.h" />
     <ClInclude Include="mtparser\MTTools.h" />
     <ClInclude Include="mtparser\MTUnicodeANSIDefs.h" />
+    <ClInclude Include="NeighborTable.h" />
     <ClInclude Include="NetworkTree.h" />
     <ClInclude Include="Path.h" />
     <ClInclude Include="PathManager.h" />
@@ -249,6 +250,8 @@
     <ClInclude Include="RANDOM.HPP" />
     <ClInclude Include="reachtree.h" />
     <ClInclude Include="Report.h" />
+    <ClInclude Include="RTree.h" />
+    <ClInclude Include="RTreeIndex.h" />
     <ClInclude Include="SERIAL.HPP" />
     <ClInclude Include="shapefil.h" />
     <ClInclude Include="SpatialIndex.h" />
@@ -328,6 +331,7 @@
     <ClCompile Include="mtparser\MTSearchFile.cpp" />
     <ClCompile Include="mtparser\MTTools.cpp" />
     <ClCompile Include="mtparser\MTUnicodeANSIDefs.cpp" />
+    <ClCompile Include="NeighborTable.cpp" />
     <ClCompile Include="NetworkTree.cpp" />
     <ClCompile Include="Path.cpp" />
     <ClCompile Include="PathManager.cpp" />
@@ -349,6 +353,7 @@
     <ClCompile Include="randgen\Randweib.cpp" />
     <ClCompile Include="ReachTree.cpp" />
     <ClCompile Include="Report.cpp" />
+    <ClCompile Include="RTreeIndex.cpp" />
     <ClCompile Include="SpatialIndex.cpp" />
     <ClCompile Include="SplitPath.cpp" />
     <ClCompile Include="SriRandomPath.cpp" />

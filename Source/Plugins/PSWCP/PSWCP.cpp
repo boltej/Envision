@@ -85,7 +85,7 @@ TABLECOL colInfo[] = {
       { WQ_RP_TABLE, NULL, -1, "P_RP"      },
       { WQ_RP_TABLE, NULL, -1, "ME_RP"     },
       { WQ_RP_TABLE, NULL, -1, "N_RP"      },
-      { WQ_RP_TABLE, NULL, -1, "Pa_RP"     },
+      { WQ_RP_TABLE, NULL, -1, "PA_RP"     },
       //{ WQ_RP_TABLE, NULL, -1, "S_M1_CAL"  },  duplicates
       //{ WQ_RP_TABLE, NULL, -1, "P_M1_CAL"  },
       //{ WQ_RP_TABLE, NULL, -1, "M_M1_CAL"  },
@@ -199,11 +199,6 @@ PSWCP::PSWCP(void)
    : EnvModelProcess()
    , m_pIDULayer(NULL)
    , m_col_IDU_AUW_ID(-1)
-   , m_col_IDU_WqS_rp(-1)
-   , m_col_IDU_WqP_rp(-1)
-   , m_col_IDU_WqMe_rp(-1)
-   , m_col_IDU_WqN_rp(-1)
-   , m_col_IDU_WqPa_rp(-1)
 
    , m_col_IDU_Hab_IntIndex(-1)
    , m_col_IDU_Hab_PHS(-1)
@@ -217,6 +212,11 @@ PSWCP::PSWCP(void)
    , m_col_IDU_AREA(-1)
    , m_col_IDU_WF_M1_CAL(-1)
    , m_col_IDU_WF_RP(-1)
+   , m_col_IDU_WqS_rp(-1)
+   , m_col_IDU_WqP_rp(-1)
+   , m_col_IDU_WqMe_rp(-1)
+   , m_col_IDU_WqN_rp(-1)
+   , m_col_IDU_WqPa_rp(-1)
 
    , m_pAUWLayer(NULL)
    , m_pAUHLayer(NULL)
@@ -393,6 +393,12 @@ bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
    this->CheckCol(m_pIDULayer, m_col_IDU_IMP_PCT, "IMP_PCT", TYPE_INT, CC_AUTOADD);
    this->CheckCol(m_pIDULayer, m_col_IDU_WF_M1_CAL, "WF_M1_CAL", TYPE_FLOAT, CC_AUTOADD);
    this->CheckCol(m_pIDULayer, m_col_IDU_WF_RP, "WF_RP", TYPE_STRING, CC_AUTOADD);
+   //this->CheckCol(m_pIDULayer, m_col_IDU_SED_RP, "SED_RP", TYPE_STRING, CC_AUTOADD);
+   //this->CheckCol(m_pIDULayer, m_col_IDU_N_RP,   "N_RP",  TYPE_STRING, CC_AUTOADD);
+   //this->CheckCol(m_pIDULayer, m_col_IDU_P_RP,   "P_RP",  TYPE_STRING, CC_AUTOADD);
+   //this->CheckCol(m_pIDULayer, m_col_IDU_ME_RP,  "ME_RP", TYPE_STRING, CC_AUTOADD);
+   //this->CheckCol(m_pIDULayer, m_col_IDU_PA_RP,  "PA_RP", TYPE_STRING, CC_AUTOADD);
+
 
    // load/create index for getting IDUs for each AU from the idu layer
    CString indexPath;
@@ -423,18 +429,17 @@ bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
 
       int count = m_AUWIndex_IDU.GetRecordArray(m_col_IDU_AUW_ID, VData(auID), recordArray);
 
-      CString s_rp, p_rp, me_rp, n_rp, pa_rp;
+      CString s_rp, p_rp, me_rp, n_rp, pa_rp, wf_rp;
       GetTableValue(WQ_RP_TABLE, "SED_RP", row, s_rp);
       GetTableValue(WQ_RP_TABLE, "P_RP", row, p_rp);
       GetTableValue(WQ_RP_TABLE, "ME_RP", row, me_rp);
       GetTableValue(WQ_RP_TABLE, "N_RP", row, n_rp);
-      GetTableValue(WQ_RP_TABLE, "Pa_RP", row, pa_rp);
-      
+      GetTableValue(WQ_RP_TABLE, "PA_RP", row, pa_rp);
+      GetTableValue(WF_RP_TABLE, "WF_RP", row, wf_rp);
+
       float wf_m1_cal = 0;
       GetTableValue(WF_M1_TABLE, "WF_M1_CAL", row, wf_m1_cal);
 
-      CString wf_rp;
-      GetTableValue(WF_RP_TABLE, "WF_RP", row, wf_rp);
 
       int imp_pct = 0;
       GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
@@ -450,8 +455,10 @@ bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
             m_pIDULayer->SetData(idu, m_col_IDU_WqMe_rp, me_rp);
             m_pIDULayer->SetData(idu, m_col_IDU_WqN_rp, n_rp);
             m_pIDULayer->SetData(idu, m_col_IDU_WqPa_rp, pa_rp);
-            m_pIDULayer->SetData(idu, m_col_IDU_WF_M1_CAL, wf_m1_cal);
             m_pIDULayer->SetData(idu, m_col_IDU_WF_RP, wf_rp);
+
+            m_pIDULayer->SetData(idu, m_col_IDU_WF_M1_CAL, wf_m1_cal);
+            
             m_pIDULayer->SetData(idu, m_col_IDU_IMP_PCT, imp_pct);
             }
          }

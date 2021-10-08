@@ -33,6 +33,7 @@ Copywrite 2012 - Oregon State University
 #include "Typedefs.h"
 #include "SpatialIndex.h"
 #include "AttrIndex.h"
+#include "NeighborTable.h"
 
 
 class Query;
@@ -560,6 +561,7 @@ class  LIBSAPI  MapLayer
       QueryEngine *m_pQueryEngine;     // only used for labels for now
       CArray< int, int > m_selection;
 
+      NeighborTable* m_pNeighborTable;
       SpatialIndex *m_pSpatialIndex;
       AttrIndex    *m_pAttrIndex;
 
@@ -716,6 +718,9 @@ class  LIBSAPI  MapLayer
       int   GetNearbyPolysFromIndex(Poly *pPoly, int *neighbors, float *distances, int maxCount, float maxDistance,
          SI_METHOD method = SIM_NEAREST, MapLayer *pToLayer = NULL, void** ex = NULL) const;
 
+      int   GetNearbyPolysFromNeighborTable(Poly* pPoly, int* neighbors, int maxCount) const;
+
+
       float ComputeAdjacentLength(Poly *pThisPoly, Poly *pSourcePoly);
 
       SpatialIndex *GetSpatialIndex() { return m_pSpatialIndex; }
@@ -724,6 +729,8 @@ class  LIBSAPI  MapLayer
       float GetSpatialIndexMaxDistance() const { ASSERT(m_pSpatialIndex); return m_pSpatialIndex != NULL ? m_pSpatialIndex->GetMaxDistance() : -1.0f; }
       int   CompareSpatialIndexMethod(SI_METHOD *method)const;// returns 0 if method matches; -1 if no index; 1 if index but no match and sets arg method to actual method
       //int   MergePolys( Poly *polysToMerge, int polyCount, MapLayer *pToLayer, bool includeData );
+
+      int   LoadNeighborTable();
 
       //Poly *GetPolygonFromCoord( float x, float y, int *pIndex=NULL );
       int   AddPolygon(Poly *pPoly, bool updateExtents = true);

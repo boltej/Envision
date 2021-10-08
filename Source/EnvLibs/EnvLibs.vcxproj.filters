@@ -339,6 +339,15 @@
     <ClInclude Include="doy_enum.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="RTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RTreeIndex.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="NeighborTable.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
@@ -613,6 +622,12 @@
     </ClCompile>
     <ClCompile Include="randgen\Randweib.cpp">
       <Filter>Source Files\RandGen</Filter>
+    </ClCompile>
+    <ClCompile Include="RTreeIndex.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="NeighborTable.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

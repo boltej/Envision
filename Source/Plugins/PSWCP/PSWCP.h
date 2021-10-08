@@ -85,6 +85,11 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int m_col_IDU_AREA;
       int m_col_IDU_WF_M1_CAL;
       int m_col_IDU_WF_RP;
+      //int m_col_IDU_SED_RP;
+      //int m_col_IDU_N_RP;
+      //int m_col_IDU_P_RP;
+      //int m_col_IDU_ME_RP;
+      //int m_col_IDU_PA_RP;
 
       int m_col_IDU_HCI_Dist;
       int m_col_IDU_HCI_Shed;

@@ -2089,6 +2089,7 @@ MapLayer::MapLayer(Map *pMap)
    m_totalArea(-1.0f),
    m_pQueryEngine(NULL),
    m_pSpatialIndex(NULL),
+   m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
    m_layerType(LT_POLYGON),
    m_pPolyArray(NULL),
@@ -2160,6 +2161,7 @@ MapLayer::MapLayer(MapLayer &layer)
    m_totalArea(layer.m_totalArea),
    m_pQueryEngine(NULL),
    m_pSpatialIndex(NULL),
+   m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
    m_name(layer.m_name),
    m_path(layer.m_path),
@@ -2255,7 +2257,8 @@ MapLayer::MapLayer(MapLayer *pLayer, int overlayFlags)
    : m_pMap(pLayer->m_pMap),
    m_totalArea(pLayer->m_totalArea),
    m_pQueryEngine(NULL),
-   m_pSpatialIndex(NULL),
+   m_pSpatialIndex(NULL), 
+   m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
    m_name(pLayer->m_name),
    m_path(pLayer->m_path),
@@ -2389,6 +2392,9 @@ MapLayer::~MapLayer()
 
    if (m_pAttrIndex != NULL && !(m_overlayFlags & OT_SHARED_ATTRINDEX))
       delete m_pAttrIndex;
+
+   if (m_pNeighborTable != NULL)
+      delete m_pNeighborTable;
 
    //if (m_pQueryEngine != NULL && !(m_overlayFlags & OT_SHARED_QUERYENGINE))
    //   delete m_pQueryEngine;
@@ -9305,9 +9311,33 @@ int MapLayer::LoadSpatialIndex(LPCTSTR filename /*=NULL*/, float maxDistance /*=
    return 1;
    }
 
+int MapLayer::LoadNeighborTable()
+   {
+   if (m_pNeighborTable != NULL)
+      delete m_pNeighborTable;
+
+   m_pNeighborTable = new NeighborTable;
+
+   CString path;
+   PathManager::FindPath(m_path, path);
+
+   nsPath::CPath _path(path);
+   _path.RenameExtension("ntb");
+
+   // does the file exist?
+   struct stat buffer;
+   if (stat((LPCTSTR)_path, &buffer) == 0)
+      {
+      m_pNeighborTable->Read(_path);
+      return 1;
+      }
+
+   return -1;
+   }
+
 
 //--------------------------------------------------------------------------------------------------------------------------------
-// int MaSpLayer::CreateSpatialIndex()
+// int MapLayer::CreateSpatialIndex()
 //
 // creates a spatial index for use prior to call GetNearbyPolys()
 //
@@ -9479,9 +9509,34 @@ int MapLayer::GetNearbyPolysFromIndex(Poly *pPoly, int *neighbors, float *distan
    return count;  // actual number populated
    }
 
+
+int MapLayer::GetNearbyPolysFromNeighborTable(Poly* pPoly, int* neighbors, int maxCount) const
+   {
+   if (m_pNeighborTable == NULL)
+      return -1;
+   
+   CUIntArray* _neighbors = m_pNeighborTable->GetNeighbors(pPoly->m_id);
+
+   for (int i = 0; i < maxCount; i++)
+      {
+      if (i >= (int) _neighbors->GetSize())
+         break;
+
+      neighbors[i] = _neighbors->GetAt(i);
+      }
+
+   return (int) _neighbors->GetSize();   
+   }
+
+
+
+
 int MapLayer::GetNearbyPolys(Poly *pPoly, int *neighbors, float *distances, int maxCount, float maxDistance,
    SI_METHOD method/*=SIM_NEAREST*/, MapLayer *pToLayer /*=NULL*/) const
    {
+   if (maxDistance <= 0 && m_pNeighborTable != NULL)
+      return GetNearbyPolysFromNeighborTable(pPoly, neighbors, maxCount);
+
    if (m_pSpatialIndex != NULL && m_pSpatialIndex->IsBuilt() && m_pSpatialIndex->m_pLayer == this && (pToLayer == NULL || m_pSpatialIndex->m_pToLayer == pToLayer))
       return GetNearbyPolysFromIndex(pPoly, neighbors, distances, maxCount, maxDistance, method, pToLayer);
 

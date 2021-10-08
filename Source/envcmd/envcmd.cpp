@@ -49,7 +49,7 @@ int  ProcessCmdLine( int argc, TCHAR *argv[] );
 bool ProcessCmdFile( LPCTSTR cmdFile );
 void PrintUsage( void );
 
-enum CMD { UNDEFINED=0, INPUTFILE, OUTPUTFILE, SUBSET, CONVERT, SAVEFIELDS, RUNCMDFILE, FIXTOPOLOGY, ADDFIELD }; 
+enum CMD { UNDEFINED=0, INPUTFILE, OUTPUTFILE, SUBSET, CONVERT, SAVEFIELDS, RUNCMDFILE, FIXTOPOLOGY, ADDFIELD, NNCONVERT }; 
 
 struct CmdInfo
    {
@@ -67,7 +67,8 @@ int FixTopology( MapLayer *pLayer, LPCTSTR uniqueIdField, PCTSTR outfile );
 int AddField( MapLayer *pLayer,  LPCTSTR queryStr );
 int SetFieldsToSave(MapLayer *pLayer, LPCTSTR fieldSpec);
 int RunEnvision(LPCTSTR projectFile, int scenario);
-
+int NNConvert(LPCTSTR csvFile);
+void WriteRecord(int srcIndex, CUIntArray& nObjects, FILE* fOut, FILE* fOutT);
 
 
 // globals
@@ -141,8 +142,18 @@ int ProcessCmdLine( int argc, TCHAR *argv[] )
 
       else
          {
-         PrintUsage();
-         return -1;
+         //cmd = argv[1];
+         //if (*cmd == '/' && cmd[1] == 'n')
+         //   {
+         //   LPCTSTR csvFile = cmd + 3;   // skip the ':'!
+         //   NNConvert(csvFile);
+         //   return 1;
+         //   }
+         //else {
+
+            PrintUsage();
+            return -1;
+         //   }
          }
       }
 
@@ -194,13 +205,30 @@ int ProcessCmdLine( int argc, TCHAR *argv[] )
             cmds.Add( new CmdInfo( ADDFIELD, arg ) );
             break;
 
+         case 'n':    // nnconvert
+            cmds.Add(new CmdInfo(NNCONVERT, arg));
+            break;
+
          default:
             break;
          }
       }
 
    // done reading args, now interpret and run
-   CmdInfo *pCmdInfo = FindCmdInfo( RUNCMDFILE );  //   /c:cmdFile.xml
+   CmdInfo* pCmdNNC = FindCmdInfo(NNCONVERT); 
+   if (pCmdNNC)
+      return NNConvert(pCmdNNC->argument);
+
+
+   // done reading args, now interpret and run
+   CmdInfo* pCmdInfo = FindCmdInfo(RUNCMDFILE);  //   /c:cmdFile.xml
+   
+   // run from cmd file?
+   if (pCmdInfo)
+      return ProcessCmdFile(pCmdInfo->argument);
+
+   // done reading args, now interpret and run
+   pCmdInfo = FindCmdInfo( RUNCMDFILE );  //   /c:cmdFile.xml
    
    // run from cmd file?
    if ( pCmdInfo ) 
@@ -269,6 +297,194 @@ int ProcessCmdLine( int argc, TCHAR *argv[] )
 
    return 0;
    }
+
+int NNConvert(LPCTSTR dbfPath)
+   {
+   nsPath::CPath path(dbfPath);
+   nsPath::CPath outPath = path.RenameExtension("ntb");
+   nsPath::CPath outPathT = path.RenameExtension("ntt");
+ 
+   CString msg("Reading neighbor database ");
+   msg += dbfPath;
+   msg += "\n";
+   printf(msg);
+
+   //FILE* fIn = fopen(csvFile, "rt");
+   
+   VDataObj data(UNIT_MEASURE::U_UNDEFINED);
+   data.ReadDBF(dbfPath);
+
+   msg = "Writing output to ";
+   msg += outPath;
+   msg += "\n";
+   printf(msg);
+
+   FILE* fOut = fopen(outPath, "wb");
+   FILE* fOutT = fopen(outPathT, "wt");
+ 
+   //char buffer[64];
+   //fgets(buffer, 64, fIn);  // skip header
+ 
+   int srcIndex = -1;
+   CUIntArray nObjects;
+   int eol = 0xfffffff;
+   for (int row=0; row < data.GetRowCount(); row++)
+      {
+      if (row % 10000 == 0)
+         {
+         CString msg;
+         msg.Format("  processing record %i\n", row);
+         printf(msg);
+         }
+ 
+      // get srcIndex for this record
+      int _srcIndex = data.GetAsInt(0, row)-1;
+ 
+      // several possibilities:
+      // 1) this is the first record for the src index.  We might have skipped some, so add if needed
+      // 2) this is the non-first record for the source index
+ 
+      if (srcIndex != _srcIndex)  // new record?
+         {
+         if (srcIndex >= 0)  // not first?
+            WriteRecord(srcIndex, nObjects, fOut, fOutT);         // write last record if not firstpass?
+ 
+         // fill in any missing records
+         int missing = _srcIndex - srcIndex - 1;
+         nObjects.RemoveAll();
+ 
+         if (missing > 0)
+            {
+            for (int i = 0; i < missing; i++)
+               {
+               srcIndex++;
+               WriteRecord(srcIndex, nObjects, fOut, fOutT);
+               }
+            }
+ 
+         // start a new collection         
+         srcIndex = _srcIndex;
+         //int neighbor = data.GetAsInt(1, row) - 1;
+         //nObjects.Add(neighbor);
+         }
+      //else
+      //   {   // still reading same src
+      int neighbor = data.GetAsInt(1, row) - 1;
+      if ( data.GetAsInt(2,row) > 0)
+         nObjects.Add(neighbor);
+      //   }
+
+      }
+   // write last record
+   WriteRecord(srcIndex, nObjects, fOut, fOutT);
+ 
+   //fclose(fIn);
+   fclose(fOut);
+   fclose(fOutT);
+   return 0;
+   }
+
+int NNConvertCsv(LPCTSTR csvFile)
+   {
+   nsPath::CPath path(csvFile);
+   nsPath::CPath outPath = path.RenameExtension("ntb");
+   nsPath::CPath outPathT = path.RenameExtension("ntt");
+
+   CString msg("Writing NNConvert output to ");
+   msg += outPath;
+   msg += "\n";
+   printf(msg);
+
+   FILE* fIn = fopen(csvFile, "rt");
+   FILE* fOut = fopen(outPath, "wb");
+   FILE* fOutT = fopen(outPathT, "wt");
+
+   char buffer[64];
+   fgets(buffer, 64, fIn);  // skip header
+   
+   int srcIndex = -1;
+   CUIntArray nObjects;
+   int eol = 0xffff;
+   int ctr = 0;
+   while (fgets(buffer, 64, fIn))
+      {
+      if (ctr % 10000 == 0)
+         {
+         CString msg;
+         msg.Format("  processing record %i\n", ctr);
+         printf(msg);
+         }
+
+      //parse buffer(src_OBJECT,nbr_OBJECT,LENGTH,NODE_COUNT)
+      CStringArray tokens;
+      ::Tokenize(buffer, ",", tokens);
+
+      // get srcIndex for this record
+      int _srcIndex = atoi(tokens[0]) - 1;
+
+      // several possibilities:
+      // 1) this is the first record for the src index.  We might have skipped some, so add if needed
+      // 2) this is the non-first record for the source index
+
+      if (srcIndex != _srcIndex)  // new record?
+         {
+         if (srcIndex >= 0)  // not first?
+            WriteRecord(srcIndex, nObjects, fOut, fOutT);         // write last record if not firstpass?
+
+         // fill in any missing records
+         int missing = _srcIndex - srcIndex - 1;
+         nObjects.RemoveAll();
+
+         if (missing > 1)
+            {
+            for (int i = 0; i < missing; i++)
+               {
+               srcIndex++;
+               WriteRecord(srcIndex, nObjects, fOut, fOutT);
+               }
+            }
+
+         // start a new collection         
+         srcIndex = _srcIndex;
+         nObjects.Add(atoi(tokens[1]) - 1);
+         }
+      else
+         {   // still reading same src
+         nObjects.Add(atoi(tokens[1]) - 1);
+         }
+      }
+   WriteRecord(srcIndex, nObjects, fOut, fOutT);
+
+   fclose(fIn);
+   fclose(fOut);
+   fclose(fOutT);
+   return 0;
+   }
+
+
+void WriteRecord(int srcIndex, CUIntArray& nObjects, FILE *fOut, FILE *fOutT)
+   {
+   int count = (int)nObjects.GetSize();
+   int tmp = srcIndex;
+   fwrite(&tmp, sizeof(int), 1, fOut);
+   fwrite(&count, sizeof(int), 1, fOut);
+
+   fprintf(fOutT, "%i,%i", tmp, count);
+
+   for (int i = 0; i < count; i++)
+      {
+      int nn = nObjects[i];
+      fwrite(&nn, sizeof(int), 1, fOut);
+
+      fprintf(fOutT, ",%i", nn);
+      }
+
+   //int eol = 0xFFFF;
+   //fwrite(&eol, sizeof(int), 1, fOut);
+
+   fprintf(fOutT, "\n");
+   }
+
 
 
 int Subset( MapLayer *pLayer, LPCTSTR queryStr )

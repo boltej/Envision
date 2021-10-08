@@ -2270,7 +2270,7 @@ bool ExpandOutcomeFunction::Run( DeltaArray *pDeltaArray, int idu, int currentYe
          if ( nextIDU >= 0 )   // is this an expandable IDU?
             {
             Poly *pPoly = pLayer->GetPolygon( nextIDU );  // -1 );    // why -1?
-            int count = pLayer->GetNearbyPolys( pPoly, neighbors, NULL, 64, 1 );
+            int count = pLayer->GetNearbyPolys( pPoly, neighbors, NULL, 64, 0 );
 
             for ( int i=0; i < count; i++ )
                {

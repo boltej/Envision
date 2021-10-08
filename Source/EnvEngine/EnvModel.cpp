@@ -2046,6 +2046,8 @@ bool EnvModel::DoesPolicyApply( Policy *pPolicy, int cell )
    // check any constraints.  Note in the case of multiple policy constraints
    // if ANY of the constraints are overallocated, the policy is rejected
    int constraintCount = pPolicy->GetConstraintCount();
+   int colRepairCost = this->m_pIDULayer->GetFieldCol("repaircost");
+   int colRepairYr = this->m_pIDULayer->GetFieldCol("repair_yrs");
 
    for ( int i=0; i < constraintCount; i++ )
       {
@@ -2077,11 +2079,8 @@ bool EnvModel::DoesPolicyApply( Policy *pPolicy, int cell )
             float costIncrement = 0;
             bool found = pConstraint->GetInitialCost( cell, area, costIncrement );
 
-         
+            // Get mainenance info
             float repairCost = 0, repairYrs = 0;
-            int colRepairCost = this->m_pIDULayer->GetFieldCol("repaircost");
-            int colRepairYr = this->m_pIDULayer->GetFieldCol("repair_yrs");
-
             this->m_pIDULayer->GetData(cell, colRepairCost, repairCost);
             this->m_pIDULayer->GetData(cell, colRepairYr, repairYrs);
 

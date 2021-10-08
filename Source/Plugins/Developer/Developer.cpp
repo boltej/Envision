@@ -1541,11 +1541,13 @@ bool Developer::ExpandUGA(UGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
       UpdateIDU(pContext, pPriority->idu, m_colZone, zone, ADD_DELTA);
       }
 
+   float totalExpAreaAc = (resExpArea + commExpArea) * ACRE_PER_M2;
    float totalAreaAc = (resArea + commArea) * ACRE_PER_M2;
    startingArea *= ACRE_PER_M2;
+
    CString msg;
-   msg.Format("   Developer:  Expanded UGA %s by %.0f acres, from %.0f to %.0f acres (Event=%i)", 
-      pUGA->m_name, totalAreaAc, startingArea, startingArea+totalAreaAc, pUGA->m_currentEvent);
+   msg.Format("Developer:  UGA Expansion Event for %s:  Demand: %.0f acres, Achieved %.0f acres (from %.0f to %.0f acres, Event=%i)", 
+      pUGA->m_name, totalExpAreaAc, totalAreaAc, startingArea, startingArea+totalAreaAc, pUGA->m_currentEvent);
    Report::Log(msg);
    pUGA->m_currentEvent++;
 
@@ -1725,7 +1727,7 @@ bool Developer::PrioritizeUxAreas( EnvContext *pContext )
       int nearUGA = -1;
       pLayer->GetData(idu, m_colUxNearUga, nearUGA);
 
-      if (nearUGA < 0)
+      if (nearUGA < 0)  // skip if no nearUGA
          continue;
 
       float nearDist = 0;
@@ -1737,12 +1739,21 @@ bool Developer::PrioritizeUxAreas( EnvContext *pContext )
       // we now know the associated UGA id and distance,
       // use the distance to prioritize new UGA idus
 
-      // et the associated UGA record
+      // get the associated UGA record
       UGA *pUGA = FindUGAFromID( nearUGA );
       if ( pUGA == NULL )
          continue;
       if ( pUGA->m_use == false )
          continue;
+
+      ///////
+      //int lulcB, lulcA;
+      //int col = pLayer->GetFieldCol("LULC_B");
+      //pLayer->GetData(idu, col, lulcB);
+      //col = pLayer->GetFieldCol("LULC_A");
+      //pLayer->GetData(idu, col, lulcA);
+      //
+      ///////
 
       // get area from the IDU coverage
       float area = 0;
@@ -1777,9 +1788,10 @@ bool Developer::PrioritizeUxAreas( EnvContext *pContext )
          continue;
 
       // get priority from DUArea Expansion coverage
-      float priority = 0;
-      bool ok = pLayer->GetData( idu, m_colUxPriority, priority );
-      ASSERT( ok );
+      //float priority = 0;
+      float priority = nearDist;
+      //bool ok = pLayer->GetData(idu, m_colUxPriority, priority);
+      //ASSERT( ok );
       
       //pLayer->SetData( idu, m_colUga, -nearestUgb );   // for expansion areas, set to the negative of the associated DUArea
       

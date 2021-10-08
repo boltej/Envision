@@ -724,6 +724,7 @@ class ENVAPI EnvModel
       //int GetMetaProcessCount() { return (int) m_mpInfoArray.GetSize(); }
       //EnvModelProcess* GetMetaProcessInfo( int i ) { return m_mpInfoArray[ i ]; }
       //void AddMetaProcess( EnvModelProcess *ai ) { m_mpInfoArray.Add( ai ); }
+      int LoadNeighborTable();
       
       void  FreeLibraries();
 
