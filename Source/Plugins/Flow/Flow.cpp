@@ -10501,10 +10501,12 @@ float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, f
       pData->Get(0, j, time);
       pData->Get(2, j, obs); //add up all the discharge values and then...
       obsMean += obs;
-      obsMeanL += log10(obs);
+      if (obs!=0.0f)
+         obsMeanL += log10(obs);
       pData->Get(1, j, pred);
       predMean += pred;
-      predMeanL += log10(pred);
+      if (pred!=0.0f)
+         predMeanL += log10(pred);
       }
    obsMean = obsMean / ((float)n - (float)firstSample); // divide them by the sample size to generate the average.
    //predMean = predMean/((float)n-(float)firstSample); // divide them by the sample size to generate the average.
@@ -10525,8 +10527,13 @@ float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, f
       ve_numerator += (obs - pred);
       ve_denominator += obs;
 
-      double a = log10(obs) - log10(pred);
-      double b = log10(obs) - obsMeanL;
+      double a = 0.0f;
+      double b = 0.0f;
+      if (obs > 0.0f)
+        {
+         a = log10(obs) - log10(pred);
+         b = log10(obs) - obsMeanL;
+         }
       // double b = log10(obs) - log10(obsMean);
       errorSumLN += pow(a, 2);
       errorSumDenomLN += pow(b, 2);
@@ -10555,10 +10562,12 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
       pData->Get(0, j, time);
       pData->Get(2, j, obs); //add up all the discharge values and then...
       obsMean += obs;
-      obsMeanL += log10(obs);
+      if (obs != 0.0f)
+          obsMeanL += log10(obs);
       pData->Get(1, j, pred);
       predMean += pred;
-      predMeanL += log10(pred);
+      if (pred != 0.0f)
+          predMeanL += log10(pred);
    }
    obsMean = obsMean / ((float)n - (float)firstSample); // divide them by the sample size to generate the average.
                                                         //predMean = predMean/((float)n-(float)firstSample); // divide them by the sample size to generate the average.
@@ -11919,7 +11928,7 @@ bool FlowModel::CollectModelOutput(void)
             outputArray[index++] = pOutput->m_value;
             }
          if (pOutput->m_pDataObjObs != NULL)
-            outputArray[index] = pOutput->m_pDataObjObs->IGet((float)m_currentTime);
+            outputArray[index] = pOutput->m_pDataObjObs->IGet((float)m_currentTime-2.0f);
          }
 
       pGroup->m_pDataObj->AppendRow(outputArray, moCount + 1);
