@@ -9313,10 +9313,10 @@ int MapLayer::LoadSpatialIndex(LPCTSTR filename /*=NULL*/, float maxDistance /*=
 
 int MapLayer::LoadNeighborTable()
    {
-   if (m_pNeighborTable != NULL)
+   if (m_pNeighborTable != NULL) {
       delete m_pNeighborTable;
-
-   m_pNeighborTable = new NeighborTable;
+      m_pNeighborTable = NULL;
+      }
 
    CString path;
    PathManager::FindPath(m_path, path);
@@ -9328,6 +9328,8 @@ int MapLayer::LoadNeighborTable()
    struct stat buffer;
    if (stat((LPCTSTR)_path, &buffer) == 0)
       {
+      m_pNeighborTable = new NeighborTable;
+
       m_pNeighborTable->Read(_path);
       return 1;
       }

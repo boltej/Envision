@@ -463,14 +463,6 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             // if neighbor table exists, load it
             m_pEnvModel->m_pIDULayer->LoadNeighborTable();
 
-            //////////
-            Poly* pPoly = m_pEnvModel->m_pIDULayer->GetPolygon(0);
-            int neighbors[64];
-            count = m_pEnvModel->m_pIDULayer->GetNearbyPolys(pPoly, neighbors, NULL, 64, 0);
-
-
-            /////////
-
             CString fullPath;
             PathManager::FindPath( path, fullPath );
 
