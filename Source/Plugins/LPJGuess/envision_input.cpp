@@ -89,11 +89,11 @@ void ENVInput::init() {
 	CString path;
 	//tmpPath = PathManager::GetPath(PM_IDU_DIR);//directory with the idu
 	if (PathManager::FindPath(file_gridlist, path) < 0)
-	{
+	   {
 		CString msg;
 		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_gridlist);
 		Report::LogError(msg);
-	}
+	   }
 
 	FILE* in_grid = fopen(path, "r");
 	if (!in_grid) fail("initio: could not open %s for input", (char*)file_gridlist);
@@ -132,7 +132,14 @@ void ENVInput::init() {
 	fclose(in_grid);
 
 	// Read CO2 data from file
-	co2.load_file(param["file_co2"].str);
+    xtring file_co2 = param["file_co2"].str;
+	if (PathManager::FindPath(file_co2, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_co2);
+		Report::LogError(msg);
+	}
+	co2.load_file(path);
 	// Open landcover files
 	landcover_input.init();
 	// Open management files
@@ -192,7 +199,14 @@ bool ENVInput::searchmydata(double longitude, double latitude) {
 	// end of test
 
 	// temp
-	in = fopen(file_temp, "r");
+	CString path;
+	if (PathManager::FindPath(file_temp, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_temp);
+		Report::LogError(msg);
+	}
+	in = fopen(path, "r");
 
 	if (!in) fail("readenv: could not open %s for input", (char*)file_temp);
 	found = false;
@@ -221,7 +235,14 @@ bool ENVInput::searchmydata(double longitude, double latitude) {
 	fclose(in);
 
 	// dtr
-	in = fopen(file_dtr, "r");
+	
+	if (PathManager::FindPath(file_dtr, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_dtr);
+		Report::LogError(msg);
+	}
+	in = fopen(path, "r");
 
 	if (!in) fail("readenv: could not open %s for input", (char*)file_dtr);
 	found = false;
@@ -249,7 +270,14 @@ bool ENVInput::searchmydata(double longitude, double latitude) {
 	fclose(in);
 
 	// prec
-	in = fopen(file_prec, "r");
+	
+	if (PathManager::FindPath(file_prec, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_prec);
+		Report::LogError(msg);
+	}
+	in = fopen(path, "r");
 
 	if (!in) fail("readenv: could not open %s for input", (char*)file_prec);
 	found = false;
@@ -276,7 +304,14 @@ bool ENVInput::searchmydata(double longitude, double latitude) {
 	fclose(in);
 
 	// sun
-	in = fopen(file_sun, "r");
+	
+	if (PathManager::FindPath(file_sun, path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), file_sun);
+		Report::LogError(msg);
+	}
+	in = fopen(path, "r");
 
 	if (!in) fail("readenv: could not open %s for input", (char*)file_sun);
 	found = false;
