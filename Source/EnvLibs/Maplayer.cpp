@@ -13178,6 +13178,16 @@ int MapLayer::GetPatchSizes(Query* pPatchQuery, int colArea, CArray< float, floa
 
 bool MapLayer::IsNextTo(int poly0, int poly1)
    {
+   if (this->m_pNeighborTable)
+      {
+      CUIntArray* pNeighbors = m_pNeighborTable->GetNeighbors(poly0);
+      INT_PTR count = pNeighbors->GetSize();
+      for (INT_PTR i = 0; i < count; i++)
+         if (pNeighbors->GetAt(i) == poly1)
+            return true;
+      return false;
+      }
+
    Poly *p0 = GetPolygon(poly0);
    Poly *p1 = GetPolygon(poly1);
 
@@ -13213,6 +13223,17 @@ bool MapLayer::IsNextTo(int poly0, int poly1)
 int MapLayer::GetNextToPolys(int poly, CArray< int, int > &nextToArray)
    {
    nextToArray.RemoveAll();
+
+   if (this->m_pNeighborTable)
+      {
+      CUIntArray *pNeighbors = this->m_pNeighborTable->GetNeighbors(poly);
+      nextToArray.SetSize(pNeighbors->GetSize());
+      for (INT_PTR i=0; i < pNeighbors->GetSize(); i++ )
+         nextToArray[i] = pNeighbors->GetAt(i);
+
+      return (int) pNeighbors->GetSize();
+      }
+
 
    for (int i = 0; i < GetPolygonCount(); i++)
       {

@@ -47,8 +47,13 @@ Copywrite 2012 - Oregon State University
 //   in an aea sepcieifed with a query.
 //
 // <uga_expansion> - defines how UGAs (urban growth areas) can expand as population is added
-//    NOT IMPLEMENTED
-//
+//    Columns:
+//       UGA_ID:     (in) IDU field indicating existing UGAs
+//       Zone:       (in) Contains zoning codes
+//       UX_DIST:    (in) Distance to the closest UGA
+//       UX_UGA_ID:  (in) if >= 0, identifies an expansion IDU for the given UGA
+//       UX_PRIORTY: (out) ranking of priority for consideraion of UGA expansions
+//       UX_EVENT:   (out) contains the expansion eventID if the IDU is annexed
 
 enum { INIT_NDUS_FROM_NONE=0, INIT_NDUS_FROM_POPDENS=1,INIT_NDUS_FROM_DULAYER=2 };
 
@@ -124,6 +129,8 @@ public:
       : m_id( -1 )
       , m_index( -1 )
       , m_use( true )
+      , m_zoneRes(-1)
+      , m_zoneComm(-1)
       , m_pResQuery( NULL )
       , m_pCommQuery( NULL )
       , m_estGrowthRate( 0.01f )
@@ -139,7 +146,10 @@ public:
       , m_newPopulation( 0 )     
       , m_popIncr( 0 )           
       , m_capacity( 0 )          
-      , m_pctAvailCap( 0 )       
+      , m_pctAvailCap( 0 )
+      , m_resExpArea(0)
+      , m_commExpArea(0)
+      , m_totalExpArea(0)
       , m_avgAllowedDensity( 0 ) 
       , m_avgActualDensity( 0 ) 
       , m_nextResPriority(0)     // ptrs to current spot in list
@@ -158,8 +168,8 @@ public:
    int  m_id;               // uga code
    int  m_index;            // offset in ugaExpArray
    bool m_use;                  
-   //int  m_zoneRes;
-   //int  m_zoneComm;
+   int  m_zoneRes;
+   int  m_zoneComm;
    bool m_computeStartPop;
    
    float m_estGrowthRate;  // annual estimated growth rate, decimal percent (required)
@@ -168,6 +178,9 @@ public:
    float m_ppdu;           // people per dwelling unit 
 
    float m_startPopulation;         // people - set in init 
+   float m_resExpArea;              // m2
+   float m_commExpArea;             // m2
+   float m_totalExpArea;              // m2
    float m_currentArea;             // m2
    float m_currentResArea;          // m2
    float m_currentCommArea;         // m2
@@ -192,14 +205,25 @@ public:
 class UxScenario
 {
 public:
-   UxScenario( void ) : m_id( -1 ) { }
+   UxScenario(void)
+      : m_id(-1)
+      , m_planHorizon(20)
+      , m_expandTrigger(0.50f)
+      , m_pResQuery(NULL)
+      , m_pCommQuery(NULL)
+      {}
 
    int      m_id;
    CString  m_name;
+   int m_planHorizon;
+   float m_expandTrigger;  // fraction of avail capacity that triggers an expansion event
+   CString m_resQuery;
+   CString m_commQuery;
+   Query* m_pResQuery;
+   Query* m_pCommQuery;
 
    PtrArray< UGA > m_uxArray;
 };
-
 
 class ZoneInfo
 {

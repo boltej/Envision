@@ -160,6 +160,15 @@ bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
       pLayer->CheckCol(m_colPopDensInit, "POPDENS0", TYPE_FLOAT, CC_AUTOADD );
       pLayer->CopyColData( m_colPopDensInit, m_colPopDens );  
 
+      m_pCurrentUxScenario = this->FindUxScenarioFromID(m_currUxScenarioID);
+      for (int i = 0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++)
+         {
+         UGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+         pUGA->m_commExpArea = 0;
+         pUGA->m_resExpArea = 0;
+         pUGA->m_totalExpArea = 0;
+         }
+
       // prioritize UX expansion areas  (this should be moved to init????
       PrioritizeUxAreas(pContext);
       }
@@ -269,7 +278,10 @@ bool Developer::InitRun( EnvContext *pContext, bool useInitialSeed )
 
       for ( int i=0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++ )
          {
-         //UGA *pUGA= m_pCurrentUxScenario->m_uxArray[ i ];
+         UGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+         pUGA->m_commExpArea = 0;
+         pUGA->m_resExpArea = 0;
+         pUGA->m_totalExpArea = 0;
          }
       }
 
@@ -891,11 +903,12 @@ void Developer::InitOutput()
       {
       if (m_pUxData == NULL)
          {
+         // get current scenario
          m_pCurrentUxScenario = this->FindUxScenarioFromID(m_currUxScenarioID);
 
-
          // currentPopulation, currentArea, newPopulation, pctAvilCapacity
-         int cols = 1 + ((int)m_pCurrentUxScenario->m_uxArray.GetSize() * 4);
+         int ugaCount = (int)m_pCurrentUxScenario->m_uxArray.GetSize();
+         int cols = 1 + ((ugaCount+1) * 7);
          m_pUxData = new FDataObj(cols, 0, U_YEARS);
          ASSERT(m_pUxData != NULL);
          m_pUxData->SetName("Developer");
@@ -911,7 +924,19 @@ void Developer::InitOutput()
             m_pUxData->SetLabel(col++, _T(name + ".Area (ac)"));
             m_pUxData->SetLabel(col++, _T(name + ".New Population"));
             m_pUxData->SetLabel(col++, _T(name + ".Pct Available Capacity"));
+            m_pUxData->SetLabel(col++, _T(name + ".Res Expansion Area (ac)"));
+            m_pUxData->SetLabel(col++, _T(name + ".Comm Expansion Area (ac)"));
+            m_pUxData->SetLabel(col++, _T(name + ".Total Expansion Area (ac)"));
             }
+         // add totals
+         m_pUxData->SetLabel(col++, _T("Total.Population"));
+         m_pUxData->SetLabel(col++, _T("Total.Area (ac)"));
+         m_pUxData->SetLabel(col++, _T("Total.New Population"));
+         m_pUxData->SetLabel(col++, _T("Total.Pct Available Capacity"));
+         m_pUxData->SetLabel(col++, _T("Total.Res Expansion Area (ac)"));
+         m_pUxData->SetLabel(col++, _T("Total.Comm Expansion Area (ac)"));
+         m_pUxData->SetLabel(col++, _T("Total.Total Expansion Area (ac)"));
+         ASSERT(col == cols);
          }
       }
 
@@ -958,21 +983,48 @@ void Developer::CollectOutput( int year )
       ASSERT(m_pUxData != NULL);
 
       // currentPopulation, currentArea, newPopulation, pctAvilCapacity
-      int cols = 1 + ((int)m_pCurrentUxScenario->m_uxArray.GetSize() * 4);
+      int ugaCount = (int)m_pCurrentUxScenario->m_uxArray.GetSize();
+      int cols = 1 + ((ugaCount+1) * 7);
 
       float* data = new float[cols];
       data[0] = year;
 
+      float totalPop = 0.0f;
+      float totalAc = 0.0f;
+      float totalNewPop = 0.0f;
+      float totalPctAvailCap = 0.0f;
+      float totalResExpAc = 0.0f;
+      float totalCommExpAc = 0.0f;
+      float totalExpAc = 0.0f;
       int col = 1;
       for (int i = 0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++)
          {
          UGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+
          data[col++] = pUGA->m_currentPopulation;
          data[col++] = pUGA->m_currentArea * ACRE_PER_M2;
          data[col++] = pUGA->m_newPopulation;
          data[col++] = pUGA->m_pctAvailCap;
+         data[col++] = pUGA->m_resExpArea * ACRE_PER_M2;
+         data[col++] = pUGA->m_commExpArea * ACRE_PER_M2;
+         data[col++] = pUGA->m_totalExpArea * ACRE_PER_M2;
+         totalPop         += pUGA->m_currentPopulation;
+         totalAc          += pUGA->m_currentArea * ACRE_PER_M2;
+         totalNewPop      += pUGA->m_newPopulation;
+         totalPctAvailCap += (pUGA->m_pctAvailCap * pUGA->m_currentArea * ACRE_PER_M2);  //area weighted by UGA area
+         totalResExpAc    += pUGA->m_resExpArea * ACRE_PER_M2;
+         totalCommExpAc   += pUGA->m_commExpArea * ACRE_PER_M2;
+         totalExpAc       += pUGA->m_totalExpArea * ACRE_PER_M2;
          }
 
+      data[col++] = totalPop;
+      data[col++] = totalAc;
+      data[col++] = totalNewPop;
+      data[col++] = totalPctAvailCap / totalAc;
+      data[col++] = totalResExpAc;
+      data[col++] = totalCommExpAc;
+      data[col++] = totalExpAc;
+      ASSERT(col == cols);
       m_pUxData->AppendRow(data, cols);
       delete[] data;
       }
@@ -1289,8 +1341,12 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             // attr                 type           address                      isReq  checkCol
             { "name",             TYPE_CSTRING,   &(pUxScn->m_name),            true,    0 },
             { "id",               TYPE_INT,       &(pUxScn->m_id),              true,    0 },
+            { "plan_horizon",     TYPE_INT,       &(pUxScn->m_planHorizon),     true,    0 },
+            { "expand_trigger",   TYPE_FLOAT,     &(pUxScn->m_expandTrigger),   true,    0 },
+            { "res_query",        TYPE_CSTRING,   &(pUxScn->m_resQuery),        true,    0 },
+            { "comm_query",       TYPE_CSTRING,   &(pUxScn->m_commQuery),       true,    0 },
             { NULL,               TYPE_NULL,      NULL,                         false,   0 } };
-         
+
          ok = TiXmlGetAttributes( pXmlUxScn, uxScnAttrs, filename );
          if ( ! ok )
             {
@@ -1301,8 +1357,11 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             return false;
             }
 
+         // compile res, commercial queries
+         pUxScn->m_pResQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_resQuery, 0, pUxScn->m_name + "_res");
+         pUxScn->m_pCommQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_commQuery, 0, pUxScn->m_name + "_comm");
+
          // have scenario, start adding UGA element
-         
          TiXmlElement *pXmlUga = pXmlUxScn->FirstChildElement( _T("uga_expansion" ) );
          
          while ( pXmlUga != NULL )
@@ -1318,8 +1377,8 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                { "res_comm_ratio",   TYPE_FLOAT,     &(pUGA->m_resCommRatio),    true,    0 },
                { "res_constraint",   TYPE_CSTRING,   &(pUGA->m_resQuery),        true,    0 },
                { "comm_constraint",  TYPE_CSTRING,   &(pUGA->m_commQuery),       true,    0 },
-               //{ "res_zone",         TYPE_INT,       &(pUGA->m_zoneRes),         false,   0 },
-               //{ "comm_zone",        TYPE_INT,       &(pUGA->m_zoneComm),        false,   0 },
+               { "res_zone",         TYPE_INT,       &(pUGA->m_zoneRes),         false,   0 },
+               { "comm_zone",        TYPE_INT,       &(pUGA->m_zoneComm),        false,   0 },
                { "startPop",         TYPE_FLOAT,     &(pUGA->m_startPopulation), false,   0 },
                { "ppdu",             TYPE_FLOAT,     &(pUGA->m_ppdu),            false,   0 },
                { NULL,               TYPE_NULL,      NULL,                          false,   0 } };
@@ -1480,7 +1539,7 @@ bool Developer::ExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
       UGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
 
       // time to trigger a UGA expansion?
-      if (pUGA->m_pctAvailCap < 0.50f)   // decimal percent
+      if (pUGA->m_pctAvailCap < m_pCurrentUxScenario->m_expandTrigger)   // decimal percent
          {
          ExpandUGA(pUGA, pContext, pLayer);
          }
@@ -1494,6 +1553,7 @@ bool Developer::ExpandUGA(UGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
    // time to expand this UGA.  Basic idea is to:
    //  1) determine the area needed to accommodate new growth
    //  2) pull items of the priority list to add to the UGA until area requirement met
+   MapLayer* pIDULayer = (MapLayer*)pContext->pMapLayer;
 
    float startingArea = pUGA->m_currentArea;
 
@@ -1502,43 +1562,125 @@ bool Developer::ExpandUGA(UGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
    float commExpArea = resExpArea / pUGA->m_resCommRatio;         // add in commercial area
 
    float resArea = 0;
-   for (int i = pUGA->m_nextResPriority; i < pUGA->m_priorityListRes.GetSize(); pUGA->m_nextResPriority++)
+   for (int i = pUGA->m_nextResPriority; i < pUGA->m_priorityListRes.GetSize(); i++)
       {
-      // have we annexed enough area
+      pUGA->m_nextResPriority++;
+
+      // have we annexed enough area? then stop
       if (resArea >= resExpArea)
          break;  // all done
 
+      // get the next IDU on the priority list
       UGA_PRIORITY* pPriority = pUGA->m_priorityListRes[i];
 
+      int uga;
+      pLayer->GetData(pPriority->idu, m_colUga, uga);
+
+      // has this idu already been annexed?  Then skip it
+      if (uga > 0)
+         continue;
+
+      // expand to nearby IDUs
+      // Inputs:
+      //   idu = index of the kernal (nucleus) polygon
+      //   pPatchQuery = the column storing the value to be compared to the value
+      //   colArea = column containing poly area.  if -1, areas are ignored, including maxExpandArea; only the expand array is populated
+      //   maxExpandArea = upper limit expansion size, if a positive value.  If negative, it is ignored and the max patch size is not limited
+      //
+      // returns: 
+      //   1) area of the expansion area (NOT including the nucleus polygon) and 
+      //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
+      //      were included in the patch, negative values indicate they were considered but where not included in the patch
+      //------------------------------------------------------------------------------------------------------------------------------------
+      // the max expansion area is the lesser of the size of the needed land area and 100ha
+      float maxExpandArea = std::fminf(1000000.0f, resExpArea); 
+      // target area
+      CArray< int, int > expandArray;
+      float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, pUGA->m_pResQuery, m_colArea,
+                  maxExpandArea, expandArray);
+
+      // add in kernal IDU area to accumlating total
       float area = 0;
       pLayer->GetData(pPriority->idu, m_colArea, area);
       resArea += area;
+      pUGA->m_resExpArea += area;
+      pUGA->m_totalExpArea += area;
 
-      UpdateIDU(pContext, pPriority->idu, m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
-      UpdateIDU(pContext, pPriority->idu, m_colUxEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
-
-      int zone = 44;  // HACK ALERT!
-      UpdateIDU(pContext, pPriority->idu, m_colZone, zone, ADD_DELTA);
+      // annex all expanded polygons
+      for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
+         {
+         if (expandArray[j] >= 0)
+            {
+            pLayer->GetData(expandArray[j], m_colArea, area);
+            resArea += area;
+            pUGA->m_resExpArea += area;
+            pUGA->m_totalExpArea += area;
+            UpdateIDU(pContext, expandArray[j], m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
+            UpdateIDU(pContext, expandArray[j], m_colUxEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
+            UpdateIDU(pContext, expandArray[j], m_colZone, pUGA->m_zoneRes, ADD_DELTA);
+            }
+         }
       }
 
    float commArea = 0;
-   for (int i = pUGA->m_nextCommPriority; i < pUGA->m_priorityListComm.GetSize(); pUGA->m_nextCommPriority++)
+   for (int i = pUGA->m_nextCommPriority; i < pUGA->m_priorityListComm.GetSize(); i++)
       {
-      // have we annexed enough area
+      pUGA->m_nextCommPriority++;
+      
+      // have we annexed enough area? then stop
       if (commArea >= commExpArea)
          break;  // all done
 
+      // get the next IDU on the priority list
       UGA_PRIORITY* pPriority = pUGA->m_priorityListComm[i];
 
+      int uga;
+      pLayer->GetData(pPriority->idu, m_colUga, uga);
+
+      // has this idu already been annexed?  Then skip it
+      if (uga > 0)
+         continue;
+
+      // expand to nearby IDUs
+      // Inputs:
+      //   idu = index of the kernal (nucleus) polygon
+      //   pPatchQuery = the column storing the value to be compared to the value
+      //   colArea = column containing poly area.  if -1, areas are ignored, including maxExpandArea; only the expand array is populated
+      //   maxExpandArea = upper limit expansion size, if a positive value.  If negative, it is ignored and the max patch size is not limited
+      //
+      // returns: 
+      //   1) area of the expansion area (NOT including the nucleus polygon) and 
+      //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
+      //      were included in the patch, negative values indicate they were considered but where not included in the patch
+      //------------------------------------------------------------------------------------------------------------------------------------
+      // the max expansion area is the lesser of the size of the needed land area and 100ha
+      float maxExpandArea = std::fminf(1000000.0f, commExpArea);
+      // target area
+      CArray< int, int > expandArray;
+      float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, pUGA->m_pCommQuery, m_colArea,
+         maxExpandArea, expandArray);
+
+      // add in kernal IDU area to accumlating total
       float area = 0;
       pLayer->GetData(pPriority->idu, m_colArea, area);
       commArea += area;
+      pUGA->m_commExpArea += area;
+      pUGA->m_totalExpArea += area;
 
-      UpdateIDU(pContext, pPriority->idu, m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
-      UpdateIDU(pContext, pPriority->idu, m_colUxEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
-
-      int zone = 65;  // HACK ALERT!
-      UpdateIDU(pContext, pPriority->idu, m_colZone, zone, ADD_DELTA);
+      // annex all expanded polygons
+      for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
+         {
+         if (expandArray[j] >= 0)
+            {
+            pLayer->GetData(expandArray[j], m_colArea, area);
+            commArea += area;
+            pUGA->m_commExpArea += area;
+            pUGA->m_totalExpArea += area;
+            UpdateIDU(pContext, expandArray[j], m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
+            UpdateIDU(pContext, expandArray[j], m_colUxEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
+            UpdateIDU(pContext, expandArray[j], m_colZone, pUGA->m_zoneComm, ADD_DELTA);
+            }
+         }
       }
 
    float totalExpAreaAc = (resExpArea + commExpArea) * ACRE_PER_M2;
