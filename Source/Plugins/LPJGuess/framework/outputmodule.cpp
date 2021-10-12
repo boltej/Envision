@@ -12,6 +12,8 @@
 #include "parameters.h"
 #include "guess.h"
 
+#include <PathManager.h>
+
 namespace GuessOutput {
 
 OutputChannel* output_channel;
@@ -56,9 +58,16 @@ void OutputModuleContainer::init() {
 	if (outputdirectory=="") {
 		fail("No output directory given in the .ins file!");
 	}
+	CString path;
 
+	if (PathManager::FindPath(outputdirectory.c_str(), path) < 0)
+	{
+		CString msg;
+		msg.Format(_T("LPJ: Specified source table '%s'' can not be found.  This table will be ignored"), path);
+		Report::LogError(msg);
+	}
 	// Create the output channel
-	output_channel = new FileOutputChannel(outputdirectory.c_str(),
+	output_channel = new FileOutputChannel(path,
 	                                       coordinates_precision);
 
 	for (size_t i = 0; i < modules.size(); ++i) {

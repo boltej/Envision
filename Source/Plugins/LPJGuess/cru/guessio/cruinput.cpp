@@ -178,6 +178,7 @@ bool CRUInput::searchmydata(double longitude,double latitude) {
 	// end of test
 
 	// temp
+
 	in = fopen(file_temp, "r");
 
 	if (!in) fail("readenv: could not open %s for input", (char*)file_temp);

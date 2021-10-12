@@ -225,7 +225,7 @@ int Climate_Metrics::GetCIGWaterTemperature(FlowContext* pFlowContext)
 			float x = m_pCoeff->GetAsFloat(11, site);
 			float y = m_pCoeff->GetAsFloat(12, site);
 			float mu = m_pCoeff->GetAsFloat(9, site); 
-		   float gamma = m_pCoeff->GetAsFloat(8, site);
+		    float gamma = m_pCoeff->GetAsFloat(8, site);
 			float beta = m_pCoeff->GetAsFloat(7, site);
 			float alpha = m_pCoeff->GetAsFloat(6, site);
 			//tw = mu + (alpha - mu) / 1 + exp^(gamma(beta-Tair))
