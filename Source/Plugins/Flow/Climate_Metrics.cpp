@@ -49,6 +49,7 @@ Climate_Metrics::Climate_Metrics(FlowModel* pFlowModel, LPCTSTR name)
 	, m_pModeledTemperature(NULL)
 	, m_pCoeff(NULL)
 	, m_maxYearlyStreamTemp(0.0f)
+	, m_numWeeks22(0)
 {
 	this->m_timing = GMT_START_STEP;
 }
@@ -86,6 +87,7 @@ bool Climate_Metrics::Init(FlowContext* pFlowContext)
 	m_pModeledTemperature = new FDataObj(m_pCoeff->GetRowCount()+1, 0, 0.0f, U_UNDEFINED);
 	pFlowContext->pFlowModel->AddOutputVar("Simulated Steam Temperature", m_pModeledTemperature, "");
 	pFlowContext->pFlowModel->AddOutputVar(_T("Max Summer Stream Temperature"), m_maxYearlyStreamTemp, "");
+	pFlowContext->pFlowModel->AddOutputVar(_T("# Weeks > 22 C"), m_numWeeks22, "");
 	LPCTSTR name = "Date";
 	m_pModeledTemperature->SetLabel(0, name);
 	for (int i=0;i<m_pCoeff->GetRowCount();i++)
@@ -243,6 +245,8 @@ int Climate_Metrics::GetCIGWaterTemperature(FlowContext* pFlowContext)
 			modeledTemperatureData[static_cast<INT_PTR>(site)+1] = tw;
 			if (tw>maxTemp)
 			   maxTemp=tw;
+			if (tw > 22.0f)
+				m_numWeeks22++;
 			}//end of sites
 		doy += 7;
 		m_pModeledTemperature->AppendRow(modeledTemperatureData);

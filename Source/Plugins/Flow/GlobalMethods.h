@@ -534,6 +534,7 @@ protected:
     FDataObj *m_pModeledTemperature;
     VDataObj* m_pCoeff;
     float m_maxYearlyStreamTemp;
+    int m_numWeeks22;
 
     CArray<int, int> m_climateIndex;//index into netCDFs for each location (Stream Temperature)
 

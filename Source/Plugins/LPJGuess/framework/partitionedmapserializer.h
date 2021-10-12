@@ -257,7 +257,8 @@ public:
 			}
 		}
 
-		throw PartitionedMapSerializerError("failed to find element to deserialize");
+		//throw PartitionedMapSerializerError("failed to find element to deserialize");
+
 	}
 
 	/// Reads in several elements from disk
