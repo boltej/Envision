@@ -337,7 +337,7 @@ void PolyEdgeIndex::Subdivide( Node *pNode )
                gotIt = true;
             #endif
             PolyEdgeArray *pChildEdgeArray = (PolyEdgeArray*) pNode->m_pChild[j]->m_pData;
-            PolyEdge edge(edge.m_polyIndex, edge.m_vertexIndex);
+            PolyEdge edge{};(edge.m_polyIndex, edge.m_vertexIndex);
             pChildEdgeArray->Add( edge );
             }
          }

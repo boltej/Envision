@@ -290,15 +290,15 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 	auto_ptr<GuessSerializer> serializer;
 	auto_ptr<GuessDeserializer> deserializer;
-
-	/*if (save_state) {
+	/*
+   if (save_state) {
 		m_serializer = new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes());
 	}
 
 	if (restart) {
 		m_deserializer =  new GuessDeserializer(state_path);
-	}*/
-	
+	}
+	*/
 	if (save_state) {
 		serializer = auto_ptr<GuessSerializer>(new GuessSerializer(state_path, GuessParallel::get_rank(), GuessParallel::get_num_processes()));
 	}
