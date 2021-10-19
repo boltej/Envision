@@ -1343,8 +1343,8 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             { "id",               TYPE_INT,       &(pUxScn->m_id),              true,    0 },
             { "plan_horizon",     TYPE_INT,       &(pUxScn->m_planHorizon),     true,    0 },
             { "expand_trigger",   TYPE_FLOAT,     &(pUxScn->m_expandTrigger),   true,    0 },
-            { "res_query",        TYPE_CSTRING,   &(pUxScn->m_resQuery),        true,    0 },
-            { "comm_query",       TYPE_CSTRING,   &(pUxScn->m_commQuery),       true,    0 },
+            //{ "res_query",        TYPE_CSTRING,   &(pUxScn->m_resQuery),        true,    0 },
+            //{ "comm_query",       TYPE_CSTRING,   &(pUxScn->m_commQuery),       true,    0 },
             { NULL,               TYPE_NULL,      NULL,                         false,   0 } };
 
          ok = TiXmlGetAttributes( pXmlUxScn, uxScnAttrs, filename );
@@ -1358,8 +1358,8 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             }
 
          // compile res, commercial queries
-         pUxScn->m_pResQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_resQuery, 0, pUxScn->m_name + "_res");
-         pUxScn->m_pCommQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_commQuery, 0, pUxScn->m_name + "_comm");
+         //pUxScn->m_pResQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_resQuery, 0, pUxScn->m_name + "_res");
+         //pUxScn->m_pCommQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_commQuery, 0, pUxScn->m_name + "_comm");
 
          // have scenario, start adding UGA element
          TiXmlElement *pXmlUga = pXmlUxScn->FirstChildElement( _T("uga_expansion" ) );
