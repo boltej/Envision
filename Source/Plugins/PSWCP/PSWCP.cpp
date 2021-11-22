@@ -146,6 +146,10 @@ TABLECOL colInfo[] = {
       { WF_M1_TABLE, NULL, -1, "STS"       },
       { WF_M1_TABLE, NULL, -1, "WF_M1_CAL" },
 
+      { WF_M2_TABLE, NULL, -1, "FL"        },
+      { WF_M2_TABLE, NULL, -1, "IMP"       },
+      { WF_M2_TABLE, NULL, -1, "DDE"       },
+      { WF_M2_TABLE, NULL, -1, "D_DE"      },
       { WF_M2_TABLE, NULL, -1, "UW"        },
       { WF_M2_TABLE, NULL, -1, "RW"        },
       { WF_M2_TABLE, NULL, -1, "DW"        },
@@ -164,7 +168,6 @@ TABLECOL colInfo[] = {
       { WF_M2_TABLE, NULL, -1, "SWR"       },
       { WF_M2_TABLE, NULL, -1, "WD"        },
       { WF_M2_TABLE, NULL, -1, "D_WD"      },
-      { WF_M2_TABLE, NULL, -1, "IMP"       },
       { WF_M2_TABLE, NULL, -1, "D_L"       },
 
       { WF_RP_TABLE, NULL, -1, "WF_RP" },
@@ -207,16 +210,22 @@ PSWCP::PSWCP(void)
    , m_col_IDU_LULC_A(-1)
    , m_col_IDU_LULC_B(-1)
    , m_col_IDU_CONSERVE(-1)
-   , m_col_IDU_IMPERVIOUS(-1)
-   , m_col_IDU_IMP_PCT(-1)
    , m_col_IDU_AREA(-1)
    , m_col_IDU_WF_M1_CAL(-1)
    , m_col_IDU_WF_RP(-1)
-   , m_col_IDU_WqS_rp(-1)
-   , m_col_IDU_WqP_rp(-1)
-   , m_col_IDU_WqMe_rp(-1)
-   , m_col_IDU_WqN_rp(-1)
-   , m_col_IDU_WqPa_rp(-1)
+   , m_col_IDU_WQ_S(-1)
+   , m_col_IDU_WQ_P(-1)
+   , m_col_IDU_WQ_Me(-1)
+   , m_col_IDU_WQ_N(-1)
+   , m_col_IDU_WQ_Pa(-1)
+   , m_col_IDU_WF1_DEL(-1)   // discharge from floodplains/wetlands
+   , m_col_IDU_WF1_WLS(-1)   // wetland/lakes storage
+   , m_col_IDU_WF1_STS(-1)   // floodplain storage
+   , m_col_IDU_WF1_RD(-1)    // recharge/discharge 
+   , m_col_IDU_WF2_IMP(-1)
+   , m_col_IDU_WF2_IMPPCT(-1)
+   , m_col_IDU_WF2_WLS(-1)
+   , m_col_IDU_WF2_STS(-1)
 
    , m_pAUWLayer(NULL)
    , m_pAUHLayer(NULL)
@@ -363,6 +372,8 @@ bool PSWCP::Run(EnvContext* pEnvContext)
    {
    int currentYear = pEnvContext->currentYear;
 
+   UpdateTablesFromIDULayer(pEnvContext);
+
    RunWQAssessment(pEnvContext);
    //
    // water flow model
@@ -380,24 +391,239 @@ bool PSWCP::Run(EnvContext* pEnvContext)
    }
 
 
+bool PSWCP::UpdateTablesFromIDULayer(EnvContext *pEnvContext)
+   {
+
+   // Propagate IDU Changes - Habitat
+   // basic idea:
+   // 1) scan the delta array looking for changes to relevent columns.  These include any column with 
+   //    info affecting one of the three terrestrial habitat indicators (ecosystem integrity, PHS, oak grove)
+   // 2) when found, update the appropriate score in the habitat table for the AUH associated with the IDU,
+   //    proportional to the area of the IDU compared to the AUH.
+   //
+   //  Deltas of interest include: LULC_A - ag to developed
+   //                                       forest to developed
+   //                                       * to Open/Conservation
+
+   DeltaArray* deltaArray = pEnvContext->pDeltaArray;
+
+   if (deltaArray != NULL)
+      {
+      INT_PTR size = deltaArray->GetSize();
+      if (size > 0)
+         {
+         for (INT_PTR i = pEnvContext->firstUnseenDelta; i < size; i++)
+            {
+            DELTA& delta = ::EnvGetDelta(deltaArray, i);
+
+            // Water Quality
+
+            // Water flow
+
+            // Habitat
+            if (delta.col == m_col_IDU_LULC_A)
+               {
+               int newLulc = delta.newValue.GetInt();
+               int oldLulc = delta.oldValue.GetInt();
+
+               if (oldLulc == 3 || oldLulc == 9 || oldLulc == 0) // developed or water? skip
+                  {
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_IntIndex, -1, SET_DATA);       // habitat integrity index
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_PHS, -1, SET_DATA);            // priority habitat for sppecies of interest
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OakGrove, -1, SET_DATA);       // oak grove habitat
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OverallIndex, -1, SET_DATA);
+                  continue;
+                  }
+
+               bool update = false;
+               float scalar = 0;
+
+               //---------------------------------------------------//
+               //-------------- APPLY SCORING RULES-----------------//
+               //---------------------------------------------------//
+
+               // AG to DEVELOPED
+               if (newLulc == 3 && oldLulc != 1)
+                  {
+                  update = true;
+                  scalar = 0.5;
+                  }
+
+               // FOREST to DEVELOPED
+               else if (newLulc == 3 && oldLulc != 2)
+                  {
+                  scalar = 0.1f;    // assume 90 percent degregations
+                  update = true;
+                  }
+
+               // ANYTHING to CONSERVATION
+               else if (newLulc == 5 && oldLulc != 5)
+                  {
+                  scalar = 1.10f;
+                  update = true;
+                  }
+
+               if (update)
+                  {
+                  float integ_Inde, norm_PHS, norm_oakgr;
+                  m_pIDULayer->GetData(delta.cell, m_col_IDU_Hab_IntIndex, integ_Inde);  // habitat integrity index (0-1)
+                  m_pIDULayer->GetData(delta.cell, m_col_IDU_Hab_PHS, norm_PHS);         // priority habitat for sppecies of interest (0-100)
+                  m_pIDULayer->GetData(delta.cell, m_col_IDU_Hab_OakGrove, norm_oakgr);  // oak grove habitat (0-100)
+
+                  integ_Inde *= scalar;
+                  norm_PHS *= scalar;
+                  norm_oakgr *= scalar;
+                  if (integ_Inde > 1)
+                     integ_Inde = 1;
+                  if (norm_PHS > 100)
+                     norm_PHS = 100;
+                  if (norm_oakgr > 100)
+                     norm_oakgr = 100;
+
+                  float overallIndex = 0;   // max of the three subcomponents (0-100)
+                  if (integ_Inde * 100 > overallIndex)
+                     overallIndex = integ_Inde * 100;
+                  if (norm_PHS > overallIndex)
+                     overallIndex = norm_PHS;
+                  if (norm_oakgr > overallIndex)
+                     overallIndex = norm_oakgr;
+
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_IntIndex, integ_Inde, ADD_DELTA);       // habitat integrity index
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_PHS, norm_PHS, ADD_DELTA);              // priority habitat for sppecies of interest
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OakGrove, norm_oakgr, ADD_DELTA);       // oak grove habitat
+                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OverallIndex, overallIndex, ADD_DELTA);
+                  }
+               }
+            }
+         }
+      }
+
+   // apply deltas generated above, since the IDU's need to be updated before the remaining code is run
+   ::EnvApplyDeltaArray(pEnvContext->pEnvModel);
+
+   // IDU's have been updated to reflect changes in LULC_A, update the database AU's 
+   CUIntArray recordArray;
+
+   for (int row = 0; row < m_pHabTerrTable->GetRowCount(); row++)
+      {
+      // get the AU_ID for this record
+      int auID = 0;
+      GetTableValue(HAB_TERR_TABLE, "New_AU", row, auID);
+
+      int count = m_AUHIndex_IDU.GetRecordArray(m_col_IDU_AUH_ID, VData(auID), recordArray);
+      if (count > 0)
+         {
+         // area-weighted averages
+         float agg_integ_Inde = 0, agg_norm_PHS = 0, agg_norm_oakgr = 0, ag_ovrall_IND = 0;
+         float totalArea = 0;
+
+         for (int j = 0; j < count; j++)
+            {
+            int idu = recordArray[j];
+
+            if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
+               {
+               float integ_Inde, norm_PHS, norm_oakgr, ovrall_IND, area;
+
+               m_pIDULayer->GetData(idu, m_col_IDU_Hab_IntIndex, integ_Inde);       // habitat integrity index
+               m_pIDULayer->GetData(idu, m_col_IDU_Hab_PHS, norm_PHS);              // priority habitat for sppecies of interest
+               m_pIDULayer->GetData(idu, m_col_IDU_Hab_OakGrove, norm_oakgr);       // oak grove habitat
+               m_pIDULayer->GetData(idu, m_col_IDU_Hab_OverallIndex, ovrall_IND);   // overall (combined) index
+               m_pIDULayer->GetData(idu, m_col_IDU_AREA, area);   //idu area
+
+               agg_integ_Inde += integ_Inde * area;
+               agg_norm_PHS += norm_PHS * area;
+               agg_norm_oakgr += norm_oakgr * area;
+               totalArea += area;
+               }
+            }
+
+         agg_integ_Inde /= totalArea;
+         agg_norm_PHS /= totalArea;
+         agg_norm_oakgr /= totalArea;
+
+         float overallIndex = 0;   // max of the three subcomponents
+         if (agg_integ_Inde > overallIndex)
+            overallIndex = agg_integ_Inde;
+         if (agg_norm_PHS > overallIndex)
+            overallIndex = agg_norm_PHS;
+         if (agg_norm_oakgr > overallIndex)
+            overallIndex = agg_integ_Inde;
+
+         SetTableValue(HAB_TERR_TABLE, "Integ_Inde", row, agg_integ_Inde);
+         SetTableValue(HAB_TERR_TABLE, "norm_PHS", row, agg_norm_PHS);
+         SetTableValue(HAB_TERR_TABLE, "norm_oakgr", row, agg_norm_oakgr);
+         SetTableValue(HAB_TERR_TABLE, "ovrall_IND", row, agg_norm_oakgr);
+         }
+      }
+   return true;
+   */
+
+UpdateWQTables();
+
+
+   return true;
+   }
+
+
+
+bool PSWCP::UpdateWQTables()
+   {
+         for (int row = 0; row < m_pHabTerrTable->GetRowCount(); row++)
+            {
+            // get the AU_ID for this record
+            int auID = 0;
+            GetTableValue(HAB_TERR_TABLE, "New_AU", row, auID);
+
+            int count = m_AUHIndex_IDU.GetRecordArray(m_col_IDU_AUH_ID, VData(auID), recordArray);
+            if (count > 0)
+               {
+               // area-weighted averages
+               float agg_integ_Inde = 0, agg_norm_PHS = 0, agg_norm_oakgr = 0, ag_ovrall_IND = 0;
+               float totalArea = 0;
+
+               for (int j = 0; j < count; j++)
+                  {
+                  int idu = recordArray[j];
+
+                  if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
+                     {
+                     float integ_Inde, norm_PHS, norm_oakgr, ovrall_IND, area;
+                     for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
+                        {
+
+
+
+
+                        }
+
+
+                     return true;
+                     }
+
 
 bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
    {
    this->CheckCol(m_pIDULayer, m_col_IDU_AUW_ID, "AUW_ID", TYPE_INT, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqS_rp, "WqS_rp", TYPE_STRING, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqP_rp, "WqP_rp", TYPE_STRING, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqMe_rp, "WqMe_rp", TYPE_STRING, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqN_rp, "WqN_rp", TYPE_STRING, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_WqPa_rp, "WqPa_rp", TYPE_STRING, CC_MUST_EXIST);
-   this->CheckCol(m_pIDULayer, m_col_IDU_IMPERVIOUS, "Impervious", TYPE_INT, CC_AUTOADD);
-   this->CheckCol(m_pIDULayer, m_col_IDU_IMP_PCT, "IMP_PCT", TYPE_INT, CC_AUTOADD);
+   // WQ Export Potential
+   this->CheckCol(m_pIDULayer, m_col_IDU_WQ_S,  "WQ_S", TYPE_STRING, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WQ_P,  "WQ_P", TYPE_STRING, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WQ_Me, "WQ_Me", TYPE_STRING, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WQ_N,  "WQ_N", TYPE_STRING, CC_MUST_EXIST);
+   this->CheckCol(m_pIDULayer, m_col_IDU_WQ_Pa, "WQ_Pa", TYPE_STRING, CC_MUST_EXIST);
+   // WF1 Importance
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF1_DEL, "WF1_DEL", TYPE_FLOAT, CC_AUTOADD);    // discharge from floodplains/wetlands
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF1_WLS, "WF1_WLS", TYPE_FLOAT, CC_AUTOADD);    // wetland/lakes storage
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF1_STS, "WF1_STS", TYPE_FLOAT, CC_AUTOADD);    // floodplain storage
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF1_RD,  "WF1_RD" , TYPE_FLOAT, CC_AUTOADD);     // recharge/discharge 
+   // WF2 Degradation
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF2_IMP, "WF2_IMP", TYPE_FLOAT, CC_AUTOADD);    // discharge from floodplains/wetlands
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF2_IMPPCT, "WF2_IMPPCT", TYPE_FLOAT, CC_AUTOADD);     // recharge/discharge 
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF2_WLS, "WF2_WLS", TYPE_FLOAT, CC_AUTOADD);    // wetland/lakes storage
+   this->CheckCol(m_pIDULayer, m_col_IDU_WF2_STS, "WF2_STS", TYPE_FLOAT, CC_AUTOADD);    // floodplain storage
+
    this->CheckCol(m_pIDULayer, m_col_IDU_WF_M1_CAL, "WF_M1_CAL", TYPE_FLOAT, CC_AUTOADD);
    this->CheckCol(m_pIDULayer, m_col_IDU_WF_RP, "WF_RP", TYPE_STRING, CC_AUTOADD);
-   //this->CheckCol(m_pIDULayer, m_col_IDU_SED_RP, "SED_RP", TYPE_STRING, CC_AUTOADD);
-   //this->CheckCol(m_pIDULayer, m_col_IDU_N_RP,   "N_RP",  TYPE_STRING, CC_AUTOADD);
-   //this->CheckCol(m_pIDULayer, m_col_IDU_P_RP,   "P_RP",  TYPE_STRING, CC_AUTOADD);
-   //this->CheckCol(m_pIDULayer, m_col_IDU_ME_RP,  "ME_RP", TYPE_STRING, CC_AUTOADD);
-   //this->CheckCol(m_pIDULayer, m_col_IDU_PA_RP,  "PA_RP", TYPE_STRING, CC_AUTOADD);
 
 
    // load/create index for getting IDUs for each AU from the idu layer
@@ -450,16 +676,16 @@ bool PSWCP::InitWaterAssessments(EnvContext* pEnvContext)
 
          if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
             {
-            m_pIDULayer->SetData(idu, m_col_IDU_WqS_rp, s_rp);
-            m_pIDULayer->SetData(idu, m_col_IDU_WqP_rp, p_rp);
-            m_pIDULayer->SetData(idu, m_col_IDU_WqMe_rp, me_rp);
-            m_pIDULayer->SetData(idu, m_col_IDU_WqN_rp, n_rp);
-            m_pIDULayer->SetData(idu, m_col_IDU_WqPa_rp, pa_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WQ_S, s_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WQ_P, p_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WQ_Me, me_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WQ_N, n_rp);
+            m_pIDULayer->SetData(idu, m_col_IDU_WQ_Pa, pa_rp);
             m_pIDULayer->SetData(idu, m_col_IDU_WF_RP, wf_rp);
 
             m_pIDULayer->SetData(idu, m_col_IDU_WF_M1_CAL, wf_m1_cal);
             
-            m_pIDULayer->SetData(idu, m_col_IDU_IMP_PCT, imp_pct);
+            m_pIDULayer->SetData(idu, m_col_IDU_WF2_IMPPCT, imp_pct);
             }
          }
       }  // end of: for each row in WQ_RP table
@@ -640,97 +866,6 @@ bool PSWCP::RunWFAssessment(EnvContext* pEnvContext)
    // 1) propagate relevant IDU changes to WF db
    // In this case, we look for the following IDU changes that affect the WF model
    //
-
-   DeltaArray* deltaArray = pEnvContext->pDeltaArray;
-
-   if (deltaArray != NULL)
-      {
-      INT_PTR size = deltaArray->GetSize();
-      if (size > 0)
-         {
-         for (INT_PTR i = pEnvContext->firstUnseenDelta; i < size; i++)
-            {
-            DELTA& delta = ::EnvGetDelta(deltaArray, i);
-            if (delta.col == m_col_IDU_LULC_A)
-               {
-               int newLulc = delta.newValue.GetInt();
-               int oldLulc = delta.oldValue.GetInt();
-
-               if (oldLulc == 3 || oldLulc == 9 || oldLulc == 0) // developed or water? skip
-                  {
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_IntIndex, -1, SET_DATA);       // habitat integrity index
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_PHS, -1, SET_DATA);            // priority habitat for sppecies of interest
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OakGrove, -1, SET_DATA);       // oak grove habitat
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OverallIndex, -1, SET_DATA);
-                  continue;
-                  }
-
-               bool update = false;
-               float scalar = 0;
-
-               //---------------------------------------------------//
-               //-------------- APPLY SCORING RULES-----------------//
-               //---------------------------------------------------//
-
-               // AG to DEVELOPED
-               if (newLulc == 3 && oldLulc != 1)
-                  {
-                  update = true;
-                  scalar = 0.5;
-                  }
-
-               // FOREST to DEVELOPED
-               else if (newLulc == 3 && oldLulc != 2)
-                  {
-                  scalar = 0.1f;    // assume 90 percent degregations
-                  update = true;
-                  }
-
-               // ANYTHING to CONSERVATION
-               else if (newLulc == 5 && oldLulc != 5)
-                  {
-                  scalar = 1.10f;
-                  update = true;
-                  }
-
-               if (update)
-                  {
-                  float integ_Inde, norm_PHS, norm_oakgr;
-                  m_pIDULayer->GetData(delta.cell, m_col_IDU_Hab_IntIndex, integ_Inde);  // habitat integrity index (0-1)
-                  m_pIDULayer->GetData(delta.cell, m_col_IDU_Hab_PHS, norm_PHS);         // priority habitat for sppecies of interest (0-100)
-                  m_pIDULayer->GetData(delta.cell, m_col_IDU_Hab_OakGrove, norm_oakgr);  // oak grove habitat (0-100)
-
-                  integ_Inde *= scalar;
-                  norm_PHS *= scalar;
-                  norm_oakgr *= scalar;
-                  if (integ_Inde > 1)
-                     integ_Inde = 1;
-                  if (norm_PHS > 100)
-                     norm_PHS = 100;
-                  if (norm_oakgr > 100)
-                     norm_oakgr = 100;
-
-                  float overallIndex = 0;   // max of the three subcomponents (0-100)
-                  if (integ_Inde * 100 > overallIndex)
-                     overallIndex = integ_Inde * 100;
-                  if (norm_PHS > overallIndex)
-                     overallIndex = norm_PHS;
-                  if (norm_oakgr > overallIndex)
-                     overallIndex = norm_oakgr;
-
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_IntIndex, integ_Inde, ADD_DELTA);       // habitat integrity index
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_PHS, norm_PHS, ADD_DELTA);              // priority habitat for sppecies of interest
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OakGrove, norm_oakgr, ADD_DELTA);       // oak grove habitat
-                  UpdateIDU(pEnvContext, delta.cell, m_col_IDU_Hab_OverallIndex, overallIndex, ADD_DELTA);
-                  }
-               }
-            }
-         }
-      }
-
-   // apply deltas generated above, since the IDU's need to be updated before the remaining code is run
-   ::EnvApplyDeltaArray(pEnvContext->pEnvModel);
-
    // IDU's have been updated to reflect changes in LULC_A, update the database AU's 
    // water delivery importance
    // avg precipt:   IDU:     WFDB1: AV_PRECIP  (avg annual precip per unit area)  (inches/year/sq mi)
@@ -783,6 +918,7 @@ bool PSWCP::RunWFAssessment(EnvContext* pEnvContext)
    SolveWfM1WatDel();
    SolveWfM1SurfStorage();
    SolveWfM1RechargeDischarge();
+   SolveWfM1Combined();
 
    // Model 2: degradation
    SolveWfM2WatDel();
@@ -872,7 +1008,6 @@ int PSWCP::SolveWqM1Sed()
    for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
       {
       LSGROUP lgIndex = GetLSGroupIndex(row);
-
       if (lgIndex == LG_NULL)
          continue;
 
@@ -925,7 +1060,6 @@ int PSWCP::SolveWqM1Sed()
    for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
       {
       LSGROUP lgIndex = GetLSGroupIndex(row);
-
       if (lgIndex == LG_NULL)
          continue;
 
@@ -961,7 +1095,6 @@ int PSWCP::SolveWqM1Sed()
    for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
       {
       LSGROUP lgIndex = GetLSGroupIndex(row);
-
       if (lgIndex == LG_NULL)
          continue;
 
@@ -1072,7 +1205,6 @@ int PSWCP::SolveWqM1Phos()
    for (int row = 0; row < m_pWqDbTable->GetRowCount(); row++)
       {
       LSGROUP lgIndex = GetLSGroupIndex(row);
-
       if (lgIndex == LG_NULL)
          continue;
 
@@ -1510,6 +1642,62 @@ int PSWCP::SolveWfM1RechargeDischarge()
    }
 
 
+   //---------------------------------------------------
+   //-------- Combined importance ----------------------
+   //---------------------------------------------------
+   int PSWCP::SolveWfM1Combined()
+      {
+      // pass 1 - get normalizing factors
+      float maxWfM1[LG_COUNT] = { 0,0,0,0,0 };
+      float maxWfM1Overall = 0;
+
+      for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+         {
+         LSGROUP lgIndex = GetLSGroupIndex(row);
+         if (lgIndex == LG_NULL)
+            continue;
+
+         float i_de = 0;  // delivery importance
+         GetTableValue(WF_M1_TABLE, "I_DE", row, i_de);
+
+         float wls, sts;   // surface storage
+         GetTableValue(WF_M1_TABLE, "WLS", row, wls);
+         GetTableValue(WF_M1_TABLE, "STS", row, sts);
+
+         float i_r, i_di;  // recharge, discharge
+         GetTableValue(WF_M1_TABLE, "I_R", row, i_r);
+         GetTableValue(WF_M1_TABLE, "I_DI", row, i_di);
+
+         const float wtDel = 1.0f;
+         const float wtSS = 1.0f;
+         const float wtRD = 1.0f;
+
+         float wf_m1 = wtDel * i_de + wtSS * (wls + sts) + wtRD * (i_r + i_di);
+         SetTableValue(WF_M1_TABLE, "WF_M1", row, wf_m1);
+
+         if (wf_m1 > maxWfM1[lgIndex])
+            maxWfM1[lgIndex] = wf_m1;
+
+         if (wf_m1 > maxWfM1Overall)
+            maxWfM1Overall = wf_m1;
+         }
+
+      // pass two - normalize wf_m1 by group
+      for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+         {
+         LSGROUP lgIndex = GetLSGroupIndex(row);
+         if (lgIndex == LG_NULL)
+            continue;
+
+         float wf_m1 = 0;
+         GetTableValue(WF_M1_TABLE, "WF_M1", row, wf_m1);
+         SetTableValue(WF_M1_TABLE, "WF_M1_LG", row, wf_m1 / maxWfM1[lgIndex]);
+         SetTableValue(WF_M1_TABLE, "WF_M1_CAL", row, wf_m1 / maxWfM1Overall);
+         }
+
+      return 1;
+      }
+
 
 //---------------------------------------------------
 //-------- water delivery degredation  --------------
@@ -1519,14 +1707,11 @@ int PSWCP::SolveWfM2WatDel()
    // normalizing arrays 
    float maxFL = 0;   // why X, U for LG_M2?????
    float maxIMP = 0;
+   //float maxIR[LG_COUNT] = { 0,0,0,0,0 };
 
    // pass 1 - get normalizing factors
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       float fl_pct = 0;      // forest loss percent
       GetTableValue(WF_DB2_TABLE, "FL_PCT", row, fl_pct);
 
@@ -1543,18 +1728,35 @@ int PSWCP::SolveWfM2WatDel()
          maxIMP = imp_pct;
       }
 
-   // pass 2 - get normalizing factors
+   // pass 2 - apply normalizing factors
+   float maxDDE = 0;
+
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
+      float fl_pct = 0;      // forest loss percent
+      GetTableValue(WF_DB2_TABLE, "FL_PCT", row, fl_pct);
 
-      float imp_pct = 0;
+      float fl = fl_pct / maxFL;
+      SetTableValue(WF_M2_TABLE, "FL", row, fl);
+
+      float imp_pct = 0;   // impervious surfaces
       SetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
 
       float imp = imp_pct / maxIMP;
       SetTableValue(WF_M2_TABLE, "IMP", row, imp);
+
+      SetTableValue(WF_M2_TABLE, "DDE", row, (imp+fl));
+
+      if ((fl + imp) > maxDDE)
+         maxDDE = (fl + imp);
+      }
+
+   // pass 3 - combined score
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      float dde=0;
+      GetTableValue(WF_M2_TABLE, "DDE", row, dde);
+      SetTableValue(WF_M2_TABLE, "D_DE", row, dde/maxDDE);
       }
 
    return 1;
@@ -1572,10 +1774,6 @@ int PSWCP::SolveWfM2SurfStorage()
    // pass 1 - get normalizing factors
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       // storage in wetlands
       float w_ur_ac = 0, w_ru_ac = 0, acres = 0;
       GetTableValue(WF_DB2_TABLE, "W_UR_AC", row, w_ur_ac);
@@ -1605,13 +1803,10 @@ int PSWCP::SolveWfM2SurfStorage()
          maxSTS = uds + mds;
       }
 
-   // pass 2 - final calcs
+   // pass 2 -
+   float maxDSS = 0;
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       float uw = 0, rw = 0;     // loss of storage wetlands
       GetTableValue(WF_M2_TABLE, "UW", row, uw);
       GetTableValue(WF_M2_TABLE, "RW", row, uw);
@@ -1629,6 +1824,20 @@ int PSWCP::SolveWfM2SurfStorage()
       float d_sts = dst / maxSTS;
       SetTableValue(WF_M2_TABLE, "DST", row, dst);
       SetTableValue(WF_M2_TABLE, "D_STS", row, d_sts);
+
+      float dSS = d_ws + d_sts;
+      SetTableValue(WF_M2_TABLE, "DSS", row, dSS);
+
+      if (dSS > maxDSS)
+         maxDSS = dSS;
+      }
+
+   // pass 3 -
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      float dSS = 0;
+      GetTableValue(WF_M2_TABLE, "DSS", row, dSS);
+      SetTableValue(WF_M2_TABLE, "D_SS", row, dSS / maxDSS);
       }
 
    return 1;
@@ -1636,25 +1845,40 @@ int PSWCP::SolveWfM2SurfStorage()
 
 
 //---------------------------------------------------
-//-------- Recharge degradation -----------
+//-------- Recharge degradation ---------------------
 //---------------------------------------------------
 int PSWCP::SolveWfM2Recharge()
    {
-
    // pass 1 - get normalizing factors
+   float maxDR = 0;
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       // degradation to recharge
-      float u_ac = 0, bu_ac = 0, li_ac = 0;
+      float u_ac = 0, bu_ac = 0, li_ac = 0, area_ac = 0, rechH = 0, rechL=0;
       GetTableValue(WF_DB2_TABLE, "U_AC", row, u_ac);
       GetTableValue(WF_DB2_TABLE, "BU_AC", row, bu_ac);
       GetTableValue(WF_DB2_TABLE, "LI_AC", row, li_ac);
+      GetTableValue(WQ_DB_TABLE, "ACRES", row, area_ac);
+      GetTableValue(WF_M1_TABLE, "RECHH", row, rechH);
+      GetTableValue(WF_M1_TABLE, "RECHL", row, rechL);
 
-      float rechCoeff = 0.9f * u_ac + 0.7f * bu_ac + 0.35f * li_ac;    // ???????? Wrong, not clear in docs
+      float r = rechH + rechL;
+      float rrc = (0.9f*u_ac + 0.7f*bu_ac + 0.35f*li_ac)/area_ac;    // ???????? Wrong, not clear in docs
+      float dr = rrc * r;
+
+      SetTableValue(WF_M1_TABLE, "RRC", row, rrc);    // recharge coefficient
+      SetTableValue(WF_M1_TABLE, "DR", row, dr);    // recharge coefficient
+
+      if (dr > maxDR)
+         maxDR = dr;
+      }
+
+   // pass 2 - final calcs
+   for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
+      {
+      float dr = 0;
+      GetTableValue(WF_M1_TABLE, "DR", row, dr);    // recharge coefficient
+      SetTableValue(WF_M1_TABLE, "D_R", row, dr / maxDR);   // normalized version
       }
 
    return 1;
@@ -1675,10 +1899,6 @@ int PSWCP::SolveWfM2Discharge()
    // pass 1 - get normalizing factors
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       // degradation associated with roads 
       float rd_mi = 0, sq_miles = 0;
       GetTableValue(WF_DB2_TABLE, "RD_MI", row, rd_mi);
@@ -1725,12 +1945,9 @@ int PSWCP::SolveWfM2Discharge()
       }
 
    // pass 2 - intermdiate calcs
+   float maxDDI = 0;
    for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       float rd_den = 0;
       GetTableValue(WF_DB2_TABLE, "RD_DEN", row, rd_den);
 
@@ -1758,8 +1975,21 @@ int PSWCP::SolveWfM2Discharge()
       float d_wd = (swu + swr) / maxSW;
       SetTableValue(WF_M2_TABLE, "WD", row, (swu + swr));
       SetTableValue(WF_M2_TABLE, "D_WD", row, d_wd);
+
+      float ddi = d_rd + d_wel + d_std + d_wd;
+      SetTableValue(WF_M2_TABLE, "DDI", row, ddi);
+
+      if (ddi > maxDDI)
+         maxDDI = ddi;
       }
 
+   // pass 2 - final normalization
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      float ddi = 0;
+      GetTableValue(WF_M2_TABLE, "DDI", row, ddi);
+      SetTableValue(WF_M2_TABLE, "D_DI", row, ddi / maxDDI);
+      }
 
    return 1;
    }
@@ -1774,10 +2004,6 @@ int PSWCP::SolveWfM2EvapTrans()
    // pass 1 - get normalizing factors
    for (int row = 0; row < m_pWfDb2Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       // degradation associated with roads 
       float imp_pct = 0;
       GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
@@ -1789,10 +2015,6 @@ int PSWCP::SolveWfM2EvapTrans()
    // pass 2 - intermdiate calcs
    for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
       {
-      LSGROUP lgIndex = GetLSGroupIndex(row);
-      if (lgIndex == LG_NULL)
-         continue;
-
       // degradation associated with roads 
       float imp_pct = 0;
       GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
@@ -1801,12 +2023,61 @@ int PSWCP::SolveWfM2EvapTrans()
       SetTableValue(WF_M2_TABLE, "D_L", row, d_l);
       }
 
+   return 1;
+   }
+
+
+//---------------------------------------------------
+//-------- Combined importance ----------------------
+//---------------------------------------------------
+int PSWCP::SolveWfM2Combined()
+   {
+   // pass 1 - get normalizing factors
+   float maxWfM2 = 0;
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      float d_de = 0;            // source (delivery)
+      GetTableValue(WF_M2_TABLE, "D_DE", row, d_de);
+
+      float d_ss = 0;            // surface storage degradatiom
+      GetTableValue(WF_M2_TABLE, "D_SS", row, d_ss);
+
+      float d_r = 0, d_di = 0;       // recharge/discharge
+      GetTableValue(WF_M2_TABLE, "D_R", row, d_r);
+      GetTableValue(WF_M2_TABLE, "D_DI", row, d_di);
+
+      float d_l;                 // evaptrans degradation
+      GetTableValue(WF_M2_TABLE, "D_L", row, d_l);
+
+      // groundwater?
+      const float wtDel = 1.0f;
+      const float wtSS = 1.0f;
+      const float wtRD = 1.0f;
+      const float wtET = 1.0f;
+
+      float wf_m2 = wtDel * d_de + wtSS * d_ss + wtRD * (d_r + d_di) + wtET * d_l;
+
+      SetTableValue(WF_M1_TABLE, "WF_M2", row, wf_m2);
+      if (wf_m2 > maxWfM2)
+         maxWfM2 = wf_m2;
+      }
+
+   // pass 2
+   for (int row = 0; row < m_pWfDb1Table->GetRowCount(); row++)
+      {
+      float wf_m2 = 0;
+      GetTableValue(WF_M2_TABLE, "WF_M2", row, wf_m2);
+      SetTableValue(WF_M2_TABLE, "WF_M2_LG", row, wf_m2 / maxWfM2);
+      SetTableValue(WF_M2_TABLE, "WF_M2_CAL", row, wf_m2 / maxWfM2);
+      }
 
    return 1;
    }
 
+
+
 //---------------------------------------------------
-//-------- evaptrans degradation --------------------
+//-------- HCI Methods --------------------
 //---------------------------------------------------
 int PSWCP::SolveHCI()
    {
@@ -2030,7 +2301,7 @@ int PSWCP::SolveHabTerr(EnvContext* pEnvContext)
 void PSWCP::UpdateIDUs(EnvContext* pEnvContext)
    {
    // write various table values to IDUs by iterating through the WQ-RP table, writing
-  // values to the IDU's using the index for 
+   // values to the IDU's using the index for 
    CUIntArray recordArray;
    for (int row = 0; row < m_pWqRpTable->GetRowCount(); row++)
       {
@@ -2038,17 +2309,46 @@ void PSWCP::UpdateIDUs(EnvContext* pEnvContext)
       int auID = 0;
       GetTableValue(WQ_DB_TABLE, "AU_ID", row, auID);
 
+      // get corresponding IDUs
       int count = m_AUWIndex_IDU.GetRecordArray(m_col_IDU_AUW_ID, VData(auID), recordArray);
+
 
       int imp_pct = 0;
       GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
 
+      float sed_m1_cal, p_m1_cal, m_m1_cal, n_m1_cal, pa_m1_cal;
+      GetTableValue(WQ_M1_TABLE, "S_M1_CAL", row, sed_m1_cal);
+      GetTableValue(WQ_M1_TABLE, "P_M1_CAL", row, p_m1_cal);
+      GetTableValue(WQ_M1_TABLE, "M_M1_CAL", row, m_m1_cal);   // NOTE: cal same a non-cal
+      GetTableValue(WQ_M1_TABLE, "N_M1_CAL", row, n_m1_cal);
+      GetTableValue(WQ_M1_TABLE, "PA_M1_CAL", row, pa_m1_cal);
+
+      // water flow importance (Model 1)
+      float i_de, wls, sts, i_di;
+      GetTableValue(WF_M1_TABLE, "I_DE", row, i_de);     // delivery
+      GetTableValue(WF_M1_TABLE, "WLS", row, wls);       // surface storage - wetlands and lakes
+      GetTableValue(WF_M1_TABLE, "STS", row, sts);       // surface storage - floodplains
+      GetTableValue(WF_M1_TABLE, "I_DI", row, i_di);     // recharge/discharge
+
+      // water flow degredation (Model 2)
+      float imp_pct, imp, dw, d_ws, dst, d_sts;
+      GetTableValue(WF_M2_TABLE, "IMP", row, imp);       // delivery 
+      GetTableValue(WF_DB2_TABLE, "IMP_PCT", row, imp_pct);
+      GetTableValue(WF_M2_TABLE, "DW", row, dw);         // surface storage
+      GetTableValue(WF_M2_TABLE, "D_WS", row, d_ws);
+      GetTableValue(WF_M2_TABLE, "DST", row, dst);
+      GetTableValue(WF_M2_TABLE, "D_STS", row, d_sts);
+      // recharge?????
+
+
+      // iterate though all IDUs associated with this AU_ID
       for (int j = 0; j < count; j++)
          {
          int idu = recordArray[j];
 
          if (idu < m_pIDULayer->GetRecordCount())  // for partial loads
             {
+            //  IMPERVIOUS SURFACES
             int lulcB = 0;
             m_pIDULayer->GetData(idu, m_col_IDU_LULC_B, lulcB);
 
@@ -2069,8 +2369,33 @@ void PSWCP::UpdateIDUs(EnvContext* pEnvContext)
                   break;
                }
 
-            UpdateIDU(pEnvContext, idu, m_col_IDU_IMPERVIOUS, eia);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_IMP_PCT,  imp_pct);
+            //UpdateIDU(pEnvContext, idu, m_col_IDU_IMPERVIOUS, eia);
+            //UpdateIDU(pEnvContext, idu, m_col_IDU_IMP_PCT,  imp_pct);
+
+            // WATER QUALITY - EXPORT POTENTIAL
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQ_S,  sed_m1_cal);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQ_P,  p_m1_cal);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQ_Me, m_m1_cal);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQ_N,  n_m1_cal);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQ_Pa, pa_m1_cal);
+
+            // WATER FLOW - IMPORTANCE (MODEL 1)
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_DEL, i_de);   // discharge from floodplains/wetlands
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_WLS, wls);    // wetland/lakes storage
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_STS, sts);    // floodplain storage
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_RD, i_di );     // recharge/discharge 
+ 
+            // WATER FLOW DEGRADATION (MODEL 2)
+            float imp_pct, imp, d_ws, d_sts;
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_IMP, imp);       // delivery 
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_IMPPCT, imp_pct);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_WLS, d_ws);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_STS, d_sts);
+            // recharge?????
+            
+            // combined models
+
+
             }
          }
       }  // end of: for each row in WQ_RP table

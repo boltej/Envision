@@ -3961,6 +3961,10 @@ void EnvModel::RunModelProcesses( bool isPostYear )
 
          try
             {
+            CString msg;
+            msg.Format("--%s starting...", (LPCTSTR)pInfo->m_name);
+            Report::Log(msg);
+
             bool ok = pInfo->Run( &m_envContext );
 
             clock_t finish = clock();
@@ -3971,8 +3975,14 @@ void EnvModel::RunModelProcesses( bool isPostYear )
                {
                CString msg = "The ";
                msg += pInfo->m_name;
-               msg += " Autonomous Process returned FALSE during Run(), indicating an error.";
+               msg += " model returned FALSE during Run(), indicating an error.";
                throw new EnvRuntimeException( msg );
+               }
+
+            else 
+               {
+               msg.Format("  %s completed successfully (%.1f seconds)", (LPCTSTR)pInfo->m_name, (float) duration);
+               Report::Log(msg);
                }
             }
          catch( ... )

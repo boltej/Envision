@@ -69,7 +69,7 @@ Preference::Preference( Allocation *pAlloc, LPCTSTR name, LPCTSTR queryStr, LPCT
       if ( m_pQuery == NULL )
          {
          CString msg;
-         msg.Format( "Spatial Allocator: Bad Preference query encountered reading Allocation '%s' - Query is '%s'", (LPCTSTR) pAlloc->m_name, queryStr );
+         msg.Format( "  Spatial Allocator: Bad Preference query encountered reading Allocation '%s' - Query is '%s'", (LPCTSTR) pAlloc->m_name, queryStr );
          msg += queryStr;
          Report::ErrorMsg( msg );
          }
@@ -95,7 +95,7 @@ Preference::Preference( Allocation *pAlloc, LPCTSTR name, LPCTSTR queryStr, LPCT
 
       if ( ! ok )
          {
-         CString msg( "Spatial Allocator: Unable to compile map expression " );
+         CString msg( "  Spatial Allocator: Unable to compile map expression " );
          msg += weightExpr;
          msg += " for <preference> '";
          msg += name;
@@ -172,7 +172,7 @@ Query *Constraint::CompileQuery()
 
    if ( m_pQuery == NULL )
       {
-      CString msg( "Spatial Allocator: Unable to compile constraint query" );
+      CString msg( "  Spatial Allocator: Unable to compile constraint query" );
       msg += m_queryStr;
       msg += "'.  The query will be ignored";
       Report::ErrorMsg( msg );
@@ -258,7 +258,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
    //
    //   if ( ! ok )
    //      {
-   //      CString msg( "Spatial Allocator: Unable to compile target location map expression " );
+   //      CString msg( "  Spatial Allocator: Unable to compile target location map expression " );
    //      msg += m_targetLocation;
    //      msg += " for <allocation> '";
    //      msg += m_name;
@@ -277,7 +277,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
          int rows = m_pTargetData->ReadAscii( this->m_targetValues );
          if ( rows <= 0 )
             {
-            CString msg( "Spatial Allocator: Unable to load target file '" );
+            CString msg( "  Spatial Allocator: Unable to load target file '" );
             msg += m_targetValues;
             msg += "' - this allocation will be ignored";
             Report::ErrorMsg( msg );
@@ -448,7 +448,7 @@ void TargetContainer::SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR 
 
          if ( this->m_pTargetQuery == NULL )
             {
-            CString msg( "Spatial Allocator: Unable to parse target query '" );
+            CString msg( "  Spatial Allocator: Unable to parse target query '" );
             msg += query;
             msg += "' - it will be ignored";
             Report::WarningMsg( msg );
@@ -627,7 +627,7 @@ void Allocation::SetExpandQuery( LPCTSTR expandQuery )
 
    if ( m_pExpandQuery == NULL )
       {
-      CString msg( "Spatial Allocator: Unable to parse expand query '" );
+      CString msg( "  Spatial Allocator: Unable to parse expand query '" );
       msg += _expandQuery;
       msg += "' - it will be ignored";
       Report::WarningMsg( msg );
@@ -735,7 +735,7 @@ void Allocation::SetMaxExpandAreaStr( LPCTSTR expandAreaStr )
 
    if ( success == false )
       {
-      CString msg( "Spatial Allocator: unrecognized expand area specification: " );
+      CString msg( "  Spatial Allocator: unrecognized expand area specification: " );
       msg += expandAreaStr;
       Report::ErrorMsg( msg );
       //m_useExpand = false;
@@ -1009,7 +1009,7 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
       AllocationSet *pAllocSet = m_allocationSetArray[ i ];
 
       CString msg;
-      msg.Format( "Spatial Allocator:  Loaded Allocation Set %s", pAllocSet->m_name );
+      msg.Format( "  Spatial Allocator:  Loaded Allocation Set %s", pAllocSet->m_name );
       Report::Log( msg );
 
       for ( int j=0; j < pAllocSet->GetAllocationCount(); j++ )
@@ -1171,7 +1171,7 @@ bool SpatialAllocator::EndRun( EnvContext *pContext )
 bool SpatialAllocator::PopulateSequences( void )
    {
    // only called during Init - sets up initial sequences
-   //Report::Log( "Spatial Allocator: Populating Sequences" );
+   //Report::Log( "  Spatial Allocator: Populating Sequences" );
    bool hasSequences = false;
 
    // get total basis value
@@ -1315,7 +1315,7 @@ bool SpatialAllocator::PopulateSequences( void )
             if ( pAlloc->IsSequence() )
                {
                CString msg;
-               msg.Format( "Spatial Allocator: Sequence '%s' allocated to %4.1f percent of the area (target = %4.1f)",
+               msg.Format( "  Spatial Allocator: Sequence '%s' allocated to %4.1f percent of the area (target = %4.1f)",
                   (LPCTSTR) pAlloc->m_name, pAlloc->m_allocationSoFar * 100 / m_totalArea, pAlloc->m_initPctArea*100 );
    
                pAlloc->m_allocationSoFar = 0;
@@ -2094,7 +2094,7 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
 
    if ( result < 0 )
       {
-      CString msg( "Spatial Allocator: Unable to find input file " );
+      CString msg( "  Spatial Allocator: Unable to find input file " );
       msg += filename;
       Report::ErrorMsg( msg );
       return false;
@@ -2112,7 +2112,7 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
    if ( pAllocSetArray == NULL )
       pAllocSetArray = &( this->m_allocationSetArray );
 
-   CString msg( "Spatial Allocator: Loading input file " );
+   CString msg( "  Spatial Allocator: Loading input file " );
    msg += path;
    Report::Log( msg );
 
@@ -2140,7 +2140,7 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
    this->m_colArea = m_pMapLayer->GetFieldCol( areaCol );
    if ( m_colArea < 0 )
       {
-      CString msg( "Spatial Allocator: unable to find AREA field in input file" );
+      CString msg( "  Spatial Allocator: unable to find AREA field in input file" );
       msg += filename;
       Report::ErrorMsg( msg );
       return false;
@@ -2178,7 +2178,7 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
    TiXmlElement *pXmlAllocSet = pXmlRoot->FirstChildElement( "allocation_set" );
    if ( pXmlAllocSet == NULL )
       {
-      CString msg( "Spatial Allocator: missing <allocation_set> element in input file " );
+      CString msg( "  Spatial Allocator: missing <allocation_set> element in input file " );
       msg += path;
       Report::ErrorMsg( msg );
       return false;
@@ -2239,7 +2239,7 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
       TiXmlElement *pXmlAlloc = pXmlAllocSet->FirstChildElement( "allocation" );
       if ( pXmlAlloc == NULL )
          {
-         CString msg( "Spatial Allocator: missing <allocation> element in input file - at least one allocation is required..." );
+         CString msg( "  Spatial Allocator: missing <allocation> element in input file - at least one allocation is required..." );
          msg += path;
          Report::ErrorMsg( msg );
          return false;
@@ -2299,7 +2299,7 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
             {
             ok = false;
             CString msg;
-            msg.Format( "Spatial Allocator: missing 'target_source' attribute for allocation %s", name );
+            msg.Format( "  Spatial Allocator: missing 'target_source' attribute for allocation %s", name );
             Report::ErrorMsg( msg );
             }
 
@@ -2918,7 +2918,7 @@ void SpatialAllocator::CollectData(EnvContext *pContext)
       //if ( pAllocSet->m_inUse )
       //   {
       // collect data (whether in use or not - should be smarter than this!!!
-      CString msg( "Spatial Allocator: " );
+      CString msg( "  Spatial Allocator: " );
 
       CArray< float, float > outputs;
       outputs.Add( (float) pContext->currentYear );  // time

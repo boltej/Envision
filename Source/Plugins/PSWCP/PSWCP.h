@@ -66,11 +66,26 @@ class _EXPORT PSWCP : public  EnvModelProcess
       // idu columns
       MapLayer* m_pIDULayer;
       int m_col_IDU_AUW_ID;    // water AU index
-      int m_col_IDU_WqS_rp;
-      int m_col_IDU_WqP_rp;
-      int m_col_IDU_WqMe_rp;
-      int m_col_IDU_WqN_rp;
-      int m_col_IDU_WqPa_rp;
+      int m_col_IDU_WQ_S;
+      int m_col_IDU_WQ_P;
+      int m_col_IDU_WQ_Me;
+      int m_col_IDU_WQ_N;
+      int m_col_IDU_WQ_Pa;
+
+      int m_col_IDU_WF1_DEL;   // discharge from floodplains/wetlands
+      int m_col_IDU_WF1_WLS;   // wetland/lakes storage
+      int m_col_IDU_WF1_STS;   // floodplain storage
+      int m_col_IDU_WF1_RD;    // recharge/discharge 
+
+      int m_col_IDU_WF2_IMP;
+      int m_col_IDU_WF2_IMPPCT;
+      int m_col_IDU_WF2_WLS;
+      int m_col_IDU_WF2_STS;
+
+      int m_col_IDU_WF_M1_CAL;
+      int m_col_IDU_WF_RP;
+
+
 
       int m_col_IDU_AUH_ID;            // hab AU ID
       int m_col_IDU_Hab_IntIndex;      // habitat integrity index
@@ -80,11 +95,7 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int m_col_IDU_LULC_A;
       int m_col_IDU_LULC_B;
       int m_col_IDU_CONSERVE;
-      int m_col_IDU_IMPERVIOUS;
-      int m_col_IDU_IMP_PCT;
       int m_col_IDU_AREA;
-      int m_col_IDU_WF_M1_CAL;
-      int m_col_IDU_WF_RP;
       //int m_col_IDU_SED_RP;
       //int m_col_IDU_N_RP;
       //int m_col_IDU_P_RP;
@@ -132,10 +143,17 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
 
       // methods
+
+      // copy values from IDUs to local tables before running assessment
+      bool UpdateTablesFromIDULayer(EnvContext*);
+      bool UpdateWQTables();
+
+      // Initialization routines
       bool InitWaterAssessments(EnvContext*);
       bool InitHabAssessments(EnvContext*);
       bool InitHCIAssessment(EnvContext*);
 
+      // run various assessments
       bool RunWFAssessment(EnvContext*);
       bool RunWQAssessment(EnvContext*);
       bool RunHabAssessment(EnvContext*);
@@ -159,12 +177,14 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int SolveWfM1WatDel();
       int SolveWfM1SurfStorage();
       int SolveWfM1RechargeDischarge();
+      int SolveWfM1Combined();
 
       int SolveWfM2WatDel();
       int SolveWfM2SurfStorage();
       int SolveWfM2Recharge();    // NEEDS WORK, DOCS UNCLEAR
       int SolveWfM2Discharge();
       int SolveWfM2EvapTrans();
+      int SolveWfM2Combined();
 
       int SolveHabTerr(EnvContext*);
 

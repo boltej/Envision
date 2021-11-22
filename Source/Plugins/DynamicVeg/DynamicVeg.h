@@ -36,7 +36,11 @@ Copywrite 2012 - Oregon State University
 
 #define _EXPORT __declspec( dllexport )
 
-
+enum MODEL_ID {
+	SUCCESSION_TRANSITIONS=0,
+	DISTURBANCE_TRANSITIONS = 1,
+	TIME_IN_AGECLASS = 2,
+	};
 
 //#include <afx.h> //CString
 
@@ -574,8 +578,10 @@ class DynamicVeg : public EnvModelProcess
       static bool m_useLAI;
       static bool m_useCarbon;
       static bool m_useVariant;
-      CArray < int > m_vegTransitionArray;
-      CArray < int > m_disturbArray;
+
+		// jpb - made these static
+      static CArray < int > m_vegTransitionArray;
+      static CArray < int > m_disturbArray;
 
       bool m_unseenCCtrans[CC_DISTURB_UB - CC_DISTURB_LB];
      
