@@ -80,7 +80,7 @@ void snow(double prec, double temp, double insol, double lai, double& snowpack, 
 	if (temp < TSNOW) 
 	   {						// snowing today
 		//melt = -min(prec * 1.0f, SNOWPACK_MAX - snowpack);
-		mr = swtrans / lh_sub;      //include a radiation driven melt term		
+		mr = -prec + swtrans / lh_sub;      //include a radiation driven melt term		
 	   }
 	else 
 	   {								// raining today
@@ -90,7 +90,7 @@ void snow(double prec, double temp, double insol, double lai, double& snowpack, 
 		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
 		//melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
 		mr = swtrans / lh_fus;
-	    mh = cfmax * (temp - TSNOW);
+	   mh = cfmax * (temp - TSNOW);
 		ma = rhow * temp * prec * cpw;
 	   }
 	//snowpack -= melt;
