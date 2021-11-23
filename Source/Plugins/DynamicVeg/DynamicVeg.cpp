@@ -178,6 +178,14 @@ CArray< CString, CString > DynamicVeg::m_badVegTransClasses;
 
 CArray< CString, CString > DynamicVeg::m_badDeterminVegTransClasses;
 
+// added - pb
+CArray < int > DynamicVeg::m_vegTransitionArray;
+CArray < int > DynamicVeg::m_disturbArray;
+
+
+
+
+
 DynamicVeg::DynamicVeg() : EnvModelProcess()
    {
    //AddInputVar( _T("MC1 MC1_output"), m_mc1_output, _T("Index of MC1 mc1_output: 0-hadleyA2, 1-mirocA2, 2-csiroA2") );
@@ -221,8 +229,7 @@ bool DynamicVeg::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    if (!ok)
       {
-      msg = ("DynamicVeg: Unable to find DynamicVeg's .xml init file");
-
+      msg = ("  DynamicVeg: Unable to find DynamicVeg's .xml init file");
       Report::ErrorMsg(msg);
       return FALSE;
       }
@@ -276,7 +283,7 @@ bool DynamicVeg::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
       finish = clock();
       duration = (float)(finish - start) / CLOCKS_PER_SEC;
-      msg.Format("DynamicVeg: Loaded Probability Multiplier CSV file '%s'(%.2f seconds)", (LPCTSTR)m_vegtransfile.probMultiplier_filename, (float)duration);
+      msg.Format("  DynamicVeg: Loaded Probability Multiplier CSV file '%s'(%.2f seconds)", (LPCTSTR)m_vegtransfile.probMultiplier_filename, (float)duration);
       Report::Log(msg);
 
       m_useProbMultiplier = true;
@@ -314,7 +321,7 @@ bool DynamicVeg::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("DynamicVeg: Loaded Probability CSV file '%s' (%.2f seconds)", (LPCTSTR)m_vegtransfile.probability_filename, (float)duration);
+   msg.Format("  DynamicVeg: Loaded Probability CSV file '%s' (%.2f seconds)", (LPCTSTR)m_vegtransfile.probability_filename, (float)duration);
    Report::Log(msg);
 
    if (!ok)
@@ -337,7 +344,7 @@ bool DynamicVeg::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("DynamicVeg: Loaded Deterministic Transition CSV file '%s' (%.2f seconds)", (LPCTSTR)m_vegtransfile.deterministic_filename, (float)duration);
+   msg.Format("  DynamicVeg: Loaded Deterministic Transition CSV file '%s' (%.2f seconds)", (LPCTSTR)m_vegtransfile.deterministic_filename, (float)duration);
    Report::Log(msg);
 
    return TRUE;
@@ -363,26 +370,46 @@ bool DynamicVeg::Run(EnvContext *pEnvContext)
    {
    MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
+   if (pEnvContext->id == MODEL_ID::DISTURBANCE_TRANSITIONS)
+      {
+      int npos = 0;
+      int nneg = 0;
+      for (MapLayer::Iterator idu = pEnvContext->pMapLayer->Begin(); idu != pEnvContext->pMapLayer->End(); idu++)
+         {
+         int _idu = idu;
+         pLayer->GetData(idu, m_colDisturb, m_disturb);
+
+         if (m_disturb > 0)
+            npos++;
+
+         else if (m_disturb < 0)
+            nneg++;
+         }
+
+      CString msg;
+      msg.Format("  DynamicVeg Disturbance Transitions: %i disturbances found; (%i prior disturbances) in year %i", npos, nneg, pEnvContext->yearOfRun);
+      Report::Log(msg);
+      }
+
+
    int current_year = pEnvContext->currentYear;
 
    m_probMultiplierPVTLookupKey.timestep = current_year;
 
    m_probMultiplierVegClassLookupKey.timestep = current_year;
 
-	// reset IDU layer transtion type to zero before each annual step. ID=0 is early before successional transitions 
-	if ( pEnvContext->id == 0 && m_useVegTransFlag.useVegTransFlag == 1)
+	// reset IDU layer transtion type to zero before each annual step. ID=0 is successional transitions 
+	if ( pEnvContext->id == MODEL_ID::SUCCESSION_TRANSITIONS && m_useVegTransFlag.useVegTransFlag == 1)
       {
       for (MapLayer::Iterator idu = pEnvContext->pMapLayer->Begin(); idu != pEnvContext->pMapLayer->End(); idu++) 
          UpdateIDU(pEnvContext, idu, m_colVegTranType, 0, ADD_DELTA);
       }
 
-	//increment AGECLASS by 1 if no changes in VEGCLASS this time step
-   if (pEnvContext->id == 2) //happens after successional and disturbance transitions in this time step
+	// increment AGECLASS by 1 if no changes in VEGCLASS this time step
+   if (pEnvContext->id == MODEL_ID::TIME_IN_AGECLASS) // happens after successional and disturbance transitions in this time step
       {
-
       for (INT_PTR i = 0; i < pLayer->GetRecordCount(); i++)
          {
-
          int idu = (int)i;
 
          pLayer->GetData(idu, m_colAgeClass, m_ageClass);
@@ -408,11 +435,12 @@ bool DynamicVeg::Run(EnvContext *pEnvContext)
          m_disturbArray[d] = 0;
 
       } //endif no transitions process 
-   else
+   else  // Successional model (ID=0) or Disturbance model (ID=1)
       {
       // loop through the IDU
       for (MapLayer::Iterator idu = pEnvContext->pMapLayer->Begin(); idu != pEnvContext->pMapLayer->End(); idu++)
          {
+         int _idu = idu;
 
          m_flagProbabilisticTransition = false; //initialize these flags for each IDU
          m_flagDeterministicTransition = false;
@@ -436,14 +464,14 @@ bool DynamicVeg::Run(EnvContext *pEnvContext)
          pLayer->GetData(idu, m_colAgeClass, m_ageClass);
          pLayer->GetData(idu, m_colRegion, m_region);
 
-         //in the IDU layer previous disturbances can be set to a negative value.
+         // in the IDU layer previous disturbances can be set to a negative value.
          // So, set to zero only for this plugin to access successional transitions
          // in the probability lookup table. only for process id = 0
-         if (m_disturb < 0 && pEnvContext->id == 0) m_disturb = 0;
+         if (m_disturb < 0 && pEnvContext->id == MODEL_ID::SUCCESSION_TRANSITIONS)
+            m_disturb = 0;
 
          if (m_vegClass >= 1000000)
             {
-
             if (m_useVariant) pLayer->GetData(idu, m_colVariant, m_variant);
 
             if (m_useLAI) pLayer->GetData(idu, m_colLAI, m_LAI);
@@ -481,21 +509,19 @@ bool DynamicVeg::Run(EnvContext *pEnvContext)
                }
 
             // Disturbance Transitions
-            if ( ( m_disturb > 0 && m_disturbArray[idu] != m_disturb &&  pEnvContext->id == 1 ) )   // climate change disturbances     
+            if ( ( m_disturb > 0 && m_disturbArray[idu] != m_disturb &&  pEnvContext->id == MODEL_ID::DISTURBANCE_TRANSITIONS ) )   // climate change disturbances     
                {
                DisturbanceTransition(pEnvContext, idu);
 
                if (m_flagProbabilisticTransition)
                   {
                   TimeInAgeClass(pEnvContext, idu, m_flagProbabilisticTransition, m_flagDeterministicTransition);
-
                   m_vegTransitionArray[idu] = 1;
-
                   m_disturbArray[idu] = m_disturb;
                   }
-
                }
-            else if ((m_disturb == 0 || (m_disturb > CC_DISTURB_LB && m_disturb < CC_DISTURB_UB)) && pEnvContext->id == 0) // Successional Transitions
+            else if ((m_disturb == 0 || (m_disturb > CC_DISTURB_LB && m_disturb < CC_DISTURB_UB))
+               && pEnvContext->id == MODEL_ID::SUCCESSION_TRANSITIONS) // Successional Transitions
                {
                if ((int)m_mc1si == (int)-99.1f) continue; // there may be -99 in input data file
                if ((int)m_mc1pvt == (int)-99.1f) continue;
@@ -540,7 +566,7 @@ bool DynamicVeg::EndRun(EnvContext*)
 
    for (int i = 0; i <= m_badVegTransClasses.GetUpperBound(); i++)
       {
-      msg += "DynamicVeg missing probabilistic transition: ";
+      msg += "DynamicVeg: Missing probabilistic transition: ";
       msg += m_badVegTransClasses[i];
       }
 
@@ -775,7 +801,7 @@ bool DynamicVeg::DisturbanceTransition(EnvContext *pEnvContext, int idu)
          if (CCdisturbFlag && m_unseenCCtrans[CC_DISTURB_UB - m_disturb])
             { // Unrecognized climate change disturbance transition
             CString msg;
-            msg.Format("FlameLenDisturbHandler: Unrecognized climate change transition, m_disturb = %d", m_disturb);
+            msg.Format("  DynamicVeg: Unrecognized climate change transition, m_disturb = %d", m_disturb);
             Report::Log(msg);
             }
          break;
@@ -1048,7 +1074,7 @@ bool DynamicVeg::DeterministicTransition(EnvContext *pEnvContext, int idu)
    if ( determmapindex->size() > 1 )
       {
       CString msg;
-      msg.Format("DynamicVeg: multiple entries for the same state in the deterministic transition table: vegclass_from=%i pvt=%i region=%i",
+      msg.Format("  DynamicVeg: multiple entries for the same state in the deterministic transition table: vegclass_from=%i pvt=%i region=%i",
          m_vegClass, m_climateChange ? m_mc1pvt : m_pvt, m_region);
       Report::LogError(msg);
       }
@@ -1062,14 +1088,14 @@ bool DynamicVeg::DeterministicTransition(EnvContext *pEnvContext, int idu)
          if (m_ageClass > endage && errAgeClassCount < 10)
             {
             CString msg;
-            msg.Format("DynamicVeg: m_ageClass > endage.  year=%i idu=%i, m_ageClass=%i, endage=%i, m_vegClass=%i, pvt=%i, m_region=%i m_disturb=%i",
+            msg.Format("  DynamicVeg: m_ageClass > endage.  year=%i idu=%i, m_ageClass=%i, endage=%i, m_vegClass=%i, pvt=%i, m_region=%i m_disturb=%i",
                pEnvContext->currentYear, idu, m_ageClass, endage, m_vegClass, m_climateChange ? m_mc1pvt : m_pvt, m_region, m_disturb);
             Report::LogWarning(msg);
 
             errAgeClassCount++;
             if (errAgeClassCount == 10)
                {
-               msg.Format("Further 'm_ageClass > endage' messages will be suppressed.");
+               msg.Format("  Further 'm_ageClass > endage' messages will be suppressed.");
                Report::LogWarning(msg);
                }
             }
@@ -1211,7 +1237,7 @@ bool DynamicVeg::TimeInAgeClass(EnvContext *pEnvContext, int idu, bool probabili
       if (determmapindex->size() == 0)
          {
          CString msg;
-         msg.Format("DynamicVeg:  missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i regen=%i si=%i pvt=%i region=%i", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
+         msg.Format("  DynamicVeg:  missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i regen=%i si=%i pvt=%i region=%i", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
          Report::Log(msg);
          }
       else
@@ -1313,7 +1339,7 @@ bool DynamicVeg::TimeInAgeClass(EnvContext *pEnvContext, int idu, bool probabili
          if (determmapindex->size() == 0)
             {
             CString msg;
-            msg.Format("DynamicVeg: missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i regen=%i si=%i pvt=%i region=%i", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
+            msg.Format("  DynamicVeg: missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i regen=%i si=%i pvt=%i region=%i", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
             Report::LogError(msg);
             }
          else
@@ -1357,7 +1383,7 @@ bool DynamicVeg::TimeInAgeClass(EnvContext *pEnvContext, int idu, bool probabili
          if (determmapindex->size() == 0)
             {
             CString msg;
-            msg.Format("DynamicVeg: missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i regen=%i si=%i pvt=%i region=%i", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
+            msg.Format("  DynamicVeg: missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i regen=%i si=%i pvt=%i region=%i", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
             Report::LogError(msg);
             }
          else
@@ -1568,7 +1594,7 @@ bool DynamicVeg::LoadProbMultiplierCSV(CString probMultiplierFilename, EnvContex
    if (records <= 0 || probMultiplierFilename == "")
       {
       CString msg;
-      msg.Format("DynamicVeg::LoadProbMultiplierCSV could not load probability multiplier .csv file specified in PVT.xml file");
+      msg.Format("  DynamicVeg::LoadProbMultiplierCSV could not load probability multiplier .csv file specified in PVT.xml file");
       Report::WarningMsg(msg);
       return false;
       }
@@ -1586,7 +1612,7 @@ bool DynamicVeg::LoadProbMultiplierCSV(CString probMultiplierFilename, EnvContex
       timestep_col < 0 || probmult_col < 0 || colFutsi < 0)
       {
       CString msg;
-      msg.Format("DynamicVeg::LoadProbMultiplierCSV One or more column headings are incorrect in Probability lookup file");
+      msg.Format("  DynamicVeg::LoadProbMultiplierCSV One or more column headings are incorrect in Probability lookup file");
       Report::ErrorMsg(msg);
       return false;
       }
@@ -1655,7 +1681,7 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
 
    if (records <= 0 || deterministicfilename == "")
       {
-      msg.Format("DynamicVeg::LoadDeterministicTransCSV could not load deterministic transition .csv file specified in PVT.xml file");
+      msg.Format("  DynamicVeg::LoadDeterministicTransCSV could not load deterministic transition .csv file specified in PVT.xml file");
       Report::ErrorMsg(msg);
       return false;
       }
@@ -1675,7 +1701,7 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
    if (vfrom_col < 0 || vto_col < 0 || abbvfrom_col < 0 || abbvto_col < 0 || pvtto_col < 0 ||
       pvt_col < 0 || startage_col < 0 || endage_col < 0 || rndage_col < 0 || region_col < 0)
       {
-      msg.Format("DynamicVeg::LoadDeterministicTransCSV One or more column headings are incorrect in deterministic lookup file");
+      msg.Format("  DynamicVeg::LoadDeterministicTransCSV One or more column headings are incorrect in deterministic lookup file");
       Report::ErrorMsg(msg);
       return false;
       }
@@ -1717,7 +1743,7 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
       if (lai_col < 0)
          {
          CString msg;
-         msg.Format("DynamicVeg::Init LAI column heading is incorrect in deterministic lookup file");
+         msg.Format("  DynamicVeg::Init LAI column heading is incorrect in deterministic lookup file");
          Report::ErrorMsg(msg);
 
          m_useLAI = false;
@@ -1734,7 +1760,7 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
       if (carbon_col < 0)
          {
          CString msg;
-         msg.Format("DynamicVeg::Init CARBON column heading is incorrect in deterministic lookup file");
+         msg.Format(" DynamicVeg::Init CARBON column heading is incorrect in deterministic lookup file");
          Report::ErrorMsg(msg);
 
          m_useCarbon = false;
@@ -1906,12 +1932,12 @@ bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext *pEnvContext)
 
    if (records <= 0)
       {
-      msg.Format("DynamicVeg: could not load probability .csv file specified in PVT.xml file");
+      msg.Format("  DynamicVeg: could not load probability .csv file specified in PVT.xml file");
       Report::ErrorMsg(msg);
       return false;
       }
 
-   msg.Format("Dynamic Veg:   Loaded %i records from '%s'", records, (LPCTSTR)probfilename);
+   msg.Format("  Dynamic Veg:   Loaded %i records from '%s'", records, (LPCTSTR)probfilename);
    Report::Log(msg);
 
    //get column numbers in prob input table
@@ -1943,7 +1969,7 @@ bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext *pEnvContext)
       minage_col < 0 || maxage_col < 0 || tsd_col < 0 || relage_col < 0 ||
       keeprel_col < 0 || proport_col < 0 || tsdmax_col < 0 || reltsd_col < 0)
       {
-      msg.Format("DynamicVeg::LoadProbCSV One or more column headings are incorrect in Probability lookup file");
+      msg.Format("  DynamicVeg::LoadProbCSV One or more column headings are incorrect in Probability lookup file");
       Report::ErrorMsg(msg);
       return false;
       }
@@ -1955,7 +1981,7 @@ bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext *pEnvContext)
 
    int tabrows = m_inputtable.GetRowCount();
 
-   Report::Log("DynamicVeg:   iterating through input table");
+   Report::Log("  DynamicVeg: iterating through input table");
 
    // loop through look up table  
    for (int j = 0; j < tabrows; j++)
@@ -2047,7 +2073,7 @@ bool DynamicVeg::LoadMC1PvtSiCSV(CString MC1Sifilename, CString MC1Pvtfilename, 
 
    if (SIrecords <= 0)
       {
-      CString msg(_T("DynamicVeg:  Error reading site index file "));
+      CString msg(_T("  DynamicVeg:  Error reading site index file "));
       msg += MC1Sifilename;
       Report::ErrorMsg(msg);
       return false;
@@ -2057,7 +2083,7 @@ bool DynamicVeg::LoadMC1PvtSiCSV(CString MC1Sifilename, CString MC1Pvtfilename, 
 
    if (PVTrecords <= 0)
       {
-      CString msg(_T("DynamicVeg:  Error reading pvt file "));
+      CString msg(_T("  DynamicVeg:  Error reading pvt file "));
       msg += MC1Pvtfilename;
       Report::ErrorMsg(msg);
       return false;
@@ -2137,7 +2163,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
    if ( PathManager::FindPath( _filename, filename ) < 0 ) //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
       {
       CString msg;
-      msg.Format( "Dynamic Veg: Input file '%s' not found - this process will be disabled", _filename );
+      msg.Format( "  Dynamic Veg: Input file '%s' not found - this process will be disabled", _filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -2151,7 +2177,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
    if (!ok)
       {
       CString msg;
-      msg.Format("Error reading input file %s:  %s", filename, doc.ErrorDesc());
+      msg.Format("  Error reading input file %s:  %s", filename, doc.ErrorDesc());
       Report::ErrorMsg(msg);
       return false;
       }
@@ -2212,7 +2238,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
 
    if (pXmlTransDeltas == NULL)
       {
-      CString msg("Unable to find <transition_deltas> tag reading ");
+      CString msg("  DynamicVeg: Unable to find <transition_deltas> tag reading ");
       msg += filename;
       Report::ErrorMsg(msg);
       return false;
@@ -2231,7 +2257,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
 
    if (pXmlVegtransfiles == NULL)
       {
-      CString msg("Unable to find <vegtransfiles> tag reading ");
+      CString msg("  DynamicVeg: Unable to find <vegtransfiles> tag reading ");
       msg += filename;
       Report::ErrorMsg(msg);
       return false;
@@ -2254,7 +2280,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
    if ( retVal < 0 )
       {
       CString msg;
-      msg.Format( "DynamicVeg: Probability Transition file '%s' not found - Dynamic Veg will be disabled...", probFilename );
+      msg.Format( "  DynamicVeg: Probability Transition file '%s' not found - Dynamic Veg will be disabled...", probFilename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -2263,7 +2289,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
    if ( retVal < 0 )
       {
       CString msg;
-      msg.Format( "DynamicVeg: Deterministic Transition file '%s' not found - Dynamic Veg will be disabled...", detFilename );
+      msg.Format( "  DynamicVeg: Deterministic Transition file '%s' not found - Dynamic Veg will be disabled...", detFilename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -2274,7 +2300,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
       if ( retVal < 0 )
          {
          CString msg;
-         msg.Format( "DynamicVeg: Probablistic Multiplier file '%s' not found - Dynamic Veg will be disabled...", probMultFilename );
+         msg.Format( "  DynamicVeg: Probablistic Multiplier file '%s' not found - Dynamic Veg will be disabled...", probMultFilename );
          Report::ErrorMsg( msg );
          return false;
          }
@@ -2285,7 +2311,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
 
    if (pXmlInitializers == NULL)
       {
-      CString msg("Unable to find <initializers> tag reading ");
+      CString msg("  DynamicVeg: Unable to find <initializers> tag reading ");
       msg += filename;
       Report::ErrorMsg(msg);
       return false;
@@ -2323,7 +2349,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
          if (!ok)
             {
             CString msg;
-            msg.Format(_T("Misformed element reading <output> attributes in input file %s"), filename);
+            msg.Format(_T("  DynamicVeg: Misformed element reading <output> attributes in input file %s"), filename);
             Report::ErrorMsg(msg);
             delete pOutput;
             }
