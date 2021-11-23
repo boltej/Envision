@@ -10454,7 +10454,7 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
             day = atoi(p);
          else if (i == 5)//q converted to m3/s
             {
-            data[1] = ((float)atof(p)) / 35.35f;
+            data[1] = ((float)atof(p)) / 35.31f;
 
             if (dataType == 1) //reservoir level, ft
                data[1] = ((float)atof(p)) / 3.28f;//convert to meters
