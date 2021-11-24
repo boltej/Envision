@@ -155,6 +155,9 @@ public:
    struct AuxMovieStuff* m_auxMovieStuff;
 
 
+   bool m_showDeltas;
+
+
    // Generated message map functions
 protected:
 	//{{AFX_MSG(ResultsWnd)

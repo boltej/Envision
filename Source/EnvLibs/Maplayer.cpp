@@ -352,7 +352,7 @@ Poly& Poly::operator=(const Poly &poly)
       m_parents.Copy(poly.m_parents);      // added jpb 3/24/06
 
    // take care of copying the m_ptArray.  Note - thre is one logical POINT for each vertex
-   int count = this->GetVertexCount();
+   int count = poly.GetVertexCount();
    if (count == 0)
       m_ptArray = NULL;
    else

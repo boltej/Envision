@@ -203,7 +203,7 @@ int ResultsMapWnd::OnCreate(LPCREATESTRUCT lpCreateStruct)
    pLayer->SetNoOutline();
 
    // make a copy of the polygons
-   pLayer->ClonePolygons( gpCellLayer );      // warning: sets no data value to 0!
+   pLayer->ClonePolygons( gpCellLayer );      // warning: sets no data value to 0!  doesn't copy data, just polys
    pLayer->m_mapUnits = pLayer->m_mapUnits;
 
    m_pDeltaArray->AddMapLayer( pLayer );      // assocoiate this resultMap with the approriate deltaArray
@@ -390,55 +390,63 @@ void ResultsMapWnd::ShiftMap( int fromYear, int toYear )
       {
       m_pDeltaArray->GetIndexRangeFromYearRange( fromYear, toYear, from, to );
 
-      for ( INT_PTR i=from; i < to; i++ )
-		   {
-         DELTA &delta = m_pDeltaArray->GetAt(i);
+      for (INT_PTR i = from; i < to; i++)
+         {
+         DELTA& delta = m_pDeltaArray->GetAt(i);
          //ASSERT( ! delta.oldValue.Compare( delta.newValue ) );
 
-         if ( m_isDifference && delta.col == m_iduCol )
+         if ((delta.col == m_iduCol) || (m_overlayCol >= 0 && delta.col == m_overlayCol))
             {
-            if ( delta.newValue.Compare( m_startDataArray[ delta.cell ] ) == true )
-               pLayer->SetNoData( delta.cell, 0 );
-            else  // they are different, so populate coverage
+            if (m_isDifference)
                {
-               bool populated = false;
+               // has value changed since beginning?
+               //if (delta.newValue.Compare(m_startDataArray[delta.cell]) == true)
+               VData oldValue;
+               pLayer->GetData(delta.cell, 0, oldValue);
 
-               if ( isCategorical )
+               if ( delta.newValue.Compare(oldValue) == true)
+                  pLayer->SetNoData(delta.cell, 0);
+               else  // they are different, so populate coverage
                   {
-                  pLayer->SetData( delta.cell, 0, delta.newValue );
-                  populated = true;
-                  }
-               else if ( ::IsNumeric( type ) )
-                  {
-                  float newValue;
-                  bool ok = delta.newValue.GetAsFloat( newValue );
-                  if ( ok )   // valid float?
+                  bool populated = false;
+
+                  if (isCategorical)
                      {
-                     float startValue;
-                     ok = m_startDataArray[ delta.cell ].GetAsFloat( startValue );
-                     if ( ok )
+                     pLayer->SetData(delta.cell, 0, delta.newValue);
+                     populated = true;
+                     }
+                  else if (::IsNumeric(type))
+                     {
+                     float newValue;
+                     bool ok = delta.newValue.GetAsFloat(newValue);
+                     if (ok)   // valid float?
                         {
-                        pLayer->SetData( delta.cell, 0, (newValue-startValue) );
-                        populated = true;
+                        float startValue;
+                        ok = m_startDataArray[delta.cell].GetAsFloat(startValue);
+                        if (ok)
+                           {
+                           pLayer->SetData(delta.cell, 0, (newValue - startValue));
+                           populated = true;
+                           }
                         }
                      }
-                  }
 
-               if ( ! populated )
-                  pLayer->SetData( delta.cell, 0, VData() );
-               }
-            }  // end of: isDifference
-         else
-            {
-            // if old and new deltas are different, and delta column is the column for this map, then update map
-            if ( (! delta.oldValue.Compare(delta.newValue)) && ( delta.col == m_iduCol || (m_overlayCol >= 0 && delta.col == m_overlayCol ) ) )
+                  if (!populated)
+                     pLayer->SetData(delta.cell, 0, VData());
+                  }
+               }  // end of: isDifference
+            else
                {
-               VData value;
-               pLayer->GetData( delta.cell, 0, value );
-               ASSERT( value.Compare( delta.oldValue ) == true );  //!!! JPB These and otehrs should works!!!
-               pLayer->SetData( delta.cell, 0, delta.newValue );
+               // if old and new deltas are different, and delta column is the column for this map, then update map
+               if (!delta.oldValue.Compare(delta.newValue))
+                  {
+                  VData value;
+                  pLayer->GetData(delta.cell, 0, value);
+                  ASSERT(value.Compare(delta.oldValue) == true);  //!!! JPB These and otehrs should works!!!
+                  pLayer->SetData(delta.cell, 0, delta.newValue);
+                  }
                }
-		      }
+            }
          }
       }
    else // fromYear > toYear - going backwards
@@ -498,7 +506,7 @@ void ResultsMapWnd::ShiftMap( int fromYear, int toYear )
 
    pLayer->ClassifyData(); 
    m_pMapList->Refresh();
-   m_mapFrame.m_pMapWnd->Invalidate( false );
+   m_mapFrame.m_pMapWnd->Invalidate( FALSE );
    m_mapFrame.m_pMapWnd->UpdateWindow();
    }
 

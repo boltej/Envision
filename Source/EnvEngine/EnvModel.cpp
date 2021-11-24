@@ -3962,7 +3962,7 @@ void EnvModel::RunModelProcesses( bool isPostYear )
          try
             {
             CString msg;
-            msg.Format("--%s starting...", (LPCTSTR)pInfo->m_name);
+            msg.Format("%s starting...", (LPCTSTR)pInfo->m_name);
             Report::Log(msg);
 
             bool ok = pInfo->Run( &m_envContext );
