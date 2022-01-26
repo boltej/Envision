@@ -36,14 +36,15 @@
 #include "soilwater.h"
 
 
-void snow(double prec, double temp, double& snowpack, double& rain_melt) {
-
+void snow(double prec, double temp, double insol, double lai, double& snowpack, double& rain_melt) 
+   {
 	// Daily calculation of snowfall and rainfall from precipitation and snow melt from
 	// snow pack; update of snow pack with new snow and snow melt and snow melt
 
 	// INPUT PARAMETERS
 	// prec = precipitation today (mm)
 	// temp = air temperature today (deg C)
+	// insol = net radiation (Watts/m2)
 
 	// INPUT AND OUTPUT PARAMETER
 	// snowpack = stored snow (rainfall mm equivalents)
@@ -52,27 +53,53 @@ void snow(double prec, double temp, double& snowpack, double& rain_melt) {
 	// rain_melt = rainfall and snow melt today (mm)
 
 	//const double TSNOW = 0.0;
+
+	float sn_abs = 0.6f; //adsorptivity of snow
+	float lh_fus = 335;  //latent heat of fusion (kJ/kg)
+	float lh_sub = 2835.0f; //latent heat of sublimation
+	float rn = insol*3.6f;//convert to kj/m2/d;     //net radiation (kJ/m2/d)
+	float rmelt = 0.0f;  //water fram radiation induced snow melt (kg/m2/d)
+	float k = 0.5f;     //extinction coefficient 
+	float swinc = rn;  //shortwave incident
+	float swalb = 0.1f; //albedo (0-1)
 	double TSNOW = tt;
-	
+	float rhow = 1000.0f; //density water kg/m3
+	float cpw = 2.09f; //specific hear capacity (J/gC);
 	// maximum temperature for precipitation as snow (deg C)
 	// previously 2 deg C; new value suggested by Dieter Gerten 2002-12
 	const double SNOWPACK_MAX = 10000.0;
 	// maximum size of snowpack (mm) (S. Sitch, pers. comm. 2001-11-28)
-
+	float mr = 0.0f;
+	float mh = 0.0f;
+	float ma = 0.0f;
 	double melt;
-	if (temp < TSNOW) {						// snowing today
-		melt = -min(prec * 1.0f, SNOWPACK_MAX - snowpack);
-	}
-	else {								// raining today
+
+	float swfrac = 1 - exp(lai * -k);
+	float swtrans = (1 - swalb) * swinc * (1 - swfrac); //shorwave transmitted through canopy (kg/m2/d)
+
+	if (temp < TSNOW) 
+	   {						// snowing today
+		//melt = -min(prec * 1.0f, SNOWPACK_MAX - snowpack);
+		mr = -prec + swtrans / lh_sub;      //include a radiation driven melt term		
+	   }
+	else 
+	   {								// raining today
 	// New snow melt formulation
 	// Dieter Gerten 021121
 	// Ref: Choudhury et al 1998
 		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
-		melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
-	}
-	snowpack -= melt;
-	rain_melt = prec + melt;
-}
+		//melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
+		mr = swtrans / lh_fus;
+	   mh = cfmax * (temp - TSNOW);
+		ma = rhow * temp * prec * cpw;
+	   }
+	//snowpack -= melt;
+	//rain_melt = prec + melt;	
+
+	float mt = min(mr + mh + ma, snowpack);
+	snowpack -= mt;
+	rain_melt = prec + mt;
+   }
 
 /// SNOW_NINPUT
 /** Nitrogen deposition and fertilization on a snowpack stays in snowpack
@@ -380,9 +407,12 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
  *  rainmelt to be re-distributed later in hydrology_lpjf
  */
 void initial_infiltration(Patch& patch, Climate& climate) {
+	Gridcell& gridcell = patch.stand.get_gridcell();
+	//HRU* pHRU = gridcell.m_hruArray[0];
+	HRU* pHRU = gridcell.pHRU;
 
 	Soil& soil = patch.soil;
-	snow(climate.prec - patch.intercep, climate.temp, soil.snowpack, soil.rain_melt);
+	snow(climate.prec - patch.intercep, climate.temp,pHRU->m_meanLAI, climate.insol, soil.snowpack, soil.rain_melt);
 	snow_ninput(climate.prec - patch.intercep, soil.snowpack, soil.rain_melt, climate.dndep, patch.dnfert, soil.snowpack_nmass, soil.ninput);
 	soil.percolate = soil.rain_melt >= 0.1;
 	soil.max_rain_melt = soil.rain_melt;
@@ -400,9 +430,7 @@ void initial_infiltration(Patch& patch, Climate& climate) {
 
 		soil.wcont_evap = soil.wcont[0];
 	}
-	Gridcell& gridcell = patch.stand.get_gridcell();
-	//HRU* pHRU = gridcell.m_hruArray[0];
-	HRU* pHRU = gridcell.pHRU;
+
 	pHRU->m_depthSWE = soil.snowpack;
 
 }
