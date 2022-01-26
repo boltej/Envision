@@ -302,6 +302,7 @@ EnvModel::EnvModel()
    m_envContext.pDeltaArray    = NULL;      // reset in init run
    m_envContext.pLulcTree      = &m_lulcTree;
    m_envContext.pExprEngine    = NULL;   // fill this in later after created
+   m_envContext.pScenario      = NULL;   // fill this in later after created
    m_envContext.score          = 0;
    m_envContext.rawScore       = 0;
    m_envContext.pDataObj       = NULL;
@@ -426,6 +427,7 @@ EnvModel::EnvModel()
    m_envContext.pLulcTree     = &m_lulcTree;
    m_envContext.pQueryEngine  = m_pQueryEngine;
    m_envContext.pExprEngine   = NULL;
+   m_envContext.pScenario     = NULL;
    m_envContext.score         = 0;
    m_envContext.rawScore      = 0;
    m_envContext.pDataObj      = NULL;
@@ -1289,6 +1291,7 @@ int EnvModel::Run( int runFlag )
 
    // set scenario
    ASSERT( m_pScenario != NULL );
+   m_envContext.pScenario = m_pScenario;
    m_pScenario->SetScenarioVars( runFlag );
 
    bool ok = SetRunConstraint();  // if any, populate m_targetPolyArray
@@ -3986,7 +3989,7 @@ void EnvModel::RunModelProcesses( bool isPostYear )
                }
             }
          catch( ... )
-            { }
+             { }
 
          ApplyDeltaArray( m_pIDULayer );
          m_apFirstUnseenDelta[i] = m_pDeltaArray->GetCount();

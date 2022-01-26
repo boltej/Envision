@@ -3,6 +3,7 @@
 #include <EnvExtension.h>
 
 #include <vdataobj.h>
+#include <fdataobj.h>
 #include <AttrIndex.h>
 
 #define _EXPORT __declspec( dllexport )
@@ -40,6 +41,36 @@ struct TABLECOL {
    LPCTSTR field;
    };
 
+enum TU_OPS {
+   TUOP_AREA,
+   TUOP_AREAWTMEAN
+   };
+
+// TABLE_UPDATES define PSWCP Table variables and how to calculate them from
+// IDU values for each AU (Analysis Unit)
+// basic idea of table lookups:
+//   1) Initially, we track: 1) table values for the TABLE_UPDATE variable
+//                           2) corresponding (accumulative) ID values for the AU for the TABLE_UPDATE variable
+//   2) During Run(), we: 1) compute the (accumulative) IDU values for an AU and store in the TABLE_LOOKUP's iduCurrentValues array
+//                        2) scale the IDU value to a table value by linear scaling to baseline values and store in model table
+//                                     iduCurrent    tableCurrent
+//                                     ----------- = ------------       tc = tb (ic/ib)
+//                                     iduBaseline   tableBaseline
+//                        3) run the PSWCP Model using model tables
+//                        4) store results in IDUs and output data object
+
+struct TABLE_UPDATE {
+   LPCTSTR tableVar;   // name of PSWCP table variable
+   TABLE table;        // PSWCP table containing this variable;
+   CString iduQuery;   // single string=column name, valid query = query
+   int     iduCol;     // -1 if query, idu col otherwise
+   Query* pQuery;      // NULL if iduCol, not NULL if query
+   TU_OPS op;
+
+   CArray<float> iduBaselineValues;    // values=baseline value for the AU from IDUs
+   CArray<float> tableBaselineValues;  // values=cumulative value for the AU from table
+   CArray<float> iduCurrentValues;     // values=current value for the AU
+   };
 
 struct HAB_SCORE {
    int col;
@@ -66,27 +97,42 @@ class _EXPORT PSWCP : public  EnvModelProcess
       // idu columns
       MapLayer* m_pIDULayer;
       int m_col_IDU_AUW_ID;    // water AU index
-      int m_col_IDU_WQ_S;
-      int m_col_IDU_WQ_P;
-      int m_col_IDU_WQ_Me;
-      int m_col_IDU_WQ_N;
-      int m_col_IDU_WQ_Pa;
 
-      int m_col_IDU_WF1_DEL;   // discharge from floodplains/wetlands
-      int m_col_IDU_WF1_WLS;   // wetland/lakes storage
-      int m_col_IDU_WF1_STS;   // floodplain storage
-      int m_col_IDU_WF1_RD;    // recharge/discharge 
+      // water quality restoration prioirity codes
+      int m_col_IDU_WQS_rp;
+      int m_col_IDU_WQP_rp;
+      int m_col_IDU_WQMe_rp;
+      int m_col_IDU_WQN_rp;
+      int m_col_IDU_WQPa_rp;
 
-      int m_col_IDU_WF2_IMP;
+      int m_col_IDU_WQS_m1_cal;
+      int m_col_IDU_WQP_m1_cal;
+      int m_col_IDU_WQMe_m1_cal;
+      int m_col_IDU_WQN_m1_cal;
+      int m_col_IDU_WQPa_m1_cal;
+
+      // water flow importance
+      int m_col_IDU_WF1_DE;     // importance to delivery
+      int m_col_IDU_WF1_SS;      // importance to surface storage
+      int m_col_IDU_WF1_R;       // importance to recharge
+      int m_col_IDU_WF1_DI;      // importance of discharge
+      int m_col_IDU_WF1_GW;
+      int m_col_IDU_WF_M1_CAL;  // calibrated score for model 1 importance
+
+      // water flow degradation
+      int m_col_IDU_WF2_IMP;     // IMP impervious surface indicator(urban)
       int m_col_IDU_WF2_IMPPCT;
-      int m_col_IDU_WF2_WLS;
-      int m_col_IDU_WF2_STS;
+      int m_col_IDU_WF2_DE;     // degradation to delivery
+      int m_col_IDU_WF2_SS;     // degradation to surface storage
+      int m_col_IDU_WF2_R;      // degradation to recharge
+      int m_col_IDU_WF2_DI;     // degradation to discharge
+      int m_col_IDU_WF2_GW;     // degradation to groundwater
 
-      int m_col_IDU_WF_M1_CAL;
+      int m_col_IDU_WF_M2_CAL;
+      
       int m_col_IDU_WF_RP;
 
-
-
+      // habitat
       int m_col_IDU_AUH_ID;            // hab AU ID
       int m_col_IDU_Hab_IntIndex;      // habitat integrity index
       int m_col_IDU_Hab_PHS;           // priority habitat for sppecies of interest
@@ -96,11 +142,6 @@ class _EXPORT PSWCP : public  EnvModelProcess
       int m_col_IDU_LULC_B;
       int m_col_IDU_CONSERVE;
       int m_col_IDU_AREA;
-      //int m_col_IDU_SED_RP;
-      //int m_col_IDU_N_RP;
-      //int m_col_IDU_P_RP;
-      //int m_col_IDU_ME_RP;
-      //int m_col_IDU_PA_RP;
 
       int m_col_IDU_HCI_Dist;
       int m_col_IDU_HCI_Shed;
@@ -121,14 +162,20 @@ class _EXPORT PSWCP : public  EnvModelProcess
       VDataObj* m_pWfM1Table;
       VDataObj* m_pWfM2Table;
       VDataObj* m_pWfRpTable;
-
       VDataObj* m_pHabTerrTable;
       //data table to store HCI values
       VDataObj* m_pHCITable;
       // lookup table of lulc and hpc
       VDataObj*  m_pHPCTable;
-      // 
+      
+      // outputs 
+      FDataObj* m_pOutputData;
+      FDataObj* m_pOutputInitValues;
+      int m_aboveCount;
+      int m_belowCount;
 
+      // various indexes/maps
+      CMap<int, int, int, int> m_AUIndex_Tables;
       AttrIndex m_AUWIndex_IDU;  // for IDUs, key=AUWIndex,value=IDU rows containing key  
       AttrIndex m_AUHIndex_IDU;  // for IDUs, key=AUHIndex,value=IDU rows containing key  
       AttrIndex m_HCIIndex_IDU;
@@ -140,15 +187,21 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
       // HCI assessment
 
-
+      //
+       
 
       // methods
 
       // copy values from IDUs to local tables before running assessment
       bool UpdateTablesFromIDULayer(EnvContext*);
-      bool UpdateWQTables();
+      void PopulateTableUpdatesFromIDUs(bool init);
 
       // Initialization routines
+      bool InitOutputData(EnvContext*);
+      bool InitColumns(EnvContext*);
+      bool InitTableUpdates(EnvContext* pEnvContext);
+      FDataObj* InitOutputDataObj(LPCTSTR name);
+
       bool InitWaterAssessments(EnvContext*);
       bool InitHabAssessments(EnvContext*);
       bool InitHCIAssessment(EnvContext*);
@@ -206,6 +259,8 @@ class _EXPORT PSWCP : public  EnvModelProcess
       bool SetTableValue(TABLE, LPCTSTR field, int row, VData& v);
 
       LSGROUP GetLSGroupIndex(int row);
+
+      bool CollectOutput(FDataObj*, EnvContext* pEnvContext);
 
    };
 

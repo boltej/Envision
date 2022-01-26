@@ -263,6 +263,9 @@ int EnvGetEvaluatorCount( EnvModel *pModel ) { return pModel->GetEvaluatorCount(
 EnvEvaluator* EnvGetEvaluatorInfo(EnvModel *pModel, int i) { return pModel->GetEvaluatorInfo(i); }
 EnvEvaluator* EnvFindEvaluatorInfo(EnvModel *pModel, LPCTSTR name) { return pModel->FindEvaluatorInfo(name); }
 
+LPCTSTR EnvGetCurrentScenarioName(EnvModel* pModel) { return pModel->m_pScenario ? (LPCTSTR)pModel->m_pScenario->m_name : NULL; }
+
+
 int EnvGetAutoProcessCount( EnvModel *pModel) { return pModel->GetModelProcessCount(); }
 EnvModelProcess* EnvGetAutoProcessInfo(EnvModel *pModel, int i) { return pModel->GetModelProcessInfo(i); }
 
