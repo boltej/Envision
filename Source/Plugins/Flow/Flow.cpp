@@ -3481,6 +3481,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
    //-------------------------------------------------------
    // Main within-year FLOW simulation loop starts here
    //-------------------------------------------------------
+  // m_stopTime = (m_currentTime + TIME_TOLERANCE);
    while ((m_currentTime + TIME_TOLERANCE) < m_stopTime)
       {
       int dayOfYear = int(fmod(m_timeInRun, 365));  // zero based day of year

@@ -50,6 +50,10 @@ Climate_Metrics::Climate_Metrics(FlowModel* pFlowModel, LPCTSTR name)
 	, m_pCoeff(NULL)
 	, m_maxYearlyStreamTemp(0.0f)
 	, m_numWeeks22(0)
+	, m_colAnnualTemp(-1)
+	, m_colAnnualPrecip(-1)
+	, m_colRainSnow(-1)
+	, m_colMaxDailyPrecip(-1)
 {
 	this->m_timing = GMT_START_STEP;
 }
@@ -69,9 +73,13 @@ bool Climate_Metrics::Init(FlowContext* pFlowContext)
 	MapLayer* pIDULayer = (MapLayer*)pFlowContext->pEnvContext->pMapLayer;
 
 	int iduCount = pIDULayer->GetRecordCount();
-
+	//m_colAnnualTemp, m_colAnnualPrecip, m_colRainSnow, m_colMaxDailyPrecip
 	pIDULayer->CheckCol(m_colTemp90, _T("Temp90"), TYPE_INT, CC_AUTOADD);
 	pIDULayer->CheckCol(m_colTemp70, _T("Temp70"), TYPE_INT, CC_AUTOADD);
+	pIDULayer->CheckCol(m_colAnnualTemp, _T("MeanTemp"), TYPE_FLOAT, CC_AUTOADD);
+	pIDULayer->CheckCol(m_colAnnualPrecip, _T("TotP"), TYPE_FLOAT, CC_AUTOADD);
+	pIDULayer->CheckCol(m_colRainSnow, _T("RainSnow"), TYPE_FLOAT, CC_AUTOADD);
+	pIDULayer->CheckCol(m_colMaxDailyPrecip, _T("MaxDayP"), TYPE_FLOAT, CC_AUTOADD);
 
 
 	pFlowContext->pFlowModel->AddOutputVar(_T("#Days High > 90 Degrees F"), m_maxYearlyTemp90, "");
@@ -140,6 +148,9 @@ bool Climate_Metrics::EndStep(FlowContext* pFlowContext)
 
 	return true;
 }
+//For each year, add average annual temp, precip, a snow/rain metric, and max daily precip to IDUs for access by PSWCP
+// 
+// m_colAnnualTemp, m_colAnnualPrecip, m_colRainSnow, m_colMaxDailyPrecip
 
 bool Climate_Metrics::CalcClimateMetrics(FlowContext* pFlowContext)
 {
@@ -150,49 +161,76 @@ bool Climate_Metrics::CalcClimateMetrics(FlowContext* pFlowContext)
 	int numDays = 0;  //local numDays above 90
 	int maxYearlyTemp90 = 0; int numDaysAbove70 = 0;
 	int minYearlyTemp70 = 0;
-	float meanTemp = 0;
+	
 	float JFMTemp = 0.0f;
 	float JASTemp = 0.0f;
+	float avTemp = 0.0f;
+	float totP = 0.0f;
+	float rainsnow=0.0f;
+	float maxDayP = 0.0f;
+	float precip = 0.0f;
+
 	int numHRU = 0;
+	float meanBasinTemp=0.0f;
 	for (int hruIndex = 0; hruIndex < hruCount; hruIndex++)
 	{
 		HRU* pHRU = pFlowContext->pFlowModel->GetHRU(hruIndex);
 		numHRU++;
+		float meanTemp = 0.0f;
+		float totP = 0.0f;
+		float rainsnow = 0.0f;
+		float maxDayP = 0.0f;
+		float precip = 0;
+		float numRainDays=0;
+		float sn = 0.0f;
+		float rn = 0.0f;
 		for (int doy = 0; doy < 365; doy++)
-		{
+		   {
 			pFlowContext->pFlowModel->GetHRUClimate(CDT_TMAX, pHRU, doy, tMax);
 			pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, doy, tMin);
+			pFlowContext->pFlowModel->GetHRUClimate(CDT_PRECIP, pHRU, doy, precip);
+			totP+=precip;
+			if (precip > maxDayP)
+				maxDayP=precip;
 			if (tMax >= 32.220f)
 				//if (tMax >= 43.330f)
 				numDays++;
 			if (tMin > 21.11)
 				numDaysAbove70++;
 			meanTemp += (tMax + tMin) / 2.0f;
+			meanBasinTemp+= (tMax + tMin) / 2.0f;
 			if (doy >= 0 && doy < 90)
 				JFMTemp += (tMax + tMin) / 2.0f;
 			if (doy >= 182 && doy < 274)
 				JASTemp += (tMax + tMin) / 2.0f;
 
-		}
+			if ((tMax + tMin / 2) < 0)
+				sn += precip;
+			else
+				rn += precip;
+		   }
 		if (numDays > maxYearlyTemp90)
 			maxYearlyTemp90 = numDays;
 		if (numDaysAbove70 > minYearlyTemp70)
 			minYearlyTemp70 = numDaysAbove70;
+
 
 		for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
 		{
 			int idu = pHRU->m_polyIndexArray[k];
 			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp90, numDays, ADD_DELTA);
 			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp70, numDaysAbove70, ADD_DELTA);
-			//	pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp90, numDays, ADD_DELTA);  
-			//	pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colTemp70, numDaysAbove70, ADD_DELTA);
+			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colAnnualTemp, meanTemp/365, ADD_DELTA);
+			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colAnnualPrecip, totP, ADD_DELTA);
+			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colMaxDailyPrecip, maxDayP, ADD_DELTA);
+			pFlowContext->pFlowModel->UpdateIDU(pFlowContext->pEnvContext, idu, m_colRainSnow, rn/totP, ADD_DELTA);
 		}
 		numDays = 0;
 		numDaysAbove70 = 0;
 	}
 	m_maxYearlyTemp90 = maxYearlyTemp90;
 	m_minYearlyTemp70 = minYearlyTemp70;
-	m_meanYearlyTemp = meanTemp / 365 / numHRU;
+	m_meanYearlyTemp = meanBasinTemp / 365 / numHRU;
 	m_meanWinterTemp = JFMTemp / 90 / numHRU;
 	m_meanSummerTemp = JASTemp / 90 / numHRU;
 
@@ -245,7 +283,7 @@ int Climate_Metrics::GetCIGWaterTemperature(FlowContext* pFlowContext)
 			modeledTemperatureData[static_cast<INT_PTR>(site)+1] = tw;
 			if (tw>maxTemp)
 			   maxTemp=tw;
-			if (tw > 22.0f)
+			if (tw > 21.0f)
 				m_numWeeks22++;
 			}//end of sites
 		doy += 7;
