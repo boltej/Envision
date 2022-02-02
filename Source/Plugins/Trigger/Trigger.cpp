@@ -274,7 +274,7 @@ bool TriggerProcess::LoadXml( LPCTSTR filename, const MapLayer *pLayer )
       CString msg;
       msg.Format( _T("Loaded trigger for query %s, (%i outcomes)\n"), 
          pTrigger->m_queryStr, pTrigger->m_outcomeArray.GetSize() );
-      Report::InfoMsg( msg );
+      Report::LogInfo( msg );
 
       pXmlTrigger = pXmlTrigger->NextSiblingElement( _T("trigger") );
       }  // end of: while ( pXmlTrigger != NULL )

@@ -288,7 +288,8 @@ bool Target::Init( EnvContext *pEnvContext )
       {
       TargetReport *pReport = m_reportArray[ i ];
       ASSERT( pReport != NULL );
-      pReport->m_value = 0;
+      pReport->m_count = 0;
+      pReport->m_fraction = 0;
       }
 
    if ( this->m_pQuery != NULL )
@@ -367,7 +368,8 @@ bool Target::InitRun( EnvContext *pEnvContext )
       {
       TargetReport *pReport = m_reportArray[ i ];
       ASSERT( pReport != NULL );
-      pReport->m_value = 0;
+      pReport->m_count = 0;
+      pReport->m_fraction = 0;
       }
 
    if ( m_pQuery == NULL )
@@ -503,15 +505,17 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
                continue;
             }
 
+         // this idu passed the query (if it existed), so continue to run the associated math expression
          queryCount++;
          float area = 0;
          pLayer->GetData(idu, m_colArea, area);
          pAlloc->currentArea += area;
 
+         // first allocation that passes the query wins
          if ( m_availCapacityArray[ idu ] > float( LONG_MIN )  )
             {
             redundantIDUs++;
-            CString msg;
+            //CString msg;
             //msg.Format( _T("Target: redundant IDU (%i) encountered processing allocation query %s\n"), (int) idu, (LPCTSTR) pAlloc->queryStr );
             //TRACE( msg );
             continue;
@@ -870,7 +874,8 @@ bool Target::Run( EnvContext *pEnvContext )
       TargetReport *pReport = m_reportArray[ i ];
       ASSERT( pReport != NULL );
 
-      pReport->m_value = 0;
+      pReport->m_count = 0;
+      pReport->m_fraction = 0;
 
       // was anything allocated?
       if ( m_totalAllocated > 0 )
@@ -885,12 +890,12 @@ bool Target::Run( EnvContext *pEnvContext )
             bool ok = pReport->m_pQuery->Run( idu, result );
 
             if ( ok && result )
-               pReport->m_value += m_allocatedArray[ idu ];
+               pReport->m_count += m_allocatedArray[ idu ];
             }
 
          // m_value has units of #allocated in the query/total #allocated
          // e.g. proportion of allocation satisfying the query
-         pReport->m_value /= m_totalAllocated;
+         pReport->m_fraction = pReport->m_count/m_totalAllocated;
          }
       }
 
@@ -2036,9 +2041,11 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
          {
          TargetReport *pReport = pTarget->m_reportArray[ i ];
 
-         vname.Format( "%s.%s", (LPCTSTR) pTarget->m_name, (LPCTSTR) pReport->m_name );
-         AddOutputVar( vname, pReport->m_value, _T("") );
-         varCount++;
+         vname.Format( "%s.%s.Count", (LPCTSTR) pTarget->m_name, (LPCTSTR) pReport->m_name );
+         AddOutputVar(vname, pReport->m_count, _T("") );
+         vname.Format("%s.%s.Fraction", (LPCTSTR)pTarget->m_name, (LPCTSTR)pReport->m_name);
+         AddOutputVar(vname, pReport->m_fraction, _T(""));
+         varCount += 2;
          }
 
       pTarget->m_outVarCount = varCount;

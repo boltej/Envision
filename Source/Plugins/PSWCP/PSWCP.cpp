@@ -37,7 +37,7 @@ const short LULC_B = 1;
 
 inline float Normalize(float val, float maxVal)
    {
-   return val / maxVal ? maxVal > 0.0f : 0.0f;
+   return maxVal > 0.0f ? val / maxVal : 0.0f;
    }
 
 
@@ -308,6 +308,14 @@ PSWCP::PSWCP(void)
    , m_AUHIndex_IDU()
    , m_HCIIndex_IDU()
    , m_numHCICat(-1)
+   , m_aboveCountWQM1(0)
+   , m_belowCountWQM1(0)
+   , m_aboveCountWfM1(0)
+   , m_belowCountWfM1(0)
+   , m_aboveCountWfM2(0)
+   , m_belowCountWfM2(0)
+   , m_aboveCountHab(0)
+   , m_belowCountHab(0)
    {
    int i = 0;
    while (colInfo[i].table >= 0)
@@ -2854,6 +2862,15 @@ LSGROUP PSWCP::GetLSGroupIndex(int row)
 
 bool PSWCP::CollectOutput(FDataObj *pData, EnvContext *pEnvContext)
    {
+   m_aboveCountWQM1 = 0;
+   m_belowCountWQM1 = 0;
+   m_aboveCountWfM1 = 0;
+   m_belowCountWfM1 = 0;
+   m_aboveCountWfM2 = 0;
+   m_belowCountWfM2 = 0;
+   m_aboveCountHab = 0;
+   m_belowCountHab = 0;
+
    int rows = pData->GetRowCount();
 
    for (int row = 0; row < rows; row++)
@@ -2873,6 +2890,8 @@ bool PSWCP::CollectOutput(FDataObj *pData, EnvContext *pEnvContext)
       GetTableValue(WQ_M1_TABLE, "M_M1_CAL", row, m_m1_cal);
       GetTableValue(WQ_M1_TABLE, "N_M1_CAL", row, n_m1_cal);
       GetTableValue(WQ_M1_TABLE, "PA_M1_CAL", row, pa_m1_cal);
+
+      float meanWQ = (s_m1_cal + p_m1_cal + m_m1_cal + n_m1_cal + pa_m1_cal) / 5;
 
       pData->Set(col++, row, s_m1_cal);
       pData->Set(col++, row, p_m1_cal);
@@ -2909,7 +2928,18 @@ bool PSWCP::CollectOutput(FDataObj *pData, EnvContext *pEnvContext)
       pData->Set(col++, row, wf_m2_cal);
 
       ASSERT(col == 16);
+
+
       }
+
+
+
+
+
+
+
+
+
 
 
    return true;

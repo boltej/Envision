@@ -247,6 +247,7 @@ public:
    bool Init   ( EnvContext *pContext, LPCTSTR initStr );
    bool InitRun( EnvContext *pContext, bool useInitialSeed );
    bool Run    ( EnvContext *pContext );
+   bool EndRun (EnvContext* pContext);
    bool Setup  ( EnvContext *pContext, HWND hWnd ) { return FALSE; }
 
 protected:

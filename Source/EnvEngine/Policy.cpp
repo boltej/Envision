@@ -2139,7 +2139,7 @@ bool ExpandOutcomeFunction::Build()
       }
 
    CString queryString    = m_pArgs->GetAt(0);
-   CString _areaString     = m_pArgs->GetAt(1);
+   CString _areaString    = m_pArgs->GetAt(1);
    CString outcomeString  = m_pArgs->GetAt(2);
    CString areaString;
    
@@ -2155,6 +2155,10 @@ bool ExpandOutcomeFunction::Build()
       if ( ! inComment )
          areaString += _areaString[ i ];
       }
+
+   // check for self reference
+   if (queryString.Compare("@") == 0)
+      queryString = this->m_pPolicy->m_siteAttrStr;
 
    m_area = (float) atof( areaString );
 

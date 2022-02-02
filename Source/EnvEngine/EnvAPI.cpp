@@ -27,11 +27,13 @@ Copywrite 2012 - Oregon State University
 #include <QueryEngine.h>
 #include "EnvModel.h"
 #include "EnvLoader.h"
+#include "EnvConstants.h"
 #include "Actor.h"
 #include "Policy.h"
 #include "Scenario.h"
+#include "DataManager.h"
 #include <iostream>
-
+#include <PathManager.h>
 void RunModel(EnvModel*);
 
 
@@ -292,6 +294,20 @@ Scenario *EnvGetScenarioFromName(EnvModel *pModel, LPCTSTR name, int *index)
 
    return pScenario;
    }
+
+
+int EnvGenLulcTransTable(EnvModel* pModel)
+   {
+   FDataObj* pData = pModel->m_pDataManager->CalculateLulcTransTable();
+
+   CString path = PathManager::GetPath( PM_OUTPUT_DIR );  // {ProjectDir}/Outputs/CurrentScenarioName/
+   path += "LULC_Trans_Table.csv";
+   pData->WriteAscii(path);
+   return 1;
+   }
+
+
+
 
 //int EnvStandardizeOutputFilename( LPTSTR filename, LPTSTR pathAndFilename, int maxLength )
 //   {

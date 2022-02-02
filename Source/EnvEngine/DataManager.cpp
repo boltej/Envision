@@ -2932,7 +2932,7 @@ VDataObj *DataManager::CalculateEvalScoresByLulcA( int year, int run /*=-1*/ )
 // The data object will have a column and row for each lucl class
 // ---------------------------------------------------------------------------------------------------------------
 
-FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 1*/, int year /*= -1*/, bool areaBasis /*= false*/, bool includeAlps /*= true*/ )
+FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 1*/, int year /*= -1*/, bool areaBasis /*= true*/, bool includeAlps /*= true*/ )
    {
    int         lulcCount   = m_pEnvModel->m_lulcTree.GetNodeCount( level );
    bool        errorInLulc = false;
@@ -3038,19 +3038,19 @@ FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 
                {
                //if ( !( ( includeAlps == FALSE ) && ( delta.type == DT_SUCCESSION ) ) )
                //   {
-               //   float v = pData->Get( col, row );
-               //   if ( areaBasis )
-               //      {
-               //      float area;
-               //      bool ok = this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, area );
-               //      ASSERT( ok );
-               //      v += area;
-               //      }
-               //   else
-               //      {
-               //      v += 1.0f;
-               //      }
-               //   pData->Set(col, row, v);
+                  float v = pData->GetAsFloat( col, row );
+                  if ( areaBasis )
+                     {
+                     float area;
+                     bool ok = this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, area );
+                     ASSERT( ok );
+                     v += area;
+                     }
+                  else
+                     {
+                     v += 1.0f;
+                     }
+                  pData->Set(col, row, v);
                //   }
                }
             else if ( errorInLulc == false )

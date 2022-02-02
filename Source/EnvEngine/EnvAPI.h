@@ -96,6 +96,9 @@ extern "C" {
    ENVAPI Scenario * PASCAL EnvGetScenario(EnvModel*, int i);
    ENVAPI Scenario * PASCAL EnvGetScenarioFromName(EnvModel*, LPCTSTR name, int *index);
 
+   // DataManager methods
+   ENVAPI int        PASCAL EnvGenLulcTransTable(EnvModel*);
+
    // Standard Path Information
    //ENVAPI int PASCAL EnvStandardOutputFilename(LPTSTR filename, LPCTSTR pathAndFilename, int maxLength);
    ENVAPI int PASCAL EnvCleanFileName(LPTSTR filename);

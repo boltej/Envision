@@ -282,10 +282,10 @@ class TargetReport
 
       Target *m_pTarget;
 
-      float  m_value;      // output variable - decimal percent of allocation satisfying query
-
+      float  m_count;      // output variable - count of allocation satisfying query
+      float  m_fraction;   // output variable - decimal fraction of allocation satisfying query
       TargetReport( LPCTSTR name, Target *_pTarget, LPCTSTR query ) 
-         :  m_name( name ), m_pTarget( _pTarget), m_query( query ), m_pQuery( NULL ), m_value( 0 ) { }
+         :  m_name( name ), m_pTarget( _pTarget), m_query( query ), m_pQuery( NULL ), m_count( 0 ), m_fraction(0) { }
       ~TargetReport();
    };
 

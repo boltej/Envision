@@ -169,10 +169,21 @@ class _EXPORT PSWCP : public  EnvModelProcess
       VDataObj*  m_pHPCTable;
       
       // outputs 
-      FDataObj* m_pOutputData;
+      FDataObj* m_pOutputData;      // a set of useful outputs for each AU, written every 10 years
       FDataObj* m_pOutputInitValues;
-      int m_aboveCount;
-      int m_belowCount;
+
+      //CArray<float> startWQM1Values;
+      //CArray<float> startWFM1Values;
+      //CArray<float> startWFM2Values;
+      //CArray<float> startHabValues;
+      int m_aboveCountWQM1;
+      int m_belowCountWQM1;
+      int m_aboveCountWfM1;
+      int m_belowCountWfM1;
+      int m_aboveCountWfM2;
+      int m_belowCountWfM2;
+      int m_aboveCountHab;
+      int m_belowCountHab;
 
       // various indexes/maps
       CMap<int, int, int, int> m_AUIndex_Tables;
