@@ -529,6 +529,10 @@ protected:
     float m_meanYearlyTemp;
     float m_meanWinterTemp;
     float m_meanSummerTemp;
+    int m_colAnnualTemp;
+    int m_colAnnualPrecip;
+    int m_colRainSnow;
+    int m_colMaxDailyPrecip;
 
     int GetCIGWaterTemperature(FlowContext* pFlowContext);
     FDataObj *m_pModeledTemperature;
