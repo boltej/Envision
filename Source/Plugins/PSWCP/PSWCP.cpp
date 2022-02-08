@@ -436,6 +436,34 @@ bool PSWCP::Run(EnvContext* pEnvContext)
    // copy results back to IDUs
    UpdateIDUs(pEnvContext);
 
+   // if first year, update starting values of output variables
+   if (pEnvContext->yearOfRun == 0)
+      {
+      int auCount = (int)m_pWqDbTable->GetRowCount();
+      for (int row = 0; row < auCount; row++)
+         {
+         float wq_m1_cal = 0, wf_m1_cal = 0, wf_m2_cal = 0;
+         GetTableValue(WF_M1_TABLE, "WF_M1_CAL", row, wf_m1_cal);
+         GetTableValue(WF_M2_TABLE, "WF_M2_CAL", row, wf_m1_cal);
+
+         float sed_m1_cal, p_m1_cal, m_m1_cal, n_m1_cal, pa_m1_cal;
+         GetTableValue(WQ_M1_TABLE, "S_M1_CAL", row, sed_m1_cal);
+         GetTableValue(WQ_M1_TABLE, "P_M1_CAL", row, p_m1_cal);
+         GetTableValue(WQ_M1_TABLE, "M_M1_CAL", row, m_m1_cal);   // NOTE: cal same a non-cal
+         GetTableValue(WQ_M1_TABLE, "N_M1_CAL", row, n_m1_cal);
+         GetTableValue(WQ_M1_TABLE, "PA_M1_CAL", row, pa_m1_cal);
+
+         //m_startWQM1Values[i]= ;
+         //m_startWFM1Values[i]= ;
+         //m_startWFM2Values[i]= ;
+         //m_startHabValues[i] = ;
+
+         }
+  
+      }
+
+
+
    CollectOutput(this->m_pOutputData,pEnvContext);
 
    if (pEnvContext->yearOfRun % 10 == 0)
@@ -464,6 +492,12 @@ bool PSWCP::InitOutputData(EnvContext* pEnvContext)
    m_pOutputData = InitOutputDataObj("PSWCP");
    m_pOutputInitValues = InitOutputDataObj("PSWCP_INIT");
 
+
+   int auCount = (int)m_pWqDbTable->GetRowCount();
+   m_startWQM1Values.SetSize(auCount);
+   m_startWFM1Values.SetSize(auCount);
+   m_startWFM2Values.SetSize(auCount);
+   m_startHabValues.SetSize(auCount);
 
    // collect initial values into initial values dataobj
    CollectOutput(m_pOutputInitValues,pEnvContext);
@@ -2866,6 +2900,7 @@ bool PSWCP::CollectOutput(FDataObj *pData, EnvContext *pEnvContext)
 
    int rows = pData->GetRowCount();
 
+   // for each AU, Get 
    for (int row = 0; row < rows; row++)
       {
       int col = 0;
