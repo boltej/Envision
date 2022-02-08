@@ -692,45 +692,6 @@
     <ClInclude Include="UltimateToolbox\UTB64Bit.h">
       <Filter>Header Files\UlitmateToolbox</Filter>
     </ClInclude>
-    <ClInclude Include="GsTL\univariate_stats\build_cdf.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\cdf\categ_non_param_cdf.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\cdf.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\cdf\cdf_basics.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\cdf\gaussian_cdf.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\utils\gstl_error_messages.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\utils\helper_functions.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\math\indicator_coding.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\cdf\interpolators.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\math\math_functions.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\cdf\non_param_cdf.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\cdf\non_param_pdf.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
-    <ClInclude Include="GsTL\math\random_number_generators.h">
-      <Filter>Header Files\GsTL</Filter>
-    </ClInclude>
     <ClInclude Include="LinearDensityDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -855,9 +816,6 @@
   <ItemGroup>
     <None Include="UltimateToolbox\OXLayoutManager.inl">
       <Filter>Header Files\UlitmateToolbox</Filter>
-    </None>
-    <None Include="GsTL\Debug\BuildLog.htm">
-      <Filter>Header Files\GsTL</Filter>
     </None>
     <None Include="res\analysis_large.bmp">
       <Filter>Resource Files</Filter>

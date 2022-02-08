@@ -5,6 +5,7 @@
 #include <vdataobj.h>
 #include <fdataobj.h>
 #include <AttrIndex.h>
+#include <PtrArray.h>
 
 #define _EXPORT __declspec( dllexport )
 
@@ -42,8 +43,10 @@ struct TABLECOL {
    };
 
 enum TU_OPS {
-   TUOP_AREA,
-   TUOP_AREAWTMEAN
+   TUOP_AREA,        // reports total area meeting query
+   TUOP_AREA_AC,     // reports total area meeting query as acres
+   TUOP_AREA_PCT,    // reports total area meeting query as percent of AU area
+   TUOP_AREAWT_VALUE  // reports area-weigthted value so field specified in <col>
    };
 
 // TABLE_UPDATES define PSWCP Table variables and how to calculate them from
@@ -60,8 +63,8 @@ enum TU_OPS {
 //                        4) store results in IDUs and output data object
 
 struct TABLE_UPDATE {
-   LPCTSTR tableVar;   // name of PSWCP table variable
-   TABLE table;        // PSWCP table containing this variable;
+   CString tableVar;   // name of PSWCP table variable
+   TABLE   table;      // PSWCP table containing this variable;
    CString iduQuery;   // single string=column name, valid query = query
    int     iduCol;     // -1 if query, idu col otherwise
    Query* pQuery;      // NULL if iduCol, not NULL if query
@@ -70,6 +73,10 @@ struct TABLE_UPDATE {
    CArray<float> iduBaselineValues;    // values=baseline value for the AU from IDUs
    CArray<float> tableBaselineValues;  // values=cumulative value for the AU from table
    CArray<float> iduCurrentValues;     // values=current value for the AU
+   //CArray<float> iduCurrentValues;     // values=current value for the AU
+
+
+   TABLE_UPDATE() : table(NULL_TABLE), iduCol(-1), pQuery(NULL) {}
    };
 
 struct HAB_SCORE {
@@ -172,10 +179,10 @@ class _EXPORT PSWCP : public  EnvModelProcess
       FDataObj* m_pOutputData;      // a set of useful outputs for each AU, written every 10 years
       FDataObj* m_pOutputInitValues;
 
-      //CArray<float> startWQM1Values;
-      //CArray<float> startWFM1Values;
-      //CArray<float> startWFM2Values;
-      //CArray<float> startHabValues;
+      CArray<float> m_startWQM1Values;
+      CArray<float> m_startWFM1Values;
+      CArray<float> m_startWFM2Values;
+      CArray<float> m_startHabValues;
       int m_aboveCountWQM1;
       int m_belowCountWQM1;
       int m_aboveCountWfM1;
@@ -198,8 +205,8 @@ class _EXPORT PSWCP : public  EnvModelProcess
 
       // HCI assessment
 
-      //
-       
+      // Table updates
+      PtrArray<TABLE_UPDATE> m_tuInfo;       
 
       // methods
 

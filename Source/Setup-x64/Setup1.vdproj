@@ -183,6 +183,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_418B1C5B927F46CB9DC6300C22A2B2DC"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_4260E84134CA43D0B36C545E1270D3F7"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -556,6 +562,12 @@
         "Entry"
         {
         "MsmKey" = "8:_B9BB5377BE8D4E87A4E60866EC993FD1"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_BA7159A3FABB497A8994725A0EE665C3"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -1374,6 +1386,26 @@
             "TargetName" = "8:s57objectclasses.csv"
             "Tag" = "8:"
             "Folder" = "8:_D6CCBBEFFA1A4E26A483AD30F8B7428C"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_418B1C5B927F46CB9DC6300C22A2B2DC"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\SSTM.dll"
+            "TargetName" = "8:SSTM.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -2534,6 +2566,26 @@
             "TargetName" = "8:pcs.csv"
             "Tag" = "8:"
             "Folder" = "8:_D6CCBBEFFA1A4E26A483AD30F8B7428C"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_BA7159A3FABB497A8994725A0EE665C3"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\CVA.dll"
+            "TargetName" = "8:CVA.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"

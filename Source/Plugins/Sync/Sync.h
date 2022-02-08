@@ -99,6 +99,7 @@ public:
 
 
 // SyncProcess - this corresponds to one .envx file entry and one input file
+// (or a <sync_map> entry in the input file
 class SyncProcess
 {
 public:
