@@ -124,6 +124,8 @@ bool CVA::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       return false;
       }
 
+   MapLayer* pMapLayer = (MapLayer*)pEnvContext->pMapLayer;
+
    // start interating through the nodes
    TiXmlElement* pXmlRoot = doc.RootElement();  // <acute_hazards>
    CString codePath;
@@ -143,7 +145,7 @@ bool CVA::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
          { NULL,                TYPE_NULL,      NULL,            false, 0 }
          };
       
-      ok = TiXmlGetAttributes(pXmlHazard, attrs, filename, NULL);
+      ok = TiXmlGetAttributes(pXmlHazard, attrs, filename, pMapLayer);
       if (ok)
          {
          Hazard* pHazard = new Hazard;
@@ -164,9 +166,9 @@ bool CVA::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
             CheckCol(pEnvContext->pMapLayer, pHazard->m_colAcmPctile, acmPctileField, TYPE_FLOAT, CC_MUST_EXIST);
 
          if (! hazPctileField.IsEmpty())
-            CheckCol(pEnvContext->pMapLayer, pHazard->m_colHazPctile, hazPctileField, TYPE_FLOAT, CC_MUST_EXIST);
+            CheckCol(pMapLayer, pHazard->m_colHazPctile, hazPctileField, TYPE_FLOAT, CC_MUST_EXIST);
 
-         CheckCol(pEnvContext->pMapLayer, pHazard->m_colVulnIndex, viField, TYPE_FLOAT, CC_MUST_EXIST);
+         CheckCol(pMapLayer, pHazard->m_colVulnIndex, viField, TYPE_FLOAT, CC_MUST_EXIST);
 
          TiXmlElement* pXmlAC = pXmlHazard->FirstChildElement("adapt_cap_metric");
          while (pXmlAC != NULL)
@@ -179,12 +181,12 @@ bool CVA::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
                { NULL,     TYPE_NULL,      NULL,       false, 0 }
                };
 
-            ok = TiXmlGetAttributes(pXmlAC, attrs, filename, NULL);
+            ok = TiXmlGetAttributes(pXmlAC, attrs, filename, pMapLayer);
             if (ok)
                {
                pHazard->m_adaptCapFields.Add(field);
                int col = -1;
-               CheckCol(pEnvContext->pMapLayer, col, field, TYPE_FLOAT, CC_MUST_EXIST);
+               CheckCol(pMapLayer, col, field, TYPE_FLOAT, CC_MUST_EXIST);
                }
 
             pXmlAC = pXmlAC->NextSiblingElement("adapt_cap_metric");

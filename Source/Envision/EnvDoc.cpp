@@ -3122,17 +3122,25 @@ void CEnvDoc::OnExportFieldInfoAsHtml()
    CWaitCursor c;
 
    // standard header
-   file << _T("<html><head><title>Field Information Summary</title></head><body>");
-   file << _T("<table width='100%'><tr><td style='background-color:#66CCFF'>" );
-   file << _T("<h1>Data Dictionary - ") << _filename << _T("</h1></td></tr></table><hr>");
+   file << _T("<html><head><title>Field Information Summary</title></head>\n<body>\n");
+   file << _T("<h1>Data Dictionary - ") << _filename << _T("</h1><hr/>\n");
 
    // links to each fieldInfo entry
-   for ( int i=0; i < m_model.m_pIDULayer->GetFieldInfoCount(1); i++ )
+   for (int i = 0; i < m_model.m_pIDULayer->GetFieldInfoCount(1); i++)
       {
-      MAP_FIELD_INFO *pInfo = m_model.m_pIDULayer->GetFieldInfo( i );
-
-      if ( pInfo->mfiType != MFIT_SUBMENU )
-         file << "<a href='#" << pInfo->fieldname << "' >" <<  pInfo->label << " (" << pInfo->fieldname << ")</a><br/>";
+      MAP_FIELD_INFO* pInfo = m_model.m_pIDULayer->GetFieldInfo(i);
+      int indent = 0;
+      if (pInfo->mfiType == MFIT_SUBMENU)
+         {
+         file << "<h2>" << pInfo->label << "</h2>\n";
+         }
+      else
+         {
+         if (pInfo->pParent != NULL)   // field that is part of a submenu?
+            indent = 3;
+   
+         file << "<a href='#" << pInfo->fieldname << "' style='margin-left:" <<indent << "em'>" << pInfo->label << " (" << pInfo->fieldname << ")</a><br/>\n";
+         }
       }
 
    file << "<hr>";
@@ -3169,10 +3177,10 @@ void CEnvDoc::OnExportFieldInfoAsHtml()
          
          // main label
          file << "<a name='" << pInfo->fieldname << "' />";
-         file << "<table width='100%' border='0'> <tr> <td colspan='3' style='background-color:#66CCFF' ><h2>" << pInfo->label << " (" << pInfo->fieldname << ")</h2> </td> </tr>";
+         file << "<table width='100%' border='0'>\n  <tr><td colspan='3' class='field_table' ><h2>" << pInfo->label << " (" << pInfo->fieldname << ")</h2> </td> </tr>\n";
 
-         file << "<tr><td colspan='3'>" << "<b>Description:</b> " << pInfo->description << "</td></tr>";
-         file << "<tr><td colspan='3'>" << "<b>Source:</b> " << pInfo->source << "</td></tr>";
+         file << "<tr><td colspan='3'>" << "<b>Description:</b> " << pInfo->description << "</td></tr>\n";
+         file << "<tr><td colspan='3'>" << "<b>Source:</b> " << pInfo->source << "</td></tr>\n";
 
 
 
@@ -3181,9 +3189,9 @@ void CEnvDoc::OnExportFieldInfoAsHtml()
          file << "<tr> <td colspan='2'>Type: " << typeStr << "</td> <td rowspan='4'>";
 
          if ( col >= 0 )
-            file << "<img width='400' height='400' src='" << imagepath << "' /> </td></tr>";
+            file << "<img class='field_img' src='" << imagepath << "' /> </td></tr>\n";
          else
-            file << "</td></tr>";
+            file << "</td></tr>\n";
 
          bool outcomes = pInfo->GetExtraLow() & WORD( 4 ) ? true : false;
          bool siteAttr = pInfo->GetExtraLow() & WORD( 2 ) ? true : false;
@@ -3192,20 +3200,20 @@ void CEnvDoc::OnExportFieldInfoAsHtml()
          file << "<tr> <td>";
          if ( siteAttr )
             file << "Use In Site Attributes";
-         file << "</td></tr><tr><td>";
+         file << "</td></tr>\n<tr><td>";
 
          // fourth row
          if ( outcomes )
             file << "Use In Outcomes";
-         file << "</td></tr>";
+         file << "</td></tr>\n";
 
          // attributes next
-         file << "<tr><td colspan='2'><table border='1'> <tr> <td colspan='4' style='background-color:#66CCFF'><h3>Attributes</h3> </td> </tr>";
+         file << "<tr><td colspan='2'>\n  <table border='1'><tr><td colspan='4' class='field_attr_table'><h3>Attributes</h3> </td> </tr>\n";
 
          if ( pInfo->mfiType == MFIT_QUANTITYBINS )         
-            file << "<tr> <td width='10px'>&nbsp;Color&nbsp;</td> <td>&nbsp;Minimum&nbsp;</td><td>&nbsp;Maximum &nbsp;</td><td>&nbsp;Label&nbsp;</td></tr>";
+            file << "<tr> <td width='10px'>&nbsp;Color&nbsp;</td> <td>&nbsp;Minimum&nbsp;</td><td>&nbsp;Maximum &nbsp;</td><td>&nbsp;Label&nbsp;</td></tr>\n";
          else  // categorical
-            file << "<tr> <td width='10px'>&nbsp;Color&nbsp;</td> <td width='50px' colspan='2'>&nbsp;Value&nbsp;</td><td width='100px'>&nbsp;Label&nbsp;</td></tr>";
+            file << "<tr> <td width='10px'>&nbsp;Color&nbsp;</td> <td width='50px' colspan='2'>&nbsp;Value&nbsp;</td><td width='100px'>&nbsp;Label&nbsp;</td></tr>\n";
 
          for ( int j=0; j < pInfo->GetAttributeCount(); j++ )
             {
@@ -3217,7 +3225,7 @@ void CEnvDoc::OnExportFieldInfoAsHtml()
                int grn = GetGValue( a.color );
                int blu = GetBValue( a.color );
                file << "<tr> <td width='10px' style='background-color:rgb(" << red << "," << grn << "," << blu << ")' > &nbsp; </td>";
-               file << "<td>" << a.minVal << "</td><td>" << a.maxVal << "</td><td>" << a.label << "</td></tr>";
+               file << "<td>" << a.minVal << "</td><td>" << a.maxVal << "</td><td>" << a.label << "</td></tr>\n";
                }
             else
                {
@@ -3225,10 +3233,10 @@ void CEnvDoc::OnExportFieldInfoAsHtml()
                int grn = GetGValue( a.color );
                int blu = GetBValue( a.color );
                file << "<tr> <td width='10px' style='background-color:rgb(" << red << "," << grn << "," << blu << ")' > &nbsp; </td>";
-               file << "<td colspan='2'>" << a.value.GetAsString() << "</td><td>" << a.label << "</td></tr>";
+               file << "<td colspan='2'>" << a.value.GetAsString() << "</td><td>" << a.label << "</td></tr>\n";
                }
             }
-         file << "</table></td></tr></table><p/><hr>^";
+         file << "</table></td></tr></table><p/><hr><a href='#top'>^top^</a>\n";
          }
       }
    file << "</body></html>";

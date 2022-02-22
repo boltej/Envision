@@ -272,8 +272,8 @@ PSWCP::PSWCP(void)
    , m_AUHIndex_IDU()
    , m_HCIIndex_IDU()
    , m_numHCICat(-1)
-   , m_aboveCountWQM1(0)
-   , m_belowCountWQM1(0)
+   , m_aboveCountWqM1(0)
+   , m_belowCountWqM1(0)
    , m_aboveCountWfM1(0)
    , m_belowCountWfM1(0)
    , m_aboveCountWfM2(0)
@@ -386,6 +386,14 @@ bool PSWCP::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    m_pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
+   this->AddOutputVar("WQ-M1-Above", m_aboveCountWqM1, "");
+   this->AddOutputVar("WQ-M1-Below", m_belowCountWqM1, "");
+   this->AddOutputVar("WF-M1-Above", m_aboveCountWfM1, "");
+   this->AddOutputVar("WF-M1-Below", m_belowCountWfM1, "");
+   this->AddOutputVar("WF-M2-Above", m_aboveCountWfM2, "");
+   this->AddOutputVar("WF-M2-Below", m_belowCountWfM2, "");
+   this->AddOutputVar("Hab-Above", m_aboveCountHab, "");
+   this->AddOutputVar("Hab-Below", m_belowCountHab, "");
 
    InitColumns(pEnvContext);
 
@@ -406,6 +414,8 @@ bool PSWCP::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    // HCI
    InitHCIAssessment(pEnvContext);
+
+   UpdateIDUs(pEnvContext);
 
    return true;
    }
@@ -442,7 +452,7 @@ bool PSWCP::Run(EnvContext* pEnvContext)
       int auCount = (int)m_pWqDbTable->GetRowCount();
       for (int row = 0; row < auCount; row++)
          {
-         float wq_m1_cal = 0, wf_m1_cal = 0, wf_m2_cal = 0;
+         float wf_m1_cal = 0, wf_m2_cal = 0;
          GetTableValue(WF_M1_TABLE, "WF_M1_CAL", row, wf_m1_cal);
          GetTableValue(WF_M2_TABLE, "WF_M2_CAL", row, wf_m1_cal);
 
@@ -453,11 +463,10 @@ bool PSWCP::Run(EnvContext* pEnvContext)
          GetTableValue(WQ_M1_TABLE, "N_M1_CAL", row, n_m1_cal);
          GetTableValue(WQ_M1_TABLE, "PA_M1_CAL", row, pa_m1_cal);
 
-         //m_startWQM1Values[i]= ;
-         //m_startWFM1Values[i]= ;
-         //m_startWFM2Values[i]= ;
-         //m_startHabValues[i] = ;
-
+         m_startWqM1Values[row]= (sed_m1_cal, p_m1_cal, m_m1_cal, n_m1_cal, pa_m1_cal)/5;
+         m_startWfM1Values[row]= wf_m1_cal;
+         m_startWfM2Values[row]= wf_m2_cal;
+         m_startHabValues[row] = 0; ///??????? Fix this!!!!!
          }
   
       }
@@ -494,9 +503,9 @@ bool PSWCP::InitOutputData(EnvContext* pEnvContext)
 
 
    int auCount = (int)m_pWqDbTable->GetRowCount();
-   m_startWQM1Values.SetSize(auCount);
-   m_startWFM1Values.SetSize(auCount);
-   m_startWFM2Values.SetSize(auCount);
+   m_startWqM1Values.SetSize(auCount);
+   m_startWfM1Values.SetSize(auCount);
+   m_startWfM2Values.SetSize(auCount);
    m_startHabValues.SetSize(auCount);
 
    // collect initial values into initial values dataobj
@@ -509,7 +518,7 @@ bool PSWCP::InitOutputData(EnvContext* pEnvContext)
 FDataObj* PSWCP::InitOutputDataObj(LPCTSTR name)
    {
    int rows = this->m_pWqDbTable->GetRowCount();
-   int cols = 16;
+   int cols = 18;
    FDataObj* pData = new FDataObj(cols, rows);
 
    pData->SetName(name);
@@ -535,6 +544,10 @@ FDataObj* PSWCP::InitOutputDataObj(LPCTSTR name)
    pData->SetLabel(13, "D_R");
    pData->SetLabel(14, "D_DI");
    pData->SetLabel(15, "WF_M2_CAL");
+
+   // Habitat
+   pData->SetLabel(16, "D_DE");      // delivery 
+   pData->SetLabel(17, "D_SS");
 
    return pData;
    }
@@ -2409,6 +2422,7 @@ int PSWCP::SolveHabTerr(EnvContext* pEnvContext)
    //                                       forest to developed
    //                                       * to Open/Conservation
 
+
    DeltaArray* deltaArray = pEnvContext->pDeltaArray;
 
    if (deltaArray != NULL)
@@ -2634,31 +2648,33 @@ void PSWCP::UpdateIDUs(EnvContext* pEnvContext)
                   break;
                }
 
+            int flag = (pEnvContext->run < 0) ? SET_DATA : ADD_DELTA;   // init()???
+
             //UpdateIDU(pEnvContext, idu, m_col_IDU_IMPERVIOUS, eia);
             //UpdateIDU(pEnvContext, idu, m_col_IDU_IMP_PCT,  imp_pct);
 
             // WATER QUALITY - EXPORT POTENTIAL
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WQS_m1_cal,  sed_m1_cal);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WQP_m1_cal,  p_m1_cal);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WQMe_m1_cal, m_m1_cal);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WQN_m1_cal,  n_m1_cal);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WQPa_m1_cal, pa_m1_cal);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQS_m1_cal,  sed_m1_cal, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQP_m1_cal,  p_m1_cal, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQMe_m1_cal, m_m1_cal, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQN_m1_cal,  n_m1_cal, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WQPa_m1_cal, pa_m1_cal, flag);
 
             // WATER FLOW - IMPORTANCE (MODEL 1)
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_DE, i_de);   // importance to delivery
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_SS, i_ss);    // importance to surface storage
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_R, i_r);      // importance to recharge
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_DI, i_di);    // importance of discharge
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF_M1_CAL, wf_m1_cal);  // calibrated score for model 1 importance
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_DE, i_de, flag);   // importance to delivery
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_SS, i_ss, flag);    // importance to surface storage
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_R, i_r, flag);      // importance to recharge
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF1_DI, i_di, flag);    // importance of discharge
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF_M1_CAL, wf_m1_cal, flag);  // calibrated score for model 1 importance
 
             // WATER FLOW DEGRADATION (MODEL 2)
             //UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_IMP, imp);       // delivery 
             //UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_IMPPCT, imp_pct);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_DE, d_de);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_SS, d_ss);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_R, d_r);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_DI, d_di);
-            UpdateIDU(pEnvContext, idu, m_col_IDU_WF_M2_CAL, wf_m2_cal);  // calibrated score for model 1 importance
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_DE, d_de, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_SS, d_ss, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_R, d_r, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF2_DI, d_di, flag);
+            UpdateIDU(pEnvContext, idu, m_col_IDU_WF_M2_CAL, wf_m2_cal, flag);  // calibrated score for model 1 importance
             }
          }
       }  // end of: for each row in WQ_RP table
@@ -2889,8 +2905,8 @@ LSGROUP PSWCP::GetLSGroupIndex(int row)
 
 bool PSWCP::CollectOutput(FDataObj *pData, EnvContext *pEnvContext)
    {
-   m_aboveCountWQM1 = 0;
-   m_belowCountWQM1 = 0;
+   m_aboveCountWqM1 = 0;
+   m_belowCountWqM1 = 0;
    m_aboveCountWfM1 = 0;
    m_belowCountWfM1 = 0;
    m_aboveCountWfM2 = 0;
@@ -2954,6 +2970,34 @@ bool PSWCP::CollectOutput(FDataObj *pData, EnvContext *pEnvContext)
       pData->Set(col++, row, d_r);
       pData->Set(col++, row, d_di );
       pData->Set(col++, row, wf_m2_cal);
+
+      // wq importance (high values better)
+      float close = 1.001f;
+      if (meanWQ / close < m_startWqM1Values[row])
+         m_belowCountWqM1++;
+      else if (meanWQ*close > m_startWqM1Values[row])
+         m_aboveCountWqM1++;
+
+      // wf importance (high values better)
+      if (wf_m1_cal / close < m_startWfM1Values[row])
+         m_belowCountWfM1++;
+      else if (wf_m1_cal * close > m_startWfM1Values[row])
+         m_aboveCountWfM1++;
+
+      // wf degredation (low values better)
+      if (wf_m2_cal / close < m_startWfM2Values[row])
+         m_belowCountWfM2++;
+      else if (wf_m2_cal * close > m_startWfM2Values[row])
+         m_aboveCountWfM2++;
+      
+      // habitat (high values better)
+      if (wf_m2_cal / close < m_startWfM2Values[row])
+         m_belowCountWfM2++;
+      else if (wf_m2_cal * close > m_startWfM2Values[row])
+         m_aboveCountWfM2++;
+
+
+
 
       ASSERT(col == 16);
       }
