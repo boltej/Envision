@@ -88,7 +88,7 @@ void snow(double prec, double temp, double insol, double lai, double& snowpack, 
 	// Dieter Gerten 021121
 	// Ref: Choudhury et al 1998
 		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
-		//melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
+		melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
 		mr = swtrans / lh_fus;
 	   mh = cfmax * (temp - TSNOW);
 		ma = rhow * temp * prec * cpw;
@@ -354,6 +354,7 @@ void hydrology_lpjf(Patch& patch, Climate& climate, double rain_melt, double per
 	pHRU->m_currentRunoff = runoff_surf;
 	pHRU->m_swc = wcont[0];
 	pHRU->m_currentGWRecharge = wcont[1];
+
 	//	Reach * pReach = pHRUPool->GetReach();
 	//	if (pReach)
 	//		pReach->AddFluxFromGlobalHandler(((runoff_surf) / 1000.0f*pHRU->m_area)); //m3/d

@@ -223,8 +223,8 @@ bool LPJGuess::Init_Guess_Complete(FlowContext *pFlowContext, const char* input_
 
 bool LPJGuess::InitRun_Guess(FlowContext* pFlowContext, const char* input_module_name, const char* instruction_file)
 	{
-	if (pFlowContext->pEnvContext->run > 0)
-	   {
+	//if (pFlowContext->pEnvContext->run > 100)
+	 //  {
 		for (int i = 0; i < m_gridCellArray.GetSize(); i++)
 		   {
 			Gridcell* pGridcell = m_gridCellArray.GetAt(i);
@@ -235,13 +235,13 @@ bool LPJGuess::InitRun_Guess(FlowContext* pFlowContext, const char* input_module
 				// Get the whole grid cell from file...
 				CString msg;
 				msg.Format("Deserializing gridcell at (%g,%g) from disk \n", pGridcell->get_lon(), pGridcell->get_lat());
-				//Report::Log(msg);
+				Report::Log(msg);
 				deserializer->deserialize_gridcell(*pGridcell);
 				// ...and jump to the restart year
 				date.year = state_year;
 			   }
 		    }
-	    }
+	  //  }
 	return true;
 	}
 
@@ -452,13 +452,9 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 				 }
 
-				 }			 
-		     }
+			}			 
+		}
      
-
-
-
-
 
 	}// end of while (true)
 

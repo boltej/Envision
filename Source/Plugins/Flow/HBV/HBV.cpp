@@ -59,7 +59,7 @@ float HBV::GetMean(FDataObj *pData, int col, int startRow, int numRows)
 
 float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
    {
-   FDataObj *pMnthlyData = new FDataObj(3,0);
+   FDataObj *pMnthlyData = new FDataObj(25,0);
    int yearOffset = pFlowContext->pEnvContext->currentYear - pFlowContext->pEnvContext->startYear;
    int numRes = 0;
    int mnth[12];
@@ -98,7 +98,7 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
       }
      
    CString nam;
-   nam.Format(_T("%s%i%s"), "C:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY", pFlowContext->pEnvContext->currentYear,".csv");
+   nam.Format(_T("%s%i%s"), "d:\\Envision\\StudyAreas\\CalFEWS\\calvin\\annual\\linksWY", pFlowContext->pEnvContext->currentYear,".csv");
 
 	// Step 3.  Write monthly data into the Calvin input spreadsheet, for the current year (Calvin will read it in the next step, when it runs this year)
 	VDataObj *pExchange = new VDataObj(0, 0, U_UNDEFINED);
@@ -127,7 +127,7 @@ float HBV::ExchangeFlowToCalvin(FlowContext *pFlowContext)
       }
    //Step 5. Write updates out to files
    pExchange->WriteAscii(nam);
-   pMnthlyData->WriteAscii("c:\\envision\\studyareas\\calfews\\calvin\\exchange.csv");
+   pMnthlyData->WriteAscii("d:\\envision\\studyareas\\calfews\\calvin\\exchange.csv");
 
    delete pMnthlyData;
    delete pExchange;
@@ -140,7 +140,7 @@ float HBV::ExchangeCalvinToFlow(FlowContext *pFlowContext)
    FDataObj *pDlyData = new FDataObj(360, 1);
    //Step 1.  Get monthly data from Calvin
    VDataObj *pExchange = new VDataObj(6, 0, U_UNDEFINED);
-   pExchange->ReadAscii("c:\\envision\\studyareas\\calfews\\calvin\\example-results\\storage.csv");
+   pExchange->ReadAscii("d:\\envision\\studyareas\\calfews\\calvin\\example-results\\storage.csv");
    int calvinOffset=0;
    for (int i = 0; i < (int)pFlowContext->pFlowModel->m_reservoirArray.GetSize(); i++)
    {
