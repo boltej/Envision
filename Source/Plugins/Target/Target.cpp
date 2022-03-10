@@ -65,8 +65,8 @@ ALLOCATION::~ALLOCATION()
 PREFERENCE::~PREFERENCE()
    {
    /*if ( pParser ) delete pParser;*/
-   if ( pQuery != NULL && pTarget->m_pQueryEngine != NULL )
-      pTarget->m_pQueryEngine->RemoveQuery( pQuery );
+   //if ( pQuery != NULL && pTarget->m_pQueryEngine != NULL )
+   //   pTarget->m_pQueryEngine->RemoveQuery( pQuery );
 
    //if ( parserVars != NULL )
    //   delete parserVars; 

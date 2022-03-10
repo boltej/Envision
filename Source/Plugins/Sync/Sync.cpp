@@ -56,6 +56,8 @@ MapElement::MapElement(MapElement &me)
 
 void MapElement::ApplyOutcome( EnvContext *pContext, int idu, int colTarget )
    {
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
+
    float randVal = (float) rn.RandValue();
    float value = 0;
    int   j = 0;
@@ -71,9 +73,13 @@ void MapElement::ApplyOutcome( EnvContext *pContext, int idu, int colTarget )
          VData oldValue;
          pContext->pMapLayer->GetData( idu, colTarget, oldValue );
 
+         // during init
          if ( oldValue != pSyncOutcome->targetValue )
-            {
-            pContext->ptrAddDelta( pContext->pEnvModel, idu, colTarget,
+            {            
+            if (pContext->run < 0)
+               pLayer->SetData(idu, colTarget, pSyncOutcome->targetValue);
+            else
+               pContext->ptrAddDelta( pContext->pEnvModel, idu, colTarget,
                                    pContext->currentYear, pSyncOutcome->targetValue, pContext->handle );
             }
          }
@@ -222,6 +228,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
       {
       SyncMap *pSyncMap = new SyncMap;
       CString method;
+      int init = 0;
 
       XML_ATTR smAttrs[] =
          { // attr          type           address                   isReq   checkCol
@@ -229,6 +236,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
                { "source_col", TYPE_CSTRING, &( pSyncMap->m_sourceCol ), true, 0 },
                { "target_col", TYPE_CSTRING, &( pSyncMap->m_targetCol ), true, 0 },
                { "method", TYPE_CSTRING, &method, false, 0 },
+               { "init",   TYPE_INT, &init, false, 0 },
                { NULL, TYPE_NULL, NULL, false, 0 } };
 
       if ( TiXmlGetAttributes( pXmlSyncMap, smAttrs, filename, pLayer ) == false )
@@ -239,6 +247,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
       pSyncMap->m_colSource = pLayer->GetFieldCol( pSyncMap->m_sourceCol );
       pSyncMap->m_colTarget = pLayer->GetFieldCol( pSyncMap->m_targetCol );
+      pSyncMap->m_init = init;
 
       if ( pSyncMap->m_colSource < 0 )
          {
@@ -399,6 +408,19 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
          if ( pSyncMap->m_inUse == false )
             continue;
 
+         SyncMap::METHOD method = pSyncMap->m_method;
+         // called from init() only run if asked?
+         if (pContext->run < 0)
+            {
+            if (pSyncMap->m_init > 0)
+               pSyncMap->m_method = SyncMap::METHOD::USE_MAP;
+            else
+               continue;      // skip if init <= 0
+            }            
+            
+         if (pContext->currentYear < 0 && pSyncMap->m_init <= 0)
+            continue;
+
          int colSource = pSyncMap->m_colSource;
          int colTarget = pSyncMap->m_colTarget;
          bool found = false;
@@ -445,6 +467,8 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
                break;
                }
             }
+
+         pSyncMap->m_method = method;
          }
 
       return true;
@@ -484,7 +508,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
          AddInputVar( varName, pMap->m_inUse, "" );
          }
 
-      //pProcess->Run(pEnvContext);
+      pProcess->Run(pEnvContext);
 
       return TRUE;
       }

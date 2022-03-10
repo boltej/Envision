@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29806.167
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32112.339
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "EnvLibs", "EnvLibs\EnvLibs.vcxproj", "{E3502523-3A54-4A72-AC75-A59C944AD9C1}"
 EndProject
@@ -189,6 +189,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "PugetSound", "Plugins\PugetSound\PugetSound.vcxproj", "{03C1D985-CE5A-4B16-8DBC-7C62465B87BF}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CVA", "Plugins\CVA\CVA.vcxproj", "{13DCC1FB-8E8A-4082-9A2F-91E862743E30}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Transitions", "Plugins\Transitions\Transitions.vcxproj", "{A83A489C-DCC3-44D9-82AD-A67512000000}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -958,6 +960,26 @@ Global
 		{13DCC1FB-8E8A-4082-9A2F-91E862743E30}.Template|x64.Build.0 = Debug|x64
 		{13DCC1FB-8E8A-4082-9A2F-91E862743E30}.Template|x86.ActiveCfg = Debug|x64
 		{13DCC1FB-8E8A-4082-9A2F-91E862743E30}.Template|x86.Build.0 = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Debug|x64.ActiveCfg = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Debug|x64.Build.0 = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Debug|x86.ActiveCfg = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Debug|x86.Build.0 = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.MinSizeRel|x64.ActiveCfg = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.MinSizeRel|x64.Build.0 = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.MinSizeRel|x86.ActiveCfg = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.MinSizeRel|x86.Build.0 = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Release|x64.ActiveCfg = Release|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Release|x64.Build.0 = Release|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Release|x86.ActiveCfg = Release|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Release|x86.Build.0 = Release|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.RelWithDebInfo|x64.ActiveCfg = Release|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.RelWithDebInfo|x64.Build.0 = Release|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.RelWithDebInfo|x86.ActiveCfg = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.RelWithDebInfo|x86.Build.0 = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Template|x64.ActiveCfg = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Template|x64.Build.0 = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Template|x86.ActiveCfg = Debug|x64
+		{A83A489C-DCC3-44D9-82AD-A67512000000}.Template|x86.Build.0 = Debug|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -993,6 +1015,7 @@ Global
 		{A83A489C-DCC3-44D9-82AD-A675C25FCCFB} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
 		{03C1D985-CE5A-4B16-8DBC-7C62465B87BF} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
 		{13DCC1FB-8E8A-4082-9A2F-91E862743E30} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
+		{A83A489C-DCC3-44D9-82AD-A67512000000} = {E97765A7-4C87-43CB-99A1-2B6752E3BB81}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C9AEC6B4-19EB-4CA2-87A9-144868D9DD13}

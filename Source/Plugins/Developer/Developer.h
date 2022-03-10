@@ -36,7 +36,7 @@ Copywrite 2012 - Oregon State University
 
 
 
-// Developer contains three functions, each configured via XML
+// Developer contains four functions, each configured via XML
 //
 // <population> - allocates initial population based on map expressions,
 //   specified using <pop_dens> tags the compute an initial density expression
@@ -54,6 +54,10 @@ Copywrite 2012 - Oregon State University
 //       UX_UGA_ID:  (in) if >= 0, identifies an expansion IDU for the given UGA
 //       UX_PRIORTY: (out) ranking of priority for consideraion of UGA expansions
 //       UX_EVENT:   (out) contains the expansion eventID if the IDU is annexed
+//
+// <transitions>  -- generates transition matrix for teh specific classes
+//    cols=class to generate transitions for
+//    
 
 enum { INIT_NDUS_FROM_NONE=0, INIT_NDUS_FROM_POPDENS=1,INIT_NDUS_FROM_DULAYER=2 };
 

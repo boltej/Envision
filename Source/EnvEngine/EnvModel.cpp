@@ -1366,7 +1366,7 @@ int EnvModel::Run( int runFlag )
          //Report::StatusMsg( "Running Input Visualizers (pre)..." );
          //RunVisualizers( false );  // these only run post
          
-         // Run the Autonomous Processes (pre)
+         // Run the Model Processes (pre)
          ProcessWinMsg();
 
          Report::StatusMsg( "Running Models(Pre)..." );
@@ -3661,6 +3661,7 @@ bool EnvModel::RunEvaluation( void )
 
          try
             {
+            Report::indentLevel++;
             bool ok = pInfo->Run( &m_envContext );
 
             clock_t finish = clock();
@@ -3668,7 +3669,8 @@ bool EnvModel::RunEvaluation( void )
             pInfo->m_runTime += (float) duration;         
 
             Notify( EMNT_RUNEVAL, 2, (INT_PTR) pInfo );
-   
+            Report::indentLevel--;
+
             if ( ! ok )
                {
                CString msg = "The ";
@@ -3967,12 +3969,15 @@ void EnvModel::RunModelProcesses( bool isPostYear )
             CString msg;
             msg.Format("%s starting...", (LPCTSTR)pInfo->m_name);
             Report::Log(msg);
+            Report::indentLevel++;
 
             bool ok = pInfo->Run( &m_envContext );
 
             clock_t finish = clock();
             double duration = (float)(finish - start) / CLOCKS_PER_SEC;   
-            pInfo->m_runTime += (float) duration;         
+            pInfo->m_runTime += (float) duration;
+            Report::indentLevel--;
+
 
             if ( !ok )
                {

@@ -79,6 +79,7 @@ class LIBSAPI Report
 {
 public:
    static int            reportFlag; 
+   static int            indentLevel;
 
    // callbacks for each message type
    static LOGMSG_PROC    logMsgProc;

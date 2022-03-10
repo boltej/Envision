@@ -80,7 +80,7 @@ public:
    CString m_targetCol;
    int m_colSource;
    int m_colTarget;
-
+   int m_init;
    bool m_inUse;
 
    METHOD m_method;
@@ -92,7 +92,7 @@ public:
 
    CMap< UINT, UINT, MapElement*, MapElement* > m_valueMap;    // maps MapElement source values to th assocated array of outcomes
 
-   SyncMap() : m_colSource( -1 ), m_colTarget( -1 ), m_method( USE_DELTA ), m_inUse( true ) { }
+   SyncMap() : m_colSource( -1 ), m_colTarget( -1 ), m_method( USE_DELTA ), m_init(0), m_inUse( true ) { }
    SyncMap(SyncMap &);
    ~SyncMap();   // deletes all SyncArrays in the map
 };

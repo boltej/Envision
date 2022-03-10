@@ -83,7 +83,7 @@ bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
    m_pQueryEngine = pContext->pQueryEngine;
 
    if ( LoadXml( initStr, pContext ) == false )
-      return FALSE;
+      return false;
 
    // global things first
 
