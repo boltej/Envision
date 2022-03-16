@@ -216,9 +216,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool InitRun(EnvContext *pEnvContext, bool useInitSeed);
       bool Run(EnvContext *pContext);
       bool EndRun(EnvContext *pEnvContext);
-      //BOOL Setup( EnvContext *pContext, HWND hWnd )      { return FALSE; }
-      //BOOL ProcessMap( MapLayer *pLayer, int id ) { return TRUE;}   /**** TODO:  Override if needed *****/
-
+ 
 
 
       // int ChronicHazards::ResizeAndCalculateBeta(long &rows, long &cols);

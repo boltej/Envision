@@ -556,6 +556,7 @@ ChronicHazards::~ChronicHazards(void)
 
 bool ChronicHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    {
+   // read config files and set internal variables based on that
    LoadXml(initStr);
 
    // get Map pointer
@@ -1378,33 +1379,35 @@ bool ChronicHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
       }*/
 
    // Associate IDU <-> Duneline indexing
-   int polyCount = m_pIDULayer->GetRowCount();
-   for (int idu = 0; idu < polyCount; idu++)
+   if (m_pOrigDuneLineLayer != NULL)
       {
-      Poly *pPoly = m_pIDULayer->GetPolygon(idu);
-      /* float northing = pPoly->m_yMax;*/
-      Vertex centroid = pPoly->GetCentroid();
-      REAL northing = centroid.y;
-      float minDiff = 9999.0F;
-      int duneIndx = -1;
-
-      for (MapLayer::Iterator point = m_pOrigDuneLineLayer->Begin(); point < m_pOrigDuneLineLayer->End(); point++)
+      int polyCount = m_pIDULayer->GetRowCount();
+      for (int idu = 0; idu < polyCount; idu++)
          {
-         REAL xCoord = 0.0;
-         REAL yCoord = 0.0;
+         Poly* pPoly = m_pIDULayer->GetPolygon(idu);
+         /* float northing = pPoly->m_yMax;*/
+         Vertex centroid = pPoly->GetCentroid();
+         REAL northing = centroid.y;
+         float minDiff = 9999.0F;
+         int duneIndx = -1;
 
-         m_pOrigDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
-         float tmpDiff = float(abs(yCoord - northing));
-
-         if (tmpDiff < minDiff)
+         for (MapLayer::Iterator point = m_pOrigDuneLineLayer->Begin(); point < m_pOrigDuneLineLayer->End(); point++)
             {
-            minDiff = tmpDiff;
-            m_pOrigDuneLineLayer->GetData(point, m_colDuneIndx, duneIndx);
-            }
-         }
-      m_pIDULayer->SetData(idu, m_colBeachfront, duneIndx);
-      }  // end of: for ( idu < polyCount )
+            REAL xCoord = 0.0;
+            REAL yCoord = 0.0;
 
+            m_pOrigDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
+            float tmpDiff = float(abs(yCoord - northing));
+
+            if (tmpDiff < minDiff)
+               {
+               minDiff = tmpDiff;
+               m_pOrigDuneLineLayer->GetData(point, m_colDuneIndx, duneIndx);
+               }
+            }
+         m_pIDULayer->SetData(idu, m_colBeachfront, duneIndx);
+         }  // end of: for ( idu < polyCount )
+      }
    // New Dune line layer starts off as copy of Original with changes of Label and Color
    if (m_pOrigDuneLineLayer != NULL)
       {
@@ -9298,6 +9301,7 @@ void ChronicHazards::RemoveFromSafestSite()
    } */
    } // end RemoveFromSafestSite
 
+
 bool ChronicHazards::LoadXml(LPCTSTR filename)
    {
    CString fullPath;
@@ -9318,7 +9322,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       return false;
 
    int flags = -1;
-   if (pXmlRoot->Attribute("flags", &flags) != NULL)
+   if (pXmlRoot->Attribute("run_flags", &flags) != NULL)
       m_runFlags = flags;
 
    // envx file directory, slash-terminated
