@@ -302,6 +302,7 @@ EnvModel::EnvModel()
    m_envContext.pDeltaArray    = NULL;      // reset in init run
    m_envContext.pLulcTree      = &m_lulcTree;
    m_envContext.pExprEngine    = NULL;   // fill this in later after created
+   m_envContext.pScenario      = NULL;   // fill this in later after created
    m_envContext.score          = 0;
    m_envContext.rawScore       = 0;
    m_envContext.pDataObj       = NULL;
@@ -426,6 +427,7 @@ EnvModel::EnvModel()
    m_envContext.pLulcTree     = &m_lulcTree;
    m_envContext.pQueryEngine  = m_pQueryEngine;
    m_envContext.pExprEngine   = NULL;
+   m_envContext.pScenario     = NULL;
    m_envContext.score         = 0;
    m_envContext.rawScore      = 0;
    m_envContext.pDataObj      = NULL;
@@ -1289,6 +1291,7 @@ int EnvModel::Run( int runFlag )
 
    // set scenario
    ASSERT( m_pScenario != NULL );
+   m_envContext.pScenario = m_pScenario;
    m_pScenario->SetScenarioVars( runFlag );
 
    bool ok = SetRunConstraint();  // if any, populate m_targetPolyArray
@@ -1363,7 +1366,7 @@ int EnvModel::Run( int runFlag )
          //Report::StatusMsg( "Running Input Visualizers (pre)..." );
          //RunVisualizers( false );  // these only run post
          
-         // Run the Autonomous Processes (pre)
+         // Run the Model Processes (pre)
          ProcessWinMsg();
 
          Report::StatusMsg( "Running Models(Pre)..." );
@@ -3658,6 +3661,7 @@ bool EnvModel::RunEvaluation( void )
 
          try
             {
+            Report::indentLevel++;
             bool ok = pInfo->Run( &m_envContext );
 
             clock_t finish = clock();
@@ -3665,7 +3669,8 @@ bool EnvModel::RunEvaluation( void )
             pInfo->m_runTime += (float) duration;         
 
             Notify( EMNT_RUNEVAL, 2, (INT_PTR) pInfo );
-   
+            Report::indentLevel--;
+
             if ( ! ok )
                {
                CString msg = "The ";
@@ -3962,14 +3967,17 @@ void EnvModel::RunModelProcesses( bool isPostYear )
          try
             {
             CString msg;
-            msg.Format("--%s starting...", (LPCTSTR)pInfo->m_name);
+            msg.Format("%s starting...", (LPCTSTR)pInfo->m_name);
             Report::Log(msg);
+            Report::indentLevel++;
 
             bool ok = pInfo->Run( &m_envContext );
 
             clock_t finish = clock();
             double duration = (float)(finish - start) / CLOCKS_PER_SEC;   
-            pInfo->m_runTime += (float) duration;         
+            pInfo->m_runTime += (float) duration;
+            Report::indentLevel--;
+
 
             if ( !ok )
                {
@@ -3986,7 +3994,7 @@ void EnvModel::RunModelProcesses( bool isPostYear )
                }
             }
          catch( ... )
-            { }
+             { }
 
          ApplyDeltaArray( m_pIDULayer );
          m_apFirstUnseenDelta[i] = m_pDeltaArray->GetCount();

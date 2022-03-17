@@ -27,11 +27,13 @@ Copywrite 2012 - Oregon State University
 #include <QueryEngine.h>
 #include "EnvModel.h"
 #include "EnvLoader.h"
+#include "EnvConstants.h"
 #include "Actor.h"
 #include "Policy.h"
 #include "Scenario.h"
+#include "DataManager.h"
 #include <iostream>
-
+#include <PathManager.h>
 void RunModel(EnvModel*);
 
 
@@ -263,6 +265,9 @@ int EnvGetEvaluatorCount( EnvModel *pModel ) { return pModel->GetEvaluatorCount(
 EnvEvaluator* EnvGetEvaluatorInfo(EnvModel *pModel, int i) { return pModel->GetEvaluatorInfo(i); }
 EnvEvaluator* EnvFindEvaluatorInfo(EnvModel *pModel, LPCTSTR name) { return pModel->FindEvaluatorInfo(name); }
 
+LPCTSTR EnvGetCurrentScenarioName(EnvModel* pModel) { return pModel->m_pScenario ? (LPCTSTR)pModel->m_pScenario->m_name : NULL; }
+
+
 int EnvGetAutoProcessCount( EnvModel *pModel) { return pModel->GetModelProcessCount(); }
 EnvModelProcess* EnvGetAutoProcessInfo(EnvModel *pModel, int i) { return pModel->GetModelProcessInfo(i); }
 
@@ -289,6 +294,20 @@ Scenario *EnvGetScenarioFromName(EnvModel *pModel, LPCTSTR name, int *index)
 
    return pScenario;
    }
+
+
+int EnvGenLulcTransTable(EnvModel* pModel)
+   {
+   FDataObj* pData = pModel->m_pDataManager->CalculateLulcTransTable();
+
+   CString path = PathManager::GetPath( PM_OUTPUT_DIR );  // {ProjectDir}/Outputs/CurrentScenarioName/
+   path += "LULC_Trans_Table.csv";
+   pData->WriteAscii(path);
+   return 1;
+   }
+
+
+
 
 //int EnvStandardizeOutputFilename( LPTSTR filename, LPTSTR pathAndFilename, int maxLength )
 //   {

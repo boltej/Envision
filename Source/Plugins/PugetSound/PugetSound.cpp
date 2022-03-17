@@ -90,29 +90,12 @@ int PugetSound::UpdateLULC(EnvContext* pEnvContext)
          for (INT_PTR i = pEnvContext->firstUnseenDelta; i < size; i++)
             {
             DELTA& delta = ::EnvGetDelta(deltaArray, i);
-            if (delta.col == m_colPopDens)
-               {
-               float popDens = 0;
-               delta.newValue.GetAsFloat(popDens);
-               
-               //if ( Between(popDens,0.)    // 1 du per acre
-               //
-               //
-               //   DU / Acre		# / m2
-               //
-               //   1		0.00623
-               //   2		0.01247
-               //   4		0.02494
-               //   6		0.03740
-               //   8		0.04987
-               //   12		0.07481
-               //   18		0.11221
-               //   24		0.14962
-               //   48		0.29924
 
 
 
-               }
+
+
+
             }
          }
       }

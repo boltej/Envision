@@ -215,8 +215,10 @@ protected:
    afx_msg void OnResultsCascade();
 	afx_msg void OnResultsTile();
 	afx_msg void OnResultsClear();
-   afx_msg void OnResultsCapture();
-   afx_msg void OnUpdateResultsCapture( CCmdUI *pCmdUI );
+   //afx_msg void OnResultsCapture();
+   //afx_msg void OnUpdateResultsCapture(CCmdUI* pCmdUI);
+   afx_msg void OnResultsDeltas();
+   afx_msg void OnUpdateResultsDeltas(CCmdUI* pCmdUI);
    afx_msg void OnResultsSyncMaps();
    afx_msg void OnUpdateResultsSyncMaps( CCmdUI *pCmdUI );
 

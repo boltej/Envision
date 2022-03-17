@@ -83,7 +83,7 @@ bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
    m_pQueryEngine = pContext->pQueryEngine;
 
    if ( LoadXml( initStr, pContext ) == false )
-      return FALSE;
+      return false;
 
    // global things first
 
@@ -264,7 +264,7 @@ bool Developer::InitRun( EnvContext *pContext, bool useInitialSeed )
             {
             pDUArea->m_peoplePerDU = pDUArea->m_population/pDUArea->m_nDUs;
             CString msg;
-            msg.Format( "   Developer: Adjusted PPDU for %s=%.2f", (LPCTSTR) pDUArea->m_name, pDUArea->m_peoplePerDU );
+            msg.Format( "  Adjusted PPDU for %s=%.2f", (LPCTSTR) pDUArea->m_name, pDUArea->m_peoplePerDU );
             Report::Log( msg );
             }
          }
@@ -340,6 +340,16 @@ bool Developer::Run( EnvContext *pContext )
    
    CollectOutput( pContext->currentYear );
 
+   return true;
+   }
+
+
+
+bool Developer::EndRun(EnvContext* pContext)
+   {
+   EnvGenLulcTransTable(pContext->pEnvModel);
+
+   // first get existing NDU values from coverage if <dwellings> defined
    return true;
    }
 
@@ -470,13 +480,13 @@ bool Developer::InitPopDens( EnvContext *pEnvContext )
    // clean up
    delete [] iduPopArray;
 
-   CString msg;   msg.Format( "   Developer: Starting population: %i, reallocated population: %i", (int) m_startPop, (int) totalNewPop );
+   CString msg;   msg.Format( "  Starting population: %i, reallocated population: %i", (int) m_startPop, (int) totalNewPop );
    Report::Log( msg );   
 
    for( int i=0; i < (int) m_popDensArray.GetSize(); i++ )
       {
       PopDens *pPopDens = m_popDensArray[ i ];
-      msg.Format( "   %s: Reallocations: %i", (PCTSTR) pPopDens->m_name, int( pPopDens->m_reallocPop-pPopDens->m_initPop) );
+      msg.Format( "  %s: Reallocations: %i", (PCTSTR) pPopDens->m_name, int( pPopDens->m_reallocPop-pPopDens->m_initPop) );
       Report::Log( msg );
       }
 
@@ -536,7 +546,7 @@ void Developer::InitNDUs( MapLayer *pLayer )
    if ( m_initDUs == INIT_NDUS_FROM_DULAYER )
       {
       CString msg;
-      msg.Format("   Developer: Initializing DU_COUNT from point coverage for %i of %i Dwelling unit points", totalNDUs, m_pDuPtLayer->GetRecordCount());
+      msg.Format("  Initializing DU_COUNT from point coverage for %i of %i Dwelling unit points", totalNDUs, m_pDuPtLayer->GetRecordCount());
       Report::Log(msg);
       }
 
@@ -640,7 +650,7 @@ void Developer::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
 
    // report results
    CString msg;
-   msg.Format( "   Developer: DU Deficits (PopDens-derived - actual DUs) - Year %i", pContext->currentYear );
+   msg.Format( "  DU Deficits (PopDens-derived - actual DUs) - Year %i", pContext->currentYear );
    Report::Log( msg );
    for ( int i=0; i < m_duAreaArray.GetSize(); i++ )
       {
@@ -727,7 +737,7 @@ void Developer::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
          deficit += nduDeficits[ j ];
 
       CString msg;
-      msg.Format( "   Developer: DU deficits remaining after Year %i allocations = %i.  IDU Counts %i of %i examined", pContext->currentYear, (int) deficit, allocatedIduCount, i );
+      msg.Format( "  DU deficits remaining after Year %i allocations = %i.  IDU Counts %i of %i examined", pContext->currentYear, (int) deficit, allocatedIduCount, i );
       Report::Log( msg );
 
       for ( int i=0; i < m_duAreaArray.GetSize(); i++ )
@@ -801,7 +811,7 @@ void Developer::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
       } // end of: for each IDU
    
    CString msg2;
-   msg2.Format( "   Developer: Year: %i, DUs=%i, New DUs=%i, StartDUs=%i", pContext->currentYear, totalDUs, totalNewDUs, totalStartDUs );
+   msg2.Format( "  Year: %i, DUs=%i, New DUs=%i, StartDUs=%i", pContext->currentYear, totalDUs, totalNewDUs, totalStartDUs );
    Report::Log( msg2 );      
 
    delete [] duInfo;
@@ -1040,7 +1050,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
    if ( PathManager::FindPath( _filename, filename ) < 0 ) //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
       {
       CString msg;
-      msg.Format( "   Developer: Input file '%s' not found - this process will be disabled", _filename );
+      msg.Format( "  Input file '%s' not found - this process will be disabled", _filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -1099,7 +1109,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
 
       if ( m_pDuPtLayer == NULL )
          {
-         CString msg( "   Developer: Unable to find Point layer [" );
+         CString msg( "  Unable to find Point layer [" );
          msg += duPtLayer;
          msg += "] was not found in the Map.  This functionality will be disabled.";
          Report::ErrorMsg( msg );
@@ -1172,7 +1182,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             if ( pPopDens->m_pMapExpr == NULL )
                {
                CString msg;
-               msg.Format( "   Developer: Invalid 'value' expression '%s' encountered for output '%s' This output will be ignored...", (LPCTSTR) pPopDens->m_expr, (LPCTSTR) pPopDens->m_name );
+               msg.Format( "  Invalid 'value' expression '%s' encountered for output '%s' This output will be ignored...", (LPCTSTR) pPopDens->m_expr, (LPCTSTR) pPopDens->m_name );
          
                Report::ErrorMsg( msg );
                pPopDens->m_use = false;
@@ -1181,7 +1191,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                pPopDens->m_pMapExpr->Compile();
             }
 
-         //CString msg( "   Developer: Added PopDens element " );
+         //CString msg( "  Added PopDens element " );
          //msg += name;
          //Report::Log( msg );
 
@@ -1189,7 +1199,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
          }
 
       CString msg;
-      msg.Format( "   Developer: Added %i PopDens elements", (int) this->m_popDensArray.GetSize() );
+      msg.Format( "  Added %i PopDens elements", (int) this->m_popDensArray.GetSize() );
       Report::Log( msg );
       }
 
@@ -1278,7 +1288,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             pDUArea->m_pQuery = m_pQueryEngine->ParseQuery( query, 0, name );
             }
 
-         //CString msg( "   Developer: Added DUArea " );
+         //CString msg( "  Added DUArea " );
          //msg += name;
          //Report::Log( msg );
 
@@ -1286,7 +1296,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
          }
 
       CString msg;
-      msg.Format( "   Developer: Added %i DUAreas", (int) this->m_duAreaArray.GetSize() );
+      msg.Format( "  Added %i DUAreas", (int) this->m_duAreaArray.GetSize() );
       Report::Log( msg );
 
       }  // end of: id ( pXmlDwellings != NULL )
@@ -1351,7 +1361,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
          if ( ! ok )
             {
             CString msg; 
-            msg.Format( _T("   Developer: Misformed element reading <scenario> attributes in input file %s"), filename );
+            msg.Format( _T("  Misformed element reading <scenario> attributes in input file %s"), filename );
             Report::ErrorMsg( msg );
             delete pUxScn;
             return false;
@@ -1387,7 +1397,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             if ( ! ok )
                {
                CString msg; 
-               msg.Format( _T("   Developer: Misformed element reading <uga_expansion> attributes in input file %s"), filename );
+               msg.Format( _T("  Misformed element reading <uga_expansion> attributes in input file %s"), filename );
                Report::ErrorMsg( msg );
                delete pUGA;
                return false;
@@ -1409,7 +1419,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                pUGA->m_pCommQuery = m_pQueryEngine->ParseQuery( pUGA->m_commQuery, 0, pUGA->m_name );
                }
 
-            CString msg( "   Developer: Added UGA Expansion for " );
+            CString msg( "  Added UGA Expansion for " );
             msg += pUGA->m_name;
             Report::Log( msg );
    
@@ -1445,7 +1455,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             if ( ! ok )
                {
                CString msg; 
-               msg.Format( _T("   Developer: Misformed element reading <residential> attributes in input file %s"), filename );
+               msg.Format( _T("  Misformed element reading <residential> attributes in input file %s"), filename );
                Report::ErrorMsg( msg );
                delete pZone;
                }
@@ -1475,7 +1485,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             if ( ! ok )
                {
                CString msg; 
-               msg.Format( _T("   Developer: Misformed element reading <commercial> attributes in input file %s"), filename );
+               msg.Format( _T("  Misformed element reading <commercial> attributes in input file %s"), filename );
                Report::ErrorMsg( msg );
                delete pZone;
                }
@@ -1525,7 +1535,7 @@ bool Developer::ExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
    {
    if (m_pCurrentUxScenario == NULL)
       {
-      Report::LogError("   Developer: No current scenario defined during Run()");
+      Report::LogError("  No current scenario defined during Run()");
       return false;
       }
 
@@ -1803,7 +1813,7 @@ float Developer::UpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
       if ( outputStartInfo && pContext->yearOfRun == 0 )
          {
          CString msg;
-         msg.Format( "   Developer: Starting Population for %s: %i",
+         msg.Format( "  Starting Population for %s: %i",
                   (LPCTSTR) pUGA->m_name, (int) pUGA->m_startPopulation );
          Report::Log( msg );
          }

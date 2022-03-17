@@ -300,7 +300,7 @@ bool FlamMapAP::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    if(this->m_strStaticFireList.GetLength() > 0)
       {
       if ( !ReadStaticFires())
-         Report::Log(_T("FlammapAP: Error reading static fires file, running normally"));
+         Report::Log(_T("  Error reading static fires file, running normally"));
       }
    if (m_outputEnvisionFirelists)
    {
@@ -317,7 +317,7 @@ bool FlamMapAP::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 	   fprintf(deltaArrayCSV, "Yr, Run, IDU, FireID, Flamelength, PFlameLen, CTSS, VegClass, Variant, DISTURB, FUELMODEL\n");
 	   fclose(deltaArrayCSV);
    }
-   Report::Log(_T("FlammapAP: Completed FlamMapAP.cpp Init successfully"));
+   Report::Log(_T("  Completed FlamMapAP Init successfully"));
 
    return TRUE;
    }
@@ -332,7 +332,7 @@ int FlamMapAP::ReadStaticFires()
    if ( PathManager::FindPath( m_strStaticFireList, fName ) < 0 )    // search envision paths
       {
       CString msg;
-      msg.Format( "FlammapAP: Unable to locate firelist file '%s' on path", m_strStaticFireList );
+      msg.Format( "  Unable to locate firelist file '%s' on path", m_strStaticFireList );
       Report::ErrorMsg( msg );
       return 0;
       }
@@ -341,7 +341,7 @@ int FlamMapAP::ReadStaticFires()
    if((recordsTtl = (int) inData.ReadAscii( fName )) <= 0) 
       {
       CString msg;
-      msg.Format( "FlammapAP: Error reading static firelist '%s'", fName );
+      msg.Format( "  Error reading static firelist '%s'", fName );
       Report::ErrorMsg( msg );
       return 0;
       }
@@ -505,7 +505,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
    CString msg;
    CString nameCStr;
    CString failureID( _T("FlamMapAP::InitRun Failed: ") );
-   msg = "Entering FlamMapAP::InitRun";
+   msg = "  Entering FlamMapAP::InitRun";
    Report::Log( msg );
    // Get the Scenario directory
    LPCTSTR scenarioName = NULL;
@@ -518,7 +518,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
    //Report::InfoMsg(_T("FlamMapAP::InitRun 010"));
    m_scenarioName = scenarioName;
 
-   msg = "FlamMapAP::InitRun searching for scenario";
+   msg = "  InitRun searching for scenario";
    Report::Log( msg );
  
     // jpb - change this to be random selected within a specified scenario
@@ -534,11 +534,11 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
 
    if ( pScenario == NULL )
       {
-      Report::ErrorMsg( "FlammapAP: Unable to find specified scenario" );
+      Report::ErrorMsg( " Unable to find specified scenario" );
       return FALSE;
       }
 
-   msg = "FlamMapAP::InitRun retrieving scenario firelist";
+   msg = "  InitRun retrieving scenario firelist";
    Report::Log( msg );
    // randomly select a fire list
    int selNum = -1;
@@ -556,7 +556,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
    }
    FIRELIST *pFireList = pScenario->GetFireList(selNum);
    m_scenarioFiresFName =  pFireList->m_path;
-   msg = "FlammapAP: Using scenario '";
+   msg = "  Using scenario '";
    msg += pScenario->m_name;
    msg += "', firelist file ";
    msg += m_scenarioFiresFName;
@@ -590,13 +590,13 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
 	   m_hShpPerims = SHPCreate(PerimeterFName, SHPT_POLYGON);
 	   if (!m_hShpPerims)
 	   {
-			msg.Format("Error: Unable to create perimeter shape file: %s", PerimeterFName);
+			msg.Format("  Unable to create perimeter shape file: %s", PerimeterFName);
 			Report::ErrorMsg(msg);
 	   }
 	   m_hDbfPerims = DBFCreate(dbfName);
 	   if (!m_hDbfPerims)
 	   {
-		   msg.Format("Error: Unable to create perimeter shape file database: %s", dbfName);
+		   msg.Format("  Unable to create perimeter shape file database: %s", dbfName);
 		   Report::ErrorMsg(msg);
 	   }
 	   else
@@ -624,7 +624,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
 		   m_hDbfPerims = DBFOpen(dbfName, "rb+");
 		   if (!m_hDbfPerims)
 		   {
-			   msg.Format("Error: Unable to open perimeter shape file database: %s", dbfName);
+			   msg.Format("  Unable to open perimeter shape file database: %s", dbfName);
 			   Report::ErrorMsg(msg);
 		   }
 	   }
@@ -695,7 +695,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
    if ( result < 0 )
       {
-      CString msg( "FlammapAP: Unable to find input file " );
+      CString msg( "  Unable to find input file " );
       msg += filename;
       Report::ErrorMsg( msg );
       return false;
@@ -764,7 +764,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    if ( ! ok )
       {
       CString msg; 
-      msg.Format( _T("Misformed root element reading <flammap> attributes in FlammapAP input file %s"), filename );
+      msg.Format( _T("  Misformed root element reading <flammap> attributes in FlammapAP input file %s"), filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -794,7 +794,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    if ( pXmlScenarios == NULL )
       {
       CString msg;
-      msg.Format( _T("Error reading FlammapAP input file %s: Missing <scenarios> entry.  This is required to continue..."), filename );
+      msg.Format( _T("  Error reading FlammapAP input file %s: Missing <scenarios> entry.  This is required to continue..."), filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -803,7 +803,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    if ( pXmlScenario == NULL )
       {
       CString msg;
-      msg.Format( _T("Error reading FlammapAP input file %s: Missing <scenario> entry.  This is required to continue..."), filename );
+      msg.Format( _T("  Error reading FlammapAP input file %s: Missing <scenario> entry.  This is required to continue..."), filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -837,7 +837,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
       if ( pXmlFireList == NULL )
          {
          CString msg;
-         msg.Format( _T("Error reading FlammapAP input file %s: Missing <firelist> entry.  This is required to continue..."), filename );
+         msg.Format( _T("  Error reading FlammapAP input file %s: Missing <firelist> entry.  This is required to continue..."), filename );
          Report::ErrorMsg( msg );
          return false;
          }
@@ -861,7 +861,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
             if ( retVal < 0 )
                {
                CString msg;
-               msg.Format( "FlammapAP:  Unable to find firelist file '%s'", name );
+               msg.Format( "  Unable to find firelist file '%s'", name );
                Report::ErrorMsg( msg );
                }
             else
@@ -907,7 +907,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    default:
          {
          CString msg;
-         msg.Format( _T("Error. FlamMapAP outputDirectory can not be created"));
+         msg.Format( _T("  FlamMapAP outputDirectory can not be created"));
          Report::ErrorMsg( msg );
          return false;
          }
@@ -1016,13 +1016,13 @@ int FlamMapAP::ResolvePath( CString &filename, LPCTSTR errorMsg  )
    if ( retVal < 0 )
       {
       CString msg;
-      msg.Format( "FlammapAP: %s '%s' when searching paths", errorMsg, (LPCTSTR) filename );
+      msg.Format( "  %s '%s' when searching paths", errorMsg, (LPCTSTR) filename );
       Report::ErrorMsg( msg );
       }
    else
       {
       CString msg;
-      msg.Format( "FlammapAP: resolving file '%s' to path '%s'", (LPCTSTR) filename, (LPCTSTR) path );
+      msg.Format( "  Resolving file '%s' to path '%s'", (LPCTSTR) filename, (LPCTSTR) path );
       Report::Log( msg );
 
       filename = path;

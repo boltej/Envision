@@ -127,9 +127,13 @@ BEGIN_MESSAGE_MAP(CEnvView, CView)
 	ON_UPDATE_COMMAND_UI(ID_RESULTS_TILE, OnUpdateResultsTileCascade)
 	ON_COMMAND(ID_RESULTS_CLEAR, OnResultsClear)
 	ON_UPDATE_COMMAND_UI(ID_RESULTS_CLEAR, OnUpdateResultsTileCascade)
-	ON_COMMAND(ID_RESULTS_CAPTURE, OnResultsCapture)
-	ON_UPDATE_COMMAND_UI(ID_RESULTS_CAPTURE, OnUpdateResultsCapture)
-	ON_COMMAND(ID_RESULTS_SYNC_MAPS, OnResultsSyncMaps)
+	//ON_COMMAND(ID_RESULTS_CAPTURE, OnResultsCapture)
+	//ON_UPDATE_COMMAND_UI(ID_RESULTS_CAPTURE, OnUpdateResultsCapture)
+   ON_COMMAND(ID_RESULTS_DELTAS, OnResultsDeltas)
+   ON_UPDATE_COMMAND_UI(ID_RESULTS_DELTAS, OnUpdateResultsDeltas)
+
+   
+   ON_COMMAND(ID_RESULTS_SYNC_MAPS, OnResultsSyncMaps)
 	ON_UPDATE_COMMAND_UI(ID_RESULTS_SYNC_MAPS, OnUpdateResultsSyncMaps)
    ON_UPDATE_COMMAND_UI(ID_RTVIEW_MAPS, OnUpdateData)
 
@@ -581,22 +585,42 @@ void CEnvView::OnResultsClear()
       m_resultsPanel.m_pResultsWnd->Clear();
    }
 
-void CEnvView::OnResultsCapture() 
+//void CEnvView::OnResultsCapture() 
+//   {
+//   bool status = m_resultsPanel.m_pResultsWnd->m_createMovie;
+//   m_resultsPanel.m_pResultsWnd->m_createMovie = ( status == true ? false : true );
+//   }
+//
+//
+//void CEnvView::OnUpdateResultsCapture( CCmdUI *pCmdUI )
+//   {
+//   if ( m_resultsPanel.m_pResultsWnd )
+//      {
+//      bool setCheck = ( m_resultsPanel.m_pResultsWnd->m_createMovie ? true : false );
+//      pCmdUI->SetCheck( setCheck ? 1 : 0 );
+//      }
+//   }
+
+void CEnvView::OnResultsDeltas() 
    {
-   bool status = m_resultsPanel.m_pResultsWnd->m_createMovie;
-   m_resultsPanel.m_pResultsWnd->m_createMovie = ( status == true ? false : true );
+   // toggle checkbox state
+   bool status = m_resultsPanel.m_pResultsWnd->m_showDeltas;
+   m_resultsPanel.m_pResultsWnd->m_showDeltas = ( status == true ? false : true );
+
+
+   // redraw windows
+
    }
 
 
-void CEnvView::OnUpdateResultsCapture( CCmdUI *pCmdUI )
+void CEnvView::OnUpdateResultsDeltas( CCmdUI *pCmdUI )
    {
    if ( m_resultsPanel.m_pResultsWnd )
       {
-      bool setCheck = ( m_resultsPanel.m_pResultsWnd->m_createMovie ? true : false );
+      bool setCheck = ( m_resultsPanel.m_pResultsWnd->m_showDeltas ? true : false );
       pCmdUI->SetCheck( setCheck ? 1 : 0 );
       }
    }
-
 
 void CEnvView::OnResultsSyncMaps() 
    {

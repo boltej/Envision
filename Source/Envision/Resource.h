@@ -230,6 +230,7 @@
 #define ID_RESULTS_CAPTURE              492
 #define ID_RESULTS_SYNC_MAPS            493
 #define ID_RESULTS_CLEAR                494
+#define ID_RESULTS_DELTAS               495
 #define ID_RTVIEW_MAPS                  500
 #define ID_RTVIEW_GRAPHS                501
 #define ID_RTVIEW_VIEWS                 502

@@ -331,7 +331,6 @@ bool Calvin::EndYear(EnvContext *pEnvContext)
 
 bool Calvin::Run(EnvContext *pEnvContext)
    {
-
    int retVal2;
 	CString nam ;
 	nam.Format(_T("%s%s.py"), (LPCTSTR)m_pyModulePath, (LPCTSTR)m_pyModuleName);
@@ -353,6 +352,19 @@ bool Calvin::Run(EnvContext *pEnvContext)
 
 		//PySys_SetArgvEx(0, &pyfilepath,0);
 		PySys_SetArgvEx(1, &linkpath,0);
+
+
+		// Update Calvin Penalty functions
+
+		//Step 1.  Get Lagrange multipliers from Ag Model
+
+		//PyRun_SimpleFile(file, nam);
+
+		//Split surface water groundwater penalties
+
+		//Get monthly scarcity penalty functions
+
+
 
       retVal2 = PyRun_SimpleFile(file, nam);
 		link.ReleaseBuffer();

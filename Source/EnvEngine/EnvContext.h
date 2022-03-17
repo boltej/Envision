@@ -38,6 +38,7 @@ class QueryEngine;
 class EnvModel;
 class EnvContext;
 class FDataObj;
+class Scenario;
 
 struct MODEL_VAR;
 
@@ -215,7 +216,7 @@ public:
    int             scenarioIndex;         // 0-based scenario index 
    bool            showMessages;
    int             logMsgLevel;           // see flags in envmodel.h
-   int			   exportMapInterval;     // maps to 
+   int			    exportMapInterval;     // maps to 
    const MapLayer *pMapLayer;             // pointer to the IDU layer.  This is const because extensions generally shouldn't write to this.
 	ActorManager   *pActorManager;         // pointer to the actor manager
 	PolicyManager  *pPolicyManager;        // pointer to the policy manager
@@ -224,6 +225,7 @@ public:
    LulcTree       *pLulcTree;             // pointer to the lulc tree used in the simulation
    QueryEngine    *pQueryEngine;          // pointer to an query engine
    MapExprEngine  *pExprEngine;           // pointer to an expression engine
+   Scenario       *pScenario;             // pointer to current scenario 
    int             id;                    // id of the module being called
    int             handle;                // unique handle of the module
    int             col;                   // database column to populate, -1 for no column
@@ -242,7 +244,6 @@ public:
 
    FDataObj       *pDataObj;              // data object returned from the model at each time step (optional, NULL if not used)
    INT_PTR         extra;                 // extra data - depends on type
-   int             reserved[32];
 
 	EnvContext( MapLayer *_pMapLayer )
 		: ptrAddDelta( NULL )
@@ -262,6 +263,7 @@ public:
       , pLulcTree( NULL )
       , pQueryEngine( NULL )
       , pExprEngine( NULL )
+      , pScenario(NULL)
       , col( -1 )
       , id( -1 )
       , handle( -1 )

@@ -1669,7 +1669,7 @@ FlowModel::FlowModel()
    , m_colCsvRelHumidity(-1)
    , m_colCsvSpHumidity(-1)
    , m_colCsvVPD(-1)
-   , m_provenClimateIndex(-1)
+   , m_provenClimateIndex(0)      // assumes an "bad" HRUs point to the first climate index
    , m_colStreamCumArea(-1)
    , m_colCatchmentCumArea(-1)
    , m_colTreeID(-1)
@@ -3481,6 +3481,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
    //-------------------------------------------------------
    // Main within-year FLOW simulation loop starts here
    //-------------------------------------------------------
+  // m_stopTime = (m_currentTime + TIME_TOLERANCE);
    while ((m_currentTime + TIME_TOLERANCE) < m_stopTime)
       {
       int dayOfYear = int(fmod(m_timeInRun, 365));  // zero based day of year
@@ -11078,15 +11079,16 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
          {
          if (pInfo != NULL && pInfo->m_pNetCDFData != NULL)   // find a data object?
             {
-             if (pHRU->m_climateIndex < 0)
+             if (pHRU->m_climateIndex < 0)   // first time through
                  {
                  double x = pHRU->m_centroid.x;
                  double y = pHRU->m_centroid.y;
                  value = pInfo->m_pNetCDFData->Get(x, y, pHRU->m_climateIndex, dayOfYear, m_projectionWKT, false);
-                 if (value > -100 && m_provenClimateIndex == -1)
-                     m_provenClimateIndex = pHRU->m_climateIndex;
+                 
+                 //if (value > -100 && m_provenClimateIndex == -1)
+                 //    m_provenClimateIndex = pHRU->m_climateIndex;
 
-                 if (value < -100) //missing data in the file. Code identifies a nearby gridcell that does have data
+                 if (value == -9999) //missing data in the file. Code identifies a nearby gridcell that does have data
                      {
                      pHRU->m_climateIndex = m_provenClimateIndex;
                      value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);

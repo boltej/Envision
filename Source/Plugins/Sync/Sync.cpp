@@ -56,6 +56,8 @@ MapElement::MapElement(MapElement &me)
 
 void MapElement::ApplyOutcome( EnvContext *pContext, int idu, int colTarget )
    {
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
+
    float randVal = (float) rn.RandValue();
    float value = 0;
    int   j = 0;
@@ -71,9 +73,13 @@ void MapElement::ApplyOutcome( EnvContext *pContext, int idu, int colTarget )
          VData oldValue;
          pContext->pMapLayer->GetData( idu, colTarget, oldValue );
 
+         // during init
          if ( oldValue != pSyncOutcome->targetValue )
-            {
-            pContext->ptrAddDelta( pContext->pEnvModel, idu, colTarget,
+            {            
+            if (pContext->run < 0)
+               pLayer->SetData(idu, colTarget, pSyncOutcome->targetValue);
+            else
+               pContext->ptrAddDelta( pContext->pEnvModel, idu, colTarget,
                                    pContext->currentYear, pSyncOutcome->targetValue, pContext->handle );
             }
          }
@@ -137,6 +143,10 @@ MapElement *SyncMap::FindMapElement( VData &vData )
          if ( found )
             return pMapElement;
 
+         // is it a wildcard?
+         if (pMapElement->IsWildcard())
+            return pMapElement;
+
          //float value, mapValue;
          //pMapElement->m_sourceValue.GetAsFloat( mapValue );
          //vData.GetAsFloat( value );
@@ -147,13 +157,13 @@ MapElement *SyncMap::FindMapElement( VData &vData )
       }  // end of: for ( i < count )
 
    // if we get this far, the element wasn't found.  is there a wildcard?
-   for ( int i = 0; i < count; i++ )
-      {
-      pMapElement = m_mapElementArray[i];
-
-      if ( pMapElement->IsWildcard() )
-         return pMapElement;
-      }
+   //for ( int i = 0; i < count; i++ )
+   //   {
+   //   pMapElement = m_mapElementArray[i];
+   //
+   //   if ( pMapElement->IsWildcard() )
+   //      return pMapElement;
+   //   }
 
    // nothing found...
    return NULL;
@@ -218,6 +228,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
       {
       SyncMap *pSyncMap = new SyncMap;
       CString method;
+      int init = 0;
 
       XML_ATTR smAttrs[] =
          { // attr          type           address                   isReq   checkCol
@@ -225,6 +236,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
                { "source_col", TYPE_CSTRING, &( pSyncMap->m_sourceCol ), true, 0 },
                { "target_col", TYPE_CSTRING, &( pSyncMap->m_targetCol ), true, 0 },
                { "method", TYPE_CSTRING, &method, false, 0 },
+               { "init",   TYPE_INT, &init, false, 0 },
                { NULL, TYPE_NULL, NULL, false, 0 } };
 
       if ( TiXmlGetAttributes( pXmlSyncMap, smAttrs, filename, pLayer ) == false )
@@ -235,6 +247,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
       pSyncMap->m_colSource = pLayer->GetFieldCol( pSyncMap->m_sourceCol );
       pSyncMap->m_colTarget = pLayer->GetFieldCol( pSyncMap->m_targetCol );
+      pSyncMap->m_init = init;
 
       if ( pSyncMap->m_colSource < 0 )
          {
@@ -374,8 +387,8 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
       pXmlSyncMap = pXmlSyncMap->NextSiblingElement( _T( "sync_map" ) );
       }  // end of: while ( pXmlSyncMap != NULL )
 
-m_filename = filename;
-return true;
+   m_filename = filename;
+   return true;
    }
 
 
@@ -395,51 +408,67 @@ return true;
          if ( pSyncMap->m_inUse == false )
             continue;
 
+         SyncMap::METHOD method = pSyncMap->m_method;
+         // called from init() only run if asked?
+         if (pContext->run < 0)
+            {
+            if (pSyncMap->m_init > 0)
+               pSyncMap->m_method = SyncMap::METHOD::USE_MAP;
+            else
+               continue;      // skip if init <= 0
+            }            
+            
+         if (pContext->currentYear < 0 && pSyncMap->m_init <= 0)
+            continue;
+
          int colSource = pSyncMap->m_colSource;
          int colTarget = pSyncMap->m_colTarget;
+         bool found = false;
 
          switch ( pSyncMap->m_method )
             {
             case SyncMap::METHOD::USE_DELTA:
+               {
+               DeltaArray *deltaArray = pContext->pDeltaArray;// get a ptr to the delta array
+
+               // iterate through deltas added since last “seen”
+               INT_PTR size = deltaArray->GetSize();
+               for ( INT_PTR i = pContext->firstUnseenDelta; i < size; ++i )
                   {
-                  DeltaArray *deltaArray = pContext->pDeltaArray;// get a ptr to the delta array
+                  if ( i < 0 )
+                     break;
 
-                  // iterate through deltas added since last “seen”
-                  INT_PTR size = deltaArray->GetSize();
-                  for ( INT_PTR i = pContext->firstUnseenDelta; i < size; ++i )
+                  DELTA &delta = ::EnvGetDelta( deltaArray, i );
+                  if ( delta.col == colSource )   // does the delta column match this SyncMap?
                      {
-                     if ( i < 0 )
-                        break;
-
-                     DELTA &delta = ::EnvGetDelta( deltaArray, i );
-                     if ( delta.col == colSource )   // does the delta column match this SyncMap?
-                        {
-                        // matches, get corresponding MapElement
-                        MapElement *pMapElement = pSyncMap->FindMapElement( delta.newValue );
-
-                        if ( pMapElement != NULL )   // not found?  
-                           pMapElement->ApplyOutcome( pContext, delta.cell, colTarget );
-                        }  // end of  if ( delta.col = colSource )
-                     }  // end of: deltaArray loop
-                  break;
-                  }
-
-            case SyncMap::METHOD::USE_MAP:
-                  {
-                  for ( MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++ )
-                     {
-                     VData srcValue;
-                     pLayer->GetData( idu, colSource, srcValue );
-
-                     MapElement *pMapElement = pSyncMap->FindMapElement( srcValue );
+                     // matches, get corresponding MapElement
+                     MapElement *pMapElement = pSyncMap->FindMapElement( delta.newValue );
 
                      if ( pMapElement != NULL )   // not found?  
-                        pMapElement->ApplyOutcome( pContext, idu, colTarget );
-                     }
+                        pMapElement->ApplyOutcome( pContext, delta.cell, colTarget );
+                     }  // end of  if ( delta.col = colSource )
+                  }  // end of: deltaArray loop
+               break;
+               }
 
-                  break;
+            case SyncMap::METHOD::USE_MAP:
+               {
+               for ( MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++ )
+                  {
+                  VData srcValue;
+                  pLayer->GetData( idu, colSource, srcValue );
+
+                  MapElement *pMapElement = pSyncMap->FindMapElement( srcValue );
+
+                  if ( pMapElement != NULL )   // not found?  
+                     pMapElement->ApplyOutcome( pContext, idu, colTarget );
                   }
+
+               break;
+               }
             }
+
+         pSyncMap->m_method = method;
          }
 
       return true;
@@ -478,6 +507,8 @@ return true;
          CString varName( pMap->m_name + ".InUse" );
          AddInputVar( varName, pMap->m_inUse, "" );
          }
+
+      pProcess->Run(pEnvContext);
 
       return TRUE;
       }

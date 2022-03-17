@@ -695,38 +695,38 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 	   }
 	   else
 	   {
-		   msg.Format(_T("    Error creating annual flame length grid file: %s\n"), AnnualFlameLengthName);
+		   msg.Format(_T("  Error creating annual flame length grid file: %s\n"), AnnualFlameLengthName);
 		   Report::Log(msg);
 	   }
    }
 
    //TRACE3(_T(" Finished fires for year %d, ran %d of %d fires\n"), year, firesDone, firesToDo);
-   msg.Format(_T(" Finished fires for year %d, ran %d of %d fires\n"), year, firesDone, firesToDo);
+   msg.Format(_T("  Finished fires for year %d, ran %d of %d fires\n"), year, firesDone, firesToDo);
    Report::Log(msg);
    if (errorsFMS > 0)
    {
-	   msg.Format(_T("    ERROR! Encountered %d FMS file errors\n"), errorsFMS);
-	   Report::Log(msg);
+	   msg.Format(_T("  Encountered %d FMS file errors\n"), errorsFMS);
+	   Report::LogError(msg);
    }
    if (errorsFMP > 0)
    {
-	   msg.Format(_T("    ERROR! Encountered %d FlamMap run errors\n"), errorsFMP);
-	   Report::Log(msg);
+	   msg.Format(_T("  Encountered %d FlamMap run errors\n"), errorsFMP);
+	   Report::LogError(msg);
    }
    if (offLandscapeIgnition > 0)
    {
-	   msg.Format(_T("    WARNING! Encountered %d Ignitions off landscape\n"), offLandscapeIgnition);
-	   Report::Log(msg);
+	   msg.Format(_T("  Encountered %d Ignitions off landscape\n"), offLandscapeIgnition);
+	   Report::LogWarning(msg);
    }
    if (errorsIgnition > 0)
    {
-	   msg.Format(_T("    WARNING! Encountered %d Ignition errors\n"), errorsIgnition);
-	   Report::Log(msg);
+	   msg.Format(_T("  Encountered %d Ignition errors\n"), errorsIgnition);
+	   Report::LogWarning(msg);
    }
    if (errorsMTT > 0)
    {
-	   msg.Format(_T("    WARNING! Encountered %d MTT non-burning fires\n"), errorsMTT);
-	   Report::Log(msg);
+	   msg.Format(_T("  Encountered %d MTT non-burning fires\n"), errorsMTT);
+	   Report::LogWarning(msg);
    }
    // cleanup to be sure
    if ( fireArray )

@@ -16,18 +16,18 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
-    <None Include="res\Developer.rc2">
+    <None Include="res\PugetSound.rc2">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="Developer.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="PugetSound.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -44,12 +44,12 @@
     <ClInclude Include="..\EnvExtension.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Developer.h">
+    <ClInclude Include="PugetSound.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="Developer.rc">
+    <ResourceCompile Include="PugetSound.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

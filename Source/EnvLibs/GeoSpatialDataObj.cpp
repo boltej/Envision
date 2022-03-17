@@ -1385,7 +1385,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
       msg.Format(_T("GeoSpatialDataObj::ReadSpatialData set3Dvalue is greater than total number of bands in 3d raster file "));
       msg += m_GeoFilename;
       Report::ErrorMsg(msg);
-      return false;
+      return -9999.0f;
       }
 
    int xx, yy;
@@ -1444,6 +1444,13 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
    double lng = 0;
    bool ok = m_gdal.Coord2LatLong(xcoord, ycoord, m_nXSize, m_nYSize, m_DataType, vrtGeoTransform, prjFile, lat, lng);
    ASSERT(ok);  // should check better!!!!
+   if (!ok)
+      {
+      CString msg;
+      msg.Format(_T("  GeoSpatialDataObj: Error getting climate info for location (%.1f, %.1f); 2DIndex=%i, setDValue=%i", xcoord, ycoord, twoDindexvalue, set3Dvalue));
+      Report::LogError(msg);
+      return -9999.0f;
+      }
 
    double m_geox = 0;
    double m_geoy = 0;
@@ -1460,7 +1467,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
          CString msg;
          msg.Format(_T("GeoSpatialDataObj::Get(double xcoord,double ycoord) InvGeoTransform failed"));
          Report::ErrorMsg(msg);
-         return false;
+         return -9999.0f;
          }
       }
    else
@@ -1472,7 +1479,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
          CString msg;
          msg.Format(_T("GeoSpatialDataObj::Get(double xcoord,double ycoord) InvGeoTransform failed"));
          Report::ErrorMsg(msg);
-         return false;
+         return -9999.0f;
          }
       }
    xx = (int)floor(m_geox);
@@ -1484,7 +1491,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad centroid (%g,%g) passed in", (float)xcoord, (float)ycoord);
       //Report::ErrorMsg(msg);
-      return 0;
+      return -9999.0f;
       }
 
    if (m_3DVal > 1)
@@ -1501,7 +1508,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", threeDindexvalue);
       Report::ErrorMsg(msg);
-      return 0;
+      return -9999.0f;
       }
 
    twoDindexvalue = ((m_nXSize*m_nYSize)) - (m_nXSize*(m_nYSize - yy - 1)) - (m_nXSize - xx);
@@ -1511,7 +1518,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 2Dindex value (%i)", twoDindexvalue);
       Report::ErrorMsg(msg);
-      return 0;
+      return -9999.0f;
       }
 
    float *myband = (float*)(m_pafScanband);
@@ -1533,7 +1540,7 @@ short int GeoSpatialDataObj::GetAsShortInt(double xcoord, double ycoord, int &tw
       msg.Format(_T("GeoSpatialDataObj::ReadSpatialData set3Dvalue is greater than total number of bands in 3d raster file "));
       msg += m_GeoFilename;
       Report::ErrorMsg(msg);
-      return false;
+      return -9999;
       }
 
    int xx, yy;
@@ -1608,7 +1615,7 @@ short int GeoSpatialDataObj::GetAsShortInt(double xcoord, double ycoord, int &tw
          CString msg;
          msg.Format(_T("GeoSpatialDataObj::Get(double xcoord,double ycoord) InvGeoTransform failed"));
          Report::ErrorMsg(msg);
-         return false;
+         return -9999;
          }
       }
    else
@@ -1620,7 +1627,7 @@ short int GeoSpatialDataObj::GetAsShortInt(double xcoord, double ycoord, int &tw
          CString msg;
          msg.Format(_T("GeoSpatialDataObj::Get(double xcoord,double ycoord) InvGeoTransform failed"));
          Report::ErrorMsg(msg);
-         return false;
+         return -9999;
          }
       }
    xx = (int)floor(m_geox);
@@ -1632,7 +1639,7 @@ short int GeoSpatialDataObj::GetAsShortInt(double xcoord, double ycoord, int &tw
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad centroid (%g,%g) passed in", (float)xcoord, (float)ycoord);
       Report::ErrorMsg(msg);
-      return 0;
+      return -9999;
       }
 
    if (m_3DVal > 1)
@@ -1649,7 +1656,7 @@ short int GeoSpatialDataObj::GetAsShortInt(double xcoord, double ycoord, int &tw
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", threeDindexvalue);
       Report::ErrorMsg(msg);
-      return 0;
+      return -9999;
       }
 
    twoDindexvalue = ((m_nXSize*m_nYSize)) - (m_nXSize*(m_nYSize - yy - 1)) - (m_nXSize - xx);
@@ -1659,7 +1666,7 @@ short int GeoSpatialDataObj::GetAsShortInt(double xcoord, double ycoord, int &tw
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 2Dindex value (%i)", twoDindexvalue);
       Report::ErrorMsg(msg);
-      return 0;
+      return -9999;
       }
 
    short int *myband = (short int*)(m_pafScanband);
@@ -1681,7 +1688,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &row, int &col, i
       msg.Format(_T("GeoSpatialDataObj::ReadSpatialData set3Dvalue is greater than total number of bands in 3d raster file "));
       msg += m_GeoFilename;
       Report::ErrorMsg(msg);
-      return false;
+      return -9999.0f;
       }
 
    int xx, yy;
@@ -1738,7 +1745,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &row, int &col, i
       CString msg;
       msg.Format(_T("GeoSpatialDataObj::Get(double xcoord,double ycoord) InvGeoTransform failed"));
       Report::ErrorMsg(msg);
-      return false;
+      return -9999.0f;
       }
 
    //double jlat = *(latlong+0);   /// SOMETHING WRONG WITH ORDER HERE!~!!!!
@@ -1770,7 +1777,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &row, int &col, i
       return value;
       }
 
-   return false;
+   return -9999.0f;
    }
 
 
@@ -1783,7 +1790,7 @@ float GeoSpatialDataObj::Get(int &twoDindexvalue, int set3Dvalue)
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return -9999.0f;
       }
 
    float *myband = (float *)(m_pafScanband);
@@ -1802,7 +1809,7 @@ float GeoSpatialDataObj::Getbyrowcol(int col, int row, int set3Dvalue)
       msg.Format(_T("GeoSpatialDataObj::ReadSpatialData set3Dvalue is greater than total number of bands in 3d raster file "));
       msg += m_GeoFilename;
       Report::ErrorMsg(msg);
-      return false;
+      return -9999.0f;
       }
 
    int index = (m_3DVal + 1)*((m_nXSize*m_nYSize)) - (m_nXSize*(m_nYSize - row - 1)) - (m_nXSize - col);
@@ -1812,7 +1819,7 @@ float GeoSpatialDataObj::Getbyrowcol(int col, int row, int set3Dvalue)
       CString msg;
       msg.Format("GeospatialDataObject::Getbyrowcol(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return -9999.0f;
       }
 
    float *myband = (float *)(m_pafScanband);
@@ -1832,7 +1839,7 @@ bool GeoSpatialDataObj::Get(int col, int row, float &value)
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return false;
       }
 
    float *myband = (float *)(m_pafScanband);
@@ -1850,7 +1857,7 @@ bool GeoSpatialDataObj::Get(int col, int row, double &value)
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return false;
       }
 
    double *myband = (double *)(m_pafScanband);
@@ -1868,7 +1875,7 @@ bool GeoSpatialDataObj::Get(int col, int row, COleVariant &v)
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return false;
       }
 
    float *myband = (float *)(m_pafScanband);
@@ -1888,7 +1895,7 @@ bool GeoSpatialDataObj::Get(int col, int row, VData &v)
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return false;
       }
 
    float *myband = (float *)(m_pafScanband);
@@ -1907,7 +1914,7 @@ bool GeoSpatialDataObj::Get(int col, int row, int &v)
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return false;
       }
 
    int *myband = (int*)(m_pafScanband);
@@ -1926,7 +1933,7 @@ bool GeoSpatialDataObj::Get(int col, int row, short &v)
       CString msg;
       msg.Format("GeospatialDataObject::Get(): Bad 3Dindex value (%i)", index);
       Report::ErrorMsg(msg);
-      return 0;
+      return false;
       }
 
    short *myband = (short*)(m_pafScanband);
@@ -1964,7 +1971,7 @@ bool GeoSpatialDataObj::Set(int col, int row, float value)
 
    //(float *) m_pafScanband = myband;
 
-   return false;
+   return true;
 
    }
 
@@ -1978,7 +1985,7 @@ bool GeoSpatialDataObj::Set(int col, int row, double value)
 
    //(double *) m_pafScanband = myband;
 
-   return false;
+   return true;
 
    }
 
@@ -1992,7 +1999,7 @@ bool GeoSpatialDataObj::Set(int col, int row, int value)
 
    //(int *) m_pafScanband = myband;
 
-   return false;
+   return true;
    }
 
 bool GeoSpatialDataObj::Set(int col, int row, const VData &value)
@@ -2042,7 +2049,7 @@ VARTYPE GeoSpatialDataObj::GetOleType(int /*col*/, int /*row=0*/)
    return VT_NULL;
    }
 
-TYPE    GeoSpatialDataObj::GetType(int col, int row)
+TYPE GeoSpatialDataObj::GetType(int col, int row)
    {
    switch (m_DataType)
       {
@@ -2150,7 +2157,7 @@ typedef enum {
    return TYPE_NULL;
    }
 
-float   GeoSpatialDataObj::GetAsFloat(int col, int row, int time)
+float GeoSpatialDataObj::GetAsFloat(int col, int row, int time)
    {
 
    CString msg;
@@ -2161,7 +2168,7 @@ float   GeoSpatialDataObj::GetAsFloat(int col, int row, int time)
       {
       msg.Format(_T("GeoSpatialDataObj::GetAsFloat row, column, or time index exceeds input raster x or y size"));
       Report::ErrorMsg(msg);
-      return false;
+      return -9999.0f;
       }
    else
       {
@@ -2187,7 +2194,7 @@ float   GeoSpatialDataObj::GetAsFloat(int col, int row)
       {
       msg.Format(_T("GeoSpatialDataObj::GetAsFloat row or column index exceeds input raster x or y size"));
       Report::ErrorMsg(msg);
-      return false;
+      return -9999.0f;
       }
    else
       {

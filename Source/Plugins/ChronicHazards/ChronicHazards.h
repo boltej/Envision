@@ -20,9 +20,6 @@
 #include <AlgLib\AlgLib.h>
 
 
-#include "..\Flood\FloodArea.h"
-
-
 //#define N 1854
 
 #define N 8
@@ -36,6 +33,9 @@
 
 #define _EXPORT __declspec( dllexport )
 
+
+
+
 enum CH_FLAGS
    {
    CH_NONE = 0,
@@ -43,11 +43,8 @@ enum CH_FLAGS
    CH_MODEL_FLOODING = 2,
    CH_MODEL_EROSION = 4,
    CH_MODEL_BAYFLOODING = 8,
-   CH_MODEL_EELGRASS = 16,
-
 
    CH_REPORT_BUILDINGS = 64,
-
    
    CH_ALL = 127
    };
@@ -213,14 +210,14 @@ class _EXPORT ChronicHazards : public EnvModelProcess
    public:
       ChronicHazards(void);
       ~ChronicHazards(void);
-      // corresponds to POLICY_ID below
+
+      // main Envision entry points
       bool Init(EnvContext *pEnvContext, LPCTSTR initStr);
       bool InitRun(EnvContext *pEnvContext, bool useInitSeed);
       bool Run(EnvContext *pContext);
-
       bool EndRun(EnvContext *pEnvContext);
-      //BOOL Setup( EnvContext *pContext, HWND hWnd )      { return FALSE; }
-      //BOOL ProcessMap( MapLayer *pLayer, int id ) { return TRUE;}   /**** TODO:  Override if needed *****/
+ 
+
 
       // int ChronicHazards::ResizeAndCalculateBeta(long &rows, long &cols);
 
@@ -234,10 +231,10 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //bool LoadPolyGridLookup(EnvContext *pEnvContext);
    protected:
       bool LoadRBFs();
-      bool ResetAnnualVariables();
-      bool ResetAnnualBudget();
-      bool CalculateErosionExtents(EnvContext *pEnvContext);
-      bool RunEelgrassModel(EnvContext *pEnvContext);
+      //bool ResetAnnualVariables();
+      //bool ResetAnnualBudget();
+      //bool CalculateErosionExtents(EnvContext *pEnvContext);
+      //bool RunEelgrassModel(EnvContext *pEnvContext);
       //bool GenerateFloodMap();
       bool AddToPolicySummary(int year, int policy, int loc, float unitCost, float cost, float availBudget, float param1, float param2, bool passCostConstraint);
 
@@ -772,9 +769,9 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       static COSTS m_costs;
 
       // flooding model
-      PtrArray<FloodArea> m_floodAreaArray;
-      bool InitializeFloodGrids(EnvContext *pContext, FloodArea *pFloodArea);
-      bool RunFloodAreas(EnvContext *pContext);
+      //PtrArray<FloodArea> m_floodAreaArray;
+      //bool InitializeFloodGrids(EnvContext *pContext, FloodArea *pFloodArea);
+      //bool RunFloodAreas(EnvContext *pContext);
 
 
       //  ******  Methods ******

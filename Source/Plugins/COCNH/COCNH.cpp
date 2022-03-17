@@ -543,14 +543,14 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
       }
  
    // set developed classes, structures based on pop density
-   Report::Log("  COCNH: initializing population structure information");
+   Report::Log("  Initializing population structure information");
    PopulateStructure(pContext, false);
 
    // update vegclass related variables: CoverType, StructStg, CanopyCover, Size, Layers
-   Report::Log("  COCNH: initializing Veg structure information");
+   Report::Log("  Initializing Veg structure information");
    bool uvcv = UpdateVegClassVars(pContext, false);
    if (!uvcv)
-      FailAndReturn("UpdateVegClassVars() returned false in COCNH.cpp Init");
+      FailAndReturn("  UpdateVegClassVars() returned false in COCNH.cpp Init");
 
    // load lookup tables from .csv file
    //Report::Log("  COCNH: initializing veg and fuel model lookup tables");
@@ -560,31 +560,31 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
    // write data from lookup table to idu table for update
    bool wlds = InitVegParamsFromTable(pContext, false);
 
-   Report::Log("  COCNH: trees per hectare");
+   Report::Log("  Updating Trees per hectare");
    bool tph = UpdateAvgTreesPerHectare(pContext);
    if (!tph)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp Init");
 
    //write data from lookup table to idu table for fuel models
-   Report::Log("  COCNH: updating fuel models");
+   Report::Log("  Updating fuel models");
    bool wldfm = UpdateFuelModel(pContext, false);
    if (!wldfm)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp Init");
 
    //update column potential habitat for threatened or endangered species (0/1)
-   Report::Log("  COCNH: updating threatend species");
+   Report::Log("  Updating threatend species");
    bool utes = UpdateThreatenedSpecies(pContext, false);
    if (!utes)
       FailAndReturn("UpdateThreatEndSpecies() returned false in COCNH.cpp Init");
 
    //update costs for different fuel treatments on idus
-   Report::Log("  COCNH: calculating treatment costs");
+   Report::Log("  Calculating treatment costs");
    bool ctc = CalcTreatmentCost(pContext, false);
    if (!ctc)
       FailAndReturn("CalcTreatmentCost() returned false in COCNH.cpp Init");
 
    //update WUI parameters
-   Report::Log("  COCNH: populating WUI");
+   Report::Log("  Populating WUI");
    bool pw = PopulateWUI(pContext, false);
    if (!pw)
       FailAndReturn("PopulateWUI() returned false in COCNH.cpp Init");
@@ -653,11 +653,11 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( ! ok )
       {
       CString msg; 
-      msg.Format( _T("  COCNH: Misformed element reading <plan_area> attributes in input file %s"), filename );
+      msg.Format( _T("  Misformed element reading <plan_area> attributes in input file %s"), filename );
       Report::ErrorMsg( msg );
       }
 
-   Report::Log("  COCNH: initializing veg and fuel model lookup tables");
+   Report::Log("  Initializing veg and fuel model lookup tables");
    m_vegLookupTable.Init( m_vegStructurePath );
    m_fuelModelLookupTable.Init( m_fuelModelPath );
 
@@ -666,7 +666,7 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( pXmlPlanArea == NULL )
       {
       CString msg;
-      msg.Format("  COCNH: Missing <plan_area> tag in input file %s", filename );
+      msg.Format("  Missing <plan_area> tag in input file %s", filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -893,7 +893,7 @@ bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
 
    clock_t finish = clock();
    double duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("ScoreAllocationAreas =%.2f secs", (float)duration);
+   msg.Format("  ScoreAllocationAreas =%.2f secs", (float)duration);
    Report::Log(msg);
 
    int cnt = (int) m_timeSinceFirewise.GetSize();
@@ -956,7 +956,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    double duration = (float)(finish - start) / CLOCKS_PER_SEC;
    CString msg;
-   msg.Format("UpdateAvgTreesPerHectare = %.2f secs", (float)duration);
+   msg.Format("  UpdateAvgTreesPerHectare = %.2f secs", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -969,7 +969,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
    msg;
-   msg.Format("UpdateVegParams = %.2f secs", (float)duration);
+   msg.Format("  UpdateVegParams = %.2f secs", (float)duration);
    Report::Log(msg);
 
    // updates dead bio and dead carbon, post fire saw timber
@@ -984,7 +984,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("UpdateVegClassVars= %.2f secs", (float)duration);
+   msg.Format("  UpdateVegClassVars= %.2f secs", (float)duration);
    Report::Log(msg);
 
    // write data from lookup table to idu table for fuel models
@@ -995,7 +995,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("UpdateFuelModel = %.2f secs", (float)duration);
+   msg.Format("  UpdateFuelModel = %.2f secs", (float)duration);
    Report::Log(msg);
 
    // update costs for different fuel treatments on idus
@@ -1006,7 +1006,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("CalcTreatmentCosts = %.2f secs", (float)duration);
+   msg.Format("  CalcTreatmentCosts = %.2f secs", (float)duration);
    Report::Log(msg);
 
    // update fire occurence variables for decision making
@@ -1017,7 +1017,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("UpdateFireOccurance = %.2f secs", (float)duration);
+   msg.Format("  UpdateFireOccurance = %.2f secs", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -1027,7 +1027,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("ScoreAllocationAreas =%.2f secs", (float)duration);
+   msg.Format("  ScoreAllocationAreas =%.2f secs", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -1037,7 +1037,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("ScoreAllocationAreasFire = %.2f secs", (float)duration);
+   msg.Format("  ScoreAllocationAreasFire = %.2f secs", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -1047,7 +1047,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("CalculateFirewise = %.2f secs", (float)duration);
+   msg.Format("  CalculateFirewise = %.2f secs", (float)duration);
    Report::Log(msg);
 
    pLayer->m_readOnly = true;
@@ -1101,7 +1101,7 @@ bool COCNHProcessPost1::Run(EnvContext *pContext)
    if (!wlds)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp Init");
 
-   Report::Log("  COCNH: trees per hectare");
+   Report::Log("  Updating Trees per hectare");
    bool tph = UpdateAvgTreesPerHectare(pContext);
    if (!tph)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp COCNHProcessPost1::Run");
@@ -1472,7 +1472,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          if (lcpFuelModel == 0) // pathological case
             {
             CString msg;
-            msg.Format("  COCNH:  Bad Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i, tiv=%i",
+            msg.Format("  Bad Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i, tiv=%i",
                vegClass, pvt, variant, region, tiv);
             Report::LogWarning(msg);
             }
@@ -1497,9 +1497,9 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          if (reportErrors && vegClass > 2000000 && updateFuelModelErrCount < 10 )//minimum value for vegclass that have STMs
             {
             CString msg;
-            msg.Format("  COCNH:  Missing Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i",
+            msg.Format("  Missing Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i",
                vegClass, pvt, variant, region);
-            Report::Log(msg);
+            Report::LogWarning(msg);
             //reportErrors = false;
             updateFuelModelErrCount++;
             }
@@ -1512,7 +1512,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
       ::EnvApplyDeltaArray(pContext->pEnvModel);
 
    CString msg;
-   msg.Format("  COCNH UpdateFuelModel:  Found count=%i, missing count=%i", foundCount, missingCount);
+   msg.Format("  UpdateFuelModel:  Found count=%i, missing count=%i", foundCount, missingCount);
    Report::Log(msg);
 
    return true;
@@ -1749,8 +1749,8 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
          else if ( vegClass >= 2000000 && updateVegParamsErrCount < 10 )
             {
             CString msg;
-            msg.Format("  COCNHProcess::UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
-            Report::Log(msg);
+            msg.Format("  UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
+            Report::LogWarning(msg);
             updateVegParamsErrCount++;
             }
          } 
@@ -2047,8 +2047,8 @@ bool COCNHProcess::InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta
       else if (vegClass >= 2000000 && updateVegParamsErrCount < 10)
          {
          CString msg;
-         msg.Format("  COCNHProcess::UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
-         Report::Log(msg);
+         msg.Format("  UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
+         Report::LogWarning(msg);
          updateVegParamsErrCount++;
          }
 
@@ -3487,7 +3487,7 @@ bool COCNHProcess::ScoreAllocationAreasFire(EnvContext *pContext)
       if ( i < 10 )
          {
          CString msg;
-         msg.Format( "PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
+         msg.Format( "  PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
            pInfo->id, i, pInfo->areaFracUsed, pInfo->lastUsed, pInfo->score );
          Report::Log( msg );
          }
@@ -3827,8 +3827,8 @@ int COCNHProcessPre2::CalcFireEffect(EnvContext *pContext, bool useAddDelta)
                if ( fireKillVol < 0.0f && calcFireEffectErrCount < 10 )
                   {
                   CString msg;
-                  msg.Format("  COCNH::CalcFireKill: Negative volume killed: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, priorLiveVol, liveVol, fireKillVol );
-                  Report::Log(msg);
+                  msg.Format("  CalcFireKill: Negative volume killed: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, priorLiveVol, liveVol, fireKillVol );
+                  Report::LogWarning(msg);
    
                   calcFireEffectErrCount++;
                   }
@@ -3987,8 +3987,8 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
             if ( timberHarvVol < 0.0f && disturb != 51 && calcHarvBiomassErrCount < 10 )
                {
                CString msg;
-               msg.Format("  COCNH::CalcHarvestBiomass: Negative volume harvested: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, m_priorLiveVolumeGe3, liveVolumeGe3, timberHarvVol);
-               Report::Log(msg);
+               msg.Format("  CalcHarvestBiomass: Negative volume harvested: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, m_priorLiveVolumeGe3, liveVolumeGe3, timberHarvVol);
+               Report::LogWarning(msg);
 
                calcHarvBiomassErrCount++;
                }
@@ -4120,7 +4120,7 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
          if ((m_priorLiveBiomassIDUArray[idu] < 0 || m_priorLiveCarbonIDUArray[idu] < 0) && decayPostDisturbBioErrCount < 10)
             {
             CString msg;
-            msg.Format("  COCNHPost2::DecayDeadResiduals() - negative prior biomass found: vegClass=%i, pvt=%i, region=%i, biomass=%f.", pvt, region, m_priorLiveBiomassIDUArray[idu]);
+            msg.Format("  DecayDeadResiduals() - negative prior biomass found: vegClass=%i, pvt=%i, region=%i, biomass=%f.", pvt, region, m_priorLiveBiomassIDUArray[idu]);
             Report::LogWarning(msg);
             m_priorLiveBiomassIDUArray[idu] = 0;
             m_priorLiveCarbonIDUArray[idu] = 0;

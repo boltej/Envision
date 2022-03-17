@@ -29,7 +29,7 @@ Copywrite 2012 - Oregon State University
 
 
 //int Report::reportFlag = RF_MESSAGEBOX | RF_CALLBACK;
-
+int Report::indentLevel = 0;
 LOGMSG_PROC Report::logMsgProc = NULL;
 STATUSMSG_PROC Report::statusMsgProc = NULL;
 POPUPMSG_PROC Report::popupMsgProc = NULL;
@@ -47,7 +47,18 @@ void Report::StatusMsg(LPCTSTR msg)
 int Report::LogMsg(LPCTSTR _msg, REPORT_ACTION action, REPORT_TYPE type)
    {
    if (logMsgProc)
+      {
+      std::string msg = "";
+      if (indentLevel > 0)
+         {
+         msg = "";
+         for (int i = 0; i < indentLevel; i++)
+            msg += "  ";
+         }
+      msg += _msg;
+
       logMsgProc(_msg, action, type);
+      }
 
    if (m_pFile != NULL)
       {

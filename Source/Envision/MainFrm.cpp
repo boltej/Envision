@@ -105,9 +105,11 @@ int CLogPane::OnCreate(LPCREATESTRUCT lpCreateStruct)
          *slash = NULL;
       }
 
-   //_tcscat_s( exePath, MAX_PATH,  "\\logfile.txt" );
-   m_logbook.AttachFile( exePath);
-   pstFileInfos->strPath = exePath;
+   _tcscat_s( exePath, MAX_PATH,  "\\log" );
+   nsPath::CPath logPath(exePath);
+   CreateDirectory(logPath, NULL);
+   //m_logbook.AttachFile( exePath);
+   pstFileInfos->strPath = (LPCTSTR) logPath;
  
    LOGBOOK_INIT_GUI_INFOS *pstGuiInfos = new LOGBOOK_INIT_GUI_INFOS;
    CLogbook::InitInfos(*pstGuiInfos);
@@ -695,7 +697,8 @@ void CMainFrame::AddContextTab_Results()
    pPanelArrange->Add(new CMFCRibbonCheckBox(ID_RESULTS_SYNC_MAPS, _T("Synchronize Maps Zooms")));
    
    CMFCRibbonPanel* pPanelTools = pCategory->AddPanel(_T("Tools"), m_PanelImages.ExtractIcon(20));
-   pPanelTools->Add(new CMFCRibbonCheckBox(ID_RESULTS_CAPTURE, _T("Capture Video During Play")));
+   //pPanelTools->Add(new CMFCRibbonCheckBox(ID_RESULTS_CAPTURE, _T("Capture Video During Play")));
+   pPanelTools->Add(new CMFCRibbonCheckBox(ID_RESULTS_DELTAS, _T("Show Changed IDUs Only")));
    pPanelTools->Add( new CMFCRibbonLabel( _T("Constrain to")));
    m_pPostRunConstraintsCombo = new CMFCRibbonComboBox( ID_POSTRUN_CONSTRAINTS, 0, -1, 0, -1 ); //_T("Scenarios"), 12 );
    pPanelTools->Add( m_pPostRunConstraintsCombo );

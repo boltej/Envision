@@ -77,6 +77,7 @@ extern "C" {
    ENVAPI int             PASCAL EnvGetEvaluatorCount(EnvModel*);
    ENVAPI EnvEvaluator* PASCAL EnvGetEvaluatorInfo(EnvModel*, int i);
    ENVAPI EnvEvaluator* PASCAL EnvFindEvaluatorInfo(EnvModel*, LPCTSTR name);
+   ENVAPI LPCTSTR       PASCAL EnvGetCurrentScenarioName(EnvModel*);
 
    ENVAPI int               PASCAL EnvGetAutoProcessCount(EnvModel*);
    ENVAPI EnvModelProcess* PASCAL EnvGetAutoProcessInfo(EnvModel*, int i);
@@ -94,6 +95,9 @@ extern "C" {
    ENVAPI int        PASCAL EnvGetScenarioCount(EnvModel*);
    ENVAPI Scenario * PASCAL EnvGetScenario(EnvModel*, int i);
    ENVAPI Scenario * PASCAL EnvGetScenarioFromName(EnvModel*, LPCTSTR name, int *index);
+
+   // DataManager methods
+   ENVAPI int        PASCAL EnvGenLulcTransTable(EnvModel*);
 
    // Standard Path Information
    //ENVAPI int PASCAL EnvStandardOutputFilename(LPTSTR filename, LPCTSTR pathAndFilename, int maxLength);
