@@ -389,7 +389,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
          m_runBayFloodModel,				// Run Bay Flooding Model: 0=Off; 1=On
          m_runEelgrassModel,				// Run Eelgrass Model: 0=Off; 1=On
          m_runSpatialBayTWL,             // Run Spatially varying TWLs in Bay: 0=Off; 1=On
-         m_writeDailyData,
+         m_writeDailyBouyData,
          m_writeRBF;
 
       int
