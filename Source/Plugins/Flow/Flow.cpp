@@ -9826,6 +9826,14 @@ bool FlowModel::InitializeParameterEstimationSampleArray(void)
             // m_mcOutputTables.Add(pParameterData);
             m_mcOutputTables.Add(pErrorStatData);
             m_mcOutputTables.Add(pDischargeData);
+
+            pErrorStatData->SetLabel(0, _T("RunNumber"));
+            pErrorStatData->SetLabel(1, _T("NSE"));
+            pErrorStatData->SetLabel(2, _T("Log_NSE"));
+            pErrorStatData->SetLabel(3, _T("VolumeError"));
+            pErrorStatData->SetLabel(4, _T("NotUsed"));
+            pErrorStatData->SetLabel(5, _T("NotUsed"));
+            pErrorStatData->SetLabel(6, _T("NotUsed"));
             }
          }
       }

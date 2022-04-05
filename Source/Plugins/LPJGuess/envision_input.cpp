@@ -636,6 +636,8 @@ bool ENVInput::getclimate(Gridcell& gridcell, FlowContext *pFlowContext) {
 		pFlowContext->pFlowModel->GetHRUClimate(CDT_TMIN, pHRU, pFlowContext->dayOfYear, tmin);//C
 		pFlowContext->pFlowModel->GetHRUClimate(CDT_SOLARRAD, pHRU, pFlowContext->dayOfYear, insol);//Incoming Short W/m2
 		bool t = isnan(tmax);
+		if (t)
+			int m = 1;
 		climate.temp = (tmax+tmin)/2;
 		climate.prec = prec;
 		climate.insol = insol;
