@@ -90,8 +90,8 @@ void snow(double prec, double temp, double insol, double lai, double& snowpack, 
 		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
 		melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
 		mr = swtrans / lh_fus;
-	   mh = cfmax * (temp - TSNOW);
-		ma = rhow * temp * prec * cpw;
+	    mh = cfmax * (temp - TSNOW);
+		ma = rhow * temp * prec * cpw / lh_fus;
 	   }
 	//snowpack -= melt;
 	//rain_melt = prec + melt;	
