@@ -13,7 +13,7 @@ but WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
-You should have received a copy of the GNU General Public License
+You should have received a copy of the GNU General Publi c License
 along with Envision.  If not, see <http://www.gnu.org/licenses/>
 
 Copywrite 2012 - Oregon State University
@@ -1807,7 +1807,7 @@ bool ChronicHazards::LoadRBFs()
    FILE* fpSave = NULL;
    CString iduPath(PathManager::GetPath(PM_IDU_DIR));
 
-   CString savePath = iduPath + "TWL Inputs\\SWAN_RBF_Params.rbf";
+   CString savePath = m_twlInputDir + "SWAN_RBF_Params.rbf";
    
    m_randIndex = m_simulationCount;
 
@@ -2107,11 +2107,14 @@ bool ChronicHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
          break;
       }
 
-   CString climateScenarioPath = "Climate_Scenarios\\" + m_climateScenarioStr + "\\";
-   // PathManager::AddPath(climateScenarioPath); */
-
+   // add the path to the climate scenarios folder, e.g. '/Tillamook/TWL Inputs/ClimateScenarios/med/'
+   // to the PathManager
+   CString climateScenarioPath = m_twlInputDir + "Climate_Scenarios/" + m_climateScenarioStr + "/";
+   PathManager::AddPath(climateScenarioPath);
+   
+   // build climate scenario file name for sea level rise projections 
    CString slrDataFile;
-   slrDataFile.Format("%s%s_slr.csv", climateScenarioPath, m_climateScenarioStr);
+   slrDataFile.Format(_T("%s%s_slr.csv"), (LPCTSTR) climateScenarioPath, (LPCTSTR) m_climateScenarioStr);
 
    CString fullPath;
    PathManager::FindPath(slrDataFile, fullPath);
@@ -2142,8 +2145,8 @@ bool ChronicHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    //   simulationPath.Format("%sSimulation_%i", climateScenarioPath, m_randIndex);
 
    CString buoyFile;
-   buoyFile.Format("%s\\BuoyData_%s.csv", simulationPath, m_climateScenarioStr);
-   PathManager::FindPath(buoyFile, fullPath);
+   buoyFile.Format("%s\\%s\\BuoyData_%s.csv", m_twlInputDir, m_climateScenarioStr);
+   //PathManager::FindPath(buoyFile, fullPath);
 
    // Read daily buoy observations/simulations for the entire Envision time period
    m_numDays = m_buoyObsData.ReadAscii(fullPath);
@@ -2625,11 +2628,11 @@ bool ChronicHazards::Run(EnvContext *pEnvContext)
          double alpha = 0.5 * (1.0f - cos(2.0 * PI * (tm1 / TD)));
 
          if (isNan<double>(alpha))
-            {
             alpha = 0.02;
-            }
+
          if (alpha > .4)
             alpha = 0.4;
+
          //multiply by alpha to get 
          R_inf_KD *= alpha;
 
@@ -2650,9 +2653,14 @@ bool ChronicHazards::Run(EnvContext *pEnvContext)
             {
             float prevslr = 0.0f;
             int year = (pEnvContext->currentYear) - 2010;
-            m_slrData.Get(0, year, slr);
-            if (pEnvContext->currentYear > 2010)
-               m_slrData.Get(0, year - 1, prevslr);
+            int index = 0;
+            if ( slrTimestep == 0 ) // daily
+               index = 
+             
+            m_slrData.Get(0, year - 1, prevslr);
+
+            // yearly or daily?
+
             float toeRise = slr - prevslr;
             if (beachType == BchT_SANDY_DUNE_BACKED)
                {
@@ -9327,6 +9335,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
 
    // envx file directory, slash-terminated
    CString projDir = PathManager::GetPath(PM_PROJECT_DIR);
+   CString iduDir = PathManager::GetPath(PM_IDU_DIR);
 
    TiXmlElement *pXmlTWL = pXmlRoot->FirstChildElement("twl");
    if (pXmlTWL == NULL)
@@ -9373,14 +9382,14 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       }
 
    //m_cityDir = city;
-   //// add "PolyGridLookups" directory to the Envision search paths
-   //CString pglPath = projDir + m_cityDir + "\\" + _T("PolyGridMaps");
-   //PathManager::AddPath(pglPath);
-   //CString twlInputPath = projDir + twlInputDir;
-   //CString erosionInputPath = projDir + erosionInputDir;
+   // add "PolyGridLookups" directory to the Envision search paths
+   CString pglPath = projDir + m_cityDir + "\\" + _T("PolyGridMaps");
+   PathManager::AddPath(pglPath);
+   m_twlInputDir = iduDir + twlInputDir + '/';
+   CString erosionInputPath = projDir + erosionInputDir;
 
-   //PathManager::AddPath(twlInputPath);
-   //PathManager::AddPath(erosionInputPath);
+   PathManager::AddPath(m_twlInputDir);
+   PathManager::AddPath(erosionInputPath);
 
    TiXmlElement *pXmlBatesPolicy = pXmlRoot->FirstChildElement("Bates");
    if (pXmlBatesPolicy == NULL)
@@ -9400,14 +9409,6 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       return false;
 
    m_cityDir = city;
-   // add "PolyGridLookups" directory to the Envision search paths
-   CString pglPath = projDir + m_cityDir + "\\" + _T("PolyGridMaps");
-   PathManager::AddPath(pglPath);
-   CString twlInputPath = projDir + twlInputDir;
-   CString erosionInputPath = projDir + erosionInputDir;
-
-   PathManager::AddPath(twlInputPath);
-   PathManager::AddPath(erosionInputPath);
 
    TiXmlElement *pXmlBPSPolicy = pXmlRoot->FirstChildElement("bps");
    if (pXmlBPSPolicy == NULL)

@@ -126,10 +126,10 @@ public:
 };
 
 
-class UGA
+class UxUGA
 {
 public:
-   UGA( void ) 
+   UxUGA( void ) 
       : m_id( -1 )
       , m_index( -1 )
       , m_use( true )
@@ -206,6 +206,34 @@ public:
 };
 
 
+
+class UzUGA
+   {
+   public:
+      UzUGA(void)
+         : m_id(-1)
+         , m_index(-1)
+         , m_use(true)
+         , m_toZone(-1)
+         , m_pWhenQuery(NULL)
+         , m_currentEvent(1)
+         { }
+
+   public:
+      CString m_name;
+      CString m_whenQuery;   // query specifying when to upzone
+
+      Query* m_pWhenQuery;
+
+      int  m_id;               // uga code
+      int  m_index;            // offset in ugaExpArray
+      bool m_use;
+      int  m_toZone;
+      int m_currentEvent;
+
+   };
+
+
 class UxScenario
 {
 public:
@@ -226,8 +254,25 @@ public:
    Query* m_pResQuery;
    Query* m_pCommQuery;
 
-   PtrArray< UGA > m_uxArray;
+   PtrArray< UxUGA > m_uxArray;
 };
+
+
+
+class UzScenario
+{
+public:
+   UzScenario(void)
+      : m_id(-1)
+      {}
+
+   int m_id;
+   CString  m_name;
+
+   PtrArray< UzUGA > m_uzArray;
+};
+
+
 
 class ZoneInfo
 {
@@ -267,7 +312,8 @@ protected:
    // operation flags
    bool m_allocatePopDens;   // true if <pop_dens> tags defined
    bool m_allocateDUs;
-   bool m_expandUGAs;
+   bool m_expandUGAs;         // true if <uga_expansions> defined
+   bool m_upzoneUGAs;         // true if <uga_upzone> defined
 
    // (optional) Buildings point layer
    CString   m_duPtLayerName;
@@ -307,23 +353,15 @@ protected:
    //--------------------------------------------------
    //-- UGA Expansion ---------------------------------
    //--------------------------------------------------
-   int AddUGA( UxScenario *pScenario, UGA *pUGA );
-   UxScenario   *FindUxScenarioFromID( int id );
-   UGA *FindUGAFromID( int id ) { UGA *pUGA= NULL;  BOOL ok = m_idToUGAMap.Lookup( id, pUGA );  if ( ok ) return pUGA; else return NULL; }
-   UGA *FindUGAFromName( LPCTSTR name );
-   bool  ExpandUGAs( EnvContext *pContext, MapLayer *pLayer );
-   bool  ExpandUGA(UGA* pUGA, EnvContext* pContext, MapLayer* pLayer);
-   float UpdateUGAStats( EnvContext *pContext, bool outputStartInfo );
-   bool  PrioritizeUxAreas( EnvContext *pContext );
+   // urban expansion data
+   int m_currUxScenarioID;      // exposed scenario variable
+   UxScenario* m_pCurrentUxScenario;
+   PtrArray< UxScenario > m_uxScenarioArray;
+   CMap< int, int, UxUGA*, UxUGA* > m_idToUxUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
 
-   float GetAllowedDensity( MapLayer *pLayer, int idu, int zone );      // du/ac
-   bool  IsResidential( int zone );
-   bool  IsCommercial( int zone );
+   PtrArray< ZoneInfo > m_resZoneArray;
+   PtrArray< ZoneInfo > m_commZoneArray;
 
-   void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &m_randShuffle ); }
-
-   int m_colUga;
-   int m_colZone;  
    int m_colPopCap;
    int m_colUxNearDist;
    int m_colUxNearUga;
@@ -331,27 +369,48 @@ protected:
    int m_colUxEvent;      // output, tags locations for each DUArea expansion event
    int m_colPopDensInit;      // initial population density
 
-   // urban expansion data
-   int m_currUxScenarioID;      // exposed scenario variable
-   UxScenario *m_pCurrentUxScenario;
+   // methods
+   int UxAddUGA( UxScenario *pScenario, UxUGA *pUGA );
+   UxScenario   *UxFindScenarioFromID( int id );
+   UxUGA *UxFindUGAFromID( int id ) { UxUGA *pUGA= NULL;  BOOL ok = m_idToUxUGAMap.Lookup( id, pUGA );  if ( ok ) return pUGA; else return NULL; }
+   UxUGA *UxFindUGAFromName( LPCTSTR name );
+   bool  UxExpandUGAs( EnvContext *pContext, MapLayer *pLayer );
+   bool  UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer);
+   float UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo );
+   bool  UxPrioritizeUxAreas( EnvContext *pContext );
+   float UxGetAllowedDensity(MapLayer* pLayer, int idu, int zone);      // du/ac
+   bool  UxIsResidential(int zone);
+   bool  UxIsCommercial(int zone);
 
-   PtrArray< UxScenario > m_uxScenarioArray;
-   CMap< int, int, UGA*, UGA* > m_idToUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
+   //--------------------------------------------------
+   //-- UGA Upzoning ----------------------------------
+   //--------------------------------------------------
+   int m_currUzScenarioID;      // exposed scenario variable
+   UzScenario* m_pCurrentUzScenario;
+   PtrArray< UzScenario > m_uzScenarioArray;
+   CMap< int, int, UzUGA*, UzUGA* > m_idToUzUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
 
-   PtrArray< ZoneInfo > m_resZoneArray;
-   PtrArray< ZoneInfo > m_commZoneArray;
+   int UzAddUGA(UzScenario* pScenario, UzUGA* pUGA);
+   UzScenario* UzFindScenarioFromID(int id);
+   UzUGA* UzFindUGAFromID(int id) { UzUGA* pUGA = NULL;  BOOL ok = m_idToUzUGAMap.Lookup(id, pUGA);  if (ok) return pUGA; else return NULL; }
+   UzUGA* UzFindUGAFromName(LPCTSTR name);
+   
 
    //-- general --------------------------------------
+   void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &m_randShuffle ); }
+
+   int m_colUga;
+   int m_colZone;
+   int m_colPopDens;
+   int m_colArea;
+
+
    // data collection
    FDataObj* m_pUxData;
    
    void InitOutput();
    void CollectOutput( int year );
-   
-   
-   
-   int m_colPopDens;
-   int m_colArea;
+  
    
    // supporting members
    QueryEngine *m_pQueryEngine;

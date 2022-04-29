@@ -344,7 +344,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       DDataObj m_reducedbuoyObsData;
 
       // Setup variables
-
+      CString m_twlInputDir;
       CString m_cityDir;
       bool m_debugOn;
 
