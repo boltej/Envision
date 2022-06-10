@@ -197,12 +197,6 @@ bool Transitions::Run(EnvContext* pEnvContext)
    INT_PTR size = deltaArray->GetSize();
    float area = 0;
 
-   /////////
-   CString msg;
-   msg.Format("Run(): m_colArea=%i", m_colArea);
-   Report::LogWarning(msg);
-   //////////
-
    for (INT_PTR i = pEnvContext->firstUnseenDelta; i < size; ++i)
       {
       if (i < 0)

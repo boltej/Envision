@@ -23,6 +23,7 @@
 
 #pragma warning( disable : 4786 )		// disable the debug info truncated warning
 #pragma warning( disable : 4290 )		// disable "c++ exception specification ignored except to indicate a function is not __declspec(nothrow)"
+#pragma warning( disable : 5040 )
 
 #include "MTUnicodeANSIDefs.h"
 #include "MTParserException.h"

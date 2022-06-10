@@ -273,7 +273,7 @@ int ResultsPanel::AddDynamicGraphNodes( ResultNode *pGraphNode )
          ResultNode *pSNNode = AddTreeNode( pGraphNode, run, VC_SOCIAL_NETWORK, 0, VT_GRAPH_SOCIAL_NETWORK, _T("Social Network Metrics") );
 
          for ( int i=0; i < layerCount; i++ )
-            AddTreeNode( pSNNode, run, VC_GRAPH, (INT_PTR) i+1, VT_GRAPH_SOCIAL_NETWORK, gpModel->m_pSocialNetwork->GetLayer( i )->m_name );
+            AddTreeNode( pSNNode, run, VC_GRAPH, (INT_PTR) i+1, VT_GRAPH_SOCIAL_NETWORK, gpModel->m_pSocialNetwork->GetLayer( i )->m_name.c_str() );
          }
       }
 
@@ -1167,7 +1167,7 @@ void ResultsPanel::AddGraphWnd( ResultNode *pNode )
          pScatter->MakeDataLocal();
          yMin = yMax = 0;
 
-         title.Format( "%s - Run %i (%s)", (LPCTSTR) pSNLayer->m_name, run, (LPCTSTR) ri.pScenario->m_name );
+         title.Format( "%s - Run %i (%s)", pSNLayer->m_name.c_str(), run, (LPCTSTR)ri.pScenario->m_name);
          }
          break;
 

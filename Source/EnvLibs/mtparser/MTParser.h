@@ -6,6 +6,9 @@
 #ifndef _MTPARSER_INCLUDED
 #define _MTPARSER_INCLUDED
 
+
+#pragma warning( disable: 5040 )
+
 #include "MTParserPublic.h"
 
 

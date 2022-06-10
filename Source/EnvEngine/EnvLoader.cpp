@@ -358,9 +358,9 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          int labelSize = 0;
          int linesize = 0;
          int expandLegend = 0;
-         LPTSTR color = _T("140,140,140");    // lt gray
-         LPTSTR labelColor = _T("255,255,255");     // white
-         LPTSTR labelFont="Arial";
+         LPCTSTR color = _T("140,140,140");    // lt gray
+         LPCTSTR labelColor = _T("255,255,255");     // white
+         LPCTSTR labelFont="Arial";
          LPCTSTR name=NULL, path=NULL, initField=NULL, overlayFields=NULL, fieldInfoFile=NULL, labelField=NULL, labelQuery=NULL;
 
          XML_ATTR layerAttrs[] = 

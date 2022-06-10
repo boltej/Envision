@@ -2451,23 +2451,23 @@ float EnvModel::GetSocialNetworkScore( Actor *pActor, Policy *pPolicy )
       if ( pActorNode == NULL )
          continue;
 
-      float actorActivationLevel = pActorNode->m_activationLevel;      // -1 to +1
+      ////float actorActivationLevel = pActorNode->m_activationLevel;      // -1 to +1
 
       // get policy intention (objective) for this goal.  Note that the policy will have a single global objective, and then 
       // objectives for each metagoal
 
       // first, get the corresponding evaluative model
-      EnvEvaluator *pModel = pLayer->m_pModel;  //
-      
-      int modelIndex = EnvModel::FindEvaluatorIndex( pModel->m_name );
-      int metagoalIndex = EnvModel::GetMetagoalIndexFromEvaluatorIndex( modelIndex );
-      ASSERT( metagoalIndex >= 0 );
-      
-      // ObjectiveScores contains arrays of GOAL_SCORES and scroe modifiers for
-      // a given metagoal associated with a policy
-      ObjectiveScores *pScores = pPolicy->m_objectiveArray.GetAt( metagoalIndex+1 );      // + 1 because first objective is global
-
-      // get the corresponding policy goal.
+      ////EnvEvaluator *pModel = pLayer->m_pModel;  //
+      ////
+      ////int modelIndex = EnvModel::FindEvaluatorIndex( pModel->m_name );
+      ////int metagoalIndex = EnvModel::GetMetagoalIndexFromEvaluatorIndex( modelIndex );
+      ////ASSERT( metagoalIndex >= 0 );
+      ////
+      ////// ObjectiveScores contains arrays of GOAL_SCORES and scroe modifiers for
+      ////// a given metagoal associated with a policy
+      ////ObjectiveScores *pScores = pPolicy->m_objectiveArray.GetAt( metagoalIndex+1 );      // + 1 because first objective is global
+      ////
+      ////// get the corresponding policy goal.
 
 
 
