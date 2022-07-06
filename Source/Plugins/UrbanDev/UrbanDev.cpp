@@ -17,12 +17,12 @@ along with Envision.  If not, see <http://www.gnu.org/licenses/>
 Copywrite 2012 - Oregon State University
 
 */
-// Developer.cpp : Defines the initialization routines for the DLL.
+// UrbanDev.cpp : Defines the initialization routines for the DLL.
 //
 
 #include "stdafx.h"
 
-#include "Developer.h"
+#include "UrbanDev.h"
 #include <Maplayer.h>
 #include <Map.h>
 #include <Report.h>
@@ -42,7 +42,7 @@ int CompareNDU(const void *elem0, const void *elem1 );
 struct NDU_SORT { float fracNDU; int idu; int duAreaIndex; /*int prevNDU; int newDU;*/ };
 
 
-Developer::Developer() 
+UrbanDev::UrbanDev() 
 : EnvModelProcess()
 , m_allocatePopDens( false )
 , m_allocateDUs( false )
@@ -76,7 +76,7 @@ Developer::Developer()
 
 
 
-bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
+bool UrbanDev::Init( EnvContext *pContext, LPCTSTR initStr )
    {
    MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
 
@@ -85,7 +85,17 @@ bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
    if ( LoadXml( initStr, pContext ) == false )
       return false;
 
+   if (m_expandUGAs)
+      {
+      pLayer->CheckCol(m_colPopDensInit, "POPDENS0", TYPE_FLOAT, CC_AUTOADD);
+      pLayer->CopyColData(m_colPopDensInit, m_colPopDens);
+      }
+
    // global things first
+   InitUGAs(pContext);
+
+   AddInputVar("UxScenarioID", m_currUxScenarioID, "Use this Ux Scenario");
+
 
    // if point (Buildings) layer defined, then build mapping index
    if ( m_pDuPtLayer != NULL )
@@ -157,21 +167,27 @@ bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
 
    if ( m_expandUGAs )
       {
-      pLayer->CheckCol(m_colPopDensInit, "POPDENS0", TYPE_FLOAT, CC_AUTOADD );
-      pLayer->CopyColData( m_colPopDensInit, m_colPopDens );  
+      //pLayer->CheckCol(m_colPopDensInit, "POPDENS0", TYPE_FLOAT, CC_AUTOADD );
+      //pLayer->CopyColData( m_colPopDensInit, m_colPopDens );  
 
       m_pCurrentUxScenario = this->UxFindScenarioFromID(m_currUxScenarioID);
-      for (int i = 0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++)
+      
+      for (int i = 0; i < this->m_ugaArray.GetSize(); i++)
          {
-         UxUGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+         UGA* pUGA = this->m_ugaArray[i];
          pUGA->m_commExpArea = 0;
          pUGA->m_resExpArea = 0;
          pUGA->m_totalExpArea = 0;
+         pUGA->m_impervious = 0;
          }
+
+      if (m_colImpervious >= 0)
+         UxUpdateImperiousFromZone(pContext);   // writes to impervious col in IDUs
 
       // prioritize UX expansion areas  (this should be moved to init????
       UxPrioritizeUxAreas(pContext);
       }
+
 
    //////////////////////////////////////////
    // iterate through the DUArea layer, computing capacities for each active DUArea
@@ -195,10 +211,40 @@ bool Developer::Init( EnvContext *pContext, LPCTSTR initStr )
    ///////   }
       /////////////////////////
    InitOutput();
+   UpdateUGAPops(pContext);
    return TRUE; 
    }
 
-bool Developer::InitRun( EnvContext *pContext, bool useInitialSeed )
+
+
+bool UrbanDev::InitUGAs(EnvContext* pContext)
+   {
+   MapLayer* pLayer = (MapLayer*) pContext->pMapLayer;
+
+   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+      {
+      int uga = -1;
+      pLayer->GetData(idu, m_colUga, uga);
+
+      if (uga > 0)
+         {
+         UGA* pUGA = FindUGAFromID(uga);
+
+         if (pUGA != NULL)
+            {
+            int index = pUGA->m_iduArray.Add(idu);
+            pUGA->m_iduToUpzonedMap[idu] = 0;
+            }
+         }
+      }
+
+   if (m_expandUGAs)
+      UxUpdateUGAStats(pContext, false);
+
+   return true;
+   }
+
+bool UrbanDev::InitRun( EnvContext *pContext, bool useInitialSeed )
    {
    m_nDUData.ClearRows();
    m_newDUData.ClearRows();
@@ -273,24 +319,29 @@ bool Developer::InitRun( EnvContext *pContext, bool useInitialSeed )
    // reset UxUGA metrics
    if ( this->m_expandUGAs )
       {
-      UxUpdateUGAStats(pContext, true);
       m_pCurrentUxScenario = this->UxFindScenarioFromID( m_currUxScenarioID );
 
-      for ( int i=0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++ )
+      for ( int i=0; i < this->m_ugaArray.GetSize(); i++ )
          {
-         UxUGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+         UGA* pUGA = this->m_ugaArray[i];
          pUGA->m_commExpArea = 0;
          pUGA->m_resExpArea = 0;
          pUGA->m_totalExpArea = 0;
+         pUGA->m_totalExpArea = 0;
+         pUGA->m_impervious = 0;
          }
+
+      UxUpdateUGAStats(pContext, true);
       }
+
+   UpdateUGAPops(pContext);
 
    return TRUE; 
    }
 
 
 // Allocates new DUs, Updates N_DU and NEW_DU
-bool Developer::Run( EnvContext *pContext )
+bool UrbanDev::Run( EnvContext *pContext )
    {
    MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
    int iduCount = pLayer->GetRecordCount();
@@ -318,7 +369,7 @@ bool Developer::Run( EnvContext *pContext )
 
    // do we need to expand the urban growth areas?
    // this will be active if the <uga_expansion> tag is specified in the input file
-   if ( m_expandUGAs )
+    if ( m_expandUGAs )
       {
       UxExpandUGAs( pContext, pLayer );
 
@@ -336,8 +387,12 @@ bool Developer::Run( EnvContext *pContext )
       //   pLayer->GetData( idu, m_colUGA, uga );
       //
       //   }  // end of: for each IDU
-      }  // end of: if ( m_allocateDUs )
+
+      UxUpdateUGAStats(pContext, false);
+      }  // end of: if ( m_expandUGAs )
    
+   UpdateUGAPops(pContext);
+
    CollectOutput( pContext->currentYear );
 
    return true;
@@ -345,7 +400,7 @@ bool Developer::Run( EnvContext *pContext )
 
 
 
-bool Developer::EndRun(EnvContext* pContext)
+bool UrbanDev::EndRun(EnvContext* pContext)
    {
    EnvGenLulcTransTable(pContext->pEnvModel);
 
@@ -355,7 +410,7 @@ bool Developer::EndRun(EnvContext* pContext)
 
 
 
-PopDens *Developer::AddPopDens( EnvContext *pContext )
+PopDens *UrbanDev::AddPopDens( EnvContext *pContext )
    {
    PopDens *pPopDens = new PopDens;
    ASSERT( pPopDens != NULL );
@@ -365,7 +420,7 @@ PopDens *Developer::AddPopDens( EnvContext *pContext )
    }
 
 
-bool Developer::InitPopDens( EnvContext *pEnvContext )
+bool UrbanDev::InitPopDens( EnvContext *pEnvContext )
    {
    MapLayer      *pLayer         = (MapLayer*) pEnvContext->pMapLayer;
    MapExprEngine *pMapExprEngine = pEnvContext->pExprEngine;  // use Envision's MapExprEngine
@@ -495,7 +550,7 @@ bool Developer::InitPopDens( EnvContext *pEnvContext )
 
 
 // allocate DUs to internal m_nDU array at the beginning of run
-void Developer::InitNDUs( MapLayer *pLayer )
+void UrbanDev::InitNDUs( MapLayer *pLayer )
    {
    if ( m_colPopDens < 0 || m_colArea < 0 || m_colNDU < 0 )
       return;
@@ -570,7 +625,7 @@ void Developer::InitNDUs( MapLayer *pLayer )
 // descrepency between idu nDU's based on popdens and existing NDUs within UGAs
 // ---------------------------------------------------------------------------------
 
-void Developer::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
+void UrbanDev::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
    {
    int duCount = (int) m_duAreaArray.GetSize();
    int iduCount = pLayer->GetRecordCount();
@@ -821,7 +876,7 @@ void Developer::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
    
 
 
-DUArea *Developer::AddDUArea( void )
+DUArea *UrbanDev::AddDUArea( void )
    {
    DUArea *pDUArea = new DUArea;
    ASSERT( pDUArea != NULL );
@@ -833,7 +888,7 @@ DUArea *Developer::AddDUArea( void )
    }
 
 
-DUArea *Developer::FindDUArea( int idu )
+DUArea *UrbanDev::FindDUArea( int idu )
    {
    for ( int j=0; j < (int) m_duAreaArray.GetSize(); j++ )
       {
@@ -853,7 +908,7 @@ DUArea *Developer::FindDUArea( int idu )
    }
 
    
-//DUArea *Developer::FindUGAFromName( LPCTSTR name )
+//DUArea *UrbanDev::FindUGAFromName( LPCTSTR name )
 //   {
 //   for ( int i=0; i < (int) m_duAreaArray.GetSize(); i++ )
 //      if ( m_duAreaArray[ i ]->m_name.CompareNoCase( name ) == 0 )
@@ -863,30 +918,27 @@ DUArea *Developer::FindDUArea( int idu )
 //   }
 
 
-int Developer::UxAddUGA( UxScenario *pScenario, UxUGA *pUGA )
+int UrbanDev::AddUGA( UGA *pUGA )
    {
-   int index = (int) pScenario->m_uxArray.Add( pUGA );
-   pUGA->m_index = index;
-   m_idToUxUGAMap.SetAt( pUGA->m_id, pUGA );
+   int index = (int) m_ugaArray.Add(pUGA);
+   //pUGA->m_index = index;
+   m_idToUGAMap.SetAt( pUGA->m_id, pUGA );
 
    return index;
    }
    
 
    
-UxUGA *Developer::UxFindUGAFromName( LPCTSTR name )
+UGA *UrbanDev::FindUGAFromName( LPCTSTR name )
    {
-   if ( m_pCurrentUxScenario == NULL )
-      return NULL;
-
-   for ( int i=0; i < (int) m_pCurrentUxScenario->m_uxArray.GetSize(); i++ )
-      if ( m_pCurrentUxScenario->m_uxArray[ i ]->m_name.CompareNoCase( name ) == 0 )
-         return m_pCurrentUxScenario->m_uxArray[ i ];
+   for ( int i=0; i < (int) m_ugaArray.GetSize(); i++ )
+      if ( m_ugaArray[ i ]->m_name.CompareNoCase( name ) == 0 )
+         return m_ugaArray[ i ];
 
    return NULL;
    }
 
-UxScenario *Developer::UxFindScenarioFromID( int id )
+UxScenario *UrbanDev::UxFindScenarioFromID( int id )
    {
    for ( int i=0; i < (int) m_uxScenarioArray.GetSize(); i++ )
       if ( m_uxScenarioArray[ i ]->m_id == id )
@@ -896,7 +948,7 @@ UxScenario *Developer::UxFindScenarioFromID( int id )
    }
 
 
-//float Developer::GetPeoplePerDU( int uga )
+//float UrbanDev::GetPeoplePerDU( int uga )
 //   {
 //   DUArea *pDUArea = FindUGAFromID( uga );
 //
@@ -907,7 +959,7 @@ UxScenario *Developer::UxFindScenarioFromID( int id )
 //   }
 
 
-void Developer::InitOutput()
+void UrbanDev::InitOutput()
    {
    if (this->m_expandUGAs)
       {
@@ -917,18 +969,18 @@ void Developer::InitOutput()
          m_pCurrentUxScenario = this->UxFindScenarioFromID(m_currUxScenarioID);
 
          // currentPopulation, currentArea, newPopulation, pctAvilCapacity
-         int ugaCount = (int)m_pCurrentUxScenario->m_uxArray.GetSize();
-         int cols = 1 + ((ugaCount+1) * 7);
+         int ugaCount = (int)m_ugaArray.GetSize();
+         int cols = 1 + ((ugaCount+1) * 8);
          m_pUxData = new FDataObj(cols, 0, U_YEARS);
          ASSERT(m_pUxData != NULL);
-         m_pUxData->SetName("Developer");
+         m_pUxData->SetName("UrbanDev");
 
          m_pUxData->SetLabel(0, _T("Time"));
 
          int col = 1;
-         for (int i = 0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++)
+         for (int i = 0; i < m_ugaArray.GetSize(); i++)
             {
-            UxUGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+            UGA* pUGA = m_ugaArray[i];
             CString name = pUGA->m_name;
             m_pUxData->SetLabel(col++, _T(name + ".Population"));
             m_pUxData->SetLabel(col++, _T(name + ".Area (ac)"));
@@ -937,6 +989,7 @@ void Developer::InitOutput()
             m_pUxData->SetLabel(col++, _T(name + ".Res Expansion Area (ac)"));
             m_pUxData->SetLabel(col++, _T(name + ".Comm Expansion Area (ac)"));
             m_pUxData->SetLabel(col++, _T(name + ".Total Expansion Area (ac)"));
+            m_pUxData->SetLabel(col++, _T(name + ".Impervious Fraction"));
             }
          // add totals
          m_pUxData->SetLabel(col++, _T("Total.Population"));
@@ -946,14 +999,15 @@ void Developer::InitOutput()
          m_pUxData->SetLabel(col++, _T("Total.Res Expansion Area (ac)"));
          m_pUxData->SetLabel(col++, _T("Total.Comm Expansion Area (ac)"));
          m_pUxData->SetLabel(col++, _T("Total.Total Expansion Area (ac)"));
+         m_pUxData->SetLabel(col++, _T("Total.Impervious Fraction"));
          ASSERT(col == cols);
          }
       }
 
-   this->AddOutputVar("Developer", m_pUxData, "");
+   this->AddOutputVar("UrbanExp", m_pUxData, "");
    }
 
-void Developer::CollectOutput( int year )
+void UrbanDev::CollectOutput( int year )
    {
    if (m_allocateDUs)  // <dwellings> tag defined
       {
@@ -993,23 +1047,26 @@ void Developer::CollectOutput( int year )
       ASSERT(m_pUxData != NULL);
 
       // currentPopulation, currentArea, newPopulation, pctAvilCapacity
-      int ugaCount = (int)m_pCurrentUxScenario->m_uxArray.GetSize();
-      int cols = 1 + ((ugaCount+1) * 7);
+      int ugaCount = (int)m_ugaArray.GetSize();
+      int cols = 1 + ((ugaCount+1) * 8);
 
       float* data = new float[cols];
       data[0] = (float) year;
 
       float totalPop = 0.0f;
+      float totalArea = 0;
       float totalAc = 0.0f;
       float totalNewPop = 0.0f;
       float totalPctAvailCap = 0.0f;
       float totalResExpAc = 0.0f;
       float totalCommExpAc = 0.0f;
       float totalExpAc = 0.0f;
+      float totalImpervious = 0.0f;
       int col = 1;
-      for (int i = 0; i < m_pCurrentUxScenario->m_uxArray.GetSize(); i++)
+
+      for (int i = 0; i < m_ugaArray.GetSize(); i++)
          {
-         UxUGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+         UGA* pUGA = m_ugaArray[i];
 
          data[col++] = pUGA->m_currentPopulation;
          data[col++] = pUGA->m_currentArea * ACRE_PER_M2;
@@ -1018,13 +1075,17 @@ void Developer::CollectOutput( int year )
          data[col++] = pUGA->m_resExpArea * ACRE_PER_M2;
          data[col++] = pUGA->m_commExpArea * ACRE_PER_M2;
          data[col++] = pUGA->m_totalExpArea * ACRE_PER_M2;
+         data[col++] = pUGA->m_impervious;
+
          totalPop         += pUGA->m_currentPopulation;
+         totalArea        += pUGA->m_currentArea;
          totalAc          += pUGA->m_currentArea * ACRE_PER_M2;
          totalNewPop      += pUGA->m_newPopulation;
          totalPctAvailCap += (pUGA->m_pctAvailCap * pUGA->m_currentArea * ACRE_PER_M2);  //area weighted by UxUGA area
          totalResExpAc    += pUGA->m_resExpArea * ACRE_PER_M2;
          totalCommExpAc   += pUGA->m_commExpArea * ACRE_PER_M2;
          totalExpAc       += pUGA->m_totalExpArea * ACRE_PER_M2;
+         totalImpervious += pUGA->m_impervious * pUGA->m_currentArea;
          }
 
       data[col++] = totalPop;
@@ -1034,6 +1095,7 @@ void Developer::CollectOutput( int year )
       data[col++] = totalResExpAc;
       data[col++] = totalCommExpAc;
       data[col++] = totalExpAc;
+      data[col++] = totalImpervious/totalArea;
       ASSERT(col == cols);
       m_pUxData->AppendRow(data, cols);
       delete[] data;
@@ -1041,7 +1103,7 @@ void Developer::CollectOutput( int year )
    }
 
 
-bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
+bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
    {
    MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
    MapExprEngine *pMapExprEngine = pContext->pExprEngine;  // use Envision's MapExprEngine
@@ -1124,6 +1186,48 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
          m_pDuPtLayer->SetActiveField( m_colPtNDU );
          //m_pDuPtLayer->UseVarWidth( 0, 5 );
         }
+      }
+
+   //------------------------------------------------------------
+   //-- UGAs ----------------------------------------------------
+   //------------------------------------------------------------
+   TiXmlElement* pXmlUGAs = pXmlRoot->FirstChildElement(_T("ugas"));
+   TiXmlElement* pXmlUGA = pXmlUGAs->FirstChildElement(_T("uga"));
+
+   while (pXmlUGA != NULL)
+      {
+      LPCTSTR name = NULL;
+      int id = -1;
+      float startPop = -1;
+      LPCTSTR type = NULL;
+
+      XML_ATTR ugaAttrs[] = {
+         // attr        type           address     isReq  checkCol
+         { "name",      TYPE_STRING,   &name,      true,    0 },
+         { "id",        TYPE_INT,      &id,        true,    0 },
+         { "startPop",  TYPE_FLOAT,    &startPop,  false,   0 },
+         { "type",      TYPE_STRING,   &type,      true,    0 },
+         { NULL,    TYPE_NULL,       NULL,   false,   0 } };
+
+      ok = TiXmlGetAttributes(pXmlUGA, ugaAttrs, filename);
+      if (!ok)
+         {
+         CString msg;
+         msg.Format(_T("Misformed element reading <uga> attributes in input file %s"), filename);
+         Report::ErrorMsg(msg);
+         return false;
+         }
+
+      UGA* pUGA = new UGA;
+      pUGA->m_id = id;
+      pUGA->m_name = name;
+      pUGA->m_startPopulation = startPop;
+      if (type != NULL)
+         pUGA->m_type = type;
+
+      AddUGA(pUGA);
+
+      pXmlUGA = pXmlUGA->NextSiblingElement("uga");
       }
 
    //------------------------------------------------------------------------------------
@@ -1211,7 +1315,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
 
    if ( pXmlDUs != NULL )
       {
-      LPTSTR duCol="N_DU", newDUCol="New_DU", initFrom="none";
+      LPTSTR duCol=LPTSTR("N_DU"), newDUCol= LPTSTR("New_DU"), initFrom= LPTSTR("none");
 
       XML_ATTR dwellingAttrs[] = {
             // attr         type         address      isReq  checkCol
@@ -1305,24 +1409,27 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
    //-- UGA Expansion ----------------------------------------------------------------------------
    //---------------------------------------------------------------------------------------------
 
-   TiXmlElement *pXmlUGAs = pXmlRoot->FirstChildElement( _T("uga_expansions" ) );
-   if ( pXmlUGAs != NULL )
+   TiXmlElement *pXmlUGAExpansions = pXmlRoot->FirstChildElement( _T("uga_expansions" ) );
+   if ( pXmlUGAExpansions != NULL )
       {
-      LPTSTR method="nearest", ugaCol="UGA", popCapCol=NULL, zoneCol=NULL, distCol=NULL, nearUgaCol=NULL, priorityCol=NULL, eventCol=NULL;
+      LPTSTR method= LPTSTR("nearest"), ugaCol= LPTSTR("UGA"), popCapCol=NULL, zoneCol=NULL, distCol=NULL, 
+         nearUgaCol=NULL, priorityCol=NULL, eventCol=NULL, imperviousCol=NULL, ugaPopCol=NULL;
 
       XML_ATTR uxAttrs[] = {
-            // attr             type         address      isReq  checkCol
-            { "method",         TYPE_STRING, &method,      false,   0 },
-            { "uga_col",        TYPE_STRING, &ugaCol,      true,   CC_MUST_EXIST },
-            { "zone_col",       TYPE_STRING, &zoneCol,     true,   CC_MUST_EXIST },
-            { "pop_cap_col",    TYPE_STRING, &popCapCol,   true,   CC_MUST_EXIST },
-            { "near_dist_col",  TYPE_STRING, &distCol,     true,   CC_MUST_EXIST },
-            { "near_uga_col",   TYPE_STRING, &nearUgaCol,  true,   CC_MUST_EXIST },
-            { "priority_col",   TYPE_STRING, &priorityCol, true,   CC_AUTOADD | TYPE_LONG },
-            { "event_col",      TYPE_STRING, &eventCol,    true,   CC_AUTOADD | TYPE_LONG },
-            { NULL,             TYPE_NULL,   NULL,         false,   0 } };
+            // attr             type         address         isReq  checkCol
+            { "method",         TYPE_STRING, &method,        false,   0 },
+            { "uga_col",        TYPE_STRING, &ugaCol,        true,   CC_MUST_EXIST },
+            { "zone_col",       TYPE_STRING, &zoneCol,       true,   CC_MUST_EXIST },
+            { "pop_cap_col",    TYPE_STRING, &popCapCol,     true,   CC_MUST_EXIST },
+            { "near_dist_col",  TYPE_STRING, &distCol,       true,   CC_MUST_EXIST },
+            { "near_uga_col",   TYPE_STRING, &nearUgaCol,    true,   CC_MUST_EXIST },
+            { "priority_col",   TYPE_STRING, &priorityCol,   true,   CC_AUTOADD | TYPE_LONG },
+            { "event_col",      TYPE_STRING, &eventCol,      true,   CC_AUTOADD | TYPE_LONG },
+            { "impervious_col", TYPE_STRING, &imperviousCol, true,   CC_AUTOADD | TYPE_FLOAT },
+            { "uga_pop_col",    TYPE_STRING, &ugaPopCol,     true,   CC_AUTOADD | TYPE_FLOAT },
+            { NULL,             TYPE_NULL,   NULL,           false,   0 } };
          
-      ok = TiXmlGetAttributes( pXmlUGAs, uxAttrs, filename, pLayer );
+      ok = TiXmlGetAttributes( pXmlUGAExpansions, uxAttrs, filename, pLayer );
       if ( ! ok )
          {
          CString msg; 
@@ -1336,25 +1443,34 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
       this->m_colPopCap         = pLayer->GetFieldCol( popCapCol );
       this->m_colUxPriority     = pLayer->GetFieldCol( priorityCol );
       this->m_colUxEvent        = pLayer->GetFieldCol( eventCol );
-      this->m_colUxNearUga    = pLayer->GetFieldCol(nearUgaCol);
+      this->m_colUxNearUga      = pLayer->GetFieldCol(nearUgaCol);
       this->m_colUxNearDist     = pLayer->GetFieldCol(distCol);
+      this->m_colImpervious     = pLayer->GetFieldCol(imperviousCol);
+      this->m_colUgaPop         = pLayer->GetFieldCol(ugaPopCol);
 
       m_expandUGAs = true;
 
-      TiXmlElement *pXmlUxScn = pXmlUGAs->FirstChildElement( _T("scenario" ) );
+      TiXmlElement *pXmlUxScn = pXmlUGAExpansions->FirstChildElement( _T("scenario" ) );
       
       while ( pXmlUxScn != NULL )
          {
          UxScenario *pUxScn = new UxScenario;
    
          XML_ATTR uxScnAttrs[] = {
-            // attr                 type           address                      isReq  checkCol
-            { "name",             TYPE_CSTRING,   &(pUxScn->m_name),            true,    0 },
-            { "id",               TYPE_INT,       &(pUxScn->m_id),              true,    0 },
-            { "plan_horizon",     TYPE_INT,       &(pUxScn->m_planHorizon),     true,    0 },
-            { "expand_trigger",   TYPE_FLOAT,     &(pUxScn->m_expandTrigger),   true,    0 },
-            //{ "res_query",        TYPE_CSTRING,   &(pUxScn->m_resQuery),        true,    0 },
-            //{ "comm_query",       TYPE_CSTRING,   &(pUxScn->m_commQuery),       true,    0 },
+            // attr                      type           address                      isReq  checkCol
+            { "name",                  TYPE_CSTRING,   &(pUxScn->m_name),            true,    0 },
+            { "id",                    TYPE_INT,       &(pUxScn->m_id),              true,    0 },
+            { "plan_horizon",          TYPE_INT,       &(pUxScn->m_planHorizon),     true,    0 },
+            { "expand_trigger",        TYPE_FLOAT,     &(pUxScn->m_expandTrigger),   true,    0 },
+            { "est_growth_rate",       TYPE_FLOAT,     &(pUxScn->m_estGrowthRate),   true,    0 },
+            { "new_res_density",       TYPE_FLOAT,     &(pUxScn->m_newResDensity),   true,    0 },
+            { "res_comm_ratio",        TYPE_FLOAT,     &(pUxScn->m_resCommRatio),    true,    0 },
+            { "res_constraint",        TYPE_CSTRING,   &(pUxScn->m_resQuery),        true,    0 },
+            { "comm_constraint",       TYPE_CSTRING,   &(pUxScn->m_commQuery),       true,    0 },
+            { "res_zone",              TYPE_INT,       &(pUxScn->m_zoneRes),         false,   0 },
+            { "comm_zone",             TYPE_INT,       &(pUxScn->m_zoneComm),        false,   0 },
+            { "ppdu",                  TYPE_FLOAT,     &(pUxScn->m_ppdu),            false,   0 },
+            { "new_impervious_factor", TYPE_FLOAT,     &(pUxScn->m_imperviousFactor),false,   0 },
             { NULL,               TYPE_NULL,      NULL,                         false,   0 } };
 
          ok = TiXmlGetAttributes( pXmlUxScn, uxScnAttrs, filename );
@@ -1367,74 +1483,130 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             return false;
             }
 
-         // compile res, commercial queries
-         //pUxScn->m_pResQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_resQuery, 0, pUxScn->m_name + "_res");
-         //pUxScn->m_pCommQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_commQuery, 0, pUxScn->m_name + "_comm");
 
-         // have scenario, start adding UxUGA element
-         TiXmlElement *pXmlUga = pXmlUxScn->FirstChildElement( _T("uga_expansion" ) );
-         
-         while ( pXmlUga != NULL )
+
+         // have scenario, start adding UxExpandWhen element
+         TiXmlElement *pXmlExpand = pXmlUxScn->FirstChildElement( _T("expand_when" ) );
+         while ( pXmlExpand != NULL )
             {
-            UxUGA *pUGA = new UxUGA;
+            UxExpandWhen *pExpand = new UxExpandWhen;
 
-            XML_ATTR ugaAttrs[] = {
+            XML_ATTR expAttrs[] = {
                // attr                 type           address                      isReq  checkCol
-               { "name",             TYPE_CSTRING,   &(pUGA->m_name),            true,    0 },
-               { "id",               TYPE_INT,       &(pUGA->m_id),              true,    0 },
-               { "use",              TYPE_BOOL,      &(pUGA->m_use),             false,   0 },
-               { "est_growth_rate",  TYPE_FLOAT,     &(pUGA->m_estGrowthRate),   true,    0 },
-               { "new_res_density",  TYPE_FLOAT,     &(pUGA->m_newResDensity),   true,    0 },
-               { "res_comm_ratio",   TYPE_FLOAT,     &(pUGA->m_resCommRatio),    true,    0 },
-               { "res_constraint",   TYPE_CSTRING,   &(pUGA->m_resQuery),        true,    0 },
-               { "comm_constraint",  TYPE_CSTRING,   &(pUGA->m_commQuery),       true,    0 },
-               { "res_zone",         TYPE_INT,       &(pUGA->m_zoneRes),         false,   0 },
-               { "comm_zone",        TYPE_INT,       &(pUGA->m_zoneComm),        false,   0 },
-               { "startPop",         TYPE_FLOAT,     &(pUGA->m_startPopulation), false,   0 },
-               { "ppdu",             TYPE_FLOAT,     &(pUGA->m_ppdu),            false,   0 },
+               { "name",             TYPE_CSTRING,   &(pExpand->m_name),            false,   0 },
+               { "use",              TYPE_BOOL,      &(pExpand->m_use),             false,   0 },
+               { "query",            TYPE_CSTRING,   &(pExpand->m_queryStr),        false,   0 },
+               { "type",             TYPE_CSTRING,   &(pExpand->m_type),            false,   0 },
+               { "min_pop",          TYPE_FLOAT,     &(pExpand->m_minPop),          false,   0 },
+               { "max_pop",          TYPE_FLOAT,     &(pExpand->m_maxPop),          false,   0 },
+               { "trigger",          TYPE_FLOAT,     &(pExpand->m_trigger),         false,   0 },
+               { "start_after",      TYPE_INT,       &(pExpand->m_startAfter),      false,   0 },
+               { "stop_after",       TYPE_INT,       &(pExpand->m_stopAfter),       false,   0 },
                { NULL,               TYPE_NULL,      NULL,                          false,   0 } };
             
-            ok = TiXmlGetAttributes( pXmlUga, ugaAttrs, filename );
+            ok = TiXmlGetAttributes( pXmlExpand, expAttrs, filename );
             if ( ! ok )
                {
                CString msg; 
-               msg.Format( _T("  Misformed element reading <uga_expansion> attributes in input file %s"), filename );
+               msg.Format( _T("  Misformed element reading <expand_when> attributes in input file %s"), filename );
                Report::ErrorMsg( msg );
-               delete pUGA;
+               delete pExpand;
                return false;
                }
 
-            if (pUGA->m_use == 0)
+            if (pExpand->m_use == 0)
                {
-               delete pUGA;
+               delete pExpand;
                }
             else
                {
-               UxAddUGA(pUxScn, pUGA);
+               UxAddExpandWhen(pUxScn, pExpand);
 
-               // compile res query
-               if (pUGA->m_resQuery.GetLength() > 0)
+               // compile where query
+               if (pExpand->m_queryStr.GetLength() > 0)
                   {
                   ASSERT(m_pQueryEngine != NULL);
-                  pUGA->m_pResQuery = m_pQueryEngine->ParseQuery(pUGA->m_resQuery, 0, pUGA->m_name);
+                  pExpand->m_pQuery = m_pQueryEngine->ParseQuery(pExpand->m_queryStr, 0, pExpand->m_name);
                   }
 
-               // compile comm query
-               if (pUGA->m_commQuery.GetLength() > 0)
-                  {
-                  ASSERT(m_pQueryEngine != NULL);
-                  pUGA->m_pCommQuery = m_pQueryEngine->ParseQuery(pUGA->m_commQuery, 0, pUGA->m_name);
-                  }
-
-               CString msg("  Added UxUGA Expansion for ");
-               msg += pUGA->m_name;
+               CString msg("  Added UxExpandWhen - ");
+               msg += pExpand->m_name;
                Report::Log(msg);
                }
    
-            pXmlUga = pXmlUga->NextSiblingElement( "uga_expansion" );
+            pXmlExpand = pXmlExpand->NextSiblingElement( "expand_when" );
+            }  // end of: while ( pXmlUga != NULL )
+
+
+         // add UxUpzoneWhen element
+         TiXmlElement* pXmlUpzone = pXmlUxScn->FirstChildElement(_T("upzone_when"));
+         while (pXmlUpzone != NULL)
+            {
+            UxUpzoneWhen* pUpzone = new UxUpzoneWhen;
+
+            XML_ATTR upAttrs[] = {
+               // attr                 type           address                      isReq  checkCol
+               { "name",             TYPE_CSTRING,   &(pUpzone->m_name),            false,   0 },
+               { "use",              TYPE_BOOL,      &(pUpzone->m_use),             false,   0 },
+               { "type",             TYPE_CSTRING,   &(pUpzone->m_type),            false,   0 },
+               { "query",            TYPE_CSTRING,   &(pUpzone->m_queryStr),        false,   0 },
+               { "min_pop",          TYPE_FLOAT,     &(pUpzone->m_minPop),          false,   0 },
+               { "max_pop",          TYPE_FLOAT,     &(pUpzone->m_maxPop),          false,   0 },
+               { "trigger",          TYPE_FLOAT,     &(pUpzone->m_trigger),         false,   0 },
+               { "start_after",      TYPE_INT,       &(pUpzone->m_startAfter),      false,   0 },
+               { "stop_after",       TYPE_INT,       &(pUpzone->m_stopAfter),       false,   0 },
+               { "step",             TYPE_INT,       &(pUpzone->m_step),            false,   0 },
+               { "rural",            TYPE_INT,       &(pUpzone->m_rural),           false,    0 },
+               { NULL,               TYPE_NULL,      NULL,                          false,   0 } };
+
+            ok = TiXmlGetAttributes(pXmlUpzone, upAttrs, filename);
+            if (!ok)
+               {
+               CString msg;
+               msg.Format(_T("  Misformed element reading <upzone_when> attributes in input file %s"), filename);
+               Report::ErrorMsg(msg);
+               delete pUpzone;
+               return false;
+               }
+
+            if (pUpzone->m_use == 0)
+               {
+               delete pUpzone;
+               }
+            else
+               {
+               UxAddUpzoneWhen(pUxScn, pUpzone);
+
+               // compile res query
+               if (pUpzone->m_queryStr.GetLength() > 0)
+                  {
+                  ASSERT(m_pQueryEngine != NULL);
+                  pUpzone->m_pQuery = m_pQueryEngine->ParseQuery(pUpzone->m_queryStr, 0, pUpzone->m_name);
+                  }
+
+               CString msg("  Added UxUpzoneWhen - ");
+               msg += pUpzone->m_name;
+               Report::Log(msg);
+               }
+
+            pXmlUpzone = pXmlUpzone->NextSiblingElement("upzone_when");
             }  // end of: while ( pXmlUga != NULL )
 
          this->m_uxScenarioArray.Add( pUxScn );
+
+         // compile scenario res and comm queries
+         if (pUxScn->m_resQuery.GetLength() > 0)
+            {
+            ASSERT(m_pQueryEngine != NULL);
+            pUxScn->m_pResQuery = m_pQueryEngine->ParseQuery(pUxScn->m_resQuery, 0, pUxScn->m_name);
+            }
+
+         // compile comm query
+         if (pUxScn->m_commQuery.GetLength() > 0)
+            {
+            ASSERT(m_pQueryEngine != NULL);
+            pUxScn->m_pCommQuery = m_pQueryEngine->ParseQuery(pUxScn->m_commQuery, 0, pUxScn->m_name);
+            }
 
          pXmlUxScn = pXmlUxScn->NextSiblingElement( "scenario");
          }
@@ -1443,7 +1615,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
          m_pCurrentUxScenario = m_uxScenarioArray.GetAt( 0 );
       
       // next, zone information      
-      TiXmlElement *pXmlZones = pXmlRoot->FirstChildElement( _T("zones" ) );
+      TiXmlElement *pXmlZones = pXmlUGAExpansions->FirstChildElement( _T("zones" ) );
    
       if ( pXmlZones )
          {
@@ -1453,11 +1625,12 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             ZoneInfo *pZone = new ZoneInfo;
    
             XML_ATTR zoneAttrs[] = {
-               // attr                 type           address                isReq  checkCol
-               { "id",               TYPE_INT,       &(pZone->m_id),        true,    0 },
-               { "density",          TYPE_FLOAT,     &(pZone->m_density),   true,    0 },
-               { "constraint",       TYPE_CSTRING,   &(pZone->m_query),     false,   0 },
-               { NULL,               TYPE_NULL,      NULL,                  false,   0 } };
+               // attr                 type           address                        isReq  checkCol
+               { "id",               TYPE_INT,       &(pZone->m_id),                true,    0 },
+               { "density",          TYPE_FLOAT,     &(pZone->m_density),           true,    0 },
+               { "impervious",       TYPE_FLOAT,     &(pZone->m_imperviousFraction),false,   0 },
+               { "constraint",       TYPE_CSTRING,   &(pZone->m_query),             false,   0 },
+               { NULL,               TYPE_NULL,      NULL,                          false,   0 } };
          
             ok = TiXmlGetAttributes( pXmlRes, zoneAttrs, filename );
             if ( ! ok )
@@ -1469,14 +1642,45 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                }
             else
                {
-               m_resZoneArray.Add( pZone );
+               pZone->m_index = (int) m_resZoneArray.Add( pZone );
    
                if ( pZone->m_query.GetLength() > 0 )
-                  pZone->m_pQuery = m_pQueryEngine->ParseQuery( pZone->m_query, 0, "Developer" );
+                  pZone->m_pQuery = m_pQueryEngine->ParseQuery( pZone->m_query, 0, "UrbanDev" );
                }
             pXmlRes = pXmlRes->NextSiblingElement( "residential");
             }
    
+         TiXmlElement* pXmlRuralRes = pXmlZones->FirstChildElement("rural_res");
+         while (pXmlRuralRes != NULL)
+            {
+            ZoneInfo* pZone = new ZoneInfo;
+
+            XML_ATTR zoneAttrs[] = {
+               // attr                 type           address                isReq  checkCol
+               { "id",               TYPE_INT,       &(pZone->m_id),        true,    0 },
+               { "density",          TYPE_FLOAT,     &(pZone->m_density),   true,    0 },
+               { "impervious",       TYPE_FLOAT,     &(pZone->m_imperviousFraction),false,   0 },
+               { "constraint",       TYPE_CSTRING,   &(pZone->m_query),     false,   0 },
+               { NULL,               TYPE_NULL,      NULL,                  false,   0 } };
+
+            ok = TiXmlGetAttributes(pXmlRuralRes, zoneAttrs, filename);
+            if (!ok)
+               {
+               CString msg;
+               msg.Format(_T("  Misformed element reading <rural_res> attributes in input file %s"), filename);
+               Report::ErrorMsg(msg);
+               delete pZone;
+               }
+            else
+               {
+               pZone->m_index = (int)m_ruralResZoneArray.Add(pZone);
+
+               if (pZone->m_query.GetLength() > 0)
+                  pZone->m_pQuery = m_pQueryEngine->ParseQuery(pZone->m_query, 0, "UrbanDev");
+               }
+            pXmlRuralRes = pXmlRuralRes->NextSiblingElement("rural_res");
+            }
+
          TiXmlElement *pXmlComm = pXmlZones->FirstChildElement( "commercial" );
          while ( pXmlComm != NULL )
             {
@@ -1486,6 +1690,7 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                // attr                 type           address                isReq  checkCol
                { "id",               TYPE_INT,       &(pZone->m_id),        true,    0 },
                { "density",          TYPE_FLOAT,     &(pZone->m_density),   true,    0 },
+               { "impervious",       TYPE_FLOAT,     &(pZone->m_imperviousFraction),false,   0 },
                { "constraint",       TYPE_CSTRING,   &(pZone->m_query),     false,   0 },
                { NULL,               TYPE_NULL,      NULL,                  false,   0 } };
          
@@ -1499,163 +1704,32 @@ bool Developer::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                }
             else
                {
-               m_commZoneArray.Add( pZone );
+               pZone->m_index = (int) m_commZoneArray.Add( pZone );
    
                if ( pZone->m_query.GetLength() > 0 )
-                  pZone->m_pQuery = m_pQueryEngine->ParseQuery( pZone->m_query, 0, "eveloper" );
-                  pZone->m_pQuery = m_pQueryEngine->ParseQuery( pZone->m_query, 0, "eveloper" );
+                  pZone->m_pQuery = m_pQueryEngine->ParseQuery( pZone->m_query, 0, "UrbanDev" );
                }
    
             pXmlComm = pXmlComm->NextSiblingElement( "commercial" );
             }
          }  // end of:  if ( pXmlZones )
 
-      }  // end of: if ( pXmlUGAs )
-
-
-
-      //---------------------------------------------------------------------------------------------
-      //-- UGA Upzoning -----------------------------------------------------------------------------
-      //---------------------------------------------------------------------------------------------
-
-      pXmlUGAs = pXmlRoot->FirstChildElement(_T("uga_upzones"));
-      if (pXmlUGAs != NULL)
-         {
-         LPTSTR method = "nearest", ugaCol = "UGA", popCapCol = NULL, zoneCol = NULL, distCol = NULL, nearUgaCol = NULL, priorityCol = NULL, eventCol = NULL;
-
-         XML_ATTR uxAttrs[] = {
-            // attr             type         address      isReq  checkCol
-            { "uga_col",        TYPE_STRING, &ugaCol,      true,   CC_MUST_EXIST },
-            { "zone_col",       TYPE_STRING, &zoneCol,     true,   CC_MUST_EXIST },
-            { "pop_cap_col",    TYPE_STRING, &popCapCol,   true,   CC_MUST_EXIST },
-            { "event_col",      TYPE_STRING, &eventCol,    true,   CC_AUTOADD | TYPE_LONG },
-            { NULL,             TYPE_NULL,   NULL,         false,   0 } };
-
-         ok = TiXmlGetAttributes(pXmlUGAs, uxAttrs, filename, pLayer);
-         if (!ok)
-            {
-            CString msg;
-            msg.Format(_T("Misformed root element reading <uga_upzones> tag in input file %s"), filename);
-            Report::ErrorMsg(msg);
-            return false;
-            }
-
-         this->m_colUga = pLayer->GetFieldCol(ugaCol);
-         this->m_colZone = pLayer->GetFieldCol(zoneCol);
-         this->m_colPopCap = pLayer->GetFieldCol(popCapCol);
-         //this->m_colUxEvent = pLayer->GetFieldCol(eventCol);
-
-         m_upzoneUGAs = true;
-
-         TiXmlElement* pXmlUzScn = pXmlUGAs->FirstChildElement(_T("scenario"));
-
-         while (pXmlUzScn != NULL)
-            {
-            UzScenario* pUzScn = new UzScenario;
-
-            XML_ATTR uxScnAttrs[] = {
-               // attr                 type           address                      isReq  checkCol
-               { "name",             TYPE_CSTRING,   &(pUzScn->m_name),            true,    0 },
-               { "id",               TYPE_INT,       &(pUzScn->m_id),              true,    0 },
-               { NULL,               TYPE_NULL,      NULL,                         false,   0 } };
-
-            ok = TiXmlGetAttributes(pXmlUzScn, uxScnAttrs, filename);
-            if (!ok)
-               {
-               CString msg;
-               msg.Format(_T("  Misformed element reading <scenario> attributes in input file %s"), filename);
-               Report::ErrorMsg(msg);
-               delete pUzScn;
-               return false;
-               }
-
-            // compile res, commercial queries
-            //pUxScn->m_pResQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_resQuery, 0, pUxScn->m_name + "_res");
-            //pUxScn->m_pCommQuery = pContext->pQueryEngine->ParseQuery(pUxScn->m_commQuery, 0, pUxScn->m_name + "_comm");
-
-            // have scenario, start adding UGA element
-            TiXmlElement* pXmlUga = pXmlUzScn->FirstChildElement(_T("uga_upzone"));
-
-            while (pXmlUga != NULL)
-               {
-               UzUGA* pUGA = new UzUGA;
-               int use = 1;
-
-               XML_ATTR ugaAttrs[] = {
-                  // attr                 type           address                      isReq  checkCol
-                  { "name",             TYPE_CSTRING,   &(pUGA->m_name),            true,    0 },
-                  { "id",               TYPE_INT,       &(pUGA->m_id),              true,    0 },
-                  { "use",              TYPE_INT,       &use,                       false,   0 },
-                  { "to",               TYPE_INT,       &(pUGA->m_toZone),          true,    0 },
-                  { "when",             TYPE_CSTRING,   &(pUGA->m_whenQuery),       true,    0 },
-                  { NULL,               TYPE_NULL,      NULL,                       false,   0 } };
-
-               ok = TiXmlGetAttributes(pXmlUga, ugaAttrs, filename);
-               if (!ok)
-                  {
-                  CString msg;
-                  msg.Format(_T("  Misformed element reading <uga_upzone> attributes in input file %s"), filename);
-                  Report::ErrorMsg(msg);
-                  delete pUGA;
-                  return false;
-                  }
-
-               if (use == 0)
-                  delete pUGA;
-               else
-                  {
-                  //UZAddUGA(pUzScn, pUGA);
-                  //
-                  //// compile res query
-                  //if (pUGA->m_resQuery.GetLength() > 0)
-                  //   {
-                  //   ASSERT(m_pQueryEngine != NULL);
-                  //   pUGA->m_pResQuery = m_pQueryEngine->ParseQuery(pUGA->m_resQuery, 0, pUGA->m_name);
-                  //   }
-                  //
-                  //// compile comm query
-                  //if (pUGA->m_commQuery.GetLength() > 0)
-                  //   {
-                  //   ASSERT(m_pQueryEngine != NULL);
-                  //   pUGA->m_pCommQuery = m_pQueryEngine->ParseQuery(pUGA->m_commQuery, 0, pUGA->m_name);
-                  //   }
-                  
-                  CString msg("  Added UzUGA Expansion for ");
-                  msg += pUGA->m_name;
-                  Report::Log(msg);
-                  }
-
-               pXmlUga = pXmlUga->NextSiblingElement("uga_upzone");
-               }  // end of: while ( pXmlUga != NULL )
-
-            this->m_uzScenarioArray.Add(pUzScn);
-
-            pXmlUzScn = pXmlUzScn->NextSiblingElement("scenario");
-            }
-
-         if (m_uxScenarioArray.GetSize() > 0)
-            m_pCurrentUxScenario = m_uxScenarioArray.GetAt(0);
-
-
-         }  // end of: if ( pXmlUGAs )
-
-
-
-
-
-
-
-
-
-
-
-
-
+      }  // end of: if ( pXmlUGAExpansion )
 
    return true;
    }
 
 
+   int UrbanDev::UxAddExpandWhen(UxScenario* pScenario, UxExpandWhen* pExpandWhen)
+      {
+      return (int) pScenario->m_uxExpandArray.Add(pExpandWhen);
+      }
+
+   int UrbanDev::UxAddUpzoneWhen(UxScenario* pScenario, UxUpzoneWhen* pUpzoneWhen)
+      {
+      return (int) pScenario->m_uxUpzoneArray.Add(pUpzoneWhen);
+      }
+   
    
 int CompareNDU(const void *elem0, const void *elem1 )
    {
@@ -1678,7 +1752,7 @@ int CompareNDU(const void *elem0, const void *elem1 )
    }
    
 
-bool Developer::UxExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
+bool UrbanDev::UxExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
    {
    if (m_pCurrentUxScenario == NULL)
       {
@@ -1689,23 +1763,73 @@ bool Developer::UxExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
    // for each UxUGA, determine available capacity
    UxUpdateUGAStats(pContext, false);   // false
 
-   INT_PTR ugaCount = m_pCurrentUxScenario->m_uxArray.GetSize();
+   int ugaCount = (int) m_ugaArray.GetSize();
 
-   for (INT_PTR i = 0; i < ugaCount; i++)
+   for (int i = 0; i < ugaCount; i++)
       {
-      UxUGA* pUGA = m_pCurrentUxScenario->m_uxArray[i];
+      UGA* pUGA = this->m_ugaArray[i];
 
-      // time to trigger a UxUGA expansion?
-      if (pUGA->m_pctAvailCap < m_pCurrentUxScenario->m_expandTrigger)   // decimal percent
+      for (int j = 0; j < m_pCurrentUxScenario->m_uxExpandArray.GetSize(); j++)
          {
-         UxExpandUGA(pUGA, pContext, pLayer);
+         UxExpandWhen* pExpand = m_pCurrentUxScenario->m_uxExpandArray[j];
+
+         // are the criteria for this expand event met for this UGA?
+         bool doExpand = true;
+         if (pExpand->m_maxPop >= 0 && pUGA->m_currentPopulation < pExpand->m_maxPop)
+            doExpand = false;
+         else if (pExpand->m_minPop >= 0 && pUGA->m_currentPopulation > pExpand->m_minPop)
+            doExpand = false;
+         else if (pExpand->m_type.Compare(pUGA->m_type) != 0)
+            doExpand = false;
+         else if (pUGA->m_pctAvailCap < pExpand->m_trigger)
+            doExpand = false;
+         else if (pExpand->m_startAfter >= 0 && pUGA->m_currentEvent < pExpand->m_startAfter)
+            doExpand = false;
+         else if (pExpand->m_stopAfter >= 0 && pUGA->m_currentEvent >= pExpand->m_stopAfter)
+            doExpand = false;
+
+         if (doExpand)
+            UxExpandUGA(pUGA, pExpand, pContext);
          }
+
+      // Upzones
+      for (int j = 0; j < m_pCurrentUxScenario->m_uxUpzoneArray.GetSize(); j++)
+         {
+         UxUpzoneWhen* pUpzone = m_pCurrentUxScenario->m_uxUpzoneArray[j];
+
+         // are the criteria for this Upzone event met for this UGA?
+         bool doUpzone = true;
+         if (pUpzone->m_maxPop >= 0 && pUGA->m_currentPopulation < pUpzone->m_maxPop)
+            doUpzone = false;
+         else if (pUpzone->m_minPop >= 0 && pUGA->m_currentPopulation > pUpzone->m_minPop)
+            doUpzone = false;
+         else if (pUpzone->m_type.Compare(pUGA->m_type) != 0)
+            doUpzone = false;
+         else if (pUGA->m_pctAvailCap < pUpzone->m_trigger)
+            doUpzone = false;
+         else if (pUpzone->m_startAfter >= 0 && pUGA->m_currentEvent < pUpzone->m_startAfter)
+            doUpzone = false;
+         else if (pUpzone->m_stopAfter >= 0 && pUGA->m_currentEvent >= pUpzone->m_stopAfter)
+            doUpzone = false;
+
+         if (doUpzone)
+            UxUpzoneUGA(pUGA, pUpzone, pContext);
+         }
+
       }
    return true;
    }
 
 
-bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
+void UrbanDev::UxGetDemandAreas(UxScenario* pScenario, UGA* pUGA, float& resExpArea, float& commExpArea)
+   {
+   float expPop = pScenario->m_planHorizon * pScenario->m_estGrowthRate * pUGA->m_currentPopulation;    // assume 20 year land supply
+   resExpArea = expPop / (pScenario->m_newResDensity * pScenario->m_ppdu * ACRE_PER_M2);   // m2
+   commExpArea = resExpArea / pScenario->m_resCommRatio;         // add in commercial area
+   }
+
+
+bool UrbanDev::UxExpandUGA(UGA* pUGA, UxExpandWhen *pExpand, EnvContext* pContext)
    {
    // time to expand this UGA.  Basic idea is to:
    //  1) determine the area needed to accommodate new growth
@@ -1713,10 +1837,10 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
    MapLayer* pIDULayer = (MapLayer*)pContext->pMapLayer;
 
    float startingArea = pUGA->m_currentArea;
-
-   float expPop = 20 * pUGA->m_estGrowthRate*pUGA->m_currentPopulation;    // assume 20 year land supply
-   float resExpArea = expPop / (pUGA->m_newResDensity * pUGA->m_ppdu * ACRE_PER_M2);   // m2
-   float commExpArea = resExpArea / pUGA->m_resCommRatio;         // add in commercial area
+   
+   float resExpArea = 0, commExpArea = 0;
+   UxGetDemandAreas(m_pCurrentUxScenario, pUGA, resExpArea, commExpArea);
+   //UxScenario* pScenario = m_pCurrentUxScenario;
 
    float resArea = 0;
    for (int i = pUGA->m_nextResPriority; i < pUGA->m_priorityListRes.GetSize(); i++)
@@ -1731,7 +1855,7 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
       UGA_PRIORITY* pPriority = pUGA->m_priorityListRes[i];
 
       int uga;
-      pLayer->GetData(pPriority->idu, m_colUga, uga);
+      pIDULayer->GetData(pPriority->idu, m_colUga, uga);
 
       // has this idu already been annexed?  Then skip it
       if (uga > 0)
@@ -1753,12 +1877,12 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
       float maxExpandArea = std::fminf(1000000.0f, resExpArea); 
       // target area
       CArray< int, int > expandArray;
-      float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, pUGA->m_pResQuery, m_colArea,
+      float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, m_pCurrentUxScenario->m_pResQuery, m_colArea,
                   maxExpandArea, expandArray);
 
       // add in kernal IDU area to accumlating total
       float area = 0;
-      pLayer->GetData(pPriority->idu, m_colArea, area);
+      pIDULayer->GetData(pPriority->idu, m_colArea, area);
       resArea += area;
       pUGA->m_resExpArea += area;
       pUGA->m_totalExpArea += area;
@@ -1768,13 +1892,18 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
          {
          if (expandArray[j] >= 0)
             {
-            pLayer->GetData(expandArray[j], m_colArea, area);
+            pIDULayer->GetData(expandArray[j], m_colArea, area);
             resArea += area;
             pUGA->m_resExpArea += area;
             pUGA->m_totalExpArea += area;
+
             UpdateIDU(pContext, expandArray[j], m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
             UpdateIDU(pContext, expandArray[j], m_colUxEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
-            UpdateIDU(pContext, expandArray[j], m_colZone, pUGA->m_zoneRes, ADD_DELTA);
+            UpdateIDU(pContext, expandArray[j], m_colZone, m_pCurrentUxScenario->m_zoneRes, ADD_DELTA);
+
+            float impFrac = GetImperviousFromZone(m_pCurrentUxScenario->m_zoneRes);
+            impFrac *= m_pCurrentUxScenario->m_imperviousFactor;
+            UpdateIDU(pContext, expandArray[j], m_colImpervious, impFrac, ADD_DELTA);
             }
          }
       }
@@ -1792,7 +1921,7 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
       UGA_PRIORITY* pPriority = pUGA->m_priorityListComm[i];
 
       int uga;
-      pLayer->GetData(pPriority->idu, m_colUga, uga);
+      pIDULayer->GetData(pPriority->idu, m_colUga, uga);
 
       // has this idu already been annexed?  Then skip it
       if (uga > 0)
@@ -1814,12 +1943,12 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
       float maxExpandArea = std::fminf(1000000.0f, commExpArea);
       // target area
       CArray< int, int > expandArray;
-      float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, pUGA->m_pCommQuery, m_colArea,
+      float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, m_pCurrentUxScenario->m_pCommQuery, m_colArea,
          maxExpandArea, expandArray);
 
       // add in kernal IDU area to accumlating total
       float area = 0;
-      pLayer->GetData(pPriority->idu, m_colArea, area);
+      pIDULayer->GetData(pPriority->idu, m_colArea, area);
       commArea += area;
       pUGA->m_commExpArea += area;
       pUGA->m_totalExpArea += area;
@@ -1829,13 +1958,13 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
          {
          if (expandArray[j] >= 0)
             {
-            pLayer->GetData(expandArray[j], m_colArea, area);
+            pIDULayer->GetData(expandArray[j], m_colArea, area);
             commArea += area;
             pUGA->m_commExpArea += area;
             pUGA->m_totalExpArea += area;
             UpdateIDU(pContext, expandArray[j], m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
-            UpdateIDU(pContext, expandArray[j], m_colUxEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
-            UpdateIDU(pContext, expandArray[j], m_colZone, pUGA->m_zoneComm, ADD_DELTA);
+            UpdateIDU(pContext, expandArray[j], m_colUxEvent, pUGA->m_currentEvent+1, ADD_DELTA);    // indicate expansion event
+            UpdateIDU(pContext, expandArray[j], m_colZone, m_pCurrentUxScenario->m_zoneComm, ADD_DELTA);
             }
          }
       }
@@ -1845,27 +1974,203 @@ bool Developer::UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer)
    startingArea *= ACRE_PER_M2;
 
    CString msg;
-   msg.Format("Developer:  UGA Expansion Event for %s:  Demand: %.0f acres, Achieved %.0f acres (from %.0f to %.0f acres, Event=%i)", 
-      pUGA->m_name, totalExpAreaAc, totalAreaAc, startingArea, startingArea+totalAreaAc, pUGA->m_currentEvent);
+   msg.Format("UGA Expansion Event for %s:  Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event=%i", 
+      pUGA->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc*100/totalExpAreaAc,startingArea, startingArea+totalAreaAc, pUGA->m_currentEvent+1);
    Report::Log(msg);
    pUGA->m_currentEvent++;
 
    return true;
    }
 
-float Developer::UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
+
+
+bool UrbanDev::UxUpzoneUGA(UGA* pUGA, UxUpzoneWhen* pUpzone, EnvContext* pContext)
+   {
+   // time to upzone this UGA.  Basic idea is to:
+   //  1) determine the area needed to accommodate new growth
+   //  2) Find a random IDU that qualifies as an upzoneable zone.  
+   //  3) Expand around IDU until area need satisfied or exhausted.
+   //  4) Repeat until area need satisfied  
+   MapLayer* pIDULayer = (MapLayer*)pContext->pMapLayer;
+
+   // how many people to plan for?
+   float expPop = m_pCurrentUxScenario->m_planHorizon * m_pCurrentUxScenario->m_estGrowthRate * pUGA->m_currentPopulation; // people
+   float addedPop = 0;
+
+   // upzone inside UGA?
+   // for IDU's in this urban area, try to upzone until demand met
+   int iduCount = pUpzone->m_rural ? (int) pUGA->m_priorityListRes.GetSize() : (int) pUGA->m_iduArray.GetSize();
+
+   for (int i = 0; i < iduCount; i++)
+      {
+      int idu = pUpzone->m_rural ? pUGA->m_priorityListRes[i]->idu : pUGA->m_iduArray[i];
+
+      if (pUpzone->m_pQuery != NULL)
+         {
+         bool result = false;
+         bool ok = pUpzone->m_pQuery->Run(idu, result);
+         if (!ok || !result)
+            continue;
+         }
+
+      int zone = -1;
+      pIDULayer->GetData(idu, this->m_colZone, zone);
+
+      // residential?
+      bool upzone = true;
+      if (!UxIsResidential(zone) && ! UxIsRuralResidential(zone))
+         upzone = false;
+
+      // hasn't been previously upzoned?
+      UINT uzCount = 0;
+      pUGA->m_iduToUpzonedMap.Lookup(idu, uzCount);
+      if (uzCount > 0)
+         upzone = false;
+
+      // additional criteria?
+      if (upzone)
+         {
+         // upzone the kernel.  To do this requires 1) finding the current zone in the 
+         // res zone array, and then advancing as needed.
+         int zIndex = -1;
+         if (pUpzone->m_rural)
+            {
+            for (int k = 0; k < this->m_ruralResZoneArray.GetSize(); k++)
+               {
+               if (this->m_ruralResZoneArray[k]->m_id == zone)
+                  { zIndex = k; break; }
+               }
+            }
+         else  // within UGA
+            {
+            for (int k = 0; k < this->m_resZoneArray.GetSize(); k++)
+               {
+               if (this->m_resZoneArray[k]->m_id == zone)
+                  { zIndex = k; break; }
+               }
+            }
+
+         if (zIndex < 0)
+            {
+            CString msg;
+            msg.Format("Unable to find %s zone %i", pUpzone->m_rural ? "Rural Res" : "Residential", zone);
+            Report::LogWarning(msg);
+            continue;
+            }
+
+         int steps = 0;
+         int upIndex = zIndex;
+         int newZone = 0;
+         float popDelta = 0;
+
+         if (pUpzone->m_rural)
+            {
+            while (steps < pUpzone->m_step && upIndex < this->m_ruralResZoneArray.GetSize() - 1)
+               {
+               upIndex++;
+               if (this->m_ruralResZoneArray[upIndex]->m_density > this->m_ruralResZoneArray[zIndex]->m_density)
+                  steps++;
+               }
+            newZone = this->m_ruralResZoneArray[upIndex]->m_id;
+
+            popDelta = this->m_ruralResZoneArray[upIndex]->m_density - this->m_ruralResZoneArray[zIndex]->m_density;   // units are du/ac
+            popDelta *= m_pCurrentUxScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2
+            }
+         else
+            {
+            while (steps < pUpzone->m_step && upIndex < this->m_resZoneArray.GetSize() - 1)
+               {
+               upIndex++;
+               if (this->m_resZoneArray[upIndex]->m_density > this->m_resZoneArray[zIndex]->m_density)
+                  steps++;
+               }
+            newZone = this->m_resZoneArray[upIndex]->m_id;
+
+            popDelta = this->m_resZoneArray[upIndex]->m_density - this->m_resZoneArray[zIndex]->m_density;   // units are du/ac
+            popDelta *= m_pCurrentUxScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2
+            }
+
+         //------------------------------------------------------------------------------------------------------------------------------------
+         // expand to nearby IDUs
+         // Inputs:
+         //   idu = index of the kernal (nucleus) polygon
+         //   pPatchQuery = the column storing the value to be compared to the value
+         //   colArea = column containing poly area.  if -1, areas are ignored, including maxExpandArea; only the expand array is populated
+         //   maxExpandArea = upper limit expansion size, if a positive value.  If negative, it is ignored and the max patch size is not limited
+         //
+         // returns: 
+         //   1) area of the expansion area (NOT including the nucleus polygon) and 
+         //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
+         //      were included in the patch, negative values indicate they were considered but where not included in the patch
+         //------------------------------------------------------------------------------------------------------------------------------------
+         // the max expansion area is ...
+         float maxExpandArea = 50000.0f;  // std::fminf(1000.0f, expPop - addedPop);
+         // target area
+         CArray< int, int > expandArray;
+         VData _zone(zone);
+         float expandArea = pIDULayer->GetExpandPolysFromAttr(idu, m_colZone, _zone, OPERATOR::EQ, m_colArea, maxExpandArea, expandArray);
+         //float expandArea = pIDULayer->GetExpandPolysFromQuery(idu, pUGA->m_pResQuery, m_colArea, maxExpandArea, expandArray);
+
+         // upzone all expanded polygons
+         for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
+            {
+            if (expandArray[j] >= 0)
+               {
+               // update IDU zone info
+               int _idu = expandArray[j];
+               UpdateIDU(pContext, _idu, m_colUxEvent, pUGA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
+               UpdateIDU(pContext, _idu, m_colZone, newZone, ADD_DELTA);
+
+               // update addPop so far
+               float area;
+               pIDULayer->GetData(_idu, m_colArea, area);
+               addedPop += popDelta * area;
+
+               // flag this IDU as having been upzoned
+               pUGA->m_iduToUpzonedMap[_idu] += 1;
+               }
+            }
+
+         // have we achieved the target?
+         if (addedPop >= expPop)
+            break;
+         }  // end of: if ( upzone )
+
+      pUGA->m_iduToUpzonedMap[idu] = 0;   // reset map indicate IDU was upzoned this cycle
+
+      }  // end of: for each IDU in this UGA or prioryt expansion area
+
+   CString msg;
+   if ( pUpzone->m_rural)
+      msg.Format("Rural Upzone Event for %s:  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+         (LPCTSTR) pUGA->m_name, expPop, addedPop, (addedPop*100/expPop), pUGA->m_currentEvent+1);
+   else
+      msg.Format("UGA Upzone Event for %s:  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+         (LPCTSTR)pUGA->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
+
+   Report::Log(msg);
+
+   //if ( addedPop > 0 )
+   pUGA->m_currentEvent++;
+   return true;
+   }
+
+
+
+
+float UrbanDev::UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
    {
    if ( m_pCurrentUxScenario == NULL )
       return 0;
 
-   INT_PTR ugaCount = m_pCurrentUxScenario->m_uxArray.GetSize();
+   INT_PTR ugaCount = this->m_ugaArray.GetSize();
 
    float *curPopArray = new float[ ugaCount ];
 
    // reset all 
    for ( INT_PTR i=0; i < ugaCount; i++ )
       {
-      UxUGA *pUGA = m_pCurrentUxScenario->m_uxArray[ i ];
+      UGA *pUGA = this->m_ugaArray[ i ];
       
       curPopArray[ i ] = pUGA->m_currentPopulation;
 
@@ -1879,6 +2184,7 @@ float Developer::UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
       pUGA->m_pctAvailCap = 0;             // decimal percent
       pUGA->m_avgAllowedDensity = 0;       // du/ac
       pUGA->m_avgActualDensity = 0;        // du/ac
+      pUGA->m_impervious = 0;               // area weighted fraction
       }
 
    MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
@@ -1895,7 +2201,7 @@ float Developer::UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
       if (uga <= 0)
          continue;
 
-      UxUGA *pUGA = UxFindUGAFromID( uga );
+      UGA *pUGA = FindUGAFromID( uga );
       if ( pUGA == NULL )
          {
          //CString msg;
@@ -1904,8 +2210,8 @@ float Developer::UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
          continue;
          }
 
-      if ( pUGA->m_use == false )
-         continue;
+      //if ( pUGA->m_use == false )
+      //   continue;
 
       // have UGA, update stats
       float area = 0;
@@ -1936,26 +2242,32 @@ float Developer::UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
       pUGA->m_newPopulation += (( popDens-popDens0 ) * area );    // people
 
       float allowedDens = UxGetAllowedDensity( pLayer, idu, zone );  // du/ac
-      float ppdu = pUGA->m_ppdu;
+      float ppdu = this->m_pCurrentUxScenario->m_ppdu;  //   pUGA->m_ppdu;
       allowedDens *= ppdu/M2_PER_ACRE;
 
       pUGA->m_avgAllowedDensity += allowedDens * area;   //#
+
+      float impervious = 0;
+      pLayer->GetData(idu, m_colImpervious, impervious);
+      pUGA->m_impervious += impervious * area;
       }
 
    // normalize as needed
    for ( INT_PTR i=0; i < ugaCount; i++ )
       {
-      UxUGA *pUGA = m_pCurrentUxScenario->m_uxArray[ i ];
+      UGA *pUGA = this->m_ugaArray[ i ];
 
       pUGA->m_pctAvailCap = 1-( pUGA->m_currentPopulation/pUGA->m_capacity );     // decimal percent
       
-      float peoplePerDU = pUGA->m_ppdu;
+      float peoplePerDU = this->m_pCurrentUxScenario->m_ppdu;
 
       float allowedDens = ( pUGA->m_avgAllowedDensity / pUGA->m_currentArea ) * ( M2_PER_ACRE / peoplePerDU );
       pUGA->m_avgAllowedDensity = allowedDens;     // du/ac
 
       float actualDens = ( pUGA->m_currentPopulation / pUGA->m_currentArea ) * ( M2_PER_ACRE / peoplePerDU );
       pUGA->m_avgActualDensity = actualDens;        // du/ac
+
+      pUGA->m_impervious /= pUGA->m_currentArea;
 
       if ( outputStartInfo && pContext->yearOfRun == 0 )
          {
@@ -1980,7 +2292,7 @@ float Developer::UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
    return 0;
    }
 
-bool Developer::UxPrioritizeUxAreas( EnvContext *pContext )
+bool UrbanDev::UxPrioritizeUxAreas( EnvContext *pContext )
    {
    // basic idea:
    // populates two required columns:
@@ -2039,9 +2351,10 @@ bool Developer::UxPrioritizeUxAreas( EnvContext *pContext )
       // use the distance to prioritize new UGA idus
 
       // get the associated UxUGA record
-      UxUGA *pUGA = UxFindUGAFromID( nearUGA );
+      UGA *pUGA = FindUGAFromID( nearUGA );
       if ( pUGA == NULL )
          continue;
+
       if ( pUGA->m_use == false )
          continue;
 
@@ -2061,24 +2374,24 @@ bool Developer::UxPrioritizeUxAreas( EnvContext *pContext )
       // does it pass constraints?
       // first residential
       bool passRes = false;
-      if ( pUGA->m_pResQuery == NULL )
+      if (m_pCurrentUxScenario->m_pResQuery == NULL )
          passRes = true;
       else
          {
          bool result = false;
-         bool ok = pUGA->m_pResQuery->Run( idu, result );
+         bool ok = m_pCurrentUxScenario->m_pResQuery->Run( idu, result );
          if ( ok && result )
             passRes = true;
          }
 
       // second commercial/industrial
       bool passComm = false;
-      if ( pUGA->m_pCommQuery == NULL )
+      if (m_pCurrentUxScenario->m_pCommQuery == NULL )
          passComm = true;
       else
          {
          bool result = false;
-         bool ok = pUGA->m_pCommQuery->Run( idu, result );
+         bool ok = m_pCurrentUxScenario->m_pCommQuery->Run( idu, result );
          if ( ok && result )
             passComm = true;
          }
@@ -2106,7 +2419,7 @@ bool Developer::UxPrioritizeUxAreas( EnvContext *pContext )
             {
             pUGA->m_priorityListRes.Add( new UGA_PRIORITY( idu, priority ) );
          
-            if ( resOrCommCount > pUGA->m_resCommRatio * resOrCommMultiplier )
+            if ( resOrCommCount > m_pCurrentUxScenario->m_resCommRatio * resOrCommMultiplier )
                {     // reset and switch to comm
                resOrCommCount = 0;
                doingRes = false;
@@ -2145,9 +2458,9 @@ bool Developer::UxPrioritizeUxAreas( EnvContext *pContext )
    // priority lists populate, now sort to prioritize
 
    // sort distances
-   for ( int j=0; j < m_pCurrentUxScenario->m_uxArray.GetSize(); j++ )
+   for ( int j=0; j < m_ugaArray.GetSize(); j++ )
       {
-      UxUGA *pUGA = m_pCurrentUxScenario->m_uxArray[ j ];
+      UGA *pUGA = m_ugaArray[ j ];
       if ( pUGA->m_use == false )
          continue;
 
@@ -2180,7 +2493,7 @@ bool Developer::UxPrioritizeUxAreas( EnvContext *pContext )
    }
 
 
-bool Developer::UxIsResidential( int zone )
+bool UrbanDev::UxIsResidential( int zone )
    { 
    for ( int i=0; i < (int) m_resZoneArray.GetSize(); i++ ) 
       if ( zone == m_resZoneArray[ i ]->m_id )
@@ -2189,7 +2502,18 @@ bool Developer::UxIsResidential( int zone )
    return false;
    }
 
-bool Developer::UxIsCommercial( int zone )
+bool UrbanDev::UxIsRuralResidential(int zone)
+   {
+   for (int i = 0; i < (int)m_ruralResZoneArray.GetSize(); i++)
+      if (zone == m_ruralResZoneArray[i]->m_id)
+         return true;
+
+   return false;
+   }
+
+
+
+bool UrbanDev::UxIsCommercial( int zone )
    { 
    for ( int i=0; i < (int) m_commZoneArray.GetSize(); i++ ) 
       if ( zone == m_commZoneArray[ i ]->m_id )
@@ -2203,7 +2527,7 @@ bool Developer::UxIsCommercial( int zone )
 // returns allowed density in people/m2.  Note:  If idu<0, then density is based on passed in zone.
 //  otherwise, zone is retrieved from the IDU and the "zone" argument is ignored
 
-float Developer::UxGetAllowedDensity( MapLayer *pLayer, int idu, int zoneID )
+float UrbanDev::UxGetAllowedDensity( MapLayer *pLayer, int idu, int zoneID )
    {
    float allowedDens = 0;     // du/acre
 
@@ -2249,6 +2573,64 @@ float Developer::UxGetAllowedDensity( MapLayer *pLayer, int idu, int zoneID )
    return pZone->m_density;
    }
 
+float UrbanDev::GetImperviousFromZone(int zone)
+   {
+   for (int i = 0; i < (int)this->m_resZoneArray.GetSize(); i++)
+      {
+      if (this->m_resZoneArray[i]->m_id == zone)
+         return this->m_resZoneArray[i]->m_imperviousFraction;
+      }
+
+   for (int i = 0; i < (int)this->m_ruralResZoneArray.GetSize(); i++)
+      {
+      if (this->m_ruralResZoneArray[i]->m_id == zone)
+         return this->m_ruralResZoneArray[i]->m_imperviousFraction;
+      }
+
+   for (int i = 0; i < (int)this->m_commZoneArray.GetSize(); i++)
+      {
+      if (this->m_commZoneArray[i]->m_id == zone)
+         return this->m_commZoneArray[i]->m_imperviousFraction;
+      }
+
+   return 0;
+   }
+
+
+void UrbanDev::UxUpdateImperiousFromZone( EnvContext *pContext)
+   {
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
+
+   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+      {
+      int zone = -1;
+      pLayer->GetData(idu, m_colZone, zone);
+
+      float imperviousFraction = GetImperviousFromZone(zone);
+      UpdateIDU(pContext, idu, m_colImpervious, imperviousFraction, SET_DATA);
+      }  // end of: for each IDU
+   }
+
+void UrbanDev::UpdateUGAPops(EnvContext* pContext)
+   {
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
+
+   bool readOnly = pLayer->m_readOnly;
+   pLayer->m_readOnly = false;
+   pLayer->SetColData(m_colUgaPop, VData(0.0f), true);
+
+   for (int i = 0; i < m_ugaArray.GetSize(); i++)
+      {
+      UGA* pUGA = m_ugaArray[i];
+      for (int j = 0; j < pUGA->m_iduArray.GetSize(); j++)
+         {
+         int idu = pUGA->m_iduArray[j];
+         pLayer->SetData(idu, m_colUgaPop, pUGA->m_currentPopulation);
+         }
+      }
+   pLayer->m_readOnly= readOnly;
+   }
+
 
 int CompareUGAPriorities(const void *elem0, const void *elem1 )
    {
@@ -2257,3 +2639,6 @@ int CompareUGAPriorities(const void *elem0, const void *elem1 )
 
    return ( p0->priority < p1->priority ) ? -1 : 1;
    }
+
+
+

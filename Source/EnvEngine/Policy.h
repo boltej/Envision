@@ -153,10 +153,12 @@ public:
 
    void Clear();
 
-   void AddScore( float value, LPCTSTR query ) { m_goalScoreArray.Add( GOAL_SCORE( value, query ) ); }
+   void AddScore(float value, LPCTSTR query) { GOAL_SCORE gs(value, query); m_goalScoreArray.Add(gs); }
 
-   void AddModifier(  SM_TYPE type, float value, LPCTSTR condition, int scenario )
-      { m_modifierArray.Add( SCORE_MODIFIER( type, value, condition, scenario ) ); }
+   void AddModifier(SM_TYPE type, float value, LPCTSTR condition, int scenario)
+      {
+      SCORE_MODIFIER sm(type, value, condition, scenario); m_modifierArray.Add(sm);
+      }
 };
 
 
@@ -982,7 +984,7 @@ public:
    bool    ReplaceGlobalConstraints( PtrArray< GlobalConstraint > &newConstraintArray );
 
    void    ClearPolicySchedule() { m_policySchedule.RemoveAll(); }
-   int     AddPolicySchedule( int year, Policy *pPolicy ) { return (int) m_policySchedule.Add( POLICY_SCHEDULE( year, pPolicy ) ); }
+   int     AddPolicySchedule(int year, Policy* pPolicy) { POLICY_SCHEDULE ps(year, pPolicy); return (int)m_policySchedule.Add(ps); }
    int     GetPolicyScheduleCount() { return (int) m_policySchedule.GetSize(); }
    POLICY_SCHEDULE &GetPolicySchedule( int i ) { return m_policySchedule[ i ]; }
    void    BuildPolicySchedule();

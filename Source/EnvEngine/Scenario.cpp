@@ -127,8 +127,9 @@ Scenario::Scenario( ScenarioManager *pSM, LPCTSTR name )
 
       //if ( pModel != NULL )
       //   {
-         m_scenarioVarArray.Add( SCENARIO_VAR( pGoal->name, V_META, (void*) &(pGoal->weight), TYPE_FLOAT, NULL, VData( 0.0f ), VData(0.0f), VData(0.0f), true,
-         "Metagoal weighting [-3, +3] for this model - determines relative priorities for altruistic actors based on scarcity" ) );
+      SCENARIO_VAR sv(pGoal->name, V_META, (void*)&(pGoal->weight), TYPE_FLOAT, NULL, VData(0.0f), VData(0.0f), VData(0.0f), true,
+         "Metagoal weighting [-3, +3] for this model - determines relative priorities for altruistic actors based on scarcity");
+      m_scenarioVarArray.Add(sv);
       //   }
       }
 
@@ -194,8 +195,11 @@ Scenario::Scenario( ScenarioManager *pSM, LPCTSTR name )
          for ( int j=0; j < varCount; j++ )
             {
             MODEL_VAR &mv = modelVarArray[ j ];
-            if ( mv.pVar != NULL )
-               m_scenarioVarArray.Add( SCENARIO_VAR( V_AP, mv, pAP->m_name ) );
+            if (mv.pVar != NULL)
+               {
+               SCENARIO_VAR sv(V_AP, mv, pAP->m_name);
+               m_scenarioVarArray.Add(sv);
+               }
             }
          }
       }
@@ -207,13 +211,16 @@ Scenario::Scenario( ScenarioManager *pSM, LPCTSTR name )
    for( int i=0; i < appVarCount; i++ )
 	   {
       AppVar *pAppVar = pModel->GetAppVar( i );   // note: type AVT_APP will always be at the head of the list
-      m_scenarioVarArray.Add( SCENARIO_VAR( pAppVar ) );
+      SCENARIO_VAR sv(pAppVar);
+      m_scenarioVarArray.Add(sv);
       }
 
    //================= D E C I S I O N   E L E M E N T S ==========================
-   m_scenarioVarArray.Add( SCENARIO_VAR( "Decision Elements", V_SYSTEM, (void*) &m_decisionElements, 
-      TYPE_INT, NULL, VData( pModel->m_decisionElements ), VData(), VData(), false, 
-      "Decision Elements to use. This should be the sum of the desired elements: 0=none, 1=Actor Value Alignment, 2=Landscape Feedback, 4=Global Policy Preferences, 8=Utility, 16=Social Network" ) );
+
+   SCENARIO_VAR sv("Decision Elements", V_SYSTEM, (void*)&m_decisionElements,
+      TYPE_INT, NULL, VData(pModel->m_decisionElements), VData(), VData(), false,
+      "Decision Elements to use. This should be the sum of the desired elements: 0=none, 1=Actor Value Alignment, 2=Landscape Feedback, 4=Global Policy Preferences, 8=Utility, 16=Social Network");
+   m_scenarioVarArray.Add(sv);
 
    //=================================== P O L I C I E S =====================================
    // NOTE!!! Policies should always come last

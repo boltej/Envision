@@ -177,12 +177,12 @@ class OutcomeStatusArray : public CArray< OUTCOME_STATUS, OUTCOME_STATUS& >
    public:
       int AddOutcomeStatus( OUTCOME_DIRECTIVE_TYPE type, int col, int targetYear )
          {
-         return (int) this->Add( OUTCOME_STATUS( type, col, targetYear ) );
+         OUTCOME_STATUS os(type, col, targetYear); return (int)this->Add(os);
          }
 
       int AddOutcomeStatus( OUTCOME_DIRECTIVE_TYPE type, int col, int targetYear, VData value )
          {
-         return (int) this->Add( OUTCOME_STATUS( type, col, targetYear, value ) );
+         OUTCOME_STATUS os(type, col, targetYear, value);  return (int)this->Add(os);
          }
 
    };
@@ -820,5 +820,5 @@ LPCTSTR  GetNotifyTypeStr(EM_NOTIFYTYPE type)
       case EMNT_SETSCENARIO:   return "Set Scenario"; 
       case EMNT_MULTIRUN:      return "Multirun"; 
       };
-   return false;
+   return "none";
    }

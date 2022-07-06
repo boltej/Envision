@@ -516,7 +516,7 @@ bool DataManager::CreateDataObjects()
             CString metric;
             m_pEnvModel->m_pSocialNetwork->GetMetricLabel( i, metric );
 
-            CString label( m_pEnvModel->m_pSocialNetwork->GetLayer( l )->m_name );
+            CString label( m_pEnvModel->m_pSocialNetwork->GetLayer( l )->m_name.c_str() );
             label += ".";
             label += metric;
             pSocialNetworkData->SetLabel( col++, label );
@@ -527,7 +527,8 @@ bool DataManager::CreateDataObjects()
    m_currentDataObjs[ DT_SOCIAL_NETWORK ] = pSocialNetworkData;
    m_dataObjs[ DT_SOCIAL_NETWORK ].Add( pSocialNetworkData );
 
-   m_runInfoArray.Add( RUN_INFO( m_pEnvModel->GetScenario(), m_pEnvModel->GetScenario()->m_runCount, m_pEnvModel->m_startYear, m_pEnvModel->m_endYear ) );
+   RUN_INFO ri(m_pEnvModel->GetScenario(), m_pEnvModel->GetScenario()->m_runCount, m_pEnvModel->m_startYear, m_pEnvModel->m_endYear);
+   m_runInfoArray.Add(ri);
    
    //-- All done.....
    return true;
@@ -1125,7 +1126,8 @@ bool DataManager::CreateMultiRunDataObjects()
    m_multiRunDataObjs[ DT_MULTI_PARAMETERS ].Add( pData );
 
    int first = m_pEnvModel->m_currentRun;
-   m_multirunInfoArray.Add( MULTIRUN_INFO( first, first + rows-1, m_pEnvModel->GetScenario() ) );
+   MULTIRUN_INFO mi(first, first + rows - 1, m_pEnvModel->GetScenario());
+   m_multirunInfoArray.Add( mi );
 
    return true;
    }
@@ -4164,7 +4166,8 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
       m_dataObjs[ DT_POLICY_STATS ].Add( pData );
 
       // run info
-      m_runInfoArray.Add( RUN_INFO( pScenario, 0, 0, 0 ) );  // NOTE:  startYear, endYEar not specified!!!!
+      RUN_INFO ri(pScenario, 0, 0, 0);
+      m_runInfoArray.Add(ri);  // NOTE:  startYear, endYEar not specified!!!!
       //???Check
       //gpResultsPanel->AddRun( run );
       run++;
@@ -4175,7 +4178,8 @@ int DataManager::ImportMultiRunData( LPCTSTR path, int multirun /* =-1 */ )
    runLast--;
 
    // set up the multiRunInfo
-   m_multirunInfoArray.Add( MULTIRUN_INFO( runFirst, runLast, pScenario ) );
+   MULTIRUN_INFO mri(runFirst, runLast, pScenario);
+   m_multirunInfoArray.Add(mri);
    //???Check
    //gpResultsPanel->AddMultiRun( 0 );
 

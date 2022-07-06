@@ -140,6 +140,8 @@ public:
    int   SetCurrentRecord( int polyIndex ); // { return m_pEngine->SetCurrentRecord( polyIndex ); }
    MapExprEngine *GetMapExprEngine( void ) { return this->m_pEngine; }
 
+   Query* GetQuery() { return m_pQuery; }
+
 protected:
    CString m_queryStr;
    Query  *m_pQuery;

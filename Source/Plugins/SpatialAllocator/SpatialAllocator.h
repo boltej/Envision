@@ -137,6 +137,7 @@ public:
   
    // Best Wins temporary variables used during run
    float m_allocationSoFar;     // temporary variable, units of basis
+   float m_areaSoFar;
    float m_currentTarget;
    float m_targetRate;   // for TT_RATE only!!
 
@@ -156,6 +157,7 @@ public:
       , m_status()
       , m_pTargetData( NULL )
       , m_allocationSoFar(0)
+      , m_areaSoFar(0)
       , m_currentTarget( 0 )
       , m_targetRate( 0 )
       , m_pTargetQuery( NULL )
@@ -173,6 +175,7 @@ public:
       , m_status()
       , m_pTargetData( NULL )
       , m_allocationSoFar(0)
+      , m_areaSoFar(0)
       , m_currentTarget( 0 )
       , m_targetRate( 0 )
       , m_pTargetQuery( NULL )
@@ -190,6 +193,7 @@ public:
       , m_status()
       , m_pTargetData( NULL )
       , m_allocationSoFar(0)
+      , m_areaSoFar(0)
       , m_currentTarget( 0 )
       , m_targetRate( 0 )
       , m_pTargetQuery( NULL )
@@ -212,6 +216,7 @@ public:
       m_description = tc.m_description;
       m_status      = tc.m_status;
       m_allocationSoFar = tc.m_allocationSoFar;
+      m_areaSoFar = tc.m_areaSoFar;
       m_currentTarget = tc.m_currentTarget;
       m_targetRate = tc.m_targetRate;
       m_targetQuery = tc.m_targetQuery;
@@ -277,7 +282,7 @@ public:
    int   m_scoreCount;     // number of scores greater than 0 at any given time
    int   m_usedCount;      
    float m_scoreArea;      // area of scores greater than 0 at any given time
-   float m_scoreBasis;    // target amount associated with scored IDUs
+   float m_scoreBasis;     // target amount associated with scored IDUs
    float m_expandArea;
    float m_expandBasis;
       

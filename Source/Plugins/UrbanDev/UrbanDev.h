@@ -19,6 +19,7 @@ Copywrite 2012 - Oregon State University
 */
 #pragma once
 
+#include <QueryEngine.h>
 #include <EnvExtension.h>
 
 #include <Vdataobj.h>
@@ -28,15 +29,13 @@ Copywrite 2012 - Oregon State University
 
 #include <randgen\Randunif.hpp>
 
-#include <QueryEngine.h>
-#include <Query.h>
 #include <MapExprEngine.h>
 
 #include <PolyPtMapper.h>
 
 
 
-// Developer contains four functions, each configured via XML
+// UrbanDev contains four functions, each configured via XML
 //
 // <population> - allocates initial population based on map expressions,
 //   specified using <pop_dens> tags the compute an initial density expression
@@ -62,6 +61,80 @@ Copywrite 2012 - Oregon State University
 enum { INIT_NDUS_FROM_NONE=0, INIT_NDUS_FROM_POPDENS=1,INIT_NDUS_FROM_DULAYER=2 };
 
 #define _EXPORT __declspec( dllexport )
+
+
+struct UGA_PRIORITY
+   {
+   public:
+      int idu;    // in idu coverage
+      float priority;
+
+      UGA_PRIORITY(int _idu, float _priority) : idu(_idu), priority(_priority) { }
+   };
+
+struct UGA  // new
+   {
+   int m_id;
+   CString m_name;
+   CString m_type;
+
+   float m_startPopulation;         // people - set in init 
+   float m_resExpArea;              // m2
+   float m_commExpArea;             // m2
+   float m_totalExpArea;              // m2
+   float m_currentArea;             // m2
+   float m_currentResArea;          // m2
+   float m_currentCommArea;         // m2
+   float m_currentPopulation;       // people
+   float m_newPopulation;           // people
+   float m_popIncr;                 // people
+   float m_capacity;                // people
+   float m_pctAvailCap;             // decimal percent
+   float m_avgAllowedDensity;       // du/ac
+   float m_avgActualDensity;        // du/ac
+   float m_impervious;              // % impervious
+
+   //??????????
+   int m_nextResPriority;     // ptrs to current spot in list
+   int m_nextCommPriority;
+   int m_currentEvent;
+
+   PtrArray< UGA_PRIORITY > m_priorityListRes;   // sorted lists of UGB Expansion areas
+   PtrArray< UGA_PRIORITY > m_priorityListComm;
+   CArray<int, int> m_iduArray;
+   //CArray<int, int> m_ruralIDUArray;
+
+   CMap<int, int, UINT, UINT> m_iduToUpzonedMap;   // actual IDU index to count of upzones
+
+   bool m_use;
+   bool m_computeStartPop;
+
+
+   UGA(void)
+      : m_id(-1)
+      , m_startPopulation(0)   
+      , m_resExpArea(0)        
+      , m_commExpArea(0)       
+      , m_totalExpArea(0)      
+      , m_currentArea(0)       
+      , m_currentResArea(0)    
+      , m_currentCommArea(0)   
+      , m_currentPopulation(0) 
+      , m_newPopulation(0)     
+      , m_popIncr(0)           
+      , m_capacity(0)          
+      , m_pctAvailCap(0)       
+      , m_avgAllowedDensity(0) 
+      , m_avgActualDensity(0)
+      , m_impervious(0)
+      , m_nextResPriority(0)   
+      , m_nextCommPriority(0)
+      , m_currentEvent(0)
+      , m_use(true)
+      , m_computeStartPop(true)
+      {}
+
+   };
 
 
 class PopDens
@@ -116,121 +189,60 @@ public:
 };
 
 
-struct UGA_PRIORITY
+
+class UxTrigger
+   {
+   public:
+      CString m_name;
+      bool m_use;
+      CString m_type;
+      CString m_queryStr;
+      float m_minPop;
+      float m_maxPop;
+      float m_trigger;
+      int   m_startAfter;
+      int   m_stopAfter;
+
+      Query* m_pQuery;
+
+      UxTrigger() 
+         : m_use(true)
+         , m_minPop(-1)
+         , m_maxPop(-1)
+         , m_trigger(0)
+         , m_startAfter(-1)
+         , m_stopAfter(-1)
+         , m_pQuery(NULL)
+         {}
+   };
+
+class UxExpandWhen : public UxTrigger
 {
 public:
-   int idu;    // in idu coverage
-   float priority;
-
-   UGA_PRIORITY( int _idu, float _priority ) : idu( _idu ), priority( _priority ) { }
-};
-
-
-class UxUGA
-{
-public:
-   UxUGA( void ) 
-      : m_id( -1 )
-      , m_index( -1 )
-      , m_use( true )
-      , m_zoneRes(-1)
-      , m_zoneComm(-1)
-      , m_pResQuery( NULL )
-      , m_pCommQuery( NULL )
-      , m_estGrowthRate( 0.01f )
-      , m_newResDensity( 0.01f )
-      , m_resCommRatio( 8 )
-      , m_ppdu( 2.3f )
-      , m_startPopulation( -1.0f )
-      , m_computeStartPop( true )
-      , m_currentArea( 0 )
-      , m_currentResArea( 0 )
-      , m_currentCommArea( 0 )   
-      , m_currentPopulation( 0 ) 
-      , m_newPopulation( 0 )     
-      , m_popIncr( 0 )           
-      , m_capacity( 0 )          
-      , m_pctAvailCap( 0 )
-      , m_resExpArea(0)
-      , m_commExpArea(0)
-      , m_totalExpArea(0)
-      , m_avgAllowedDensity( 0 ) 
-      , m_avgActualDensity( 0 ) 
-      , m_nextResPriority(0)     // ptrs to current spot in list
-      , m_nextCommPriority(0)
-      , m_currentEvent(1)
+   UxExpandWhen( void ) 
+      : UxTrigger()
    { }
 
 public:
-   CString m_name;
-   CString m_resQuery;    // query specifying allowable expansion areas
-   CString m_commQuery;   // query specifying allowable expansion areas
-
-   Query *m_pResQuery;
-   Query *m_pCommQuery;
-
-   int  m_id;               // uga code
-   int  m_index;            // offset in ugaExpArray
-   bool m_use;                  
-   int  m_zoneRes;
-   int  m_zoneComm;
-   bool m_computeStartPop;
-   
-   float m_estGrowthRate;  // annual estimated growth rate, decimal percent (required)
-   float m_newResDensity;  // estimate density (du/ac) to new residential (required)
-   float m_resCommRatio;   // ratio of residential area to comm/ind area in urban expansion areas (required)
-   float m_ppdu;           // people per dwelling unit 
-
-   float m_startPopulation;         // people - set in init 
-   float m_resExpArea;              // m2
-   float m_commExpArea;             // m2
-   float m_totalExpArea;              // m2
-   float m_currentArea;             // m2
-   float m_currentResArea;          // m2
-   float m_currentCommArea;         // m2
-   float m_currentPopulation;       // people
-   float m_newPopulation;           // people
-   float m_popIncr;                 // people
-   float m_capacity;                // people
-   float m_pctAvailCap;             // decimal percent
-   float m_avgAllowedDensity;       // du/ac
-   float m_avgActualDensity;        // du/ac
-
-   int m_nextResPriority;     // ptrs to current spot in list
-   int m_nextCommPriority;
-   int m_currentEvent;
-
-   PtrArray< UGA_PRIORITY > m_priorityListRes;   // sorted lists of UGB Expansion areas
-   PtrArray< UGA_PRIORITY > m_priorityListComm;
-
+   //int  m_zoneRes;
+   //int  m_zoneComm;
+   //bool m_computeStartPop;
+ 
 };
 
 
-
-class UzUGA
+class UxUpzoneWhen : public UxTrigger
    {
    public:
-      UzUGA(void)
-         : m_id(-1)
-         , m_index(-1)
-         , m_use(true)
-         , m_toZone(-1)
-         , m_pWhenQuery(NULL)
-         , m_currentEvent(1)
-         { }
+      UxUpzoneWhen(void)
+         : UxTrigger()
+         , m_step(-1)
+         , m_rural(0)
+      { }
 
    public:
-      CString m_name;
-      CString m_whenQuery;   // query specifying when to upzone
-
-      Query* m_pWhenQuery;
-
-      int  m_id;               // uga code
-      int  m_index;            // offset in ugaExpArray
-      bool m_use;
-      int  m_toZone;
-      int m_currentEvent;
-
+      int m_step;
+      int m_rural;           // >0 indicates rule to be applied outside UGA with m_adjacent distance
    };
 
 
@@ -241,72 +253,79 @@ public:
       : m_id(-1)
       , m_planHorizon(20)
       , m_expandTrigger(0.50f)
+      , m_estGrowthRate(0.01f)
+      , m_newResDensity(0.01f)
+      , m_resCommRatio(8)
+      , m_ppdu(2.3f)
       , m_pResQuery(NULL)
       , m_pCommQuery(NULL)
-      {}
+   {}
 
    int      m_id;
    CString  m_name;
+
    int m_planHorizon;
    float m_expandTrigger;  // fraction of avail capacity that triggers an expansion event
+   float m_estGrowthRate;  // annual estimated growth rate, decimal percent (required)
+   float m_newResDensity;  // estimate density (du/ac) to new residential (required)
+   float m_resCommRatio;   // ratio of residential area to comm/ind area in urban expansion areas (required)
+   float m_ppdu;           // people per dwelling unit 
+   float m_imperviousFactor;  // factor scaling new impervious development
+
    CString m_resQuery;
    CString m_commQuery;
+
+   int  m_zoneRes;
+   int  m_zoneComm;
+
    Query* m_pResQuery;
    Query* m_pCommQuery;
 
-   PtrArray< UxUGA > m_uxArray;
-};
-
-
-
-class UzScenario
-{
-public:
-   UzScenario(void)
-      : m_id(-1)
-      {}
-
-   int m_id;
-   CString  m_name;
-
-   PtrArray< UzUGA > m_uzArray;
-};
+   PtrArray< UxExpandWhen > m_uxExpandArray;
+   PtrArray< UxUpzoneWhen > m_uxUpzoneArray;
+   };
 
 
 
 class ZoneInfo
 {
 public:
-   ZoneInfo( void ) : m_id( -1 ), m_density( 0 ), m_pQuery( NULL ) { }
+   ZoneInfo( void ) : m_id( -1 ), m_index(-1), m_density( 0 ), m_pQuery( NULL ) { }
 
    int     m_id;
+   int     m_index;
    float   m_density;    // du/ac
+   float   m_imperviousFraction;  // decimal percent imperviosu associaetd with zoning
    CString m_query;
    
    Query  *m_pQuery;
 };
 
 
-class _EXPORT Developer : public EnvModelProcess
+class _EXPORT UrbanDev : public EnvModelProcess
 {
 public:
-   Developer( void );
-   ~Developer( void ) { if ( m_pUxData != NULL ) delete m_pUxData; }
+   UrbanDev( void );
+   ~UrbanDev( void ) { if ( m_pUxData != NULL ) delete m_pUxData; }
 
    bool Init   ( EnvContext *pContext, LPCTSTR initStr );
    bool InitRun( EnvContext *pContext, bool useInitialSeed );
    bool Run    ( EnvContext *pContext );
-   bool EndRun (EnvContext* pContext);
+   bool EndRun ( EnvContext* pContext );
    bool Setup  ( EnvContext *pContext, HWND hWnd ) { return FALSE; }
 
 protected:
-   bool Run( EnvContext *pContext, bool AddDelta );
+   //bool Run( EnvContext *pContext, bool AddDelta );
+
+
 
 
    //------------------------------------------------
    //-- Globals -------------------------------------
    //------------------------------------------------
    bool LoadXml( LPCTSTR filename, EnvContext* );
+   bool InitUGAs(EnvContext* pContext);
+
    void InitOutputs();
    
    // operation flags
@@ -321,6 +340,28 @@ protected:
    int       m_colPtNDU;
    int       m_colPtNewDU;
    PolyPointMapper m_polyPtMapper;  // provides mapping between idu layer, building (point) layer
+
+
+   //-------------------------------------------------
+   //-- Impervious
+   //-------------------------------------------------
+
+   float GetImperviousFromZone(int zone);
+
+   void UpdateUGAPops(EnvContext* pContext);
+
+
+
+   //--------------------------------------------------
+   //-- UGAs ------------------------------------------
+   //--------------------------------------------------
+   PtrArray<UGA> m_ugaArray;
+   CMap< int, int, UGA*, UGA* > m_idToUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
+   
+   int AddUGA(UGA* pUGA);
+   UGA* FindUGAFromID(int id) {UGA* pUGA = NULL;  BOOL ok = m_idToUGAMap.Lookup(id, pUGA);  if (ok) return pUGA; else return NULL; }
+   UGA* FindUGAFromName(LPCTSTR name);
+
 
    //--------------------------------------------------
    //-- PopAlloc --------------------------------------
@@ -357,8 +398,8 @@ protected:
    int m_currUxScenarioID;      // exposed scenario variable
    UxScenario* m_pCurrentUxScenario;
    PtrArray< UxScenario > m_uxScenarioArray;
-   CMap< int, int, UxUGA*, UxUGA* > m_idToUxUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
 
+   PtrArray< ZoneInfo > m_ruralResZoneArray;
    PtrArray< ZoneInfo > m_resZoneArray;
    PtrArray< ZoneInfo > m_commZoneArray;
 
@@ -368,33 +409,28 @@ protected:
    int m_colUxPriority;   // input (optional) - if defined, indicates priority of expansions (0=high)
    int m_colUxEvent;      // output, tags locations for each DUArea expansion event
    int m_colPopDensInit;      // initial population density
+   int m_colImpervious;
+   int m_colUgaPop;
 
    // methods
-   int UxAddUGA( UxScenario *pScenario, UxUGA *pUGA );
+   int UxAddExpandWhen( UxScenario *pScenario, UxExpandWhen *pExpandWhen);
+   int UxAddUpzoneWhen(UxScenario* pScenario, UxUpzoneWhen* pUpzoneWhen);
    UxScenario   *UxFindScenarioFromID( int id );
-   UxUGA *UxFindUGAFromID( int id ) { UxUGA *pUGA= NULL;  BOOL ok = m_idToUxUGAMap.Lookup( id, pUGA );  if ( ok ) return pUGA; else return NULL; }
-   UxUGA *UxFindUGAFromName( LPCTSTR name );
-   bool  UxExpandUGAs( EnvContext *pContext, MapLayer *pLayer );
-   bool  UxExpandUGA(UxUGA* pUGA, EnvContext* pContext, MapLayer* pLayer);
+   bool UxExpandUGAs( EnvContext *pContext, MapLayer *pLayer );
+   bool UxExpandUGA(UGA* pUGA, UxExpandWhen *pExpand, EnvContext* pContext);
+   bool UxUpzoneUGA(UGA* pUGA, UxUpzoneWhen* pUpzone, EnvContext* pContext);
+
+   void UxGetDemandAreas(UxScenario* pScenario, UGA* pUGA, float& resExpArea, float& commExpArea);
+   void UxUpdateImperiousFromZone(EnvContext* pContext);
+
+
+
    float UxUpdateUGAStats( EnvContext *pContext, bool outputStartInfo );
    bool  UxPrioritizeUxAreas( EnvContext *pContext );
    float UxGetAllowedDensity(MapLayer* pLayer, int idu, int zone);      // du/ac
    bool  UxIsResidential(int zone);
+   bool  UxIsRuralResidential(int zone);
    bool  UxIsCommercial(int zone);
-
-   //--------------------------------------------------
-   //-- UGA Upzoning ----------------------------------
-   //--------------------------------------------------
-   int m_currUzScenarioID;      // exposed scenario variable
-   UzScenario* m_pCurrentUzScenario;
-   PtrArray< UzScenario > m_uzScenarioArray;
-   CMap< int, int, UzUGA*, UzUGA* > m_idToUzUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
-
-   int UzAddUGA(UzScenario* pScenario, UzUGA* pUGA);
-   UzScenario* UzFindScenarioFromID(int id);
-   UzUGA* UzFindUGAFromID(int id) { UzUGA* pUGA = NULL;  BOOL ok = m_idToUzUGAMap.Lookup(id, pUGA);  if (ok) return pUGA; else return NULL; }
-   UzUGA* UzFindUGAFromName(LPCTSTR name);
-   
 
    //-- general --------------------------------------
    void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &m_randShuffle ); }
@@ -403,7 +439,6 @@ protected:
    int m_colZone;
    int m_colPopDens;
    int m_colArea;
-
 
    // data collection
    FDataObj* m_pUxData;
@@ -428,4 +463,4 @@ protected:
 };
 
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new Developer; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new UrbanDev; }

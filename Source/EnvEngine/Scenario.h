@@ -177,7 +177,9 @@ public:
       }
 
    int AddPolicyInfo( Policy *pPolicy, bool use )
-         { return (int) CArray<POLICY_INFO, POLICY_INFO&>::Add( POLICY_INFO( pPolicy, use ) ); }
+      {
+      POLICY_INFO pi(pPolicy, use);  return (int)CArray<POLICY_INFO, POLICY_INFO&>::Add(pi);
+      }
 };
 
 
