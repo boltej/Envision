@@ -70,7 +70,7 @@ public:
 	static const int NYEAR_HIST = CRU_TS30::NYEAR_HIST;
 
 	/// calendar year corresponding to first year in data set
-	static const int FIRSTHISTYEAR = 1979;
+	static const int FIRSTHISTYEAR = 1950;
 
 	/// number of years to use for temperature-detrended spinup data set
 	/** (not to be confused with the number of years to spinup model for, which
