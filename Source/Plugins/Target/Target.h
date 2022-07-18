@@ -352,6 +352,7 @@ public:
    int    m_colCapDensity;       // capacity expressed in density terms
    int    m_colAvailCapacity;    // difference between computed capacity and current level
    int    m_colAvailDens;        // difference between computed capacity and current level, pre unit area basis
+   int    m_colTargetBin;
    int    m_colPctAvailCapacity;
    int    m_colPrefs;
 

@@ -215,7 +215,7 @@ bool Variable::Compile( ModelBase *pModel, ModelCollection *pCollection, MapLaye
          break;
 
       case VT_PCT_AREA:
-      //case VT_PCT_CONTRIB_AREA:
+      case VT_PCT_CONTRIB_AREA:
          {
          //m_pQuery = Modeler::m_pQueryEngine->ParseQuery( m_expression );  // parsed when first read
          if ( m_pQuery == NULL )
@@ -252,7 +252,7 @@ bool Variable::Evaluate( void )
          break;
 
       case VT_PCT_AREA:
-      //case VT_PCT_CONTRIB_AREA:
+      case VT_PCT_CONTRIB_AREA:
          // for pctArea variables, nothing is required
          ASSERT( m_pQuery != NULL );
          retVal =  true;
@@ -786,6 +786,8 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
       vtype = VT_SUM_AREA;
    else if ( lstrcmpi( "areaWtMean", type ) == 0 )
       vtype = VT_AREAWTMEAN;
+   else if ( lstrcmpi( "pctContribArea", type ) == 0 )
+      vtype = VT_PCT_CONTRIB_AREA;
    else if ( lstrcmpi( "global", type ) == 0 )
       vtype = VT_GLOBALEXT;
    else if ( lstrcmpi( "raster", type ) == 0 )
@@ -802,7 +804,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
       return false;
       }
 
-   if ( ( vtype != VT_PCT_AREA && vtype != VT_RASTER ) && value == NULL )
+   if ( ( vtype != VT_PCT_AREA && vtype != VT_PCT_CONTRIB_AREA && vtype != VT_RASTER ) && value == NULL )
       {
       CString msg;
       msg.Format( _T("  <var> '%s' missing 'value' expression attribute - this is required" ), name );
@@ -810,7 +812,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
       return false;
       }
 
-   if ( vtype == VT_PCT_AREA )
+   if ( vtype == VT_PCT_AREA || vtype == VT_PCT_CONTRIB_AREA)
       {
       if ( query == NULL )
          {
@@ -1280,6 +1282,156 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
 
 
+BOOL NetworkModel::InitNetwork( LPCTSTR name, int colTo, int colFrom, int colEdge, int colTreeID )
+   {
+   ASSERT( this->m_pNetworkLayer != NULL );
+   ASSERT( this->m_pIDULayer != NULL );
+   ASSERT( colTo >= 0 || colFrom  >= 0 );
+
+   int retVal = m_network.BuildTree( m_pNetworkLayer, colEdge, colTo );
+   ASSERT( retVal > 0 );
+
+   if ( this->m_colOrder >= 0 )
+      m_network.PopulateOrder();
+
+   if ( colTreeID >= 0 )
+      m_network.PopulateTreeID( colTreeID );
+
+   BuildIndex();
+   //ComputeContributingAreas( 0, 100000 );
+ 
+   return TRUE;
+   }
+
+
+
+void NetworkModel::BuildIndex( void )
+   {
+   m_iduIndexArray.RemoveAll();
+
+   m_iduIndexArray.SetSize( m_pNetworkLayer->GetRowCount() );
+
+   int iduCount = m_pIDULayer->GetRowCount();
+   //int reachIndex;
+
+   int colReachIndex = this->m_colReachIndex;
+   ASSERT( colReachIndex >= 0 );
+/*
+   int bufferIDUs = 0;
+   int pctBufferArea = 0;
+   for ( int i=0; i < iduCount; i++ )
+      {
+      m_pIDULayer->GetData( i, m_colAreaBuffer, pctBufferArea );
+      if ( pctBufferArea > 0 ) 
+         {
+         m_pIDULayer->GetData( i, colReachIndex, reachIndex );
+         m_iduIndexArray[ reachIndex ].Add( i );
+         bufferIDUs++;
+         }
+      }
+*/
+   
+   // compute statistics
+   int zeroIduReaches = 0;
+   float avgIdusPerReach = 0;
+   for ( int i=0; i < m_iduIndexArray.GetSize(); i++ )
+      {
+      if ( m_iduIndexArray[ i ].GetSize() == 0 )
+         zeroIduReaches++;
+
+      avgIdusPerReach += m_iduIndexArray[ i ].GetSize();
+      }
+
+   avgIdusPerReach /= m_iduIndexArray.GetSize();
+   //float _avgIdusPerReach = float( bufferIDUs ) / m_iduIndexArray.GetSize();
+
+   TRACE1( "IDUs/Reach indexed: %f", avgIdusPerReach );
+   }
+
+
+/*
+
+float NetworkModel::ComputeContributingArea( ModelBase *pBase, int year, int endYear )
+   {
+   ASSERT( pBase->m_pParser != NULL );
+
+   m_edgesReportingScores = 0;
+
+   float totalArea = 0;
+
+   for ( int i=0; i < m_network.GetRootCount(); i++ )
+      {
+      float score = ComputeNetworkScore( m_network.GetRoot( i ), area, year, endYear );
+      totalArea += area;
+      }
+
+   return totalArea; //????????????
+   }
+
+*/
+float NetworkModel::ComputeNetworkScore( ModelBase *pBase, NetworkNode *pNode, float&area, int year, int endYear )
+   {
+   /*
+   float leftScore  = 0;
+   float rightScore = 0;
+   
+   float leftArea = 0;
+   float rightArea = 0;
+
+   // get upstream reach scores
+   if ( pNode->m_pLeft )
+      leftScore = ComputeNetworkScore( pNode->m_pLeft, leftArea, year, endYear );
+      
+   if ( pNode->m_pRight )
+      rightScore = ComputeNetworkScore( pNode->m_pRight, rightArea, year, endYear );
+
+   // iterate through each IDU assocatiated with this reach, getting scores for thoes IDUS that sataisfy the query   
+   int reachIndex = pNode->GetDownstreamVectorIndex();
+   if ( reachIndex >= 0 )
+      {
+      CUIntArray &iduArray = this->m_iduIndexArray[ reachIndex ];
+
+      float thisArea = 0;
+      float iduScore = 0;
+      float totalIduScore = 0;
+
+      for ( int i=0; i < iduArray.GetSize(); i++ )
+         {
+         int idu = iduArray[ i ];
+
+         if ( m_pQuery != NULL )
+            {
+            bool result;
+            Modeler::m_pQueryEngine->Run( m_pQuery, idu, result );
+
+            if ( result == false )
+               continue;
+            }
+
+         pBase->UpdateVariables( idu );
+         iduScore = (float) pBase->m_pParser->evaluate();
+
+         switch( pBase->m_m
+
+         totalIduScore += iduScore;
+         }
+
+      // we have the area for this reach, add it to the rest of the reaches..
+            }
+
+         if ( computeFishIBI )
+            fishIBI = ComputeFishIBI( areaAg, areaDev, areaBuffer );
+
+         m_reachesReportingScores++;
+         }
+
+      m_pStreamLayer->SetData( reachIndex, m_colFishIBI, fishIBI );
+
+      }
+*/
+   return 0; //fishIBI;
+   }
+
 
 bool Evaluator::Init(EnvContext*, LPCTSTR)
    {
@@ -1596,6 +1748,145 @@ bool Evaluator::RunDelta( EnvContext *pEnvContext )
    }
 
 
+
+
+bool NetworkEvaluator::Init(EnvContext*, LPCTSTR)
+   {
+   return true;
+   }
+
+bool NetworkEvaluator::InitRun(EnvContext*)
+   {
+   return true;
+   }
+   
+bool NetworkEvaluator::Run( EnvContext *pEnvContext )
+   {
+   bool useAddDelta = true;
+   /*
+   MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
+   int colArea = pLayer->GetFieldCol( _T("Area") );
+   if ( colArea < 0 )
+      return FALSE;
+
+   int   colCount = pLayer->GetColCount();
+   float totalArea = pLayer->GetTotalArea();
+   VData value;
+   float fValue;
+   int   iduCount = 0;
+
+   m_rawScore = 0;
+      
+   // iterate over ACTIVE records
+   for ( MapLayer::Iterator i = pLayer->Begin(); i != pLayer->End(); i++ )
+      {
+      currentIDU = i;
+      iduCount++;
+
+      float area = 0;
+      pLayer->GetData( i, colArea, area );
+
+      // load current values into the m_parserVars array 
+      // (NOTE: THIS SHOULD ONLY HAPPEN DURING THE FIRST INVOCATION OF A MODEL IN A GIVEN TIMESTEP...
+      for ( int j=0; j < colCount; j++ )
+         {
+         bool okay = pLayer->GetData( i, j, value );
+
+         if ( okay && value.GetAsFloat( fValue ) )
+            Modeler::m_parserVars[ j ] = fValue;
+         }
+
+      // evaluate lookups
+      for ( int j=0; j < this->m_lookupTableArray.GetSize(); j++ )
+         {
+         LookupTable *pTable = this->m_lookupTableArray[ j ];
+         bool ok = pTable->Evaluate();
+         ASSERT( ok );
+         }
+
+      // evaluate histograms
+      for ( int j=0; j < this->m_histogramsArray.GetSize(); j++ )
+         {
+         HistogramArray *pHisto = this->m_histogramsArray[ j ];
+         bool ok = pHisto->Evaluate();
+         ASSERT( ok );
+         }
+
+      // evaluate variables
+      for ( int j=0; j < this->m_variableArray.GetSize(); j++ )
+         {
+         Variable *pVar = this->m_variableArray[ j ];
+         bool ok = pVar->Evaluate();
+         ASSERT( ok );
+         }
+
+      // note: no need to evaluate constants - once is enough
+
+      // done evalating all inputs - run model formula
+      ASSERT( m_pParser != NULL );
+      float iduValue = (float) m_pParser->evaluate();
+
+      switch( m_evalMethod )
+         {
+         case EM_SUM:    // sum the scores over the entire coverage
+         case EM_MEAN:    // compute the average score over the entire coverage
+            m_rawScore += iduValue;
+            break;
+
+         case EM_AREAWTMEAN:  // compute an area-weighted average value over the entire coverage
+            m_rawScore += iduValue * area;
+            break;
+         }
+
+      if ( m_col >= 0 )   // populate the IDU database?
+         {
+         TYPE type = pLayer->GetFieldType( m_col );
+
+         VData v;
+         v.type = type;
+
+         if ( m_evalMethod == EM_AREAWTMEAN ) // make any adjustments before recording to IDU database
+             iduValue /= area;
+
+         v.SetKeepType( iduValue );
+         AddDelta( pEnvContext, i, m_col, v );
+         }
+      }  // end of: MapIterator
+
+   // normalize the scores, depending on the evalMethod
+
+   // normalize scores to total area and apply scaling
+   switch( m_evalMethod )
+      {
+      case EM_SUM:    // sum the scores over the entire coverage
+         break;         // no additional processing needed
+
+      case EM_MEAN:    // compute the average score over the entire coverage
+         m_rawScore /= iduCount;
+         break;
+
+      case EM_AREAWTMEAN:  // compute an area-weighted average value over the entire coverage
+         m_rawScore /= totalArea;
+         break;
+      }
+
+   // scale to (-3, +3)
+   double range = m_upperBound - m_lowerBound;
+   m_score = ((( m_rawScore - m_lowerBound ) / range) * 6) - 3;
+         
+   if ( m_evalType == ET_VALUE_LOW )
+   m_score *= -1;
+
+   // make sure score is in range
+   if ( m_score < -3.0f ) m_score = -3.0f;
+   else if ( m_score > 3.0f ) m_score = 3.0f; */
+   
+   return TRUE;
+   }
+
+
+
+
 bool ModelProcess::Init(EnvContext*, LPCTSTR)
    {
    return true;
@@ -1800,6 +2091,136 @@ BOOL ModelProcess::RunDelta( EnvContext *pEnvContext )
    }
 
 
+
+
+
+
+bool NetworkModelProcess::Run( EnvContext *pEnvContext )
+   {
+   if ( m_col < 0 )
+      return true;
+
+   if ( m_pNetworkLayer == NULL )
+      return FALSE;
+
+   if ( this->m_useDelta )
+      return RunDelta( pEnvContext );
+
+   MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
+   //int colArea = pLayer->GetFieldCol( _T("Area") );
+   //if ( colArea < 0 )
+   //   return FALSE;
+
+   int   iduCount = 0;
+   // iterate over ACTIVE records in the network layer
+
+   /*
+
+
+
+
+
+
+
+
+
+
+
+   for ( MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++ )
+      {
+      m_pCollection->UpdateVariables( idu ); // this loads all parserVars and evaluates ModelCollection extent variables for the current IDU
+
+      if ( pExpr->m_pQuery != NULL ) // does this model apply here?
+         {
+         bool result;
+         Modeler::m_pQueryEngine->Run( m_pQuery, idu, result );
+
+         if ( result == false )
+            continue;
+         }
+
+      iduCount++;
+
+      UpdateVariables( idu );
+
+      // done evalating all inputs - run model formula
+      ASSERT( m_pParser != NULL );
+      float iduValue = (float) m_pParser->evaluate();
+
+      if ( useAddDelta )
+         {
+         float oldValue;
+         pLayer->GetData( idu, m_col, oldValue );
+
+         if ( oldValue != iduValue )
+            AddDelta( pEnvContext, idu, m_col, iduValue ); // populate the IDU database
+         }
+      else
+         pLayer->SetData( idu, m_col, iduValue );
+
+      }  // end of: MapIterator
+      */
+   return TRUE;
+   }
+
+
+BOOL NetworkModelProcess::RunDelta( EnvContext *pEnvContext )
+   {
+   if ( m_col < 0 )
+      return true;
+
+   ASSERT( m_useDelta == true );
+
+   const MapLayer *pLayer = pEnvContext->pMapLayer;
+
+   // Load variables
+   int   colCount = pLayer->GetColCount();
+   int   iduCount = 0;
+
+   // load current values into the m_parserVars array 
+   DeltaArray *deltaArray = pEnvContext->pDeltaArray;// get a ptr to the delta array
+
+   ASSERT( m_exprArray.GetSize() == 1 );
+   Expression *pExpr = m_exprArray[ 0 ];
+   
+   // iterate through deltas added since last “seen”
+   for ( INT_PTR i=pEnvContext->firstUnseenDelta; i < deltaArray->GetSize(); ++i )
+      {   
+      DELTA &delta = ::EnvGetDelta( deltaArray, i );
+
+      bool processThisDelta = false;
+      for ( int j=0; j < (int) m_useDeltas.GetSize(); j++ )
+         {
+         USE_DELTA &ud = m_useDeltas.GetAt( j );
+         if ( delta.col == ud.col && ud.value == delta.newValue )
+            {
+            processThisDelta = true;
+            break;
+            }
+
+         if ( processThisDelta )
+            {     
+            m_pCollection->UpdateVariables( pEnvContext, delta.cell, true );
+            UpdateVariables( pEnvContext, delta.cell, true );
+
+            // done evalating all inputs - run model formula
+            ASSERT( pExpr->m_pParser != NULL );
+            double iduValue;
+            if ( ! pExpr->m_pParser->evaluate( iduValue ) )
+               iduValue = 0;
+
+            float oldValue;
+            pLayer->GetData( delta.cell, m_col, oldValue );
+
+            if ( m_col >= 0 && oldValue != iduValue )
+               AddDelta( pEnvContext, delta.cell, m_col, (float) iduValue ); // populate the IDU database
+            }  /// end of: matching delta
+         }
+
+      }  // end of: deltaArray loop
+
+   return TRUE;
+   }
 
 
 Evaluator *ModelCollection::GetEvaluatorFromID( int id )
@@ -2029,7 +2450,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
                         break;
 
                      case VT_PCT_AREA:
-                     //case VT_PCT_CONTRIB_AREA:
+                     case VT_PCT_CONTRIB_AREA:
                         //pVar->m_cumValue += area;
                         break;       
                      } 
@@ -2099,7 +2520,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
                         break;
 
                      case VT_PCT_AREA:
-                     //case VT_PCT_CONTRIB_AREA:
+                     case VT_PCT_CONTRIB_AREA:
                         break;                     
                      } 
                   }  // end of:  if ( pVar->m_evaluate )
@@ -2124,7 +2545,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
             break;
 
          case VT_PCT_AREA:
-         //case VT_PCT_CONTRIB_AREA:
+         case VT_PCT_CONTRIB_AREA:
             {
             float totalArea = Modeler::m_pMapLayer->GetTotalArea();
             pVar->m_value = pVar->m_queryArea*100/totalArea;
@@ -2318,6 +2739,13 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
             }
          }
 
+      // is this a network model
+      else if ( lstrcmpi( "network_evaluator", pXmlNode->Value() ) == 0 )
+         {
+         if ( ! LoadNetworkEvaluator( pXmlNode, pLayer, filename) )
+            loadSuccess = false;
+         }
+
       // is this a process
       else if ( lstrcmpi( "model", pXmlNode->Value() ) == 0 )
          {
@@ -2330,10 +2758,12 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
             pModel->SetVars( (EnvExtension*) pModel );
             }
          }
-      else {
-         CString msg;
-         msg.Format("  Unrecognized xml element <%s> encountered reading file %s", pXmlNode->Value(), filename);
-         Report::LogWarning(msg);
+
+      // is this a process
+      else if ( lstrcmpi( "network_model", pXmlNode->Value() ) == 0 )
+         {
+         if ( ! LoadNetworkModelProcess( pXmlNode, pLayer, filename) )
+            loadSuccess = false;
          }
       }
 
@@ -2497,6 +2927,280 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
    }
 
 
+bool ModelCollection::LoadNetworkEvaluator( TiXmlNode *pXmlModelNode, MapLayer *pLayer, LPCTSTR filename  )
+   {
+   bool loadSuccess = true;
+   if ( pXmlModelNode->Type() != TiXmlNode::ELEMENT )
+      return false;
+      
+   // process Model element
+   //
+   // <network_model name="Impervious Surfaces (%)" col="EM_IMPERV" value="FRACIMPERV" 
+   //      evalType="LOW" lowerBound="0.10" upperBound="0.15" method="AREAWTAVG"/>
+   //
+   TiXmlElement *pXmlElement = pXmlModelNode->ToElement();
+   LPCTSTR name       = pXmlElement->Attribute( "name" );
+   LPCTSTR netLayer   = pXmlElement->Attribute( "network_layer" );
+   LPCTSTR netMethod  = pXmlElement->Attribute( "network_method" );
+   LPCTSTR cAreaMethod= pXmlElement->Attribute( "ca_method" );
+   LPCTSTR netCol     = pXmlElement->Attribute( "network_col" );
+   LPCTSTR indexCol   = pXmlElement->Attribute( "index_col" );
+   LPCTSTR orderCol   = pXmlElement->Attribute( "order_col" );
+   LPCTSTR toCol      = pXmlElement->Attribute( "to_col" );
+   LPCTSTR fromCol    = pXmlElement->Attribute( "from_col" );
+   LPCTSTR edgeCol    = pXmlElement->Attribute( "edge_col" );
+   LPCTSTR treeIDCol  = pXmlElement->Attribute( "treeid_col" );
+   //LPCTSTR id         = pXmlElement->Attribute( "id" );
+   LPCTSTR col        = pXmlElement->Attribute( "col" );
+   LPCTSTR value      = pXmlElement->Attribute( "value" );
+   LPCTSTR type       = pXmlElement->Attribute( "eval_type" );
+   LPCTSTR lbound     = pXmlElement->Attribute( "lower_bound" );
+   LPCTSTR ubound     = pXmlElement->Attribute( "upper_bound" );
+   LPCTSTR method     = pXmlElement->Attribute( "method" );
+   LPCTSTR useDelta   = pXmlElement->Attribute( "use_delta" );  // ignored for now
+   LPCTSTR query      = pXmlElement->Attribute( "query" );
+
+   // note: "col", "network_col" is optional
+   if ( value == NULL || type == NULL || lbound == NULL || ubound == NULL || method == NULL || netMethod == NULL || netLayer == NULL && indexCol == NULL )
+      {
+      Report::ErrorMsg( _T("<network_model> element missing required attribute" ) );
+      return false;
+      }
+
+   // make sure the netLayer exists
+   Map *pMap = pLayer->GetMapPtr();
+   ASSERT( pMap != NULL );
+   MapLayer *pNetLayer = pMap->GetLayer( netLayer );
+   if ( pNetLayer == NULL )
+      {
+      CString msg;
+      msg.Format( _T("Network Layer [%s] not found - this model will be ignored" ), netLayer );
+      Report::ErrorMsg( msg );
+      return false;
+      }
+
+   NetworkEvaluator *pModel = new NetworkEvaluator( this );
+   pModel->m_name = name;
+   //pModel->m_id   = atoi( id );
+
+   pModel->m_pIDULayer = pLayer;
+
+   // methods
+   if ( netMethod != NULL )
+      {
+      if ( _strnicmp( netMethod, "cmb", 3 ) == 0 )
+         pModel->m_netMethod = NM_CUMULATIVE_MASS_BALANCE;
+      else if ( _strnicmp( netMethod, "cs", 2 ) == 0 )
+         pModel->m_netMethod = NM_CUMULATIVE_SCORE;
+      else if ( _strnicmp( netMethod, "ca", 2 ) == 0 )
+         pModel->m_netMethod = NM_CAREA_SCORE;
+      }
+
+   if ( cAreaMethod != NULL )
+      {
+      if ( _strnicmp( cAreaMethod, "none", 4 ) == 0 )
+         pModel->m_contributingAreaMethod = NCAM_NONE;
+      else if ( _strnicmp( cAreaMethod, "sum", 3 ) == 0 )
+         pModel->m_contributingAreaMethod = NCAM_SUM;
+      else if ( _strnicmp( cAreaMethod, "mean", 4 ) == 0 )
+         pModel->m_contributingAreaMethod = NCAM_MEAN;
+      else if ( _strnicmp( cAreaMethod, "area", 4 ) == 0 )
+         pModel->m_contributingAreaMethod = NCAM_AREAWTMEAN;
+      }
+
+   pModel->m_networkLayerName = netLayer;
+   pModel->m_pNetworkLayer = pNetLayer;
+
+   // check to see that ID not already used
+   Evaluator *_pModel = GetEvaluatorFromID( pModel->m_id );
+   if ( _pModel != NULL && _pModel->m_name != pModel->m_name )
+      {
+      CString msg;
+      msg.Format( _T("Duplicate eval_model ID found (%s and %s)" ), name, (LPCTSTR) _pModel->m_name );
+      Report::ErrorMsg( msg );
+      }
+
+   pModel->m_fieldName = col;
+   pModel->m_lowerBound = (float) atof( lbound );
+   pModel->m_upperBound = (float) atof( ubound );
+
+   EVAL_METHOD _evalMethod = EM_AREAWTMEAN;
+   if ( method[ 0 ] == 'S' )
+      _evalMethod = EM_SUM;
+   else if ( method[ 0 ] == 'A' )
+      if ( method[ 1 ] == 'V' )
+   _evalMethod = EM_MEAN;
+      
+   pModel->m_evalMethod = _evalMethod;
+
+   EVAL_TYPE _evalType;
+   switch( type[ 0 ] )
+      {
+      case 'H':   _evalType = ET_VALUE_HIGH;    break;
+      case 'L':   _evalType = ET_VALUE_LOW;     break;
+      //case 'I':   _evalType = ET_TREND_INCREASING;    break;
+      //case 'D':   _evalType = ET_TREND_DECREASING;    break;
+      default:
+         {
+         CString msg( "Invalid 'evalType' attribute specified for model " );
+         msg += name;
+         Report::ErrorMsg( msg );
+         delete pModel;
+         return false;
+         }
+      }
+   pModel->m_evalType = _evalType;
+
+   // make a parser for this model and add to the parser array
+   MParser *pParser = new MParser;
+   ASSERT( pParser != NULL );
+
+   if ( value != NULL )
+      pModel->AddExpression( value, query );
+
+   // make sure the col exists if specified
+   int _col = -1;
+   if ( col != NULL )
+      {
+      _col = pLayer->GetFieldCol( col );
+
+      if ( _col < 0 )   // missing?
+         {
+         CString msg( "Missing field column specified by a model in Modeler input file (" );
+         msg += col;
+         msg += ").  This column is being added to the database.  You should save the database using File->Save->Cell Database";
+         AfxMessageBox( msg, MB_OK );
+         int width, decimals;
+         GetTypeParams( TYPE_DOUBLE, width, decimals );
+         pLayer->m_pDbTable->AddField( col, TYPE_DOUBLE, width, decimals, true );
+         _col = pLayer->GetColCount() - 1;
+         }
+      }
+   pModel->m_col = _col;
+   
+   // make sure the network_col exists if specified
+   int _netCol = -1;
+   if ( netCol != NULL )
+      {
+      _netCol = pNetLayer->GetFieldCol( netCol );
+
+      if ( _netCol < 0 )   // missing?
+         {
+         CString msg( "Missing network layer column specified by a model in Modeler input file (" );
+         msg += netCol;
+         msg += ").  This column is being added to the network database.  You should save the database";
+         AfxMessageBox( msg, MB_OK );
+         int width, decimals;
+         GetTypeParams( TYPE_DOUBLE, width, decimals );
+         pNetLayer->m_pDbTable->AddField( netCol, TYPE_DOUBLE, width, decimals, true );
+         _netCol = pNetLayer->GetColCount() - 1;
+         }
+      }
+
+   pModel->m_colNetwork = _netCol;
+
+   // make sure the order col exists if specified
+   int _orderCol = -1;
+   if ( orderCol != NULL )
+      {
+      _orderCol = pNetLayer->GetFieldCol( orderCol );
+
+      if ( _orderCol < 0 )   // missing?
+         {
+         CString msg( "Missing 'Order' column specified by a model in Modeler input file (" );
+         msg += orderCol;
+         msg += ").  This column is being added to the network database.  You should save the database";
+         AfxMessageBox( msg, MB_OK );
+         int width, decimals;
+         GetTypeParams( TYPE_INT, width, decimals );
+         pNetLayer->m_pDbTable->AddField( orderCol, TYPE_INT, true );
+         _orderCol = pNetLayer->GetColCount() - 1;
+         }
+      }
+
+   pModel->m_colOrder = _orderCol;
+
+   int _indexCol = pLayer->GetFieldCol( indexCol );
+   if ( _indexCol < 0 )   // missing?
+      {
+      CString msg( "Missing Reach Index column specified by a model in Modeler input file (" );
+      msg += indexCol;
+      msg += ").  This column is being added to the IDU database.  You should save the database";
+      AfxMessageBox( msg, MB_OK );
+      int width, decimals;
+      GetTypeParams( TYPE_INT, width, decimals );
+      pLayer->m_pDbTable->AddField( indexCol, TYPE_INT, true );
+      _indexCol = pLayer->GetColCount() - 1;
+      }
+
+   pModel->m_colReachIndex = _indexCol;
+
+   pModel->LoadModelBaseXml( pXmlModelNode, pLayer );
+
+   // store this model
+   m_evaluatorArray.Add( pModel ); 
+
+   // set up network tree
+   int _toCol = -1;
+   if ( toCol )
+      {
+      _toCol = pNetLayer->GetFieldCol( toCol );
+
+      if ( _toCol < 0 )
+         {
+         CString msg;
+         msg.Format( _T("Network coverage is missing specified 'to_col' field (%s) - unable to build network tree" ), toCol );
+         AfxMessageBox( msg, MB_OK );
+         }
+      }
+
+   int _fromCol = -1;
+   if ( fromCol )
+      {
+      _fromCol = pNetLayer->GetFieldCol( fromCol );
+
+      if ( _fromCol < 0 )
+         {
+         CString msg;
+         msg.Format( _T("Network coverage is missing specified 'from_col' field (%s) - unable to build network tree" ), fromCol );
+         AfxMessageBox( msg, MB_OK );
+         }
+      }
+
+   int _edgeCol = -1;
+   if ( edgeCol )
+      {
+      _edgeCol = pNetLayer->GetFieldCol( edgeCol );
+
+      if ( _edgeCol < 0 )
+         {
+         CString msg;
+         msg.Format( _T("Network coverage is missing specified 'edge_col' field (%s) - unable to build network tree" ), edgeCol );
+         AfxMessageBox( msg, MB_OK );
+         }
+      }
+
+   int _treeIDCol = pNetLayer->GetFieldCol( treeIDCol );
+   if ( _treeIDCol < 0 && treeIDCol != NULL )
+      {
+      CString msg;
+      msg.Format( _T("Network coverage is missing specified 'treeid_col' field (%s) - this will be added to the coverage" ), treeIDCol );
+      AfxMessageBox( msg, MB_OK );
+      int width, decimals;
+      GetTypeParams( TYPE_INT, width, decimals );
+      _treeIDCol = pNetLayer->m_pDbTable->AddField( treeIDCol, TYPE_INT, true );         
+      }
+
+
+   if ( ( _toCol >= 0 || _fromCol >= 0 ) && ( edgeCol == NULL || _edgeCol >= 0 ) )
+      pModel->InitNetwork( name, _toCol, _fromCol, _edgeCol, _treeIDCol );
+   else
+      loadSuccess = false;
+   
+   return loadSuccess;
+   }
+   
+
 bool ModelCollection::LoadModelProcess( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCTSTR filename )
    {
    bool loadSuccess = true;
@@ -2568,6 +3272,21 @@ bool ModelCollection::LoadModelProcess( TiXmlNode *pXmlNode, MapLayer *pLayer, L
    return loadSuccess;
    }
 
+
+bool ModelCollection::LoadNetworkModelProcess( TiXmlNode *pXmlNode, MapLayer*, LPCTSTR filename)
+   {
+   return false;
+   }
+
+
+/*
+void ModelCollection::ErrorMsg( LPCTSTR msg )
+   {
+   CString caption;
+   caption.Format("Error reading Modeler input file, %s", m_fileName);
+   AfxGetMainWnd()->MessageBox( msg, caption );
+   }
+*/
 
 
       

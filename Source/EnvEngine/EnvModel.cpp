@@ -25,7 +25,7 @@ Copywrite 2012 - Oregon State University
 #include "EnvConstants.h"
 #include "EnvException.h"
 #include "Scenario.h"
-#include "SocialNetwork.h"
+//#include "SocialNetwork.h"
 #include "QueryEngine.h"
 #include <FDATAOBJ.H>
 #include <Report.h>
@@ -199,7 +199,7 @@ EnvModel::EnvModel()
    m_yearsToRun(25),
    m_iterationsToRun(20),    // montecarlo
    m_pScenario(NULL),
-   m_pSocialNetwork(NULL),
+   //m_pSocialNetwork(NULL),
    m_scenarioIndex(-1),  // 500
    m_currentRun(-1),
    m_startRunNumber(0),
@@ -473,10 +473,10 @@ EnvModel::EnvModel()
    for ( int i=0; i<count; i++ )
       m_vizFirstUnseenDelta[i] = model.m_vizFirstUnseenDelta[i];
 
-   if ( model.m_pSocialNetwork != NULL )
-      m_pSocialNetwork = new SocialNetwork( *model.m_pSocialNetwork );
-   else
-      m_pSocialNetwork = NULL;
+   //if ( model.m_pSocialNetwork != NULL )
+   //   m_pSocialNetwork = new SocialNetwork( *model.m_pSocialNetwork );
+   //else
+   //   m_pSocialNetwork = NULL;
 
    //m_pExprEngine = NULL;     // new MapExprEngine( *(model.m_pExprEngine) );
    }
@@ -504,8 +504,8 @@ EnvModel::~EnvModel()
    if (m_referenceCount == 0)
       FreeLibraries();  // ?????? note: this must happen after delete m_pDataManager!!
 
-   if ( m_pSocialNetwork )
-      delete m_pSocialNetwork;
+   //if ( m_pSocialNetwork )
+   //   delete m_pSocialNetwork;
 
    if ( m_pExprEngine )
       delete m_pExprEngine;
@@ -1214,7 +1214,7 @@ int EnvModel::RunMultiple()
       if ( !m_continueToRunMultiple )
          break;
 
-      Notify( EMNT_MULTIRUN, 1, i+1 );
+      Notify( EMNT_MULTIRUN, 1, (INT_PTR)(i+1) );
       }
 
    m_currentMultiRun++;
@@ -1386,11 +1386,11 @@ int EnvModel::Run( int runFlag )
          ApplyMandatoryPolicies();
          
          // update social network if needed
-         if ( m_pSocialNetwork )
-            {
-            Report::StatusMsg( "Running Social Network" );
-            m_pSocialNetwork->Run();
-            }
+         //if ( m_pSocialNetwork )
+         //   {
+         //   Report::StatusMsg( "Running Social Network" );
+         //   m_pSocialNetwork->Run();
+         //   }
 
          // iterate through the actors, applying policies
          Report::StatusMsg( "Running Actor Decisionmaking" );
@@ -2411,8 +2411,8 @@ float EnvModel::GetSocialNetworkScore( Actor *pActor, Policy *pPolicy )
    // If the activation is near -1, the actor will be hostile to any policies that score high in the given metric
    
    // no network defined? then score is 0
-   if ( m_pSocialNetwork == NULL )
-      return 0;
+   //if ( m_pSocialNetwork == NULL )
+   //   return 0;
 
    // not used in decision-making?  then return 0
    if ( ( this->m_decisionElements & DE_SOCIALNETWORK ) == 0 )
@@ -2436,14 +2436,16 @@ float EnvModel::GetSocialNetworkScore( Actor *pActor, Policy *pPolicy )
    // iterate through the social network layers.  Note that there is a layer for eval model specified
    // in the network input file.  these have to be reconciled with the appropriate policy intention
    // 
+
+   /*
    int scoreCount = 0;
 
    for ( int i=0; i < m_pSocialNetwork->GetLayerCount(); i++ )
       {
       SNLayer *pLayer = m_pSocialNetwork->GetLayer( i );
 
-      if ( pLayer->m_use == false )
-         continue;
+      //if ( pLayer->m_pSNIPModel->m_use == false )
+      //   continue;
 
       // get activation level for this actor
       SNNode *pActorNode = pLayer->FindNode( pActor->m_pGroup->m_name ); //????  should be a better way
@@ -2468,63 +2470,7 @@ float EnvModel::GetSocialNetworkScore( Actor *pActor, Policy *pPolicy )
       ////ObjectiveScores *pScores = pPolicy->m_objectiveArray.GetAt( metagoalIndex+1 );      // + 1 because first objective is global
       ////
       ////// get the corresponding policy goal.
-
-
-
-
       }
-
-
-
-
-
-
-   // return a float in (0,1) that represents  metagoal weighted mean of policy's overall current effectivess.  
-   // return 1 when policy efficacies match the scarcities ( policy is most effective at addressing scarcity )
-   // return 0 when policy efficacies dont match the scarcities
-   // 
-   // get the number of scores (one per model that is considered in the scarcity calculations)
-
-   // NOTE:: Doesn't consider "Global" objective
-/*
-   int metagoalCount = this->GetMetagoalCount();   // includes both self-interested and altruistic
-   int scarcityCount = this->GetScarcityCount();   // includes altruistic only
-
-   double a;   // A_BUNDANCE in goal space dimension i
-   double e;   // policy's E_FFECTIVENESS in goal space dimension i
-   double m;   // M_ETAGOAL in goal space dimension i
-
-   int i, sc;
-   double altruismScore  = 0.0;
-   double sumMetagoal    = 0.0;
-   for ( i=0, sc=0; i < metagoalCount; i++ )
-      {
-      METAGOAL *pGoal = GetMetagoalInfo( i );
-
-      if ( pGoal->decisionUse & DU_ALTRUISM ) // is this goal used in alteruistic decision-making?
-         {
-         ENV_ASSERT( pGoal->pEvaluator != NULL );
-
-         int modelIndex = this->GetModelIndexFromMetagoalIndex( i );
-         ENV_ASSERT( 0 <= modelIndex && modelIndex < GetEvaluatorCount() );
-         
-         a = NormalizeScores( m_landscapeMetrics[modelIndex].scaled );     // convert from (-3, +3) ---> (0, 1)
-         e = NormalizeScores( polObjScores[ i ] );  // efficacy of policy to address this scarcity;
-
-         float score = float( e * (((e-a)+1)/2) * (1-a) );
-
-         m = NormalizeScores( pGoal->weight );
-         sumMetagoal += m;
-         altruismScore += m * score;
-         sc++;
-         }
-      }
-
-   if (sumMetagoal > 0.0)
-      altruismScore /= sumMetagoal;
-
-   ENV_ASSERT( sc == scarcityCount );
-   ENV_ASSERT( 0.0 <= altruismScore && altruismScore <= 1.0 );
 */
    return (float) 0; //altruismScore;
    }
@@ -3348,8 +3294,8 @@ void EnvModel::InitRun()
             }
          }
 
-      if ( m_pSocialNetwork )
-         m_pSocialNetwork->InitRun();
+      //if ( m_pSocialNetwork )
+      //   m_pSocialNetwork->InitRun();
 
       UpdateAppVars( -1, 0, 3 );  // global vars, don't apply to coverage, pre and post timing
 
@@ -5599,6 +5545,7 @@ void EnvModel::RemoveAllAppVars()
    }
 
 
+/*
 bool EnvModel::InitSocialNetwork( void )
    {
    if ( ( m_decisionElements & DE_SOCIALNETWORK ) == 0 )
@@ -5616,7 +5563,7 @@ bool EnvModel::InitSocialNetwork( void )
 
    return m_pSocialNetwork->Init( path ) ? true : false;
    }
-
+*/
 
 int EnvModel::ChangeIDUActor( EnvContext *pContext, int idu, int groupID, bool randomize )
    {

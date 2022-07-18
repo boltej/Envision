@@ -52,7 +52,7 @@ Copywrite 2012 - Oregon State University
 class MapLayer;
 class DataManager;
 class DeltaArray;
-class SocialNetwork;
+//class SocialNetwork;
 class Actor;
 class Policy;
 
@@ -480,7 +480,7 @@ class ENVAPI EnvModel
       DeltaArray  *m_pDeltaArray;     // DeltaArray associated with this model.  NOTE - this is shared with the 
                                       // dataManager (if the DataManager exists)
       Scenario      *m_pScenario;
-      SocialNetwork *m_pSocialNetwork;
+      //SocialNetwork *m_pSocialNetwork;
 
       
    protected:
@@ -570,7 +570,7 @@ class ENVAPI EnvModel
       bool IsColBlocked( int cell, int col );      // determines if an outcome col is blocked on the specified cell
       void SetDecisionElements( int decisionElements ) { m_decisionElements = decisionElements; }
       void InitModels();
-      bool InitSocialNetwork( void );
+      //bool InitSocialNetwork( void );
 
       //bool ChangeIDUActor( int idu, Actor *pNewActor );
       int ChangeIDUActor( EnvContext*, int idu, int groupID, bool randomize );      // only valid for AIM_IDU_GROUPS, returns groupID if successful

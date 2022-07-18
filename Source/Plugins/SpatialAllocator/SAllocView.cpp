@@ -181,7 +181,7 @@ bool SAllocView::ImportXml( void )
       {
       CString pathName = fileDlg.GetPathName();
 
-      m_pSpatialAllocator->LoadXml( pathName, &(this->m_allocationSetArray) );
+      m_pSpatialAllocator->LoadXml( NULL, pathName, &(this->m_allocationSetArray) );
 
       this->m_pTreeWnd->LoadTreeCtrl();
       

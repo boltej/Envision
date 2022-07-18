@@ -264,18 +264,18 @@ int ResultsPanel::AddDynamicGraphNodes( ResultNode *pGraphNode )
       }
 
    // dynamic social network info (probe).  Only add is social networks enabled
-   if ( gpModel->m_pSocialNetwork != NULL )
-      {
-      int layerCount = gpModel->m_pSocialNetwork->GetLayerCount();
-
-      if ( layerCount > 0 )
-         {
-         ResultNode *pSNNode = AddTreeNode( pGraphNode, run, VC_SOCIAL_NETWORK, 0, VT_GRAPH_SOCIAL_NETWORK, _T("Social Network Metrics") );
-
-         for ( int i=0; i < layerCount; i++ )
-            AddTreeNode( pSNNode, run, VC_GRAPH, (INT_PTR) i+1, VT_GRAPH_SOCIAL_NETWORK, gpModel->m_pSocialNetwork->GetLayer( i )->m_name.c_str() );
-         }
-      }
+   //if ( gpModel->m_pSocialNetwork != NULL )
+   //   {
+   //   int layerCount = gpModel->m_pSocialNetwork->GetLayerCount();
+   //
+   //   if ( layerCount > 0 )
+   //      {
+   //      ResultNode *pSNNode = AddTreeNode( pGraphNode, run, VC_SOCIAL_NETWORK, 0, VT_GRAPH_SOCIAL_NETWORK, _T("Social Network Metrics") );
+   //
+   //      for ( int i=0; i < layerCount; i++ )
+   //         AddTreeNode( pSNNode, run, VC_GRAPH, (INT_PTR) i+1, VT_GRAPH_SOCIAL_NETWORK, gpModel->m_pSocialNetwork->GetLayer( i )->m_name.c_str() );
+   //      }
+   //   }
 
    return extra-1;
    }
@@ -1143,31 +1143,31 @@ void ResultsPanel::AddGraphWnd( ResultNode *pNode )
 
       case VT_GRAPH_SOCIAL_NETWORK:
          {
-         ASSERT( extra > 0 );
-
-         DataObj *pDataObj = gpModel->m_pDataManager->GetDataObj( DT_SOCIAL_NETWORK, run );
-         ASSERT( pDataObj != NULL );
-
-         ScatterWnd *pScatter = new ScatterWnd;
-         pGraph = (CWnd*) pScatter;
-
-         pScatter->SetXCol( pDataObj, 0 );   // time
-
-         int layer = (int) extra - 1;
-         SNLayer *pSNLayer = gpModel->m_pSocialNetwork->GetLayer( layer );
-
-         int metricCount = gpModel->m_pSocialNetwork->GetMetricCount();
-
-         for( int i=0; i < metricCount; i++ )
-            {
-            int col = 1 + ( layer*metricCount ) + i;
-            pScatter->AppendYCol( pDataObj, col );
-            }
-
-         pScatter->MakeDataLocal();
-         yMin = yMax = 0;
-
-         title.Format( "%s - Run %i (%s)", pSNLayer->m_name.c_str(), run, (LPCTSTR)ri.pScenario->m_name);
+         //ASSERT( extra > 0 );
+         //
+         //DataObj *pDataObj = gpModel->m_pDataManager->GetDataObj( DT_SOCIAL_NETWORK, run );
+         //ASSERT( pDataObj != NULL );
+         //
+         //ScatterWnd *pScatter = new ScatterWnd;
+         //pGraph = (CWnd*) pScatter;
+         //
+         //pScatter->SetXCol( pDataObj, 0 );   // time
+         //
+         //int layer = (int) extra - 1;
+         //SNLayer *pSNLayer = gpModel->m_pSocialNetwork->GetLayer( layer );
+         //
+         //int metricCount = gpModel->m_pSocialNetwork->GetMetricCount();
+         //
+         //for( int i=0; i < metricCount; i++ )
+         //   {
+         //   int col = 1 + ( layer*metricCount ) + i;
+         //   pScatter->AppendYCol( pDataObj, col );
+         //   }
+         //
+         //pScatter->MakeDataLocal();
+         //yMin = yMax = 0;
+         //
+         //title.Format( "%s - Run %i (%s)", pSNLayer->m_name.c_str(), run, (LPCTSTR)ri.pScenario->m_name);
          }
          break;
 
@@ -1568,9 +1568,9 @@ void ResultsPanel::AddDataTableWnd( ResultNode *pNode ) //RESULT_TYPE type, int 
          pDataObj = gpModel->m_pDataManager->GetDataObj( DT_POLICY_STATS, run );
          break;
 
-      case VT_DATA_SOCIAL_NETWORK:
-         pDataObj = gpModel->m_pDataManager->GetDataObj( DT_SOCIAL_NETWORK, run );
-         break;
+      //case VT_DATA_SOCIAL_NETWORK:
+      //   pDataObj = gpModel->m_pDataManager->GetDataObj( DT_SOCIAL_NETWORK, run );
+      //   break;
 
       case VT_DATA_POLICIES_BY_ACTOR_AREA:
          pDataObj = gpModel->m_pDataManager->CalculatePolicyByActorArea( run );
@@ -2069,11 +2069,11 @@ void ResultsPanel::ExportDataTable( ResultNode *pNode ) //RESULT_TYPE type, int 
          filename = "PolicyStats.csv";
          break;
 
-      case VT_GRAPH_SOCIAL_NETWORK:
-      case VT_DATA_SOCIAL_NETWORK:
-         pDataObj = gpModel->m_pDataManager->GetDataObj( DT_SOCIAL_NETWORK, run );
-         filename = "SocialNetwork.csv";
-         break;
+      //case VT_GRAPH_SOCIAL_NETWORK:
+      //case VT_DATA_SOCIAL_NETWORK:
+      //   pDataObj = gpModel->m_pDataManager->GetDataObj( DT_SOCIAL_NETWORK, run );
+      //   filename = "SocialNetwork.csv";
+      //   break;
 
       case VT_DATA_LULC_TRANS:
          pDataObj = gpModel->m_pDataManager->CalculateLulcTransTable( run );

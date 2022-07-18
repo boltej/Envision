@@ -100,12 +100,12 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
    CPath appPath( _path, epcTrim | epcSlashToBackslash );
    appPath.RemoveFileSpec();           // e.g. c:\Envision - directory for executables
-   PathManager::AddPath( appPath );
+   PathManager::AddPath( appPath, PM_ENVISION_DIR );
 
    // second, the directory of the envx file
    CPath envxPath( filename, epcTrim | epcSlashToBackslash );
    envxPath.RemoveFileSpec();
-   PathManager::AddPath( envxPath );
+   PathManager::AddPath( envxPath, PM_PROJECT_DIR );
 
    
    CString logFile( envxPath );
@@ -469,7 +469,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             CPath _fullPath( fullPath );
             _fullPath.RemoveFileSpec();
 
-            PathManager::AddPath( _fullPath );
+            PathManager::AddPath( _fullPath, PM_IDU_DIR );
 
             m_pIDULayer = m_pMap->GetLayer( 0 );
             }
@@ -1228,14 +1228,14 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    // next, add output directory (e.g. projPath= "C:\Envision\MyProject\Outputs" )
    CString outputPath = PathManager::GetPath( PM_PROJECT_DIR );  // note: always terminated with a '\'
    outputPath += "Outputs\\";
-   PathManager::AddPath( outputPath ); // note: this will get scenario name appended below, after scenarios loaded
+   PathManager::AddPath( outputPath, PM_OUTPUT_DIR ); // note: this will get scenario name appended below, after scenarios loaded
    
    // next, initialize models and visualizers
    //Report::StatusMsg( "Initializing Models and Processes..." );
    //m_pEnvModel->InitModels();     // EnvContext gets set up here
 
-   if ( m_pEnvModel->m_decisionElements & DE_SOCIALNETWORK )
-      m_pEnvModel->InitSocialNetwork();
+   //if ( m_pEnvModel->m_decisionElements & DE_SOCIALNETWORK )
+   //   m_pEnvModel->InitSocialNetwork();
 
    InitVisualizers();
 
@@ -1576,9 +1576,6 @@ bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, L
       return false;
       }
 
-   pEnvModel->m_envContext.id = id;
-
-
    FACTORYFN factory = (FACTORYFN)PROC_ADDRESS(hDLL, "Factory");
 
    if (!factory)
@@ -1591,8 +1588,9 @@ bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, L
       }
    else
       {
-      EnvEvaluator *pEval = (EnvEvaluator*) factory(&pEnvModel->m_envContext);
-
+      pEnvModel->m_envContext.id = id;
+      pEnvModel->m_envContext.initInfo = initInfo;
+      EnvEvaluator* pEval = (EnvEvaluator*)factory(&pEnvModel->m_envContext);
       if (pEval != nullptr)
          {
          pEval->m_id = id;                  // model id as specified by the project file
@@ -1610,7 +1608,6 @@ bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, L
          pEnvModel->AddEvaluator(pEval);
          }
       }
-
    return true;
    }
 
@@ -1641,6 +1638,7 @@ bool EnvLoader::LoadModel( EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCT
    else
       {
       pEnvModel->m_envContext.id = id;
+      pEnvModel->m_envContext.initInfo = initInfo;
       EnvModelProcess *pModel = (EnvModelProcess*) factory(&pEnvModel->m_envContext);
 
       if (pModel != nullptr)
@@ -1653,7 +1651,6 @@ bool EnvLoader::LoadModel( EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCT
          pModel->m_imageURL = imageURL;     // not currently used
          pModel->m_use = use;          // use this model during the run?
          pModel->m_hDLL = hDLL;
-         
          pModel->m_timing = timing;
          //pModel->m_frequency;    // how often this process is executed
          pModel->m_dependencyNames = dependencyNames;

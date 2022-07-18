@@ -28,6 +28,7 @@ Copywrite 2012 - Oregon State University
 #include <tinyxml.h>
 #include <mtparser\mtparser.h>
 #include <histogramArray.h>
+#include <networktree.h>
 //#include <Raster.h>
 #include <PtrArray.h>
 
@@ -79,34 +80,49 @@ enum {  /*constraints*/
 
 enum MODEL_TYPE {
    MT_EVALUATOR = 0,
-   MT_MODELPROCESS = 1,
+   MT_NETWORK_MODEL = 1,
+   MT_MODELPROCESS = 10,
+   MT_NETWORK_PROCESS = 11
+   };
+
+enum NETWORK_CA_METHOD {   // contributing areas method
+   NCAM_NONE = 0,          // "none" - ignore contributing areas
+   NCAM_SUM = 1,           // "sum" - sum the value over the entire contributing area for a reach
+   NCAM_MEAN = 2,          // "mean" - compute the average value over the entire contributing area for a reach
+   NCAM_AREAWTMEAN = 3     // "areawtmean" - compute an area-weighted average value over the entire contributing area for a reach
+   };
+
+enum NETWORK_METHOD {
+   NM_CUMULATIVE_MASS_BALANCE = 0,  // "cmb" - perform a cumulative mass balance through the network.  Requires flow_col be defined in the input file
+   NM_CUMULATIVE_SCORE = 1,         // "cs" - edge accumulates upstream values
+   NM_CAREA_SCORE = 2               // "ca" - edge is scored based on contributing area score
    };
 
 enum VAR_TYPE {        //  Description                                              |      Extent         | useDelta?|
    VT_UNDEFINED = -1,  //|----------------------------------------------------------|---------------------|-----------
    VT_EXPRESSION = 0,  // (default) value defined only by a evaluatable expression  | always idu-extent   |    no   |
-   //                 
-   VT_PCT_AREA = 1,     // "pctArea" - value defined as a percent of the total IDU   | always global extent|    no    |
-                        // area that satisfies the specified query, expressed as a
-                        // non-decimal percent.  No "value" attr specified.
-                        //
-   VT_SUM_AREA = 2,     // "sum" sums the "value" expression over an area            | always global extent |   yes   |
+   //
+   VT_PCT_AREA = 1,    // "pctArea" - value defined as a percent of the total IDU   | always global extent|    no    |
+                       // area that satisfies the specified query, expressed as a
+                       // non-decimal percent.  No "value" attr specified.
+                       //
+   VT_PCT_CONTRIB_AREA = 2,  // "pctContribArea" - not implemented
+                             //
+   VT_SUM_AREA = 4,     // "sum" sums the "value" expression over an area            | always global extent |   yes   |
                         //  defined by the query.  If "use_delta" specified, the 
                         //  query area is further restricted to those IDUs in which
                         //  a change, specified by the useDelta list, occured
                         // 
-    VT_AREAWTMEAN = 4,  // "areaWtMean" - area wt mean of the "value" expression,    | always global extent |   yes   |
+    VT_AREAWTMEAN = 8,  // "areaWtMean" - area wt mean of the "value" expression,    | always global extent |   yes   |
                         // summed over the query area. If "use_delta" specified, the 
                         //  query area is further restricted to those IDUs in which
                         //  a change, specified by the useDelta list, occured 
-    VT_DENSITY = 8,      // variable value is a density - multiply by area and sum    | always global extent |   yes   |
-                        // over IDUS
-
-    //VT_DIFFEQ = 16,   // "diffeq" - differential equation requiring integration
+    VT_DIFFEQ = 16,     // "diffeq" - differential equation requiring integration
     VT_GLOBALEXT = 32,  // "global" - global-scope variable, computed based on other | always global extent  |   no   |
                         // global scope variables only (not implemented)
-    VT_RASTER = 64   // "raster" a variable defined by a raster
-    //VT_RULE = 128,    // variable defined by a set of one or more local or spatial rules (not implemented)
+    VT_RASTER = 64,     // "raster" a variable defined by a raster
+    VT_RULE = 128,      // variable defined by a set of one or more local or spatial rules (not implemented)
+    VT_DENSITY = 256    // variable value is a density - multiply by area and sum over IDUS
    };
 
 
@@ -396,6 +412,50 @@ class ModelBase       // base class for EvalModels, AutoProcesses - just some ba
    };
 
 
+// base class for NetworkEvalModel, NetworkAutoProcess
+class NetworkModel
+   {
+   protected:
+      NetworkModel(NETWORK_METHOD method) : m_netMethod(method), m_contributingAreaMethod(NCAM_NONE),
+         m_pNetworkLayer(NULL), m_pIDULayer(NULL),
+         m_colNetwork(-1), m_colIDU(-1),
+         m_colOutput(-1), m_colOrder(-1), m_colFlow(-1),
+         m_edgesReportingScores(-1)
+         { }
+
+   public:
+      MapLayer* m_pNetworkLayer;
+      MapLayer* m_pIDULayer;
+      CString   m_networkLayerName;
+
+      int m_colNetwork;             // column in the network coverage used to store results
+      int m_colIDU;                 // IDU column used to compute areas (should be query???)
+      int m_colReachIndex;			   // column in the IDU database that contains the corresponding reach
+      int m_colOutput;              // network layer col receiving output
+      int m_colOrder;               // network layer containing network order column
+      int m_colFlow;                // network layer contain flow information (only use for cumulative mass balance method)
+
+   protected:
+      int m_edgesReportingScores;   // count of network lines reporting scores
+
+   public:
+      NETWORK_METHOD    m_netMethod;
+      NETWORK_CA_METHOD m_contributingAreaMethod;
+
+   protected:
+      NetworkTree m_network;
+      CArray< CUIntArray, CUIntArray& > m_iduIndexArray; // length =  #stream reaches, contains array of IDU's adjacent to that reach
+
+      void BuildIndex(void);
+
+      void ComputeNetworkScore(ModelBase* pBase, int year, int endYear);
+      float ComputeNetworkScore(ModelBase* pBase, NetworkNode* pNode, float& area, int year, int endYear);
+
+   public:
+      BOOL InitNetwork(LPCTSTR name, int colTo, int colFrom, int colEdge, int colTreeID);
+   };
+
+
 class Evaluator : public ModelBase, public EnvEvaluator
    {
    public:
@@ -427,6 +487,21 @@ class Evaluator : public ModelBase, public EnvEvaluator
       bool RunDelta(EnvContext*);
    };
 
+
+class NetworkEvaluator : public Evaluator, public NetworkModel
+   {
+   public:
+      NetworkEvaluator(ModelCollection* pCollection) : Evaluator(pCollection), NetworkModel(NM_CUMULATIVE_MASS_BALANCE) { }
+
+      virtual MODEL_TYPE GetModelType() { return MT_NETWORK_MODEL; }
+
+      bool Init(EnvContext*, LPCTSTR);
+      bool InitRun(EnvContext*);
+      bool Run(EnvContext*);
+      //virtual BOOL Run(EnvContext*, bool useAddDelta);
+   };
+
+
 class ModelProcess : public ModelBase, public EnvModelProcess
    {
    public:
@@ -443,6 +518,22 @@ class ModelProcess : public ModelBase, public EnvModelProcess
    };
 
 
+class NetworkModelProcess : public ModelProcess, public NetworkModel
+   {
+   protected:
+
+   public:
+      NetworkModelProcess(ModelCollection* pCollection) : ModelProcess(pCollection), NetworkModel(NM_CUMULATIVE_MASS_BALANCE) { }
+
+      MODEL_TYPE GetModelType() { return MT_NETWORK_PROCESS; }
+
+      bool Init(EnvContext*, LPCTSTR);
+      bool InitRun(EnvContext*);
+      bool Run(EnvContext*);
+
+      //virtual BOOL Run(EnvContext*, bool useAddDelta);
+      BOOL RunDelta(EnvContext*);
+   };
 
 
 class ModelCollection
@@ -463,6 +554,8 @@ class ModelCollection
       CString   m_fileName;
       PtrArray< ModelProcess > m_modelProcessArray;
       PtrArray< Evaluator >   m_evaluatorArray;
+      //CArray< NetworkAutoProcess*, NetworkAutoProcess* > m_netAutoProcessArray;
+      //CArray< NetworkEvalModel*,   NetworkEvalModel*   > m_netEvalModelArray;
 
       bool LoadXml(LPCTSTR filename, MapLayer* pLayer, bool isImporting);       // returns number of nodes in the first level
       bool LoadXml(TiXmlNode*, bool isImporting);
@@ -481,6 +574,9 @@ class ModelCollection
    protected:
       bool LoadModelProcess(TiXmlNode* pXmlNode, MapLayer*, LPCTSTR);
       bool LoadEvaluator(TiXmlNode* pXmlNode, MapLayer*, LPCTSTR);
+      bool LoadNetworkModelProcess(TiXmlNode* pXmlNode, MapLayer*, LPCTSTR);
+      bool LoadNetworkEvaluator(TiXmlNode* pXmlNode, MapLayer*, LPCTSTR);
+      //void ErrorMsg(LPCTSTR msg);
    };
 
 

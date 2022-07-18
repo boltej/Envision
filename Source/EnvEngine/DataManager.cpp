@@ -32,7 +32,7 @@ Copywrite 2012 - Oregon State University
 #include "ColumnTrace.h"
 #include "Scenario.h"
 //#include "mainfrm.h"
-#include "SocialNetwork.h"
+//#include "SocialNetwork.h"
 
 #include <Maplayer.h>
 #include <MAP.h>
@@ -498,7 +498,7 @@ bool DataManager::CreateDataObjects()
 
    m_currentDataObjs[ DT_POLICY_STATS ] = pPolicyStatsData;
    m_dataObjs[ DT_POLICY_STATS ].Add( pPolicyStatsData );
-
+   /*
    //----- social network -----------------------------
    FDataObj *pSocialNetworkData = NULL;
    if ( m_pEnvModel->m_pSocialNetwork != NULL )
@@ -526,7 +526,7 @@ bool DataManager::CreateDataObjects()
 
    m_currentDataObjs[ DT_SOCIAL_NETWORK ] = pSocialNetworkData;
    m_dataObjs[ DT_SOCIAL_NETWORK ].Add( pSocialNetworkData );
-
+   */
    RUN_INFO ri(m_pEnvModel->GetScenario(), m_pEnvModel->GetScenario()->m_runCount, m_pEnvModel->m_startYear, m_pEnvModel->m_endYear);
    m_runInfoArray.Add(ri);
    
@@ -873,7 +873,7 @@ bool DataManager::CollectData( int yearOfRun )
          pPolicyStatsData->Set( col++, row, pPolicy->m_noOutcomeCount );
          }
       }
-
+   /*
    FDataObj *pSocialNetworkData = (FDataObj*) m_currentDataObjs[ DT_SOCIAL_NETWORK ];
    if ( pSocialNetworkData != NULL  )
       {
@@ -892,7 +892,7 @@ bool DataManager::CollectData( int yearOfRun )
             }
          }
       }
-      
+    */  
    return true;
    }
 

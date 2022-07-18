@@ -239,6 +239,7 @@ Target::Target( TargetProcess *pProcess, int id, LPCTSTR name )
 , m_colArea( -1 )
 , m_colTarget( -1 )
 , m_colDensXarea( -1 )
+, m_colTargetBin(-1)
 , m_colStartTarget( -1 )
 , m_colTargetCapacity( -1 )
 , m_colCapDensity( -1 )
@@ -830,6 +831,29 @@ bool Target::Run( EnvContext *pEnvContext )
 
                if ( m_colDensXarea >= 0 )
                   m_pProcess->AddDelta( pEnvContext, idu, m_colDensXarea, newValue );
+
+               if (m_colTargetBin >= 0)
+                  {
+                  int bin = 0;
+                  if (newDensity < 0.0000625f)     // .25
+                     bin = 1;
+                  else if (newDensity < 0.000125f)  // .5/ac
+                     bin = 2;
+                  else if (newDensity < 0.00025f)  // 1/ac
+                     bin = 3;
+                  else if (newDensity < 0.00125f)  // 5/ac
+                     bin = 4;
+                  else if (newDensity < 0.0025f)   // 10/ac
+                     bin = 5;
+                  else if (newDensity < 0.00625f)  // 25/ac
+                     bin = 6;  
+                  else if (newDensity < 0.000001f)     // .004/ac
+                     bin = 0;
+                  else
+                     bin = 7;
+
+                  m_pProcess->AddDelta(pEnvContext, idu, m_colTargetBin, bin);
+                  }
                
                // remember the total newly allocated and idu-level newly allocated
                m_totalAllocated += iduAlloc;    // total new IDU allocation
@@ -1322,10 +1346,11 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
       LPTSTR colPctAvailCapacity = NULL;
       LPTSTR colCapDensity = NULL;
       LPTSTR colDensXarea = NULL;
+      LPTSTR colTargetBin = NULL;
       LPTSTR colAvailDens = NULL;
       LPTSTR colArea = NULL;
       LPTSTR colPrefs = NULL;
-
+      LPTSTR targetBins = NULL;
       XML_ATTR attrs[] = {
          // attr            type           address                         isReq checkCol
             { "name",         TYPE_STRING,  &name,                      false,  0 },
@@ -1339,6 +1364,8 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
             { "capDensCol",   TYPE_STRING,   &colCapDensity,               false, 0 },
             { "densXareaCol", TYPE_STRING,   &colDensXarea,                false, 0 },
             { "availDensCol", TYPE_STRING,   &colAvailDens,                false, 0 },
+            { "binCol",       TYPE_STRING,   &colTargetBin,                false, 0 },
+            { "bins",         TYPE_STRING,   &targetBins,                  false, 0 },
             { "areaCol",      TYPE_STRING,   &colArea,                     false, 0 },
             { "prefsCol",     TYPE_STRING,   &colPrefs,                    false, 0 },
             { "query",        TYPE_STRING,  &queryStr,         false, 0 },
@@ -1414,6 +1441,12 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
          {
          EnvExtension::CheckCol( pLayer, pTarget->m_colAvailDens, colAvailDens, TYPE_FLOAT, CC_AUTOADD );
          pLayer->SetColData( pTarget->m_colAvailDens, 0, false );
+         }
+
+      if (colTargetBin)
+         {
+         EnvExtension::CheckCol(pLayer, pTarget->m_colTargetBin, colTargetBin, TYPE_INT, CC_AUTOADD);
+         pLayer->SetColData(pTarget->m_colTargetBin, 0, false);
          }
 
       if ( lstrcmpi( method, _T("rateLinear") ) == 0 )

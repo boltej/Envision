@@ -1,0 +1,62 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+
+<!-- 
+ NOTE:  ORDER IS IMPORTANT AND MUST MATCH ID's in the correspondign INI File!
+ 
+ evalType  : specifies how this evaluation is made.  One of the following (required)
+               HIGH - want to maximize the area within the range defined by the bounds (low values indicate scarcity)
+               LOW  - want to minimize the area within the range defined by the bounds (high values indicate scarcity)
+ 
+ method    : specifies how the calcualtion is made.  One of the following (required)
+               AREAWTMEAN - compute an area-weighted mean value
+               
+ lowerBound: the lower bound for this attribute, expressed in total area or percent area, depending on the valueof the "area" attribute (required)
+ upperBound: the upper bound for this attribute, expressed in total area or percent area, depending on the valueof the "area" attribute (required)
+ 
+ 
+ Autonomous Processes
+   
+   name (required)     name of model
+   id   (required)     id specified in ENVX file
+   col  (optional)     database field name for process to populate
+   value (optional)    computed value to populate into database
+   query (optional)    spatial query limiting scope of computation (ignored if useDelta specified)
+   constraints (optional)
+   useDelta  (optional) instead of iterating through map, iterate though delta array.   In this case
+                        usedelta must contain a field=value pair to look for in the delta array.
+   network_layer (required) the name of the layer to use for the network representation.
+   network_method (required) = "CMB", "CS", "ES"
+   index_col (optional) column in IDU coverage that contains the index of the network edge its is associated with
+   network_col (optional) column in network coverage to populate with results
+   to_col   = specifies column in the database that has pointers to the "to" (downstream) edges from this node  (only one of "to_col" or "from_col" is required)
+   from_col = specifies column in the database that has pointers to the "from" (upstream) edges from this node (only one of "to_col" or "from_col" is required)
+   edge_col (optional)  column in database that containes the to/from references. if to/from references contain index of target edge, then this should not be specified   
+   treeid_col (optional)  column in database to store witch network tree this is
+   order_col (optional)   column in network coverage to populate with network order number
+   flow_col (required if network_method = cmb) column in network coverage containing flow information
+                 
+-->
+
+<modeler>
+
+  <network_model name="Net_Test"
+                 id="11"
+                 network_layer="Streams"
+                 network_method="CMB"
+                 ca_method="MEAN"
+                 index_col="RCH_INDEX"
+                 network_col="FISH_IBI"
+                 to_col="TNODE_"
+                 edge_col="FNODE_"
+                 treeid_col="TREEID"
+                 order_col ="ORDER"                 
+                 flow_col ="MEANQ"                 
+                 value="1"
+                 query="UGA=1"
+                 eval_type="HIGH"
+                 lower_bound="0.0"
+                 upper_bound="1.0"
+                 eval_method="AREAWTMEAN"
+                 use_delta="LULC_B=4"   />             
+
+</modeler>

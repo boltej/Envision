@@ -179,6 +179,7 @@
     <ClInclude Include="BFILE.HPP" />
     <ClInclude Include="BIN.H" />
     <ClInclude Include="BitArray.h" />
+    <ClInclude Include="Budget.h" />
     <ClInclude Include="CacheManager.h" />
     <ClInclude Include="COLORS.HPP" />
     <ClInclude Include="CompressedRow2DArray.h" />
@@ -291,6 +292,7 @@
     <ClCompile Include="BasicQuadTree.cpp" />
     <ClCompile Include="Bin.cpp" />
     <ClCompile Include="BitArray.cpp" />
+    <ClCompile Include="Budget.cpp" />
     <ClCompile Include="CacheManager.cpp" />
     <ClCompile Include="DataAggregator.cpp" />
     <ClCompile Include="Dataobj.cpp" />

@@ -21,8 +21,11 @@ Copywrite 2012 - Oregon State University
 #include "EnvLibs.h"
 
 #include "Path.h"
+#include <map>
+#include <string>
 
 using namespace nsPath;
+using namespace std;
 
 
 class LIBSAPI PathManager
@@ -32,13 +35,14 @@ class LIBSAPI PathManager
       ~PathManager(void);
 
    protected:
-      static CStringArray m_pathArray;
+      //static CStringArray m_pathArray;
+      static std::map<int, std::string> m_pathMap;
 
       static int SearchPaths( CPath &path, FILE **fp, LPCTSTR mode ); // Last In, First out
 
    public:
       static LPCTSTR GetPath(int i);    // this will always be terminated with a '\'
-      static int AddPath( LPCTSTR path );
+      static int AddPath( LPCTSTR path, int id=-9999 );
       static int SetPath( int index, LPCTSTR path );
       static int FindPath( LPCTSTR path, CString &fullPath );        // finds first full path that contains passed in path if relative or filename, return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
 

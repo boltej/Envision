@@ -28,6 +28,7 @@ Copywrite 2012 - Oregon State University
 #include <RANDOM.HPP>
 #include <EnvConstants.h>
 
+#include <Budget.h>
 
 #define _EXPORT __declspec( dllexport )
 
@@ -48,6 +49,7 @@ enum TARGET_DOMAIN { TD_UNDEFINED=0, TD_AREA=2, TD_PCTAREA=3, TD_ATTR=4 /*unused
 enum CONSTRAINT_TYPE { CT_QUERY=0 };
 enum ALLOC_METHOD { AM_SCORE_PRIORITY=0, AM_BEST_WINS=1 };
 enum EXPAND_TYPE  { ET_CONSTANT=0, ET_UNIFORM=1, ET_NORMAL=2, ET_WEIBULL=3, ET_LOGNORMAL=4, ET_EXPONENTIAL=5 };
+enum LIMIT_TYPE   { LT_NONE=0, LT_BUDGET_MET=1, LT_TARGET_MET=2, LT_SUPPLY_EXHAUSTED=3, LT_MIN_SCORE_NOT_MET=4 };
 
 class AllocationSet;
 class Allocation;
@@ -111,6 +113,9 @@ public:
 
    Constraint &operator=( Constraint &c );
 };
+
+
+
 
 
 // a "TargetContainer" is a either an allocation or an allocation set that 
@@ -250,6 +255,8 @@ public:
 // if col is specified, a field is added to the IDUs that has the score of the allocation 
 // stored
 
+
+
 class Allocation : public TargetContainer
 {
 public:
@@ -267,6 +274,8 @@ public:
 
    CString m_expandQueryStr;  // expand into adjacent IDUs that satify this query 
    Query  *m_pExpandQuery;
+
+   CostItem *m_pCostItem;
    
    // area stats
    float   m_initPctArea;
@@ -285,6 +294,9 @@ public:
    float m_scoreBasis;     // target amount associated with scored IDUs
    float m_expandArea;
    float m_expandBasis;
+
+   LIMIT_TYPE m_limit;
+
       
 public:   
    PtrArray< Preference > m_prefsArray;
@@ -401,9 +413,12 @@ public:
 
    float m_scoreThreshold;    // 0 be default - pref scores < this value are not considered
 
+   Budget* m_pBudget;
+
 protected:
    CUIntArray m_iduArray;    // used for shuffling IDUs
 
+   void Reset();
    void SetAllocationTargets( int yearOfRun );  // always 0-based 
    void ScoreIduAllocations( EnvContext *pContext, bool useAddDelta );
    void AllocScorePriority( EnvContext *pContext, bool useAddDelta );
@@ -413,9 +428,11 @@ protected:
    float AddIDU( int idu, Allocation *pAlloc, bool &addToPool, float areaSoFar, float maxArea );
    int  CollectExpandStats( void );
    void CollectData( EnvContext *pContext );
+   void ReportOutcomes(EnvContext* pContext);
+
 
 public:
-   bool LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray=NULL );
+   bool LoadXml( EnvContext *, LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray=NULL );
    bool SaveXml( LPCTSTR filename );   // can include full path
 
    int ReplaceAllocSets( PtrArray< AllocationSet > &allocSet );
@@ -433,7 +450,7 @@ protected:
 	int m_runNumber;
 
    // data collection
-   FDataObj m_outputData;
+   FDataObj *m_pBudgetData;
 
    bool m_collectExpandStats;
    FDataObj *m_pExpandStats;    // cols are size bins, rows are active allocations

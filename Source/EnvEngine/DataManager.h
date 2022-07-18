@@ -155,7 +155,7 @@ enum DM_TYPE {
    DT_POLICY_SUMMARY,      // policy summary information (only initial areas)
    DT_GLOBAL_CONSTRAINTS,  // Global Constraints summary outputs
    DT_POLICY_STATS,        // info on policy stats (intrumentation)
-   DT_SOCIAL_NETWORK,      // info on social network outpus
+   //DT_SOCIAL_NETWORK,      // info on social network outpus
    DT_LAST                 // NOTE: This must ALWAYS be last
    };
 

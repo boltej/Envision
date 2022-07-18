@@ -229,6 +229,7 @@ public:
    int             id;                    // id of the module being called
    int             handle;                // unique handle of the module
    int             col;                   // database column to populate, -1 for no column
+   LPCTSTR         initInfo;
    INT_PTR         firstUnseenDelta;      // models should start scanning the deltaArray here
    INT_PTR         lastUnseenDelta;       // models should stop scanning the delta array here.  This will be the index of the last delta
    bool           *targetPolyArray;       // array of polygon indices with true/false to process (NULL=process all)

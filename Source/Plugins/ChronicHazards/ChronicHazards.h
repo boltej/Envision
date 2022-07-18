@@ -22,7 +22,11 @@
 
 //#define N 1854
 
-#define N 8
+const int NN = 8;  //???
+const int HOURLY_DATA_IN_A_DAY = 24;
+const float G_VALUE_9_81 = 9.81f;
+const float TANB1_005 = 0.05f;
+
 
 // this privides a basic class definition for this
 // plug-in module.
@@ -30,10 +34,23 @@
 // for Init, InitRun, and Run.
 
 
-
 #define _EXPORT __declspec( dllexport )
 
+enum DATA_CYCLE 
+{
+   DATA_DAILY = 0,
+   DATA_HOURLY,
+};
 
+//TODO: CHange these based on the input buoy file.
+enum BUOY_OBSERVATION_DATA{
+    TIME_STEP=0,
+    WAVE_HEIGHT_HS =1,
+    WAVE_PERIOD_Tp =2,
+    WAVE_DIRECTION_Dir=3,
+    WATER_LEVEL_WL= 4,
+    TOTAL_BUOY_COL,
+};
 
 
 enum CH_FLAGS
@@ -84,13 +101,6 @@ enum
    };
 
 
-enum  // flags for ReducebuoyObsData
-   {
-   PERIOD_HOURLY,
-   PERIOD_MONTHLY,
-   PERIOD_ANNUAL
-   };
-
 struct TWLDATAFILE
    {
    CString timeseries_filename;
@@ -133,7 +143,7 @@ class BatesFlood
       CString m_cityDir;
       float m_duration;
       float m_ManningCoeff;
-      float m_timeStep;
+      float m_floodTimestep;
    };
 
 class PolicyInfo
@@ -238,7 +248,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //bool GenerateFloodMap();
       bool AddToPolicySummary(int year, int policy, int loc, float unitCost, float cost, float availBudget, float param1, float param2, bool passCostConstraint);
 
-
+      int ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath);
 
       /*  void SetGridCellWidth(int val) { m_cellWidth = val; };
       void SetGridCellHeight(int val) { m_cellHeight = val; };
@@ -255,7 +265,6 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       // that is created based on the extent of the shapefile, a cellsize given by the variable m_cellDim and 
       // a number of subgridcells specified by the variable m_numSubGridCells. Furthermore, the calculated 
       // PolyGridLookup relation is written to a binary file (*.pgl), in case such a file does not yet exist.
-      int ReducebuoyObsData(int period);
       int SetInfrastructureValues();
 
       // bool LoadPolyGridLookup();
@@ -263,39 +272,39 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
    protected:
       int m_runFlags;
-      Map * m_pMap;									// ptr to Map required to create grids
-      MapLayer *m_pIDULayer;							// ptr to IDU Layer
-      MapLayer *m_pRoadLayer;                         // ptr to Road Layer
-      MapLayer *m_pBldgLayer;                         // ptr to Building Layer
-      MapLayer *m_pInfraLayer;                        // ptr to Infrastructure Building Layer
-      MapLayer *m_pElevationGrid;                     // ptr to Minimum Elevation Grid
+      Map * m_pMap;									            // ptr to Map required to create grids
+      MapLayer *m_pIDULayer = nullptr;							// ptr to IDU Layer
+      MapLayer *m_pRoadLayer = nullptr;                  // ptr to Road Layer
+      MapLayer *m_pBldgLayer = nullptr;                  // ptr to Building Layer
+      MapLayer *m_pInfraLayer = nullptr;                 // ptr to Infrastructure Building Layer
+      MapLayer *m_pElevationGrid = nullptr;              // ptr to Minimum Elevation Grid
 
-      MapLayer *m_pBayBathyGrid;                     // ptr to Bay Bathymetry Grid
-      MapLayer *m_pBayTraceLayer;
-      MapLayer *m_pManningMaskGrid;                  // ptr to Bates Model Mannings Coefficient Grid (value = -1 if not running Bates model in region)
-      MapLayer *m_pTidalBathyGrid;                   // ptr to Tidal Bathymetry Grid
+      MapLayer *m_pBayBathyGrid = nullptr;               // ptr to Bay Bathymetry Grid
+      MapLayer *m_pBayTraceLayer = nullptr;
+      MapLayer *m_pManningMaskGrid = nullptr;            // ptr to Bates Model Mannings Coefficient Grid (value = -1 if not running Bates model in region)
+      MapLayer *m_pTidalBathyGrid = nullptr;             // ptr to Tidal Bathymetry Grid
 
-      MapLayer *m_pOrigDuneLineLayer;                 // ptr to Original Dune Line Layer
-      MapLayer *m_pNewDuneLineLayer;                  // ptr to Changed Dune Line Layer
+      MapLayer *m_pOrigDuneLineLayer = nullptr;          // ptr to Original Dune Line Layer
+      MapLayer *m_pNewDuneLineLayer = nullptr;           // ptr to Changed Dune Line Layer
 
-                                                      //   MapLayer *m_pTsunamiInunLayer;                  // ptr to Tsunami Inundaiton Layer
+      //   MapLayer *m_pTsunamiInunLayer = nullptr;                  // ptr to Tsunami Inundaiton Layer
 
-      PolyGridMapper *m_pPolygonGridLkUp;				// provides mapping between IDU layer and DEM grid
-      PolyGridMapper *m_pPolylineGridLkUp;			// provides mapping between roads layer and DEM grid
-      PolyPointMapper *m_pIduBuildingLkup;			// provides mapping between IDU layer, building (point) layer
-      PolyPointMapper *m_pPolygonInfraPointLkup;		// provides mapping between IDU layer, infrastructure (point) layer
+      PolyGridMapper *m_pPolygonGridLkUp = nullptr;		   // provides mapping between IDU layer and DEM grid
+      PolyGridMapper *m_pPolylineGridLkUp = nullptr;			// provides mapping between roads layer and DEM grid
+      PolyPointMapper *m_pIduBuildingLkup = nullptr;			// provides mapping between IDU layer, building (point) layer
+      PolyPointMapper *m_pPolygonInfraPointLkup = nullptr;	// provides mapping between IDU layer, infrastructure (point) layer
 
-                                                      // Created grids that overlay DEM grid
-      MapLayer *m_pFloodedGrid;                       // ptr to Flooded Grid
-      MapLayer *m_pCumFloodedGrid;                    // ptr to Flooded Grid
-      MapLayer *m_pErodedGrid;                        // ptr to Eroded Grid
+      // Created grids that overlay DEM grid
+      MapLayer *m_pFloodedGrid = nullptr;                   // ptr to Flooded Grid
+      MapLayer *m_pCumFloodedGrid = nullptr;                // ptr to Flooded Grid
+      MapLayer *m_pErodedGrid = nullptr;                    // ptr to Eroded Grid
 
-      MapLayer *m_pEelgrassGrid;                      // ptr to Eel Grass Grid
+      MapLayer *m_pEelgrassGrid = nullptr;                  // ptr to Eel Grass Grid
 
-                                                      // Bates Flooding Model
-      MapLayer *m_pNewElevationGrid;
-      MapLayer *m_pWaterElevationGrid;                   // ptr to Flooded Water Depth Grid
-      MapLayer *m_pDischargeGrid;                     // ptr to Volumetric Flow rate Grid
+      // Bates Flooding Model
+      MapLayer *m_pNewElevationGrid = nullptr;
+      MapLayer *m_pWaterElevationGrid = nullptr;            // ptr to Flooded Water Depth Grid
+      MapLayer *m_pDischargeGrid = nullptr;                 // ptr to Volumetric Flow rate Grid
 
                                                       //PtrArray<BatesFlood> m_batesFloodArray;
 
@@ -319,11 +328,11 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       PtrArray< MovingWindow > m_floodInfraFreqArray;
 
       // Lookup tables for transects and cross shore profiles
-      DDataObj *m_pInletLUT;
-      DDataObj *m_pBayLUT;
-      DDataObj *m_pProfileLUT;
-      DDataObj *m_pSAngleLUT;
-      DDataObj *m_pTransectLUT;
+      //DDataObj *m_pInletLUT = nullptr;
+      //DDataObj *m_pBayLUT = nullptr;
+      DDataObj *m_pProfileLUT = nullptr;
+      //DDataObj *m_pSAngleLUT = nullptr;
+      DDataObj *m_pTransectLUT = nullptr;
 
       // Policy allocations/expenditures
       CArray<PolicyInfo, PolicyInfo&> m_policyInfoArray;
@@ -335,7 +344,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       DDataObj m_slrData;
 
       // Deep water simulation Daily Time Series
-      FDataObj m_buoyObsData;
+      VDataObj m_buoyObsData;
       //FDataObj m_maxTWLArray;
 
       /*DDataObj m_TideData;
@@ -344,421 +353,437 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       DDataObj m_reducedbuoyObsData;
 
       // Setup variables
-      CString m_twlInputDir;
-      CString m_cityDir;
-      bool m_debugOn;
+      CString m_twlInputPath;
+      CString m_erosionInputPath;
+      CString m_bathyInputPath;
 
-      int
-         m_debug,
-         m_numBayBathyPts,
-         m_numBayPts,
-         m_numBayStations,
-         m_numBldgs,
-         m_numDays,
-         m_numDunePts,
-         m_numProfiles,
-         m_numTransects,
-         m_numYears,
-         m_simulationCount,
-         m_maxDuneIndx,
-         /*	m_maxTraceIndx,
-         m_minTraceIndx,*/
-         m_maxTransect,
-         m_minTransect,
-         m_randIndex;
+      CString m_cityDir;
+      bool m_inputinHourlydata = true;
+
+     
+      ////// int m_debug = 0;
+      ////// int m_numBayBathyPts = 0;
+      ////// int m_numBayPts = 0;
+      ////// int m_numBayStations = 0;
+       
+      
+      // TWL variables
+      int m_climateScenarioID = 0;						// 0=BaseSLR = 0; 1=LowSLR = 0; 2=MedSLR = 0; 3=HighSLR
+      float m_meanTWL = 0;
+      int m_windowLengthTWL = 0;
+      int m_numTransects = 0;
+      int m_numDays = -1;
+      int m_numYears = -1;
+      int m_randIndex = 0;
+      int m_simulationCount = 0;
+
+      // flooding variables
+      float m_floodedArea = 0;
+      float m_floodedAreaSqMiles = 0;
+      float m_floodedRailroadMiles = 0;
+      float m_floodedRoad = 0;
+      float m_floodedRoadMiles = 0;
+      int m_windowLengthFloodHzrd = 5;
+      REAL m_elevCellWidth = -1;							   // cell Width (m) in DEM, Flooded, Eroded grid
+      REAL m_elevCellHeight = -1;							   // cell Height (m) in DEM, Flooded, Eroded grid
+      float m_ManningCoeff = 0.25f;
+      int m_runBatesFlood = 0;
+      float m_batesFloodDuration = 6;
+      ///// int m_runBayFloodModel = 0;				// Run Bay Flooding Model: 0=Off; 1=On
+
+
+      // erosion variables
+      float m_erodedRoad = 0;
+      float m_erodedRoadMiles = 0;
+      int m_windowLengthEroHzrd = 5;
+      int m_numProfiles = 0;
+      float m_constTD = 10.0f;
+
+      // Dune variables
+      int m_maxTransect = -1;
+      int m_minTransect = 99999;
+      int m_maxDuneIndx = -1;
+      int m_nourishFactor = 5;
+      int m_nourishFreq = 5;
+      int m_nourishPercentage = 20;
+
+
+      // Infrastructure variables
+      int m_numBldgs = 0;
+      int m_findSafeSiteCell = 0;
+      int m_erodedBldgCount = 0;
+      int m_floodedBldgCount = 0;
+      int m_floodedInfraCount = 0;
+
+      int m_floodCountBPS = 0;
+      int m_floodCountSPS = 0;
+
+
+      ////// int m_numDunePts = 0;
 
       // Policy scenario xml variables 
-      int m_climateScenarioID,						// 0=BaseSLR, 1=LowSLR, 2=MedSLR, 3=HighSLR
-         m_runConstructBPSPolicy,					// 0=Off, 1=On
-         m_runConstructSafestPolicy,					// 0=Off, 1=On
-         m_runConstructSPSPolicy,					// 0=Off, 1=On
-         m_runMaintainBPSPolicy,						// 0=Off, 1=On
-         m_runMaintainSPSPolicy,						// 0=Off, 1=On
-         m_runNourishByTypePolicy,					// 0=Off, 1=On
-         m_runNourishSPSPolicy,						// 0=Off, 1=On
-         m_runRaiseInfrastructurePolicy,				// 0=Off, 1=On
-         m_runRelocateSafestPolicy,					// 0=Off, 1=On	
-         m_runRemoveBldgFromHazardZonePolicy,			// 0=Off, 1=On
-         m_runRemoveInfraFromHazardZonePolicy;			// 0=Off, 1=On
+      int m_runConstructBPSPolicy = 0;					// 0=Off = 0; 1=On
+      ////// int m_runConstructSafestPolicy = 0;					// 0=Off = 0; 1=On
+      int m_runConstructSPSPolicy = 0;					// 0=Off = 0; 1=On
+      int m_runMaintainBPSPolicy = 0;						// 0=Off = 0; 1=On
+      int m_runMaintainSPSPolicy = 0;						// 0=Off = 0; 1=On
+      int m_runNourishByTypePolicy = 0;					// 0=Off = 0; 1=On
+      int m_runNourishSPSPolicy = 0;						// 0=Off = 0; 1=On
+      int m_runRaiseInfrastructurePolicy = 0;				// 0=Off = 0; 1=On
+      int m_runRelocateSafestPolicy = 0;					// 0=Off = 0; 1=On	
+      int m_runRemoveBldgFromHazardZonePolicy = 0;			// 0=Off = 0; 1=On
+      int m_runRemoveInfraFromHazardZonePolicy;			// 0=Off = 0; 1=On
+      float m_totalBudget = 0;
+      float m_accessThresh = 90.0f;
 
-                                                      //   xml variables 
-      int
-         //		m_period,		
-         m_exportMapInterval,
-         m_findSafeSiteCell,
-         m_runBayFloodModel,				// Run Bay Flooding Model: 0=Off; 1=On
-         m_runEelgrassModel,				// Run Eelgrass Model: 0=Off; 1=On
-         m_runSpatialBayTWL,             // Run Spatially varying TWLs in Bay: 0=Off; 1=On
-         m_writeDailyBouyData,
-         m_writeRBF;
+      int m_noConstructedBPS = 0;
+      int m_noConstructedDune;
+      float m_maintCostBPS = 0;
+      float m_maintCostSPS = 0;
+      float m_maintVolumeSPS = 0;
 
-      int
-         m_bfeCount,
-         m_eroCount,
-         m_floodCountBPS,
-         m_floodCountSPS,
-         m_maintFreqBPS,
-         //		m_maintFreqSPS,
+      float m_nourishVolumeBPS = 0;
+      float m_nourishVolumeSPS = 0;
+      float m_nourishCostBPS = 0;
+      float m_nourishCostSPS = 0;
+      float m_percentHardenedShoreline = 0;
+      float m_percentRestoredShoreline = 0;
+      float m_percentHardenedShorelineMiles = 0;
+      float m_percentRestoredShorelineMiles = 0;
+      float m_restoreCostSPS = 0;
+      float m_totalHardenedShoreline = 0;
+      float m_totalHardenedShorelineMiles = 0;
+      float m_totalRestoredShoreline = 0;
+      float m_totalRestoredShorelineMiles =0;
+      float m_addedHardenedShoreline = 0;
+      float m_addedHardenedShorelineMiles = 0;
+      float m_addedRestoredShoreline = 0;
+      float m_addedRestoredShorelineMiles = 0;
+      float m_constructCostBPS = 0;
+      float m_constructVolumeSPS = 0;
 
-         m_nourishFactor,
-         m_nourishFreq,
-         m_nourishPercentage,
-         m_ssiteCount,
-         m_useMaxTWL,
-         m_windowLengthEroHzrd,
-         m_windowLengthFloodHzrd,
-         m_windowLengthTWL;
+      int m_maintFreqBPS = 3;
+      int m_useMaxTWL = 1;
+      int m_bfeCount = 0;
+      int m_ssiteCount = 0;
 
-      float
-         m_accessThresh,
-         m_avgBackSlope,
-         m_avgFrontSlope,
-         m_avgDuneCrest,
-         m_avgDuneHeel,
-         m_avgDuneToe,
-         m_avgDuneWidth,
-         m_avgWL0,
-         m_constTD,
-         m_delta,
-         m_minDistToProtecteBldg,
-         /*	m_duneCrestSPS,
-         m_duneHeelSPS,
-         m_duneToeSPS,*/
-         m_idpyFactor,
-         m_inletFactor,
-         m_maxArea,
-         m_maxBPSHeight,
-         m_minBPSHeight,
-         m_minBPSRoughness,
-         m_radiusOfErosion,
-         m_rebuildFactorSPS,
-         m_safetyFactor,
-         m_slopeBPS,
-         m_slopeThresh,
-         m_shorelineLength,
-         m_topWidthSPS,
-         m_removeFromHazardZoneRatio,
-         m_raiseRelocateSafestSiteRatio,
-         m_totalBudget;
+
+      int m_noBldgsRemovedFromHazardZone = 0;
+      int m_numCntyNourishProjects = 0;
+      int m_numCtnyNourishPrjts = 0;     
+      float m_avgAccess=0;
+
+      //   xml input file variables 
+      int m_exportMapInterval = -1;
+      ///// int m_runEelgrassModel = 0;				// Run Eelgrass Model: 0=Off; 1=On
+      ///// int m_runSpatialBayTWL = 0;             // Run Spatially varying TWLs in Bay: 0=Off; 1=On
+      int m_writeDailyBouyData = 0;
+
+
+
+
+
+      int m_eroCount = 0;
+      
+      float m_avgBackSlope = 0.08f;
+      float m_avgFrontSlope = 0.16f;
+      float m_avgDuneCrest = 8.0f;
+      float m_avgDuneHeel = 6.0f;
+      float m_avgDuneToe = 5.0f;
+      float m_avgDuneWidth = 50.0f;
+      ///// float m_avgWL0 = 0;
+      ///// float m_delta = 0;
+      float m_minDistToProtecteBldg = 200;
+      float m_idpyFactor = 0.4f;
+      float m_inletFactor = 0;
+      ///// float m_maxArea = 7000000;
+      float m_maxBPSHeight = 8.5f;
+      float m_minBPSHeight = 2.0f;
+      float m_minBPSRoughness = 0.55f;
+      float m_radiusOfErosion = 10.0f;
+      float m_rebuildFactorSPS = 0.;
+      float m_safetyFactor = 1.5f;
+      float m_slopeBPS = 0.5;
+      ///// float m_slopeThresh = 0;
+      float m_shorelineLength = 10;
+      float m_topWidthSPS = 0;
+      float m_removeFromHazardZoneRatio = 0.5f;
+      float m_raiseRelocateSafestSiteRatio = 0.4f;
 
       // Grid properties
-      int m_numRows;								   // Number of rows in DEM, Flooded, Eroded grid
-      int m_numCols;								   // Number of columns in DEM, Flooded, Eroded grid
-      REAL m_cellWidth;							   // cell Width (m) in DEM, Flooded, Eroded grid
-      REAL m_cellHeight;							   // cell Height (m) in DEM, Flooded, Eroded grid
+      //int m_numRows = -1;								   // Number of rows in DEM, Flooded, Eroded grid
+      //int m_numCols = -1;								   // Number of columns in DEM, Flooded, Eroded grid
+      //
+      //int m_numBayRows = -1;							   // Number of rows in Bay Bathy, Eelgrass grid
+      //int m_numBayCols = -1;							   // Number of columns in Bay Bathy, Eelgrass grid	
+      //REAL m_bayCellWidth = 0;						   // cell Width (m) in Bay Bathy, Eelgrass grid
+      //REAL m_bayCellHeight = 0;						   // cell Height (m) in Bay Bathy, Eelgrass grid
+      //
+      //int m_numTidalRows = -1;							   // Number of rows in Tidal Bathy grid
+      //int m_numTidalCols = -1;							   // Number of columns in Tidal Bathy grid	
+      //REAL m_tidalCellWidth = 0;						   // cell Width (m) in Tidal Bathy grid
+      //REAL m_tidalCellHeight = 0;						   // cell Height (m) in Tidal Bathy grid
+      //
+      //                                          // Bates Flooding Model
+      float m_floodTimestep=0.1f;
 
-      int m_numBayRows;							   // Number of rows in Bay Bathy, Eelgrass grid
-      int m_numBayCols;							   // Number of columns in Bay Bathy, Eelgrass grid	
-      REAL m_bayCellWidth;						   // cell Width (m) in Bay Bathy, Eelgrass grid
-      REAL m_bayCellHeight;						   // cell Height (m) in Bay Bathy, Eelgrass grid
+      // Study area-wide Metrics
+      ///// 
+     
+      ///// float m_eelgrassArea = 0;
+      ///// float m_eelgrassAreaSqMiles = 0;
+      ///// float m_intertidalArea = 0;
+      ///// float m_intertidalAreaSqMiles = 0;
+ 
 
-      int m_numTidalRows;							   // Number of rows in Tidal Bathy grid
-      int m_numTidalCols;							   // Number of columns in Tidal Bathy grid	
-      REAL m_tidalCellWidth;						   // cell Width (m) in Tidal Bathy grid
-      REAL m_tidalCellHeight;						   // cell Height (m) in Tidal Bathy grid
 
-                                                // Bates Flooding Model
-      int m_runBatesFlood;
-      float m_batesFloodDuration;
-      float m_ManningCoeff;
-      float m_timeStep;
-
-      // County Wide Metrics
-      int
-         m_erodedBldgCount,
-         m_floodedBldgCount,
-         m_floodedInfraCount,
-         m_noBldgsRemovedFromHazardZone,
-         m_noConstructedBPS,
-         m_noConstructedDune;
-      //		m_numCntyNourishProjects,
-      //		m_numCtnyNourishPrjts,
-
-      float
-         m_avgCountyAccess;
-
-      double
-         //		m_eroFreq,
-         //		m_floodFreq, 
-         m_addedHardenedShoreline,
-         m_addedHardenedShorelineMiles,
-         m_addedRestoredShoreline,
-         m_addedRestoredShorelineMiles,
-         m_constructCostBPS,
-         m_constructVolumeSPS,
-         m_eelgrassArea,
-         m_eelgrassAreaSqMiles,
-         m_erodedRoad,
-         m_erodedRoadMiles,
-         m_floodedArea,
-         m_floodedAreaSqMiles,
-         m_floodedRailroadMiles,
-         m_floodedRoad,
-         m_floodedRoadMiles,
-         m_intertidalArea,
-         m_intertidalAreaSqMiles,
-         m_maintCostBPS,
-         m_maintCostSPS,
-         m_maintVolumeSPS,
-         //		m_maxTWL,
-         //		m_meanErosion,
-         m_meanTWL,
-         m_nourishVolumeBPS,
-         m_nourishVolumeSPS,
-         m_nourishCostBPS,
-         m_nourishCostSPS,
-         m_percentHardenedShoreline,
-         m_percentRestoredShoreline,
-         m_percentHardenedShorelineMiles,
-         m_percentRestoredShorelineMiles,
-         m_restoreCostSPS,
-         m_totalHardenedShoreline,
-         m_totalHardenedShorelineMiles,
-         m_totalRestoredShoreline,
-         m_totalRestoredShorelineMiles;
+      
 
 
       // IDU coverage columns
-      int
-         m_colArea,
-         m_colBaseFloodElevation,
-         m_colBeachfront,
-         //m_colBldgValue,
-         m_colCPolicy,
-         m_colEasementYear,
-         m_colExistDU,
-         m_colFID,
-         m_colFloodFreq,
-         m_colFracFlooded,
-         m_colIDUAddBPSYr,
-         m_colIDUCityCode,
-         m_colIDUEroded,
-         m_colIDUFlooded,
-         m_colIDUFloodZone,
-         m_colIDUFloodZoneCode,
-         m_colImpValue,
-         m_colLandValue,
-         m_colLength,
-         m_colMaxElevation,
-         m_colMinElevation,
-         m_colNDU,
-         m_colNEWDU,
-         m_colNorthingBottom,
-         m_colNorthingTop,
-         m_colNumStruct,
-         m_colPopCap,
-         m_colPopDensity,
-         m_colPopulation,
-         m_colPropEroded,
-         m_colRemoveBldgYr,
-         m_colRemoveSC,
-         m_colSafeLoc,
-         m_colSafeSite,
-         m_colSafeSiteYear,
-         m_colSafestSiteCol,
-         m_colSafestSiteRow,
-         m_colTaxlotID,
-         m_colTsunamiHazardZone,
-         m_colType,
-         m_colValue,
-         m_colZone,
+      int m_colArea = -1;
 
-         // Dune Line coverage columns      
-         //		m_colFreeboard,	
-         //		m_colInlet, 	
-         //		m_colKDstd, 	
-         //		m_colSA, 	
-         //		m_colTWL, 	
-         m_colA,
-         m_colAddYearBPS,
-         m_colAddYearSPS,
-         m_colAlpha,
-         m_colAlpha2,
-         m_colAmtFlooded,
-         m_colAvgKD,
-         //		m_colAvgDuneC,
-         //		m_colAvgDuneT,
-         //		m_colAvgEro,
-         m_colBackshoreElev,
-         m_colBackSlope,
-         m_colBchAccess,
-         m_colBchAccessFall,
-         m_colBchAccessSpring,
-         m_colBchAccessSummer,
-         m_colBchAccessWinter,
-         m_colBeachType,
-         m_colBeachWidth,
-         m_colConstructVolumeSPS,
-         m_colFrontSlope,
-         m_colLengthBPS,
-         m_colLengthSPS,
-         m_colRemoveYearBPS,
-         m_colCalDate,
-         m_colCalDCrest,
-         m_colCalDToe,
-         m_colCalEroExt,
-         m_colCostBPS,
-         m_colCostMaintBPS,
-         m_colCostSPS,
-         m_colCPolicyL,
-         m_colDuneBldgDist,
-         m_colDuneBldgIndx,
-         m_colDuneCrest,
-         m_colDuneEroFreq,
-         m_colDuneFloodFreq,
-         m_colDuneHeel,
-         m_colDuneIndx,
-         m_colDuneToe,
-         m_colDuneToeSPS,
-         m_colDuneWidth,
-         m_colEastingCrest,
-         m_colEastingCrestProfile,
-         m_colEastingCrestSPS,
-         m_colEastingShoreline,
-         m_colEastingToe,
-         m_colEastingToeBPS,
-         m_colEastingToeSPS,
-         //		m_colEPR,
-         m_colFlooded,
-         m_colForeshore,
-         m_colGammaBerm,
-         m_colGammaRough,
-         m_colHb,
-         m_colHdeep,
-         m_colHeelWidthSPS,
-         m_colHeightBPS,
-         m_colHeightSPS,
-         m_colIDDCrest,
-         m_colIDDCrestFall,
-         m_colIDDCrestSpring,
-         m_colIDDCrestSummer,
-         m_colIDDCrestWinter,
-         m_colIDDToe,
-         m_colIDDToeFall,
-         m_colIDDToeSpring,
-         m_colIDDToeSummer,
-         m_colIDDToeWinter,
-         m_colKD,
-         m_colLatitudeToe,
-         m_colLittCell,
-         m_colLongitudeToe,
-         m_colMaintVolumeSPS,
-         m_colMaintYearBPS,
-         m_colMaintYearSPS,
-         m_colMvAvgIDPY,
-         m_colMvAvgTWL,
-         m_colMvMaxTWL,
-         m_colNorthingCrest,
-         m_colNorthingToe,
-         m_colNourishFreqBPS,
-         m_colNourishFreqSPS,
-         m_colNourishYearBPS,
-         m_colNourishYearSPS,
-         m_colNourishVolBPS,
-         m_colNourishVolSPS,
-         m_colOrigBeachType,
-         m_colPrevCol,
-         m_colPrevDuneCr,
-         m_colPrevRow,
-         m_colPrevSlope,
-         m_colProfileIndx,
-         m_colScomp,
-         m_colShoreface,
-         m_colShorelineAngle,
-         m_colShorelineChange,
-         m_colTD,
-         m_colThreshDate,
-         m_colTopWidthSPS,
-         m_colTranIndx,
-         m_colTranSlope,
-         m_colTS,
-         m_colWb,
-         m_colWDirection,
-         m_colWidthBPS,
-         m_colWidthSPS,
-         m_colWHeight,
-         m_colWPeriod,
-         m_colXAvgKD,
-         m_colYrAvgLowSWL,
-         m_colYrAvgSWL,
-         m_colYrAvgTWL,
-         m_colYrMaxDoy,
-         m_colYrMaxIGSwash,
-         m_colYrMaxIncSwash,
-         m_colYrMaxSetup,
-         m_colYrMaxSwash,
-         m_colYrMaxSWL,
-         m_colYrFMaxTWL,
-         m_colYrMaxTWL,
 
-         // columns used for debugging in the dune line
-         m_colBWidth,
-         m_colComputedSlope,
-         m_colComputedSlope2,
-         m_colDeltaX,
-         m_colDuneBldgEast,
-         m_colDuneBldgIndx2,
-         m_colNewEasting,
-         m_colNumIDPY,
-         m_colRunupFlag,
-         m_colSTKRunup,
-         m_colSTKR2,
-         m_colSTKTWL,
-         m_colStructR2,
-         m_colTAWSlope,
-         m_colTypeChange,
+      //--- infrastructure model columns --//
+      //int m_colIDUZone = -1;
+      //int m_colIDUPopCap = -1;
+      int m_colIDUPopDensity = -1;
+      int m_colIDUNDU = -1;
+      int m_colIDUNEWDU = -1;
+      int m_colIDUMaxElevation = -1;
+      //int m_colIDUMinElevation = -1;
+      //int m_colIDUSafeLoc = -1;
+      int m_colIDUSafeSite = -1;
+      //int m_colIDUSafeSiteYear = -1;
+      int m_colIDUSafestSiteCol = -1;
+      int m_colIDUSafestSiteRow = -1;
 
-         // Bay Trace coverage columns
-         m_colBayTraceIndx,
-         m_colBayYrAvgSWL,
-         m_colBayYrAvgTWL,
-         m_colBayYrMaxSWL,
-         m_colBayYrMaxTWL,
+      //int m_colIDUPopulation = -1;
 
-         // Road coverage columns
-         m_colRoadFlooded,
-         m_colRoadType,
-         m_colRoadLength,
-         // Buildings coverage columns		
-         //		m_colBldgDuneDist,
-         //		m_colBldgDuneIndx,
-         //		m_colBldgMaxElev, 
-         m_colBldgBFE,
-         m_colBldgBFEYr,
-         m_colBldgCityCode,
-         m_colBldgEroded,
-         m_colBldgEroFreq,
-         m_colBldgFloodFreq,
-         m_colBldgFlooded,
-         //m_colBldgFloodHZ,
-         m_colBldgFloodYr,
-         m_colBldgIDUIndx,
-         m_colBldgNDU,
-         m_colBldgNEWDU,
-         m_colBldgRemoveYr,
-         m_colBldgSafeSite,
-         m_colBldgSafeSiteYr,
-         m_colBldgTsunamiHZ,
-         m_colBldgValue,
+      int m_colBldgBFE = -1;
+      int m_colBldgBFEYr = -1;
+      //int m_colBldgCityCode = -1;
+      int m_colBldgEroded = -1;
+      int m_colBldgEroFreq = -1;
+      int m_colBldgFloodFreq = -1;
+      int m_colBldgFlooded = -1;
+      //int m_colBldgFloodYr = -1;
+      int m_colBldgIDUIndx = -1;
+      int m_colBldgNDU = -1;
+      int m_colBldgNEWDU = -1;
+      int m_colBldgRemoveYr = -1;
+      //int m_colBldgSafeSite = -1;
+      int m_colBldgSafeSiteYr = -1;
+      //int m_colBldgTsunamiHZ = -1;
+      int m_colBldgValue = -1;
+      //int m_colNumBldgs = -1;
 
-         m_colNumBldgs,
+ 
 
-         // Infrastructure coverage columns
-         m_colInfraBFE,
-         m_colInfraBFEYr,
-         m_colInfraCount,
-         m_colInfraCritical,
-         m_colInfraDuneIndx,
-         m_colInfraEroded,
-         m_colInfraFlooded,
-         m_colInfraFloodYr,
-         m_colInfraValue;
+      //-- dune model columns --//
+      int  m_colDLBeachType = -1;
+
+
+
+
+ 
+      int m_colIDUBaseFloodElevation = -1;
+      //int m_colIDUBeachfront = -1;
+      //int m_colIDUCPolicy = -1;
+      //int m_colIDUEasementYear = -1;
+      //int m_colIDUExistDU = -1;
+      //int m_colIDUFID = -1;
+      //int m_colIDUFloodFreq = -1;
+      int m_colIDUFracFlooded = -1;
+      int m_colIDUAddBPSYr = -1;
+      int m_colIDUCityCode = -1;
+      int m_colIDUEroded = -1;
+      //int m_colIDUFlooded = -1;
+      //int m_colIDUFloodZone = -1;
+      int m_colIDUFloodZoneCode = -1;
+      //int m_colIDUImpValue = -1;
+      //int m_colIDULandValue = -1;
+      int m_colIDULength = -1;
+      int m_colIDUNorthingBottom = -1;
+      int m_colIDUNorthingTop = -1;
+      //int m_colIDUNumStruct = -1;
+
+      //int m_colIDUPropEroded = -1;
+      int m_colIDURemoveBldgYr = -1;
+      //int m_colIDURemoveSC = -1;
+      //int m_colIDUTaxlotID = -1;
+      int m_colIDUTsunamiHazardZone = -1;
+      //int m_colIDUType = -1;
+      //int m_colIDUValue = -1;
+
+
+      // Dune Line coverage columns      
+      //int  m_colDLA = -1;
+      int  m_colDLAddYearBPS = -1;
+      int  m_colDLAddYearSPS = -1;
+      //int  m_colDLAlpha = -1;
+      //int  m_colDLAlpha2 = -1;
+      //int  m_colDLAmtFlooded = -1;
+      int  m_colDLAvgKD = -1;
+      //int  m_colDLBackshoreElev = -1;
+      int  m_colDLBackSlope = -1;
+      //int  m_colDLBchAccess = -1;
+      //int  m_colDLBchAccessFall = -1;
+      //int  m_colDLBchAccessSpring = -1;
+      //int  m_colDLBchAccessSummer = -1;
+      //int  m_colDLBchAccessWinter = -1;
+      //
+      int  m_colDLBeachWidth = -1;
+      int  m_colDLConstructVolumeSPS = -1;
+      int  m_colDLFrontSlope = -1;
+      int  m_colDLLengthBPS = -1;
+      int  m_colDLLengthSPS = -1;
+      int  m_colDLRemoveYearBPS = -1;
+      //int  m_colDLCalDate = -1;
+      //int  m_colDLCalDCrest = -1;
+      //int  m_colDLCalDToe = -1;
+      //int  m_colDLCalEroExt = -1;
+      int  m_colDLCostBPS = -1;
+      int  m_colDLCostMaintBPS = -1;
+      int  m_colDLCostSPS = -1;
+      //int  m_colDLCPolicyL = -1;
+      int  m_colDLDuneBldgDist = -1;
+      int  m_colDLDuneBldgIndx = -1;
+      int  m_colDLDuneCrest = -1;
+      int  m_colDLDuneEroFreq = -1;
+      int  m_colDLDuneFloodFreq = -1;
+      int  m_colDLDuneHeel = -1;
+      int  m_colDLDuneIndx = -1;
+      int  m_colDLDuneToe = -1;
+      int  m_colDLDuneToeSPS = -1;
+      int  m_colDLDuneWidth = -1;
+      int  m_colDLEastingCrest = -1;
+      //int  m_colDLEastingCrestProfile = -1;
+      //int  m_colDLEastingCrestSPS = -1;
+      int  m_colDLEastingShoreline = -1;
+      int  m_colDLEastingToe = -1;
+      int  m_colDLEastingToeBPS = -1;
+      int  m_colDLEastingToeSPS = -1;
+      //int  m_colDLFlooded = -1;
+      int  m_colDLForeshore = -1;
+      //int  m_colDLGammaBerm = -1;
+      int  m_colDLGammaRough = -1;
+      //int  m_colDLHb = -1;
+      int  m_colDLHdeep = -1;
+      int  m_colDLHeelWidthSPS = -1;
+      int  m_colDLHeightBPS = -1;
+      int  m_colDLHeightSPS = -1;
+      int  m_colDLIDDCrest = -1;
+      int  m_colDLIDDCrestFall = -1;
+      int  m_colDLIDDCrestSpring = -1;
+      int  m_colDLIDDCrestSummer = -1;
+      int  m_colDLIDDCrestWinter = -1;
+      int  m_colDLIDDToe = -1;
+      int  m_colDLIDDToeFall = -1;
+      int  m_colDLIDDToeSpring = -1;
+      int  m_colDLIDDToeSummer = -1;
+      int  m_colDLIDDToeWinter = -1;
+      int  m_colDLKD = -1;
+      int  m_colDLLatitudeToe = -1;
+      int  m_colDLLittCell = -1;
+      int  m_colDLLongitudeToe = -1;
+      int  m_colDLMaintVolumeSPS = -1;
+      int  m_colDLMaintYearBPS = -1;
+      int  m_colDLMaintYearSPS = -1;
+      int  m_colDLMvAvgIDPY = -1;
+      int  m_colDLMvAvgTWL = -1;
+      int  m_colDLMvMaxTWL = -1;
+      //int  m_colDLNorthingCrest = -1;
+      int  m_colDLNorthingToe = -1;
+      int  m_colDLNourishFreqBPS = -1;
+      int  m_colDLNourishFreqSPS = -1;
+      int  m_colDLNourishYearBPS = -1;
+      int  m_colDLNourishYearSPS = -1;
+      int  m_colDLNourishVolBPS = -1;
+      int  m_colDLNourishVolSPS = -1;
+      //int  m_colDLOrigBeachType = -1;
+      //int  m_colDLPrevCol = -1;
+      //int  m_colDLPrevDuneCr = -1;
+      //int  m_colDLPrevRow = -1;
+      //int  m_colDLPrevSlope = -1;
+      int  m_colDLProfileIndx = -1;
+      //int  m_colDLScomp = -1;
+      int  m_colDLShoreface = -1;
+      int  m_colDLShorelineAngle = -1;
+      int  m_colDLShorelineChange = -1;
+      //int  m_colDLTD = -1;
+      //int  m_colDLThreshDate = -1;
+      int  m_colDLTopWidthSPS = -1;
+      int  m_colDLTranIndx = -1;
+      int  m_colDLTranSlope = -1;
+      //int  m_colDLTS = -1;
+      //int  m_colDLWb = -1;
+      //int  m_colDLWDirection = -1;
+      int  m_colDLWidthBPS = -1;
+      int  m_colDLWidthSPS = -1;
+      int  m_colDLWHeight = -1;
+      int  m_colDLWPeriod = -1;
+      int  m_colDLXAvgKD = -1;
+      //int  m_colDLYrAvgLowSWL = -1;
+      //int  m_colDLYrAvgSWL = -1;
+      //int  m_colDLYrAvgTWL = -1;
+      int  m_colDLYrMaxDoy = -1;
+      //int  m_colDLYrMaxIGSwash = -1;
+      //int  m_colDLYrMaxIncSwash = -1;
+      //int  m_colDLYrMaxSetup = -1;
+      //int  m_colDLYrMaxSwash = -1;
+      //int  m_colDLYrMaxSWL = -1;
+      //int  m_colDLYrFMaxTWL = -1;
+      int  m_colDLYrMaxTWL = -1;
+      //
+      //// columns used for debugging in the dune line
+      //int  m_colDLBWidth = -1;
+      //int  m_colDLComputedSlope = -1;
+      //int  m_colDLComputedSlope2 = -1;
+      //int  m_colDLDeltaX = -1;
+      //int  m_colDLDuneBldgEast = -1;
+      //int  m_colDLDuneBldgIndx2 = -1;
+      //int  m_colDLNewEasting = -1;
+      //int  m_colDLNumIDPY = -1;
+      //int  m_colDLRunupFlag = -1;
+      //int  m_colDLSTKRunup = -1;
+      //int  m_colDLSTKR2 = -1;
+      //int  m_colDLSTKTWL = -1;
+      //int  m_colDLStructR2 = -1;
+      //int  m_colDLTAWSlope = -1;
+      int  m_colDLTypeChange = -1;
+      //
+      //// Bay Trace coverage columns
+      //int  m_colBayTraceIndx = -1;
+      //int  m_colBayYrAvgSWL = -1;
+      //int  m_colBayYrAvgTWL = -1;
+      //int  m_colBayYrMaxSWL = -1;
+      //int  m_colBayYrMaxTWL = -1;
+      //
+      //// Road coverage columns
+      int m_colRoadFlooded = -1;
+      int m_colRoadType = -1;
+      //int m_colRoadLength = -1;
+      //
+      //// Buildings coverage columns		
+      //
+      //// Infrastructure coverage columns
+      int m_colInfraBFE = -1;
+      int m_colInfraBFEYr = -1;
+      //int m_colInfraCount = -1;
+      int m_colInfraCritical = -1;
+      int m_colInfraDuneIndx = -1;
+      int m_colInfraEroded = -1;
+      int m_colInfraFlooded = -1;
+      int m_colInfraFloodYr = -1;
+      int m_colInfraValue = -1;
 
       CString  m_polyGridFilename;
       CString  m_roadGridFilename;
 
       CString m_transectLookupFile;
-      CString m_bathyFiles;
+      CString m_bathyLookupFile;
+      CString m_bathyMask;
       //	CString m_surfZoneFiles;
       CString m_climateScenarioStr;
 
@@ -776,25 +801,43 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       //  ******  Methods ******
 
+      // Initialization
       bool LoadXml(LPCTSTR filename);
+      bool InitTWLModel(EnvContext*);
+      bool InitDuneModel(EnvContext*);
+      bool InitInfrastructureModel(EnvContext*);
+      bool InitFloodingModel(EnvContext*);
+      bool InitErosionModel(EnvContext*);
+      bool InitPolicyInfo(EnvContext*);
 
-      /* bool WriteRBF(); */
+      // run
+      bool RunErosionModel(EnvContext* pEnvContext);
+      bool RunFloodingModel(EnvContext* pEnvContext);
+      bool RunEelgrassModel(EnvContext* pEnvContext);
+      bool RunPolicyManagement(EnvContext* pEnvContext);
+
+
+
+
+
       bool WriteDailyData(CString timeSeriesFolder);
       bool ReadDailyBayData(CString timeSeriesFolder);
+
       float CalculateCelerity(float waterLevel, float wavePeriod, float &n);
       double CalculateCelerity2(float waterLevel, float wavePeriod, double &n);
-
-
       void CalculateYrMaxTWL(EnvContext *pEnvContext);
 
+
+      
       double GenerateBathtubFloodMap(int &floodedCount);
       double GenerateBatesFloodMap(int &floodedCount);
-
       float GenerateErosionMap(int &erodedCount);
-
       double GenerateEelgrassMap(int &eelgrassCount);
 
+
       bool InitializeWaterElevationGrid();
+
+
       bool CalculateFourQs(int row, int col, double &discharge);
       int VisitNeighbors(int row, int col, float twl, float &minElevation);
       int VisitNeighbors(int row, int col, float twl);
@@ -837,7 +880,6 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int GetNextBldgIndx(MapLayer::Iterator pt);
 
       void ExportMapLayers(EnvContext *pEnvContext, int outputYear);
-      void RunPolicies(EnvContext *pEnvContext);
 
       // Build BPS with identical characteristics
       void ConstructBPS(int currentYear);
@@ -905,7 +947,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       bool IsMissingRow(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint);
 
-      bool CalculateUTM2LL(MapLayer *pLayer, int point);
+      bool SetDuneToeUTM2LL(MapLayer *pLayer, int point);
       double IGet(DDataObj *table, double x, int xcol, int ycol = 1, IMETHOD method = IM_LINEAR, int startRowIndex = 0, int *returnRowIndex = NULL, bool forwardDirection = true);
 
       // Tillamook unused

@@ -48,6 +48,20 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) n
 
 int CompareScores(const void *elem0, const void *elem1 );
 
+const float NO_SCORE = -9999.0f;
+
+LPCTSTR GetLimitStr(LIMIT_TYPE limit) {
+   switch (limit)
+      {
+      case LT_NONE:  return _T("None");
+      case LT_BUDGET_MET:  return _T("Budget Met");
+      case LT_TARGET_MET:  return _T("Target Met");
+      case LT_SUPPLY_EXHAUSTED:  return _T("Supply Exhausted");
+      case LT_MIN_SCORE_NOT_MET:  return _T("Score Below Threshold");
+      }
+   return _T("Undefined");
+   }
+
 
 //std::ofstream m_spatialAllocatorResultsFile;
 
@@ -474,9 +488,6 @@ void TargetContainer::SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR 
    }
 
 
-
-
-
 Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_SOURCE targetSource, LPCTSTR targetValues )
    : TargetContainer( pSet->m_pSAModel, name ) // targetSource, TD_AREA, targetValues )
    , m_id( id )
@@ -491,6 +502,7 @@ Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_S
    , m_expandAreaParam1( 0 )
    , m_expandQueryStr()         // expand into adjacent IDUs that satify this query 
    , m_pExpandQuery( NULL )
+   , m_pCostItem(NULL)
    , m_initPctArea( 0 )
    , m_cumBasisActual( 0 )
    , m_cumBasisTarget( 0 )
@@ -501,7 +513,8 @@ Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_S
    , m_scoreArea( 0 )      // area of scores greater than 0 at any given time
    , m_scoreBasis( 0 )    // 
    , m_expandArea( 0 )    // 
-   ,  m_expandBasis( 0 )    // 
+   , m_expandBasis( 0 )    // 
+   , m_limit(LT_NONE)
    , m_constraintAreaSatisfied( 0 )
    , m_colScores( -1 )
    , m_pAllocSet( pSet )
@@ -563,6 +576,10 @@ Allocation& Allocation::operator = ( Allocation &a )
       m_pExpandQuery = new Query( *a.m_pExpandQuery );
    else
       m_pExpandQuery = NULL;
+
+   m_limit = a.m_limit;
+
+   m_pCostItem = a.m_pCostItem;
 
    m_initPctArea = a.m_initPctArea;
    m_constraintAreaSatisfied = a.m_constraintAreaSatisfied;
@@ -871,12 +888,13 @@ SpatialAllocator::SpatialAllocator()
 , m_allocMethod( AM_SCORE_PRIORITY )
 , m_expansionIDUs()
 , m_scoreThreshold( 0 )
+, m_pBudget(NULL)
 , m_iduArray()
 , m_shuffleIDUs( true )
 , m_pRandUnif(NULL)
 , m_totalArea(0)
 , m_runNumber( -1 )
-, m_outputData(U_YEARS)
+, m_pBudgetData(NULL)
 , m_collectExpandStats(false)
 , m_pExpandStats(NULL)
    { }
@@ -891,12 +909,13 @@ SpatialAllocator::SpatialAllocator( SpatialAllocator &sa )
    , m_allocMethod( sa.m_allocMethod )
    , m_expansionIDUs()
    , m_scoreThreshold( sa.m_scoreThreshold )
+   , m_pBudget(sa.m_pBudget) // problematic
    , m_iduArray()
    , m_shuffleIDUs( sa.m_shuffleIDUs )
    , m_pRandUnif( NULL )
    , m_totalArea( sa.m_totalArea )
    , m_runNumber( -1 )
-   , m_outputData( sa.m_outputData )   // ?????????????????
+   , m_pBudgetData( sa.m_pBudgetData)   // ?????????????????
    , m_collectExpandStats( false )    // ????????????????
    , m_pExpandStats( NULL )
    {
@@ -913,6 +932,9 @@ SpatialAllocator::~SpatialAllocator( void )
    { 
    //if ( m_pMapExprEngine ) 
    //   delete m_pMapExprEngine; 
+
+   if (m_pBudgetData)
+      delete m_pBudgetData;
 
    // and local data
    if ( m_pRandUnif )
@@ -943,7 +965,7 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
    if ( initStr == NULL || *initStr == '\0' )
       return TRUE;
 
-   if ( LoadXml( initStr ) == false )
+   if ( LoadXml( pEnvContext, initStr ) == false )
       return FALSE;
    
    // iterate through AllocationSets and Allocations to initialize internal data
@@ -959,7 +981,7 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
          for ( int k=0; k < iduCount; k++ )
             {
             pAlloc->m_iduScoreArray[ k ].idu = -1;
-            pAlloc->m_iduScoreArray[ k ].score = 0;
+            pAlloc->m_iduScoreArray[ k ].score = -9999;
             }
          }
       }
@@ -1005,6 +1027,11 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
          }
       }
 
+   if (this->m_pBudget != NULL)
+      {
+      AddOutputVar("AllocationBudget", m_pBudgetData, "");
+      }
+
 
    // report results
    for ( int i=0; i < (int) m_allocationSetArray.GetSize(); i++ )
@@ -1041,9 +1068,9 @@ void SpatialAllocator::InitAllocSetData( void )
 
       int cols = 0;
       if ( isTargetDefined )
-         cols = 1 + 3 + 10*pAllocSet->GetAllocationCount();  // time + 2 per AllocationSet + 9 per Allocation
+         cols = 1 + 3 + 11*pAllocSet->GetAllocationCount();  // time + 2 per AllocationSet + 11 per Allocation
       else
-         cols = 1 + 0 + 11*pAllocSet->GetAllocationCount();  // time + 0 per AllocationSet + 10 per Allocation
+         cols = 1 + 0 + 12*pAllocSet->GetAllocationCount();  // time + 0 per AllocationSet + 12 per Allocation
 
       // first one percent areas
       int col = 0;
@@ -1100,9 +1127,75 @@ void SpatialAllocator::InitAllocSetData( void )
          pAllocSet->m_pOutputData->SetLabel( col++, label );
 
          label = pAlloc->m_name + "-ExpandBasis";
-         pAllocSet->m_pOutputData->SetLabel( col++, label );
+         pAllocSet->m_pOutputData->SetLabel(col++, label);
+
+         label = pAlloc->m_name + "-Limit";
+         pAllocSet->m_pOutputData->SetLabel(col++, label);
          }
       }  // end of: for each allocation set
+
+   // initial budget data obf is needed
+   if (m_pBudget != NULL)
+      {
+      int cols = 1;  // year
+      for (int i = 0; i < this->m_pBudget->GetBudgetItemCount(); i++)
+         {
+         BudgetItem* pBudgetItem = this->m_pBudget->GetBudgetItem(i);
+         cols += 6 + 4*pBudgetItem->GetCostItemCount();
+         }
+
+      m_pBudgetData = new FDataObj(cols, 0, U_YEARS);
+      m_pBudgetData->SetName("Budget Summary");
+      int col = 0;
+      m_pBudgetData->SetLabel(col++, "Time");
+      CString label;
+      // if budget defined:
+      //   For each BudgetItem for each year:
+      //       StartBudget
+      //       EndBudget
+      //       InitialCosts
+      //       MaintenanceCosts
+      //       TotalCosts
+      //       CumulativeCosts
+      //       for each CostItem:
+      //          Total Costs (for the year)
+      //          Total Cumulative Costs (for the year)
+      //          Initial Costs
+      //          MaintenanceCosts
+      for (int i = 0; i < m_pBudget->GetBudgetItemCount(); i++)
+         {
+         BudgetItem* pBudgetItem = m_pBudget->GetBudgetItem(i);
+
+         label.Format("%s.StartBudget", pBudgetItem->m_name);
+         m_pBudgetData->SetLabel(col++, label);
+         label.Format("%s.EndBudget", pBudgetItem->m_name);
+         m_pBudgetData->SetLabel(col++, label);
+         label.Format("%s.InitialCosts", pBudgetItem->m_name);
+         m_pBudgetData->SetLabel(col++, label);
+         label.Format("%s.MaintainanceCosts", pBudgetItem->m_name);
+         m_pBudgetData->SetLabel(col++, label);
+         label.Format("%s.TotalCosts", pBudgetItem->m_name);
+         m_pBudgetData->SetLabel(col++, label);
+         label.Format("%s.TotalCumulativeCosts", pBudgetItem->m_name);
+         m_pBudgetData->SetLabel(col++, label);
+
+         for (int j = 0; j < pBudgetItem->GetCostItemCount(); j++)
+            {
+            CostItem* pCostItem = pBudgetItem->GetCostItem(j);
+
+            label.Format("%s.%s.InitialCosts", pBudgetItem->m_name, pCostItem->m_name);
+            m_pBudgetData->SetLabel(col++, label);
+            label.Format("%s.%s.MaintenanceCosts", pBudgetItem->m_name, pCostItem->m_name);
+            m_pBudgetData->SetLabel(col++, label);
+            label.Format("%s.%s.TotalCosts", pBudgetItem->m_name, pCostItem->m_name);
+            m_pBudgetData->SetLabel(col++, label);
+            label.Format("%s.%s.TotalCumulativeCosts", pBudgetItem->m_name, pCostItem->m_name);
+            m_pBudgetData->SetLabel(col++, label);
+            }
+         }
+
+      ASSERT(cols == col);
+      }
    }
 
 
@@ -1110,6 +1203,9 @@ void SpatialAllocator::InitAllocSetData( void )
 bool SpatialAllocator::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
    {
    // populate initial scores
+   if (m_pBudget)
+      m_pBudget->Reset(true);
+
    SetAllocationTargets( pEnvContext->currentYear );
    ScoreIduAllocations( pEnvContext, false );
 
@@ -1129,6 +1225,7 @@ bool SpatialAllocator::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
          pAlloc->m_allocationSoFar = 0;
          pAlloc->m_areaSoFar = 0;
          pAlloc->m_constraintAreaSatisfied = 0;
+         pAlloc->m_limit = LT_NONE;
          }
 
       // clear out output data
@@ -1138,6 +1235,9 @@ bool SpatialAllocator::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
       //if ( pAllocSet->m_pOutputDataCum )
       //   pAllocSet->m_pOutputDataCum->ClearRows();
       }
+
+   if (m_pBudgetData)
+      m_pBudgetData->ClearRows();
    
    return TRUE; 
    }
@@ -1145,6 +1245,8 @@ bool SpatialAllocator::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
 
 bool SpatialAllocator::Run( EnvContext *pContext )
    {
+   Reset();
+
    // set the desired value for the targets
    SetAllocationTargets( pContext->currentYear );
 
@@ -1167,6 +1269,8 @@ bool SpatialAllocator::Run( EnvContext *pContext )
    // report results to output window
    CollectData( pContext );
 
+   ReportOutcomes(pContext);
+
    return TRUE;
    }
 
@@ -1175,6 +1279,7 @@ bool SpatialAllocator::EndRun( EnvContext *pContext )
    {
 	return true;
 	}
+
 
 
 bool SpatialAllocator::PopulateSequences( void )
@@ -1406,7 +1511,7 @@ void SpatialAllocator::ScoreIduAllocations( EnvContext *pContext, bool useAddDel
             for ( int k=0; k < iduCount; k++ )
                {
                pAlloc->m_iduScoreArray[ k ].idu = m_iduArray[ k ];
-               pAlloc->m_iduScoreArray[ k ].score = this->m_scoreThreshold-1; 
+               pAlloc->m_iduScoreArray[ k ].score = NO_SCORE; 
                }
             }
          }
@@ -1535,7 +1640,7 @@ void SpatialAllocator::ScoreIduAllocations( EnvContext *pContext, bool useAddDel
                   }  // end of: if (passedConstraints)
                else
                   {  // failed constraint
-                  pAlloc->m_iduScoreArray[ idu ].score = m_scoreThreshold-1;    // indicate we failed a constraint
+                  pAlloc->m_iduScoreArray[ idu ].score = NO_SCORE;    // indicate we failed a constraint
                   }   
 
                // if field defined for this allocation, populate it with the score
@@ -1592,7 +1697,7 @@ void SpatialAllocator::ScoreIduAllocation( Allocation *pAlloc, int flags )
    for ( int i=0; i < iduCount; i++ )
       {
       pAlloc->m_iduScoreArray[ i ].idu = i;
-      pAlloc->m_iduScoreArray[ i ].score = this->m_scoreThreshold-1; 
+      pAlloc->m_iduScoreArray[ i ].score = NO_SCORE; 
   
       int idu = i;
 
@@ -1665,7 +1770,7 @@ void SpatialAllocator::ScoreIduAllocation( Allocation *pAlloc, int flags )
          }  // end of: if (passedConstraints)
       else
          {  // failed constraint
-         pAlloc->m_iduScoreArray[ idu ].score = -99;    // indicate we failed a constraint
+         pAlloc->m_iduScoreArray[ idu ].score = NO_SCORE;    // indicate we failed a constraint
          }
       }  // end of:  for ( each IDU )
 
@@ -1875,19 +1980,45 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
    
             Allocation *pBest = NULL;
             float currentBestScore = (float) -LONG_MAX;
+
+            bool budgetApproached = false;
    
             for ( int j=0; j < allocCount; j++ )
                {
                Allocation *pAlloc = pAllocSet->m_allocationArray[ j ];
-   
+ topOfLoop:
                // if this Allocation has already been fully consumed, don't consider it
-               if ( pAlloc->m_currentIduScoreIndex >= iduCount )
+               if (pAlloc->m_currentIduScoreIndex >= iduCount)
+                  {
+                  pAlloc->m_limit = LT_SUPPLY_EXHAUSTED;
                   continue;
+                  }
 
                // if this Allocation is aleady fully allocated, don't consider it further
-               if ( pAlloc->m_targetSource != TS_USEALLOCATIONSET 
-                 && pAlloc->m_allocationSoFar >= pAlloc->m_currentTarget )
+               if (pAlloc->m_targetSource != TS_USEALLOCATIONSET && pAlloc->m_allocationSoFar >= pAlloc->m_currentTarget)
+                  {
+                  pAlloc->m_limit = LT_TARGET_MET;
                   continue;
+                  }
+
+               // is any budget for this item exhausted?
+               if (pAlloc->m_pCostItem != NULL)
+                  {
+                  BudgetItem* pBudgetItem = pAlloc->m_pCostItem->m_pBudgetItem;
+                  float cost = 0;
+                  int idu = pAlloc->GetCurrentIdu();
+                  float area = 0;
+                  m_pMapLayer->GetData(idu, m_colArea, area);
+                  pAlloc->m_pCostItem->GetInitialCost(idu, area, cost);
+                  float budget = pBudgetItem->GetAvailableBudget();
+                  if (cost > budget)
+                     {
+                     pAlloc->m_limit = LT_BUDGET_MET;
+                     pAlloc->m_currentIduScoreIndex++;  // move to the next IDU to consider
+                     goto topOfLoop;
+                     continue;
+                     }
+                  }
    
                // if the IDU that represents the current best score for this Allocation is 
                // not available (already allocated), don't consider it
@@ -1908,15 +2039,21 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
                   continue;
                   }
                   
-               if ( currentScore < this->m_scoreThreshold )  // are we into the failed scores? (didn't pass the constraints?)
+               if (currentScore < this->m_scoreThreshold)  // are we into the failed scores? (didn't pass the constraints?)
+                  {
+                  if (currentScore == NO_SCORE )  // didn't pass constraint
+                     pAlloc->m_limit = LT_SUPPLY_EXHAUSTED;
+                  else
+                     pAlloc->m_limit = LT_MIN_SCORE_NOT_MET;
                   continue;
+                  }
 
                // it passes, so this allocation becomes the leading candidate so far
                pBest = pAlloc;
                currentBestScore = currentScore;
                }  // end of: for each Allocation
    
-            if ( pBest == NULL )
+            if ( pBest == NULL && budgetApproached == false)
                {
                terminateFlag = 1; 
                break;      // nothing left to allocate
@@ -1967,6 +2104,16 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
             if ( pAllocSet->m_colSequence >= 0 && currSequenceID != newSequenceID )
                this->UpdateIDU( pContext, idu, pAllocSet->m_colSequence, newSequenceID, useAddDelta ?ADD_DELTA : SET_DATA );
 
+            // update budget if needed
+            if (pBest->m_pCostItem != NULL)
+               {
+               float area = 0;
+               m_pMapLayer->GetData(idu, m_colArea, area);
+
+               BudgetItem* pBudgetItem = pBest->m_pCostItem->m_pBudgetItem;
+               pBudgetItem->ApplyCostItem(pBest->m_pCostItem, idu, area, true);
+               }
+
             // update internals with allocation basis value
 
             float area=0, basis=0;
@@ -2001,6 +2148,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
                   }
                }
 
+            pBest->m_limit = LT_NONE;
             pBest->m_currentIduScoreIndex++;    // pop of the front of the list for the best allocation   
 
             // generate notification for any scoring listeners
@@ -2012,7 +2160,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
 
             Notify( 1, idu, currentBestScore, pBest, remaining, pctAllocated );
 
-            // are we done yet?
+            // are we done yet? (stop if target achieved (or budget exceeded))
             stillAllocating = false;
    
             for ( int j=0; j < allocCount; j++ )
@@ -2052,7 +2200,6 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
                         break;
       
                      idu = pAlloc->GetCurrentIdu();
-
                      if ( idu >= iduCount || idu < 0 )
                         break;
 
@@ -2118,7 +2265,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
    }
 
 
-bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray /*=NULL */)
+bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray /*=NULL */)
    {
    // search for file along path
    CString path;
@@ -2205,6 +2352,35 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
       }
    else
       m_shuffleIDUs = false;
+
+
+   // Budgets 
+   TiXmlElement* pXmlBudgets = pXmlRoot->FirstChildElement("budgets");
+   if (pXmlBudgets != NULL)
+      {
+      // budgets
+      TiXmlElement* pXmlBudget = pXmlBudgets->FirstChildElement("budget");
+      while (pXmlBudget != NULL)
+         {
+         if (this->m_pBudget == NULL)
+            this->m_pBudget = new Budget("Budget", pContext->pEnvModel->m_pExprEngine);
+
+         const char* name = pXmlBudget->Attribute("name");
+         const char* type = pXmlBudget->Attribute("type");
+         const char* limit = pXmlBudget->Attribute("limit");
+         BUDGET_TYPE _type = BUDGET_TYPE::BT_RESOURCE_LIMIT;
+         if (type[0] == 'c')
+            _type = BUDGET_TYPE::BT_MAX_COUNT;
+         else if (type[0] == 'a')
+            _type = BUDGET_TYPE::BT_MAX_AREA;
+
+         BudgetItem* pBudgetItem = new BudgetItem(name, _type, limit);
+         this->m_pBudget->AddBudgetItem(pBudgetItem);
+
+         pXmlBudget = pXmlBudget->NextSiblingElement("budget");
+         }
+      }
+
 
    // allocation sets
    TiXmlElement *pXmlAllocSet = pXmlRoot->FirstChildElement( "allocation_set" );
@@ -2297,26 +2473,41 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
          //float   expandMaxArea  = -1;
          LPCTSTR expandArea = NULL;
 
+         // cost item
+         LPCTSTR budgetItem = NULL;
+         LPCTSTR basis = NULL;
+         LPCTSTR initialCostExpr = NULL;
+         LPCTSTR valueStr = NULL;
+         LPCTSTR maintenanceCostExpr = NULL;
+         LPCTSTR durationExpr = NULL;
+         LPCTSTR lookup = NULL;
+
          float initPctArea = 0;
 
-         XML_ATTR attrs[] = { // attr          type           address       isReq checkCol
-                            { "name",          TYPE_STRING,   &name,         true,  0 },
-                            { "id",            TYPE_INT,      &attrCode,     true,  0 },
-                            { "description",   TYPE_STRING,   &description,  false, 0 },
-                            { "target_type",   TYPE_STRING,   &targetType, false, 0 },   // deprecated
-                            { "target_source", TYPE_STRING,   &targetSource, false, 0 },
-                            { "target_values", TYPE_STRING,   &targetValues, false, 0 },
-                            { "target_domain", TYPE_STRING,   &targetDomain, false, 0 },
-                            { "target_basis",  TYPE_STRING,   &targetBasis,  false, 0 },
-                            { "target_query",  TYPE_STRING,   &targetQuery,  false, 0 },
-                            { "constraint",    TYPE_STRING,   &constraint,   false, 0 },
-                            { "score_col",     TYPE_STRING,   &scoreCol,     false, CC_AUTOADD | TYPE_FLOAT },
-                            { "sequence",      TYPE_STRING,   &seq,          false, 0 },
-                            { "init_pct_area", TYPE_FLOAT,    &initPctArea,  false, 0 },
-                            { "expand_query",  TYPE_STRING,   &expandQuery,  false, 0 },
-                            { "expand_area",   TYPE_STRING,   &expandArea,   false, 0 },
-                            { NULL,            TYPE_NULL,     NULL,        false, 0 } };
-      
+         XML_ATTR attrs[] = { // attr             type           address       isReq checkCol
+                            { "name",             TYPE_STRING,   &name,         true,  0 },
+                            { "id",               TYPE_INT,      &attrCode,     true,  0 },
+                            { "description",      TYPE_STRING,   &description,  false, 0 },
+                            { "target_type",      TYPE_STRING,   &targetType, false, 0 },   // deprecated
+                            { "target_source",    TYPE_STRING,   &targetSource, false, 0 },
+                            { "target_values",    TYPE_STRING,   &targetValues, false, 0 },
+                            { "target_domain",    TYPE_STRING,   &targetDomain, false, 0 },
+                            { "target_basis",     TYPE_STRING,   &targetBasis,  false, 0 },
+                            { "target_query",     TYPE_STRING,   &targetQuery,  false, 0 },
+                            { "constraint",       TYPE_STRING,   &constraint,   false, 0 },
+                            { "score_col",        TYPE_STRING,   &scoreCol,     false, CC_AUTOADD | TYPE_FLOAT },
+                            { "sequence",         TYPE_STRING,   &seq,          false, 0 },
+                            { "init_pct_area",    TYPE_FLOAT,    &initPctArea,  false, 0 },
+                            { "expand_query",     TYPE_STRING,   &expandQuery,  false, 0 },
+                            { "expand_area",      TYPE_STRING,   &expandArea,   false, 0 },
+
+                            { "charge_to",        TYPE_STRING,   &budgetItem,          true,  0 },
+                            { "basis",            TYPE_STRING,   &basis,               false, 0 },
+                            { "init_cost",        TYPE_STRING,   &initialCostExpr,     false, 0 },
+                            { "maintenance_cost", TYPE_STRING,   &maintenanceCostExpr, false, 0 },
+                            { "duration",         TYPE_STRING,   &durationExpr,        false, 0 },
+                            { NULL,               TYPE_NULL,     NULL,             false, 0 } };
+
          if ( TiXmlGetAttributes( pXmlAlloc, attrs, path, m_pMapLayer ) == false )
             return false;
 
@@ -2383,6 +2574,26 @@ bool SpatialAllocator::LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAl
             // was a string provided describing the max area expansion?  If so, parse it.
             if ( expandArea != NULL )
                pAlloc->SetMaxExpandAreaStr( expandArea );
+
+            // is this a cost item?
+            if ( budgetItem != NULL )
+               {
+               // have constraint, add it to the policy manager
+               CI_BASIS _basis = CIB_ABSOLUTE;
+               if (basis != NULL && basis[0] == 'u' )  // "unit_area") == 0)
+                  _basis = CIB_UNIT_AREA;
+
+               if (initialCostExpr == NULL )
+                  {
+                  CString msg;
+                  msg.Format("Unrecognized/missing 'cost' expression reading costitem %s", name );
+                  Report::LogWarning(msg);
+                  }
+
+               CostItem* pCostItem = new CostItem;  // note - name matches allocation name)
+               pCostItem->Init(m_pBudget, budgetItem, name, _basis, initialCostExpr, maintenanceCostExpr, durationExpr, lookup);
+               pAlloc->m_pCostItem = pCostItem;
+               }  // end of: if ( budgetItem != NULL )
                   
             // all done, add allocation to set's array
             pAllocSet->m_allocationArray.Add( pAlloc );
@@ -2922,6 +3133,7 @@ void SpatialAllocator::CollectData(EnvContext *pContext)
    //        ScoreBasis
    //        ExpandArea
    //        ExpandBasis
+   //        Limit
    //
    // if targets are defined for each individual allocation:
    //    Time
@@ -2936,6 +3148,8 @@ void SpatialAllocator::CollectData(EnvContext *pContext)
    //        ScoreBasis
    //        ExpandArea
    //        ExpandBasis
+   //        Limit
+
 
    // collect output
    for( int i=0; i < (int) m_allocationSetArray.GetSize(); i++ )
@@ -2989,6 +3203,7 @@ void SpatialAllocator::CollectData(EnvContext *pContext)
 
          outputs.Add( pAlloc->m_expandArea );
          outputs.Add( pAlloc-> m_expandBasis );
+         outputs.Add( (float)(int) pAlloc->m_limit);
 
          //pAlloc->m_cumBasisTarget += pAlloc->m_currentTarget;   ////????
          //pAlloc->m_cumBasisActual       += pAlloc->m_allocationSoFar;  ////????
@@ -2997,47 +3212,140 @@ void SpatialAllocator::CollectData(EnvContext *pContext)
          //cumOutputs.Add( pAlloc->m_cumBasisActual );
          }
 
+
       if ( pContext->yearOfRun >= 0 )
          {
          if ( pAllocSet->m_pOutputData )
             pAllocSet->m_pOutputData->AppendRow( outputs );
-
-         if ( pAllocSet->m_inUse )
-            {
-            // report resutls for this allocation set
-            CString msg;
-            if ( isTargetDefined )
-               msg.Format( "Spatial Allocator [%s]: Time: %i,  Total Target: %.0f,  Realized: %.0f", (LPCTSTR) pAllocSet->m_name, pContext->currentYear, outputs[ 1 ], outputs[ 2 ] );
-            else
-               msg.Format( "Spatial Allocator [%s]: Time: %i",  (LPCTSTR) pAllocSet->m_name, pContext->currentYear );
-
-            pAllocSet->m_status = msg;
-            Report::Log( msg );
-
-            for ( int j=0; j < pAllocSet->GetAllocationCount(); j++ )
-               {
-               Allocation *pAlloc = pAllocSet->GetAllocation( j );
-
-               if ( isTargetDefined )
-                  msg.Format( "  Allocation [%s]: Realized: %.0f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i",
-                                  (LPCTSTR) pAlloc->m_name, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar*100/pAllocSet->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
-                                  pAlloc->m_minScore, pAlloc->m_maxScore, pAlloc->m_scoreCount, pAlloc->m_usedCount, pAlloc-> m_scoreBasis, pAlloc->m_expandArea, pAlloc->m_expandBasis, pAlloc->m_currentIduScoreIndex );
-               else
-                  msg.Format( "  Allocation [%s]: Target: %.0f,  Realized: %.1f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i",
-                                  (LPCTSTR) pAlloc->m_name, pAlloc->m_currentTarget, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar*100/pAlloc->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
-                                  pAlloc->m_minScore, pAlloc->m_maxScore, pAlloc->m_scoreCount, pAlloc->m_usedCount, pAlloc-> m_scoreBasis, pAlloc->m_expandArea, pAlloc->m_expandBasis, pAlloc->m_currentIduScoreIndex );
-
-               pAlloc->m_status = msg;
-               Report::Log( msg );
-               }
-            }
          }
 
       // all done with this allocation set
       }
+
+   // global budget next
+   if (this->m_pBudget != NULL && pContext->yearOfRun >= 0)
+      {
+      // if budget defined:
+      //   For each BudgetItem for each year:
+      //       StartBudget
+      //       EndBudget
+      //       InitialCosts
+      //       MaintenanceCosts
+      //       TotalCosts
+      //       TotalCumulativeCosts
+      //       for each CostItem:
+      //          Initial Costs
+      //          MaintenanceCosts
+      //          Total Costs (for the year)
+      //          Total Cumulative Costs (for the year)
+      CArray< float, float > outputs;
+      outputs.Add((float)pContext->currentYear);  // time
+
+      for (int i = 0; i < m_pBudget->GetBudgetItemCount(); i++)
+         {
+         BudgetItem* pBudgetItem = m_pBudget->GetBudgetItem(i);
+
+         outputs.Add(pBudgetItem->GetLimit());
+         outputs.Add(pBudgetItem->GetAvailableBudget());
+         outputs.Add(pBudgetItem->GetInitialCosts());
+         outputs.Add(pBudgetItem->GetMaintenanceCosts());
+         outputs.Add(pBudgetItem->GetTotalCosts());
+         outputs.Add(pBudgetItem->GetCumulativeCosts());
+
+         for (int j = 0; j < pBudgetItem->GetCostItemCount(); j++)
+            {
+            outputs.Add(pBudgetItem->GetCostItem(j)->m_totalInitialCosts);
+            outputs.Add(pBudgetItem->GetCostItem(j)->m_totalMaintenanceCosts);
+            outputs.Add(pBudgetItem->GetCostItem(j)->m_totalCosts);
+            outputs.Add(pBudgetItem->GetCostItem(j)->m_totalCumulativeCosts);
+            }
+         }
+
+      m_pBudgetData->AppendRow(outputs);
+      }
    }
 
 
+
+void SpatialAllocator::ReportOutcomes(EnvContext *pContext)
+   {
+   // collect output
+   for (int i = 0; i < (int)m_allocationSetArray.GetSize(); i++)
+      {
+      AllocationSet* pAllocSet = m_allocationSetArray[i];
+
+      if (pAllocSet->m_inUse)
+         {
+         bool isTargetDefined = pAllocSet->IsTargetDefined();
+
+         // report resutls for this allocation set
+         CString msg;
+         if (isTargetDefined)
+            msg.Format("Spatial Allocator [%s]: Time: %i,  Total Target: %.0f,  Realized: %.0f", (LPCTSTR)pAllocSet->m_name, pContext->currentYear, pAllocSet->m_currentTarget, pAllocSet->m_allocationSoFar);
+         else
+            msg.Format("Spatial Allocator [%s]: Time: %i", (LPCTSTR)pAllocSet->m_name, pContext->currentYear);
+
+         pAllocSet->m_status = msg;
+         Report::Log(msg);
+
+         for (int j = 0; j < pAllocSet->GetAllocationCount(); j++)
+            {
+            Allocation* pAlloc = pAllocSet->GetAllocation(j);
+
+            LPCTSTR limit = GetLimitStr(pAlloc->m_limit);
+
+            if (isTargetDefined)
+               msg.Format("  Allocation [%s]: Realized: %.0f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i, limit=%s",
+                  (LPCTSTR)pAlloc->m_name, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar * 100 / pAllocSet->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
+                  pAlloc->m_minScore, pAlloc->m_maxScore, pAlloc->m_scoreCount, pAlloc->m_usedCount, pAlloc->m_scoreBasis, pAlloc->m_expandArea, pAlloc->m_expandBasis, pAlloc->m_currentIduScoreIndex, limit);
+            else
+               msg.Format("  Allocation [%s]: Target: %.0f,  Realized: %.1f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i, limit=%s",
+                  (LPCTSTR)pAlloc->m_name, pAlloc->m_currentTarget, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar * 100 / pAlloc->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
+                  pAlloc->m_minScore, pAlloc->m_maxScore, pAlloc->m_scoreCount, pAlloc->m_usedCount, pAlloc->m_scoreBasis, pAlloc->m_expandArea, pAlloc->m_expandBasis, pAlloc->m_currentIduScoreIndex, limit);
+
+            pAlloc->m_status = msg;
+            Report::Log(msg);
+            }
+         }
+      }
+
+   if (m_pBudget != NULL)
+      {
+      //setlocale(LC_NUMERIC, "");
+
+      CString log;
+      for (int i = 0; i < m_pBudget->GetBudgetItemCount(); i++)
+         {
+         BudgetItem* pBudgetItem = m_pBudget->GetBudgetItem(i);
+
+         log.Format("%s - limit:%.0fM, cost:%.0fM, available: %.0fM", pBudgetItem->m_name, pBudgetItem->GetLimit() / 1000000, pBudgetItem->GetTotalCosts() / 1000000, pBudgetItem->GetAvailableBudget() / 1000000);
+         Report::LogInfo(log);
+
+         for (int j = 0; j < pBudgetItem->GetCostItemCount(); j++)
+            {
+            CostItem* pCostItem = pBudgetItem->GetCostItem(j);
+            log.Format("    %s - costs: $%.0f", pCostItem->m_name, pCostItem->m_totalCosts / 1000000);
+            Report::LogInfo(log);
+            }
+         }
+      }
+   }
+
+void SpatialAllocator::Reset()
+   {
+   if (this->m_pBudget)
+      this->m_pBudget->Reset(false);  // called at the start of each time step - updates value, reset currentValue=0, increments cumulative
+
+   for (int i = 0; i < (int)m_allocationSetArray.GetSize(); i++)
+      {
+      AllocationSet* pAllocSet = m_allocationSetArray[i];
+      for (int j = 0; j < pAllocSet->GetAllocationCount(); j++)
+         {
+         Allocation* pAlloc = pAllocSet->GetAllocation(j);
+         pAlloc->m_limit = LT_NONE;
+         }
+      }
+   }
 
 
 int CompareScores(const void *elem0, const void *elem1 )

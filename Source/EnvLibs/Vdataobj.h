@@ -58,8 +58,8 @@ class  LIBSAPI VDataObj : public DataObj
 
    public:
       //-- constructor --//
-      VDataObj(UNIT_MEASURE m);
-      VDataObj( int cols, int allocRows, UNIT_MEASURE m);  // by dimension (must Append())
+      VDataObj(UNIT_MEASURE m=UNIT_MEASURE::U_UNDEFINED);
+      VDataObj( int cols, int allocRows, UNIT_MEASURE m=UNIT_MEASURE::U_UNDEFINED);  // by dimension (must Append())
       
       //-- copy constructor --//
       VDataObj( VDataObj& );   

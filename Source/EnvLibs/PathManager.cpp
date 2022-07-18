@@ -21,10 +21,11 @@ Copywrite 2012 - Oregon State University
 #pragma hdrstop
 
 #include "PathManager.h"
+#include "Report.h"
 
 
 
-CStringArray PathManager::m_pathArray;
+map<int, string> PathManager::m_pathMap;
 
 
 PathManager::PathManager(void)
@@ -37,14 +38,26 @@ PathManager::~PathManager(void)
    }
 
 
-int PathManager::AddPath( LPCTSTR _path )
+int PathManager::AddPath( LPCTSTR _path, int id /*=-9999*/ )
    {
    // clean up whatever is passed in
    CPath path( _path, epcTrim | epcSlashToBackslash );
 
    path.AddBackslash();
+
+   CString msg("Adding Path: ");
+   msg += path;
    
-   return (int) m_pathArray.Add( (CString)path );
+   Report::Log(msg);
+   if (id == -9999)
+      {
+      int count = (int) m_pathMap.size();
+      m_pathMap[-count] = path;
+      }
+   else
+      m_pathMap[id] = path;
+
+   return (int) m_pathMap.size();
    }
 
 
@@ -53,14 +66,14 @@ int PathManager::SetPath( int index, LPCTSTR _path )
    if ( index < 0 )
       return -1;
        
-   if ( index >= (int) m_pathArray.GetSize() )
+   if ( index >= (int) m_pathMap.size() )
       return -2;
 
    // clean up whatever is passed in
    CPath path( _path, epcTrim | epcSlashToBackslash );
    path.AddBackslash();
 
-   m_pathArray[ index ] = path;
+   m_pathMap[ index ] = path;
 
    return index;
    }
@@ -68,7 +81,7 @@ int PathManager::SetPath( int index, LPCTSTR _path )
 
 LPCTSTR PathManager::GetPath(int i)
    {
-   return m_pathArray[i]; 
+   return m_pathMap[i].c_str();
    }       // this will always be terminated with a '\'
 
 
@@ -82,22 +95,17 @@ int PathManager::FindPath( LPCTSTR _path, CString &_fullPath )
    // case 1:  just a filename or a relative path - look through pathArray
    if ( path.IsFileSpec() || path.IsRelative() )  // only a file, not a path
       {
-      int count = (int) m_pathArray.GetSize();
-
-      if ( count > 0 )
+      for (auto it = m_pathMap.rbegin(); it != m_pathMap.rend(); ++it) 
          {
-         for ( int i=count-1; i != 0; i-- )
+         CPath fullPath(it->second.c_str());
+   
+         // append the relative path that was passed in
+         fullPath.Append( path );
+   
+         if ( fullPath.Exists() )
             {
-            CPath fullPath = m_pathArray.GetAt( i );
-   
-            // append the relative path that was passed in
-            fullPath.Append( path );
-   
-            if ( fullPath.Exists() )
-               {
-               _fullPath = fullPath;
-               return i+1;
-               }
+            _fullPath = fullPath;
+            return it->first;
             }
          }
 
@@ -179,10 +187,9 @@ int PathManager::SearchPaths( CPath &path, FILE **fp, LPCTSTR mode )
    errno_t err = 0;
    *fp = NULL;
 
-   int count = (int) m_pathArray.GetSize();
-   for ( int i=count-1; i != 0; i-- )
+   for (auto it = m_pathMap.rbegin(); it != m_pathMap.rend(); ++it)
       {
-      CPath fullPath = m_pathArray.GetAt( i );
+      CPath fullPath(it->second.c_str());
 
       // append the relative path that was passed in
       fullPath.Append( path );
