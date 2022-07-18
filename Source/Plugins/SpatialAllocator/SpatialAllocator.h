@@ -432,13 +432,19 @@ protected:
 
 
 public:
+<<<<<<< HEAD
    bool LoadXml( EnvContext *, LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray=NULL );
+=======
+   bool LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray=NULL );
+   bool UpdateAllocationsFromFile();
+>>>>>>> 56e1400c92cec1670b1dfa0bf00241c834879f2d
    bool SaveXml( LPCTSTR filename );   // can include full path
 
    int ReplaceAllocSets( PtrArray< AllocationSet > &allocSet );
    void InitAllocSetData( void );   // pAllocSet->m_pOutputData + TargetContainer::Init() -> allocates m_pTargetData FDataObj
    void ScoreIduAllocation( Allocation *pAlloc, int flags );
-
+   FDataObj* m_pBuildFromFile;
+   CString m_update_from_file_name;
 protected:
    int SaveXml( FILE *fp );   // helper function
 

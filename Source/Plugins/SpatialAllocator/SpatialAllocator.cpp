@@ -418,6 +418,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
    //
    //   Report::Log( data );
    //   }
+
    }
 
 
@@ -897,6 +898,7 @@ SpatialAllocator::SpatialAllocator()
 , m_pBudgetData(NULL)
 , m_collectExpandStats(false)
 , m_pExpandStats(NULL)
+, m_pBuildFromFile(NULL)
    { }
 
 
@@ -939,6 +941,9 @@ SpatialAllocator::~SpatialAllocator( void )
    // and local data
    if ( m_pRandUnif )
       delete m_pRandUnif;
+   if ( m_pBuildFromFile)
+      delete m_pBuildFromFile;
+   
    }
 
 
@@ -1245,8 +1250,13 @@ bool SpatialAllocator::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
 
 bool SpatialAllocator::Run( EnvContext *pContext )
    {
+<<<<<<< HEAD
    Reset();
 
+=======
+   if (m_pBuildFromFile)
+      UpdateAllocationsFromFile();
+>>>>>>> 56e1400c92cec1670b1dfa0bf00241c834879f2d
    // set the desired value for the targets
    SetAllocationTargets( pContext->currentYear );
 
@@ -2302,12 +2312,14 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
 
    LPTSTR areaCol = NULL; //, scoreCol=NULL;
    LPTSTR method  = NULL;
+   LPTSTR updatefromfile = NULL;
    int    shuffleIDUs = 1;
    XML_ATTR rattrs[] = { // attr          type           address       isReq checkCol
                       { "area_col",     TYPE_STRING,   &areaCol,       false, CC_MUST_EXIST | TYPE_FLOAT },
                       //{ "score_col",    TYPE_STRING,   &scoreCol,      false, CC_AUTOADD    | TYPE_FLOAT },
                       { "method",       TYPE_STRING,   &method,        false, 0 },
                       { "shuffle_idus", TYPE_INT,      &shuffleIDUs,   false, 0 },
+                      { "update_from_file", TYPE_STRING,   &updatefromfile,        false, 0 },
                       { NULL,           TYPE_NULL,     NULL,           false, 0 } };
 
    if ( TiXmlGetAttributes( pXmlRoot, rattrs, path, m_pMapLayer ) == false )
@@ -2315,6 +2327,12 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
    
    if ( areaCol == NULL )
       areaCol = "AREA";
+   if (updatefromfile != NULL)
+     {
+      m_pBuildFromFile = new FDataObj();
+      m_pBuildFromFile->ReadAscii(updatefromfile);
+      m_update_from_file_name = updatefromfile;
+      }
 
    this->m_colArea = m_pMapLayer->GetFieldCol( areaCol );
    if ( m_colArea < 0 )
@@ -2659,6 +2677,65 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
    return true;
    }
 
+   // The method can be called each timestep (it will be if m_pBuildFromFile is not NULL.  A tag has been added to the LoadXml code:
+
+  // <spatial_allocator area_col = "AREA" method = "score priority" shuffle_idus = "1" update_from_file = "D:\\Envision\\StudyAreas\\CALFEWS\\calvin\\AgModel_Envision.csv">
+  //    <allocation_set name = "AgCrops" col = "SWAT_ID" use = "1" >
+  //    <allocation name = "Almonds and Pistachios" id = "106" target_source = "timeseries" target_values = "(1950,50),(2100,50)"><constraint name = "Ag" query = "LULC_A=7 {Agriculture} " / ><preference name = "Current" query = "SWAT_ID = 106 {Almonds}" weight = "0.75" / >< / allocation>
+  //    <allocation name = "Almonds and Pistachios" id = "106" target_source = "timeseries" target_values = "(1950,50),(2100,50)">
+  //    <constraint name = "Ag" query = "LULC_A=7 {Agriculture} " / >
+ //     <preference name = "Current" query = "SWAT_ID = 106 {Almonds}" weight = "0.75" / >
+ //     < / allocation>
+// Follow with additional allocations
+      
+
+   // m_update_from_file_name is a csv file written by separate process each year
+   // Use LoadXml to build Allocation - the size of the allocationSet/allocation should match the size of m_update_from_file_name
+   // This code modifies the existing allocations with values from m_update_from_file_name
+   // The values for m_pTargetData are set to the same values as defined by the external process.  This assumes the allocations were specified
+   // as a time series with 2 points.  Because the 2 values in the updated time series are equivalent, the sampling will return the same value.
+bool SpatialAllocator::UpdateAllocationsFromFile()
+   {
+   if (m_pBuildFromFile != NULL)
+      {
+      m_pBuildFromFile->Clear();
+      m_pBuildFromFile->ReadAscii(m_update_from_file_name);
+      int sz2 = m_pBuildFromFile->GetRowCount();
+      for (int i = 0; i < (int)m_allocationSetArray.GetSize(); i++)
+         {
+         AllocationSet* pAllocSet = m_allocationSetArray[i];
+         for (int j = 0; j < (int)pAllocSet->m_allocationArray.GetSize(); j++)
+            {
+            //Update the lulc id, target values, constraints, and preferences
+            Allocation* pAlloc = pAllocSet->m_allocationArray[j];
+            int sz1 = (int)pAllocSet->m_allocationArray.GetSize(); 
+            ASSERT(sz1 == sz2);
+            pAlloc->m_id = m_pBuildFromFile->GetAsInt(1, j);
+            CString nam;
+            nam.Format("SWAT Code %i CVPM %i", pAlloc->m_id, m_pBuildFromFile->GetAsInt(0, i));
+            pAlloc->m_name = nam;
+           // pAlloc->m_targetValues = m_pBuildFromFile->GetAsString(3, j);
+            CString query;
+            query.Format("LULC_A = 7 and CVPM_INT = %i", m_pBuildFromFile->GetAsInt(0, i));//find correct CVPM and constrain to Ag lands
+            //pAlloc->m_pTargetQuery->m_value = query;
+            pAlloc->m_constraint.m_queryStr = query;
+            Preference* pPref = pAlloc->m_prefsArray.GetAt(0);
+            CString prefQuery;
+            prefQuery.Format("SWAT_ID = %i", m_pBuildFromFile->GetAsInt(1, i));//preference for land already growing this crop
+            pPref->m_queryStr = prefQuery;
+            if (pAllocSet->m_inUse && pAlloc->m_pTargetData != NULL)
+               //pAlloc->SetTarget(m_pBuildFromFile->GetAsFloat(1, j));//area to disaggregate
+               {
+               pAlloc->m_pTargetData->Set(1, 0, m_pBuildFromFile->GetAsFloat(1, j));
+               pAlloc->m_pTargetData->Set(1, 1, m_pBuildFromFile->GetAsFloat(1, j));
+               }
+            else
+               pAlloc->m_currentTarget = 0;
+            }
+         }
+      }
+   return true;
+}
 
 bool SpatialAllocator::SaveXml( LPCTSTR path )
    {
