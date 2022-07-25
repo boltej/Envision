@@ -789,12 +789,12 @@ int SNIPModel::RunSimulation(bool initialize, bool step)
    for (int i = 0; i < this->GetNodeCount(); i++)
       {
       SNNode* pNode = this->GetNode(i);
-      //if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
-      //   {
+      if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+         {
          CString msg;
          msg.Format("   Node %s: Reactivity = %.2f, Influence = %.2f", pNode->m_name, pNode->m_reactivity, pNode->m_influence);
          Report::LogInfo(msg);
-      //   }
+         }
       }
 
    for (int i = 0; i < this->GetEdgeCount(); i++)
@@ -802,9 +802,9 @@ int SNIPModel::RunSimulation(bool initialize, bool step)
       SNEdge* pEdge = this->GetEdge(i);
       //if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
       //   {
-      CString msg;
-      msg.Format("   Edge %s: Active=%i, Trans Eff=%.2f, Signal Strength=%.2f, Influence=%.2f", pEdge->m_name.c_str(), (pEdge->IsActive() ? 1 : 0), pEdge->m_transEff, pEdge->m_influence);
-      Report::LogInfo(msg);
+      //CString msg;
+      //msg.Format("   Edge %s: Active=%i, Trans Eff=%.2f, Signal Strength=%.2f, Influence=%.2f", pEdge->m_name.c_str(), (pEdge->IsActive() ? 1 : 0), pEdge->m_transEff, pEdge->m_influence);
+      //Report::LogInfo(msg);
       //   }
       }
 

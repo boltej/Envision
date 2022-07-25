@@ -52,6 +52,7 @@ const float IN_PER_CM   =         0.3937f   ;
 const float FT_PER_M    =         3.281f    ;
 const float M_PER_FT    =         0.3048f   ;
 const float FT_PER_MILE =      5280.0;
+const float MI_PER_M    = 0.000621371f;   // Miles per Meter
 
 
 //-- area --------------------------------------------------------

@@ -276,6 +276,9 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 	m_input_module->init();
 	m_output_modules.init();
 
+	//kbv
+	date.set_first_calendar_year(pFlowContext->pEnvContext->startYear);
+
 	print_logfile_heading();
 
 
@@ -466,6 +469,8 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 
 bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_name, const char* instruction_file)
 {
+	//kbv
+	date.set_first_calendar_year(pFlowContext->pEnvContext->startYear);
 
 	int hruCount = pFlowContext->pFlowModel->GetHRUCount();
 
@@ -581,7 +586,7 @@ void LPJGuess::move_to_flow(Gridcell& gridcell)
 			//patch.fpc_rescale = 1.0 / max(patch.fpc_total, 1.0);
 			
 			pHRU->m_meanAge += patch.age;
-			pHRU->m_meanLAI =+ patchLAI;
+			pHRU->m_meanLAI += patchLAI;
 			stand.nextobj();
 		   }
 		++gc_itr;

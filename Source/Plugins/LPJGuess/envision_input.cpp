@@ -144,8 +144,10 @@ void ENVInput::init() {
 	landcover_input.init();
 	// Open management files
 	management_input.init();
-
+	
 	date.set_first_calendar_year(FIRSTHISTYEAR - nyear_spinup);
+
+
 	// Set timers
 	tprogress.init();
 	tmute.init();

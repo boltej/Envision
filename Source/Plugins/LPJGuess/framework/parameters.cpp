@@ -393,7 +393,7 @@ void plib_declarations(int id,xtring setname) {
 	case BLOCK_GLOBAL:
 
 		declareitem("title",&title,80,CB_NONE,"Title for run");
-		declareitem("nyear_spinup",&nyear_spinup,1,10000,1,CB_NONE,"Number of simulation years to spinup for");
+		declareitem("nyear_spinup",&nyear_spinup,-1,10000,1,CB_NONE,"Number of simulation years to spinup for");
 		declareitem("vegmode",&strparam,16,CB_VEGMODE,
 			"Vegetation mode (\"INDIVIDUAL\", \"COHORT\", \"POPULATION\")");
 		declareitem("ifbgestab",&ifbgestab,1,CB_NONE,
@@ -442,7 +442,7 @@ void plib_declarations(int id,xtring setname) {
 			"Whether to use CENTURY SOM dynamics (default standard LPJ)");
 		declareitem("ifnlim",&ifnlim,1,CB_NONE,
 			"Whether plant growth limited by available nitrogen");
-		declareitem("freenyears",&freenyears,0,1000,1,CB_NONE,
+		declareitem("freenyears",&freenyears,-1,1000,1,CB_NONE,
 			"Number of years to spinup without nitrogen limitation");
 
 		declareitem("ifsmoothgreffmort",&ifsmoothgreffmort,1,CB_NONE,
@@ -1107,7 +1107,7 @@ void plib_callback(int callback) {
 		if (!itemparsed("ifnlim")) badins("ifnlim");
 		if (!itemparsed("freenyears")) badins("freenyears");
 
-		if (nyear_spinup <= freenyears) {
+		if (nyear_spinup < freenyears) {
 			sendmessage("Error", "freenyears must be smaller than nyear_spinup");
 			plibabort();
 		}

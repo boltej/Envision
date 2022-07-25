@@ -56,10 +56,9 @@ Copywrite 2012 - Oregon State University
 #endif
 
 const float g = 9.81f;                  // gravity m/sec*sec
-const double MHW = 2.1;                  // NAVD88 mean high water meters 
-const double MLLW = -0.46;               // NAVD88 mean lower low water meters (t Westport)
-const double EXLW_MLLW = 1.1;            // NAVD88 Extreme low water below MLLW meters 
-const double MILESPERMETER = 0.000621371;   // Miles per Meter
+const float MHW = 2.1f;                  // NAVD88 mean high water meters 
+const float MLLW = -0.46f;               // NAVD88 mean lower low water meters (t Westport)
+const float EXLW_MLLW = 1.1f;            // NAVD88 Extreme low water below MLLW meters 
 
 float PolicyInfo::m_budgetAllocFrac = 0.5f;
 
@@ -2464,7 +2463,7 @@ bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
          /*int bldgCityCode = 0;
          m_pBldgLayer->GetData(ptArray[i], m_colBldgCityCode, bldgCityCode);*/
 
-         m_pBldgLayer->SetData(bldgIndex, m_colBldgCityCode, iduCityCode);
+         //m_pBldgLayer->SetData(bldgIndex, m_colBldgCityCode, iduCityCode);
          } // end each new building
       }
 
@@ -4307,18 +4306,18 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
    m_totalHardenedShoreline = m_addedHardenedShoreline + (float(m_elevCellHeight) * n_old);
    m_percentHardenedShoreline = (m_totalHardenedShoreline / float(m_shorelineLength)) * 100;
 
-   m_addedHardenedShorelineMiles = m_addedHardenedShoreline * MILESPERMETER;
-   m_totalHardenedShorelineMiles = m_totalHardenedShoreline * MILESPERMETER;
-   m_percentHardenedShorelineMiles = m_percentHardenedShoreline * MILESPERMETER;
+   m_addedHardenedShorelineMiles = m_addedHardenedShoreline * MI_PER_M;
+   m_totalHardenedShorelineMiles = m_totalHardenedShoreline * MI_PER_M;
+   m_percentHardenedShorelineMiles = m_percentHardenedShoreline * MI_PER_M;
 
    // determine length of constructed dunes
    m_addedRestoredShoreline = m_elevCellHeight * m;
    m_totalRestoredShoreline = m_addedRestoredShoreline + (m_elevCellHeight * m_old);
    m_percentRestoredShoreline = (m_totalRestoredShoreline / float(m_shorelineLength)) * 100;
 
-   m_addedRestoredShorelineMiles = m_addedRestoredShoreline * MILESPERMETER;
-   m_totalRestoredShorelineMiles = m_totalRestoredShoreline * MILESPERMETER;
-   m_percentRestoredShorelineMiles = m_percentRestoredShoreline * MILESPERMETER;
+   m_addedRestoredShorelineMiles = m_addedRestoredShoreline * MI_PER_M;
+   m_totalRestoredShorelineMiles = m_totalRestoredShoreline * MI_PER_M;
+   m_percentRestoredShorelineMiles = m_percentRestoredShoreline * MI_PER_M;
 
    }
 
@@ -4510,8 +4509,8 @@ void ChronicHazards::TallyRoadStatistics()
             }
          }
       // meters to miles: m *0.00062137 = miles
-      m_floodedRoadMiles = m_floodedRoad * MILESPERMETER;
-      m_floodedRailroadMiles *= MILESPERMETER;
+      m_floodedRoadMiles = m_floodedRoad * MI_PER_M;
+      m_floodedRailroadMiles *= MI_PER_M;
 
 
       /************************   Calculate Eroded Road Statistics ************************/
@@ -4574,8 +4573,8 @@ void ChronicHazards::TallyRoadStatistics()
             }
          }
       // meters to miles: m *0.00062137 = miles
-      m_erodedRoadMiles = m_erodedRoad * MILESPERMETER;
-      //   m_erodedRailroadMiles = m_erodedRailroad * MILESPERMETER;
+      m_erodedRoadMiles = m_erodedRoad * MI_PER_M;
+      //   m_erodedRailroadMiles = m_erodedRailroad * MI_PER_M;
       }  // end RoadLayer exists
 
    }
