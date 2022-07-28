@@ -127,7 +127,7 @@ enum SNIP_MOTIF {
 // state      | Active | Both     | Both     |
 // reactivity |  1.0   | calculated          |
 
-//const int DEBUG = 0;
+
 
 struct NetStats {
    // simulation stats
