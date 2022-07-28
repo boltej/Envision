@@ -109,6 +109,13 @@ enum SNIP_EDGE_TYPE {
    ET_NETWORK = 1
    };
 
+enum SNIP_MOTIF {
+   MOTIF_LEADER,
+   MOTIF_GATEKEEPER,
+   MOTIF_COORDINATOR,
+   MOTIF_REPRESENTATIVE
+   };
+
 
 
 // Node Status
@@ -272,6 +279,7 @@ class SNNode : public TraitContainer
       float m_reactivityMultiplier; // : 1,
       float m_reactivityHistory;    // : [reactivity] ,
       float m_reactivityMovAvg;     // : 0,
+      long  m_idu = -1;
 
    public:
       // constructor
@@ -379,7 +387,8 @@ class SNLayer
       string m_name;
       string m_description;
 
-      int   m_outputNodeCount = 0;
+      int m_outputNodeCount = 0;
+      int m_colReactivity = -1;
 
    protected:
       // container
@@ -442,7 +451,8 @@ class SNIPModel
    friend class SNIP;
 
    protected:
-      bool  m_use = true;
+      bool m_use = true;
+      int m_colAdapt = -1;
       SNLayer* m_pSNLayer = NULL;       // associated network layer
       json m_networkJSON; // / networkInfo = null;   // dictionary with description, traits, etc read from JSON file
 
@@ -452,8 +462,6 @@ class SNIPModel
       // mapping setup
       std::string m_mappingQuery;
       Query* m_pMappingQuery = nullptr;
-
-
 
       // input definition
       SNNode* m_pInputNode = NULL;
@@ -573,51 +581,10 @@ class SNIPModel
       SNNode* GetNode(int i) { return m_pSNLayer->GetNode(i); }
 
       // stats
-      int GetMaxDegree(bool) {
-         int count = GetNodeCount(); int maxDegree = 0;
-         for (int i = 0; i < count; i++) {
-            int edges = int(GetNode(i)->m_inEdges.GetSize() + GetNode(i)->m_outEdges.GetSize());
-            if (edges > maxDegree)
-               maxDegree = edges;
-            }
-         return maxDegree;
-         }
-
-
-      int GetActiveNodeCount(int type=NT_INPUT_SIGNAL | NT_NETWORK_ACTOR | NT_LANDSCAPE_ACTOR) {
-         int count = GetNodeCount();
-         int activeCount = 0;
-         for (int i = 0; i < count; i++)
-            {
-            SNNode* pNode = m_pSNLayer->GetNode(i);
-            if ((pNode->m_nodeType & type ) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
-               activeCount++;
-            }
-         return activeCount;
-         }
-
-      int GetActiveEdgeCount() {
-         int count = GetEdgeCount();
-         int activeCount = 0;
-         for (int i = 0; i < count; i++)
-            if (m_pSNLayer->GetEdge(i)->m_state == SNIP_STATE::STATE_ACTIVE)
-               activeCount++;
-         return activeCount;
-         }
-
-
-      int GetNodeCount(int type) { // = NT_INPUT_SIGNAL | NT_NETWORK_ACTOR | NT_LANDSCAPE_ACTOR) {
-         int count = GetNodeCount();
-         int _count= 0;
-         for (int i = 0; i < count; i++)
-            {
-            SNNode* pNode = m_pSNLayer->GetNode(i);
-            if (pNode->m_nodeType & type)
-               _count++;
-            }
-         return _count;
-         }
-
+      int GetMaxDegree(bool);
+      int GetActiveNodeCount(int type = NT_INPUT_SIGNAL | NT_NETWORK_ACTOR | NT_LANDSCAPE_ACTOR);
+      int GetActiveEdgeCount();
+      int GetNodeCount(int type);
    };
 
 
@@ -631,7 +598,6 @@ class _EXPORT SNIP : public  EnvModelProcess
       SNIP() { }
       SNIP(SNIP&);
       //~SNIP(); {}
-
 
       virtual bool Init(EnvContext* pEnvContext, LPCTSTR initStr);
 

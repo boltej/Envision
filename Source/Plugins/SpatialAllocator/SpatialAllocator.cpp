@@ -1250,13 +1250,10 @@ bool SpatialAllocator::InitRun( EnvContext *pEnvContext, bool useInitialSeed )
 
 bool SpatialAllocator::Run( EnvContext *pContext )
    {
-<<<<<<< HEAD
    Reset();
 
-=======
    if (m_pBuildFromFile)
       UpdateAllocationsFromFile();
->>>>>>> 56e1400c92cec1670b1dfa0bf00241c834879f2d
    // set the desired value for the targets
    SetAllocationTargets( pContext->currentYear );
 
@@ -2519,7 +2516,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                             { "expand_query",     TYPE_STRING,   &expandQuery,  false, 0 },
                             { "expand_area",      TYPE_STRING,   &expandArea,   false, 0 },
 
-                            { "charge_to",        TYPE_STRING,   &budgetItem,          true,  0 },
+                            { "charge_to",        TYPE_STRING,   &budgetItem,          false,  0 },
                             { "basis",            TYPE_STRING,   &basis,               false, 0 },
                             { "init_cost",        TYPE_STRING,   &initialCostExpr,     false, 0 },
                             { "maintenance_cost", TYPE_STRING,   &maintenanceCostExpr, false, 0 },

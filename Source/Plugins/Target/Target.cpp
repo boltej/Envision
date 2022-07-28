@@ -48,8 +48,15 @@ using std::string;
 #define new DEBUG_NEW
 #endif
 
+TargetProcess* gTargetProcess = nullptr;
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new TargetProcess; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*)
+   {
+   if ( gTargetProcess != nullptr)
+      gTargetProcess = new TargetProcess; 
+
+   return (EnvExtension*) gTargetProcess;
+   }
 
 
 ALLOCATION::~ALLOCATION()
@@ -724,7 +731,7 @@ void Target::LoadTableValues()
 
    this->m_pTargetData->ClearRows();
 
-   float pair[2];
+   float pair[2]={0,0};
    for (int i = 0; i < pTable->GetYearCount(); i++)
       {
       pair[0] = (float)pTable->GetYear(i);
@@ -1488,7 +1495,7 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
             TCHAR* nextToken = NULL;
             LPTSTR token = _tcstok_s(targetValues, _T(",() ;\r\n"), &nextToken);
 
-            float pair[2];
+            float pair[2] = {0,0};
             while (token != NULL)
                {
                pair[0] = (float)atof(token);

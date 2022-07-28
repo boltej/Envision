@@ -432,12 +432,9 @@ protected:
 
 
 public:
-<<<<<<< HEAD
    bool LoadXml( EnvContext *, LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray=NULL );
-=======
    bool LoadXml( LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray=NULL );
    bool UpdateAllocationsFromFile();
->>>>>>> 56e1400c92cec1670b1dfa0bf00241c834879f2d
    bool SaveXml( LPCTSTR filename );   // can include full path
 
    int ReplaceAllocSets( PtrArray< AllocationSet > &allocSet );

@@ -1063,7 +1063,7 @@ bool Reporter::LoadXml(TiXmlElement *pXmlRoot, EnvContext *pEnvContext)
       {
       OutputGroup *pGroup = new OutputGroup;
 
-      LPTSTR stratifyBy = NULL;
+      LPTSTR groupBy=NULL;
       XML_ATTR groupAttrs[] = {
          // attr            type          address                       isReq  checkCol
          { "name",          TYPE_CSTRING,  &(pGroup->m_name),           true,  0 },
@@ -1078,6 +1078,9 @@ bool Reporter::LoadXml(TiXmlElement *pXmlRoot, EnvContext *pEnvContext)
          delete pGroup;
          continue;
          }
+
+      if (groupBy != NULL)
+         pGroup->m_stratifyByStr = groupBy;
 
       // map layer not specfied?  then use the IDU layer as default
       if ( pGroup->m_mapLayerName.IsEmpty() )
@@ -1122,13 +1125,13 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
       if ( pGroup )
          pivotTable = pGroup->m_makePivotTable;
 
-      LPCTSTR type = NULL;
-      //CString stratifyBy;
-
       if ( pGroup && pGroup->m_stratifyByStr.GetLength() > 0 )
          pOutput->m_stratifyByStr = pGroup->m_stratifyByStr;
 
       pOutput->m_pGroup = pGroup;
+
+      LPCTSTR type = NULL, groupByStr = NULL;
+      //CString stratifyBy;
 
       XML_ATTR outputAttrs[] = {
          // attr                type          address                   isReq  checkCol
@@ -1136,6 +1139,7 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
          { "query",            TYPE_CSTRING,  &(pOutput->m_query),          false, 0 },
          { "value",            TYPE_CSTRING,  &(pOutput->m_expression ),    true,  0 },
          { "type" ,            TYPE_STRING,   &type,                        true,  0 },
+         { "group_by",         TYPE_STRING,   &groupByStr,                  false, 0 },
          { "stratify_by",      TYPE_CSTRING,  &(pOutput->m_stratifyByStr),  false, 0 },
          { "pivot_table",      TYPE_BOOL,     &(pOutput->m_makePivotTable), false, 0 },
          { "layer",            TYPE_CSTRING,  &(pOutput->m_mapLayerName),   false, 0 },
@@ -1156,6 +1160,9 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
             Report::LogError( msg );
             pOutput->m_use = false;
             }
+
+         if (groupByStr != NULL)
+            pOutput->m_stratifyByStr = groupByStr;
 
          switch (type[0])
             {

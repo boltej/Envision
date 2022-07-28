@@ -342,6 +342,8 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       SNIP_NODETYPE nodeType = SNIP_NODETYPE::NT_NETWORK_ACTOR;
       if (ntype == "input")
          nodeType = SNIP_NODETYPE::NT_INPUT_SIGNAL;
+      else if (ntype == "engager")
+         nodeType = SNIP_NODETYPE::NT_ENGAGER;
       else if (ntype == "landscape")
          nodeType = SNIP_NODETYPE::NT_LANDSCAPE_ACTOR;
 
@@ -349,8 +351,8 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
          _traits[i] = ntraits[i];
 
       // add node to collection
-      //if ((nodeType != NT_LANDSCAPE_ACTOR || includeLandscapeActors))
-      //   {
+      if ((nodeType != NT_LANDSCAPE_ACTOR || includeLandscapeActors))
+         {
          SNNode* pNode = this->BuildNode(nodeType, nname.c_str(), _traits);
 
          // if input node, set its reactivity
@@ -359,7 +361,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
             this->m_pInputNode = pNode;
             //pNode->m_reactivity = this->GetInputLevel(0);
             }
-      //   }
+         }
       // set node data???
       }
 
@@ -1767,6 +1769,56 @@ bool SNIPModel::CollectData(EnvContext* pEnvContext)
    return true;
    }
 
+int SNIPModel::GetMaxDegree(bool) 
+   {
+   int count = GetNodeCount(); int maxDegree = 0;
+   for (int i = 0; i < count; i++) {
+      int edges = int(GetNode(i)->m_inEdges.GetSize() + GetNode(i)->m_outEdges.GetSize());
+      if (edges > maxDegree)
+         maxDegree = edges;
+      }
+   return maxDegree;
+   }
+
+
+int SNIPModel::GetActiveNodeCount(int type /*= NT_INPUT_SIGNAL | NT_NETWORK_ACTOR | NT_LANDSCAPE_ACTOR*/)
+   {
+   int count = GetNodeCount();
+   int activeCount = 0;
+   for (int i = 0; i < count; i++)
+      {
+      SNNode* pNode = m_pSNLayer->GetNode(i);
+      if ((pNode->m_nodeType & type) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
+         activeCount++;
+      }
+   return activeCount;
+   }
+
+int SNIPModel::GetActiveEdgeCount() 
+   {
+   int count = GetEdgeCount();
+   int activeCount = 0;
+   for (int i = 0; i < count; i++)
+      if (m_pSNLayer->GetEdge(i)->m_state == SNIP_STATE::STATE_ACTIVE)
+         activeCount++;
+   return activeCount;
+   }
+
+
+int SNIPModel::GetNodeCount(int type) 
+   {
+   // = NT_INPUT_SIGNAL | NT_NETWORK_ACTOR | NT_LANDSCAPE_ACTOR) {
+   int count = GetNodeCount();
+   int _count = 0;
+   for (int i = 0; i < count; i++)
+      {
+      SNNode* pNode = m_pSNLayer->GetNode(i);
+      if (pNode->m_nodeType & type)
+         _count++;
+      }
+   return _count;
+   }
+
 
 
 /*
@@ -2006,11 +2058,17 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                   }
                }
 
-            // have the closest agent profile, assign to IDU and build connections in SNIP
+            // have the closest agent profile, next assign to IDU and build connections in SNIP.
+            // Note that both nodes, representing landscape actors, and edges connecting these LA nodes
+            // to in-network Engager nodes are built 
             pIDULayer->SetData(idu, colIDUProfileID, closest);
 
             SNNode* pNode = nullptr;
 
+            // iterate though the list of traits, comparing to the trait strength in the matched actor profile.
+            // if the trait matches the actor profile, that signals that we want to consider
+            // creating a landscape actor and connecting it to an engager actor matching the trait in the SNIP network.
+            // Note that this implies that one landscape actor can be connected to many engage network nodes.
             for (auto& trait : this->m_traitsLabels)
                {
                int col = actorProfiles.GetCol(trait.c_str());
@@ -2025,19 +2083,29 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                         // we want to add a node to our network for this landscape actor
                         CString nname;
                         nname.Format("LA_%i", idu);
-                        pNode = BuildNode(NT_ENGAGER, nname, _traits);
+                        pNode = BuildNode(NT_LANDSCAPE_ACTOR, nname, _traits);
+                        pNode->m_idu = idu;
                         }
 
                      // find a network actor + engager that has this trait
                      vector<SNNode*> nodes;
-                     int ncount = this->FindNodesFromTrait(trait, NT_LANDSCAPE_ACTOR, 0.2f, nodes);
+                     int ncount = this->FindNodesFromTrait(trait, NT_ENGAGER, 0.2f, nodes);
 
-                     int ri = (int) m_randShuffle.RandValue(0, ncount);
-                     SNNode* pNetNode = nodes[ri];   // this is the source node, our LA node is the target
+                     if (ncount > 0)
+                        {
+                        int ri = (int)m_randShuffle.RandValue(0, ncount);
+                        SNNode* pNetNode = nodes[ri];   // this is the source node, our LA node is the target
 
-                     int transTime = 1; // ???
-                     SNEdge *pEdge = BuildEdge(pNetNode, pNode, transTime, _traits);
-                     pEdge->m_trust = 0.9f;
+                        int transTime = 1; // ???
+                        SNEdge* pEdge = BuildEdge(pNetNode, pNode, transTime, _traits);
+                        pEdge->m_trust = 0.9f;
+                        }
+                     else
+                        {
+                        CString msg;
+                        msg.Format("  Unable to find engager with trait [%s] to connect to landscape actor %i", trait.c_str(), idu);
+                        Report::LogWarning(msg);
+                        }
                      }
                   }
                else
@@ -2049,7 +2117,6 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                }
             }
          }
-
       }  // end of: for each IDU
 
    delete[]_traits;
@@ -2057,6 +2124,203 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    }
 
 
+/*
+void SNIPModel::GetMotifs(SNIP_MOTIF motif)
+   {
+
+   // Gatekeeper - a gatekeeper is defined by:
+   // receives an "out of group" incoming signal and propagates to at least
+   // one "in group"
+   float similarityThreshold = 0.5f;
+   vector<SNNode*> nodes;
+   float bc = 0l;
+   if (motif == MOTIF_LEADER)
+      ;  // bc = this.cy.$().betweennessCentrality({ directed: true });
+
+   //this.cy.nodes(NETWORK_ACTOR).forEach(function(node) {
+   for ( int i=0; i < this->GetNodeCount(); i++)
+      {
+      SNNode* pNode = GetNode(i);
+      bool downstreamInGroup = false;
+      bool downstreamOutGroup = false;
+      bool upstreamOutGroup = false;
+      bool upstreamInGroup = false;
+      float similarity = 0;
+
+      node.neighborhood('edge').forEach(function(edge) {
+         // downstream edge?
+         if (edge.source() == = node) {
+            similarity = _this.ComputeSimilarity(node.data('traits'), edge.target().data('traits'));
+            if (similarity > similarityThreshold)
+               downstreamInGroup = true;
+            else
+               downstreamOutGroup = true;
+
+            }
+         else { // upstream edge
+            similarity = _this.ComputeSimilarity(node.data('traits'), edge.source().data('traits'));
+            if (similarity < similarityThreshold)
+               upstreamOutGroup = true;
+            else
+               upstreamInGroup = true;
+            }
+         });
+
+      switch (motif) {
+         case MOTIF_GATEKEEPER:
+            if (downstreamInGroup && upstreamOutGroup)
+               nodes.push(node);
+            break;
+
+         case MOTIF_COORDINATOR:
+            if (downstreamInGroup && upstreamInGroup)
+               nodes.push(node);
+            break;
+
+         case MOTIF_REPRESENTATIVE:
+            if (downstreamOutGroup && upstreamInGroup)
+               nodes.push(node);
+            break;
+
+         case MOTIF_LEADER:
+            const bcN = bc.betweennessNormalized('#' + node.data('id'));
+            if (bcN > 0.5) // ????
+               nodes.push(node);
+            break;
+         }
+      });
+
+   return nodes;
+   }  */
+
+/*
+GetDegreeCentralities(selector, normed) {
+   let nas = this.cy.nodes(selector);  //NETWORK_ACTOR);
+   let values = [];
+
+   let maxDC = 0;
+   if (normed) {
+      nas.forEach(node = > {
+         let outgoers = node.outgoers('edge');
+         if (outgoers.length > maxDC)
+            maxDC = outgoers.length;
+         });
+      }
+
+   nas.forEach(node = > {
+      if (normed)
+         values.push(node.outgoers('edge').length / maxDC);
+      else
+         values.push(node.outgoers('edge').length);
+      });
+
+   return values;
+   }
+
+GetInfWtDegreeCentralities(selector, normed) {
+   let nas = this.cy.nodes(selector);  //NETWORK_ACTOR);
+   let values = [];
+
+   let maxDC = 0;
+   if (normed) {
+      nas.forEach(node = > {
+         let outgoers = node.outgoers('edge');
+
+         outgoers.forEach(edge = > {
+            if (edge.data('influence') > maxDC)
+               maxDC = edge.data('influence');
+            });
+         });
+      }
+
+   nas.forEach(node = > {
+      let outgoers = node.outgoers('edge');
+      let dci = 0;
+      if (normed)
+         outgoers.forEach(edge = > dci += edge.data('influence') / maxDC);
+      else
+         outgoers.forEach(edge = > dci += edge.data('influence'));
+
+      values.push(dci);
+      });
+
+   return values;
+   }
+
+
+GetBetweennessCentralities(selector, normed) {
+   let nas = this.cy.nodes(selector);
+   let bc = null;
+   if (normed)     // NEEDS WORK!  NORM NOT IMPLEMTENTED
+      bc = nas.bc({ directed: true });  // betweenness
+   else
+      bc = nas.bc({ directed: true });  // betweenness
+
+   let values = [];
+   let _this = this;
+   nas.forEach(node = > {
+      let _bc = bc.betweenness(node);
+      values.push(_bc);
+      });
+
+   return values;
+   }
+
+GetInfWtBetweennessCentralities(selector, normed) {
+   let nas = this.cy.nodes(selector);
+   let bc = null;
+   if (normed)
+      bc = nas.bc({ weight: (edge) = > edge.data('influence'), directed: true });  // betweenness
+   else
+      bc = nas.bc({ directed: true });  // betweenness
+
+   let values = [];
+   let _this = this;
+   nas.forEach(node = > {
+      let _bc = bc.betweenness(node);
+      values.push(_bc);
+      });
+
+return values;
+}
+
+GetClosenessCentralities(selector, normed) {
+   let nas = this.cy.nodes(selector);
+   let values = [];
+   let cc = null;
+   if (normed)
+      cc = nas.ccn({ directed: true });
+   else
+      cc = nas.cc({ directed: true });
+
+   let _this = this;
+   nas.forEach(node = > {
+      let value = cc.closeness(node);
+      values.push(value);
+      });
+
+   return values;
+   }
+
+GetInfWtClosenessCentralities(selector, normed) {
+   let nas = this.cy.nodes(selector);
+   let values = [];
+   let cc = null;
+
+   if (normed)
+      cc = nas.ccn({ weight: (edge) = > Math.abs(edge.data('influence')), directed: true });  // betweenness
+   else
+      cc = nas.cc({ directed: true });  // betweenness
+
+   nas.forEach(node = > {
+      let value = cc.closeness(node);
+      values.push(value);
+      });
+
+   return values;
+   }
+
+*/
 
 
 
@@ -2456,10 +2720,44 @@ bool SNIP::InitRun(EnvContext* pEnvContext, bool)
 
 bool SNIP::Run(EnvContext* pEnvContext)
    {
+   MapLayer* pIDULayer = (MapLayer*) pEnvContext->pMapLayer;
+
    for (int i = 0; i < this->GetLayerCount(); i++)
       {
       SNLayer* pLayer = GetLayer(i);
+
+      // update network if needed
+      if (pLayer->m_pSNIPModel->m_colAdapt > 0)
+         {
+         // for each landscape actor node, modify incoming edges trust values
+         // based on IDU informtion
+         float adapt = 0;
+         for (int j = 0; j < pLayer->GetNodeCount(); j++)
+            {
+            SNNode* pNode = pLayer->GetNode(j);
+            if (pNode->m_idu >= 0 && pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+               {
+               // get adaptive factor from map
+               pIDULayer->GetData(pNode->m_idu, pLayer->m_pSNIPModel->m_colAdapt, adapt);
+
+               // apply to each edge
+               for (int k = 0; k < pNode->m_inEdges.GetSize(); k++)
+                  pNode->m_inEdges[k]->m_trust *= adapt;
+               }
+            }
+         }
+
       pLayer->m_pSNIPModel->RunSimulation(true, false);
+
+      // write actor reactivities to associated IDUs
+      for (int j = 0; j < pLayer->GetNodeCount(); j++)
+         {
+         SNNode* pNode = pLayer->GetNode(j);
+         if (pNode->m_idu >= 0)
+            {
+            this->UpdateIDU(pEnvContext, pNode->m_idu, pLayer->m_colReactivity, pNode->m_reactivity);
+            }
+         }
       }
 
    CollectData(pEnvContext);
@@ -2485,6 +2783,8 @@ bool SNIP::CollectData(EnvContext* pEnvContext)
 
 bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
    {
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+
    // have xml string, start parsing
    TiXmlDocument doc;
    bool ok = doc.LoadFile(filename);
@@ -2519,15 +2819,17 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
    while (pXmlLayer != NULL)
       {
-      LPTSTR name = NULL, path = NULL, mappings = NULL, mappingQuery=NULL;
+      LPTSTR name = NULL, path = NULL, mappings = NULL, mappingQuery=NULL, reactivityCol=NULL, adaptCol=NULL;
       float mappingFrac = 0;
-      XML_ATTR attrs[] = { // attr             type        address        isReq checkCol
-                         { "name",             TYPE_STRING,  &name,         true,  0 },
-                         { "path",             TYPE_STRING,  &path,         true,  0 },
-                         { "mappings",         TYPE_STRING,  &mappings,     true,  0 },
-                         { "mapping_query",    TYPE_STRING,  &mappingQuery, true,  0 },
-                         { "mapping_fraction", TYPE_FLOAT,   &mappingFrac,  true,  0 },
-                         { NULL,               TYPE_NULL,     NULL,         false, 0 } };
+      XML_ATTR attrs[] = { // attr             type        address          isReq checkCol
+                         { "name",             TYPE_STRING,  &name,          true,  0 },
+                         { "path",             TYPE_STRING,  &path,          true,  0 },
+                         { "mappings",         TYPE_STRING,  &mappings,      true,  0 },
+                         { "mapping_query",    TYPE_STRING,  &mappingQuery,  true,  0 },
+                         { "reactivity_col",   TYPE_STRING,  &reactivityCol, true,  0 },
+                         { "adapt_col",        TYPE_STRING,  &adaptCol,      false,  0 },
+                         { "mapping_fraction", TYPE_FLOAT,   &mappingFrac,   true,  0 },
+                         { NULL,               TYPE_NULL,     NULL,          false, 0 } };
 
       bool ok = TiXmlGetAttributes(pXmlLayer, attrs, filename);
 
@@ -2540,6 +2842,10 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
          if (path != NULL)
             ok = pLayer->m_pSNIPModel->LoadSnipNetwork(path, false);  // ignore landscape actor nodes
+
+         CheckCol(pIDULayer, pLayer->m_colReactivity, reactivityCol, TYPE_FLOAT, CC_AUTOADD);
+         if ( adaptCol != NULL) 
+            CheckCol(pIDULayer, pLayer->m_pSNIPModel->m_colAdapt, adaptCol, TYPE_FLOAT, CC_AUTOADD);
 
          if (mappingQuery != NULL)
             {
@@ -2573,5 +2879,4 @@ bool SNIP::RemoveLayer(LPCTSTR name)
 
    return false;
    }
-
 
