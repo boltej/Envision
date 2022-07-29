@@ -311,7 +311,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       PtrArray< LookupTable > m_swanLookupTableArray;
       //	  PtrArray< DDataObj > m_SurfZoneDataArray;
       PtrArray< DDataObj > m_BathyDataArray;
-      PtrArray< FDataObj > m_RBFDailyDataArray;
+      //PtrArray< FDataObj > m_RBFDailyDataArray;
+      PtrArray< FDataObj > m_dailyRBFOutputArray;
       PtrArray< FDataObj > m_DailyBayDataArray;
 
       // Moving Windows for Dune Line Statistics
@@ -816,12 +817,14 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool RunEelgrassModel(EnvContext* pEnvContext);
       bool RunPolicyManagement(EnvContext* pEnvContext);
 
+      // InitRun()
+      bool LoadDailyRBFOutputs(LPCTSTR simulationPath);
 
 
 
 
-      bool WriteDailyData(CString timeSeriesFolder);
-      bool ReadDailyBayData(CString timeSeriesFolder);
+
+      bool ReadDailyBayData(LPCTSTR timeSeriesFolder);
 
       float CalculateCelerity(float waterLevel, float wavePeriod, float &n);
       double CalculateCelerity2(float waterLevel, float wavePeriod, double &n);

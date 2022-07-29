@@ -1736,11 +1736,9 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
       cols = m_buoyObsData.GetColCount();*/
       }
 
-   CString timeSeriesFolder;
-   timeSeriesFolder.Format("%s\\DailyData_%s", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
-   PathManager::FindPath(timeSeriesFolder, fullPath);
 
-   WriteDailyData(fullPath);
+   LoadDailyRBFOutputs(simulationPath);
+   //WriteDailyData(fullPath);
 
    //////CString bayTimeSeriesFolder;
    //////bayTimeSeriesFolder.Format("%s\\DailyBayData_%s", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
@@ -2669,7 +2667,7 @@ bool ChronicHazards::LoadRBFs()
    return true;
    }
 
-bool ChronicHazards::ReadDailyBayData(CString timeSeriesFolder)
+bool ChronicHazards::ReadDailyBayData(LPCTSTR timeSeriesFolder)
    {
    /*
 
@@ -2807,50 +2805,72 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
    }
 
 
-bool ChronicHazards::WriteDailyData(CString timeSeriesFolder)
+
+
+bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
    {
+   // This function generates a set of daily interpolated (from offshore buoy data) the nearshore wave environment.
+   // It does so by either (depending on the m_writeDailyBuoyObs:
+   //    1) generating a series of data objects by running the RBF interpolator, storing results in a set of time-series
+   //       data objects. one per transect, containing daily data
+   //    2) reading in a set of pre-defined daily RBF outputs CSV 
    // if randomize, reread in
-   //  m_RBFDailyDataArray.Clear();
+   //  m_dailyRBFOutputArray.Clear();
+   this->m_dailyRBFOutputArray.Clear();
 
    const int outputCount = 8;
    double outputs[outputCount];
 
-   // CString path(PathManager::GetPath(PM_PROJECT_DIR));
+   // load daily RBF outputs for this year from the time series folder.
+   CString timeSeriesFolder, fullPath;
+   timeSeriesFolder.Format("%s\\DailyData_%s", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
+   PathManager::FindPath(timeSeriesFolder, fullPath);
 
-   if (m_writeDailyBouyData)
-      {
+   // CString path(PathManager::GetPath(PM_PROJECT_DIR));
+   //if (m_writeDailyBouyData)
+   //   {
       m_minTransect = 0;
       m_maxTransect = m_numTransects - 1;
-      }
+   //   }
 
    // ??? Need to update to get correct transects?
    for (int i = m_minTransect; i <= m_maxTransect; i++)
       {
       bool success = true;
-      FDataObj* pRBFDaily = new FDataObj;
-      pRBFDaily->SetSize(outputCount, m_numDays);
+      FDataObj* pDailyRBFOutput = new FDataObj;
+      pDailyRBFOutput->SetSize(outputCount, m_numDays);
+
       //   extension.Format("_%i", m_randIndex);
       //  CString folder = m_datafile.timeseries_file + extension + "\\";
       //PathManager::FindPath(folder, path);
       // folder = path + folder;
 
       CString timeSeriesFile;
-      timeSeriesFile.Format(_T("%s\\DailyData_%i.csv"), timeSeriesFolder, i);     //series of SWAN lookup tables
-                                                                              // generate DailyData_%i.csv files using the rbfs and the buoy (simulation) data timeseries
+      timeSeriesFile.Format(_T("%s%s\\DailyData_%i.csv"), m_twlInputPath, timeSeriesFolder, i);     //series of SWAN lookup tables
+
+      // if we are writing this data, that means we have to generate it from the RBFs
+      // otherwise, we can just read it from files stored in the climate scenario/daily data folder
       if (m_writeDailyBouyData)
          {
-         pRBFDaily->SetLabel(0, "Height_L");
-         pRBFDaily->SetLabel(1, "Height_H");
-         pRBFDaily->SetLabel(2, "Period_L");
-         pRBFDaily->SetLabel(3, "Period_H");
-         pRBFDaily->SetLabel(4, "Direction_L");
-         pRBFDaily->SetLabel(5, "Direction_H");
-         pRBFDaily->SetLabel(6, "Depth_L");
-         pRBFDaily->SetLabel(7, "Depth_H");
+         CString msg;
+         msg.Format("  Generating RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
+         Report::StatusMsg(msg);
+ 
+         // create a data obj for buoy observations, rows=day of year
+         pDailyRBFOutput->SetLabel(0, "Height_L");
+         pDailyRBFOutput->SetLabel(1, "Height_H");
+         pDailyRBFOutput->SetLabel(2, "Period_L");
+         pDailyRBFOutput->SetLabel(3, "Period_H");
+         pDailyRBFOutput->SetLabel(4, "Direction_L");
+         pDailyRBFOutput->SetLabel(5, "Direction_H");
+         pDailyRBFOutput->SetLabel(6, "Depth_L");
+         pDailyRBFOutput->SetLabel(7, "Depth_H");
 
-         // read in the whole simulation time period, typically 90 years
+         // the lookup table contains the RBF for a given transect
          LookupTable* pLUT = m_swanLookupTableArray.GetAt(i - m_minTransect);   // zero-based
 
+         // for each day over the SIMULATION PERIOD (not year), get the buoy observations 
+         // and run the RBF with them
          for (int row = 0; row < m_numDays; row++)
             {
             float height, period, direction, swl;
@@ -2858,9 +2878,10 @@ bool ChronicHazards::WriteDailyData(CString timeSeriesFolder)
             m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_HEIGHT_HS, row, height);
             m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_PERIOD_Tp, row, period);
             m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_DIRECTION_Dir, row, direction);
-            m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WATER_LEVEL_WL, row, swl);
+            m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WATER_LEVEL_WL, row, swl);   // NOT USED???
 
             int count = pLUT->m_rbf.GetAt(height, period, direction, outputs);
+            ASSERT(count == outputCount);
 
             // added this because rbf isn't doing well with small ( < 1) values
             // for wave heights; later this becomes a problem with a negative wave height
@@ -2870,43 +2891,46 @@ bool ChronicHazards::WriteDailyData(CString timeSeriesFolder)
             if (outputs[HEIGHT_H] < 0.0f)
                outputs[HEIGHT_H] = 0.0f;
 
-            // TODO change column no.
-            // Series of Bathymetry lookup tables
-            pRBFDaily->Set(0, row, (float)outputs[HEIGHT_L]);
-            pRBFDaily->Set(1, row, (float)outputs[HEIGHT_H]);
-            pRBFDaily->Set(2, row, (float)outputs[PERIOD_L]);
-            pRBFDaily->Set(3, row, (float)outputs[PERIOD_H]);
-            pRBFDaily->Set(4, row, (float)outputs[DIRECTION_L]);
-            pRBFDaily->Set(5, row, (float)outputs[DIRECTION_H]);
-            pRBFDaily->Set(6, row, (float)outputs[DEPTH_L]);
-            pRBFDaily->Set(7, row, (float)outputs[DEPTH_H]);
+            // store the buoy data in the data object for this day
+            pDailyRBFOutput->Set(0, row, (float)outputs[HEIGHT_L]);
+            pDailyRBFOutput->Set(1, row, (float)outputs[HEIGHT_H]);
+            pDailyRBFOutput->Set(2, row, (float)outputs[PERIOD_L]);
+            pDailyRBFOutput->Set(3, row, (float)outputs[PERIOD_H]);
+            pDailyRBFOutput->Set(4, row, (float)outputs[DIRECTION_L]);
+            pDailyRBFOutput->Set(5, row, (float)outputs[DIRECTION_H]);
+            pDailyRBFOutput->Set(6, row, (float)outputs[DEPTH_L]);
+            pDailyRBFOutput->Set(7, row, (float)outputs[DEPTH_H]);
             }
 
-         pRBFDaily->WriteAscii(timeSeriesFile);
+         // dataobj populated, write to file
+         pDailyRBFOutput->WriteAscii(timeSeriesFile);
          }
-      else
+      else // writeDailyBuoyData != 0, so read the data from file
          {
-         int numRows = pRBFDaily->ReadAscii(timeSeriesFile);
+         CString msg;
+         msg.Format("  Reading RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
+         Report::StatusMsg(msg);
+
+         int numRows = pDailyRBFOutput->ReadAscii(timeSeriesFile);
 
          if (numRows < 0)
             success = false;
          }
 
       if (success)
-         this->m_RBFDailyDataArray.Add(pRBFDaily);
+         this->m_dailyRBFOutputArray.Add(pDailyRBFOutput);
       else
-         delete pRBFDaily;
+         delete pDailyRBFOutput;
       }
 
    CString msg;
-   msg.Format("ChronicHazards: Processed DailyData input files for %i transects", (int)m_RBFDailyDataArray.GetSize());
+   msg.Format("ChronicHazards: Processed DailyData input files for %i transects", (int)m_dailyRBFOutputArray.GetSize());
    Report::Log(msg);
    //m_randIndex += 1; // add to xml, only want when we are running probabalistically
 
    return true;
 
-   } // end WriteDailyData(CString timeSeriesFolder)
-
+   } // end LoadDailRBFOutputs()
 
 
 /*
@@ -10667,15 +10691,15 @@ void ChronicHazards::CalculateYrMaxTWL(EnvContext* pEnvContext)
       float radPeakWaterLevelL = 0.0f;
       float radPeakWaterLevelH = 0.0f;
 
-      FDataObj* pRBF = m_RBFDailyDataArray.GetAt(tranIndx - m_minTransect);   // zero-based
-      pRBF->Get(0, row, radPeakHeightL);
-      pRBF->Get(1, row, radPeakHeightH);
-      pRBF->Get(2, row, radPeakPeriodL);
-      pRBF->Get(3, row, radPeakPeriodH);
-      pRBF->Get(4, row, radPeakDirectionL);
-      pRBF->Get(5, row, radPeakDirectionH);
-      pRBF->Get(6, row, radPeakWaterLevelL);
-      pRBF->Get(7, row, radPeakWaterLevelH);
+      FDataObj* pRBFOutputData = m_dailyRBFOutputArray.GetAt(tranIndx - m_minTransect);   // zero-based
+      pRBFOutputData->Get(0, row, radPeakHeightL);
+      pRBFOutputData->Get(1, row, radPeakHeightH);
+      pRBFOutputData->Get(2, row, radPeakPeriodL);
+      pRBFOutputData->Get(3, row, radPeakPeriodH);
+      pRBFOutputData->Get(4, row, radPeakDirectionL);
+      pRBFOutputData->Get(5, row, radPeakDirectionH);
+      pRBFOutputData->Get(6, row, radPeakWaterLevelL);
+      pRBFOutputData->Get(7, row, radPeakWaterLevelH);
 
       // unused
       meanPeakHeight += (radPeakHeightH + radPeakHeightL) / 2.0f;
