@@ -1433,16 +1433,16 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
       // Determine SWAN Lookup transect index
       int rowIndex = -1;
 
-      double tIndex = IGet(m_pTransectLUT, yCoord, 0, 1, IM_LINEAR, 0, &rowIndex);
-      int transectIndex = m_pTransectLUT->GetAsInt(1, rowIndex);
-      /*float index = m_pTransectLUT->IGet(yCoord, 1, IM_LINEAR);
-      int transectIndex = (int)round(index);*/
-
-      if (transectIndex < m_minTransect)
-         m_minTransect = transectIndex;
-
-      if (transectIndex > m_maxTransect)
-         m_maxTransect = transectIndex;
+      //double tIndex = IGet(m_pTransectLUT, yCoord, 0, 1, IM_LINEAR, 0, &rowIndex);
+      //int transectIndex = m_pTransectLUT->GetAsInt(1, rowIndex);
+      ///*float index = m_pTransectLUT->IGet(yCoord, 1, IM_LINEAR);
+      //int transectIndex = (int)round(index);*/
+      //
+      //if (transectIndex < m_minTransect)
+      //   m_minTransect = transectIndex;
+      //
+      //if (transectIndex > m_maxTransect)
+      //   m_maxTransect = transectIndex;
 
       //m_pOrigDuneLineLayer->SetData(point, m_colTranIndx, transectIndex);
 
@@ -2826,12 +2826,8 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
    timeSeriesFolder.Format("%s\\DailyData_%s", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
    PathManager::FindPath(timeSeriesFolder, fullPath);
 
-   // CString path(PathManager::GetPath(PM_PROJECT_DIR));
-   //if (m_writeDailyBouyData)
-   //   {
-      m_minTransect = 0;
-      m_maxTransect = m_numTransects - 1;
-   //   }
+   //m_minTransect = 0;
+   //m_maxTransect = m_numTransects - 1;
 
    // ??? Need to update to get correct transects?
    for (int i = m_minTransect; i <= m_maxTransect; i++)
@@ -2852,10 +2848,13 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
       // otherwise, we can just read it from files stored in the climate scenario/daily data folder
       if (m_writeDailyBouyData)
          {
-         CString msg;
-         msg.Format("  Generating RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
-         Report::StatusMsg(msg);
- 
+         if (i % 10 == 0)
+            {
+            CString msg;
+            msg.Format("  Generating RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
+            Report::StatusMsg(msg);
+            }
+
          // create a data obj for buoy observations, rows=day of year
          pDailyRBFOutput->SetLabel(0, "Height_L");
          pDailyRBFOutput->SetLabel(1, "Height_H");
@@ -2907,9 +2906,12 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
          }
       else // writeDailyBuoyData != 0, so read the data from file
          {
-         CString msg;
-         msg.Format("  Reading RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
-         Report::StatusMsg(msg);
+         if (i % 10 == 0)
+            {
+            CString msg;
+            msg.Format("  Reading RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
+            Report::StatusMsg(msg);
+            }
 
          int numRows = pDailyRBFOutput->ReadAscii(timeSeriesFile);
 

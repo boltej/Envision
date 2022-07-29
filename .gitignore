@@ -7,3 +7,4 @@ Release/
 *.exe
 *.tlog
 *.pch
+Source/enc_temp_folder/
