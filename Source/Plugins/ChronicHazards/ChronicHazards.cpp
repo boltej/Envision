@@ -1008,7 +1008,7 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
    if (m_pInfraLayer)
       {
       CheckCol(m_pInfraLayer, m_colInfraCritical, "CRITICAL", TYPE_INT, CC_MUST_EXIST);
-      CheckCol(m_pInfraLayer, m_colInfraDuneIndx, "DUNEINDX", TYPE_INT, CC_AUTOADD);
+      CheckCol(m_pInfraLayer, m_colInfraDuneIndx, "DUNEINDEX", TYPE_INT, CC_AUTOADD);
       m_pInfraLayer->SetColData(m_colInfraDuneIndx, VData(-1), true);
       CheckCol(m_pInfraLayer, m_colInfraFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
       m_pInfraLayer->SetColData(m_colInfraFlooded, VData(0), true);
@@ -1116,7 +1116,7 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    {
    //These attributes come from LIDAR and other data sets in the original shape file
    // MUST_EXIST 
-   CheckCol(m_pOrigDuneLineLayer, m_colDLDuneIndx, "DUNEINDX", TYPE_LONG, CC_MUST_EXIST);
+   CheckCol(m_pOrigDuneLineLayer, m_colDLDuneIndx, "DUNEINDEX", TYPE_LONG, CC_MUST_EXIST);
    CheckCol(m_pOrigDuneLineLayer, m_colDLTranSlope, "TANB", TYPE_DOUBLE, CC_MUST_EXIST);
    CheckCol(m_pOrigDuneLineLayer, m_colDLDuneToe, "DT", TYPE_DOUBLE, CC_MUST_EXIST);
    CheckCol(m_pOrigDuneLineLayer, m_colDLDuneCrest, "DUNECREST", TYPE_DOUBLE, CC_MUST_EXIST);
@@ -1556,7 +1556,7 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////m_pNewDuneLineLayer->m_name = "Active Dune Toe Line";
 
   //////// ////////// Change the color of the active dune line
-   ////////int colIndex = m_pNewDuneLineLayer->GetFieldCol("DUNEINDX");
+   ////////int colIndex = m_pNewDuneLineLayer->GetFieldCol("DUNEINDEX");
 
   //////// ////////// Rebin and classify for display
    ////////m_pNewDuneLineLayer->AddBin(colIndex, RGB(179, 89, 0), "All Points", TYPE_INT, 0, (float)m_maxDuneIndx + 1);
