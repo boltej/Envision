@@ -16,6 +16,33 @@
 class RandUniform;
 
 
+
+enum FC_OP {            //  Description                                              |      Extent         | useDelta?|
+   FCOP_UNDEFINED = 0,  //|----------------------------------------------------------|---------------------|-----------
+   //FCOP_PCT_AREA = 1,   // "pctArea" - value defined as a percent of the total IDU   | always global extent|    no    |
+   //                     // area that satisfies the specified query, expressed as a
+   //                     // non-decimal percent.  No "value" attr specified.
+   FCOP_SUM = 2,        // "sum" sums the "value" expression over an area            | always global extent |   yes   |
+                        //  defined by the query.  If "use_delta" specified, the 
+                        //  query area is further restricted to those IDUs in which
+                        //  a change, specified by the useDelta list, occured
+                       
+   FCOP_AREAWTMEAN = 3,  // "areaWtMean" - area wt mean of the "value" expression,    | always global extent |   yes   |
+                         // summed over the query area. If "use_delta" specified, the 
+                         //  query area is further restricted to those IDUs in which
+                         //  a change, specified by the useDelta list, occured 
+
+   FCOP_LENWTMEAN = 4,   // for line features
+
+   FCOP_MEAN = 5    // "mean" - mean of the "value" expression,                  | always global extent |   yes   |
+                         // summed over the query area. If "use_delta" specified, the 
+                         // query area is further restricted to those IDUs in which
+                         // a change, specified by the useDelta list, occured
+                         //VT_DELTA        = 6,   // "delta" - report change in field
+                         //VT_FRACTION     = 7    // "fraction" - percetn change in field (0-100)
+   };
+
+
 // class Constant defines a constant value, stored in m_value
 
 class Constant
@@ -45,27 +72,40 @@ class FieldDef
 
    public:
       CString   m_name;
+      CString   m_field;
 
    protected:
       CString   m_queryStr;
       CString   m_mapExprStr;
-      bool      m_useDelta;      //
-      bool      m_initColData;
-      //Query* m_pQuery;
-      MapExpr* m_pMapExpr;
-      int       m_col;           // column associated with this variable (-1 if no col)
-      float     m_value;
+      bool      m_useDelta = false;      //
+      bool      m_initColData=false;
+      Query*    m_pQuery=NULL;
+      MapExpr*  m_pMapExpr=NULL;
+      int       m_col=-1;           // column associated with this variable (-1 if no col)
+      float     m_value=0;
 
+      // groupby info
+      CString   m_groupBy;   // field to aggregate by, if aggregration desired; otherwise empty
+      int       m_colGroupBy = -1;   // corresponding column
+      FC_OP     m_operator = FC_OP::FCOP_UNDEFINED;
 
-      int m_count;
+      CMap<int, int, int, int> m_groupByIndexMap; // key=FN_ID, value=values
+      CArray<float, float> m_groupByValues;
+      CArray<float, float> m_groupByAreas;
+
+      // miscellaneous trackers
+      int m_count = 0;
+      float m_totalArea = 0;
 
    public:
       // methods                               
-      FieldDef() : m_col(-1), /*m_pQuery(NULL),*/ m_pMapExpr(NULL), m_useDelta(true),m_initColData(true), m_count(0){}
+      FieldDef() {}
       ~FieldDef() {}
 
       bool Init();
       //bool Evaluate();
+
+      bool IsGroupBy() { return m_colGroupBy >= 0; }
    };
 
 

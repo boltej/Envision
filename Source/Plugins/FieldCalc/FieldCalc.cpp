@@ -7,6 +7,7 @@
 #include <randgen/Randunif.hpp>
 #include <misc.h>
 #include <FDATAOBJ.H>
+
 FieldCalculator* theModel = NULL;
 
 
@@ -19,23 +20,7 @@ FieldCalculator* theModel = NULL;
 bool FieldDef::Init()
    {
    ASSERT(theModel != NULL);
-
-   // compile query
-   //if (m_queryStr.GetLength() > 0)
-   //   {
-   //   CString name = "FieldCalc." + this->m_name;
-   //   m_pQuery = theModel->m_pQueryEngine->ParseQuery(m_queryStr, 0, name);
-   //
-   //   if (m_pQuery == NULL)
-   //      {
-   //      CString msg;
-   //      msg.Format("FieldCalc: Bad query encountered reading field '%s' - Query is '%s'", (LPCTSTR)this->m_name, (LPCTSTR) m_queryStr);
-   //      msg += m_queryStr;
-   //      Report::ErrorMsg(msg);
-   //      }
-   //   }
-
-   theModel->CheckCol(theModel->m_pMapLayer, this->m_col, this->m_name, TYPE_FLOAT, CC_AUTOADD);
+   theModel->CheckCol(theModel->m_pMapLayer, this->m_col, this->m_field, TYPE_FLOAT, CC_AUTOADD);
 
    LPTSTR query = NULL;
    if (m_queryStr.IsEmpty() == false)
@@ -43,8 +28,6 @@ bool FieldDef::Init()
 
    m_pMapExpr = theModel->m_pMapExprEngine->AddExpr(m_name, m_mapExprStr, m_queryStr);
    bool ok = theModel->m_pMapExprEngine->Compile(m_pMapExpr);
-
-   //m_pQuery = m_pMapExpr->GetQuery();
 
    if (!ok)
       {
@@ -56,10 +39,23 @@ bool FieldDef::Init()
       Report::ErrorMsg(msg);
       }
 
+   m_pQuery = m_pMapExpr->GetQuery();
+
+   if (IsGroupBy())
+      {
+      CUIntArray attrValues;
+      int count = theModel->m_pMapLayer->GetUniqueValues(this->m_colGroupBy, attrValues);
+
+      m_groupByValues.SetSize(count);  // set up array to store values
+      m_groupByAreas.SetSize(count);  // set up array to store values
+
+      // create maps of (groupAttr,index) pairs
+      for (int i = 0; i < count; i++)
+         m_groupByIndexMap[attrValues[i], i];
+      }
+
    return true;
    }
-
-
 
 
 // *************************************************
@@ -100,13 +96,15 @@ bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    // set data obj column labels
    ASSERT(m_pOutputData == NULL);
    int fieldCount = (int)m_fields.GetSize();
-   m_pOutputData = new FDataObj(fieldCount + 1, 0);
+   m_pOutputData = new FDataObj(1+2*fieldCount, 0);
    m_pOutputData->SetLabel(0, "Year");
-
+   int j = 1;
    for (int i = 0; i < fieldCount; i++)
       {
       CString label = m_fields[i]->m_name + ".count";
-      m_pOutputData->SetLabel(i + 1, label);
+      m_pOutputData->SetLabel(j++, label);
+      label = m_fields[i]->m_name + ".area";
+      m_pOutputData->SetLabel(j++, label);
       }
 
    AddOutputVar("FieldCalc-Counts", m_pOutputData, "");
@@ -140,15 +138,34 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
    // reset field def application counters
    int fieldCount = (int)m_fields.GetSize();
    for (int i = 0; i < fieldCount; i++)
-      m_fields[i]->m_count = 0;
+      {
+      FieldDef* pFD = m_fields[i];
+
+      pFD->m_count = 0;
+      pFD->m_totalArea = 0;
+
+      if (pFD->IsGroupBy())
+         {
+         int attrCount = (int)pFD->m_groupByValues.GetSize();
+         for (int j = 0; j < attrCount; j++)
+            {
+            pFD->m_groupByValues[j] = 0;
+            pFD->m_groupByAreas[j] = 0;
+            }
+         }
+      }
 
    // iterate through IDUs, applying field defs as needed
    for (int m = 0; m < iduCount; m++)
       {
       UINT idu = m_iduArray[m];         // a random grab (if shuffled)
+   
 
       theModel->m_pQueryEngine->SetCurrentRecord(idu);
       theModel->m_pMapExprEngine->SetCurrentRecord(idu);
+
+      float area;
+      theModel->m_pMapLayer->GetData(idu, m_colArea, area);
 
       for (int i = 0; i < fieldCount; i++)
          {
@@ -164,13 +181,72 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             bool ok = m_pMapExprEngine->EvaluateExpr( pFD->m_pMapExpr, true);
             if (ok)
                {
-               pFD->m_value = (float)pFD->m_pMapExpr->GetValue();
-               theModel->UpdateIDU(pEnvContext, idu, pFD->m_col, pFD->m_value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+               if (pFD->IsGroupBy())
+                  {
+                  float value = (float)pFD->m_pMapExpr->GetValue();
+
+                  int groupAttr;
+                  theModel->m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
+                  int index = pFD->m_groupByIndexMap[groupAttr];
+
+                  switch (pFD->m_operator)
+                     {
+                     case FCOP_SUM:
+                     case FCOP_MEAN:
+                        pFD->m_groupByValues[index] += value;
+                        break;
+
+                     case FCOP_AREAWTMEAN:
+                        pFD->m_groupByValues[index] += value * area;
+                        break;
+                     }
+                  pFD->m_groupByAreas[index] += area;
+                  }
+               else
+                  {
+                  pFD->m_value = (float)pFD->m_pMapExpr->GetValue();
+                  theModel->UpdateIDU(pEnvContext, idu, pFD->m_col, pFD->m_value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+                  }               
+               
                pFD->m_count++;
+               pFD->m_totalArea += area;
                }
             }
-            else
-               pFD->m_value = 0;
+         }
+      }
+
+   // do anynecessary cleanup
+   for (int i = 0; i < fieldCount; i++)
+      {
+      FieldDef* pFD = m_fields[i];
+
+      if (pFD->IsGroupBy())
+         {
+         // fix up area wted means
+         if (pFD->m_operator == FC_OP::FCOP_AREAWTMEAN)
+            {
+            int attrCount = (int)pFD->m_groupByValues.GetSize();
+            for (int j = 0; j < attrCount; j++)
+               {
+               pFD->m_groupByValues[j] /= pFD->m_groupByAreas[j];
+               }
+            }
+
+         // write results to IDUs in each group
+         for (int m = 0; m < iduCount; m++)
+            {
+            UINT idu = m_iduArray[m];         // a random grab (if shuffled)
+            bool result;
+            if (pFD->m_pQuery == NULL || (pFD->m_pQuery->Run(idu, result) && result == true))
+               {
+               int groupAttr;
+               theModel->m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
+               int index = pFD->m_groupByIndexMap[groupAttr];
+               float value = pFD->m_groupByValues[index];
+
+               theModel->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+               }
+            }
          }
       }
 
@@ -183,11 +259,15 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
 bool FieldCalculator::CollectData(int year) 
    {
    int fieldCount = (int) m_fields.GetSize();
-   float* data = new float[fieldCount + 1];
+   float* data = new float[1+ 2*fieldCount];
 
-   data[0] = year;
+   data[0] = (float) year;
+   int j = 1;
    for (int i = 0; i < fieldCount; i++)
-      data[i + 1] = m_fields[i]->m_count;
+      {
+      data[j++] = (float)m_fields[i]->m_count;
+      data[j++] = (float)m_fields[i]->m_totalArea;
+      }
 
    m_pOutputData->AppendRow(data, fieldCount + 1);
 
@@ -280,26 +360,51 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
    while (pXmlFieldDef != NULL)
       {
       FieldDef* pFD = new FieldDef;
+      LPTSTR op = NULL;
 
-      XML_ATTR attrs[] = { // attr          type           address          isReq checkCol
-                         { "field",        TYPE_CSTRING,  &pFD->m_name,       true,  CC_AUTOADD | TYPE_FLOAT },
-                         { "query",        TYPE_CSTRING,  &pFD->m_queryStr,   false, 0 },
-                         { "value",        TYPE_CSTRING,  &pFD->m_mapExprStr, true,  0 },
-                         { "use_delta",    TYPE_BOOL,     &pFD->m_useDelta,   false, 0 },
+      XML_ATTR attrs[] = { // attr          type           address             isReq checkCol
+                         { "name",         TYPE_CSTRING,  &pFD->m_name,       false, 0 },
+                         { "field",        TYPE_CSTRING,  &pFD->m_field,        true,  CC_AUTOADD | TYPE_FLOAT },
+                         { "query",        TYPE_CSTRING,  &pFD->m_queryStr,    false, 0 },
+                         { "value",        TYPE_CSTRING,  &pFD->m_mapExprStr,  true,  0 },
+                         { "use_delta",    TYPE_BOOL,     &pFD->m_useDelta,    false, 0 },
                          { "initialize",   TYPE_BOOL,     &pFD->m_initColData, false, 0 },
+                         { "groupby",      TYPE_CSTRING,  &pFD->m_groupBy,     false, 0 },
+                         { "op",           TYPE_STRING,   &op,                 false, 0 },
                          { NULL,           TYPE_NULL,     NULL,                false, 0 } };
 
       if (TiXmlGetAttributes(pXmlFieldDef, attrs, path, m_pMapLayer) == false)
          delete pFD;
       else
          {
+         if (pFD->m_groupBy.IsEmpty() == false)
+            {
+            this->CheckCol(m_pMapLayer, pFD->m_colGroupBy, pFD->m_groupBy, TYPE_FLOAT, CC_AUTOADD | TYPE_FLOAT);
+            if (op == NULL)
+               {
+               CString msg;
+               msg.Format("  Warning - Field Definition using groupby should specify operation - AREAWTMEAN() assumed!");
+               Report::WarningMsg(msg);
+               pFD->m_operator = FCOP_AREAWTMEAN;
+               }
+            else 
+               {
+               FC_OP _op = FCOP_AREAWTMEAN;
+               if (op[0] == 's' or op[0] == 'S')
+                  _op = FCOP_SUM;
+               else if (op[0] == 'm' or op[0] == 'M')
+                  _op = FCOP_MEAN;
+
+               pFD->m_operator = _op;
+               }
+            }
+
          pFD->Init();
          m_fields.Add(pFD);
          }
 
       pXmlFieldDef = pXmlFieldDef->NextSiblingElement("field_def");
       }
-
 
    return true;
    }
