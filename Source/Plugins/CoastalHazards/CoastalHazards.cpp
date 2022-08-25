@@ -10983,11 +10983,11 @@ void CoastalHazards::CalculateYrMaxTWL(EnvContext *pEnvContext)
                // The bottom part of the slope is given by Static Setup (STK) + swl
                double yBottom = 1.1f*eta + swl;
 
-               // Also need new slope when dune erodes and backshore(foredusne) beach slope changes
-               // Slope not changing for bluff backed beaches
-               //         if ( (profileIndx != prevProfileIndx || duneCrest != prevDuneCrest || tanb1 != prevTanb1 ) && (beachType != BT_RIPRAP_BACKED || maintYear < 2011))// Slope not changing for bluff backed
-               //        if ( ( tanb1 != prevTanb1 ) && (beachType != BchT_RIPRAP_BACKED )) // || maintYear < 2011))// Slope not changing for bluff backed
-               //    {
+               //// Also need new slope when dune erodes and backshore(foredusne) beach slope changes
+               //// Slope not changing for bluff backed beaches
+               ////         if ( (profileIndx != prevProfileIndx || duneCrest != prevDuneCrest || tanb1 != prevTanb1 ) && (beachType != BT_RIPRAP_BACKED || maintYear < 2011))// Slope not changing for bluff backed
+               ////        if ( ( tanb1 != prevTanb1 ) && (beachType != BchT_RIPRAP_BACKED )) // || maintYear < 2011))// Slope not changing for bluff backed
+               ////    {
 
                // calculate slope of swash where bluff or barrier exists
                // this is needed to determine the wave runup on a barrier

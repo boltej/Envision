@@ -24,9 +24,7 @@
 
 const int NN = 8;  //???
 const int HOURLY_DATA_IN_A_DAY = 24;
-const float G_VALUE_9_81 = 9.81f;
 const float TANB1_005 = 0.05f;
-
 
 // this privides a basic class definition for this
 // plug-in module.
@@ -43,7 +41,7 @@ enum DATA_CYCLE
 };
 
 //TODO: CHange these based on the input buoy file.
-enum BUOY_OBSERVATION_DATA{
+enum BUOY_OBSERVATION_DATA {
     TIME_STEP=0,
     WAVE_HEIGHT_HS =1,
     WAVE_PERIOD_Tp =2,
@@ -60,9 +58,8 @@ enum CH_FLAGS
    CH_MODEL_FLOODING = 2,
    CH_MODEL_EROSION = 4,
    CH_MODEL_BAYFLOODING = 8,
-
-   CH_REPORT_BUILDINGS = 64,
-   
+   CH_MODEL_INFRASTRUCTURE = 16,
+   CH_MODEL_POLICY = 32,   
    CH_ALL = 127
    };
 
@@ -71,16 +68,17 @@ enum BEACHTYPE
    {
    BchT_UNDEFINED = 0,
    BchT_SANDY_DUNE_BACKED = 1,
-   BchT_SANDY_BLUFF_BACKED,
-   BchT_RIPRAP_BACKED,
-   BchT_SEAWALL_BACKED,
-   BchT_DUNE_BLUFF_BACKED,
-   BchT_CLIFF_BACKED,
-   BchT_WOODY_DEBRIS_BACKED,
-   BchT_WOODY_BLUFF_BACKED,
-   BchT_BAY,
-   BchT_RIVER,
-   BchT_ROCKY_HEADLAND
+   BchT_SANDY_BLUFF_BACKED = 2,
+   BchT_RIPRAP_BACKED = 3,
+   BchT_SEAWALL_BACKED = 4,
+   BchT_DUNE_BLUFF_BACKED = 5,
+   BchT_CLIFF_BACKED = 6,
+   BchT_WOODY_DEBRIS_BACKED = 7,
+   BchT_WOODY_BLUFF_BACKED = 8,
+   BchT_BAY = 9,
+   BchT_RIVER = 10,
+   BchT_ROCKY_HEADLAND = 11,
+   BchT_SANDY_BLUFF_BACKED_BURIED_RR = 12
    };
 
 enum FLOODHAZARDZONE
@@ -170,7 +168,7 @@ class PolicyInfo
    public:
       PolicyInfo::PolicyInfo() :
          m_index(-1),
-         m_isActive(NULL),
+         m_isActive(nullptr),
          m_hasBudget(false),
          m_startingBudget(0),
          m_availableBudget(0),
@@ -188,7 +186,7 @@ class PolicyInfo
          m_label = label;  m_index = index; m_isActive = isActive; m_hasBudget = hasBudget;
          }
 
-      bool IsActive() { return (m_isActive != NULL && *m_isActive != 0); }
+      bool IsActive() { return (m_isActive != nullptr && *m_isActive != 0); }
       bool HasBudget() { return (IsActive() && m_hasBudget); }
       void IncurCost(float cost)
          {
@@ -332,8 +330,14 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //DDataObj *m_pInletLUT = nullptr;
       //DDataObj *m_pBayLUT = nullptr;
       DDataObj *m_pProfileLUT = nullptr;
+      std::map<int, int> m_profileMap;      // key=ID, value=index
+      
+      
       //DDataObj *m_pSAngleLUT = nullptr;
       DDataObj *m_pTransectLUT = nullptr;
+      std::map<int, int> m_transectMap;      // key=ID, value=index
+
+
 
       // Policy allocations/expenditures
       CArray<PolicyInfo, PolicyInfo&> m_policyInfoArray;
@@ -403,7 +407,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       // Dune variables
       int m_maxTransect = -1;
       int m_minTransect = 99999;
-      int m_maxDuneIndx = -1;
+      int m_maxDuneIndex = -1;
       int m_nourishFactor = 5;
       int m_nourishFreq = 5;
       int m_nourishPercentage = 20;
@@ -505,7 +509,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_rebuildFactorSPS = 0.;
       float m_safetyFactor = 1.5f;
       float m_slopeBPS = 0.5;
-      ///// float m_slopeThresh = 0;
+      float m_slopeThresh = 0;
       float m_shorelineLength = 10;
       float m_topWidthSPS = 0;
       float m_removeFromHazardZoneRatio = 0.5f;
@@ -569,11 +573,11 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colBldgFloodFreq = -1;
       int m_colBldgFlooded = -1;
       //int m_colBldgFloodYr = -1;
-      int m_colBldgIDUIndx = -1;
+      int m_colBldgIDUIndex = -1;
       int m_colBldgNDU = -1;
       int m_colBldgNEWDU = -1;
       int m_colBldgRemoveYr = -1;
-      //int m_colBldgSafeSite = -1;
+      int m_colBldgSafeSite = -1;
       int m_colBldgSafeSiteYr = -1;
       //int m_colBldgTsunamiHZ = -1;
       int m_colBldgValue = -1;
@@ -597,7 +601,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int m_colIDUFloodFreq = -1;
       int m_colIDUFracFlooded = -1;
       int m_colIDUAddBPSYr = -1;
-      int m_colIDUCityCode = -1;
+      //int m_colIDUCityCode = -1;
       int m_colIDUEroded = -1;
       //int m_colIDUFlooded = -1;
       //int m_colIDUFloodZone = -1;
@@ -624,7 +628,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLAddYearSPS = -1;
       //int  m_colDLAlpha = -1;
       //int  m_colDLAlpha2 = -1;
-      //int  m_colDLAmtFlooded = -1;
+      int  m_colDLAmtFlooded = -1;
       int  m_colDLAvgKD = -1;
       //int  m_colDLBackshoreElev = -1;
       int  m_colDLBackSlope = -1;
@@ -649,12 +653,12 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLCostSPS = -1;
       //int  m_colDLCPolicyL = -1;
       int  m_colDLDuneBldgDist = -1;
-      int  m_colDLDuneBldgIndx = -1;
+      int  m_colDLDuneBldgIndex = -1;
       int  m_colDLDuneCrest = -1;
       int  m_colDLDuneEroFreq = -1;
       int  m_colDLDuneFloodFreq = -1;
       int  m_colDLDuneHeel = -1;
-      int  m_colDLDuneIndx = -1;
+      int  m_colDLDuneIndex = -1;
       int  m_colDLDuneToe = -1;
       int  m_colDLDuneToeSPS = -1;
       int  m_colDLDuneWidth = -1;
@@ -665,7 +669,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLEastingToe = -1;
       int  m_colDLEastingToeBPS = -1;
       int  m_colDLEastingToeSPS = -1;
-      //int  m_colDLFlooded = -1;
+      int  m_colDLFlooded = -1;
       int  m_colDLForeshore = -1;
       //int  m_colDLGammaBerm = -1;
       int  m_colDLGammaRough = -1;
@@ -707,7 +711,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int  m_colDLPrevDuneCr = -1;
       //int  m_colDLPrevRow = -1;
       //int  m_colDLPrevSlope = -1;
-      int  m_colDLProfileIndx = -1;
+      int  m_colDLProfileID = -1;
       //int  m_colDLScomp = -1;
       int  m_colDLShoreface = -1;
       int  m_colDLShorelineAngle = -1;
@@ -715,26 +719,26 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int  m_colDLTD = -1;
       //int  m_colDLThreshDate = -1;
       int  m_colDLTopWidthSPS = -1;
-      int  m_colDLTranIndx = -1;
+      int  m_colDLTransID = -1;
       int  m_colDLTranSlope = -1;
       //int  m_colDLTS = -1;
       //int  m_colDLWb = -1;
-      //int  m_colDLWDirection = -1;
+      int  m_colDLWDirection = -1;
       int  m_colDLWidthBPS = -1;
       int  m_colDLWidthSPS = -1;
       int  m_colDLWHeight = -1;
       int  m_colDLWPeriod = -1;
       int  m_colDLXAvgKD = -1;
-      //int  m_colDLYrAvgLowSWL = -1;
-      //int  m_colDLYrAvgSWL = -1;
-      //int  m_colDLYrAvgTWL = -1;
+      int  m_colDLYrAvgLowSWL = -1;
+      int  m_colDLYrAvgSWL = -1;
+      int  m_colDLYrAvgTWL = -1;
       int  m_colDLYrMaxDoy = -1;
-      //int  m_colDLYrMaxIGSwash = -1;
-      //int  m_colDLYrMaxIncSwash = -1;
-      //int  m_colDLYrMaxSetup = -1;
-      //int  m_colDLYrMaxSwash = -1;
-      //int  m_colDLYrMaxSWL = -1;
-      //int  m_colDLYrFMaxTWL = -1;
+      int  m_colDLYrMaxIGSwash = -1;
+      int  m_colDLYrMaxIncSwash = -1;
+      int  m_colDLYrMaxSetup = -1;
+      int  m_colDLYrMaxSwash = -1;
+      int  m_colDLYrMaxSWL = -1;
+      int  m_colDLYrFMaxTWL = -1;
       int  m_colDLYrMaxTWL = -1;
       //
       //// columns used for debugging in the dune line
@@ -743,7 +747,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int  m_colDLComputedSlope2 = -1;
       //int  m_colDLDeltaX = -1;
       //int  m_colDLDuneBldgEast = -1;
-      //int  m_colDLDuneBldgIndx2 = -1;
+      //int  m_colDLDuneBldgIndex2 = -1;
       //int  m_colDLNewEasting = -1;
       //int  m_colDLNumIDPY = -1;
       //int  m_colDLRunupFlag = -1;
@@ -755,7 +759,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLTypeChange = -1;
       //
       //// Bay Trace coverage columns
-      //int  m_colBayTraceIndx = -1;
+      //int  m_colBayTraceIndex = -1;
       //int  m_colBayYrAvgSWL = -1;
       //int  m_colBayYrAvgTWL = -1;
       //int  m_colBayYrMaxSWL = -1;
@@ -773,7 +777,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colInfraBFEYr = -1;
       //int m_colInfraCount = -1;
       int m_colInfraCritical = -1;
-      int m_colInfraDuneIndx = -1;
+      int m_colInfraDuneIndex = -1;
       int m_colInfraEroded = -1;
       int m_colInfraFlooded = -1;
       int m_colInfraFloodYr = -1;
@@ -879,8 +883,10 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       void ComputeInfraStatistics();
 
       // Helper Functions
+      bool PopulateClosestIndex(MapLayer* pFromPtLayer, LPCTSTR field, DDataObj *pLookup);
+
       int GetBeachType(MapLayer::Iterator pt);
-      int GetNextBldgIndx(MapLayer::Iterator pt);
+      int GetNextBldgIndex(MapLayer::Iterator pt);
 
       void ExportMapLayers(EnvContext *pEnvContext, int outputYear);
 
@@ -951,7 +957,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool IsMissingRow(MapLayer::Iterator startPoint, MapLayer::Iterator &endPoint);
 
       bool SetDuneToeUTM2LL(MapLayer *pLayer, int point);
-      double IGet(DDataObj *table, double x, int xcol, int ycol = 1, IMETHOD method = IM_LINEAR, int startRowIndex = 0, int *returnRowIndex = NULL, bool forwardDirection = true);
+      double IGet(DDataObj *table, double x, int xcol, int ycol = 1, IMETHOD method = IM_LINEAR, int startRowIndex = 0, int *returnRowIndex = nullptr, bool forwardDirection = true);
 
       // Tillamook unused
       double Maximum(double *dat, int length);
