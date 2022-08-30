@@ -1811,6 +1811,8 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    {
    const float tolerance = 1.0f;    // tolerance value
 
+   MaxYearlyTWL(pEnvContext);
+
    //???
    int numDunePts = 0;
    if (m_pNewDuneLineLayer != NULL)
@@ -2786,11 +2788,13 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
          float waveinducedWL = 1.1f * (setup + (infragravity / 2));  //wave induced water level
          float totalWL = waterlevel + waveinducedWL;
 
-         if (totalWL > maxWaterlevel)
-            maxRow = row;
+         if (totalWL > maxWaterlevel) {
+             maxRow = row;
+             maxWaterlevel = totalWL;
+         }
 
          row++;
-         }
+      }
 
       // found the row (hour) to use for the day, add the daily values to the buoy data object
       for (int col = 0; col < cols; col++)
@@ -2803,6 +2807,101 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
    //assert(m_buoyObsData.GetRowCount() == numdays);
    return numdays;
    }
+
+
+////////////////////////////////////////////////////////////////////////////////////////////////
+      // Find average yealy maximum TWL data correposnding to 1390 transects and write the TWL values
+int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext)
+{
+    LPCTSTR simulationPath = "D:\\Envision\\StudyAreas\\OrCoast\\Tillamook\\TWL_Inputs\\Climate_Scenarios\\Low\\Simulation_1\\DailyData_Low";
+    m_maxTransect = 1389;// remove this hard coding
+    FDataObj* transectdata = new FDataObj[m_maxTransect+1];
+    int rows;
+    int TWLCol;
+    for (int i = 0; i <= m_maxTransect; i++)
+    {
+        CString transectDataFile;
+        transectDataFile.Format("%s\\DailyData_%i.csv", simulationPath, i);
+        rows = transectdata[i].ReadAscii(transectDataFile);
+        TWLCol = transectdata[i].AppendCol("TWL");
+    }
+    
+
+    int maxTWL = -1;
+    int maxTWLDay = -1;
+
+
+
+    for (int doy = 0; doy < 365; doy++)
+    {
+        int avgTWL = 0;
+        int rowindex = doy; // TODO: We will use this to access later year's data
+
+        // collecting still water level from buoy data
+        float swl = 0.0f;
+        m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WATER_LEVEL_WL, rowindex, swl);
+        float wlratio = (swl - (-1.5f)) / (4.5f + 1.5f);
+
+        // For each transect find TWL and accumulate
+        for (int i = 0; i <= m_maxTransect; i++)
+        {
+            float radPeakHeightL, radPeakHeightH, radPeakPeriodL, radPeakPeriodH, radPeakDirectionL, radPeakDirectionH, radPeakWaterLevelL, radPeakWaterLevelH;
+             // LOAD twl or data to cal twl
+            // add to avg tWL
+            transectdata[i].Get(TRANSECTDAILYDATA::HEIGHT_L, rowindex, radPeakHeightL);
+            transectdata[i].Get(TRANSECTDAILYDATA::HEIGHT_H, rowindex, radPeakHeightH);
+            transectdata[i].Get(TRANSECTDAILYDATA::PERIOD_L, rowindex, radPeakPeriodL);
+            transectdata[i].Get(TRANSECTDAILYDATA::PERIOD_H, rowindex, radPeakPeriodH);
+            transectdata[i].Get(TRANSECTDAILYDATA::DIRECTION_L, rowindex, radPeakDirectionL);
+            transectdata[i].Get(TRANSECTDAILYDATA::DIRECTION_H, rowindex, radPeakDirectionH);
+  
+            float waveHeight = radPeakHeightL + wlratio * (radPeakHeightH - radPeakHeightL);
+            float wavePeriod = radPeakPeriodL + wlratio * (radPeakPeriodH - radPeakPeriodL);
+            float waveDirection = radPeakDirectionL + wlratio * (radPeakDirectionH - radPeakDirectionL);
+
+
+            //Static Setup Stockdon et al (2006) formulation tanb1 is assumed as 0.05; eta = (0.35f * tanb1 * sqrt(Hdeep * L0));
+            float setup = 0.35f * TANB1_005 * sqrt(waveHeight * (G_VALUE_9_81 * wavePeriod * wavePeriod) / (2 * PI));
+            // Infragravity Swash, Stockdon (2006) Eqn: 12 [IG = 0.06f * sqrt(Hdeep * L0)]
+            float infragravity = 0.06f * sqrt((waveHeight * (G_VALUE_9_81 * wavePeriod * wavePeriod) / (2 * PI)));
+            float waveinducedWL = 1.1f * (setup + (infragravity / 2));  //wave induced water level
+            float totalWL = swl + waveinducedWL;
+            transectdata[i].Set(TWLCol, rowindex, totalWL);
+            avgTWL += totalWL; // accumulate TWL values over all transects.
+        }
+
+        avgTWL = avgTWL/(m_maxTransect + 1);
+        // Update maxTWL 
+        if (avgTWL > maxTWL) 
+        {
+            maxTWL = avgTWL;
+            maxTWLDay = doy;
+        }
+    }
+
+    assert(maxTWLDay != -1);
+
+    FDataObj twlAtTransects(2, m_maxTransect +1);
+
+   
+    int maxRowindex = maxTWLDay;  // TODO: We will use this to access later year's data
+
+    for (int i = 0; i < m_maxTransect+1; i++)
+    {
+        twlAtTransects.Set(0, i, i); // Write transect ID
+        twlAtTransects.Set(1, i, transectdata[i].Get(TWLCol, maxRowindex)); // Write transect ID
+    }
+
+    // Write max TWl into a file
+    CString transectDataFile;
+    transectDataFile.Format("%s_MaxTWL_Doy_%i.csv", simulationPath, maxTWLDay);
+    twlAtTransects.WriteAscii(transectDataFile);
+
+
+    delete transectdata;
+    return 0;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
 

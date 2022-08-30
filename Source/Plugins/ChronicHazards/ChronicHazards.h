@@ -91,7 +91,7 @@ enum FLOODHAZARDZONE
    FHZ_UNSTUDIED = 3				// Tahaloh in latest FEMA coverage
    };
 
-enum
+enum TRANSECTDAILYDATA
    {
    HEIGHT_L, HEIGHT_H,
    PERIOD_L, PERIOD_H,
@@ -829,7 +829,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float CalculateCelerity(float waterLevel, float wavePeriod, float &n);
       double CalculateCelerity2(float waterLevel, float wavePeriod, double &n);
       void CalculateYrMaxTWL(EnvContext *pEnvContext);
-
+      int MaxYearlyTWL(EnvContext* pEnvContext);
 
       
       double GenerateBathtubFloodMap(int &floodedCount);
