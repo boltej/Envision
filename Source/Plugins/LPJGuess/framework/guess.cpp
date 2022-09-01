@@ -23,6 +23,7 @@ int nst_lc[NLANDCOVERTYPES];  // number of possible stand types in each land cov
 int nmt;  // number of possible management types
 double cfmax; //cfmaxx
 double tt;
+double sfcf;
 ManagementTypelist mtlist;
 StandTypelist stlist;
 Pftlist pftlist;

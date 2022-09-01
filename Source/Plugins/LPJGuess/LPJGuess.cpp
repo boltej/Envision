@@ -415,6 +415,7 @@ bool LPJGuess::Init_Guess(FlowContext *pFlowContext, const char* input_module_na
 					 //dprintf("Commencing simulation for stand at (%g,%g)", pGridcell->get_lon(), pGridcell->get_lat());
 					 cfmax = 2.5f;
 				     tt = 1.0f;
+					 sfcf = 1.0f;
 					 while (m_input_module->getclimate(*pGridcell, pFlowContext)) {
 						 // START OF LOOP THROUGH SIMULATION DAYS
 						 simulate_day(*pGridcell, m_input_module);
@@ -478,7 +479,9 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 	ParamTable* pHBVTable = pFlowContext->pFlowModel->GetTable("HBV");
 	int m_col_cfmax = pHBVTable->GetFieldCol("CFMAX");         // get the location of the parameter in the table   
 	int m_col_tt = pHBVTable->GetFieldCol("TT");
+	int m_col_sfcf = pHBVTable->GetFieldCol("SFCF");
 	float CFMAX_, TT_ = 0.0f;
+	float SFCF_ = 1.0f;
 	VData key;            // lookup key connecting rows in the csv files with IDU records
 	// Get Model Parameters
 	HRU* pHRU = pFlowContext->pFlowModel->GetHRU(0);
@@ -488,8 +491,10 @@ bool LPJGuess::Run_Guess(FlowContext *pFlowContext, const char* input_module_nam
 
 	bool ok = pHBVTable->Lookup(key, m_col_cfmax, CFMAX_);
 	ok = pHBVTable->Lookup(key, m_col_tt, TT_);
+	ok = pHBVTable->Lookup(key, m_col_sfcf, SFCF_);
 	cfmax = CFMAX_;
 	tt = TT_;
+	sfcf = SFCF_;
 	int doy = pFlowContext->dayOfYear;  // int( fmod( timeInRun, 364 ) );  // zero based day of year
 	int _month = 0; int _day; int _year;
 	ok = ::GetCalDate(doy, &_year, &_month, &_day, TRUE);
