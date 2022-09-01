@@ -86,10 +86,10 @@ void snow(double prec, double temp, double insol, double lai, double& snowpack, 
 
 	if (temp < TSNOW)
 	   {						// snowing today
-		snowpack += prec;
-		prec -= prec;
+		snowpack += prec*sfcf;
+		prec -= prec*sfcf;
 	   }
-	else								// raining today (and advective melt occurring)
+	else								// raining today (and advective melt occurring). no snowfall correction
 		ma = rhow * (temp - TSNOW) * prec * cpw / lh_fus;
 
 	if (temp > TINDEX)						// sensible/latent melting occurring today
