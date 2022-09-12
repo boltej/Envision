@@ -230,6 +230,7 @@ extern int nmt;
 
 extern double cfmax; //cfmaxx
 extern double tt;
+extern double sfcf;
 /// General purpose object for handling simulation timing.
 /** In general, frameworks should use a single Date object for all simulation
  *  timing.

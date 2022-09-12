@@ -63,6 +63,8 @@ void snow(double prec, double temp, double insol, double lai, double& snowpack, 
 	float swinc = rn;  //shortwave incident
 	float swalb = 0.1f; //albedo (0-1)
 	double TSNOW = tt;
+	double TINDEX = 0.0f;
+	double SFCF = sfcf;
 	float rhow = 1000.0f; //density water kg/m3
 	float cpw = 2.09f; //specific hear capacity (J/gC);
 	// maximum temperature for precipitation as snow (deg C)
@@ -77,29 +79,26 @@ void snow(double prec, double temp, double insol, double lai, double& snowpack, 
 	float swfrac = 1 - exp(lai * -k);
 	float swtrans = (1 - swalb) * swinc * (1 - swfrac); //shorwave transmitted through canopy (kg/m2/d)
 
-	if (temp < TSNOW) 
-	   {						// snowing today
-		//melt = -min(prec * 1.0f, SNOWPACK_MAX - snowpack);
-		mr = -prec + swtrans / lh_sub;      //include a radiation driven melt term		
-	   }
-	else 
-	   {								// raining today
-	// New snow melt formulation
-	// Dieter Gerten 021121
-	// Ref: Choudhury et al 1998
-		//melt = min((1.5 + 0.007 * prec) * (temp - TSNOW), snowpack);
-		melt = min((cfmax + 0.007 * prec) * (temp - TSNOW), snowpack);
+	if (temp < 0.0f)						// snow is sublimating today
+		mr = swtrans / lh_sub;      //include a radiation driven melt term		
+	else								// snow is melting/fusing today
 		mr = swtrans / lh_fus;
-	    mh = cfmax * (temp - TSNOW);
-		ma = rhow * temp * prec * cpw / lh_fus;
+
+	if (temp < TSNOW)
+	   {						// snowing today
+		snowpack += prec*sfcf;
+		prec -= prec*sfcf;
 	   }
-	//snowpack -= melt;
-	//rain_melt = prec + melt;	
+	else								// raining today (and advective melt occurring). no snowfall correction
+		ma = rhow * (temp - TSNOW) * prec * cpw / lh_fus;
+
+	if (temp > TINDEX)						// sensible/latent melting occurring today
+		mh = cfmax * (temp - TINDEX);
 
 	float mt = min(mr + mh + ma, snowpack);
 	snowpack -= mt;
 	rain_melt = prec + mt;
-   }
+}
 
 /// SNOW_NINPUT
 /** Nitrogen deposition and fertilization on a snowpack stays in snowpack
