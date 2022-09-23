@@ -25,7 +25,7 @@
 const int NN = 8;  //???
 const int HOURLY_DATA_IN_A_DAY = 24;
 const float TANB1_005 = 0.05f;
-
+const int MAX_DAYS_FOR_FLOODING = 5; 
 // this privides a basic class definition for this
 // plug-in module.
 // Note that we want to override the parent methods
@@ -47,6 +47,10 @@ enum BUOY_OBSERVATION_DATA {
     WAVE_PERIOD_Tp =2,
     WAVE_DIRECTION_Dir=3,
     WATER_LEVEL_WL= 4,
+    WAVE_SETUP=5,
+    INFRAGRAVITY=6,
+    WAVEINDUCEDWL =7,
+    TWL=8,
     TOTAL_BUOY_COL,
 };
 

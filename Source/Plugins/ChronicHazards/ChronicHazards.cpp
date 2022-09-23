@@ -50,6 +50,9 @@ Copywrite 2012 - Oregon State University
 #include "GeoSpatialDataObj.h"
 #include <time.h> 
 
+#include <MatlabDataArray.hpp>
+#include <MatlabEngine.hpp>
+#include<algorithm>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -1771,6 +1774,9 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    if (m_inputinHourlydata == DATA_HOURLY)
       {
       m_numDays = ConvertHourlyBuoyDataToDaily(fullPath);
+      CString dailybuoyFile;
+      dailybuoyFile.Format("%s_daily.csv", fullPath);
+      m_buoyObsData.WriteAscii(dailybuoyFile);
       }
    else
       {
@@ -2460,6 +2466,28 @@ bool ChronicHazards::RunFloodingModel(EnvContext *pEnvContext)
    //m_floodedAreaSqMiles = m_floodedArea * 3.8610216e-07;
    //   m_pFloodedGrid->SetTransparency(50);
 
+    // Choose which overland flooding model to run
+   //m_floodedArea = RunFloodAreas(pEnvContext);
+   //
+   //m_floodedAreaSqMiles = m_floodedArea * 3.8610216e-07;
+   //   m_pFloodedGrid->SetTransparency(50);
+
+   // Call SFINCS MODEL 
+   using namespace matlab::engine;
+   std::unique_ptr<MATLABEngine> matlabPtr = startMATLAB();
+   // Create MATLAB data array factory
+   matlab::data::ArrayFactory factory;
+   // Pass vector containing 3 scalar args in vector    
+   std::vector<matlab::data::Array> args({
+       factory.createScalar<double>(5), // TWL
+       factory.createScalar<int>(0), // Advection
+       factory.createScalar<int>(100), // Cellsize
+       });
+   auto sfincs_home = factory.createCharArray("D:\Matlab\SFINCS_ENVISION"); // TODO: Remove hardcoding of SFICS home
+   matlabPtr->feval(u"addpath", sfincs_home);
+   // Call MATLAB function and return result
+   matlab::data::TypedArray<int> result = matlabPtr->feval(u"SFINCS_ENVISION", args);
+
    // update timings
    clock_t finish = clock();
    float duration = (float)(finish - start) / CLOCKS_PER_SEC;
@@ -2826,12 +2854,17 @@ int ChronicHazards::SetInfrastructureValues()
 // fullPath stores full file path of the hourly data.
 int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
    {
-   m_buoyObsData.SetSize(5, 0);     // 5 cols, 0 rows
-   m_buoyObsData.SetLabel(TIME_STEP, "Time");
+   m_buoyObsData.SetSize(TOTAL_BUOY_COL, 0);     // 5 cols, 0 rows
+   m_buoyObsData.SetLabel(TIME_STEP, "Time"); 
    m_buoyObsData.SetLabel(WAVE_HEIGHT_HS, "Offshore_Height");
-   m_buoyObsData.SetLabel(WAVE_PERIOD_Tp, "Offshore_Period");
+   m_buoyObsData.SetLabel(WAVE_PERIOD_Tp, "Offshore_Period"); 
    m_buoyObsData.SetLabel(WAVE_DIRECTION_Dir, "Wave_Direction");
-   m_buoyObsData.SetLabel(WATER_LEVEL_WL, "Offshore_WL");
+   m_buoyObsData.SetLabel(WATER_LEVEL_WL, "Offshore_WL"); 
+   m_buoyObsData.SetLabel(WAVE_SETUP, "Wavesetup");
+   m_buoyObsData.SetLabel(INFRAGRAVITY, "Infragravity");
+   m_buoyObsData.SetLabel(WAVEINDUCEDWL, "Waveinducedwl");
+   m_buoyObsData.SetLabel(TWL, "TWL");
+
 
    VDataObj hourlyData(5, 0, UNIT_MEASURE::U_HOURS);
    int numrow = hourlyData.ReadAscii(fullPath);  // NOTE:  Run scripts/PrepBuoyData.py if necessary to strip leap days
@@ -2841,7 +2874,7 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
    int numdays = numrow / HOURLY_DATA_IN_A_DAY;
    int cols = hourlyData.GetColCount();
    int row = 0;
-   VData* data = new VData[cols];
+   VData* data = new VData[TOTAL_BUOY_COL];
 
    for (int i = 0; i < numdays; i++)
       {
@@ -2867,6 +2900,12 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
          if (totalWL > maxWaterlevel) {
              maxRow = row;
              maxWaterlevel = totalWL;
+             data[INFRAGRAVITY] = infragravity;
+             data[WAVE_SETUP] = setup;
+             data[WAVEINDUCEDWL] = waveinducedWL;
+             data[TWL] = totalWL;
+             // std::cout << maxWaterlevel << std::endl;
+
          }
 
          row++;
@@ -2876,7 +2915,7 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
       for (int col = 0; col < cols; col++)
          hourlyData.Get(col, maxRow, data[col]);
 
-      m_buoyObsData.AppendRow(data, 5);
+      m_buoyObsData.AppendRow(data, TOTAL_BUOY_COL);
       }
 
    delete[] data;
@@ -2886,32 +2925,43 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-      // Find average yealy maximum TWL data correposnding to 1390 transects and write the TWL values
-int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext)
-{
-    LPCTSTR simulationPath = "D:\\Envision\\StudyAreas\\OrCoast\\Tillamook\\TWL_Inputs\\Climate_Scenarios\\Low\\Simulation_1\\DailyData_Low";
-    m_maxTransect = 1389;// remove this hard coding
+// Find average yealy maximum TWL data correposnding to 1390 transects and write the TWL values
+ int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext) 
+ {
+    CString simulationPath;
+    simulationPath.Format("%s\\Climate_Scenarios\\%s\\Simulation_1\\DailyData_%s", (LPCTSTR)m_twlInputPath, (LPCTSTR)m_climateScenarioStr, (LPCTSTR)m_climateScenarioStr);
+
+    m_maxTransect = 1389;// TODO: remove this hard coding
+    // m_maxTransect = m_numTransects - 1;
     FDataObj* transectdata = new FDataObj[m_maxTransect+1];
     int rows;
     int TWLCol;
+    int setupCol;
+    int infragravityCol;
+    int incidentbandswashCol;
     for (int i = 0; i <= m_maxTransect; i++)
     {
         CString transectDataFile;
-        transectDataFile.Format("%s\\DailyData_%i.csv", simulationPath, i);
+        transectDataFile.Format("%s\\DailyData_%i.csv", (CString)simulationPath, i);
         rows = transectdata[i].ReadAscii(transectDataFile);
+        assert(rows != 0);
+        setupCol = transectdata[i].AppendCol("Setup");
+        infragravityCol = transectdata[i].AppendCol("infragravity");
+        incidentbandswashCol = transectdata[i].AppendCol("Incident band swash");
         TWLCol = transectdata[i].AppendCol("TWL");
     }
+
+    const int num_days_in_year = 365;
     
+    int yearIndex = 0;
 
-    int maxTWL = -1;
-    int maxTWLDay = -1;
+    //declaring vector of pairs for storing average TWL for each doy
+    pair <double, int>  avg_twl[num_days_in_year];
 
-
-
-    for (int doy = 0; doy < 365; doy++)
+    for (int doy = 0; doy < num_days_in_year; doy++)
     {
-        int avgTWL = 0;
-        int rowindex = doy; // TODO: We will use this to access later year's data
+        double avgTWL = 0;
+        int rowindex = (yearIndex * num_days_in_year) + doy; // TODO: We will use this to access later year's data
 
         // collecting still water level from buoy data
         float swl = 0.0f;
@@ -2931,47 +2981,75 @@ int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext)
             transectdata[i].Get(TRANSECTDAILYDATA::DIRECTION_L, rowindex, radPeakDirectionL);
             transectdata[i].Get(TRANSECTDAILYDATA::DIRECTION_H, rowindex, radPeakDirectionH);
   
-            float waveHeight = radPeakHeightL + wlratio * (radPeakHeightH - radPeakHeightL);
-            float wavePeriod = radPeakPeriodL + wlratio * (radPeakPeriodH - radPeakPeriodL);
-            float waveDirection = radPeakDirectionL + wlratio * (radPeakDirectionH - radPeakDirectionL);
+            double waveHeight = radPeakHeightL + wlratio * (radPeakHeightH - radPeakHeightL);
+            double wavePeriod = radPeakPeriodL + wlratio * (radPeakPeriodH - radPeakPeriodL);
+            double waveDirection = radPeakDirectionL + wlratio * (radPeakDirectionH - radPeakDirectionL);
 
-
+            double HL0 = (waveHeight * (G * wavePeriod * wavePeriod) / (2 * PI));
             //Static Setup Stockdon et al (2006) formulation tanb1 is assumed as 0.05; eta = (0.35f * tanb1 * sqrt(Hdeep * L0));
-            float setup = 0.35f * TANB1_005 * sqrt(waveHeight * (G_VALUE_9_81 * wavePeriod * wavePeriod) / (2 * PI));
+            double setup = 0.35f * TANB1_005 * sqrt(HL0);
             // Infragravity Swash, Stockdon (2006) Eqn: 12 [IG = 0.06f * sqrt(Hdeep * L0)]
-            float infragravity = 0.06f * sqrt((waveHeight * (G_VALUE_9_81 * wavePeriod * wavePeriod) / (2 * PI)));
-            float waveinducedWL = 1.1f * (setup + (infragravity / 2));  //wave induced water level
-            float totalWL = swl + waveinducedWL;
-            transectdata[i].Set(TWLCol, rowindex, totalWL);
+            double infragravity = 0.06f * sqrt(HL0);
+            double waveinducedWL = 1.1f * (setup + (infragravity / 2));  //wave induced water level
+            double incidentbandswash = 0.75f * TANB1_005 * sqrt(HL0);
+            double StockdonR2 = 1.1f * (setup + (sqrt((HL0) * (0.563f * TANB1_005 * TANB1_005 + 0.004f))) / 2.0f); //Stockdon R2%
+            double totalWL = swl + waveinducedWL;
+            double StockdonTWL = swl + StockdonR2;
+           
+            // Storing setup, infragravity, incident band swash, and TWL
+            transectdata[i].Set(setupCol, rowindex, setup);
+            transectdata[i].Set(infragravityCol, rowindex, infragravity);
+            transectdata[i].Set(incidentbandswashCol, rowindex, incidentbandswash);
+            transectdata[i].Set(TWLCol, rowindex, StockdonTWL);
             avgTWL += totalWL; // accumulate TWL values over all transects.
         }
 
         avgTWL = avgTWL/(m_maxTransect + 1);
-        // Update maxTWL 
-        if (avgTWL > maxTWL) 
-        {
-            maxTWL = avgTWL;
-            maxTWLDay = doy;
-        }
+
+        // Store Avg TWL 
+        avg_twl[doy] = pair<double, int> (avgTWL, doy);
+
     }
 
-    assert(maxTWLDay != -1);
-
-    FDataObj twlAtTransects(2, m_maxTransect +1);
-
-   
-    int maxRowindex = maxTWLDay;  // TODO: We will use this to access later year's data
-
-    for (int i = 0; i < m_maxTransect+1; i++)
+    for (int i = 0; i < num_days_in_year - 1; i++)
     {
-        twlAtTransects.Set(0, i, i); // Write transect ID
-        twlAtTransects.Set(1, i, transectdata[i].Get(TWLCol, maxRowindex)); // Write transect ID
+        int max_idx = i;
+        int j = -1;
+        for (j = i + 1; j < num_days_in_year; j++)
+            if (avg_twl[j].first > avg_twl[max_idx].first)
+                max_idx = j;
+        if (max_idx != i)
+            avg_twl[max_idx].swap(avg_twl[i]);
     }
 
-    // Write max TWl into a file
-    CString transectDataFile;
-    transectDataFile.Format("%s_MaxTWL_Doy_%i.csv", simulationPath, maxTWLDay);
-    twlAtTransects.WriteAscii(transectDataFile);
+    CString twlpath;
+    twlpath.Format("%s\\avgTwl.txt", simulationPath);
+    
+    FILE* fp;
+    fopen_s(&fp, twlpath, "w");
+    for(auto avg_twl: avg_twl) {
+        fprintf(fp, "%lf: %d\n", avg_twl.first, avg_twl.second);
+    }
+    fclose(fp);
+
+    for (int i = 0; i < MAX_DAYS_FOR_FLOODING; i++) 
+    {
+        CString maxEventDataPath;
+        maxEventDataPath.Format("%s\\MaxTWL_Year_%d_Doy_%d.csv", simulationPath, yearIndex, (avg_twl[i].second+1));
+        FDataObj twlAtTransects(4, m_maxTransect + 1);
+        twlAtTransects.SetLabel(0, "Setup");
+        twlAtTransects.SetLabel(1, "infragravity");
+        twlAtTransects.SetLabel(2, "Incident band swash");
+        twlAtTransects.SetLabel(3, "TWL");
+        for (int j = 0; j < m_maxTransect + 1; j++)
+        {
+            twlAtTransects.Set(0, j, transectdata[j].Get(setupCol, avg_twl[i].second)); // Write Setup
+            twlAtTransects.Set(1, j, transectdata[j].Get(infragravityCol, avg_twl[i].second)); // Write infragravity
+            twlAtTransects.Set(2, j, transectdata[j].Get(incidentbandswashCol, avg_twl[i].second)); //write incident band swash
+            twlAtTransects.Set(3, j, transectdata[j].Get(TWLCol, avg_twl[i].second)); // write maximum TWL
+        }
+        twlAtTransects.WriteAscii(maxEventDataPath);
+    }
 
 
     delete transectdata;
