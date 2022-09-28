@@ -83,6 +83,7 @@ class FieldDef
       MapExpr*  m_pMapExpr=NULL;
       int       m_col=-1;           // column associated with this variable (-1 if no col)
       float     m_value=0;
+      int       m_modelID = -99;    // should match .envx entry if needed
 
       // groupby info
       CString   m_groupBy;   // field to aggregate by, if aggregration desired; otherwise empty
@@ -120,7 +121,7 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
 
       virtual bool InitRun(EnvContext* pEnvContext, bool useInitialSeed);
       
-      virtual bool Run(EnvContext *pEnvContext) { return _Run(pEnvContext, false); }
+      virtual bool Run(EnvContext* pEnvContext){ return _Run(pEnvContext, false); }
 
       //virtual bool EndRun(EnvContext *pContext) { return true; }
       //virtual bool Setup(EnvContext *pContext, HWND hWnd) { return false; }
@@ -130,19 +131,20 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
       //virtual int  OutputVar(int id, MODEL_VAR** modelVar);
 
    public:
-      MapLayer*      m_pMapLayer;            // memory managed by EnvModel
-      MapExprEngine* m_pMapExprEngine;       // memory managed by EnvModel
-      QueryEngine*   m_pQueryEngine;         // memory managed by EnvModel
+      static MapLayer*      m_pMapLayer;            // memory managed by EnvModel
+      static MapExprEngine* m_pMapExprEngine;       // memory managed by EnvModel
+      static QueryEngine*   m_pQueryEngine;         // memory managed by EnvModel
 
    protected:
-      int m_colArea;
+      static bool m_initialized;
+      static int m_colArea;
 
-      CUIntArray m_iduArray;    // used for shuffling IDUs
-      bool m_shuffleIDUs;
-      RandUniform* m_pRandUnif;
+      static CUIntArray m_iduArray;    // used for shuffling IDUs
+      static bool m_shuffleIDUs;
+      static RandUniform* m_pRandUnif;
 
-      PtrArray<FieldDef> m_fields;
-      PtrArray<Constant> m_constants;
+      static PtrArray<FieldDef> m_fields;
+      static PtrArray<Constant> m_constants;
 
       FDataObj* m_pOutputData;
 
@@ -150,6 +152,15 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
 
       bool CollectData(int year);
 
+      int GetActiveFieldCount(int modelID) {
+         int fieldCount = (int)m_fields.GetSize(); 
+         int fc = 0;
+         for (int i = 0; i < fieldCount; i++)
+            if (m_fields[i]->m_modelID == modelID || m_fields[i]->m_modelID == -99)
+               fc++;
+         return fc;
+         }
+      bool IsFieldInModel(FieldDef* pFD, int modelID) { return (pFD->m_modelID == modelID || pFD->m_modelID == -99); }
 
       bool LoadXml(EnvContext*, LPCTSTR);
 

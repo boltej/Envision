@@ -72,7 +72,8 @@ enum SNIP_INPUT_TYPE {
    I_CONSTWSTOP = 2,
    I_SINESOIDAL = 3,
    I_RANDOM = 4,
-   I_TRACKOUTPUT = 5
+   I_TRACKOUTPUT = 5,
+   I_ENVISION_SIGNAL = 6
    };
 
 
@@ -355,7 +356,7 @@ class SNEdge : public TraitContainer
 
       SNEdge(SNEdge& cn) { *this = cn; }
 
-      SNEdge(void) : m_pFromNode(NULL), m_pToNode(NULL), m_transTime(-1) { }
+      SNEdge(void) : m_pFromNode(nullptr), m_pToNode(nullptr), m_transTime(-1) { }
 
       SNEdge& operator = (SNEdge& cn)
          {
@@ -392,10 +393,9 @@ class SNLayer
 
    protected:
       // container
-      SNIP* m_pSNIP;
-      //EnvEvaluator* m_pModel;
+      SNIP* m_pSNIP = nullptr;
 
-      SNIPModel* m_pSNIPModel = NULL;
+      SNIPModel* m_pSNIPModel = nullptr;
       //unique_ptr<SNIPModel> m_pSNIPModel;
 
       // nodes and edges
@@ -403,7 +403,7 @@ class SNLayer
       PtrArray< SNNode > m_nodes;
       PtrArray< SNEdge > m_edges;
 
-      map< LPCTSTR, SNNode* > m_nodeMap;
+      map< std::string, SNNode* > m_nodeMap;
 
       int m_nextNodeIndex = 0;
       int m_nextEdgeIndex = 0;
@@ -453,7 +453,7 @@ class SNIPModel
    protected:
       bool m_use = true;
       int m_colAdapt = -1;
-      SNLayer* m_pSNLayer = NULL;       // associated network layer
+      SNLayer* m_pSNLayer = nullptr;       // associated network layer
       json m_networkJSON; // / networkInfo = null;   // dictionary with description, traits, etc read from JSON file
 
       std::string m_name;
@@ -464,7 +464,8 @@ class SNIPModel
       Query* m_pMappingQuery = nullptr;
 
       // input definition
-      SNNode* m_pInputNode = NULL;
+      EnvEvaluator* m_pEvaluator = nullptr;
+      SNNode* m_pInputNode = nullptr;
       SNIP_INPUT_TYPE m_inputType = I_UNKNOWN;   // "constant", "constant_with_stop","sinusoidal","random","track_output"
       //inputValue = 1;   ///???
 
@@ -502,7 +503,7 @@ class SNIPModel
 
       // network generation parameters
       static RandUniform m_randShuffle;
-      RandUniform* m_pRandGenerator = NULL;
+      RandUniform* m_pRandGenerator = nullptr;
       float m_autogenFraction = 0;
       CString autogenBias = "degree";
       int m_autogenTransTimeMax = 0;
@@ -513,7 +514,7 @@ class SNIPModel
       vector <float> m_xs;             // generated data for plotting
       vector<float> m_netInputs;       // and setting input, one per cycle
       NetStats m_netStats;
-      FDataObj* m_pOutputData = NULL;            // data exposed as an output var
+      FDataObj* m_pOutputData = nullptr;            // data exposed as an output var
 
       //m_netReport = [];   // array of netStats, one per 
       //m_watchReport = [];
@@ -537,7 +538,7 @@ class SNIPModel
       //bool BuildNetwork( void );
       SNNode* BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits);
       //SNNode* BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name);
-      SNEdge* BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float* traits = NULL);
+      SNEdge* BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float* traits = nullptr);
 
       bool LoadPreBuildSettings(json& settings);
       bool LoadPostBuildSettings(json& settings);
@@ -613,7 +614,7 @@ class _EXPORT SNIP : public  EnvModelProcess
       //virtual int  OutputVar(int id, MODEL_VAR** modelVar);
 
    public:
-      SNLayer* AddLayer(void) { if (m_layerArray.Add(new SNLayer(this)) >= 0) return m_layerArray[m_layerArray.GetUpperBound()]; else return NULL; }
+      SNLayer* AddLayer(void) { if (m_layerArray.Add(new SNLayer(this)) >= 0) return m_layerArray[m_layerArray.GetUpperBound()]; else return nullptr; }
       bool     RemoveLayer(LPCTSTR name);
       SNLayer* GetLayer(int i) { return m_layerArray[i]; }
       int      GetLayerCount(void) { return (int)m_layerArray.GetSize(); }

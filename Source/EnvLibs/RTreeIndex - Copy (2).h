@@ -4,14 +4,11 @@
 #include <afxtempl.h>
 #endif
 
-#include "Maplayer.h"
 #include "RTree.h"
 
+#include "Maplayer.h"
 
-
-typedef RTree<int, REAL, 2> IndexTree;
-
-struct IDU_DIST { int idu; float distance; };
+typedef RTree<int, REAL, 2> IndexTree;  // data type (value stored), element type, dimensions, 
 
 class LIBSAPI  RTreeIndex
    {
@@ -19,26 +16,18 @@ class LIBSAPI  RTreeIndex
    friend class MapLayer;
 
    public:
-      RTreeIndex() {}
+      RTreeIndex();
       virtual ~RTreeIndex() {}
 
-      static MapLayer* m_pLayer;
-      static MapLayer* m_pToLayer;
-      static int m_currentIdu;
-
-      static float m_currentDistance;
-
-      // store search results as (idu,distance) pairs
-      static std::vector<IDU_DIST> m_searchResults;
-
    protected:
+      MapLayer* m_pLayer;
+      MapLayer* m_pToLayer;
       char m_filename[256];     // name of the index file (valid after ReadIndex();
       
       IndexTree m_rTree;
-      //bgi::rtree<value, bgi::quadratic<16>> m_rTree;
 
-      int   m_indexCount=-1;           // number of elements in the m_index array, as loaded from disk
-      bool  m_isBuilt = false;
+      int   m_indexCount;           // number of elements in the m_index array, as loaded from disk
+      bool  m_isBuilt;
 
    public:
       bool IsBuilt() { return m_isBuilt; }
@@ -56,10 +45,6 @@ class LIBSAPI  RTreeIndex
       
       int   GetSize() { return m_indexCount; }
       int   GetCount() { return m_indexCount; }
-
-      int WithinDistance(int idu, float distance, std::vector<IDU_DIST>& results);
-      int NextTo(int idu, std::vector<IDU_DIST>& results) { return WithinDistance(idu, 0, results);}
-
 
       int  WriteIndex(LPCTSTR filename);
 

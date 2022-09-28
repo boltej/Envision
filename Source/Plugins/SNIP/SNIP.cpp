@@ -30,6 +30,7 @@ Copywrite 2012 - Oregon State University
 
 #include <format>
 #include <fstream>
+#include <set>
 
 
 #ifdef _DEBUG
@@ -121,7 +122,7 @@ void AgNode::ClearInstances()
 {
    for (int i = 0; i < m_nodeInstances.size(); i++)
    {
-      m_nodeInstances[i]->m_AgParent = NULL;
+      m_nodeInstances[i]->m_AgParent = nullptr;
    }
    m_nodeInstances.clear();
 }
@@ -143,7 +144,7 @@ vector < double > AgNode::GetValues()
 
 SNLayer::SNLayer(SNIP* pNet)
    : m_pSNIP(pNet)
-   //, m_pInputNode(NULL)
+   //, m_pInputNode(nullptr)
    , m_outputNodeCount(0)
    {
    m_pSNIPModel = new SNIPModel(this);
@@ -153,11 +154,11 @@ SNLayer::SNLayer(SNIP* pNet)
 
 SNLayer::SNLayer(SNLayer& sl)
    : m_name(sl.m_name)
-   , m_pSNIPModel(NULL)
+   , m_pSNIPModel(nullptr)
    ////, m_pModel( sl.m_pModel )
    , m_outputNodeCount(sl.m_outputNodeCount)
-   , m_pSNIP(NULL)  // NOTE - MUST BE SET AFTER CONSTRUCTION;
-   //, m_pInputNode( NULL )      // set below...
+   , m_pSNIP(nullptr)  // NOTE - MUST BE SET AFTER CONSTRUCTION;
+   //, m_pInputNode( nullptr )      // set below...
    , m_nodes(sl.m_nodes)
    , m_edges(sl.m_edges)
    ////, m_outputArray( sl.m_outputArray )
@@ -182,7 +183,7 @@ SNLayer::SNLayer(SNLayer& sl)
 
 SNLayer::~SNLayer()
    {
-   if (m_pSNIPModel != NULL)
+   if (m_pSNIPModel != nullptr)
       delete m_pSNIPModel;
    }
 
@@ -368,6 +369,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
    delete[] _traits;
 
    // build edges
+   int errorCount = 0;
    for (const auto& edge : m_networkJSON["edges"])
       {
       std::string from = edge["from"].get<std::string>();
@@ -375,13 +377,36 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
 
       SNNode* pFromNode = this->m_pSNLayer->FindNode(from.c_str());
       SNNode* pToNode = this->m_pSNLayer->FindNode(to.c_str());
-      ASSERT(pFromNode != NULL && pToNode != NULL);
+      
+      if (pFromNode == nullptr)
+         {
+         if (errorCount < 100)
+            {
+            string msg = std::format("Unable to find FROM node %s when building network!  This link will be ignored", from.c_str());
+            Report::LogWarning(msg.c_str());
+            errorCount++;
+            }
+         continue;
+         }
+      
+      if (pToNode == nullptr)
+         {
+         if (errorCount < 100)
+            {
+            string msg = std::format("Unable to find TO node %s when building network!  This link will be ignored", to.c_str());
+            Report::LogWarning(msg.c_str());
+            errorCount++;
+            }
+         continue;
+         }
+      
+      //ASSERT(pFromNode != nullptr && pToNode != nullptr);
       int transTime = 1; // ???
-      this->BuildEdge(pFromNode, pToNode, transTime, NULL);   // note: no traits
+      this->BuildEdge(pFromNode, pToNode, transTime, nullptr);   // note: no traits
 
       auto bidirectional = edge.find("bidirectional");
       if (bidirectional != edge.end() && bidirectional[0].get<bool>() == true)
-         this->BuildEdge(pToNode, pFromNode, transTime, NULL);
+         this->BuildEdge(pToNode, pFromNode, transTime, nullptr);
       }
 
    this->LoadPostBuildSettings(m_networkJSON["settings"]);
@@ -443,7 +468,7 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits
       this->m_pSNLayer->m_outputNodeCount++;
 
    this->m_pSNLayer->m_nodes.Add(pNode); //SNNode( nodeType ) );
-   this->m_pSNLayer->m_nodeMap[pNode->m_name] = pNode;
+   this->m_pSNLayer->m_nodeMap[string((LPCTSTR) pNode->m_name)] = pNode;
 
    return pNode;
    }
@@ -451,7 +476,7 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits
 
 SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float* traits)
    {
-   ASSERT(pFromNode != NULL && pToNode != NULL);
+   ASSERT(pFromNode != nullptr && pToNode != nullptr);
 
    SNEdge* pEdge = new SNEdge(pFromNode, pToNode);
 
@@ -480,7 +505,7 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
    pFromNode->m_outEdges.Add(pEdge);
    pToNode->m_inEdges.Add(pEdge);
 
-   if (traits != NULL)
+   if (traits != nullptr)
       pEdge->AddTraitsFromArray(traits, (int) this->m_traitsLabels.size());
 
    this->m_pSNLayer->m_edges.Add(pEdge);
@@ -497,11 +522,24 @@ SNNode* SNLayer::FindNode(LPCTSTR name)
    //   if (this->GetNode(i)->m_name.CompareNoCase(name) == 0)
    //      return this->GetNode(i);
    //   }
+   map< string, SNNode* >::iterator itr;
+
+   SNNode* node1 = nullptr;
+   int count = 0;
+   for (itr = m_nodeMap.begin(); itr != m_nodeMap.end(); ++itr) {
+      count++;
+      if (itr->first == "Landscape Signal")
+         node1 = itr->second;
+      }
 
    try {
-      return m_nodeMap.at(name);
+      SNNode* node = m_nodeMap.at(name);
+      return node;
       }
    catch(exception e) {
+      CString msg;
+      msg.Format("Exception encountered finding node %s", name);
+      Report::LogError(msg);
       }
    return nullptr;
    }
@@ -599,9 +637,9 @@ void SNIPModel::AddAutogenInputEdges()
 
 // only landscape edges for now
 void SNIPModel::AddAutogenInputEdge(std::string id, SNNode* pSourceNode, SNNode* pTargetNode, float sourceTraits[], float actorValue)
-   {
+   {/*
    Report::LogWarning("SNIP: AddAutogenInputEdge not supported!");
-   /*
+   
    this.cy.add({
        group: 'edges',
        data : {
@@ -705,6 +743,9 @@ void SNIPModel::GenerateInputArray()
 
       case I_TRACKOUTPUT: // track output
          std::generate(m_netInputs.begin(), m_netInputs.end(), [&] { return 0.0f; });
+         break;
+
+      case I_ENVISION_SIGNAL:
          break;
       }
    }
@@ -1010,7 +1051,7 @@ float SNIPModel::PropagateSignal(int cycle)
             pEdge->m_pToNode->m_state = STATE_ACTIVE;  // set the target node to active as well
             CString msg;
             msg.Format("   Node %s activated", pEdge->m_pToNode->m_name);
-            Report::LogInfo(msg);
+            TRACE(msg); // Report::LogInfo(msg);
             }
          }
       }
@@ -1273,7 +1314,7 @@ void SNIPModel::ComputeEdgeInfluences()
       if (pEdge->m_state == STATE_ACTIVE)  ////??????
          {
          float transEff = pEdge->m_transEff;
-         float srcNode = NULL;
+         float srcNode = 0;
          float srcReactivity = 0;
          float influence = 0;
 
@@ -1437,6 +1478,15 @@ float SNIPModel::GetInputLevel(int cycle)
       case I_SINESOIDAL:  // sinesoidal
       case I_RANDOM:  // random
          return this->m_netInputs[cycle];
+
+      case I_ENVISION_SIGNAL:
+         float score = 0;
+         if ( this->m_pEvaluator != nullptr)
+            score = this->m_pEvaluator->m_score;  // -3 - +3?
+         // do any necessary scaling
+         score /= 3;
+         return score;
+
 
          ////case I_TRACKOUTPUT: 
          ////   { // track output
@@ -1920,6 +1970,8 @@ bool SNIPModel::LoadPreBuildSettings(json& settings)
       //   break;
       }
 
+   this->m_inputType = I_ENVISION_SIGNAL;  // override network setting
+
    if (settings.contains("trans_eff_max"))
       this->m_transEffMax = settings["trans_eff_max"].get<float>();
 
@@ -2027,6 +2079,8 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    int traitsCount = (int)this->m_traitsLabels.size();
    float* _traits = new float[traitsCount];
    memset(_traits, 0, traitsCount * sizeof(float));  // zero out array
+   
+   std::set<string> missingTraits;
 
    // go through IDU's bulding network nodes/links for IDU's that pass the mapping query
    for (MapLayer::Iterator idu = pIDULayer->Begin(); idu != pIDULayer->End(); idu++)
@@ -2110,9 +2164,13 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                   }
                else
                   {
-                  CString msg;
-                  msg.Format("Error - unable to locate trait '%s' when assigning landscape actors to SNIP Network", trait.c_str());
-                  Report::ErrorMsg(msg);
+                  if (missingTraits.find(trait) != missingTraits.end())
+                     {
+                     CString msg;
+                     msg.Format(" Unable to locate trait '%s' in the actor profiles when assigning landscape actors to SNIP Network.   This trait will be ignored", trait.c_str());
+                     Report::LogWarning(msg);
+                     missingTraits.insert(trait);
+                     }
                   }
                }
             }
@@ -2800,7 +2858,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
    // top level is layers
    TiXmlElement* pXmlLayers = pXmlRoot->FirstChildElement("layers");
-   if (pXmlLayers == NULL)
+   if (pXmlLayers == nullptr)
       {
       CString msg;
       msg.Format(_T("Error reading SNIP input file %s: Missing <layers> entry.  This is required to continue..."), filename);
@@ -2809,7 +2867,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       }
 
    TiXmlElement* pXmlLayer = pXmlLayers->FirstChildElement("layer");
-   if (pXmlLayer == NULL)
+   if (pXmlLayer == nullptr)
       {
       CString msg;
       msg.Format(_T("Error reading SNIP input file %s: Missing <layer> entry.  This is required to continue..."), filename);
@@ -2817,19 +2875,20 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       return false;
       }
 
-   while (pXmlLayer != NULL)
+   while (pXmlLayer != nullptr)
       {
-      LPTSTR name = NULL, path = NULL, mappings = NULL, mappingQuery=NULL, reactivityCol=NULL, adaptCol=NULL;
+      LPTSTR name = nullptr, path = nullptr, mappings = nullptr, mappingQuery=nullptr, reactivityCol=nullptr, adaptCol=nullptr,landscapeSignal=nullptr;
       float mappingFrac = 0;
-      XML_ATTR attrs[] = { // attr             type        address          isReq checkCol
-                         { "name",             TYPE_STRING,  &name,          true,  0 },
-                         { "path",             TYPE_STRING,  &path,          true,  0 },
-                         { "mappings",         TYPE_STRING,  &mappings,      true,  0 },
-                         { "mapping_query",    TYPE_STRING,  &mappingQuery,  true,  0 },
-                         { "reactivity_col",   TYPE_STRING,  &reactivityCol, true,  0 },
-                         { "adapt_col",        TYPE_STRING,  &adaptCol,      false,  0 },
-                         { "mapping_fraction", TYPE_FLOAT,   &mappingFrac,   true,  0 },
-                         { NULL,               TYPE_NULL,     NULL,          false, 0 } };
+      XML_ATTR attrs[] = { // attr             type        address           isReq checkCol
+                         { "name",             TYPE_STRING,  &name,            true,  0 },
+                         { "path",             TYPE_STRING,  &path,            true,  0 },
+                         { "mappings",         TYPE_STRING,  &mappings,        true,  0 },
+                         { "mapping_query",    TYPE_STRING,  &mappingQuery,    true,  0 },
+                         { "reactivity_col",   TYPE_STRING,  &reactivityCol,   true,  0 },
+                         { "adapt_col",        TYPE_STRING,  &adaptCol,        false, 0 },
+                         { "landscape_signal", TYPE_STRING,  &landscapeSignal, true,  0 },
+                         { "mapping_fraction", TYPE_FLOAT,   &mappingFrac,     true,  0 },
+                         { nullptr,            TYPE_NULL,    nullptr,            false, 0 } };
 
       bool ok = TiXmlGetAttributes(pXmlLayer, attrs, filename);
 
@@ -2837,24 +2896,37 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          {
          // have layer info, allocate layer and start reading
          SNLayer* pLayer = this->AddLayer();
-         if (name != NULL)
+         if (name != nullptr)
             pLayer->m_name = name;
 
-         if (path != NULL)
+         if (path != nullptr)
             ok = pLayer->m_pSNIPModel->LoadSnipNetwork(path, false);  // ignore landscape actor nodes
 
+         EnvEvaluator *pEvaluator = ::EnvFindEvaluatorInfo(pEnvContext->pEnvModel, landscapeSignal);
+         if (pEvaluator == nullptr)
+            {
+            CString msg;
+            msg.Format("  Unable to find signal source %s.  This must be fixed to run SNIP...", landscapeSignal);
+            Report::WarningMsg(msg);
+            }
+         else
+            {
+            pLayer->m_pSNIPModel->m_pEvaluator = pEvaluator;
+            }
+
          CheckCol(pIDULayer, pLayer->m_colReactivity, reactivityCol, TYPE_FLOAT, CC_AUTOADD);
-         if ( adaptCol != NULL) 
+         if ( adaptCol != nullptr && adaptCol[0] != 0)
             CheckCol(pIDULayer, pLayer->m_pSNIPModel->m_colAdapt, adaptCol, TYPE_FLOAT, CC_AUTOADD);
 
-         if (mappingQuery != NULL)
+         if (mappingQuery != nullptr)
             {
             pLayer->m_pSNIPModel->m_mappingQuery = mappingQuery;
             pLayer->m_pSNIPModel->m_pMappingQuery = pEnvContext->pQueryEngine->ParseQuery(mappingQuery, 0, "MappingQuery");
             }
 
-         if (mappings != NULL)
+         if (mappings != nullptr)
             ok = pLayer->m_pSNIPModel->ConnectToIDUs((MapLayer*)pEnvContext->pMapLayer, mappings, mappingFrac);
+
          
          }  // end of: if ( layer is ok )
 

@@ -32,7 +32,7 @@ bool MLAdapter::Run(EnvContext* pEnvContext)
 
 
 bool MLAdapter::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
-   {
+   {/*
    TiXmlDocument doc;
    bool ok = doc.LoadFile(filename);
 
@@ -112,7 +112,7 @@ bool MLAdapter::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
          }
 
       pXmlHazard = pXmlHazard->NextSiblingElement("hazard");
-      }
+      }*/
    
    return true;
    }

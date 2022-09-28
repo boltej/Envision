@@ -34,11 +34,12 @@ Copywrite 2012 - Oregon State University
 #include "SpatialIndex.h"
 #include "AttrIndex.h"
 #include "NeighborTable.h"
-
+//#include "RTreeIndex.h"
 
 class Query;
 class QueryEngine;
 class TiXmlElement;
+class RTreeIndex;
 
 /////////////////////////////////////////////////////////////////////////////
 // Misc critters...
@@ -441,7 +442,10 @@ class LIBSAPI Poly
       bool  DoesBoundingBoxIntersect(const Poly *pPoly) const;
       bool  DoesEdgeIntersectLine(Vertex &v0, Vertex &v1) const;
       int   GetIntersectionPoints(Vertex &v0, Vertex &v1, VertexArray &intersectionPts) const;
-      bool  GetBoundingRect(REAL &xMin, REAL &yMin, REAL &xMax, REAL &yMax) const;
+
+      bool  GetBoundingRect(double &xMin, double &yMin, double &xMax, double &yMax) const;
+      bool  GetBoundingRectF(float &xMin, float& yMin, float& xMax, float& yMax) const;
+
       bool  GetBoundingZ(float &zMin, float &zMax) const;
       REAL  NearestDistanceToPoly(Poly *pToPoly, REAL threshold = -1, int *retFlag = NULL) const;
       REAL  NearestDistanceToVertex(Vertex *pToVertex) const; // returns negative distance if vertex is inside the poly
@@ -564,6 +568,7 @@ class  LIBSAPI  MapLayer
       NeighborTable* m_pNeighborTable;
       SpatialIndex *m_pSpatialIndex;
       AttrIndex    *m_pAttrIndex;
+      RTreeIndex   *m_pRTreeIndex;
 
    protected:
       // miscellaneous protected functions
@@ -713,10 +718,10 @@ class  LIBSAPI  MapLayer
       int   GetNearestPoly(Poly *pPoly, float maxDistance, SI_METHOD method = SIM_NEAREST, MapLayer *pToLayer = NULL) const;
 
       int   GetNearbyPolys(Poly *pPoly, int *neighbors, float *distances, int maxCount, float maxDistance,
-         SI_METHOD method = SIM_NEAREST, MapLayer *pToLayer = NULL) const;
+         SI_METHOD method = SIM_NEAREST, MapLayer *pToLayer = NULL);
 
       int   GetNearbyPolysFromIndex(Poly *pPoly, int *neighbors, float *distances, int maxCount, float maxDistance,
-         SI_METHOD method = SIM_NEAREST, MapLayer *pToLayer = NULL, void** ex = NULL) const;
+         SI_METHOD method = SIM_NEAREST, MapLayer *pToLayer = NULL, void** ex = NULL);
 
       int   GetNearbyPolysFromNeighborTable(Poly* pPoly, int* neighbors, int maxCount) const;
 
@@ -729,6 +734,10 @@ class  LIBSAPI  MapLayer
       float GetSpatialIndexMaxDistance() const { ASSERT(m_pSpatialIndex); return m_pSpatialIndex != NULL ? m_pSpatialIndex->GetMaxDistance() : -1.0f; }
       int   CompareSpatialIndexMethod(SI_METHOD *method)const;// returns 0 if method matches; -1 if no index; 1 if index but no match and sets arg method to actual method
       //int   MergePolys( Poly *polysToMerge, int polyCount, MapLayer *pToLayer, bool includeData );
+
+      int   CreateRTreeIndex(MapLayer* pToLayer = NULL);
+
+
 
       int   LoadNeighborTable();
 

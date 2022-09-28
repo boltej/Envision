@@ -37,6 +37,9 @@ Copywrite 2012 - Oregon State University
 #include <Path.h>
 
 
+//using namespace envengine;
+
+
 // Globals
 extern CString pogBuffer;
 extern int pogIndex;

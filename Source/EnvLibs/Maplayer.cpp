@@ -48,6 +48,8 @@ Copywrite 2012 - Oregon State University
 #include <tixml.h>
 #include <misc.h>
 
+#include "RTreeIndex.h"
+
 #include "shapefil.h"
 
 #ifdef _DEBUG
@@ -473,8 +475,7 @@ void Poly::SetLabelPoint(SLPMETHOD method)
       }
    }
 
-
-bool Poly::GetBoundingRect(REAL &xMin, REAL &yMin, REAL &xMax, REAL &yMax) const
+bool Poly::GetBoundingRect(double &xMin, double &yMin, double &xMax, double &yMax) const
    {
    xMin = m_xMin;
    xMax = m_xMax;
@@ -484,6 +485,15 @@ bool Poly::GetBoundingRect(REAL &xMin, REAL &yMin, REAL &xMax, REAL &yMax) const
    return true;
    }
 
+bool Poly::GetBoundingRectF(float& xMin, float& yMin, float& xMax, float& yMax) const
+   {
+   xMin = (float) m_xMin;
+   xMax = (float) m_xMax;
+   yMin = (float) m_yMin;
+   yMax = (float) m_yMax;
+
+   return true;
+   }
 
 void Poly::UpdateBoundingBox(void)
    {
@@ -752,7 +762,7 @@ const Vertex Poly::GetCentroid() const
       startPart = nextPart;
       }
       */
-   register int i, j;
+   int i, j;
    double ai;
 
    for (i = vertexCount - 1, j = 0; j < vertexCount; i = j, j++)
@@ -2091,6 +2101,7 @@ MapLayer::MapLayer(Map *pMap)
    m_pSpatialIndex(NULL),
    m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
+   m_pRTreeIndex(NULL),
    m_layerType(LT_POLYGON),
    m_pPolyArray(NULL),
    //  m_pBinArray( NULL ),
@@ -2163,6 +2174,7 @@ MapLayer::MapLayer(MapLayer &layer)
    m_pSpatialIndex(NULL),
    m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
+   m_pRTreeIndex(NULL),
    m_name(layer.m_name),
    m_path(layer.m_path),
    m_database(layer.m_database),
@@ -2260,6 +2272,7 @@ MapLayer::MapLayer(MapLayer *pLayer, int overlayFlags)
    m_pSpatialIndex(NULL), 
    m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
+   m_pRTreeIndex(NULL),
    m_name(pLayer->m_name),
    m_path(pLayer->m_path),
    m_database(pLayer->m_database),
@@ -2386,6 +2399,10 @@ MapLayer::~MapLayer()
 
       delete m_pPolyArray;
       }
+
+   if (m_pRTreeIndex != NULL && !(m_overlayFlags & OT_SHARED_SPINDEX))
+      delete m_pRTreeIndex;
+
 
    if (m_pSpatialIndex != NULL && !(m_overlayFlags & OT_SHARED_SPINDEX))
       delete m_pSpatialIndex;
@@ -8397,7 +8414,7 @@ bool MapLayer::GetGridDataMinMax(float *pMin, float *pMax) const
 
 WORD SwapTwoBytes(WORD w)
    {
-   register WORD tmp;
+   WORD tmp;
    tmp = (w & 0x00FF);
    tmp = ((w & 0xFF00) >> 0x08) | (tmp << 0x08);
    return(tmp);
@@ -8405,7 +8422,7 @@ WORD SwapTwoBytes(WORD w)
 
 DWORD SwapFourBytes(DWORD dw)
    {
-   register DWORD tmp;
+   DWORD tmp;
    tmp = (dw & 0x000000FF);
    tmp = ((dw & 0x0000FF00) >> 0x08) | (tmp << 0x08);
    tmp = ((dw & 0x00FF0000) >> 0x10) | (tmp << 0x08);
@@ -8415,7 +8432,7 @@ DWORD SwapFourBytes(DWORD dw)
 
 WORD GetBigWord(FILE *fp)
    {
-   register WORD w;
+   WORD w;
    w = (WORD)(fgetc(fp) & 0xFF);
    w = ((WORD)(fgetc(fp) & 0xFF)) | (w << 0x08);
    return(w);
@@ -8424,7 +8441,7 @@ WORD GetBigWord(FILE *fp)
 
 WORD GetLittleWord(FILE *fp)
    {
-   register WORD w;
+   WORD w;
    w = (WORD)(fgetc(fp) & 0xFF);
    w = ((WORD)(fgetc(fp) & 0xFF) << 0x08);
    return(w);
@@ -8433,7 +8450,7 @@ WORD GetLittleWord(FILE *fp)
 
 DWORD GetBigDWORD(FILE *fp)
    {
-   register DWORD dw;
+   DWORD dw;
    dw = (DWORD)(fgetc(fp) & 0xFF);
    dw = ((DWORD)(fgetc(fp) & 0xFF)) | (dw << 0x08);
    dw = ((DWORD)(fgetc(fp) & 0xFF)) | (dw << 0x08);
@@ -8443,7 +8460,7 @@ DWORD GetBigDWORD(FILE *fp)
 
 DWORD GetLittleDWORD(FILE *fp)
    {
-   register DWORD dw;
+   DWORD dw;
    /*int count =*/ fread(&dw, sizeof(DWORD), 1, fp);
    //ASSERT( count == 1 );
    return (dw);
@@ -9431,13 +9448,47 @@ int MapLayer::CreateSpatialIndex(LPCTSTR filename, int maxCount, float maxDistan
    return retVal;
    }
 
+int MapLayer::CreateRTreeIndex(MapLayer* pToLayer)
+   {
+   if (m_pRTreeIndex == nullptr)
+      m_pRTreeIndex = new RTreeIndex;
+
+   if (m_pRTreeIndex->IsBuilt())
+      return (int)m_pRTreeIndex->GetCount();
+   else 
+      return m_pRTreeIndex->BuildIndex(this);
+   }
+
+
 int   _neighbors[2048];
 float _distances[2048];
 void* _ex[2048];
 
 int MapLayer::GetNearbyPolysFromIndex(Poly *pPoly, int *neighbors, float *distances, int maxCount, float maxDistance,
-   SI_METHOD /*method=SIM_NEAREST*/, MapLayer* /*pToLayer =NULL*/, void** ex /*= NULL*/) const
+   SI_METHOD /*method=SIM_NEAREST*/, MapLayer* /*pToLayer =NULL*/, void** ex /*= NULL*/) 
    {
+   if (m_pRTreeIndex != nullptr && m_pRTreeIndex->IsBuilt())
+      {
+      std::vector<IDU_DIST> results;
+      int count = m_pRTreeIndex->WithinDistance(pPoly->m_id, maxDistance, results);
+      if (count > maxCount)
+         count = maxCount;
+
+      if (count > 0)
+         {
+         for (int i = 0; i < count; i++)
+            {
+            if (neighbors != nullptr)
+               neighbors[i] = results[i].idu;
+            if ( distances != nullptr)
+               distances[i] = results[i].distance;
+            }
+         }
+
+      return count;
+      }
+
+
    if (m_pSpatialIndex == NULL)
       return -1;
 
@@ -9532,12 +9583,14 @@ int MapLayer::GetNearbyPolysFromNeighborTable(Poly* pPoly, int* neighbors, int m
 
 
 
-
 int MapLayer::GetNearbyPolys(Poly *pPoly, int *neighbors, float *distances, int maxCount, float maxDistance,
-   SI_METHOD method/*=SIM_NEAREST*/, MapLayer *pToLayer /*=NULL*/) const
+   SI_METHOD method/*=SIM_NEAREST*/, MapLayer *pToLayer /*=NULL*/) 
    {
    if (maxDistance <= 0 && m_pNeighborTable != NULL)
       return GetNearbyPolysFromNeighborTable(pPoly, neighbors, maxCount);
+
+   if (m_pRTreeIndex != nullptr && m_pRTreeIndex->IsBuilt())
+      return GetNearbyPolysFromIndex(pPoly, neighbors, distances, maxCount, maxDistance, method, pToLayer);
 
    if (m_pSpatialIndex != NULL && m_pSpatialIndex->IsBuilt() && m_pSpatialIndex->m_pLayer == this && (pToLayer == NULL || m_pSpatialIndex->m_pToLayer == pToLayer))
       return GetNearbyPolysFromIndex(pPoly, neighbors, distances, maxCount, maxDistance, method, pToLayer);
@@ -9618,7 +9671,7 @@ int MapLayer::GetNearbyPolys(Poly *pPoly, int *neighbors, float *distances, int 
       if (passX && passY)   // passes both?
          {
          // we are close, so check more detail
-         float distance;
+         float distance=0;
          switch (method)
             {
             case SIM_NEAREST:

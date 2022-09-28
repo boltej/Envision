@@ -641,6 +641,12 @@ void Allocation::SetExpandQuery( LPCTSTR expandQuery )
    CString _expandQuery( expandQuery );
    _expandQuery.Replace( "@", m_constraint.m_queryStr );
 
+
+
+
+
+
+
    m_pExpandQuery = this->m_pSAModel->m_pQueryEngine->ParseQuery( _expandQuery, 0, "Allocation.Expand" );
 
    if ( m_pExpandQuery == NULL )
@@ -2487,6 +2493,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
          LPCTSTR expandQuery = NULL;
          //float   expandMaxArea  = -1;
          LPCTSTR expandArea = NULL;
+         LPCTSTR expandMatch = NULL;
 
          // cost item
          LPCTSTR budgetItem = NULL;
@@ -2515,6 +2522,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                             { "init_pct_area",    TYPE_FLOAT,    &initPctArea,  false, 0 },
                             { "expand_query",     TYPE_STRING,   &expandQuery,  false, 0 },
                             { "expand_area",      TYPE_STRING,   &expandArea,   false, 0 },
+                            { "expand_match",     TYPE_STRING,   &expandMatch,  false, 0 },
 
                             { "charge_to",        TYPE_STRING,   &budgetItem,          false,  0 },
                             { "basis",            TYPE_STRING,   &basis,               false, 0 },
@@ -2589,6 +2597,25 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
             // was a string provided describing the max area expansion?  If so, parse it.
             if ( expandArea != NULL )
                pAlloc->SetMaxExpandAreaStr( expandArea );
+
+            // are we limiting epansion to match kernel fields?
+            if (expandMatch != NULL)
+               {
+               CStringArray fields;
+               ::Tokenize(expandMatch, ",", fields);
+               for (int i = 0; i < fields.GetSize(); i++)
+                  {
+                  int col = m_pMapLayer->GetFieldCol(fields[i]);
+                  if (col >= 0)
+                     pAlloc->m_expandMatches.push_back(col);
+                  else
+                     {
+                     CString msg;
+                     msg.Format("Unable to find field column [%s] when reading 'expand_match' tag", fields[i]);
+                     Report::LogWarning(msg);
+                     }
+                  }
+               }
 
             // is this a cost item?
             if ( budgetItem != NULL )
@@ -2997,8 +3024,8 @@ float SpatialAllocator::Expand( int idu, Allocation *pAlloc, bool useAddDelta, i
    ASSERT( this->m_pMapLayer != NULL );
    MapLayer *pLayer = this->m_pMapLayer;
 
-   // basic idea - expand in concentric circles aroud the idu (subject to constraints)
-   // until necessary area is found.  We do this keeping track of candidate expansion IDUs
+   // basic idea - expand in concentric circles around the idu (subject to constraints)
+   // until necessary basis (typically area) is found.  We do this keeping track of candidate expansion IDUs
    // in m_expansionArray, starting with the "nucleus" IDU and iteratively expanding outward.
    // for the expansion array, we track the index in the expansion array of location of
    // the lastExpandedIndex and the number of unprocessed IDUs that are expandable (poolSize).
@@ -3038,7 +3065,7 @@ float SpatialAllocator::Expand( int idu, Allocation *pAlloc, bool useAddDelta, i
             for ( int i=0; i < count; i++ )
                {
                // see if this is an elgible IDU (if so, addToPool will be set to true and the IDU area will be returned. 
-               float area = AddIDU( neighbors[ i ], pAlloc, addToPool, areaSoFar, pAlloc->m_expandMaxArea ); 
+               float area = AddIDU( idu, neighbors[ i ], pAlloc, addToPool, areaSoFar, pAlloc->m_expandMaxArea ); 
 
                if ( addToPool )  // AddIDU() added on to the expansion array AND it is an expandable IDU?
                   {
@@ -3100,35 +3127,52 @@ float SpatialAllocator::Expand( int idu, Allocation *pAlloc, bool useAddDelta, i
    }
 
 
-float SpatialAllocator::AddIDU( int idu, Allocation *pAlloc, bool &addToPool, float areaSoFar, float maxArea )
+float SpatialAllocator::AddIDU( int nucleusIDU, int iduToAdd, Allocation *pAlloc, bool &addToPool, float areaSoFar, float maxArea )
    {
-   // have we seen this on already?
+   // have we seen this one already?
    for ( int i=0; i < m_expansionIDUs.GetSize(); i++ )
       {
       int expansionIndex = m_expansionIDUs[ i ];
 
-      if ( ( expansionIndex < 0 && -(expansionIndex+1) == idu )    // seen but not an expandable IDU
-        || ( expansionIndex >= 0 && expansionIndex == idu ) )      // seen and is an expandable IDU
+      if ( ( expansionIndex < 0 && -(expansionIndex+1) == iduToAdd )    // seen but not an expandable IDU
+        || ( expansionIndex >= 0 && expansionIndex == iduToAdd ) )      // seen and is an expandable IDU
          {
          addToPool = false;
          return 0;
          }
       }
 
-   // so, we haven't seen this one before. Is the constraint satisified?
+   // so, we haven't seen this one before. are any nucleus match requirements met and the constraint satisified?
    addToPool = true;
 
-   if ( pAlloc->m_pExpandQuery )
+   // check each defined nucleus match
+   if (pAlloc->m_pExpandQuery)
       {
-      bool result = false;
-      bool ok = pAlloc->m_pExpandQuery->Run( idu, result );
-      if ( ! ok || ! result )
-         addToPool = false;
+      // does it satisfy any nucleus matches?
+      for (auto col : pAlloc->m_expandMatches)
+         {
+         VData val, val1;
+         m_pMapLayer->GetData(nucleusIDU, col, val);
+         m_pMapLayer->GetData(iduToAdd, col, val1);
+         if (val != val1)
+            {
+            addToPool = false;
+            break;
+            }
+         }
+
+      if (addToPool)
+         {
+         bool result = false;
+         bool ok = pAlloc->m_pExpandQuery->Run(iduToAdd, result);
+         if (!ok || !result)
+            addToPool = false;
+         }
       }
 
    // would this IDU cause the area limit to be exceeded?
    float area = 0;
-   m_pMapLayer->GetData( idu, m_colArea, area );
+   m_pMapLayer->GetData( iduToAdd, m_colArea, area );
 
    if ( addToPool && ( maxArea > 0 ) && ( ( areaSoFar + area ) > maxArea ) )
       addToPool = false;
@@ -3150,9 +3194,9 @@ float SpatialAllocator::AddIDU( int idu, Allocation *pAlloc, bool &addToPool, fl
       addToPool = false;
 
    if ( addToPool )
-      m_expansionIDUs.Add( idu/*+1*/ );
+      m_expansionIDUs.Add( iduToAdd/*+1*/ );
    else
-      m_expansionIDUs.Add( -(idu+1) ); // Note: what gets added to the expansion array is -(index+1)
+      m_expansionIDUs.Add( -(iduToAdd+1) ); // Note: what gets added to the expansion array is -(index+1)
    
    return area;
    }

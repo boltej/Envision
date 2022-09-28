@@ -395,16 +395,16 @@ bool QNode::Solve( void )
             MapLayer *pMapLayer = _gpQueryEngine->GetMapLayer();
             ASSERT( pMapLayer );
 
-            // make sure a spatial index exists
-            if ( pMapLayer->GetSpatialIndex() == NULL )
-               pMapLayer->CreateSpatialIndex( NULL, 10000, 500, SIM_NEAREST );
+            ///// make sure a spatial index exists
+            /////if ( pMapLayer->GetSpatialIndex() == NULL )
+            /////   pMapLayer->CreateSpatialIndex( NULL, 10000, 500, SIM_NEAREST );
 
-            if ( distance > pMapLayer->GetSpatialIndexMaxDistance() && showWarnings )
-               {
-               CString msg( "QueryEngine: WithIn(.) distance is larger than the Spatial Index was built for; Query may be inaccurate" );
-               Report::WarningMsg( msg );
-               showWarnings = false;
-               }
+            /////if ( distance > pMapLayer->GetSpatialIndexMaxDistance() && showWarnings )
+            /////   {
+            /////   CString msg( "QueryEngine: WithIn(.) distance is larger than the Spatial Index was built for; Query may be inaccurate" );
+            /////   Report::WarningMsg( msg );
+            /////   showWarnings = false;
+            /////   }
 
             bool value = false;
             int currentRecord = _gpQueryEngine->m_currentRecord;

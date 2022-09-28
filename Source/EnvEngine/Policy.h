@@ -59,7 +59,10 @@ class PolicyConstraint;
 class GlobalConstraint;
 class Policy;
 
+
 typedef PolicyConstraint OutcomeConstraint;   // these are the same object
+
+//namespace envengine {
 
 
 enum CTYPE   { CT_UNKNOWN=0, CT_RESOURCE_LIMIT, CT_MAX_AREA, CT_MAX_COUNT };
@@ -1110,6 +1113,6 @@ void MultiOutcomeInfo::RemoveAll()
    outcomeInfoArray.RemoveAll();
    }
 
-
+//}
 
 #endif // !defined(AFX_POLICY_H__7035E45D_7B3D_4C4B_BC3D_FFFE266EDBCC__INCLUDED_)

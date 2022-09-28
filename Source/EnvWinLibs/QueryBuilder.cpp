@@ -293,6 +293,7 @@ void QueryBuilder::OnBnClickedRun()
       }
    
    CWaitCursor c;
+   clock_t start = clock();
 
    if ( m_runGlobal )
       {
@@ -309,6 +310,11 @@ void QueryBuilder::OnBnClickedRun()
          return;
          }
       }
+
+   clock_t finish = clock();
+   float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+   //CString msg;
+   //msg.Format("Query ran in %.3f seconds");
    
    // get area of selection
    int selCount = m_pLayer->GetSelectionCount();
@@ -347,22 +353,22 @@ void QueryBuilder::OnBnClickedRun()
       case LT_POLYGON:
          {
          if ( mu == MU_FEET || mu == MU_METERS )
-            resultStr.Format( "Query [%s] returned %i polygons, with an area of %g sq. %s (%g acres), %4.1f%% of the total study area",
-               (LPCTSTR) m_queryString, selCount, area, pMap->GetMapUnitsStr(), aggArea, pctArea );
+            resultStr.Format( "Query [%s] returned %i polygons, with an area of %g sq. %s (%g acres), %4.1f%% of the total study area. [%.3f secs]",
+               (LPCTSTR) m_queryString, selCount, area, pMap->GetMapUnitsStr(), aggArea, pctArea, (float) duration );
          else
-            resultStr.Format( "Query [%s] returned %i polygons, with an area of %g, %4.1f%% of the total study area",
-                  (LPCTSTR) m_queryString, selCount, area, pctArea );
+            resultStr.Format( "Query [%s] returned %i polygons, with an area of %g, %4.1f%% of the total study area. [%.3f secs]",
+                  (LPCTSTR) m_queryString, selCount, area, pctArea, (float)duration);
          }
          break;
 
       case LT_LINE:
          {
          if ( mu == MU_FEET || mu == MU_METERS )
-            resultStr.Format( "Query [%s] returned %i lines, with a length of %g sq. %s (%g acres), %4.1f%% of the total study area",
-               (LPCTSTR) m_queryString, selCount, area, pMap->GetMapUnitsStr(), aggArea, pctArea );
+            resultStr.Format( "Query [%s] returned %i lines, with a length of %g sq. %s (%g acres), %4.1f%% of the total study area. [%.3f secs]",
+               (LPCTSTR) m_queryString, selCount, area, pMap->GetMapUnitsStr(), aggArea, pctArea, (float)duration);
          else
-            resultStr.Format( "Query [%s] returned %i lines, with a length of %g, %4.1f%% of the total study area",
-                  (LPCTSTR) m_queryString, selCount, area, pctArea );
+            resultStr.Format( "Query [%s] returned %i lines, with a length of %g, %4.1f%% of the total study area. [%.3f secs]",
+                  (LPCTSTR) m_queryString, selCount, area, pctArea, (float)duration);
          }
          break;
       }

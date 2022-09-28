@@ -427,7 +427,16 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             m_pIDULayer->SetNoOutline();
             m_pIDULayer->m_expandLegend = true;
 
-         // No better time than now to execute this.
+            // No better time than now to execute this.
+
+            // create a RTreeIndex (spatial index) for the main IDU database
+            clock_t start = clock();
+            m_pEnvModel->m_pIDULayer->CreateRTreeIndex();
+            clock_t finish = clock();
+            float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+            CString msg;
+            msg.Format("Created Spatial Index (RTree) in %.2f seconds",(float) duration);
+            Report::LogInfo(msg);
 
             if ( m_pEnvModel->m_spatialIndexDistance > 0 && m_pIDULayer->LoadSpatialIndex( NULL, (float) m_pEnvModel->m_spatialIndexDistance ) < 0 )
                {
@@ -456,9 +465,24 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
                //   CDialog::OnOK();
                //   }
 
-
-
                }
+
+
+            /////clock_t start = clock();
+            /////int neighbors[1000];
+            /////float distances[1000];
+            /////for (int idu = 0; idu < m_pEnvModel->m_pIDULayer->GetRecordCount(); idu++)
+            /////   {
+            /////   Poly* pPoly = m_pEnvModel->m_pIDULayer->GetPolygon(idu);
+            /////
+            /////   m_pEnvModel->m_pIDULayer->GetNearbyPolys(pPoly, neighbors, distances, 999, 100);
+            /////   }
+            /////clock_t finish = clock();
+            /////float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+            /////CString msg;
+            /////msg.Format("Query ran in %.3f seconds", (float)duration);
+            /////Report::LogError(msg);
+
 
             // if neighbor table exists, load it
             m_pEnvModel->m_pIDULayer->LoadNeighborTable();

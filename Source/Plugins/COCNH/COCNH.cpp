@@ -2932,21 +2932,18 @@ bool COCNHProcess::UpdateAvgTreesPerHectare(EnvContext *pContext)
 
 bool COCNHProcess::UpdateAvgCondFlameLength(EnvContext *pContext)
    {
-   const int
-      expectedPolys = 500;
+   const int expectedPolys = 500;
 
-   int
-      neighbors[expectedPolys],
-      count = 0;
+   int neighbors[expectedPolys];
+   float distances[expectedPolys];
+   int count = 0;
 
-   float
-      distances[expectedPolys],
-      //TODO move variable definition and initialization
-      m_thresDistCondFlameLength = 270.0f,
-      cflValue = 0.0f;
+   //TODO move variable definition and initialization
+   float m_thresDistCondFlameLength = 270.0f;
+   float cflValue = 0.0f;
 
    // iterate through IDU layer
-   const MapLayer *pLayer = pContext->pMapLayer;
+   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
       int i = pLayer->GetNearbyPolys(pLayer->GetPolygon(idu), neighbors, distances, expectedPolys, m_thresDistCondFlameLength);
@@ -3227,7 +3224,6 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
          UpdateIDU(pContext, idu, m_colFire10000, fLong, SET_DATA);
          UpdateIDU(pContext, idu, m_colPrescribedFire10000, fPSFLong, SET_DATA);  
          UpdateIDU(pContext, idu, m_colPrescribedFire2000, pFLong, SET_DATA);
-
          }
       }
 

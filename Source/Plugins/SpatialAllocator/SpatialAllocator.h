@@ -68,6 +68,14 @@ struct SCOREPROCINFO
    };
 
 
+//struct ExpandMatch 
+//   {
+//   CString field;
+//   int col;
+//   };
+
+
+
 class Preference
 {
 public:
@@ -267,6 +275,7 @@ public:
    CString m_expandAreaStr;      // string specified in 'expand_area" tag
    float   m_expandMaxArea;      // maximum area allowed for expansion, total including kernal
    int     m_expandType;         // 0=constant value (m_expandMaxArea), 1 = uniform, 2 = normal
+   std::vector<int> m_expandMatches;
    
    Rand   *m_pRand;           
    double  m_expandAreaParam0;   // distribution-dependant param 0 - holds max value for constants, shape param for dists
@@ -425,7 +434,7 @@ protected:
    void AllocBestWins( EnvContext *pContext, bool useAddDelta );
    bool PopulateSequences( void );
    float Expand( int idu, Allocation *pAlloc, bool useAddDelta, int currAttrCode, int newAttrCode, int currSequenceID, int newSequenceID, EnvContext*, CArray< bool > &isOpenArray, float &expandArea );
-   float AddIDU( int idu, Allocation *pAlloc, bool &addToPool, float areaSoFar, float maxArea );
+   float AddIDU( int nucleusIDU, int iduToAdd, Allocation *pAlloc, bool &addToPool, float areaSoFar, float maxArea );
    int  CollectExpandStats( void );
    void CollectData( EnvContext *pContext );
    void ReportOutcomes(EnvContext* pContext);

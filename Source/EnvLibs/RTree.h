@@ -15,7 +15,7 @@
 #include <algorithm>
 #include <functional>
 
-#define ASSERT assert // RTree uses ASSERT( condition )
+//#define ASSERT assert // RTree uses ASSERT( condition )
 #ifndef Min
 #define Min std::min
 #endif //Min

@@ -2376,7 +2376,7 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
       { _T("type"),              TYPE_STRING,   &type,                     false,   0 },
 
       { _T("path"),              TYPE_CSTRING,  &pEval->m_path,            false,   0 },
-      { _T("col"),               TYPE_INT,      &pEval->m_col,             false,   CC_AUTOADD | TYPE_FLOAT },
+      { _T("col"),               TYPE_CSTRING,  &pEval->m_fieldName,       false,   CC_AUTOADD | TYPE_FLOAT },
       { _T("initInfo"),          TYPE_CSTRING,  &pEval->m_initInfo,        false,   0 },
       { _T("use"),               TYPE_INT,      &pEval->m_use,             false,   0 },
       //{ _T("freq"),              TYPE_FLOAT,    &pEval->m_freq,               false,   0 },

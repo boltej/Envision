@@ -1,6 +1,19 @@
 #include "EnvLibs.h"
 #include "RTreeIndex.h"
 
+
+//#include "boost/geometry/geometry.hpp"
+//#include "boost/geometry/geometries/polygon.hpp"
+//#include "boost/geometry/index/rtree.hpp"
+//using namespace boost::geometry;
+
+
+MapLayer* RTreeIndex::m_pLayer = nullptr;
+MapLayer* RTreeIndex::m_pToLayer= nullptr;
+int RTreeIndex::m_currentIdu = -1;
+float RTreeIndex::m_currentDistance = 0;
+std::vector<IDU_DIST> RTreeIndex::m_searchResults;
+
 /*
 
 typedef RTree<ValueType, int, 2, float> MyTree;
@@ -101,10 +114,17 @@ return 0;
 
 int RTreeIndex::BuildIndex(MapLayer* pLayer)
    {
-   /*
+   int polyCount = pLayer->GetPolygonCount();
    // iterate through the maplayer, adding a MBR for each to the index
-   for (int i=0; i < pLayer->GetPolygonCount(); i++ )
+   for (int i=0; i < polyCount; i++ )
       {
+      if (i % 1000 == 0)
+         {
+         CString msg;
+         msg.Format("Building RTree (%i/%i)", i, polyCount);
+         Report::StatusMsg(msg);
+         }
+
       Poly* pPoly = pLayer->GetPolygon(i);
 
       REAL aMins[2], aMaxs[2];
@@ -112,13 +132,62 @@ int RTreeIndex::BuildIndex(MapLayer* pLayer)
 
       m_rTree.Insert(aMins, aMaxs, i); // Note, all values including zero are fine in this version
       }
-
-   nhits = tree.Search(search_rect.min, search_rect.max, MySearchCallback);
-
-      }
-
-   isBuilt = true;
-   return m_indexCount; */
-
-   return 1;
+   this->m_pLayer = pLayer;
+   this->m_pToLayer = pLayer;
+   this->m_isBuilt = true;
+   this->m_indexCount = polyCount;
+   return polyCount;
    }
+
+
+
+bool _WithinDistance(const int& idu)
+   {
+   Poly* pPoly = RTreeIndex::m_pLayer->GetPolygon(RTreeIndex::m_currentIdu);
+   Poly *pToPoly = RTreeIndex::m_pLayer->GetPolygon(idu);
+   
+   int retFlag = 0;
+   REAL d = pPoly->NearestDistanceToPoly(pToPoly, -1, &retFlag);
+
+   if (d < RTreeIndex::m_currentDistance)
+      RTreeIndex::m_searchResults.push_back(IDU_DIST(idu, float(d)));
+
+   return true;
+   }
+
+bool CompareDist(IDU_DIST a1, IDU_DIST a2)
+   {
+   return (a1.distance < a2.distance);
+   }
+
+
+int RTreeIndex::WithinDistance(int idu, float distance, std::vector<IDU_DIST> &results )
+   {
+   REAL aMins[2], aMaxs[2];
+   RTreeIndex::m_searchResults.clear();
+
+   Poly* pPoly = this->m_pLayer->GetPolygon(idu);
+   pPoly->GetBoundingRect(aMins[0], aMins[1], aMaxs[0], aMaxs[1]);
+
+   aMins[0] -= distance;
+   aMins[1] -= distance;
+   aMaxs[0] += distance;
+   aMaxs[1] += distance;
+
+   RTreeIndex::m_currentIdu = idu;
+   RTreeIndex::m_currentDistance = distance;
+   RTreeIndex::m_searchResults.clear();
+
+   // note: this call populates the static m_searchResults Array
+   m_rTree.Search(aMins, aMaxs, _WithinDistance);
+
+   // sort the results (closest first)
+   std::sort(RTreeIndex::m_searchResults.begin(), 
+             RTreeIndex::m_searchResults.end(),
+             CompareDist);
+
+   results = RTreeIndex::m_searchResults;
+   return (int) results.size();
+   }
+
+

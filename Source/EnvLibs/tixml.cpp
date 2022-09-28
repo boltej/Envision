@@ -484,7 +484,7 @@ bool TiXmlGetAttributes( TiXmlElement *pXml, XML_ATTR attrs[], LPCTSTR filename,
          if ( pLayer == NULL )
             {
             CString msg;
-            msg.Format( "Error reading XML element <%s>, attribute '%s':  No Map Layer specified for checking column info.  Column checking wil be disabled",
+            msg.Format( "Error reading XML element <%s>, attribute '%s':  No Map Layer specified for checking column info.  Column checking will be disabled",
                element, attrs[ i ].name );
             Report::LogWarning( msg );
             }
