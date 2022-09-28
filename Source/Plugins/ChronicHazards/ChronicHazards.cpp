@@ -52,7 +52,10 @@ Copywrite 2012 - Oregon State University
 
 #include <MatlabDataArray.hpp>
 #include <MatlabEngine.hpp>
-#include<algorithm>
+#include <algorithm>
+#include <exception>
+#include <typeinfo>
+#include <stdexcept>
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -746,34 +749,34 @@ bool ChronicHazards::InitTWLModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::InitFloodingModel(EnvContext* pEnvContext)
    {
-   if ((m_runFlags & CH_MODEL_FLOODING) == 0)
-      return false;
+   //if ((m_runFlags & CH_MODEL_FLOODING) == 0)
+   //   return false;
 
-   // Elevation
-   m_pElevationGrid = m_pMap->GetLayer("Elevation");
-   if (m_pElevationGrid == nullptr)
-      return false;
+   //// Elevation
+   //m_pElevationGrid = m_pMap->GetLayer("Elevation");
+   //if (m_pElevationGrid == nullptr)
+   //   return false;
 
-   m_pElevationGrid->Hide();
-   m_pElevationGrid->GetCellSize(m_elevCellWidth, m_elevCellHeight);
-   
-   // Bay Bathymetry
-   m_pBayBathyGrid = m_pMap->GetLayer("Bay Bathy");
-   if (m_pBayBathyGrid != nullptr)
-      m_pBayBathyGrid->Hide();
-   
-   // Bates Model Mask
-   m_pManningMaskGrid = m_pMap->GetLayer("Manning Mask");
-   m_pManningMaskGrid->Hide();
-   m_pFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
-   m_pFloodedGrid->m_name = "Flooded Grid";
-   m_pCumFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
-   m_pCumFloodedGrid->m_name = "Cumulative Flooded Grid";
+   //m_pElevationGrid->Hide();
+   //m_pElevationGrid->GetCellSize(m_elevCellWidth, m_elevCellHeight);
+   //
+   //// Bay Bathymetry
+   //m_pBayBathyGrid = m_pMap->GetLayer("Bay Bathy");
+   //if (m_pBayBathyGrid != nullptr)
+   //   m_pBayBathyGrid->Hide();
+   //
+   //// Bates Model Mask
+   //m_pManningMaskGrid = m_pMap->GetLayer("Manning Mask");
+   //m_pManningMaskGrid->Hide();
+   //m_pFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
+   //m_pFloodedGrid->m_name = "Flooded Grid";
+   //m_pCumFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
+   //m_pCumFloodedGrid->m_name = "Cumulative Flooded Grid";
  
-   // Tidal Bathymetry
-   m_pTidalBathyGrid = m_pMap->GetLayer("Tidal Bathy");
-   if (m_pTidalBathyGrid != nullptr)
-      m_pTidalBathyGrid->Hide();
+   //// Tidal Bathymetry
+   //m_pTidalBathyGrid = m_pMap->GetLayer("Tidal Bathy");
+   //if (m_pTidalBathyGrid != nullptr)
+   //   m_pTidalBathyGrid->Hide();
    
    // change to MUST_EXIST
    CheckCol(m_pIDULayer, m_colIDUBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);
@@ -1860,8 +1863,8 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
       }
 
    // reset the cumulative flood map
-   if (m_runFlags & CH_MODEL_FLOODING)
-      m_pCumFloodedGrid->SetAllData(0, false);
+  // if (m_runFlags & CH_MODEL_FLOODING)
+   //   m_pCumFloodedGrid->SetAllData(0, false);
 
    //// Read in the Bay coverage if running Bay Flooding Model
    /*bool runBayFloodModel = (m_runBayFloodModel == 1) ? true : false;
@@ -2486,8 +2489,19 @@ bool ChronicHazards::RunFloodingModel(EnvContext *pEnvContext)
    auto sfincs_home = factory.createCharArray("D:\Matlab\SFINCS_ENVISION"); // TODO: Remove hardcoding of SFICS home
    matlabPtr->feval(u"addpath", sfincs_home);
    // Call MATLAB function and return result
-   matlab::data::TypedArray<int> result = matlabPtr->feval(u"SFINCS_ENVISION", args);
-
+   try {
+       matlab::data::TypedArray<int> result = matlabPtr->feval(u"SFINCS_ENVISION", args);
+   }
+   catch (const std::exception& ex) {
+       std::cout<<ex.what();
+   }
+   catch (const std::string& ex) {
+       std::cout << ex;
+   }
+   catch (...) {
+       std::exception_ptr p = std::current_exception();
+       //std::clog << (p ? p.__cxa_exception_type()->name() : "null") << std::endl;
+   }
    // update timings
    clock_t finish = clock();
    float duration = (float)(finish - start) / CLOCKS_PER_SEC;
@@ -2925,27 +2939,32 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////
-// Find average yealy maximum TWL data correposnding to 1390 transects and write the TWL values
+// Find average yealy maximum TWL data correposnding to 1390 transects and write the TWL, setup,
+//infragravity, incident swash values
+////////////////////////////////////////////////////////////////////////////////////////////////
  int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext) 
  {
+
     CString simulationPath;
-    simulationPath.Format("%s\\Climate_Scenarios\\%s\\Simulation_1\\DailyData_%s", (LPCTSTR)m_twlInputPath, (LPCTSTR)m_climateScenarioStr, (LPCTSTR)m_climateScenarioStr);
+    simulationPath.Format("%s\\Climate_Scenarios\\%s\\Simulation_1\\DailyData_%s", (LPCTSTR)m_twlInputPath, 
+        (LPCTSTR)m_climateScenarioStr, (LPCTSTR)m_climateScenarioStr);
 
     m_maxTransect = 1389;// TODO: remove this hard coding
     // m_maxTransect = m_numTransects - 1;
-    FDataObj* transectdata = new FDataObj[m_maxTransect+1];
+    FDataObj* transectdata = new FDataObj[m_maxTransect+1];// declaring daily data object
     int rows;
     int TWLCol;
     int setupCol;
     int infragravityCol;
     int incidentbandswashCol;
+    // reading 1390 transect data at ~25m depth
     for (int i = 0; i <= m_maxTransect; i++)
     {
         CString transectDataFile;
         transectDataFile.Format("%s\\DailyData_%i.csv", (CString)simulationPath, i);
         rows = transectdata[i].ReadAscii(transectDataFile);
         assert(rows != 0);
-        setupCol = transectdata[i].AppendCol("Setup");
+        setupCol = transectdata[i].AppendCol("Setup"); 
         infragravityCol = transectdata[i].AppendCol("infragravity");
         incidentbandswashCol = transectdata[i].AppendCol("Incident band swash");
         TWLCol = transectdata[i].AppendCol("TWL");
@@ -2957,7 +2976,7 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
 
     //declaring vector of pairs for storing average TWL for each doy
     pair <double, int>  avg_twl[num_days_in_year];
-
+    // calculate average TWL for all 1390 transects each doy
     for (int doy = 0; doy < num_days_in_year; doy++)
     {
         double avgTWL = 0;
@@ -3010,7 +3029,7 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
         avg_twl[doy] = pair<double, int> (avgTWL, doy);
 
     }
-
+    // sorting maximum average TWL 
     for (int i = 0; i < num_days_in_year - 1; i++)
     {
         int max_idx = i;
@@ -3021,7 +3040,7 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
         if (max_idx != i)
             avg_twl[max_idx].swap(avg_twl[i]);
     }
-
+    // write sorted average TWL in file
     CString twlpath;
     twlpath.Format("%s\\avgTwl.txt", simulationPath);
     
@@ -3031,7 +3050,7 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
         fprintf(fp, "%lf: %d\n", avg_twl.first, avg_twl.second);
     }
     fclose(fp);
-
+    //write corresponding data for the doys with maximum average TWL for N (MAX_DAYS_FOR_FLOODING) events
     for (int i = 0; i < MAX_DAYS_FOR_FLOODING; i++) 
     {
         CString maxEventDataPath;
@@ -3052,7 +3071,7 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
     }
 
 
-    delete transectdata;
+    delete[] transectdata;
     return 0;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
