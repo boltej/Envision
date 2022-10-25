@@ -57,7 +57,7 @@ int Report::LogMsg(LPCTSTR _msg, REPORT_ACTION action, REPORT_TYPE type)
          }
       msg += _msg;
 
-      logMsgProc(_msg, action, type);
+      logMsgProc(msg.c_str(), action, type);
       }
 
    if (m_pFile != NULL)

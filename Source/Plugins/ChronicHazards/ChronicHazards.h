@@ -19,6 +19,7 @@
 #include <PolyPtMapper.h>
 #include <AlgLib\AlgLib.h>
 
+#include <MatlabEngine.hpp>
 
 //#define N 1854
 
@@ -75,15 +76,18 @@ enum BEACHTYPE
    BchT_SANDY_BLUFF_BACKED = 2,
    BchT_RIPRAP_BACKED = 3,
    BchT_SEAWALL_BACKED = 4,
-   BchT_DUNE_BLUFF_BACKED = 5,
-   BchT_CLIFF_BACKED = 6,
-   BchT_WOODY_DEBRIS_BACKED = 7,
-   BchT_WOODY_BLUFF_BACKED = 8,
-   BchT_BAY = 9,
-   BchT_RIVER = 10,
-   BchT_ROCKY_HEADLAND = 11,
-   BchT_SANDY_BLUFF_BACKED_BURIED_RR = 12
+   BchT_MIXED_SEDIMENT_DUNE_BACKED = 5,
+   BchT_MIXED_SEDIMENT_BLUFF_BACKED = 6,
+   BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED = 7,
+   BchT_SANDY_COBBLEGRAVEL  = 8,	
+   BchT_WOODY_DEBRIS_BACKED = 9,	
+   BchT_BAY                 = 10,	
+   BchT_RIVER               = 11,	
+   BchT_ROCKY_CLIFF_HEADLAND= 12,	
+   BchT_SANDY_BURIED_RIPRAP = 13,	
+   BchT_JETTY               = 14	
    };
+
 
 enum FLOODHAZARDZONE
    {
@@ -243,7 +247,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //bool LoadPolyGridLookup(EnvContext *pEnvContext);
    protected:
       bool LoadRBFs();
-      //bool ResetAnnualVariables();
+      bool ResetAnnualVariables();
       //bool ResetAnnualBudget();
       //bool CalculateErosionExtents(EnvContext *pEnvContext);
       //bool RunEelgrassModel(EnvContext *pEnvContext);
@@ -286,15 +290,21 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       MapLayer *m_pManningMaskGrid = nullptr;            // ptr to Bates Model Mannings Coefficient Grid (value = -1 if not running Bates model in region)
       MapLayer *m_pTidalBathyGrid = nullptr;             // ptr to Tidal Bathymetry Grid
 
-      MapLayer *m_pOrigDuneLineLayer = nullptr;          // ptr to Original Dune Line Layer
-      MapLayer *m_pNewDuneLineLayer = nullptr;           // ptr to Changed Dune Line Layer
+      //MapLayer *m_pOrigDuneLineLayer = nullptr;          // ptr to Original Dune Line Layer
+      //MapLayer *m_pNewDuneLineLayer = nullptr;           // ptr to Changed Dune Line Layer
+      MapLayer* m_pDuneLayer = nullptr;
 
       //   MapLayer *m_pTsunamiInunLayer = nullptr;                  // ptr to Tsunami Inundaiton Layer
 
-      PolyGridMapper *m_pPolygonGridLkUp = nullptr;		   // provides mapping between IDU layer and DEM grid
-      PolyGridMapper *m_pPolylineGridLkUp = nullptr;			// provides mapping between roads layer and DEM grid
-      PolyPointMapper *m_pIduBuildingLkup = nullptr;			// provides mapping between IDU layer, building (point) layer
-      PolyPointMapper *m_pPolygonInfraPointLkup = nullptr;	// provides mapping between IDU layer, infrastructure (point) layer
+      //PolyGridMapper *m_pPolygonGridLkUp = nullptr;		   // provides mapping between IDU layer and DEM grid
+      //PolyGridMapper *m_pPolylineGridLkUp = nullptr;			// provides mapping between roads layer and DEM grid
+      PolyGridMapper* m_pIduFloodedGridLkUp = nullptr;		   // provides mapping between IDU layer and DEM grid
+      PolyGridMapper* m_pRoadFloodedGridLkUp = nullptr;			// provides mapping between roads layer and flooded grid
+      //PolyPointMapper* m_pBldgFloodedGridLkUp = nullptr;			// provides mapping between roads layer and flooded grid
+      //PolyPointMapper* m_pInfraFloodedGridLkUp = nullptr;			// provides mapping between roads layer and flooded grid
+      PolyGridMapper* m_pIduElevationGridLkUp = nullptr;
+      PolyPointMapper *m_pIduBuildingLkUp = nullptr;			// provides mapping between IDU layer, building (point) layer
+      PolyPointMapper *m_pIduInfraLkUp = nullptr;	// provides mapping between IDU layer, infrastructure (point) layer
 
       // Created grids that overlay DEM grid
       MapLayer *m_pFloodedGrid = nullptr;                   // ptr to Flooded Grid
@@ -338,7 +348,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       
       
       //DDataObj *m_pSAngleLUT = nullptr;
-      DDataObj *m_pTransectLUT = nullptr;
+      //DDataObj *m_pTransectLUT = nullptr;
+      MapLayer* m_pTransectLayer = nullptr;
       std::map<int, int> m_transectMap;      // key=ID, value=index
 
 
@@ -703,7 +714,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLMvAvgTWL = -1;
       int  m_colDLMvMaxTWL = -1;
       //int  m_colDLNorthingCrest = -1;
-      int  m_colDLNorthingToe = -1;
+      int  m_colDLNorthing = -1;
       int  m_colDLNourishFreqBPS = -1;
       int  m_colDLNourishFreqSPS = -1;
       int  m_colDLNourishYearBPS = -1;
@@ -742,7 +753,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLYrMaxSetup = -1;
       int  m_colDLYrMaxSwash = -1;
       int  m_colDLYrMaxSWL = -1;
-      int  m_colDLYrFMaxTWL = -1;
+      int  m_colDLYrMaxRunup = -1;
+      int  m_colDLYrFMaxTWL = -1;     // flooding max?
       int  m_colDLYrMaxTWL = -1;
       //
       //// columns used for debugging in the dune line
@@ -768,7 +780,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int  m_colBayYrAvgTWL = -1;
       //int  m_colBayYrMaxSWL = -1;
       //int  m_colBayYrMaxTWL = -1;
-      //
+      //c
       //// Road coverage columns
       int m_colRoadFlooded = -1;
       int m_colRoadType = -1;
@@ -790,7 +802,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       CString  m_polyGridFilename;
       CString  m_roadGridFilename;
 
-      CString m_transectLookupFile;
+      CString m_transectLayer;
       CString m_bathyLookupFile;
       CString m_bathyMask;
       //	CString m_surfZoneFiles;
@@ -807,6 +819,11 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //bool InitializeFloodGrids(EnvContext *pContext, FloodArea *pFloodArea);
       //bool RunFloodAreas(EnvContext *pContext);
 
+      std::unique_ptr<matlab::engine::MATLABEngine> m_matlabPtr = nullptr; // startMATLAB();
+
+      CString m_sfincsHome;  // e.g.  "d:/Envision/Source/Plugins/ChronicHazards/FloodModel"
+      CString m_floodDir;     
+
 
       //  ******  Methods ******
 
@@ -820,24 +837,32 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool InitPolicyInfo(EnvContext*);
 
       // run
-      bool RunErosionModel(EnvContext* pEnvContext);
-      bool RunFloodingModel(EnvContext* pEnvContext);
-      bool RunEelgrassModel(EnvContext* pEnvContext);
-      bool RunPolicyManagement(EnvContext* pEnvContext);
+      bool RunTWLModel(EnvContext*);
+      bool RunErosionModel(EnvContext*);
+      bool RunFloodingModel(EnvContext*);
+      bool RunEelgrassModel(EnvContext*);
+      bool RunPolicyManagement(EnvContext*);
+
 
       // InitRun()
       bool LoadDailyRBFOutputs(LPCTSTR simulationPath);
 
 
 
+   protected:
+      bool CalculateFloodImpacts(EnvContext* pEnvContext);
 
 
       bool ReadDailyBayData(LPCTSTR timeSeriesFolder);
 
       float CalculateCelerity(float waterLevel, float wavePeriod, float &n);
       double CalculateCelerity2(float waterLevel, float wavePeriod, double &n);
-      void CalculateYrMaxTWL(EnvContext *pEnvContext);
+      void CalculateTWLandImpactDaysAtShorePoints(EnvContext *pEnvContext);
       int MaxYearlyTWL(EnvContext* pEnvContext);
+
+
+      //void CalculateYrMaxTWLAtShoreline(EnvContext* pEnvContext);
+
 
       
       double GenerateBathtubFloodMap(int &floodedCount);
@@ -883,11 +908,15 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       void ComputeIDUStatistics();
       void TallyCostStatistics(int currentYear);
       void TallyDuneStatistics(int currentYear);
-      void TallyRoadStatistics();
+      void TallyRoadStatistics();  // obsolete
       void ComputeInfraStatistics();
 
+
       // Helper Functions
-      bool PopulateClosestIndex(MapLayer* pFromPtLayer, LPCTSTR field, DDataObj *pLookup);
+      bool ComputeStockdon(float stillwaterLevel, float waveHeight, float wavePeriod, float waveDirection,
+         float* _L0, float* _setup, float* _incidentSwash, float* _infragravitySwash, float* _r2Runup, float* _twl);
+
+      bool PopulateClosestIndex(MapLayer* pFromPtLayer, LPCTSTR field, DataObj *pLookup);
 
       int GetBeachType(MapLayer::Iterator pt);
       int GetNextBldgIndex(MapLayer::Iterator pt);

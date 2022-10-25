@@ -924,6 +924,8 @@ class  LIBSAPI  MapLayer
       bool SetColData(int col, VData value, bool includeNoData);
       bool SetColNoData(int col) { return SetColData(col, m_noDataValue, true); }
       bool SetColNull(int col) { return SetColData(col, VData(), true); }
+      void AddData(int rec, int col, float incr) { float value = 0; GetData(rec, col, value); SetData(rec, col, value + incr); }
+
       bool CopyColData(int toCol, int fromCol) { return m_pDbTable->CopyCol(toCol, fromCol); }
       void ClearRows(void);
 

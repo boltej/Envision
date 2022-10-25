@@ -345,6 +345,8 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
          nodeType = SNIP_NODETYPE::NT_INPUT_SIGNAL;
       else if (ntype == "engager")
          nodeType = SNIP_NODETYPE::NT_ENGAGER;
+      else if (ntype == "assessor")
+         nodeType = SNIP_NODETYPE::NT_ASSESSOR;
       else if (ntype == "landscape")
          nodeType = SNIP_NODETYPE::NT_LANDSCAPE_ACTOR;
 
@@ -374,6 +376,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       {
       std::string from = edge["from"].get<std::string>();
       std::string to = edge["to"].get<std::string>();
+      float trust = edge["trust"].get<float>();
 
       SNNode* pFromNode = this->m_pSNLayer->FindNode(from.c_str());
       SNNode* pToNode = this->m_pSNLayer->FindNode(to.c_str());
@@ -402,11 +405,11 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       
       //ASSERT(pFromNode != nullptr && pToNode != nullptr);
       int transTime = 1; // ???
-      this->BuildEdge(pFromNode, pToNode, transTime, nullptr);   // note: no traits
+      this->BuildEdge(pFromNode, pToNode, transTime, trust, nullptr);   // note: no traits
 
       auto bidirectional = edge.find("bidirectional");
       if (bidirectional != edge.end() && bidirectional[0].get<bool>() == true)
-         this->BuildEdge(pToNode, pFromNode, transTime, nullptr);
+         this->BuildEdge(pToNode, pFromNode, transTime, trust, nullptr);
       }
 
    this->LoadPostBuildSettings(m_networkJSON["settings"]);
@@ -474,7 +477,7 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits
    }
 
 
-SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float* traits)
+SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, float* traits)
    {
    ASSERT(pFromNode != nullptr && pToNode != nullptr);
 
@@ -482,6 +485,7 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
 
    pEdge->m_transTime = transTime;
    pEdge->m_name = pFromNode->m_name + "->" + pToNode->m_name;
+   pEdge->m_trust = trust;
    pEdge->m_edgeType = ET_NETWORK;
 
    if (pFromNode->m_nodeType == NT_INPUT_SIGNAL)
@@ -2151,8 +2155,8 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                         SNNode* pNetNode = nodes[ri];   // this is the source node, our LA node is the target
 
                         int transTime = 1; // ???
-                        SNEdge* pEdge = BuildEdge(pNetNode, pNode, transTime, _traits);
-                        pEdge->m_trust = 0.9f;
+                        float trust = 0.9f;
+                        SNEdge* pEdge = BuildEdge(pNetNode, pNode, transTime, trust, _traits);
                         }
                      else
                         {

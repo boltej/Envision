@@ -60,6 +60,8 @@
       <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;_DEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;..\..\Envision;$(MATLABROOT)\extern\include</AdditionalIncludeDirectories>
       <MinimalRebuild />
+      <AdditionalUsingDirectories>$(MATLABROOT);%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -95,6 +97,8 @@
       <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;NDEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;..\..\Envision;$(MATLABROOT)\extern\include</AdditionalIncludeDirectories>
       <MinimalRebuild />
+      <AdditionalUsingDirectories>$(MATLABROOT);%(AdditionalUsingDirectories)</AdditionalUsingDirectories>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

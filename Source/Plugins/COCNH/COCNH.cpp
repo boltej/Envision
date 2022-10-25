@@ -833,14 +833,14 @@ bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
       int tsph = 0;
    
       int colDisturb  = m_initialLandscpAttribs.GetCol("DISTURB");
-      int colTSD       = m_initialLandscpAttribs.GetCol("TSD");
-      int colTSF       = m_initialLandscpAttribs.GetCol("TSF");
-      int colTSPF       = m_initialLandscpAttribs.GetCol("TSPF");
-      int colTST       = m_initialLandscpAttribs.GetCol("TST");
-      int colTIV       = m_initialLandscpAttribs.GetCol("TIV");
-      int colTSTH       = m_initialLandscpAttribs.GetCol("TSTH");
-      int colTSH       = m_initialLandscpAttribs.GetCol("TSH");
-      int colTSPH       = m_initialLandscpAttribs.GetCol("TSPH");
+      int colTSD      = m_initialLandscpAttribs.GetCol("TSD");
+      int colTSF      = m_initialLandscpAttribs.GetCol("TSF");
+      int colTSPF     = m_initialLandscpAttribs.GetCol("TSPF");
+      int colTST      = m_initialLandscpAttribs.GetCol("TST");
+      int colTIV      = m_initialLandscpAttribs.GetCol("TIV");
+      int colTSTH     = m_initialLandscpAttribs.GetCol("TSTH");
+      int colTSH      = m_initialLandscpAttribs.GetCol("TSH");
+      int colTSPH     = m_initialLandscpAttribs.GetCol("TSPH");
    
       for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
          {

@@ -3312,15 +3312,17 @@ void EnvModel::InitRun()
             //m_envContext.col    = pInfo->col;
             m_envContext.currentYear = this->m_startYear-1;
 
-            lstrcpy( msg, "Initializing " );
-            lstrcat( msg, pInfo->m_name );
-            Report::StatusMsg( msg );
+            CString msg( pInfo->m_name);
+            msg += " initializing...";
+            Report::LogInfo( msg );
+            Report::indentLevel++;
 
             bool ok = pInfo->InitRun( &m_envContext, m_envContext.pEnvModel->m_resetInfo.useInitialSeed );
 
-            lstrcpy( msg, "Completed initialization:  " );
-            lstrcat( msg, pInfo->m_name );
-            Report::StatusMsg( msg );
+            Report::indentLevel--;
+            msg = pInfo->m_name;;
+            msg += " initialization completed...";
+            Report::LogInfo( msg );
 
             if ( !ok )
                {
@@ -3913,7 +3915,7 @@ void EnvModel::RunModelProcesses( bool isPostYear )
          try
             {
             CString msg;
-            msg.Format("%s starting...", (LPCTSTR)pInfo->m_name);
+            msg.Format("%s running...", (LPCTSTR)pInfo->m_name);
             Report::Log(msg);
             Report::indentLevel++;
 

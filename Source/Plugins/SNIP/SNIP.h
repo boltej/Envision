@@ -101,8 +101,9 @@ enum SNIP_NODETYPE {
    NT_UNKNOWN = 0,
    NT_INPUT_SIGNAL = 1,
    NT_NETWORK_ACTOR = 2,
+   NT_ASSESSOR = 3,
    NT_ENGAGER = 4,
-   NT_LANDSCAPE_ACTOR = 8
+   NT_LANDSCAPE_ACTOR = 5
    };
 
 enum SNIP_EDGE_TYPE {
@@ -538,7 +539,7 @@ class SNIPModel
       //bool BuildNetwork( void );
       SNNode* BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits);
       //SNNode* BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name);
-      SNEdge* BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float* traits = nullptr);
+      SNEdge* BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, float* traits = nullptr);
 
       bool LoadPreBuildSettings(json& settings);
       bool LoadPostBuildSettings(json& settings);
