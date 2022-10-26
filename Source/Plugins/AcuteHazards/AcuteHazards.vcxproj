@@ -93,7 +93,7 @@
       <Optimization>Disabled</Optimization>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;_DEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;c:\Python37\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;$(PY_HOME)\Include</AdditionalIncludeDirectories>
       <MinimalRebuild />
     </ClCompile>
     <Link>
@@ -196,7 +196,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>"__EXPORT__=__declspec( dllimport )";_WINDOWS;NDEBUG;_AFXEXT;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;c:\Python37\include;</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;$(PY_HOME)\Include</AdditionalIncludeDirectories>
       <MinimalRebuild />
     </ClCompile>
     <Link>
