@@ -1355,9 +1355,9 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
       nsPath::CPath dailyBuoyFile(fullPath);
       dailyBuoyFile.RemoveExtension();
-      dailyBuoyFile.Append("_daily.csv");
+      CString _path = dailyBuoyFile.GetStr() + "_daily.csv";
       //dailybuoyFile.Format("%s_daily.csv", fullPath);
-      m_buoyObsData.WriteAscii(dailyBuoyFile);
+      m_buoyObsData.WriteAscii(_path);
       }
    else
       {
