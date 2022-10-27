@@ -1352,9 +1352,12 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    if (m_inputinHourlydata == DATA_HOURLY)
       {
       m_numDays = ConvertHourlyBuoyDataToDaily(fullPath);
-      CString dailybuoyFile;
-      dailybuoyFile.Format("%s_daily.csv", fullPath);
-      m_buoyObsData.WriteAscii(dailybuoyFile);
+
+      nsPath::CPath dailyBuoyFile(fullPath);
+      dailyBuoyFile.RemoveExtension();
+      dailyBuoyFile.Append("_daily.csv");
+      //dailybuoyFile.Format("%s_daily.csv", fullPath);
+      m_buoyObsData.WriteAscii(dailyBuoyFile);
       }
    else
       {
@@ -2886,6 +2889,8 @@ int ChronicHazards::ConvertHourlyBuoyDataToDaily(LPCTSTR fullPath)
    int cols = hourlyData.GetColCount();
    int row = 0;
    VData* data = new VData[TOTAL_BUOY_COL];
+
+   Report::Log_i("Converting hourly buoy data to daily for %i days", numdays);
 
    for (int i = 0; i < numdays; i++)
       {
@@ -10703,10 +10708,11 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
    CString msg;
    for (int doy = 0; doy < 365; doy++)
       {
-      //if (doy % 10 == 0)
-      msg.Format("Calculating impacts days for Day %i for %i shoreline points", doy, m_pDuneLayer->GetRecordCount());
-      Report::StatusMsg(msg);
-
+      if (doy % 5 == 0)
+         {
+         msg.Format("Calculating impacts days for Day %i for %i shoreline points", doy, m_pDuneLayer->GetRecordCount());
+         Report::StatusMsg(msg);
+         }
       int row = (pEnvContext->yearOfRun * 365) + doy;
 
       // Get the Still Water Level for that day (in NAVD88 vertical datum) from the deep water time series
