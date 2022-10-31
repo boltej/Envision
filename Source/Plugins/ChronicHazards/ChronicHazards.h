@@ -325,7 +325,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       PtrArray< DDataObj > m_BathyDataArray;
       //PtrArray< FDataObj > m_RBFDailyDataArray;
       PtrArray< FDataObj > m_dailyRBFOutputArray;
-      PtrArray< FDataObj > m_DailyBayDataArray;
+      //PtrArray< FDataObj > m_DailyBayDataArray;
 
       // Moving Windows for Dune Line Statistics
       PtrArray< MovingWindow > m_IDPYArray;
@@ -556,6 +556,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       ///// float m_intertidalAreaSqMiles = 0;
  
 
+      // output data objs
+      //FDataObj *m_pTWLData
 
       
 

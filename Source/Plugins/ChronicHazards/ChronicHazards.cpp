@@ -220,35 +220,6 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    // Setup outputs for annual statistics
    this->AddOutputVar("Mean TWL (m)", m_meanTWL, "");
-
-   this->AddOutputVar("Number of BPS Construction Projects", m_noConstructedBPS, "");
-   this->AddOutputVar("BPS Construction Cost ($)", m_constructCostBPS, "");
-   this->AddOutputVar("Total Length of Shoreline Hardened (m)", m_totalHardenedShoreline, "");
-   this->AddOutputVar("Total Length of Shoreline Hardened (miles)", m_totalHardenedShorelineMiles, "");
-   this->AddOutputVar("Added Length of Shoreline Hardened (m)", m_addedHardenedShoreline, "");
-   this->AddOutputVar("Added Length of Shoreline Hardened (miles)", m_addedHardenedShorelineMiles, "");
-   this->AddOutputVar("Percent of Shoreline Hardened (m)", m_percentHardenedShoreline, "");
-   this->AddOutputVar("Percent of Shoreline Hardened (miles)", m_percentHardenedShorelineMiles, "");
-   this->AddOutputVar("BPS Maintenance Cost ($)", m_maintCostBPS, "");
-   this->AddOutputVar("BPS Nourishment Cost ($)", m_nourishCostBPS, "");
-   this->AddOutputVar("BPS Nourishment Volume (m3)", m_nourishVolumeBPS, "");
-
-   this->AddOutputVar("Number of SPS Construction Projects", m_noConstructedDune, "");
-   this->AddOutputVar("SPS Construction Cost ($)", m_restoreCostSPS, "");
-   this->AddOutputVar("SPS Construction Volume of Sand (m3)", m_constructVolumeSPS, "");
-   this->AddOutputVar("SPS Maintenance Cost ($)", m_maintCostSPS, "");
-   this->AddOutputVar("SPS Maintenance Volume (m3)", m_maintVolumeSPS, "");
-   this->AddOutputVar("SPS Nourishment Cost ($)", m_nourishCostSPS, "");
-   this->AddOutputVar("SPS Nourishment Volume (m3)", m_nourishVolumeSPS, "");
-   this->AddOutputVar("Total Length of SPS Constructed (m)", m_totalRestoredShoreline, "");
-   this->AddOutputVar("Total Length of SPS Constructed (miles)", m_totalRestoredShorelineMiles, "");
-   this->AddOutputVar("Added Length of SPS Constructed (m)", m_addedRestoredShoreline, "");
-   this->AddOutputVar("Added Length of SPS Constructed (miles)", m_addedRestoredShorelineMiles, "");
-   this->AddOutputVar("Percent of SPS Constructed (m)", m_percentRestoredShoreline, "");
-   this->AddOutputVar("Percent of SPS Constructed (miles)", m_percentRestoredShorelineMiles, "");
-
-   this->AddOutputVar("Number of Buildings Removed From Hazard Zone (100-yr)", m_noBldgsRemovedFromHazardZone, "");
-
    this->AddOutputVar("% Beach Accessibility", m_avgAccess, "");
    //   this->AddOutputVar("Number of Buildings Eroded", m_noBldgsEroded, "");
 
@@ -268,12 +239,46 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       }
 
 
-   // Flooded and Eroded Buildings counted in Reporter
-   /*  this->AddOutputVar("Flooded Buildings", m_floodedBldgCount, "");
-   this->AddOutputVar("Eroded Buildings", m_erodedBldgCount, "");*/
+   if (m_runFlags && CH_MODEL_INFRASTRUCTURE)
+      {
+      this->AddOutputVar("Number of BPS Construction Projects", m_noConstructedBPS, "");
+      this->AddOutputVar("BPS Construction Cost ($)", m_constructCostBPS, "");
+      this->AddOutputVar("Total Length of Shoreline Hardened (m)", m_totalHardenedShoreline, "");
+      this->AddOutputVar("Total Length of Shoreline Hardened (miles)", m_totalHardenedShorelineMiles, "");
+      this->AddOutputVar("Added Length of Shoreline Hardened (m)", m_addedHardenedShoreline, "");
+      this->AddOutputVar("Added Length of Shoreline Hardened (miles)", m_addedHardenedShorelineMiles, "");
+      this->AddOutputVar("Percent of Shoreline Hardened (m)", m_percentHardenedShoreline, "");
+      this->AddOutputVar("Percent of Shoreline Hardened (miles)", m_percentHardenedShorelineMiles, "");
+      this->AddOutputVar("BPS Maintenance Cost ($)", m_maintCostBPS, "");
+      this->AddOutputVar("BPS Nourishment Cost ($)", m_nourishCostBPS, "");
+      this->AddOutputVar("BPS Nourishment Volume (m3)", m_nourishVolumeBPS, "");
 
-   this->AddOutputVar("Policy Cost Allocation Frac", PolicyInfo::m_budgetAllocFrac, "");
-   this->AddOutputVar("Policy Cost Summary", &m_policyCostData, "");
+      this->AddOutputVar("Number of SPS Construction Projects", m_noConstructedDune, "");
+      this->AddOutputVar("SPS Construction Cost ($)", m_restoreCostSPS, "");
+      this->AddOutputVar("SPS Construction Volume of Sand (m3)", m_constructVolumeSPS, "");
+      this->AddOutputVar("SPS Maintenance Cost ($)", m_maintCostSPS, "");
+      this->AddOutputVar("SPS Maintenance Volume (m3)", m_maintVolumeSPS, "");
+      this->AddOutputVar("SPS Nourishment Cost ($)", m_nourishCostSPS, "");
+      this->AddOutputVar("SPS Nourishment Volume (m3)", m_nourishVolumeSPS, "");
+      this->AddOutputVar("Total Length of SPS Constructed (m)", m_totalRestoredShoreline, "");
+      this->AddOutputVar("Total Length of SPS Constructed (miles)", m_totalRestoredShorelineMiles, "");
+      this->AddOutputVar("Added Length of SPS Constructed (m)", m_addedRestoredShoreline, "");
+      this->AddOutputVar("Added Length of SPS Constructed (miles)", m_addedRestoredShorelineMiles, "");
+      this->AddOutputVar("Percent of SPS Constructed (m)", m_percentRestoredShoreline, "");
+      this->AddOutputVar("Percent of SPS Constructed (miles)", m_percentRestoredShorelineMiles, "");
+      }
+
+   if (m_runFlags && CH_MODEL_POLICY)
+      {
+      // Flooded and Eroded Buildings counted in Reporter
+      /*  this->AddOutputVar("Flooded Buildings", m_floodedBldgCount, "");
+      this->AddOutputVar("Eroded Buildings", m_erodedBldgCount, "");*/
+
+      this->AddOutputVar("Policy Cost Allocation Frac", PolicyInfo::m_budgetAllocFrac, "");
+      this->AddOutputVar("Policy Cost Summary", &m_policyCostData, "");
+
+      this->AddOutputVar("Number of Buildings Removed From Hazard Zone (100-yr)", m_noBldgsRemovedFromHazardZone, "");
+      }
 
 
    //  //Set all values to zero
@@ -1356,7 +1361,6 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
       nsPath::CPath dailyBuoyFile(fullPath);
       dailyBuoyFile.RemoveExtension();
       CString _path = dailyBuoyFile.GetStr() + "_daily.csv";
-      //dailybuoyFile.Format("%s_daily.csv", fullPath);
       m_buoyObsData.WriteAscii(_path);
       }
    else
@@ -1470,8 +1474,6 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
       numDunePts = m_pDuneLayer->GetRowCount();
       }
 
-   // ExportMapLayers(pEnvContext, pEnvContext->currentYear);
-
    // Reset annual duneline attributes
    ResetAnnualVariables();      // reset annual variables for hte start of a new year
    //ResetAnnualBudget();      // reset budget allocations for the year
@@ -1548,15 +1550,12 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
 
    //  m_pMap->ChangeDrawOrder(m_pDuneLayer, DO_BOTTOM);
    m_pMap->ChangeDrawOrder(m_pDuneLayer, DO_BOTTOM);
+   m_pDuneLayer->m_readOnly = true;
 
-   //m_pDuneLayer->m_readOnly = true;
-
-   // last year of run
-   if (pEnvContext->endYear == pEnvContext->currentYear + 1)
-      ExportMapLayers(pEnvContext, pEnvContext->endYear);
+   if (m_exportMapInterval != -1 && ((pEnvContext->yearOfRun % m_exportMapInterval == 0) || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
+      ExportMapLayers(pEnvContext, pEnvContext->currentYear);
 
    return true;
-
    } // end Run(EnvContext *pEnvContext)
 
 
@@ -4958,25 +4957,21 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
 
    outputYear = pEnvContext->currentYear;*/
 
-   if (m_exportMapInterval != -1 && ((pEnvContext->yearOfRun % m_exportMapInterval == 0) || (outputYear == pEnvContext->endYear)))
-      {
       CPath outputPath(PathManager::GetPath(PM_OUTPUT_DIR));
 
       CPath duneShapeFilePath = outputPath;
       CPath duneCSVFilePath = outputPath;
 
-      CPath duneOCShapeFilePath = outputPath;
-
-      CPath bldgShapeFilePath = outputPath;
+      //CPath bldgShapeFilePath = outputPath;
       //CPath bldgCSVFilePath = outputPath;
       //CString csvFolder = _T("\\MapCsvs\\");
 
       CString duneFilename;
-      CString bldgFilename;
-      CString floodedGridFile;
-      CString cumFloodedGridFile;
-      CString erodedGridFile;
-      CString eelgrassGridFile;
+      //CString bldgFilename;
+      //CString floodedGridFile;
+      //CString cumFloodedGridFile;
+      //CString erodedGridFile;
+      //CString eelgrassGridFile;
 
       CString scenario = pEnvContext->pEnvModel->m_pScenario->m_name;
       int run = pEnvContext->run;
@@ -4995,54 +4990,18 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
          // remove all  .shp .dbf .prj .shx .flt
          }
 
-      /*CString duneOceanShoresFilename;
-      duneOceanShoresFilename.Format("BackshoreOS_Year%i_%s_Run%i", outputYear, scenario, run);
-
-      CString ocQuery = "LOC = 1";
-
-      QueryEngine qe(m_pNewDuneLineLayer);
-
-      Query *pQuery = qe.ParseQuery(ocQuery, 0, "OC Query");
-
-      qe.SelectQuery(pQuery, false); */
-
-      //   /*if (qe != nullptr && ocQuery.GetLength() > 0)
-      //   {
-      //      CString source(_T("Ocean Shores Query"));
-
-      //      pQuery = qe->ParseQuery(ocQuery, 0, source);
-
-      //      if (pQuery == nullptr)
-      //      {
-      //         CString qmsg(_T("ChronicHazards: Error parsing dune layer query: '"));
-      //         qmsg += ocQuery;
-      //         qmsg += _T("' - the query will be ignored");
-      //         Report::ErrorMsg(qmsg);
-      //      }
-      //   }*/
-
-      ////   CString msg("ChronicHazards:: Exporting map layer: ");
-      /*CString duneOCShapeFile = duneOceanShoresFilename + ".shp";
-      duneOCShapeFilePath.Append(duneOCShapeFile);
-      m_pNewDuneLineLayer->SaveShapeFile(duneOCShapeFilePath, true);
-
-
-      CString duneWestportFilename;
-      duneWestportFilename.Format("BackshoreWP_Year%i_%s_Run%i", outputYear, scenario, run);*/
-
       // Dune line layer naming
-      duneFilename.Format("Backshore_Year%i_%s_Run%i", outputYear, scenario, run);
+      duneFilename.Format("Dunes_Year%i_%s_Run%i", outputYear, scenario, run);
 
-      CString msg("ChronicHazards:: Exporting map layer: ");
       CString duneShapeFile = duneFilename + ".shp";
       duneShapeFilePath.Append(duneShapeFile);
-      int ok;
-      // ok = m_pNewDuneLineLayer->SaveShapeFile(duneShapeFilePath, false, 0, 1);
-      //  if (ok > 0)
-      //     {
-      //     msg += duneShapeFilePath;
-      //     Report::Log(msg);
-      //     }
+      int ok = m_pDuneLayer->SaveShapeFile(duneShapeFilePath, false, 0, 1);
+      if (ok > 0)
+         {
+         CString msg(":: Exporting map layer: ");
+         msg += duneShapeFilePath;
+         Report::Log(msg);
+         }
 
         //      CString duneCSVFile = duneFilename + ".csv";
         //      duneCSVFilePath.Append(csvFolder);
@@ -5062,17 +5021,17 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
         //         }
         //
         // Buildings layer naming
-      bldgFilename.Format("Buildings_Year%i_%s_Run%i", outputYear, scenario, run);
-
-      CString bldgShapeFile = bldgFilename + ".shp";
-      bldgShapeFilePath.Append(bldgShapeFile);
-      ok = m_pBldgLayer->SaveShapeFile(bldgShapeFilePath, false, 0, 1);
-
-      if (ok > 0)
-         {
-         msg.Replace(duneCSVFilePath, bldgShapeFilePath);
-         Report::Log(msg);
-         }
+      //bldgFilename.Format("Buildings_Year%i_%s_Run%i", outputYear, scenario, run);
+      //
+      //CString bldgShapeFile = bldgFilename + ".shp";
+      //bldgShapeFilePath.Append(bldgShapeFile);
+      //ok = m_pBldgLayer->SaveShapeFile(bldgShapeFilePath, false, 0, 1);
+      //
+      //if (ok > 0)
+      //   {
+      //   msg.Replace(duneCSVFilePath, bldgShapeFilePath);
+      //   Report::Log(msg);
+      //   }
 
       //CString bldgCSVFile = bldgFilename + ".csv";
       //bldgCSVFilePath.Append(csvFolder);
@@ -5091,70 +5050,69 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       //   Report::Log(msg);
       //   }
 
-      if (m_pFloodedGrid != nullptr)
-         {
-         // write out the flooded grids at the chosen export interval
-         CPath floodedGridPath = outputPath;
-         //     if (m_writeGridFiles)
-         floodedGridFile.Format("Flooded_Year%i_%s_Run%i", outputYear, scenario, run);
-         CString gridFilename = floodedGridFile + ".flt";
+      ////////if (m_pFloodedGrid != nullptr)
+      ////////   {
+      ////////   // write out the flooded grids at the chosen export interval
+      ////////   CPath floodedGridPath = outputPath;
+      ////////   //     if (m_writeGridFiles)
+      ////////   floodedGridFile.Format("Flooded_Year%i_%s_Run%i", outputYear, scenario, run);
+      ////////   CString gridFilename = floodedGridFile + ".flt";
+      ////////
+      ////////   msg.Replace(bldgFilename, gridFilename);
+      ////////   Report::Log(msg);
+      ////////
+      ////////   floodedGridPath.Append(gridFilename);
+      ////////   m_pFloodedGrid->SaveGridFile(floodedGridPath);
+      ////////
+      ////////   // cumulative flooded grid as well
+      ////////   CPath cumFloodedGridPath = outputPath;
+      ////////   //     if (m_writeGridFiles)
+      ////////   cumFloodedGridFile.Format("Cumulative_Flooded_Year%i_%s_Run%i", outputYear, scenario, run);
+      ////////   CString cumGridFilename = cumFloodedGridFile + ".flt";
+      ////////
+      ////////   msg.Replace(gridFilename, cumGridFilename);
+      ////////   Report::Log(msg);
+      ////////
+      ////////   cumFloodedGridPath.Append(cumGridFilename);
+      ////////   m_pCumFloodedGrid->SaveGridFile(cumFloodedGridPath);
+      ////////
+      ////////
+      ////////   // write out the eelgrass grids at the chosen export interval
+      ////////   //////bool runEelgrassModel = (m_runEelgrassModel == 1) ? true : false;
+      ////////   //////if (runEelgrassModel)
+      ////////   //////   {
+      ////////   //////   CPath eelgrassGridPath = outputPath;
+      ////////   //////   //     if (m_writeGridFiles)
+      ////////   //////   eelgrassGridFile.Format("Eelgrass_Year%i_%s_Run%i", outputYear, scenario, run);
+      ////////   //////   CString eelgridFilename = eelgrassGridFile + ".flt";
+      ////////   //////
+      ////////   //////   msg.Replace(gridFilename, eelgridFilename);
+      ////////   //////   Report::Log(msg);
+      ////////   //////
+      ////////   //////   eelgrassGridPath.Append(eelgridFilename);
+      ////////   //////   m_pEelgrassGrid->SaveGridFile(eelgrassGridPath);
+      ////////   //////   }
+      ////////   //////}
+      ////////
+      //////////if (m_runBayFloodModel == 1 && m_debugOn)
+      //////////{
+      //////////   if (pEnvContext->yearOfRun > 0 || (outputYear == pEnvContext->endYear))
+      //////////   {
+      //////////      CString floodedBayPtsFile;
+      //////////      CPath floodedBayPtsPath = outputPath;
+      //////////      floodedBayPtsFile.Format("FloodedBayPts_Year%i_%s_Run%i", outputYear, scenario, run);
+      //////////      CString floodedBayPtsFilename = floodedBayPtsFile + ".csv";
+      //////////      floodedBayPtsPath.Append(floodedBayPtsFilename);
+      //////////      m_pInletLUT->WriteAscii(floodedBayPtsPath);
+      ////////
+      //////////      //m_pElevationGrid->SaveGridFile("C:\\Envision\\StudyAreas\\GraysHarbor\\Outputs\\ghc_dem.flt");
+      //////////      CString debugMsg("ChronicHazards:: Exporting map layer: ");
+      //////////      debugMsg += floodedBayPtsFilename;
+      //////////      Report::Log(debugMsg);
+      //////////   }
+      //////////}
 
-         msg.Replace(bldgFilename, gridFilename);
-         Report::Log(msg);
 
-         floodedGridPath.Append(gridFilename);
-         m_pFloodedGrid->SaveGridFile(floodedGridPath);
-
-         // cumulative flooded grid as well
-         CPath cumFloodedGridPath = outputPath;
-         //     if (m_writeGridFiles)
-         cumFloodedGridFile.Format("Cumulative_Flooded_Year%i_%s_Run%i", outputYear, scenario, run);
-         CString cumGridFilename = cumFloodedGridFile + ".flt";
-
-         msg.Replace(gridFilename, cumGridFilename);
-         Report::Log(msg);
-
-         cumFloodedGridPath.Append(cumGridFilename);
-         m_pCumFloodedGrid->SaveGridFile(cumFloodedGridPath);
-
-
-         // write out the eelgrass grids at the chosen export interval
-         //////bool runEelgrassModel = (m_runEelgrassModel == 1) ? true : false;
-         //////if (runEelgrassModel)
-         //////   {
-         //////   CPath eelgrassGridPath = outputPath;
-         //////   //     if (m_writeGridFiles)
-         //////   eelgrassGridFile.Format("Eelgrass_Year%i_%s_Run%i", outputYear, scenario, run);
-         //////   CString eelgridFilename = eelgrassGridFile + ".flt";
-         //////
-         //////   msg.Replace(gridFilename, eelgridFilename);
-         //////   Report::Log(msg);
-         //////
-         //////   eelgrassGridPath.Append(eelgridFilename);
-         //////   m_pEelgrassGrid->SaveGridFile(eelgrassGridPath);
-         //////   }
-         //////}
-
-      //if (m_runBayFloodModel == 1 && m_debugOn)
-      //{
-      //   if (pEnvContext->yearOfRun > 0 || (outputYear == pEnvContext->endYear))
-      //   {
-      //      CString floodedBayPtsFile;
-      //      CPath floodedBayPtsPath = outputPath;
-      //      floodedBayPtsFile.Format("FloodedBayPts_Year%i_%s_Run%i", outputYear, scenario, run);
-      //      CString floodedBayPtsFilename = floodedBayPtsFile + ".csv";
-      //      floodedBayPtsPath.Append(floodedBayPtsFilename);
-      //      m_pInletLUT->WriteAscii(floodedBayPtsPath);
-
-      //      //m_pElevationGrid->SaveGridFile("C:\\Envision\\StudyAreas\\GraysHarbor\\Outputs\\ghc_dem.flt");
-      //      CString debugMsg("ChronicHazards:: Exporting map layer: ");
-      //      debugMsg += floodedBayPtsFilename;
-      //      Report::Log(debugMsg);
-      //   }
-      //}
-
-         }
-      }
    } // end ExportMapLayers(EnvContext *pEnvContext)
 
 
@@ -9474,9 +9432,9 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       { "simulation_count",      TYPE_INT,     &m_simulationCount,              true,    0 },
       { "inlet_factor",          TYPE_FLOAT,   &m_inletFactor,                  true,    0 },
       { "twl_period",            TYPE_INT,     &m_windowLengthTWL,              true,    0 },
-      { "FloodHzrdPeriod",       TYPE_INT,     &m_windowLengthFloodHzrd,        true,    0 },
-      { "BFECount",              TYPE_INT,     &m_bfeCount,                     true,    0 },
-      { "SSiteCount",            TYPE_INT,     &m_ssiteCount,                   true,    0 },
+      { "flood_hazard_period",   TYPE_INT,     &m_windowLengthFloodHzrd,        true,    0 },
+      { "bfe_count",             TYPE_INT,     &m_bfeCount,                     true,    0 },
+      { "safe_site_count",       TYPE_INT,     &m_ssiteCount,                   true,    0 },
       //{ "maxFloodArea",          TYPE_FLOAT,   &m_maxArea,                      true,    0 },
       { "shoreline_length",      TYPE_FLOAT,   &m_shorelineLength,              true,    0 },
       //{ "runSpatialBayTWL",      TYPE_INT,     &m_runSpatialBayTWL,             true,    0 },
