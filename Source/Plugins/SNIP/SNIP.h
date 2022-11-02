@@ -266,21 +266,21 @@ class SNNode : public TraitContainer
    public:
       // data
       CString  m_name;
-      SNIP_NODETYPE  m_nodeType;
+      SNIP_NODETYPE  m_nodeType = NT_UNKNOWN;
 
-      SNLayer* m_pLayer;   // snipModel: this,
-      int m_index;         // : this.nextNodeIndex,
+      SNLayer* m_pLayer = nullptr;   // snipModel: this,
+      int m_index = -1;         // : this.nextNodeIndex,
       std::string m_id;    // : 'n' + this.nextNodeIndex,
       //label : '',
 
-      SNIP_STATE m_state;  // : STATE_ACTIVE,
-      float m_reactivity;  // : reactivity,
-      float m_sumInfs;     // : 0,
-      float m_srTotal;     // : 0,
-      float m_influence;   // : 0,
-      float m_reactivityMultiplier; // : 1,
-      float m_reactivityHistory;    // : [reactivity] ,
-      float m_reactivityMovAvg;     // : 0,
+      SNIP_STATE m_state = STATE_INACTIVE;  // : STATE_ACTIVE,
+      float m_reactivity=0;  // : reactivity,
+      float m_sumInfs = 0;     // : 0,
+      float m_srTotal = 0;     // : 0,
+      float m_influence = 0;   // : 0,
+      float m_reactivityMultiplier = 0; // : 1,
+      float m_reactivityHistory = 0;    // : [reactivity] ,
+      float m_reactivityMovAvg = 0;     // : 0,
       long  m_idu = -1;
 
    public:
@@ -312,6 +312,11 @@ class SNNode : public TraitContainer
 
       bool IsActive() { return m_state == SNIP_STATE::STATE_ACTIVE; }
       bool IsActivating() { return m_state == SNIP_STATE::STATE_ACTIVATING; }
+
+      bool IsInputSignal() { return m_nodeType == NT_INPUT_SIGNAL; }
+      bool IsLandscapeActor() { return m_nodeType == NT_LANDSCAPE_ACTOR; }
+      bool IsInterior() { return m_nodeType == NT_ASSESSOR || m_nodeType == NT_NETWORK_ACTOR || m_nodeType == NT_ENGAGER; }
+        
 
       //float getLandscapeMetric(){return m_landscapeValue;}
       //void setLandscapeMetric(float value){m_landscapeValue = value;}
@@ -584,9 +589,11 @@ class SNIPModel
 
       // stats
       int GetMaxDegree(bool);
-      int GetActiveNodeCount(int type = NT_INPUT_SIGNAL | NT_NETWORK_ACTOR | NT_LANDSCAPE_ACTOR);
+      int GetActiveNodeCount(int type=NT_INPUT_SIGNAL | NT_ASSESSOR | NT_NETWORK_ACTOR | NT_ENGAGER | NT_LANDSCAPE_ACTOR);
       int GetActiveEdgeCount();
       int GetNodeCount(int type);
+
+      float GetMeanReactivity(int type=NT_INPUT_SIGNAL | NT_ASSESSOR | NT_NETWORK_ACTOR | NT_ENGAGER | NT_LANDSCAPE_ACTOR);
    };
 
 

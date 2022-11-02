@@ -4,4 +4,14 @@
     <DebuggerFlavor>AppHostLocalDebugger</DebuggerFlavor>
     <RemoteDebugEnabled>False</RemoteDebugEnabled>
   </PropertyGroup>
+  <PropertyGroup>
+    <Source>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</Source>
+    <SmallTileSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</SmallTileSource>
+    <MediumTileSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</MediumTileSource>
+    <WideTileSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</WideTileSource>
+    <LargeTileSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</LargeTileSource>
+    <AppIconSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</AppIconSource>
+    <SplashScreenSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</SplashScreenSource>
+    <PackageLogoSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</PackageLogoSource>
+  </PropertyGroup>
 </Project>

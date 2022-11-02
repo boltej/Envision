@@ -113,11 +113,8 @@ public:
    static void Status_i(LPCTSTR msg, int i) { CString _msg; _msg.Format(msg, i); StatusMsg(_msg); };
 
    // log messages
-   static int  Log_i(LPCTSTR msg, int i, REPORT_ACTION action = RA_NEWLINE, REPORT_TYPE type = RT_INFO) {
-      CString _msg;
-      _msg.Format(msg, i);
-      return LogMsg(_msg, action, type); 
-      }
+   static int  Log_i(LPCTSTR msg, int i, REPORT_ACTION action = RA_NEWLINE, REPORT_TYPE type = RT_INFO) { CString _msg; _msg.Format(msg, i); return LogMsg(_msg, action, type); }
+   static int  Log_s(LPCTSTR msg, LPCTSTR s, REPORT_ACTION action = RA_NEWLINE, REPORT_TYPE type = RT_INFO) { CString _msg; _msg.Format(msg, s); return LogMsg(_msg, action, type); }
    static int  Log           (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE, REPORT_TYPE type=RT_INFO ) { return LogMsg(msg, action, type); }
    static int  LogInfo       (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE ) { return LogMsg(msg, action, RT_INFO); }
    static int  LogWarning    (LPCTSTR msg, REPORT_ACTION action=RA_NEWLINE ) { return LogMsg(msg, action, RT_WARNING); }

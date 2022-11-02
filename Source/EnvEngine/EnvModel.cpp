@@ -2997,7 +2997,11 @@ void EnvModel::InitModels()
             m_envContext.handle = pInfo->m_handle;
             m_envContext.pEnvExtension = pInfo;
 
+            Report::indentLevel++;
+
             pInfo->Init(&m_envContext, (LPCTSTR)pInfo->m_initInfo);
+
+            Report::indentLevel--;
 
             msg = "Initialization completed for ";
             msg += pInfo->m_name;
