@@ -82,7 +82,8 @@ float TraitContainer::ComputeSimilarity(TraitContainer* pOther)
 
 
 SNNode::SNNode(SNIP_NODETYPE nodeType)
-   {
+   :m_nodeType(nodeType)
+   {   
    //m_reactivity = (float) randNodeInit.RandValue( ACT_LOWER_BOUND, ACT_UPPER_BOUND );   
    }
 
@@ -547,6 +548,39 @@ SNNode* SNLayer::FindNode(LPCTSTR name)
    }
 
 
+bool SNLayer::RemoveNode(SNNode* pNode)
+   {
+   m_nodes.Remove(pNode);  // also deletes node
+
+   for (std::map<std::string, SNNode*>::iterator it = m_nodeMap.begin(); it != m_nodeMap.end();)
+      {
+      if ((it->second) == itemToRemove)
+         {
+         it = map.erase(it);
+         }
+      else
+         {
+         it++;
+         }
+      }
+
+   std::erase(m_nodeMap.po
+   for (int i = 0; i < (int)m_edges.GetSize(); i++)
+      {
+      SNEdge* pEdge = m_edges[i];
+      if (pEdge->m_pFromNode == pNode || pEdge->m_pToNode == pNode)
+         {
+         m_edges.Remove(pEdge);
+         i--;
+         }
+      }
+
+
+   return true;
+   }
+
+
+
 int SNIPModel::FindNodesFromTrait(string &trait, SNIP_NODETYPE ntype, float threshold, vector<SNNode*>& nodes)
    {
    nodes.clear();
@@ -559,7 +593,6 @@ int SNIPModel::FindNodesFromTrait(string &trait, SNIP_NODETYPE ntype, float thre
       }
    return (int) nodes.size();
    }
-
 
 
 
@@ -2080,7 +2113,7 @@ bool SNIPModel::LoadPostBuildSettings(json& settings)
 
 
 
-int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappingFrac )
+int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappingFrac)
    {
    // read mapping csv
    VDataObj actorProfiles(UNIT_MEASURE::U_UNDEFINED);
@@ -2092,7 +2125,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    // represent the onnection
    int colIDUProfileID = -1;
    this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_AUTOADD);
-  
+
    int colX = actorProfiles.GetCol("POINT_X");
    int colY = actorProfiles.GetCol("POINT_Y");
    int colProfileID = actorProfiles.GetCol("ProfileID");
@@ -2102,12 +2135,13 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    int traitsCount = (int)this->m_traitsLabels.size();
    float* _traits = new float[traitsCount];
    memset(_traits, 0, traitsCount * sizeof(float));  // zero out array
-   
+
    std::set<string> missingTraits;
    int newLACount = 0;
+   int unconnectedLACount = 0;
    int newEdgeCount = 0;
    std::unordered_set<SNNode*> newEngagers;
-
+  
    // go through IDU's bulding network nodes/links for IDU's that pass the mapping query
    for (MapLayer::Iterator idu = pIDULayer->Begin(); idu != pIDULayer->End(); idu++)
       {
@@ -2143,12 +2177,12 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
             // to in-network Engager nodes are built 
             pIDULayer->SetData(idu, colIDUProfileID, closest);
 
-            SNNode* pNode = nullptr;
+            SNNode* pNode = nullptr; // for this IDU
 
             // iterate though the list of traits, comparing to the trait strength in the matched actor profile.
-            // if the trait matches the actor profile, that signals that we want to consider
-            // creating a landscape actor and connecting it to an engager actor matching the trait in the SNIP network.
-            // Note that this implies that one landscape actor can be connected to many engage network nodes.
+            // if the trait matches the actor profile, that signals that we want to creating a landscape actor
+            // and connect it to an engager actor matching the trait in the SNIP network.
+            // Note that this implies that one landscape actor can be connected to many engager network nodes.
             for (auto& trait : this->m_traitsLabels)
                {
                int col = actorProfiles.GetCol(trait.c_str());
@@ -2162,13 +2196,13 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                         {
                         // we want to add a node to our network for this landscape actor
                         CString nname;
-                        nname.Format("LA_%i", idu);
+                        nname.Format("LA_%i", (int)idu);
                         pNode = BuildNode(NT_LANDSCAPE_ACTOR, nname, _traits);
-                        pNode->m_idu = idu;
+                        pNode->m_idu = (int)idu;
                         newLACount++;
                         }
 
-                     // find a network actor + engager that has this trait
+                     // find an engager that has this trait
                      vector<SNNode*> nodes;
                      int ncount = this->FindNodesFromTrait(trait, NT_ENGAGER, 0.2f, nodes);
 
@@ -2177,18 +2211,33 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                         int ri = (int)m_randShuffle.RandValue(0, ncount);
                         SNNode* pNetNode = nodes[ri];   // this is the source node, our LA node is the target
 
-                        int transTime = 1; // ???
-                        float trust = 0.9f;
-                        SNEdge* pEdge = BuildEdge(pNetNode, pNode, transTime, trust, _traits);
-                        newEdgeCount++;
-                        ASSERT(pEdge->Source()->m_nodeType == NT_ENGAGER);
-                        newEngagers.insert(pEdge->Source());
+                        // do we already have a connection to this engager?
+                        bool found = false;
+                        for (int j = 0; j < (int)pNode->m_inEdges.GetSize(); j++)
+                           {
+                           if (pNode->m_inEdges[j] == pNetNode)
+                              {
+                              found = true;
+                              break;
+                              }
+                           }
+
+                        if (!found)
+                           {
+                           int transTime = 1; // ???
+                           float trust = 0.9f;
+                           SNEdge* pEdge = BuildEdge(pNetNode, pNode, transTime, trust, _traits);
+                           newEdgeCount++;
+                           ASSERT(pEdge->Source()->m_nodeType == NT_ENGAGER);
+                           newEngagers.insert(pEdge->Source());
+                           }
                         }
                      else
                         {
-                        CString msg;
-                        msg.Format("  Unable to find engager with trait [%s] to connect to landscape actor %i", trait.c_str(), idu);
-                        Report::LogWarning(msg);
+                        //CString msg;
+                        //msg.Format("  Unable to find engager with trait [%s] to connect to landscape actor %i", trait.c_str(), (int) idu);
+                        //Report::LogWarning(msg);
+                        //nMissingEngagers++;
                         }
                      }
                   }
@@ -2203,6 +2252,18 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                      }
                   }  // end of: else (link>0 == false)
                }  // end of:  for each trait
+
+            // if no engagers found, remove LA node from network
+            if (pNode && pNode->m_inEdges.GetSize() == 0)
+               {
+               newLACount++;
+               unconnectedLACount++;
+               this->m_pSNLayer->RemoveNode(pNode);
+
+
+               }
+
+
             }  // end of: if ( rn < mappingFrac
          }  // end of: if ( ok && result ) - passed query
       }  // end of: for each IDU

@@ -430,6 +430,7 @@ class SNLayer
       int GetNodeCount(void) { return (int)m_nodes.GetSize(); }
       int GetNodeCount(SNIP_NODETYPE type) { int count = 0; for (int i = 0; i < GetNodeCount(); i++) if (m_nodes[i]->m_nodeType == type) count++; return count; }
       int GetOutputNodeCount(void) { return m_outputNodeCount; }
+      bool RemoveNode(SNNode* pNode);
 
       void GetInteriorNodes(CArray< SNNode*, SNNode* >& out);		//
       void GetInteriorNodes(bool active, CArray< SNNode*, SNNode* >& out);

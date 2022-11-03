@@ -78,10 +78,6 @@ TWLDATAFILE ChronicHazards::m_datafile;
 COSTS ChronicHazards::m_costs;
 
 
-// TEMPORARY - THESE ARE BEING MERGED, eventually m_pNewDuneLineLayer will disappear
-#define m_pNewDuneLineLayer m_pDuneLayer
-
-
 
 //=====================================================================================================
 // ChronicHazards
@@ -131,7 +127,7 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    // Roads Layer
    m_pRoadLayer = m_pMap->GetLayer("Roads");
 
-   // Buildings LayerRunero
+   // Buildings Layer
    m_pBldgLayer = m_pMap->GetLayer("Buildings");
    if (m_pBldgLayer != nullptr)
       m_numBldgs = m_pBldgLayer->GetRowCount();
@@ -775,6 +771,7 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    //CheckCol(m_pDuneLayer, m_colDLNorthingCrest, "NORTHNGCR", TYPE_DOUBLE, CC_MUST_EXIST);
    CheckCol(m_pDuneLayer, m_colDLEastingCrest, "EASTNGCR", TYPE_DOUBLE, CC_MUST_EXIST);
    CheckCol(m_pDuneLayer, m_colDLEastingShoreline, "EASTNGSH", TYPE_DOUBLE, CC_AUTOADD);
+   CheckCol(m_pDuneLayer, m_colDLEastingMHW, "EASTNGMHW", TYPE_DOUBLE, CC_MUST_EXIST);
    CheckCol(m_pDuneLayer, m_colDLShorelineChange, "SCR", TYPE_FLOAT, CC_MUST_EXIST);
    CheckCol(m_pDuneLayer, m_colDLBeachType, "BEACHTYPE", TYPE_INT, CC_MUST_EXIST);
    CheckCol(m_pDuneLayer, m_colDLGammaRough, "GAMMAROUGH", TYPE_FLOAT, CC_MUST_EXIST);
@@ -1200,8 +1197,8 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
       ////////   }  // end of: for ( idu < polyCount )
 
                // New Dune line layer starts off as copy of Original with changes of Label and Color
-   //m_pNewDuneLineLayer = m_pMap->CloneLayer(*m_pDuneLayer);
-   //m_pNewDuneLineLayer->m_name = "Active DuneLine";
+   //m_pDuneLayer = m_pMap->CloneLayer(*m_pDuneLayer);
+   //m_pDuneLayer->m_name = "Active DuneLine";
 
   //////// ////////// Change the color of the active dune line
    ////////int colIndex = m_pDuneLayer->GetFieldCol("DUNEINDEX");
@@ -1605,16 +1602,16 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          // These characteristics do not change through the time period of this model
          int duneIndex = -1;
          //int transID = -1;
-         int profileID = -1;
+         //int profileID = -1;
          float shorelineChangeRate = 0.0f;
          float shorelineAngle = 0.0f;
 
          // Get static Duneline characteristics 
          m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIndex);
-         m_pDuneLayer->GetData(point, m_colDLProfileID, profileID);
+         //m_pDuneLayer->GetData(point, m_colDLProfileID, profileID);
          m_pDuneLayer->GetData(point, m_colDLShorelineChange, shorelineChangeRate);
          m_pDuneLayer->GetData(point, m_colDLShorelineAngle, shorelineAngle);
-         //   m_pNewDuneLineLayer->GetData(point, m_colA, A);
+         //   m_pDuneLayer->GetData(point, m_colA, A);
 
          // A is a parameter that governs the overall steepness of the profile
          // varies primarily with grain size or fall velocity
@@ -1637,45 +1634,19 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
          m_pDuneLayer->GetData(point, m_colDLBeachWidth, beachwidth);
 
-         // Accumulated annually 
-         int IDDToeCount = 0;
-         int IDDToeCountWinter = 0;
-         int IDDToeCountSpring = 0;
-         int IDDToeCountSummer = 0;
-         int IDDToeCountFall = 0;
-
-         int IDDCrestCount = 0;
-         int IDDCrestCountWinter = 0;
-         int IDDCrestCountSpring = 0;
-         int IDDCrestCountSummer = 0;
-         int IDDCrestCountFall = 0;
-
-         // Impact days per year on dune toe (note that this is calcualted by the TWL Model)
-         m_pDuneLayer->GetData(point, m_colDLIDDToe, IDDToeCount);
-         m_pDuneLayer->GetData(point, m_colDLIDDToeWinter, IDDToeCountWinter);
-         m_pDuneLayer->GetData(point, m_colDLIDDToeSpring, IDDToeCountSpring);
-         m_pDuneLayer->GetData(point, m_colDLIDDToeSummer, IDDToeCountSummer);
-         m_pDuneLayer->GetData(point, m_colDLIDDToeFall, IDDToeCountFall);
-
-         // Impact days per year on dune crest
-         m_pDuneLayer->GetData(point, m_colDLIDDCrest, IDDCrestCount);
-         m_pDuneLayer->GetData(point, m_colDLIDDCrestWinter, IDDCrestCountWinter);
-         m_pDuneLayer->GetData(point, m_colDLIDDCrestSpring, IDDCrestCountSpring);
-         m_pDuneLayer->GetData(point, m_colDLIDDCrestSummer, IDDCrestCountSummer);
-         m_pDuneLayer->GetData(point, m_colDLIDDCrestFall, IDDCrestCountFall);
-
          // Get Bathymetry Data (cross-shore profile)
-         int profileIndex = m_profileMap[profileID];
-         DDataObj* pBathy = m_BathyDataArray.GetAt(profileIndex);   // zero-based
-         ASSERT(pBathy != nullptr);
-
-         // from the bathymetry data, get the mean high water mark from the bathymetry 
-         int rowMHW = -1;
-         double eastingMHW = IGet(pBathy, MHW, 0, 1, IM_LINEAR, 0, &rowMHW, true);
+         //int profileIndex = m_profileMap[profileID];
+         //DDataObj* pBathy = m_BathyDataArray.GetAt(profileIndex);   // zero-based
+         //ASSERT(pBathy != nullptr);
+         //
+         //// from the bathymetry data, get the mean high water mark from the bathymetry 
+         //int rowMHW = -1;
+         //double eastingMHW = IGet(pBathy, MHW, 0, 1, IM_LINEAR, 0, &rowMHW, true);
+         double eastingMHW = 0;
+         m_pDuneLayer->GetData(point, m_colDLEastingMHW, eastingMHW);
 
          // The foreshore and Bruun Rule slopes are calculated once using the 
          // cross-shore profile at the beginning of the simulation
-
          float BruunRuleSlope = 0;
          float foreshoreSlope = 0;
 
@@ -1686,14 +1657,15 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             // The forehsore slope is used to determine all initial equilibrium profile 
             // characteristics
             int rowtmp = -1;
-
-            double easting2_6 = IGet(pBathy, 2.6, 0, 1, IM_LINEAR, rowMHW, &rowtmp, true);
-            double easting1_6 = IGet(pBathy, 1.6, 0, 1, IM_LINEAR, rowMHW, &rowtmp, false);
-            double distance = (easting2_6 - easting1_6);
-            float foreshoreSlope = 1.0f / float(distance);
-            m_pDuneLayer->SetData(point, m_colDLForeshore, foreshoreSlope);
-            rowtmp = -1;
-            double easting25m = IGet(pBathy, -25, 0, 1, IM_LINEAR, 0, &rowtmp, true);
+            //double easting2_6 = IGet(pBathy, 2.6, 0, 1, IM_LINEAR, rowMHW, &rowtmp, true);
+            //double easting1_6 = IGet(pBathy, 1.6, 0, 1, IM_LINEAR, rowMHW, &rowtmp, false);
+            //double distance = (easting2_6 - easting1_6);
+            //float foreshoreSlope = 1.0f / float(distance);
+            //
+            //m_pDuneLayer->SetData(point, m_colDLForeshore, foreshoreSlope);
+            m_pDuneLayer->GetData(point, m_colDLTranSlope, foreshoreSlope);
+            //rowtmp = -1;
+            //double easting25m = IGet(pBathy, -25, 0, 1, IM_LINEAR, 0, &rowtmp, true);
             // just use foreshore slope (TANB) from Peter (in dune line coverage) instead of above
             // foreshoreSlop- = tanb
 
@@ -1701,13 +1673,16 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             // between the 25m contour and MHW
             // The Bruun Rule slope (shoreface slope) is used to estimate
             // chronic erosion extents
-            distance = (easting25m - eastingMHW);
-            float BruunRuleSlope = (float)((-27.1) / distance);
-            m_pDuneLayer->SetData(point, m_colDLShoreface, BruunRuleSlope);
+            //distance = (easting25m - eastingMHW);
+            //float BruunRuleSlope = (float)((-27.1) / distance);
+            float BruunRuleSlope = 0.008f;
+            //m_pDuneLayer->GetData(point, m_colDLFBruunRuleSlope, BruunRuleSlope);
+
+            //m_pDuneLayer->SetData(point, m_colDLShoreface, BruunRuleSlope);
             }
 
-         m_pNewDuneLineLayer->GetData(point, m_colDLShoreface, BruunRuleSlope);
-         m_pNewDuneLineLayer->GetData(point, m_colDLForeshore, foreshoreSlope);
+         m_pDuneLayer->GetData(point, m_colDLShoreface, BruunRuleSlope);
+         m_pDuneLayer->GetData(point, m_colDLForeshore, foreshoreSlope);
 
          double xCoord = 0.0;
          double yCoord = 0.0;
@@ -1766,11 +1741,13 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          // Need the negative value since profile is water height relative to land
          float nhbl = (float)-hbl;
 
-         int rowHB = -1;
-         double eastingHB = IGet(pBathy, nhbl, 0, 1, IM_LINEAR, rowMHW, &rowHB, false);
+         //int rowHB = -1;
+         //double eastingHB = IGet(pBathy, nhbl, 0, 1, IM_LINEAR, rowMHW, &rowHB, false);
+         double eastingHB = 0;  // ???? from peter
 
          // Calculate the new surf zone width referenced to the MHW
-         double Wb = eastingMHW - eastingHB;
+         //double Wb = eastingMHW - eastingHB;
+         double Wb = 500;   // distance wave's break from shoreline (go back to origninal when we have eastingHB
 
          // Equation 31 
          // Constant storm duration, this could be altered       units: hrs
@@ -1807,19 +1784,21 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          double alpha = 0.5 * (1.0f - cos(2.0 * PI * (tm1 / TD)));
 
          if (isNan<double>(alpha))
-            {
             alpha = 0.02;
-            }
+
          if (alpha > .4)
             alpha = 0.4;
+
          //multiply by alpha to get 
          R_inf_KD *= alpha;
 
          if (isNan<double>(R_inf_KD))
             R_inf_KD = 0;
 
+         // consider adding additional beach types?
          if ((beachType != BchT_SANDY_DUNE_BACKED && beachType != BchT_UNDEFINED) || R_inf_KD < 0)
             R_inf_KD = 0;
+
          // Restrict maximum yearly event-based erosion
          if (R_inf_KD > 25)
             R_inf_KD = 25;
@@ -1828,37 +1807,39 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          float xBruun = 0.0f;
 
          // Bruun Rule Calculation to incorporate SLR into the shoreline change rate
-         if ((pEnvContext->currentYear) > 2010)
+         if (pEnvContext->yearOfRun > 0)
             {
             float prevslr = 0.0f;
-            int year = (pEnvContext->currentYear) - 2010;
+            int year = pEnvContext->yearOfRun;
             m_slrData.Get(0, year, slr);
-            if (pEnvContext->currentYear > 2010)
+            if (pEnvContext->yearOfRun > 0)
                m_slrData.Get(0, year - 1, prevslr);
 
-            float toeRise = slr - prevslr;
+            float toeRise = slr - prevslr;  // change since past year
             if (beachType == BchT_SANDY_DUNE_BACKED)
                {
                // Beach slope and beachwidth remain static as dune erodes landward and equilibrium is reached 
                // while the dune toe elevation rises at the rate of SLR
                if (toeRise > 0.0f)
-                  m_pNewDuneLineLayer->SetData(point, m_colDLDuneToe, (duneToe + toeRise));
+                  m_pDuneLayer->SetData(point, m_colDLDuneToe, (duneToe + toeRise));
                }
 
             // Determine influence of SLR on chronic erosion, characterized using a Bruun rule calculation
             if (toeRise > 0.0f)
-               xBruun = toeRise / BruunRuleSlope;
+               xBruun = toeRise / BruunRuleSlope;    // shoude be stored in dune line
             }
 
          // 
          //////int Loc = 0;
-         //////m_pNewDuneLineLayer->GetData(point, m_colDLLittCell, Loc);
+         //////m_pDuneLayer->GetData(point, m_colDLLittCell, Loc);
 
          // For Hard Protection Structures
          // change the beachwidth and slope to reflect the new shoreline position
          // beach is assumed to narrow at the rate of the total chronic erosion, reflected through 
          // dynamic beach slopes
          // beaches further narrow when maintaining and constructing BPS at a 1:2 slope
+
+         // !!! include additional beach types
          if (beachType == BchT_RIPRAP_BACKED)
             {
             // Need to account for negative shoreline change rate 
@@ -1873,7 +1854,6 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             else
                SCRate = 0.0f;
 
-
             // Negative shoreline change rate narrows beach
             if (xBruun > 0.0f)
                beachwidth = beachwidth - SCRate - xBruun;
@@ -1881,24 +1861,22 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
                beachwidth = beachwidth - SCRate;
 
             if ((duneToe / beachwidth) > 0.1f)
-               {
-               beachwidth = duneToe / 0.1f;
-               }
+               beachwidth = duneToe / 0.1f;     
 
             tanb1 = duneToe / beachwidth;
 
             // Determine a minimum slope for which the
             // beach can erode
 
-            //if (tanb1 > m_slopeThresh)
-            //   tanb1 = m_slopeThresh;
+            if (tanb1 > m_slopeThresh)
+               tanb1 = m_slopeThresh;
 
             // slope is steepened due to beachwidth narrowing
-            m_pNewDuneLineLayer->SetData(point, m_colDLTranSlope, tanb1);
+            m_pDuneLayer->SetData(point, m_colDLTranSlope, tanb1);
 
             // keeping beachwidth static, translate MHW by same amount
-            /*m_pNewDuneLineLayer->GetData(point, m_colEastingMHW, x);
-            m_pNewDuneLineLayer->SetData(point, m_colEastingMHW, x + dx);*/
+            /*m_pDuneLayer->GetData(point, m_colEastingMHW, x);
+            m_pDuneLayer->SetData(point, m_colEastingMHW, x + dx);*/
             }
 
          // Set new position of the Dune toe point
@@ -1927,21 +1905,21 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
                pPoly->InitLogicalPoints(m_pMap);
 
                float x = 0.0f;
-               m_pNewDuneLineLayer->GetData(point, m_colDLEastingToe, x);
-               m_pNewDuneLineLayer->SetData(point, m_colDLEastingToe, x + dx);
-               m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, x);
-               m_pNewDuneLineLayer->SetData(point, m_colDLEastingCrest, x + dx);
+               m_pDuneLayer->GetData(point, m_colDLEastingToe, x);
+               m_pDuneLayer->SetData(point, m_colDLEastingToe, x + dx);
+               m_pDuneLayer->GetData(point, m_colDLEastingCrest, x);
+               m_pDuneLayer->SetData(point, m_colDLEastingCrest, x + dx);
 
                // Translate MHW by same amount
-               /*m_pNewDuneLineLayer->GetData(point, m_colEastingMHW, x);
-               m_pNewDuneLineLayer->SetData(point, m_colEastingMHW, x + dx);*/
+               /*m_pDuneLayer->GetData(point, m_colEastingMHW, x);
+               m_pDuneLayer->SetData(point, m_colEastingMHW, x + dx);*/
 
                //convert northing and easting to longitude and latitude for csv display (
-               SetDuneToeUTM2LL(m_pNewDuneLineLayer, point);
+               SetDuneToeUTM2LL(m_pDuneLayer, point);
 
                /*float xc = 0.0f;
-               m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, xc);
-               m_pNewDuneLineLayer->SetData(point, m_colDLEastingCrest, xc + dx);*/
+               m_pDuneLayer->GetData(point, m_colDLEastingCrest, xc);
+               m_pDuneLayer->SetData(point, m_colDLEastingCrest, xc + dx);*/
                }
             }
 
@@ -1949,13 +1927,40 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          /////else if (beachType == BchT_RIPRAP_BACKED)
          /////   {
          /////   float BPSCost;
-         /////   m_pNewDuneLineLayer->GetData(point, m_colDLCostBPS, BPSCost);
+         /////   m_pDuneLayer->GetData(point, m_colDLCostBPS, BPSCost);
          /////   m_maintCostBPS += BPSCost * m_costs.BPSMaint;
          /////   }
 
          //float Ero = (float)R_inf_KD;
 
-         int yr = pEnvContext->yearOfRun;
+         // Accumulated annually 
+         int IDDToeCount = 0;
+         int IDDToeCountWinter = 0;
+         int IDDToeCountSpring = 0;
+         int IDDToeCountSummer = 0;
+         int IDDToeCountFall = 0;
+
+         int IDDCrestCount = 0;
+         int IDDCrestCountWinter = 0;
+         int IDDCrestCountSpring = 0;
+         int IDDCrestCountSummer = 0;
+         int IDDCrestCountFall = 0;
+
+         // Impact days per year on dune toe (note that this is calcualted by the TWL Model)
+         m_pDuneLayer->GetData(point, m_colDLIDDToe, IDDToeCount);
+         m_pDuneLayer->GetData(point, m_colDLIDDToeWinter, IDDToeCountWinter);
+         m_pDuneLayer->GetData(point, m_colDLIDDToeSpring, IDDToeCountSpring);
+         m_pDuneLayer->GetData(point, m_colDLIDDToeSummer, IDDToeCountSummer);
+         m_pDuneLayer->GetData(point, m_colDLIDDToeFall, IDDToeCountFall);
+
+         // Impact days per year on dune crest
+         m_pDuneLayer->GetData(point, m_colDLIDDCrest, IDDCrestCount);
+         m_pDuneLayer->GetData(point, m_colDLIDDCrestWinter, IDDCrestCountWinter);
+         m_pDuneLayer->GetData(point, m_colDLIDDCrestSpring, IDDCrestCountSpring);
+         m_pDuneLayer->GetData(point, m_colDLIDDCrestSummer, IDDCrestCountSummer);
+         m_pDuneLayer->GetData(point, m_colDLIDDCrestFall, IDDCrestCountFall);
+
+
 
          MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(point);
          ipdyMovingWindow->AddValue((float)(IDDToeCount + IDDCrestCount));
@@ -1964,25 +1969,25 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          ///// if (m_debug)
          /////    {
          /////    int totalIDPY = 0;
-         /////    m_pNewDuneLineLayer->GetData(point, m_colNumIDPY, totalIDPY);
+         /////    m_pDuneLayer->GetData(point, m_colNumIDPY, totalIDPY);
          /////    totalIDPY += (IDDToeCount + IDDCrestCount);
-         /////    m_pNewDuneLineLayer->SetData(point, m_colNumIDPY, totalIDPY);
+         /////    m_pDuneLayer->SetData(point, m_colNumIDPY, totalIDPY);
          /////    }
 
 
          // Retrieve the average imapact days per year within the designated window
          float movingAvgIDPY = ipdyMovingWindow->GetAvgValue();
-         m_pNewDuneLineLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
+         m_pDuneLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
 
          MovingWindow* twlMovingWindow = m_TWLArray.GetAt(point);
          twlMovingWindow->AddValue(yrMaxTWL);
          // Retrieve the maxmum TWL within the designated window
          float movingMaxTWL = twlMovingWindow->GetMaxValue();
-         m_pNewDuneLineLayer->SetData(point, m_colDLMvMaxTWL, movingMaxTWL);
+         m_pDuneLayer->SetData(point, m_colDLMvMaxTWL, movingMaxTWL);
 
          // Retrieve the average TWL within the designated window
          float movingAvgTWL = twlMovingWindow->GetAvgValue();
-         m_pNewDuneLineLayer->SetData(point, m_colDLMvAvgTWL, movingAvgTWL);
+         m_pDuneLayer->SetData(point, m_colDLMvAvgTWL, movingAvgTWL);
 
          MovingWindow* eroKDMovingWindow = m_eroKDArray.GetAt(point);
          eroKDMovingWindow->AddValue((float)R_inf_KD);
@@ -2023,26 +2028,26 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          //////   }
 
 
-         // m_hardenedShoreline = (percentArmored / float(shorelineLength)) * 100;
-         // m_pNewDuneLineLayer->m_readOnly = false;
+         //m_hardenedShoreline = (percentArmored / float(shorelineLength)) * 100;
+         m_pDuneLayer->m_readOnly = false;
 
-         //         m_pNewDuneLineLayer->SetData(point, m_colAvgDuneT, avgduneTArray[ duneIndex ]);
-         //         m_pNewDuneLineLayer->SetData(point, m_colAvgDuneC, avgduneCArray[ duneIndex ]);
-         //         m_pNewDuneLineLayer->SetData(point, m_colAvgEro, avgEroArray[ duneIndex ]);
-         //         m_pNewDuneLineLayer->SetData(point, m_colCPolicyL, 0);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLBchAccess, beachAccess);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLBchAccessWinter, beachAccessWinter);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLBchAccessSpring, beachAccessSpring);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLBchAccessSummer, beachAccessSummer);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLBchAccessFall, beachAccessFall);
+         //         m_pDuneLayer->SetData(point, m_colAvgDuneT, avgduneTArray[ duneIndex ]);
+         //         m_pDuneLayer->SetData(point, m_colAvgDuneC, avgduneCArray[ duneIndex ]);
+         //         m_pDuneLayer->SetData(point, m_colAvgEro, avgEroArray[ duneIndex ]);
+         //         m_pDuneLayer->SetData(point, m_colCPolicyL, 0);
+         /////// m_pDuneLayer->SetData(point, m_colDLBchAccess, beachAccess);
+         /////// m_pDuneLayer->SetData(point, m_colDLBchAccessWinter, beachAccessWinter);
+         /////// m_pDuneLayer->SetData(point, m_colDLBchAccessSpring, beachAccessSpring);
+         /////// m_pDuneLayer->SetData(point, m_colDLBchAccessSummer, beachAccessSummer);
+         /////// m_pDuneLayer->SetData(point, m_colDLBchAccessFall, beachAccessFall);
          /////// 
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLWb, Wb);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLTS, TS);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLHb, Hb);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLKD, R_inf_KD);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLAlpha, alpha);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLShorelineChange, shorelineChangeRate);
-         /////// m_pNewDuneLineLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+         /////// m_pDuneLayer->SetData(point, m_colDLWb, Wb);
+         /////// m_pDuneLayer->SetData(point, m_colDLTS, TS);
+         /////// m_pDuneLayer->SetData(point, m_colDLHb, Hb);
+         /////// m_pDuneLayer->SetData(point, m_colDLKD, R_inf_KD);
+         /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
+         /////// m_pDuneLayer->SetData(point, m_colDLShorelineChange, shorelineChangeRate);
+         /////// m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
 
          } // end erosion calculation
       } // end dune line points
@@ -2402,12 +2407,12 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
          if (beachType == BchT_BAY && m_pBayTraceLayer != nullptr)
             {
             // get twl of inlet seed point
-            m_pNewDuneLineLayer->GetData(point, m_colDLYrFMaxTWL, yearlyMaxTWL);
+            m_pDuneLayer->GetData(point, m_colDLYrFMaxTWL, yearlyMaxTWL);
 
             //if (pEnvContext->yearOfRun < m_windowLengthTWL - 1)
-            //   m_pNewDuneLineLayer->GetData(point, m_colYrAvgTWL, yearlyMaxTWL);
+            //   m_pDuneLayer->GetData(point, m_colYrAvgTWL, yearlyMaxTWL);
             //else
-            //   m_pNewDuneLineLayer->GetData(point, m_colMvMaxTWL, yearlyMaxTWL);
+            //   m_pDuneLayer->GetData(point, m_colMvMaxTWL, yearlyMaxTWL);
 
                // traversing along bay shoreline, determine if twl is more than the elevation 
 
@@ -2451,23 +2456,23 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
             } // end bay inlet flooding 
          else if (beachType != BchT_UNDEFINED && beachType != BchT_RIVER)
             {
-            m_pNewDuneLineLayer->GetData(point, m_colDLDuneCrest, duneCrest);
-            //m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, xCoord);
-            //m_pNewDuneLineLayer->GetData(point, m_colNorthingCrest, yCoord);
+            m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
+            //m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
+            //m_pDuneLayer->GetData(point, m_colNorthingCrest, yCoord);
 
               // use Northing location of Dune Toe and Easting location of the Dune Crest
             m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
-            m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, xCoord);
+            m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
 
             m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
-            m_pNewDuneLineLayer->GetData(point, m_colDLYrFMaxTWL, yearlyMaxTWL);
+            m_pDuneLayer->GetData(point, m_colDLYrFMaxTWL, yearlyMaxTWL);
             //yearlyMaxTWL -= 0.23f;
 
             // Limit flooding to swl + setup for dune backed beaches (no swash)
             float swl = 0.0;
-            m_pNewDuneLineLayer->GetData(point, m_colDLYrMaxSWL, swl);
+            m_pDuneLayer->GetData(point, m_colDLYrMaxSWL, swl);
             float eta = 0.0;
-            m_pNewDuneLineLayer->GetData(point, m_colDLYrMaxSetup, eta);
+            m_pDuneLayer->GetData(point, m_colDLYrMaxSetup, eta);
             float STK_IG = 0.0;
 
             yearlyMaxTWL = swl + 1.1f * (eta + STK_IG / 2.0f);
@@ -2513,9 +2518,9 @@ bool ChronicHazards::RunEelgrassModel(EnvContext* pEnvContext)
    //////   float avgSWL = 0.0f;
    //////   float avgLowSWL = 0.0f;
    //////
-   //////   MapLayer::Iterator pt = m_pNewDuneLineLayer->Begin();
-   //////   m_pNewDuneLineLayer->GetData(pt, m_colYrAvgSWL, avgSWL);
-   //////   m_pNewDuneLineLayer->GetData(pt, m_colYrAvgLowSWL, avgLowSWL);
+   //////   MapLayer::Iterator pt = m_pDuneLayer->Begin();
+   //////   m_pDuneLayer->GetData(pt, m_colYrAvgSWL, avgSWL);
+   //////   m_pDuneLayer->GetData(pt, m_colYrAvgLowSWL, avgLowSWL);
    //////
    //////   float avgWL = (avgSWL + avgLowSWL) / 2.0f;
    //////
@@ -2554,7 +2559,7 @@ bool ChronicHazards::RunEelgrassModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
    {
-   // Get new IDUBuildingsLkUp every year !!!!!!
+   // Get new IDUBuildingsLkUp every year !
    m_pIduBuildingLkUp->BuildIndex();
 
    for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
@@ -3694,13 +3699,13 @@ bool ChronicHazards::ResetAnnualBudget()
    ///////
    ///////   //clock_t start = clock();
    ///////
-   ///////   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   ///////   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
    ///////      {
    ///////      int beachType = 0;
-   ///////      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+   ///////      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
    ///////
    ///////      int duneIndex = -1;
-   ///////      m_pNewDuneLineLayer->GetData(point, m_colDLDuneIndex, duneIndex);
+   ///////      m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIndex);
    ///////
    ///////      REAL xCoord = 0.0;
    ///////      REAL yCoord = 0.0;
@@ -3715,12 +3720,12 @@ bool ChronicHazards::ResetAnnualBudget()
    ///////      if (beachType == BchT_BAY)
    ///////         {
    ///////         // get twl of inlet seed point
-   ///////         m_pNewDuneLineLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
+   ///////         m_pDuneLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
    ///////
    ///////         //if (pEnvContext->yearOfRun < m_windowLengthTWL - 1)
-   ///////         //   m_pNewDuneLineLayer->GetData(point, m_colYrAvgTWL, yearlyMaxTWL);
+   ///////         //   m_pDuneLayer->GetData(point, m_colYrAvgTWL, yearlyMaxTWL);
    ///////         //else
-   ///////         //   m_pNewDuneLineLayer->GetData(point, m_colMvMaxTWL, yearlyMaxTWL);
+   ///////         //   m_pDuneLayer->GetData(point, m_colMvMaxTWL, yearlyMaxTWL);
    ///////
    ///////            // traversing along bay shoreline, determine if twl is more than the elevation 
    ///////
@@ -3784,23 +3789,23 @@ bool ChronicHazards::ResetAnnualBudget()
    ///////         } // end bay inlet flooding 
    ///////      else if (beachType != BchT_UNDEFINED && beachType != BchT_RIVER)
    ///////         {
-   ///////         m_pNewDuneLineLayer->GetData(point, m_colDLDuneCrest, duneCrest);
-   ///////         //m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, xCoord);
-   ///////         //m_pNewDuneLineLayer->GetData(point, m_colNorthingCrest, yCoord);
+   ///////         m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
+   ///////         //m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
+   ///////         //m_pDuneLayer->GetData(point, m_colNorthingCrest, yCoord);
    ///////
    ///////           // use Northing location of Dune Toe and Easting location of the Dune Crest
    ///////         m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
-   ///////         m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, xCoord);
+   ///////         m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
    ///////
    ///////         m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
-   ///////         m_pNewDuneLineLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
+   ///////         m_pDuneLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
    ///////         //yearlyMaxTWL -= 0.23f;
    ///////
    ///////         // Limit flooding to swl + setup for dune backed beaches (no swash)
    ///////         float swl = 0.0;
-   ///////         m_pNewDuneLineLayer->GetData(point, m_colYrMaxSWL, swl);
+   ///////         m_pDuneLayer->GetData(point, m_colYrMaxSWL, swl);
    ///////         float eta = 0.0;
-   ///////         m_pNewDuneLineLayer->GetData(point, m_colYrMaxSetup, eta);
+   ///////         m_pDuneLayer->GetData(point, m_colYrMaxSetup, eta);
    ///////         float STK_IG = 0.0;
    ///////
    ///////         yearlyMaxTWL = swl + 1.1f*(eta + STK_IG / 2.0f);
@@ -3906,7 +3911,7 @@ bool ChronicHazards::ResetAnnualBudget()
    ///////   //         m_pIDULayer->SetData(polyIndexs[idu], m_colFlooded, (int)isFlooded);
    ///////   //         //   if (pEnvContext->yearOfRun >= m_avgTime)
    ///////   //         //{
-   ///////   //         //m_pNewDuneLineLayer->SetData(polyIndexs[idu], m_colFloodFreq, m_floodFreq.GetValue() * m_avgTime);
+   ///////   //         //m_pDuneLayer->SetData(polyIndexs[idu], m_colFloodFreq, m_floodFreq.GetValue() * m_avgTime);
    ///////   //         //}
    ///////
    ///////   //         //Number of buildings that are flooded
@@ -4207,7 +4212,7 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
 
    INT_PTR ptrArrayIndex = 0;
 
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       REAL xCoord = 0.0;
       REAL yCoord = 0.0;
@@ -4222,10 +4227,10 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
       float eventErosion = 0.0f;
       float shorelineChange = 0.0f;
 
-      m_pNewDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
+      m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
       m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
 
-      m_pNewDuneLineLayer->GetData(point, m_colDLKD, eventErosion);
+      m_pDuneLayer->GetData(point, m_colDLKD, eventErosion);
       float totalErosion = eventErosion + shorelineChange;
       //
       MovingWindow* eroKDMovingWindow = m_eroKDArray.GetAt(point);
@@ -4233,7 +4238,7 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
       float eroKD2yrExtent = eroKDMovingWindow->GetAvgValue();
       REAL xAvgKD = xCoord + eroKD2yrExtent;
 
-      m_pNewDuneLineLayer->SetData(point, m_colDLAvgKD, eroKD2yrExtent);
+      m_pDuneLayer->SetData(point, m_colDLAvgKD, eroKD2yrExtent);
 
       REAL endXCoord = xCoord + totalErosion;
       int numRows = m_pErodedGrid->GetRowCount();
@@ -4243,7 +4248,7 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
          {
          if ((row >= 0 && row < numRows) && (col >= 0 && col < numCols))
             {
-            m_pNewDuneLineLayer->SetData(point, m_colDLXAvgKD, xAvgKD);
+            m_pDuneLayer->SetData(point, m_colDLXAvgKD, xAvgKD);
 
             m_pErodedGrid->SetData(row, col, 1);
             erodedCount++;
@@ -4254,7 +4259,7 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
             xCoord = endXCoord;
          }
 
-      m_pNewDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
+      m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
       m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
 
       m_pDuneLayer->GetPointCoords(point, xStartCoord, yCoord);
@@ -4347,10 +4352,10 @@ void ChronicHazards::ComputeBuildingStatistics()
          if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
             {
             //// Determine if building has been eroded by Bruun erosion
-            //for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+            //for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
             //{
             //   int duneBldgIndex = -1;
-            //   m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
+            //   m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
 
             //   CArray<int, int> iduIndices;
 
@@ -4358,7 +4363,7 @@ void ChronicHazards::ComputeBuildingStatistics()
             //   {
             //      double xDunePt = 0.0f;
             //      double yDunePt = 0.0f;
-            //      m_pNewDuneLineLayer->GetPointCoords(point, xDunePt, yDunePt);
+            //      m_pDuneLayer->GetPointCoords(point, xDunePt, yDunePt);
             //      if (xDunePt >= xCoord)
             //      {
             //         m_pBldgLayer->SetData(bldg, m_colBldgEroded, 1);
@@ -4537,7 +4542,7 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
    {
    //if (m_pFloodedGrid != nullptr)
    //{
-   //   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   //   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
    //   {
    //      double xCoord = 0.0f;
    //      double yCoord = 0.0f;
@@ -4547,7 +4552,7 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
    //      int startRow = -1;
    //      int startCol = -1;
 
-   //      m_pNewDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
+   //      m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
    //      m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
 
    //      // within grid ?
@@ -4558,7 +4563,7 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
 
    //         if (isFlooded)
    //         {
-   //            m_pNewDuneLineLayer->SetData(point, m_colFlooded, flooded);
+   //            m_pDuneLayer->SetData(point, m_colFlooded, flooded);
    //         }
    //      }
    //   }
@@ -4570,15 +4575,15 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
    int m = 0;
    int m_old = 0;
 
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       int beachType = -1;
-      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
 
       if (beachType == BchT_RIPRAP_BACKED)
          {
          int yrAdded = 0;
-         m_pNewDuneLineLayer->GetData(point, m_colDLAddYearBPS, yrAdded);
+         m_pDuneLayer->GetData(point, m_colDLAddYearBPS, yrAdded);
          // count added this year
          if (yrAdded == currentYear)
             n++;
@@ -4590,7 +4595,7 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
       else if (beachType == BchT_SANDY_DUNE_BACKED)
          {
          int yrAdded = 0;
-         m_pNewDuneLineLayer->GetData(point, m_colDLAddYearSPS, yrAdded);
+         m_pDuneLayer->GetData(point, m_colDLAddYearSPS, yrAdded);
          // count added this year
          if (yrAdded == currentYear)
             m++;
@@ -4930,16 +4935,16 @@ void ChronicHazards::ComputeInfraStatistics()
             }
 
          // Determine if infrastructure has been eroded by Bruun erosion
-         for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+         for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
             {
             int duneIndex = -1;
-            m_pNewDuneLineLayer->GetData(point, m_colDLDuneIndex, duneIndex);
+            m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIndex);
 
             if (infraIndex == duneIndex)
                {
                REAL xDunePt = 0.0;
                REAL yDunePt = 0.0;
-               m_pNewDuneLineLayer->GetPointCoords(point, xDunePt, yDunePt);
+               m_pDuneLayer->GetPointCoords(point, xDunePt, yDunePt);
                if (xDunePt >= xCoord)
                   {
                   m_pInfraLayer->SetData(infra, m_colInfraEroded, 1);
@@ -5012,7 +5017,7 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
         //      mkdir(duneCSVFilePath, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
         //#endif
         //      duneCSVFilePath.Append(duneCSVFile);
-        //      ok = m_pNewDuneLineLayer->SaveDataAscii(duneCSVFilePath, false, true);
+        //      ok = m_pDuneLayer->SaveDataAscii(duneCSVFilePath, false, true);
         //      ok = 1;
         //      if (ok > 0)
         //         {
@@ -5163,10 +5168,10 @@ bool ChronicHazards::FindProtectedBldgs()
          }
 
       // Determine what building Dune Pts are protecting 
-      for (MapLayer::Iterator dunePt = m_pNewDuneLineLayer->Begin(); dunePt < m_pNewDuneLineLayer->End(); dunePt++)
+      for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
          {
          int beachType = -1;
-         m_pNewDuneLineLayer->GetData(dunePt, m_colDLBeachType, beachType);
+         m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
 
          int tst = dunePt;
 
@@ -5174,38 +5179,38 @@ bool ChronicHazards::FindProtectedBldgs()
          if (beachType != BchT_BAY || beachType != BchT_RIVER || beachType != BchT_UNDEFINED)
             {
             double northing = 0.0;
-            m_pNewDuneLineLayer->GetData(dunePt, m_colDLNorthing, northing);
+            m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
 
             int duneIndex = -1;
-            m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
+            m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
 
             REAL xDunePt = 0.0;
             REAL yDunePt = 0.0;
-            m_pNewDuneLineLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+            m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
 
             if (northing < northingTop && northing > northingBtm)
                {
                float distance = (float)sqrt((xBldg - xDunePt) * (xBldg - xDunePt) + (yBldg - yDunePt) * (yBldg - yDunePt));
 
                int bldgIndex = -1;
-               m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneBldgIndex, bldgIndex);
+               m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgIndex, bldgIndex);
 
 
                if (distance <= m_minDistToProtecteBldg)
                   {
                   if (bldgIndex == -1)
                      {
-                     m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
-                     m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
+                     m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
+                     m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
                      }
                   else
                      {
                      float distanceBtwn = 0.0f;
-                     m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneBldgDist, distanceBtwn);
+                     m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgDist, distanceBtwn);
                      if (distance < distanceBtwn)
                         {
-                        m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
-                        m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
+                        m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
+                        m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
                         }
                      }
                   }
@@ -5247,10 +5252,10 @@ bool ChronicHazards::FindProtectedBldgs()
    //   }
 
    //   // Determine what building Dune Pts are protecting 
-   //   for (MapLayer::Iterator dunePt = m_pNewDuneLineLayer->Begin(); dunePt < m_pNewDuneLineLayer->End(); dunePt++)
+   //   for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
    //   {
    //      int beachType = -1;
-   //      m_pNewDuneLineLayer->GetData(dunePt, m_colDLBeachType, beachType);
+   //      m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
 
    //      int tst = dunePt;
 
@@ -5258,35 +5263,35 @@ bool ChronicHazards::FindProtectedBldgs()
    //      if (beachType != BchT_BAY || beachType != BchT_RIVER || beachType != BchT_UNDEFINED)
    //      {
    //         double northing = 0.0;
-   //         m_pNewDuneLineLayer->GetData(dunePt, m_colDLNorthing, northing);
+   //         m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
 
    //         int duneIndex = -1;
-   //         m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
+   //         m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
 
    //         double xDunePt = 0.0;
    //         double yDunePt = 0.0;
-   //         m_pNewDuneLineLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+   //         m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
 
    //         if (northing < northingTop && northing > northingBtm)
    //         {
    //            float distance = sqrt((xinfra - xDunePt) * (xinfra - xDunePt) + (yinfra - yDunePt) * (yinfra - yDunePt));
 
    //            int infraIndex = -1;
-   //            m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneInfraIndex, infraIndex);
+   //            m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraIndex, infraIndex);
 
    //            if (infraIndex == -1)
    //            {
-   //               m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
-   //               m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
+   //               m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
+   //               m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
    //            }
    //            else
    //            {
    //               float distanceBtwn = 0.0DLf;
-   //               m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneInfraDist, distanceBtwn);
+   //               m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraDist, distanceBtwn);
    //               if (distance < distanceBtwn)
    //               {
-   //                  m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
-   //                  m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
+   //                  m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
+   //                  m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
    //               }
    //            }
    //         }
@@ -5341,20 +5346,20 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
    //         double yBldg = 0.0;
    //         m_pBldgLayer->GetPointCoords(bldg, xBldg, yBldg);
    //
-   //         for (MapLayer::Iterator dunePt = m_pNewDuneLineLayer->Begin(); dunePt < m_pNewDuneLineLayer->End(); dunePt++)
+   //         for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
    //         {
    //            int beachType = -1;
-   //            m_pNewDuneLineLayer->GetData(dunePt, m_colDLBeachType, beachType);
+   //            m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
    //
    //            // only assign 
    //            if (beachType != BchT_BAY || beachType != BchT_RIVER || beachType != BchT_UNDEFINED)
    //            {
    //               double xDunePt = 0.0;
    //               double yDunePt = 0.0;
-   //               m_pNewDuneLineLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+   //               m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
    //
    //               int index = -1;
-   //               m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneIndex, index);
+   //               m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, index);
    //
    //               // Find closest dune point
    //               float distanceBtwn = sqrt((xBldg - xDunePt) * (xBldg - xDunePt)); // + (yBldg - yDunePt) * (yBldg - yDunePt));
@@ -5371,14 +5376,14 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
    //   }
 
    // Determine if Dune Pt is protecting building
-   //for (MapLayer::Iterator dunePt = m_pNewDuneLineLayer->Begin(); dunePt < m_pNewDuneLineLayer->End(); dunePt++)
+   //for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
    //{
    //   int duneIndex = -1;
 
    //   float minDistance = 1000000.0f;
    //   int bldgIndex = -1;
 
-   //   m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
+   //   m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
 
    //   for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
    //   {
@@ -5397,7 +5402,7 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
    //   }
 
    //   // ?? want to put both bldgIndex and iduIndex in the dune coverage
-   //   m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldgIndex);
+   //   m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldgIndex);
    //}s
 
 
@@ -5418,20 +5423,20 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
          float distance = 100000.0f;
          int duneIndex = -1;
 
-         for (MapLayer::Iterator dunePt = m_pNewDuneLineLayer->Begin(); dunePt < m_pNewDuneLineLayer->End(); dunePt++)
+         for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
             {
             int beachType = -1;
-            m_pNewDuneLineLayer->GetData(dunePt, m_colDLBeachType, beachType);
+            m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
 
             // only assign 
             if (beachType != BchT_BAY || beachType != BchT_RIVER || beachType != BchT_UNDEFINED)
                {
                REAL xDunePt = 0.0;
                REAL yDunePt = 0.0;
-               m_pNewDuneLineLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+               m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
 
                int index = -1;
-               m_pNewDuneLineLayer->GetData(dunePt, m_colDLDuneIndex, index);
+               m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, index);
                // Find closest dune point
                float distanceBtwn = (float)sqrt((xInfra - xDunePt) * (xInfra - xDunePt) + (yInfra - yDunePt) * (yInfra - yDunePt));
                if (distanceBtwn < distance)
@@ -5446,14 +5451,14 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
       }
 
    // Determine if Dune Pt is protecting building
-   /*for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   /*for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
    {
    double xCoord = 0.0;
    double yCoord = 0.0;
-   m_pNewDuneLineLayer->GetPointCoords(point, xCoord, yCoord);
+   m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
 
    int bldgCount = 0;
-   m_pNewDuneLineLayer->GetData(point, m_colNumBldgs, bldgCount);
+   m_pDuneLayer->GetData(point, m_colNumBldgs, bldgCount);
 
    for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
    {
@@ -5466,7 +5471,7 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
    float dy = yBldg - yCoord;
 
    if (dx + dy <= m_radiusOfErosion || (dx*dx + dy*dy < m_radiusOfErosion*m_radiusOfErosion) )
-   m_pNewDuneLineLayer->SetData(point, m_colNumBldgs, ++bldgCount);
+   m_pDuneLayer->SetData(point, m_colNumBldgs, ++bldgCount);
    }
 
    for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
@@ -5480,7 +5485,7 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
    float dy = yInfrastructure - yCoord;
 
    if (dx + dy <= m_radiusOfErosion || (dx*dx + dy*dy < m_radiusOfErosion*m_radiusOfErosion) )
-   m_pNewDuneLineLayer->SetData(point, m_colNumBldgs, ++bldgCount);
+   m_pDuneLayer->SetData(point, m_colNumBldgs, ++bldgCount);
    }
    }*/
    return true;
@@ -5518,8 +5523,8 @@ bool ChronicHazards::IsBldgImpactedByEErosion(int bldg, float avgEro, float dist
    REAL xPt = 0.0;
    REAL yPt = 0.0;
 
-   m_pNewDuneLineLayer->GetPointCoords(pt, xPt, yPt);
-   m_pNewDuneLineLayer->GetData(pt, m_colDLDuneBldgDist, distance);*/
+   m_pDuneLayer->GetPointCoords(pt, xPt, yPt);
+   m_pDuneLayer->GetData(pt, m_colDLDuneBldgDist, distance);*/
 
    if (avgEro >= (distToBldg - m_radiusOfErosion))
       flag2 = true;
@@ -5528,8 +5533,8 @@ bool ChronicHazards::IsBldgImpactedByEErosion(int bldg, float avgEro, float dist
    /*
    if ((xAvgEro + m_radiusOfErosion) >= xBldg)
    {
-   m_pNewDuneLineLayer->SetData(pt, m_colDuneBldgEast, xBldg);
-   m_pNewDuneLineLayer->SetData(pt, m_colDLDuneBldgIndex2, bldg);
+   m_pDuneLayer->SetData(pt, m_colDuneBldgEast, xBldg);
+   m_pDuneLayer->SetData(pt, m_colDLDuneBldgIndex2, bldg);
    flag2 = true;
    }*/
 
@@ -5542,10 +5547,10 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
    {
    REAL xCoord = 0.0;
    REAL yCoord = 0.0;
-   m_pNewDuneLineLayer->GetPointCoords(pt, xCoord, yCoord);
+   m_pDuneLayer->GetPointCoords(pt, xCoord, yCoord);
 
    int beachType = -1;
-   m_pNewDuneLineLayer->GetData(pt, m_colDLBeachType, beachType);
+   m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
 
    // Determine BPS end effects north
    if (north)
@@ -5556,10 +5561,10 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
          REAL excessErosion = -(r / s) * (yCoord - yCoord_s);
 
          double eastingToe = 0.0;
-         m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+         m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
          eastingToe += excessErosion;
 
-         Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+         Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
          if (pPoly->GetVertexCount() > 0)
             {
             pPoly->m_vertexArray[0].x = eastingToe;
@@ -5567,8 +5572,8 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
             }
 
          pt++;
-         m_pNewDuneLineLayer->GetPointCoords(pt, xCoord, yCoord);
-         m_pNewDuneLineLayer->GetData(pt, m_colDLBeachType, beachType);
+         m_pDuneLayer->GetPointCoords(pt, xCoord, yCoord);
+         m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
          }
       } // end north
    else
@@ -5579,10 +5584,10 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
          REAL excessErosion = (r / s) * (yCoord - yCoord_s);
 
          double eastingToe = 0.0;
-         m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+         m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
          eastingToe += excessErosion;
 
-         Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+         Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
          if (pPoly->GetVertexCount() > 0)
             {
             pPoly->m_vertexArray[0].x = eastingToe;
@@ -5590,8 +5595,8 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
             }
 
          pt--;
-         m_pNewDuneLineLayer->GetPointCoords(pt, xCoord, yCoord);
-         m_pNewDuneLineLayer->GetData(pt, m_colDLBeachType, beachType);
+         m_pDuneLayer->GetPointCoords(pt, xCoord, yCoord);
+         m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
          }
       } // end south
 
@@ -5601,7 +5606,7 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
 bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& minToePoint, MapLayer::Iterator& minDistPoint, MapLayer::Iterator& maxTWLPoint)
    {
    int duneBldgIndex = -1;
-   m_pNewDuneLineLayer->GetData(startPoint, m_colDLDuneBldgIndex, duneBldgIndex);
+   m_pDuneLayer->GetData(startPoint, m_colDLDuneBldgIndex, duneBldgIndex);
 
    bool construct = false;
 
@@ -5615,7 +5620,7 @@ bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
       {
       MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
       float eroFreq = eroMovingWindow->GetFreqValue();
-      m_pNewDuneLineLayer->SetData(startPoint, m_colDLDuneEroFreq, eroFreq);
+      m_pDuneLayer->SetData(startPoint, m_colDLDuneEroFreq, eroFreq);
 
       int nextBldgIndex = duneBldgIndex;
       float buildBPSThreshold = m_idpyFactor * 365.0f;
@@ -5625,25 +5630,25 @@ bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
       float minDistToBldg = 10000.0f;
       float maxTWL = 0.0f;
 
-      while (duneBldgIndex == nextBldgIndex && endPoint < m_pNewDuneLineLayer->End())
+      while (duneBldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
          {
          int beachType = -1;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLBeachType, beachType);
+         m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
 
          if (beachType == BchT_SANDY_DUNE_BACKED)
             {
             MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(endPoint);
 
             float movingAvgIDPY = 0.0f;
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
+            m_pDuneLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
 
             float xAvgKD = 0.0f;
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
+            m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
 
             float avgKD = 0.0f;
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
+            m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
             float distToBldg = 0.0f;
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
+            m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
 
             bool isImpactedByEErosion = false;
             isImpactedByEErosion = IsBldgImpactedByEErosion(nextBldgIndex, avgKD, distToBldg);
@@ -5658,7 +5663,7 @@ bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
                float movingMaxTWL = twlMovingWindow->GetMaxValue();
 
                float duneCrest = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneCrest, duneCrest);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, duneCrest);
 
                // Find dune point with highest overtopping
                if (maxAmtTop >= 0.0f && (movingMaxTWL - duneCrest) > maxAmtTop)
@@ -5670,7 +5675,7 @@ bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
 
                // Find dune point with minimum elevation
                float duneToe = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
                if (minDuneToe <= duneToe)
                   {
                   minDuneToe = duneToe;
@@ -5679,7 +5684,7 @@ bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
 
                // Find dune point closest to the protected building
                float distToBldg = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
                if (minDistToBldg <= distToBldg)
                   {
                   minDistToBldg = distToBldg;
@@ -5689,8 +5694,8 @@ bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
             }
 
          endPoint++;
-         if (endPoint < m_pNewDuneLineLayer->End())
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+         if (endPoint < m_pDuneLayer->End())
+            m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
          }
 
       } // end protecting building
@@ -5717,7 +5722,7 @@ bool ChronicHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, Ma
    bool rebuild = false;
 
    int builtYear = 0;
-   m_pNewDuneLineLayer->GetData(startPoint, m_colDLAddYearSPS, builtYear);
+   m_pDuneLayer->GetData(startPoint, m_colDLAddYearSPS, builtYear);
 
    int yr = builtYear;
 
@@ -5729,24 +5734,24 @@ bool ChronicHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, Ma
 
    while (yr > 0 && yr == builtYear)
       {
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLEastingToe, eastingToe);
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLEastingToeSPS, eastingToeSPS);
+      m_pDuneLayer->GetData(endPoint, m_colDLEastingToe, eastingToe);
+      m_pDuneLayer->GetData(endPoint, m_colDLEastingToeSPS, eastingToeSPS);
 
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLTopWidthSPS, topWidth);
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLHeelWidthSPS, heelWidth);
+      m_pDuneLayer->GetData(endPoint, m_colDLTopWidthSPS, topWidth);
+      m_pDuneLayer->GetData(endPoint, m_colDLHeelWidthSPS, heelWidth);
       float extentErosion = (float)(eastingToe - eastingToeSPS);
 
       if (extentErosion >= topWidth + m_rebuildFactorSPS * heelWidth) // + height/m_frontSlopeSPS) 
          rebuild = true;
 
       float extentKD = 0.0f;
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLKD, extentKD);
+      m_pDuneLayer->GetData(endPoint, m_colDLKD, extentKD);
 
       if (extentKD >= topWidth + heelWidth)
          rebuild = true;
 
       //int bldgIndex = -1;
-      //m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, bldgIndex);
+      //m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, bldgIndex);
 
       //// Retrieve the Flooding Frequency of the Protected Building
       //if (bldgIndex != -1)
@@ -5761,7 +5766,7 @@ bool ChronicHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, Ma
       //}
 
       endPoint++;
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLAddYearSPS, yr);
+      m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, yr);
       }
 
    return rebuild;
@@ -5790,8 +5795,8 @@ bool ChronicHazards::CalculateSegmentLength(MapLayer::Iterator startPoint, MapLa
 int ChronicHazards::GetBeachType(MapLayer::Iterator pt)
    {
    int beachType = -1;
-   if (pt < m_pNewDuneLineLayer->End())
-      m_pNewDuneLineLayer->GetData(pt, m_colDLBeachType, beachType);
+   if (pt < m_pDuneLayer->End())
+      m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
 
    return beachType;
    }
@@ -5799,8 +5804,8 @@ int ChronicHazards::GetBeachType(MapLayer::Iterator pt)
 int ChronicHazards::GetNextBldgIndex(MapLayer::Iterator pt)
    {
    int nextBldgIndex = -1;
-   if (pt < m_pNewDuneLineLayer->End())
-      m_pNewDuneLineLayer->GetData(pt, m_colDLDuneBldgIndex, nextBldgIndex);
+   if (pt < m_pDuneLayer->End())
+      m_pDuneLayer->GetData(pt, m_colDLDuneBldgIndex, nextBldgIndex);
 
    return nextBldgIndex;
    }
@@ -5811,10 +5816,10 @@ int ChronicHazards::GetNextBldgIndex(MapLayer::Iterator pt)
 // dependent upon the beachslope use ConstructBPS
 void ChronicHazards::ConstructBPS1(int currentYear)
    {
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       int duneBldgIndex = -1;
-      m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
+      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
 
       if (duneBldgIndex != -1)
          {
@@ -5823,7 +5828,7 @@ void ChronicHazards::ConstructBPS1(int currentYear)
 
          MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
          float eroFreq = eroMovingWindow->GetFreqValue();
-         m_pNewDuneLineLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
+         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
 
          // find the extent of the BPS as well as location of maximum TWL within that extent
          // doublely needs maximum overtopping and minimum duneToe
@@ -5844,11 +5849,11 @@ void ChronicHazards::ConstructBPS1(int currentYear)
             REAL eastingToe = 0.0;
             float tanb = 0.0f;
 
-            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLDuneToe, duneToe);
-            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
-            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLEastingToe, eastingToe);
-            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLBeachWidth, beachWidth);
-            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLTranSlope, tanb);
+            m_pDuneLayer->GetData(maxPoint, m_colDLDuneToe, duneToe);
+            m_pDuneLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
+            m_pDuneLayer->GetData(maxPoint, m_colDLEastingToe, eastingToe);
+            m_pDuneLayer->GetData(maxPoint, m_colDLBeachWidth, beachWidth);
+            m_pDuneLayer->GetData(maxPoint, m_colDLTranSlope, tanb);
 
             float height = newCrest - duneToe;
 
@@ -5879,9 +5884,9 @@ void ChronicHazards::ConstructBPS1(int currentYear)
             //////   double newEastingToe = (BPSHeight + (tanb - m_slopeBPS) * eastingToe) / (tanb - m_slopeBPS);
             //////   double deltaX = eastingToe - newEastingToe;
             //////   double deltaX2 = BPSHeight / m_slopeBPS;
-            //////   m_pNewDuneLineLayer->SetData(point, m_colNewEasting, newEastingToe);
-            //////   m_pNewDuneLineLayer->SetData(point, m_colBWidth, deltaX2);
-            //////   m_pNewDuneLineLayer->SetData(point, m_colDeltaX, deltaX);
+            //////   m_pDuneLayer->SetData(point, m_colNewEasting, newEastingToe);
+            //////   m_pDuneLayer->SetData(point, m_colBWidth, deltaX2);
+            //////   m_pDuneLayer->SetData(point, m_colDeltaX, deltaX);
             //////   /* eastingToe = newEastingToe;
             //////   beachWidth -= deltaX;*/
             //////   }
@@ -5904,22 +5909,22 @@ void ChronicHazards::ConstructBPS1(int currentYear)
             for (MapLayer::Iterator pt = point; pt < endPoint; pt++, point++)
                {
                // all dune points of a BPS have the same characteristics
-               m_pNewDuneLineLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
-               //m_pNewDuneLineLayer->SetData(pt, m_colDLTypeChange, 1);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLCostBPS, BPSCost);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLLengthBPS, BPSLength);
+               m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
+               //m_pDuneLayer->SetData(pt, m_colDLTypeChange, 1);
+               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+               m_pDuneLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
+               m_pDuneLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
+               m_pDuneLayer->SetData(pt, m_colDLCostBPS, BPSCost);
+               m_pDuneLayer->SetData(pt, m_colDLLengthBPS, BPSLength);
                float width = (float)(eastingCrest - eastingToe);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLWidthBPS, width);
+               m_pDuneLayer->SetData(pt, m_colDLWidthBPS, width);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToe, duneToe);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-               //      m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, eastingToe);
+               m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
+               m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+               //      m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
 
-               Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
                if (pPoly->GetVertexCount() > 0)
                   {
                   pPoly->m_vertexArray[0].x = eastingToe;
@@ -5937,7 +5942,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
    // Iterate thought the Dune points. looking for points that are protecting a building
    // When one of these is found, check tests to see if we should build a bps.
 
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       /*MapLayer::Iterator endPoint = point;
       MapLayer::Iterator maxPoint = point;
@@ -5945,7 +5950,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
       bool construct = CalculateImpactExtent(point, endPoint, minPoint, maxPoint);*/
 
       int duneBldgIndex = -1;
-      m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
+      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
 
       bool trigger = false;
       MapLayer::Iterator endPoint = point;
@@ -5953,7 +5958,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
       MapLayer::Iterator minToePoint = point;
       MapLayer::Iterator minDistPoint = point;
 
-      CArray<int> dlTypeChangeIndexArray;   // dune points for which the trigger is true (m_pNewDuneLineLayer->SetData(endPoint, m_colDLTypeChange, 1)
+      CArray<int> dlTypeChangeIndexArray;   // dune points for which the trigger is true (m_pDuneLayer->SetData(endPoint, m_colDLTypeChange, 1)
       CArray<int> iduAddBPSYrIndexArray;       // m_pIDULayer->SetData(northIndex, m_colIDUAddBPSYr, currentYear);
 
                                                // dune protecting building?
@@ -5961,7 +5966,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
          {
          MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
          float eroFreq = eroMovingWindow->GetFreqValue();
-         m_pNewDuneLineLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
+         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
 
          int nextBldgIndex = duneBldgIndex;
          float buildBPSThreshold = m_idpyFactor * 365.0f;
@@ -5974,28 +5979,28 @@ void ChronicHazards::ConstructBPS(int currentYear)
          // look along length of IDU determine if criteria for BPS construction is met
          // We know we are in the same IDU if the next dunepoint (endPoint) is protecting the
          // same buiding
-         while (endPoint < m_pNewDuneLineLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
+         while (endPoint < m_pDuneLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
             {
             int beachType = -1;
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLBeachType, beachType);
+            m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
 
             if (beachType == BchT_SANDY_DUNE_BACKED)
                {
                MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(endPoint);
 
                float movingAvgIDPY = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
+               m_pDuneLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
 
                float xAvgKD = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
+               m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
 
                int duneIndex = -1;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneIndex, duneIndex);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneIndex, duneIndex);
 
                float avgKD = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
+               m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
                float distToBldg = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
 
                bool isImpactedByEErosion = false;
                isImpactedByEErosion = IsBldgImpactedByEErosion(nextBldgIndex, avgKD, distToBldg);
@@ -6005,7 +6010,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
                   {
                   trigger = true;
                   //??? should this be moved to after cost constraint applied?
-                  //m_pNewDuneLineLayer->SetData(endPoint, m_colDLTypeChange, 1);
+                  //m_pDuneLayer->SetData(endPoint, m_colDLTypeChange, 1);
                   dlTypeChangeIndexArray.Add(endPoint);
                   }
 
@@ -6014,7 +6019,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
                float movingMaxTWL = twlMovingWindow->GetMaxValue();
 
                float duneCrest = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneCrest, duneCrest);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, duneCrest);
 
                // Find dune point with highest overtopping
                if (maxAmtTop >= 0.0f && (movingMaxTWL - duneCrest) > maxAmtTop)
@@ -6026,7 +6031,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
 
                // Find dune point with minimum elevation
                float duneToe = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
                if (minToeElevation <= duneToe)
                   {
                   minToeElevation = duneToe;
@@ -6035,7 +6040,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
 
                // Find dune point closest to the protected building
                /*   float distToBldg = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);*/
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);*/
                if (minDistToBldg <= distToBldg)
                   {
                   minDistToBldg = distToBldg;
@@ -6043,7 +6048,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
                   }
                }
             endPoint++;
-            }   // end of: while (endPoint < m_pNewDuneLineLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
+            }   // end of: while (endPoint < m_pDuneLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
 
          endPoint--;  // we should be just over the northern edge of the IDU, back up so we are just inside of it.
 
@@ -6051,9 +6056,9 @@ void ChronicHazards::ConstructBPS(int currentYear)
          } // end protecting building
 
            // make sure everything is okay, diddn't overrun bounds
-      if (endPoint >= m_pNewDuneLineLayer->End())
+      if (endPoint >= m_pDuneLayer->End())
          Report::ErrorMsg("Coastal Hazards: Invalid Endpoint encountered when Constructing BPS (0)");
-      if (endPoint < m_pNewDuneLineLayer->Begin())
+      if (endPoint < m_pDuneLayer->Begin())
          Report::ErrorMsg("Coastal Hazards: Invalid Endpoint encountered when Constructing BPS (1)");
 
       // determine length of construction 
@@ -6117,11 +6122,11 @@ void ChronicHazards::ConstructBPS(int currentYear)
                      int northPt = (int)(northLength / m_elevCellHeight) - 1;
                      int i = 0;
                      int beachType = -1;
-                     m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
-                     while (beachType == BchT_SANDY_DUNE_BACKED && endPoint < m_pNewDuneLineLayer->End() && i < northPt)
+                     m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+                     while (beachType == BchT_SANDY_DUNE_BACKED && endPoint < m_pDuneLayer->End() && i < northPt)
                         {
                         i++;
-                        m_pNewDuneLineLayer->GetData(endPoint, m_colDLBeachType, beachType);
+                        m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
                         endPoint++;
                         }
                      }
@@ -6144,11 +6149,11 @@ void ChronicHazards::ConstructBPS(int currentYear)
 
                int i = 0;
                int beachType = -1;
-               m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
-               while (beachType == BchT_SANDY_DUNE_BACKED && point > m_pNewDuneLineLayer->Begin() && i < southPt)
+               m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+               while (beachType == BchT_SANDY_DUNE_BACKED && point > m_pDuneLayer->Begin() && i < southPt)
                   {
                   i++;
-                  m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+                  m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
                   point--;
                   }
                }
@@ -6159,12 +6164,12 @@ void ChronicHazards::ConstructBPS(int currentYear)
             }
          }  // end trigger (calculate bpsLength)
 
-      ASSERT(endPoint < m_pNewDuneLineLayer->End());
-      ASSERT(point >= m_pNewDuneLineLayer->Begin());
-      if (endPoint >= m_pNewDuneLineLayer->End())
-         endPoint = m_pNewDuneLineLayer->End();
-      if (point < m_pNewDuneLineLayer->Begin())
-         point = m_pNewDuneLineLayer->Begin();
+      ASSERT(endPoint < m_pDuneLayer->End());
+      ASSERT(point >= m_pDuneLayer->Begin());
+      if (endPoint >= m_pDuneLayer->End())
+         endPoint = m_pDuneLayer->End();
+      if (point < m_pDuneLayer->Begin())
+         point = m_pDuneLayer->Begin();
 
       // determine cost of bps construction
       if (trigger)
@@ -6176,11 +6181,11 @@ void ChronicHazards::ConstructBPS(int currentYear)
 
          // Retrieve dune crest elevation at maximum overtopping
          float duneCrest = 0.0f;
-         m_pNewDuneLineLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
+         m_pDuneLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
 
          // Retreive the dune point with the minimum dune toe elevation within the extent
          float minDuneToe = 0.0f;
-         m_pNewDuneLineLayer->GetData(minToePoint, m_colDLDuneToe, minDuneToe);
+         m_pDuneLayer->GetData(minToePoint, m_colDLDuneToe, minDuneToe);
 
          // determine maximum height of structure
          float maxHeight = newCrest - minDuneToe;
@@ -6206,9 +6211,9 @@ void ChronicHazards::ConstructBPS(int currentYear)
          // determine where to build the BPS :  relative to the toe or bldg
          bool constructFromToe = true;
          float minDistToBldg = 0.0f;
-         m_pNewDuneLineLayer->GetData(minDistPoint, m_colDLDuneBldgDist, minDistToBldg);
+         m_pDuneLayer->GetData(minDistPoint, m_colDLDuneBldgDist, minDistToBldg);
          float yToe = 0.0f;
-         m_pNewDuneLineLayer->GetData(minDistPoint, m_colDLDuneToe, yToe);
+         m_pDuneLayer->GetData(minDistPoint, m_colDLDuneToe, yToe);
 
          /*float maxWidth = (newCrest - yToe) / m_slopeBPS;
          if (minDistToBldg < maxWidth)
@@ -6225,7 +6230,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
          for (MapLayer::Iterator dpt = point; dpt < endPoint; dpt++)
             {
             float duneToe = 0.0f;
-            bool ok = m_pNewDuneLineLayer->GetData(dpt, m_colDLDuneToe, duneToe);
+            bool ok = m_pDuneLayer->GetData(dpt, m_colDLDuneToe, duneToe);
             if (ok)
                {
                float bpsHeight = newCrest - duneToe;
@@ -6287,16 +6292,16 @@ void ChronicHazards::ConstructBPS(int currentYear)
                {
                // Retrieve existing dune charactersitics
                float duneToe = 0.0f;
-               m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
 
                double eastingToe = 0.0;
-               m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+               m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
 
                double beachWidth = 0.0;
-               m_pNewDuneLineLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+               m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
 
                float tanb = 0.0f;
-               m_pNewDuneLineLayer->GetData(pt, m_colDLTranSlope, tanb);
+               m_pDuneLayer->GetData(pt, m_colDLTranSlope, tanb);
 
                // unsure if this should be done
                //if (!constructFromToe)
@@ -6344,37 +6349,37 @@ void ChronicHazards::ConstructBPS(int currentYear)
 
                // construct BPS by changing beachtype to RIP RAP BACKED
                /*int beachType = -1;
-               m_pNewDuneLineLayer->GetData(pt, m_colDLBeachType, beachType);
+               m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
                if (beachTYpe == BchT_SANDY_DUNE_BACKED)
                { */
-               m_pNewDuneLineLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
+               m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
+               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+               m_pDuneLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
+               m_pDuneLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
 
-               //      m_pNewDuneLineLayer->SetData(pt, m_colDLCostBPS, cost);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLHeightBPS, bpsHeight);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLLengthBPS, m_elevCellHeight);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLWidthBPS, bpsWidth);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToe, duneToe);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+               //      m_pDuneLayer->SetData(pt, m_colDLCostBPS, cost);
+               m_pDuneLayer->SetData(pt, m_colDLHeightBPS, bpsHeight);
+               m_pDuneLayer->SetData(pt, m_colDLLengthBPS, m_elevCellHeight);
+               m_pDuneLayer->SetData(pt, m_colDLWidthBPS, bpsWidth);
+               m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToeBPS, eastingToe);
+               m_pDuneLayer->SetData(pt, m_colDLEastingToeBPS, eastingToe);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, eastingToe);
+               m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
+               m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
 
 
                // take care of those coverage updates we deferred from above
                for (int i = 0; i < (int)dlTypeChangeIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlTypeChangeIndexArray[i], m_colDLTypeChange, 1);
+                  m_pDuneLayer->SetData(dlTypeChangeIndexArray[i], m_colDLTypeChange, 1);
 
                for (int i = 0; i < (int)iduAddBPSYrIndexArray.GetSize(); i++)
                   m_pIDULayer->SetData(iduAddBPSYrIndexArray[i], m_colIDUAddBPSYr, currentYear);
 
 
                // update new dune toe position
-               Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
                if (pPoly->GetVertexCount() > 0)
                   {
                   pPoly->m_vertexArray[0].x = eastingToe;
@@ -6395,7 +6400,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
 
 void ChronicHazards::ConstructSPS(int currentYear)
    {
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       //// Determine the extent of the protection structure as well as the dune pt with the
       //// maximum overtopping, the dune pt with the minumum dune toe elevation and 
@@ -6403,7 +6408,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
       //bool construct = CalculateImpactExtent(point, endPoint, minToePoint, minDistPoint, maxTWLPoint);
 
       int duneBldgIndex = -1;
-      m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
+      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
 
       bool trigger = false;
       MapLayer::Iterator endPoint = point;
@@ -6412,20 +6417,20 @@ void ChronicHazards::ConstructSPS(int currentYear)
       MapLayer::Iterator minDistPoint = point;
       MapLayer::Iterator maxDuneWidthPoint = point;
 
-      CArray<int> dlTypeChangeIndexArray;               // m_pNewDuneLineLayer->SetData(endPoint, m_colDLTypeChange, 1);
-      CArray<pair<int, float>> dlDuneToeSPSIndexArray;      // m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToeSPS, duneToe);
-      CArray<pair<int, float>> dlEastingToeSPSIndexArray;  // m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
-      CArray<pair<int, float>> dlDuneHeelIndexArray;      // m_pNewDuneLineLayer->SetData(pt, m_colDLDuneHeel, duneHeel);
-      CArray<pair<int, float>> dlFrontSlopeIndexArray;    // m_pNewDuneLineLayer->SetData(pt, m_colDLFrontSlope, frontSlope);
-      CArray<pair<int, float>> dlDuneToeIndexArray;       // m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToe, duneToe);
-      CArray<pair<int, float>> dlDuneCrestIndexArray;    // m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, duneCrest);
-      CArray<pair<int, float>> dlDuneWidthIndexArray;    // m_pNewDuneLineLayer->SetData(pt, m_colDLDuneWidth, duneWidth);
+      CArray<int> dlTypeChangeIndexArray;               // m_pDuneLayer->SetData(endPoint, m_colDLTypeChange, 1);
+      CArray<pair<int, float>> dlDuneToeSPSIndexArray;      // m_pDuneLayer->SetData(pt, m_colDLDuneToeSPS, duneToe);
+      CArray<pair<int, float>> dlEastingToeSPSIndexArray;  // m_pDuneLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
+      CArray<pair<int, float>> dlDuneHeelIndexArray;      // m_pDuneLayer->SetData(pt, m_colDLDuneHeel, duneHeel);
+      CArray<pair<int, float>> dlFrontSlopeIndexArray;    // m_pDuneLayer->SetData(pt, m_colDLFrontSlope, frontSlope);
+      CArray<pair<int, float>> dlDuneToeIndexArray;       // m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
+      CArray<pair<int, float>> dlDuneCrestIndexArray;    // m_pDuneLayer->SetData(pt, m_colDLDuneCrest, duneCrest);
+      CArray<pair<int, float>> dlDuneWidthIndexArray;    // m_pDuneLayer->SetData(pt, m_colDLDuneWidth, duneWidth);
 
       if (duneBldgIndex != -1)
          {
          MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
          float eroFreq = eroMovingWindow->GetFreqValue();
-         m_pNewDuneLineLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
+         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
 
          //   int nextBldgIndex = duneBldgIndex;
          float buildBPSThreshold = m_idpyFactor * 365.0f;
@@ -6436,25 +6441,25 @@ void ChronicHazards::ConstructSPS(int currentYear)
          float maxTWL = 0.0f;
          float maxDuneWidth = 0.0f;
 
-         while (endPoint < m_pNewDuneLineLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
+         while (endPoint < m_pDuneLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
             {
             int beachType = -1;
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLBeachType, beachType);
+            m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
 
             if (beachType == BchT_SANDY_DUNE_BACKED)
                {
                MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(endPoint);
 
                float movingAvgIDPY = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
+               m_pDuneLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
 
                float xAvgKD = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
+               m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
 
                float avgKD = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
+               m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
                float distToBldg = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
 
                bool isImpactedByEErosion = false;
                isImpactedByEErosion = IsBldgImpactedByEErosion(GetNextBldgIndex(endPoint), avgKD, distToBldg);
@@ -6463,11 +6468,11 @@ void ChronicHazards::ConstructSPS(int currentYear)
                if (movingAvgIDPY >= buildBPSThreshold || isImpactedByEErosion)
                   {
                   int yrBuilt = 0;
-                  m_pNewDuneLineLayer->GetData(endPoint, m_colDLAddYearSPS, yrBuilt);
+                  m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, yrBuilt);
                   if (yrBuilt == 0)
                      {
                      //??? defer to later
-                     //m_pNewDuneLineLayer->SetData(endPoint, m_colDLTypeChange, 1);
+                     //m_pDuneLayer->SetData(endPoint, m_colDLTypeChange, 1);
                      dlTypeChangeIndexArray.Add(endPoint);
                      trigger = true;
                      }
@@ -6478,7 +6483,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                float movingMaxTWL = twlMovingWindow->GetMaxValue();
 
                float duneCrest = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneCrest, duneCrest);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, duneCrest);
 
                // Find dune point with highest overtopping
                if (maxAmtTop >= 0.0f && (movingMaxTWL - duneCrest) > maxAmtTop)
@@ -6490,7 +6495,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
 
                // Find dune point with minimum elevation
                float duneToe = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
                if (minToeElevation <= duneToe)
                   {
                   minToeElevation = duneToe;
@@ -6499,7 +6504,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
 
                // Find dune point closest to the protected building
                //float distToBldg = 0.0f;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
                if (minDistToBldg <= distToBldg)
                   {
                   minDistToBldg = distToBldg;
@@ -6507,7 +6512,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                   }
                // Find widest dune within the extent
                float duneWidth = 0.0;
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneWidth, duneWidth);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneWidth, duneWidth);
                if (maxDuneWidth > duneWidth)
                   {
                   maxDuneWidth = duneWidth;
@@ -6521,12 +6526,12 @@ void ChronicHazards::ConstructSPS(int currentYear)
 
          } // end protecting building
 
-      ASSERT(endPoint < m_pNewDuneLineLayer->End());
-      ASSERT(point >= m_pNewDuneLineLayer->Begin());
-      if (endPoint >= m_pNewDuneLineLayer->End())
-         endPoint = m_pNewDuneLineLayer->End();
-      if (point < m_pNewDuneLineLayer->Begin())
-         point = m_pNewDuneLineLayer->Begin();
+      ASSERT(endPoint < m_pDuneLayer->End());
+      ASSERT(point >= m_pDuneLayer->Begin());
+      if (endPoint >= m_pDuneLayer->End())
+         endPoint = m_pDuneLayer->End();
+      if (point < m_pDuneLayer->Begin())
+         point = m_pDuneLayer->Begin();
 
       /////*** cut here make this a method ******//
       // catch if dune was already constructed
@@ -6544,11 +6549,11 @@ void ChronicHazards::ConstructSPS(int currentYear)
 
          // Retrieve dune crest elevation at maximum overtopping
          float duneCrest = 0.0f;
-         m_pNewDuneLineLayer->GetData(maxTWLPoint, m_colDLDuneCrest, duneCrest);
+         m_pDuneLayer->GetData(maxTWLPoint, m_colDLDuneCrest, duneCrest);
 
          // Retrieve the dune point with the minimum dune toe elevation within the extent
          float minDuneToe = 0.0f;
-         m_pNewDuneLineLayer->GetData(minToePoint, m_colDLDuneToe, minDuneToe);
+         m_pDuneLayer->GetData(minToePoint, m_colDLDuneToe, minDuneToe);
 
          // Determine maximum height of structure
          float maxHeight = newCrest - minDuneToe;
@@ -6585,14 +6590,14 @@ void ChronicHazards::ConstructSPS(int currentYear)
          // Retrieve the minimum distance to building
          bool constructFromToe = true;
          float minDistToBldg = 0.0f;
-         m_pNewDuneLineLayer->GetData(minDistPoint, m_colDLDuneBldgDist, minDistToBldg);
+         m_pDuneLayer->GetData(minDistPoint, m_colDLDuneBldgDist, minDistToBldg);
          float yToe = 0.0f;
-         m_pNewDuneLineLayer->GetData(minDistPoint, m_colDLDuneToe, yToe);
+         m_pDuneLayer->GetData(minDistPoint, m_colDLDuneToe, yToe);
          float yHeel = 0.0f;
-         m_pNewDuneLineLayer->GetData(minDistPoint, m_colDLDuneHeel, yHeel);
+         m_pDuneLayer->GetData(minDistPoint, m_colDLDuneHeel, yHeel);
 
          float widestDuneWidth = 0.0f;
-         m_pNewDuneLineLayer->GetData(maxDuneWidthPoint, m_colDLDuneWidth, widestDuneWidth);
+         m_pDuneLayer->GetData(maxDuneWidthPoint, m_colDLDuneWidth, widestDuneWidth);
 
          /*   if (minDistToBldg  < widestDuneWidth)
          constructFromToe = false;*/
@@ -6610,40 +6615,40 @@ void ChronicHazards::ConstructSPS(int currentYear)
             {
             // Retrieve existing dune characteristics
             float duneToe = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);
+            m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
 
             // defer to later            
-            //m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToeSPS, duneToe);
+            //m_pDuneLayer->SetData(pt, m_colDLDuneToeSPS, duneToe);
             dlDuneToeSPSIndexArray.Add(pair<int, float>((int)pt, duneToe));
 
             float duneHeel = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneHeel);
+            m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneHeel);
 
             float duneWidth = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneWidth, duneWidth);
+            m_pDuneLayer->GetData(pt, m_colDLDuneWidth, duneWidth);
 
             float frontSlope = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLFrontSlope, frontSlope);
+            m_pDuneLayer->GetData(pt, m_colDLFrontSlope, frontSlope);
 
             float backSlope = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLBackSlope, backSlope);
+            m_pDuneLayer->GetData(pt, m_colDLBackSlope, backSlope);
 
             float eastingToe = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+            m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
 
 
             // defer to later            
-            // m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
+            // m_pDuneLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
             dlEastingToeSPSIndexArray.Add(pair<int, float>((int)pt, eastingToe));
 
             double eastingCrest = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLEastingCrest, eastingCrest);
+            m_pDuneLayer->GetData(pt, m_colDLEastingCrest, eastingCrest);
 
             double beachWidth = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+            m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
 
             float tanb = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLTranSlope, tanb);
+            m_pDuneLayer->GetData(pt, m_colDLTranSlope, tanb);
 
             // Determine volume (area * length) of existing sand in dune
             // Consists of 2 triangles + rectangle - one triangle
@@ -6653,7 +6658,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                duneHeel = m_avgDuneHeel;
 
                // defer to later
-               //m_pNewDuneLineLayer->SetData(pt, m_colDLDuneHeel, duneHeel);
+               //m_pDuneLayer->SetData(pt, m_colDLDuneHeel, duneHeel);
                dlDuneHeelIndexArray.Add(pair<int, float>((int)pt, duneHeel));
                }
 
@@ -6662,7 +6667,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                duneWidth = m_avgDuneWidth;
 
                // defer to later
-               //m_pNewDuneLineLayer->SetData(pt, m_colDLDuneWidth, duneWidth);
+               //m_pDuneLayer->SetData(pt, m_colDLDuneWidth, duneWidth);
                dlDuneWidthIndexArray.Add(pair<int, float>((int)pt, duneWidth));
                }
 
@@ -6671,7 +6676,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                frontSlope = m_avgFrontSlope;
 
                // defer to later
-               //m_pNewDuneLineLayer->SetData(pt, m_colDLFrontSlope, frontSlope);
+               //m_pDuneLayer->SetData(pt, m_colDLFrontSlope, frontSlope);
                dlFrontSlopeIndexArray.Add(pair<int, float>((int)pt, frontSlope));
                }
 
@@ -6679,7 +6684,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                {
                duneToe = m_avgDuneToe;
                // defer to later
-               //m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToe, duneToe);
+               //m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
                dlDuneToeIndexArray.Add(pair<int, float>((int)pt, duneToe));
                }
 
@@ -6687,7 +6692,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                {
                duneCrest = m_avgDuneCrest;
                // defer to later
-               //m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, duneCrest);
+               //m_pDuneLayer->SetData(pt, m_colDLDuneCrest, duneCrest);
                dlDuneCrestIndexArray.Add(pair<int, float>((int)pt, duneCrest));
                }
 
@@ -6818,53 +6823,53 @@ void ChronicHazards::ConstructSPS(int currentYear)
                {
                pi.IncurCost(cost);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLAddYearSPS, currentYear);
+               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+               m_pDuneLayer->SetData(pt, m_colDLAddYearSPS, currentYear);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLCostSPS, cost);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLHeightSPS, height);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLWidthSPS, newDuneWidth);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLTopWidthSPS, topWidth);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLLengthSPS, m_elevCellHeight);
+               m_pDuneLayer->SetData(pt, m_colDLCostSPS, cost);
+               m_pDuneLayer->SetData(pt, m_colDLHeightSPS, height);
+               m_pDuneLayer->SetData(pt, m_colDLWidthSPS, newDuneWidth);
+               m_pDuneLayer->SetData(pt, m_colDLTopWidthSPS, topWidth);
+               m_pDuneLayer->SetData(pt, m_colDLLengthSPS, m_elevCellHeight);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToe, newDuneToe);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLHeelWidthSPS, heelWidth);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLConstructVolumeSPS, constructVolume);
+               m_pDuneLayer->SetData(pt, m_colDLDuneToe, newDuneToe);
+               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+               m_pDuneLayer->SetData(pt, m_colDLHeelWidthSPS, heelWidth);
+               m_pDuneLayer->SetData(pt, m_colDLConstructVolumeSPS, constructVolume);
 
                // Holds the easting location of the constructed dune -- does move through time
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
-               //         m_pNewDuneLineLayer->SetData(pt, m_colDLEastingCrestSPS, eastingCrest);
+               m_pDuneLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
+               //         m_pDuneLayer->SetData(pt, m_colDLEastingCrestSPS, eastingCrest);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, eastingToe);
+               m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
+               m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
 
                // updated deferred fields (Note: Some of these are redundant with the above
                for (int i = 0; i < (int)dlTypeChangeIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlTypeChangeIndexArray[i], m_colDLTypeChange, 1);
+                  m_pDuneLayer->SetData(dlTypeChangeIndexArray[i], m_colDLTypeChange, 1);
 
                for (int i = 0; i < (int)dlDuneToeSPSIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlDuneToeSPSIndexArray[i].first, m_colDLDuneToeSPS, dlDuneToeSPSIndexArray[i].second);
+                  m_pDuneLayer->SetData(dlDuneToeSPSIndexArray[i].first, m_colDLDuneToeSPS, dlDuneToeSPSIndexArray[i].second);
 
                for (int i = 0; i < (int)dlEastingToeSPSIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlEastingToeSPSIndexArray[i].first, m_colDLEastingToeSPS, dlEastingToeSPSIndexArray[i].second);
+                  m_pDuneLayer->SetData(dlEastingToeSPSIndexArray[i].first, m_colDLEastingToeSPS, dlEastingToeSPSIndexArray[i].second);
 
                for (int i = 0; i < (int)dlDuneHeelIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlDuneHeelIndexArray[i].first, m_colDLDuneHeel, dlDuneHeelIndexArray[i].second);
+                  m_pDuneLayer->SetData(dlDuneHeelIndexArray[i].first, m_colDLDuneHeel, dlDuneHeelIndexArray[i].second);
 
                for (int i = 0; i < (int)dlFrontSlopeIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlFrontSlopeIndexArray[i].first, m_colDLFrontSlope, dlFrontSlopeIndexArray[i].second);
+                  m_pDuneLayer->SetData(dlFrontSlopeIndexArray[i].first, m_colDLFrontSlope, dlFrontSlopeIndexArray[i].second);
 
                for (int i = 0; i < (int)dlDuneToeIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlDuneToeIndexArray[i].first, m_colDLDuneToe, dlDuneToeIndexArray[i].second);
+                  m_pDuneLayer->SetData(dlDuneToeIndexArray[i].first, m_colDLDuneToe, dlDuneToeIndexArray[i].second);
 
                for (int i = 0; i < (int)dlDuneCrestIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlDuneCrestIndexArray[i].first, m_colDLDuneCrest, dlDuneCrestIndexArray[i].second);
+                  m_pDuneLayer->SetData(dlDuneCrestIndexArray[i].first, m_colDLDuneCrest, dlDuneCrestIndexArray[i].second);
 
                for (int i = 0; i < (int)dlDuneWidthIndexArray.GetSize(); i++)
-                  m_pNewDuneLineLayer->SetData(dlDuneWidthIndexArray[i].first, m_colDLDuneWidth, dlDuneWidthIndexArray[i].second);
+                  m_pDuneLayer->SetData(dlDuneWidthIndexArray[i].first, m_colDLDuneWidth, dlDuneWidthIndexArray[i].second);
 
-               Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
                if (pPoly->GetVertexCount() > 0)
                   {
                   pPoly->m_vertexArray[0].x = eastingToe;
@@ -6887,10 +6892,10 @@ void ChronicHazards::ConstructSPS(int currentYear)
 
 void ChronicHazards::ConstructDune(int currentYear)
    {
-   //   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   //   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
    //   {
    //      int duneBldgIndex = -1;
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
+   //      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
    //
    //      if (duneBldgIndex != -1)
    //      {
@@ -6899,7 +6904,7 @@ void ChronicHazards::ConstructDune(int currentYear)
    //
    //         MovingWindow *eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
    //         float eroFreq = eroMovingWindow->GetFreqValue();
-   //         m_pNewDuneLineLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
+   //         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
    //
    //         // find the extent of protection structure as well as location of maximum TWL within the extent
    //         bool cond = CalculateExtent(point, endPoint, maxPoint);
@@ -6922,11 +6927,11 @@ void ChronicHazards::ConstructDune(int currentYear)
    //            float beachWidth = 0.0f;
    //            float tanb = 0.0f;
    //
-   //            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLDuneToe, duneToe);
-   //            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
-   //            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLEastingToe, eastingToe);
-   //            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLBeachWidth, beachWidth);
-   //            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLTranSlope, tanb);
+   //            m_pDuneLayer->GetData(maxPoint, m_colDLDuneToe, duneToe);
+   //            m_pDuneLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
+   //            m_pDuneLayer->GetData(maxPoint, m_colDLEastingToe, eastingToe);
+   //            m_pDuneLayer->GetData(maxPoint, m_colDLBeachWidth, beachWidth);
+   //            m_pDuneLayer->GetData(maxPoint, m_colDLTranSlope, tanb);
    //
    //            // 
    //            float diff = duneToe - m_duneToeSPS;
@@ -7019,21 +7024,21 @@ void ChronicHazards::ConstructDune(int currentYear)
    //         for (MapLayer::Iterator pt = point; pt < endPoint; pt++, point++)
    //         {
    //            // all dune points of a built dune have the same characteristics
-   //      //      m_pNewDuneLineLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, m_duneCrestSPS);
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLAddYearSPS, currentYear);
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLCostSPS, SPSCost);
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLLengthSPS, SPSLength);
+   //      //      m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
+   //            m_pDuneLayer->SetData(pt, m_colDLDuneCrest, m_duneCrestSPS);
+   //            m_pDuneLayer->SetData(pt, m_colDLAddYearSPS, currentYear);
+   //            m_pDuneLayer->SetData(pt, m_colDLCostSPS, SPSCost);
+   //            m_pDuneLayer->SetData(pt, m_colDLLengthSPS, SPSLength);
    //         
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToe, m_duneToeSPS);
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-   //      //      m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, eastingToe);
+   //            m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
+   //            m_pDuneLayer->SetData(pt, m_colDLDuneToe, m_duneToeSPS);
+   //            m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+   //      //      m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
    //            
    //            // Easting location of rebuilt dune
-   //            m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
+   //            m_pDuneLayer->SetData(pt, m_colDLEastingToeSPS, eastingToe);
    //
-   //            Poly *pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+   //            Poly *pPoly = m_pDuneLayer->GetPolygon(pt);
    //            if (pPoly->GetVertexCount() > 0)
    //            {
    //               pPoly->m_vertexArray[ 0 ].x = eastingToe;
@@ -7050,7 +7055,7 @@ void ChronicHazards::ConstructDune(int currentYear)
 // Rebuilds the dune back to its original constructed characteristics
 void ChronicHazards::MaintainSPS(int currentYear)
    {
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       MapLayer::Iterator endPoint = point;
       MapLayer::Iterator maxPoint = point;
@@ -7066,44 +7071,44 @@ void ChronicHazards::MaintainSPS(int currentYear)
             {
             // Retrieve elevation and location of constructed SPS
             float duneToeSPS = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToeSPS, duneToeSPS);
+            m_pDuneLayer->GetData(pt, m_colDLDuneToeSPS, duneToeSPS);
 
             REAL eastingToeSPS = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToeSPS, eastingToeSPS);
+            m_pDuneLayer->GetData(pt, m_colDLEastingToeSPS, eastingToeSPS);
 
             float height = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLHeightSPS, height);
+            m_pDuneLayer->GetData(pt, m_colDLHeightSPS, height);
 
             float btmWidth = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLWidthSPS, btmWidth);
+            m_pDuneLayer->GetData(pt, m_colDLWidthSPS, btmWidth);
 
             double constructVolume = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLConstructVolumeSPS, constructVolume);
+            m_pDuneLayer->GetData(pt, m_colDLConstructVolumeSPS, constructVolume);
 
             float duneCrest = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+            m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
             float duneHeel = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneHeel, duneHeel);
+            m_pDuneLayer->GetData(pt, m_colDLDuneHeel, duneHeel);
 
             // Retrieve current values 
             float duneToe = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);
+            m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
 
             double eastingToe = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+            m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
 
             double beachWidth = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+            m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
 
             float tanb = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLTranSlope, tanb);
+            m_pDuneLayer->GetData(pt, m_colDLTranSlope, tanb);
 
             float frontSlope = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLFrontSlope, frontSlope);
+            m_pDuneLayer->GetData(pt, m_colDLFrontSlope, frontSlope);
 
             float backSlope = 0.0;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLBackSlope, backSlope);
+            m_pDuneLayer->GetData(pt, m_colDLBackSlope, backSlope);
 
             float xToeShift = (float)(eastingToe - eastingToeSPS);
             float erodedCrest = duneCrest;
@@ -7171,24 +7176,24 @@ void ChronicHazards::MaintainSPS(int currentYear)
 
                //   double volume = area * m_cellHeight;
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, duneCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLMaintYearSPS, currentYear);
+               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, duneCrest);
+               m_pDuneLayer->SetData(pt, m_colDLMaintYearSPS, currentYear);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLCostSPS, cost);
+               m_pDuneLayer->SetData(pt, m_colDLCostSPS, cost);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLHeightSPS, height);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLLengthSPS, m_elevCellHeight);
+               m_pDuneLayer->SetData(pt, m_colDLHeightSPS, height);
+               m_pDuneLayer->SetData(pt, m_colDLLengthSPS, m_elevCellHeight);
 
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneToe, duneToeSPS);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLMaintVolumeSPS, rebuildVolume);
+               m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToeSPS);
+               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+               m_pDuneLayer->SetData(pt, m_colDLMaintVolumeSPS, rebuildVolume);
 
-               //   m_pNewDuneLineLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, eastingToeSPS);
-               m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+               //   m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
+               m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToeSPS);
+               m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
 
 
-               Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
                if (pPoly->GetVertexCount() > 0)
                   {
                   pPoly->m_vertexArray[0].x = eastingToe;
@@ -7213,7 +7218,7 @@ void ChronicHazards::ConstructBPS2(int currentYear)
    {
    //float buildBPSThreshold = m_idpyFactor * 365.0f;
 
-   //for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   //for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
    //{
    //   int beachType = 0;
    //   float newCrest = 0.0f;
@@ -7230,33 +7235,33 @@ void ChronicHazards::ConstructBPS2(int currentYear)
    //   int iduIndex = -1;
    //   int duneIndex = -1;
 
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLDuneIndex, duneIndex);
+   //   m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
+   //   m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIndex);
 
    //   float xAvgKD = 0.0f;
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLAvgKD, xAvgKD);
+   //   m_pDuneLayer->GetData(point, m_colDLAvgKD, xAvgKD);
 
    //   // Moving Window of the yearly maximum TWL
    //   MovingWindow *twlMovingWindow = m_TWLArray.GetAt(point);
 
    //   // Retrieve the maxmum TWL within the designated window
    //   float movingMaxTWL = twlMovingWindow->GetMaxValue();
-   //   //   m_pNewDuneLineLayer->SetData(point, m_colMvMaxTWL, movingMaxTWL);
+   //   //   m_pDuneLayer->SetData(point, m_colMvMaxTWL, movingMaxTWL);
 
    //   // Retrieve the average TWL within the designated window
    //   float movingAvgTWL = twlMovingWindow->GetAvgValue();
-   //   //   m_pNewDuneLineLayer->SetData(point, m_colMvAvgTWL, movingAvgTWL);
+   //   //   m_pDuneLayer->SetData(point, m_colMvAvgTWL, movingAvgTWL);
 
    //   MovingWindow *ipdyMovingWindow = m_IDPYArray.GetAt(point);
    //   // Retrieve the average impact days per yr within the designated window
    //   float movingAvgIDPY = ipdyMovingWindow->GetAvgValue();
-   ////   m_pNewDuneLineLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
+   ////   m_pDuneLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
 
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLNorthing, northing);
+   //   m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+   //   m_pDuneLayer->GetData(point, m_colDLNorthing, northing);
    //   //northingTop = northingBtm = northing;
 
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, eastingCrest);
+   //   m_pDuneLayer->GetData(point, m_colDLEastingCrest, eastingCrest);
    //   
    //   bool isDunePtWithinIDU = true;
    //   // Can constrain based upon permits or global cost
@@ -7268,7 +7273,7 @@ void ChronicHazards::ConstructBPS2(int currentYear)
    //   {
    //      MovingWindow *eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
    //      float eroFreq = eroMovingWindow->GetFreqValue();
-   //      m_pNewDuneLineLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
+   //      m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
    //      isImpactedByEErosion = IsBldgImpactedByEErosion(duneBldgIndex, xAvgKD);// , iduIndex);
    //   }
 
@@ -7291,10 +7296,10 @@ void ChronicHazards::ConstructBPS2(int currentYear)
    //         //add safety factor
    //         newCrest += m_safetyFactor;;
    //      }
-   //      //   m_pNewDuneLineLayer->GetData(point, m_colAvgTWL, newCrest);
+   //      //   m_pDuneLayer->GetData(point, m_colAvgTWL, newCrest);
 
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLDuneToe, duneToe);
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLDuneCrest, duneCrest);
+   //      m_pDuneLayer->GetData(point, m_colDLDuneToe, duneToe);
+   //      m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
 
    //      float BPSHeight = newCrest - duneToe;
 
@@ -7338,52 +7343,52 @@ void ChronicHazards::ConstructBPS2(int currentYear)
    //   do
    //   {
    //      // change beachtype
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLNorthing, northing);
+   //      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+   //      m_pDuneLayer->GetData(point, m_colDLNorthing, northing);
 
-   //      m_pNewDuneLineLayer->SetData(point, m_colDLBeachType, BchT_RIPRAP_BACKED);
-   //      m_pNewDuneLineLayer->SetData(point, m_colDLDuneCrest, newCrest);
-   //      m_pNewDuneLineLayer->SetData(point, m_colBPSAddYear, currentYear);
-   //      m_pNewDuneLineLayer->SetData(point, m_colDLGammaRough, m_minBPSRoughness);
+   //      m_pDuneLayer->SetData(point, m_colDLBeachType, BchT_RIPRAP_BACKED);
+   //      m_pDuneLayer->SetData(point, m_colDLDuneCrest, newCrest);
+   //      m_pDuneLayer->SetData(point, m_colBPSAddYear, currentYear);
+   //      m_pDuneLayer->SetData(point, m_colDLGammaRough, m_minBPSRoughness);
 
    //      m_hardenedShoreline++;
 
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLEastingToe, eastingToe);
+   //      m_pDuneLayer->GetData(point, m_colDLEastingToe, eastingToe);
    //      eastingCrest = eastingToe + newCrest / m_slopeBPS;
-   //      m_pNewDuneLineLayer->SetData(point, m_colDLEastingCrest, eastingCrest);
+   //      m_pDuneLayer->SetData(point, m_colDLEastingCrest, eastingCrest);
 
    //      if (northing < northingBtm || northing > northingTop)
    //         isDunePtWithinIDU = false;
 
    //      point++;
 
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
-   //      m_pNewDuneLineLayer->GetData(point, m_colDLNorthing, northing);
+   //      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+   //      m_pDuneLayer->GetData(point, m_colDLNorthing, northing);
 
-   //   } while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU && point < m_pNewDuneLineLayer->End());
+   //   } while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU && point < m_pDuneLayer->End());
 
    //      
    //      
 
    //      //MapLayer::Iterator dunePt = point;
 
-   //      //while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU)// && dunePt < m_pNewDuneLineLayer->End() )
+   //      //while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU)// && dunePt < m_pDuneLayer->End() )
    //      //   {
    //      //      // construct BPS to height of the maximum TWL within the last x years
    //      //      // change beachtype
-   //      //      m_pNewDuneLineLayer->SetData(dunePt, m_colDLBeachType, BchT_RIPRAP_BACKED);
-   //      //      m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneCrest, newCrest);
-   //      //      m_pNewDuneLineLayer->SetData(dunePt, m_colBPSAddYear, currentYear);
-   //      //      m_pNewDuneLineLayer->SetData(dunePt, m_colDLGammaRough, m_minBPSRoughness);
+   //      //      m_pDuneLayer->SetData(dunePt, m_colDLBeachType, BchT_RIPRAP_BACKED);
+   //      //      m_pDuneLayer->SetData(dunePt, m_colDLDuneCrest, newCrest);
+   //      //      m_pDuneLayer->SetData(dunePt, m_colBPSAddYear, currentYear);
+   //      //      m_pDuneLayer->SetData(dunePt, m_colDLGammaRough, m_minBPSRoughness);
 
    //      //      m_hardenedShoreline++;
 
-   //      //      m_pNewDuneLineLayer->GetData(dunePt, m_colDLEastingToe, eastingToe);
+   //      //      m_pDuneLayer->GetData(dunePt, m_colDLEastingToe, eastingToe);
    //      //      eastingCrest = eastingToe + newCrest / m_slopeBPS;
-   //      //      m_pNewDuneLineLayer->SetData(dunePt, m_colDLEastingCrest, eastingCrest);
+   //      //      m_pDuneLayer->SetData(dunePt, m_colDLEastingCrest, eastingCrest);
 
-   //      //      m_pNewDuneLineLayer->GetData(dunePt, m_colDLBeachType, beachType);
-   //      //      m_pNewDuneLineLayer->GetData(dunePt, m_colDLNorthing, northing);
+   //      //      m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
+   //      //      m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
 
    //      //      if (northing > northingTop || northing < northingBtm)
    //      //         isDunePtWithinIDU = false;
@@ -7393,27 +7398,27 @@ void ChronicHazards::ConstructBPS2(int currentYear)
 
    //         /*point = dunePt--;*/
 
-   //            /* m_pNewDuneLineLayer->SetData(point, m_colCPolicyL, PolicyArray[SNumber]);
-   //             m_pNewDuneLineLayer->SetData(point, m_colBPSCost, BPSCost);*/
+   //            /* m_pDuneLayer->SetData(point, m_colCPolicyL, PolicyArray[SNumber]);
+   //             m_pDuneLayer->SetData(point, m_colBPSCost, BPSCost);*/
 
    //             /* if ((currentYear) > 2010)
-   //               m_pNewDuneLineLayer->SetData(point, m_colBPSAddYear, 2040);
+   //               m_pDuneLayer->SetData(point, m_colBPSAddYear, 2040);
    //              if ((currentYear) > 2040)
-   //               m_pNewDuneLineLayer->SetData(point, m_colBPSAddYear, 2060);
+   //               m_pDuneLayer->SetData(point, m_colBPSAddYear, 2060);
    //              if ((currentYear) > 2060)
-   //               m_pNewDuneLineLayer->SetData(point, m_colBPSAddYear, 2100);*/
+   //               m_pDuneLayer->SetData(point, m_colBPSAddYear, 2100);*/
 
 
    //               // how does beachwidth change dependent upon BPS construction
 
    //                //// Beachwidth changes based on a 2:1 slope
    //                //float beachwidth;
-   //                //m_pNewDuneLineLayer->GetData(point, m_colDLBeachWidth, beachwidth);
+   //                //m_pDuneLayer->GetData(point, m_colDLBeachWidth, beachwidth);
    //                //beachwidth -= (BPSHeight * 1.0f);
    //                //if ((duneToe / beachwidth) > 0.1f)
    //                //   beachwidth = duneToe / 0.1f;
 
-   //                //m_pNewDuneLineLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+   //                //m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
    //            // get information from next dune Point
    //         /*   point++;
    //         // Move North, building BPS
@@ -7431,17 +7436,17 @@ void ChronicHazards::ConstructBPS2(int currentYear)
 
    //   //  if (idpy >= buildBPSThreshold && ( beachType != BchT_BAY ) )
    //   //  {     
-   //   //     m_pNewDuneLineLayer->SetData(point, m_colPrevBeachType, beachType);
-   //   //     m_pNewDuneLineLayer->SetData(point, m_colDLBeachType, BchT_RIPRAP_BACKED);
-   //   ////     m_pNewDuneLineLayer->SetData(point, m_colBPSMaintYear, currentYear);
-   //   //     m_pNewDuneLineLayer->SetData(point, m_colDLDuneCrest, m_BPSHeight);
+   //   //     m_pDuneLayer->SetData(point, m_colPrevBeachType, beachType);
+   //   //     m_pDuneLayer->SetData(point, m_colDLBeachType, BchT_RIPRAP_BACKED);
+   //   ////     m_pDuneLayer->SetData(point, m_colBPSMaintYear, currentYear);
+   //   //     m_pDuneLayer->SetData(point, m_colDLDuneCrest, m_BPSHeight);
    //   //     m_hardenedShoreline += 10;
    //   //  } // end impact days exceeds threshold
 
    ////   delete ipdyMovingWindow;
    //}
 
-   // m_pNewDuneLineLayer->m_readOnly = true;
+   // m_pDuneLayer->m_readOnly = true;
 
    } // end ConstructBPS(int currentYear)
 
@@ -7462,14 +7467,14 @@ bool ChronicHazards::CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer:
 
    float maxTWL = -10000.0f;
 
-   m_pNewDuneLineLayer->GetData(startPoint, m_colDLDuneBldgIndex, bldgIndex);
+   m_pDuneLayer->GetData(startPoint, m_colDLDuneBldgIndex, bldgIndex);
    nextBldgIndex = bldgIndex;
 
    //before loop startPoint == endPoint
-   while (bldgIndex == nextBldgIndex && endPoint < m_pNewDuneLineLayer->End())
+   while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
       {
       int beachType = -1;
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLBeachType, beachType);
+      m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
 
       if (beachType == BchT_SANDY_DUNE_BACKED)
          //&& movingAvgIDPY >= buildBPSThreshold && isImpactedByEErosion)
@@ -7478,15 +7483,15 @@ bool ChronicHazards::CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer:
          ///   float movingAvgIDPY1 = ipdyMovingWindow->GetAvgValue();
 
          float movingAvgIDPY = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
+         m_pDuneLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
 
          float xAvgKD = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
+         m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
 
          float avgKD = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
+         m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
          float distToBldg = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
+         m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
 
          bool isImpactedByEErosion = false;
          isImpactedByEErosion = IsBldgImpactedByEErosion(nextBldgIndex, avgKD, distToBldg);
@@ -7510,8 +7515,8 @@ bool ChronicHazards::CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer:
          }
 
       endPoint++;
-      if (endPoint < m_pNewDuneLineLayer->End())
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+      if (endPoint < m_pDuneLayer->End())
+         m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
       }
 
    return constructBPS;
@@ -7528,13 +7533,13 @@ bool ChronicHazards::CalculateExtent(MapLayer::Iterator startPoint, MapLayer::It
 
    float maxTWL = -10000.0f;
 
-   m_pNewDuneLineLayer->GetData(startPoint, m_colDLDuneBldgIndex, bldgIndex);
+   m_pDuneLayer->GetData(startPoint, m_colDLDuneBldgIndex, bldgIndex);
    nextBldgIndex = bldgIndex;
 
-   while (bldgIndex == nextBldgIndex && endPoint < m_pNewDuneLineLayer->End())
+   while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
       {
       int beachType = -1;
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLBeachType, beachType);
+      m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
 
       if (beachType == BchT_SANDY_DUNE_BACKED)
          //&& movingAvgIDPY >= buildBPSThreshold && isImpactedByEErosion)
@@ -7543,15 +7548,15 @@ bool ChronicHazards::CalculateExtent(MapLayer::Iterator startPoint, MapLayer::It
          float movingAvgIDPY1 = ipdyMovingWindow->GetAvgValue();
 
          float movingAvgIDPY = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
+         m_pDuneLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
 
          float xAvgKD = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
+         m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
 
          float avgKD = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
+         m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
          float distToBldg = 0.0f;
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
+         m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
 
          bool isImpactedByEErosion = false;
          isImpactedByEErosion = IsBldgImpactedByEErosion(nextBldgIndex, avgKD, distToBldg);
@@ -7574,8 +7579,8 @@ bool ChronicHazards::CalculateExtent(MapLayer::Iterator startPoint, MapLayer::It
          }
 
       endPoint++;
-      if (endPoint < m_pNewDuneLineLayer->End())
-         m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+      if (endPoint < m_pDuneLayer->End())
+         m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
       }
 
    return isConstruct;
@@ -7584,7 +7589,7 @@ bool ChronicHazards::CalculateExtent(MapLayer::Iterator startPoint, MapLayer::It
 
 int ChronicHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int currentYear, double northingTop, double northingBtm)
    {
-   if (dunePt > m_pNewDuneLineLayer->Begin())
+   if (dunePt > m_pDuneLayer->Begin())
       dunePt--;
    else
       return 0;
@@ -7594,33 +7599,33 @@ int ChronicHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int cur
    int beachType = -1;
    double northing = 0.0;
 
-   m_pNewDuneLineLayer->GetData(dunePt, m_colDLBeachType, beachType);
-   m_pNewDuneLineLayer->GetData(dunePt, m_colDLNorthing, northing);
+   m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
+   m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
 
    if (northing < northingBtm || northing > northingTop)
       isDunePtWithinIDU = false;
 
    int count = 0;
 
-   while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU && dunePt > m_pNewDuneLineLayer->Begin());
+   while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU && dunePt > m_pDuneLayer->Begin());
    {
    // change beachtype
-   m_pNewDuneLineLayer->SetData(dunePt, m_colDLBeachType, BchT_RIPRAP_BACKED);
-   m_pNewDuneLineLayer->SetData(dunePt, m_colDLDuneCrest, newCrest);
-   m_pNewDuneLineLayer->SetData(dunePt, m_colDLAddYearBPS, currentYear);
-   m_pNewDuneLineLayer->SetData(dunePt, m_colDLGammaRough, m_minBPSRoughness);
+   m_pDuneLayer->SetData(dunePt, m_colDLBeachType, BchT_RIPRAP_BACKED);
+   m_pDuneLayer->SetData(dunePt, m_colDLDuneCrest, newCrest);
+   m_pDuneLayer->SetData(dunePt, m_colDLAddYearBPS, currentYear);
+   m_pDuneLayer->SetData(dunePt, m_colDLGammaRough, m_minBPSRoughness);
    count = 1;
 
    //   m_hardenedShoreline++;
 
    float eastingToe = 0.0f;
-   m_pNewDuneLineLayer->GetData(dunePt, m_colDLEastingToe, eastingToe);
+   m_pDuneLayer->GetData(dunePt, m_colDLEastingToe, eastingToe);
    float eastingCrest = eastingToe + newCrest / m_slopeBPS;
-   m_pNewDuneLineLayer->SetData(dunePt, m_colDLEastingCrest, eastingCrest);
+   m_pDuneLayer->SetData(dunePt, m_colDLEastingCrest, eastingCrest);
 
    dunePt--;
-   m_pNewDuneLineLayer->GetData(dunePt, m_colDLBeachType, beachType);
-   m_pNewDuneLineLayer->GetData(dunePt, m_colDLNorthing, northing);
+   m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
+   m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
 
    if (northing < northingBtm || northing > northingTop)
       isDunePtWithinIDU = false;
@@ -7635,51 +7640,51 @@ int ChronicHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int cur
      //   bool isDunePtWithinIDU = true;
      //   int currentYear = pEnvContext->currentYear;
      //
-     //   while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU) // && dunePt < m_pNewDuneLineLayer->End() )
+     //   while (beachType == BchT_SANDY_DUNE_BACKED && isDunePtWithinIDU) // && dunePt < m_pDuneLayer->End() )
      //   {
      //      // construct BPS to height of the maximum TWL within the last x years
      //
      //      // change beachtype
-     //      m_pNewDuneLineLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
-     //      m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-     //      m_pNewDuneLineLayer->SetData(pt, m_colBPSAddYear, currentYear);
-     //      m_pNewDuneLineLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
+     //      m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
+     //      m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+     //      m_pDuneLayer->SetData(pt, m_colBPSAddYear, currentYear);
+     //      m_pDuneLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
      //
      //      m_hardenedShoreline++;
      //
-     //      m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+     //      m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
      //      eastingCrest = eastingToe + newCrest / m_slopeBPS;
-     //      m_pNewDuneLineLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
+     //      m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
      //
-     //      m_pNewDuneLineLayer->GetData(pt, m_colDLBeachType, beachType);
-     //      m_pNewDuneLineLayer->GetData(pt, m_colDLNorthing, northing);
+     //      m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
+     //      m_pDuneLayer->GetData(pt, m_colDLNorthing, northing);
      //
      //      //   if (northing > northingTop || northing < northingBtm)
      //      isDunePtWithinIDU = false;
      //
      //      pt++;
      //
-     //      /* m_pNewDuneLineLayer->SetData(point, m_colCPolicyL, PolicyArray[SNumber]);
-     //      m_pNewDuneLineLayer->SetData(point, m_colBPSCost, BPSCost);*/
+     //      /* m_pDuneLayer->SetData(point, m_colCPolicyL, PolicyArray[SNumber]);
+     //      m_pDuneLayer->SetData(point, m_colBPSCost, BPSCost);*/
      //
      //      /* if ((currentYear) > 2010)
-     //      m_pNewDuneLineLayer->SetData(point, m_colBPSAddYear, 2040);
+     //      m_pDuneLayer->SetData(point, m_colBPSAddYear, 2040);
      //      if ((currentYear) > 2040)
-     //      m_pNewDuneLineLayer->SetData(point, m_colBPSAddYear, 2060);
+     //      m_pDuneLayer->SetData(point, m_colBPSAddYear, 2060);
      //      if ((currentYear) > 2060)
-     //      m_pNewDuneLineLayer->SetData(point, m_colBPSAddYear, 2100);*/
+     //      m_pDuneLayer->SetData(point, m_colBPSAddYear, 2100);*/
      //
      //
      //      // how does beachwidth change dependent upon BPS construction
      //
      //      //// Beachwidth changes based on a 2:1 slope
      //      //float beachwidth;
-     //      //m_pNewDuneLineLayer->GetData(point, m_colDLBeachWidth, beachwidth);
+     //      //m_pDuneLayer->GetData(point, m_colDLBeachWidth, beachwidth);
      //      //beachwidth -= (BPSHeight * 1.0f);
      //      //if ((duneToe / beachwidth) > 0.1f)
      //      //   beachwidth = duneToe / 0.1f;
      //
-     //      //m_pNewDuneLineLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+     //      //m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
      //      // get information from next dune Point
      //      /*   point++;
      //      // Move North, building BPS
@@ -7718,18 +7723,18 @@ void ChronicHazards::RemoveBPS(EnvContext* pEnvContext)
    {
    //   Only remove BPS if they are not protecting buildings and if they are  ???? at the end of a BPS segment
 
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       int beachType = 0;
-      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
 
       //   Only remove BPS if they are not protecting buildings and if they are at the end of a BPS segment
       //   if (BuildingsArray[ SNumber ] == 0 && beachType == BchT_RIPRAP_BACKED && (duneTypeArray[ SNumber - 1 ] == 1 || duneTypeArray[ SNumber + 1 ] == 1))
       {
       float Cost;
-      m_pNewDuneLineLayer->SetData(point, m_colDLBeachType, 1);
-      m_pNewDuneLineLayer->SetData(point, m_colDLRemoveYearBPS, pEnvContext->currentYear);
-      m_pNewDuneLineLayer->GetData(point, m_colDLCostBPS, Cost);
+      m_pDuneLayer->SetData(point, m_colDLBeachType, 1);
+      m_pDuneLayer->SetData(point, m_colDLRemoveYearBPS, pEnvContext->currentYear);
+      m_pDuneLayer->GetData(point, m_colDLCostBPS, Cost);
       //         m_BPSRemovalCost += Cost;
       }
       } // end dune pts
@@ -7740,20 +7745,20 @@ void ChronicHazards::RemoveBPS(EnvContext* pEnvContext)
      // BPS is maintained at front of structure, reducing beachwidth and moving structure toe seaward
 void ChronicHazards::MaintainBPS(int currentYear)
    {
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       int beachType = -1;
-      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
 
       MapLayer::Iterator endPoint = point;
       MapLayer::Iterator maxPoint = point;
 
       // When did we last increase the height of the structure? 
       int lastMaintYear;
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLMaintYearBPS, lastMaintYear);
+      m_pDuneLayer->GetData(endPoint, m_colDLMaintYearBPS, lastMaintYear);
 
       int addedBPSYear;
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLAddYearBPS, addedBPSYear);
+      m_pDuneLayer->GetData(endPoint, m_colDLAddYearBPS, addedBPSYear);
 
       if (addedBPSYear == 2010)
          lastMaintYear = 2010;
@@ -7773,14 +7778,14 @@ void ChronicHazards::MaintainBPS(int currentYear)
 
          bool isBldgFlooded = false;
 
-         m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
+         m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
          nextBldgIndex = bldgIndex;
 
          if (bldgIndex != -1)
             {
-            while (bldgIndex == nextBldgIndex && endPoint < m_pNewDuneLineLayer->End())
+            while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
                {
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneCrest, oldCrest);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, oldCrest);
                newCrest = oldCrest;
 
                // Retrieve the maximum TWL within the designated window
@@ -7805,8 +7810,8 @@ void ChronicHazards::MaintainBPS(int currentYear)
                   }
 
                endPoint++;
-               if (endPoint < m_pNewDuneLineLayer->End())
-                  m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+               if (endPoint < m_pDuneLayer->End())
+                  m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
                }
             }
 
@@ -7815,7 +7820,7 @@ void ChronicHazards::MaintainBPS(int currentYear)
             MapLayer::Iterator endPoint = point;
             MapLayer::Iterator minPoint = point;
 
-            m_pNewDuneLineLayer->GetData(maxPoint, m_colDLDuneBldgIndex, bldgIndex);
+            m_pDuneLayer->GetData(maxPoint, m_colDLDuneBldgIndex, bldgIndex);
             nextBldgIndex = bldgIndex;
 
             float maxBPSHeight = -10000.0f;
@@ -7823,9 +7828,9 @@ void ChronicHazards::MaintainBPS(int currentYear)
             float duneToe = 0.0f;
 
             // find dune point of Maximum BPS Height 
-            while (bldgIndex == nextBldgIndex && endPoint < m_pNewDuneLineLayer->End())
+            while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
                {
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
 
                if ((newCrest - duneToe) > maxBPSHeight)
                   {
@@ -7833,20 +7838,20 @@ void ChronicHazards::MaintainBPS(int currentYear)
                   minPoint = endPoint;
                   }
                endPoint++;
-               if (endPoint < m_pNewDuneLineLayer->End())
-                  m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+               if (endPoint < m_pDuneLayer->End())
+                  m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
                }
 
             // engineering limit
             if (maxBPSHeight > m_maxBPSHeight)
                {
                maxBPSHeight = m_maxBPSHeight;
-               m_pNewDuneLineLayer->GetData(minPoint, m_colDLDuneToe, duneToe);
+               m_pDuneLayer->GetData(minPoint, m_colDLDuneToe, duneToe);
                newCrest = duneToe + m_maxBPSHeight;
                }
 
             float BPSLength = 0.0f;
-            m_pNewDuneLineLayer->GetData(point, m_colDLLengthBPS, BPSLength);
+            m_pDuneLayer->GetData(point, m_colDLLengthBPS, BPSLength);
 
             float cost = 0.02f * m_costs.BPS * BPSLength;
             if ((newCrest - oldCrest) > 0)
@@ -7868,30 +7873,30 @@ void ChronicHazards::MaintainBPS(int currentYear)
                pi.IncurCost(cost);      // charge to budget
 
                float priorBPSCost;
-               m_pNewDuneLineLayer->GetData(point, m_colDLCostBPS, priorBPSCost);
+               m_pDuneLayer->GetData(point, m_colDLCostBPS, priorBPSCost);
                float addedBPSCost = cost + priorBPSCost;
-               m_pNewDuneLineLayer->SetData(point, m_colDLCostBPS, addedBPSCost);
+               m_pDuneLayer->SetData(point, m_colDLCostBPS, addedBPSCost);
                m_maintCostBPS += cost;
 
                for (MapLayer::Iterator pt = point; pt < endPoint; pt++)
                   {
                   // Beachwidth changes based on a 1:2 slope 
                   float beachWidth = 0.0f;
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+                  m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
 
                   float duneCrest = 0.0f;
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
                   float duneToe = 0.0f;
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
 
                   float tanb = 0.0f;
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLTranSlope, tanb);
+                  m_pDuneLayer->GetData(pt, m_colDLTranSlope, tanb);
 
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+                  m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
 
                   double eastingCrest = 0.0f;
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLEastingCrest, eastingCrest);
+                  m_pDuneLayer->GetData(pt, m_colDLEastingCrest, eastingCrest);
 
                   if ((newCrest - duneCrest) > 0.0f)
                      {
@@ -7906,27 +7911,27 @@ void ChronicHazards::MaintainBPS(int currentYear)
 
                      //if (m_debugOn)
                      //   {
-                     //   m_pNewDuneLineLayer->SetData(pt, m_colNewEasting, newEastingToe);
-                     //   //      m_pNewDuneLineLayer->SetData(point, m_colBWidth, deltaX2);
-                     //   m_pNewDuneLineLayer->SetData(pt, m_colDeltaX, deltaX);
+                     //   m_pDuneLayer->SetData(pt, m_colNewEasting, newEastingToe);
+                     //   //      m_pDuneLayer->SetData(point, m_colBWidth, deltaX2);
+                     //   m_pDuneLayer->SetData(pt, m_colDeltaX, deltaX);
                      //   }
 
                      // DuneCrest height is set to structure height
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLMaintYearBPS, currentYear);
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLCostMaintBPS, cost);
+                     m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+                     m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+                     m_pDuneLayer->SetData(pt, m_colDLMaintYearBPS, currentYear);
+                     m_pDuneLayer->SetData(pt, m_colDLCostMaintBPS, cost);
                      //
                      // change easting of DuneToe
 
                      //eastingToe -= ((newCrest - duneCrest) / m_slopeBPS);
                      /*eastingToe = newEastingToe;
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, eastingToe);*/
+                     m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);*/
 
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, newEastingToe);
+                     m_pDuneLayer->SetData(pt, m_colDLEastingToe, newEastingToe);
 
 
-                     Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+                     Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
                      if (pPoly->GetVertexCount() > 0)
                         {
                         pPoly->m_vertexArray[0].x = newEastingToe;
@@ -7949,11 +7954,11 @@ void ChronicHazards::MaintainBPS(int currentYear)
      // flowing not currently used
 void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear) //, bool isBPS)
    {
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       /*int bType = -1;
       int beachType = -1;
-      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);*/
+      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);*/
 
       MapLayer::Iterator endPoint = point;
       MapLayer::Iterator maxPoint = point;
@@ -7965,14 +7970,14 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
 
       /*   if (isBPS)
       {*/
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLMaintYearBPS, lastMaintYear);
-      m_pNewDuneLineLayer->GetData(endPoint, m_colDLAddYearBPS, builtYear);
+      m_pDuneLayer->GetData(endPoint, m_colDLMaintYearBPS, lastMaintYear);
+      m_pDuneLayer->GetData(endPoint, m_colDLAddYearBPS, builtYear);
       maintFreq = m_maintFreqBPS;
       //}
       //else // if SPS
       //{
-      //   m_pNewDuneLineLayer->GetData(endPoint, m_colDLMaintYearSPS, lastMaintYear);
-      //   m_pNewDuneLineLayer->GetData(endPoint, m_colDLAddYearSPS, builtYear);
+      //   m_pDuneLayer->GetData(endPoint, m_colDLMaintYearSPS, lastMaintYear);
+      //   m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, builtYear);
       //}
 
       /*if (beachType == BchT_RIPRAP_BACKED && (lastMaintYear + m_maintFreqBPS < currentYear))
@@ -7992,12 +7997,12 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
 
          bool isBldgFlooded = false;
 
-         m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
+         m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
          nextBldgIndex = bldgIndex;
 
-         while (bldgIndex == nextBldgIndex && endPoint < m_pNewDuneLineLayer->End())
+         while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
             {
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneCrest, oldCrest);
+            m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, oldCrest);
             newCrest = oldCrest;
 
             // Retrieve the maxmum TWL within the designated window
@@ -8022,14 +8027,14 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
                }
 
             endPoint++;
-            if (endPoint < m_pNewDuneLineLayer->End())
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+            if (endPoint < m_pDuneLayer->End())
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
             }
 
          endPoint = point;
          MapLayer::Iterator minPoint = point;
 
-         m_pNewDuneLineLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
+         m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
          nextBldgIndex = bldgIndex;
 
          float maxStructureHeight = -10000.0f;
@@ -8037,9 +8042,9 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
          float duneToe = 0.0f;
 
          // find dune point of Maximum Height 
-         while (bldgIndex == nextBldgIndex && endPoint < m_pNewDuneLineLayer->End())
+         while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
             {
-            m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
+            m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
 
             if ((newCrest - duneToe) > maxStructureHeight)
                {
@@ -8047,8 +8052,8 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
                minPoint = endPoint;
                }
             endPoint++;
-            if (endPoint < m_pNewDuneLineLayer->End())
-               m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+            if (endPoint < m_pDuneLayer->End())
+               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
             }
 
          // engineering limit
@@ -8061,7 +8066,7 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
          //   if (maxStructureHeight > heightLimit)
          //   {
          //      maxStructureHeight = heightLimit;
-         //      m_pNewDuneLineLayer->GetData(minPoint, m_colDLDuneToe, duneToe);
+         //      m_pDuneLayer->GetData(minPoint, m_colDLDuneToe, duneToe);
          //      newCrest = duneToe + heightLimit;
          //   }
 
@@ -8074,7 +8079,7 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
 
          // calculate costs based upon which hard protection structure
          float structureLength = 0.0f;
-         m_pNewDuneLineLayer->GetData(point, m_colDLLengthBPS, structureLength);
+         m_pDuneLayer->GetData(point, m_colDLLengthBPS, structureLength);
          float cost = 0.0;
          if ((newCrest - oldCrest) > 0)
             cost = (newCrest - oldCrest) * m_costs.BPS * structureLength;
@@ -8088,7 +8093,7 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
 
          //      // calculate costs based upon which soft protection structure
          //      float structureLength = 0.0f;
-         //      m_pNewDuneLineLayer->GetData(point, m_colDLLengthSPS, structureLength);
+         //      m_pDuneLayer->GetData(point, m_colDLLengthSPS, structureLength);
          //      float SPSMaintCost = (newCrest - oldCrest) * m_costs.SPS * structureLength;
          //   //   m_maintCostSPS += SPSMaintCost;
          //      m_maintCostSPS += SPSMaintCost;
@@ -8101,13 +8106,13 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
             {
             // Beachwidth changes based on a structure front slope 
             float beachWidth = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+            m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
 
             float duneCrest = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+            m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
             /*float duneToe = 0.0f;
-            m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);*/
+            m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);*/
 
 
             /*if (isBPS)
@@ -8119,21 +8124,21 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
                   beachWidth = duneToe / 0.1f;
 
                // DuneCrest height is set to structure height
-               m_pNewDuneLineLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
                //   if (isBPS)
-               m_pNewDuneLineLayer->SetData(pt, m_colDLMaintYearBPS, currentYear);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLCostMaintBPS, cost);
+               m_pDuneLayer->SetData(pt, m_colDLMaintYearBPS, currentYear);
+               m_pDuneLayer->SetData(pt, m_colDLCostMaintBPS, cost);
 
                /*   else
-               m_pNewDuneLineLayer->SetData(pt, m_colDLMaintYearSPS, currentYear);*/
+               m_pDuneLayer->SetData(pt, m_colDLMaintYearSPS, currentYear);*/
 
                // change easting of DuneToe since structure is maintained on seaward side
-               m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+               m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
                eastingToe -= ((newCrest - duneCrest) / structureSlope);
-               m_pNewDuneLineLayer->SetData(pt, m_colDLEastingToe, eastingToe);
+               m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
 
-               Poly* pPoly = m_pNewDuneLineLayer->GetPolygon(pt);
+               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
                if (pPoly->GetVertexCount() > 0)
                   {
                   pPoly->m_vertexArray[0].x = eastingToe;
@@ -8149,7 +8154,7 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
 
 void ChronicHazards::MaintainBPS2(int currentYear)
    {
-   //for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   //for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
    //{
    //   //Do we need to increase the height of the BPS to keep up with increasing TWL?
 
@@ -8170,10 +8175,10 @@ void ChronicHazards::MaintainBPS2(int currentYear)
    //   // Retrieve the average TWL within the designated window
    //   float movingAvgTWL = twlMovingWindow->GetAvgValue();
 
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLDuneToe, duneToe);
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLDuneCrest, duneCrest);
-   //   //    m_pNewDuneLineLayer->GetData(point, m_colBackshoreElev, backshoreElev);
-   //   m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+   //   m_pDuneLayer->GetData(point, m_colDLDuneToe, duneToe);
+   //   m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
+   //   //    m_pDuneLayer->GetData(point, m_colBackshoreElev, backshoreElev);
+   //   m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
 
    //   //if ( ( duneCrest < movingAvgTWL || duneCrest < movingMaxTWL ) && beachType == BchT_RIPRAP_BACKED ) // && duneCrest < backshoreElev )
    //   if (duneCrest < movingMaxTWL && beachType == BchT_RIPRAP_BACKED) // && duneCrest < backshoreElev )
@@ -8222,10 +8227,10 @@ void ChronicHazards::MaintainBPS2(int currentYear)
    //         BPSHeight = newCrest - duneToe;
 
    //         // DuneCrest height is set to structure height
-   //         m_pNewDuneLineLayer->SetData(point, m_colDLDuneCrest, newCrest);
+   //         m_pDuneLayer->SetData(point, m_colDLDuneCrest, newCrest);
 
    //         // Beachwidth changes based on a 2:1 slope 
-   //         m_pNewDuneLineLayer->GetData(point, m_colDLBeachWidth, beachwidth);
+   //         m_pDuneLayer->GetData(point, m_colDLBeachWidth, beachwidth);
    //         if ((newCrest - duneCrest) > 0.0f)
    //         {
 
@@ -8235,8 +8240,8 @@ void ChronicHazards::MaintainBPS2(int currentYear)
 
    //            //  float BPSCost = (newCrest - duneCrest) * m_costs.BPS * pPoly->GetEdgeLength();;
 
-   //            m_pNewDuneLineLayer->SetData(point, m_colDLBeachWidth, beachwidth);
-   //            m_pNewDuneLineLayer->SetData(point, m_colBPSMaintYear, currentYear);
+   //            m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+   //            m_pDuneLayer->SetData(point, m_colBPSMaintYear, currentYear);
 
    //            /*if (Loc == 7)
    //            {
@@ -8251,9 +8256,9 @@ void ChronicHazards::MaintainBPS2(int currentYear)
 
    //            }
    //            float priorBPSCost;
-   //            m_pNewDuneLineLayer->GetData(i, m_colBPSCost, priorBPSCost);
+   //            m_pDuneLayer->GetData(i, m_colBPSCost, priorBPSCost);
    //            float addntlBPSCost = BPSCost + priorBPSCost;
-   //            m_pNewDuneLineLayer->SetData(i, m_colBPSCost, addntlBPSCost);
+   //            m_pDuneLayer->SetData(i, m_colBPSCost, addntlBPSCost);
    //            m_BPSMaintenance += BPSCost;
    //            }*/
    //         }
@@ -8268,7 +8273,7 @@ void ChronicHazards::NourishSPS(int currentYear)
    // get height of cell which corresponds to length of shoreline
    //REAL cellHeight = m_pElevationGrid->GetGridCellHeight();
 
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       double volume = 0.0;
       int nourishYear = 0;
@@ -8291,32 +8296,32 @@ void ChronicHazards::NourishSPS(int currentYear)
          {
          for (MapLayer::Iterator pt = point; pt < endPoint; pt++)
             {
-            m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToe, eastingToe);
-            m_pNewDuneLineLayer->GetData(pt, m_colDLEastingToeSPS, eastingToeSPS);
+            m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+            m_pDuneLayer->GetData(pt, m_colDLEastingToeSPS, eastingToeSPS);
 
             if ((eastingToe - eastingToeSPS) >= 3.0)
                {
-               m_pNewDuneLineLayer->SetData(pt, m_colDLNourishYearSPS, nourishYear);
+               m_pDuneLayer->SetData(pt, m_colDLNourishYearSPS, nourishYear);
 
                if ((nourishYear + m_nourishFreq) < currentYear || nourishYear == 0)
                   {
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
                   //  volume of sand needed along trapezoid face + volume of sand needed to restore beachwidth 
                   //  V = W * H * L - volume of triangular prism + volume of triangular prism
                   volume = (eastingToe - eastingToeSPS) * (duneCrest - duneToe) * m_elevCellHeight; // -0.5 * cellHeight * (eastingToe - eastingToeSPS) * (duneToe - duneToeSPS);
                                                                                                 //}
 
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLNourishYearSPS, nourishYear);
+                  m_pDuneLayer->GetData(pt, m_colDLNourishYearSPS, nourishYear);
 
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
                   float bruunRuleSlope;
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLShorelineChange, shorelineChangeRate);
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLShoreface, bruunRuleSlope);
+                  m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+                  m_pDuneLayer->GetData(pt, m_colDLShorelineChange, shorelineChangeRate);
+                  m_pDuneLayer->GetData(pt, m_colDLShoreface, bruunRuleSlope);
 
                   // determine how much duen has eroded
 
@@ -8350,7 +8355,7 @@ void ChronicHazards::NourishSPS(int currentYear)
                      newBeachWidth = duneToe / 0.1f;
 
                   // easting location of MHW 
-                  m_pNewDuneLineLayer->SetData(pt, m_colDLEastingShoreline, m_colDLEastingToe - newBeachWidth);
+                  m_pDuneLayer->SetData(pt, m_colDLEastingShoreline, m_colDLEastingToe - newBeachWidth);
 
                   // Calculate added volume for a the front facing trapezoid
                   // 
@@ -8377,18 +8382,18 @@ void ChronicHazards::NourishSPS(int currentYear)
                      pi.IncurCost(cost);
 
                      int nourishFreq = 0;
-                     m_pNewDuneLineLayer->GetData(pt, m_colDLNourishFreqSPS, nourishFreq);
+                     m_pDuneLayer->GetData(pt, m_colDLNourishFreqSPS, nourishFreq);
                      nourishFreq += 1;
 
                      // Set new values in Duneline layer
-                     //         m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, newBeachWidth);
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLNourishFreqSPS, nourishFreq);
+                     //         m_pDuneLayer->SetData(pt, m_colDLBeachWidth, newBeachWidth);
+                     m_pDuneLayer->SetData(pt, m_colDLNourishFreqSPS, nourishFreq);
 
                      //   float newBeachSlope = duneToe / newBeachWidth;
 
-                     //   m_pNewDuneLineLayer->SetData(pt, m_colDLTranSlope, newBeachSlope);
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLNourishYearSPS, currentYear);
-                     m_pNewDuneLineLayer->SetData(pt, m_colDLNourishVolSPS, volume);
+                     //   m_pDuneLayer->SetData(pt, m_colDLTranSlope, newBeachSlope);
+                     m_pDuneLayer->SetData(pt, m_colDLNourishYearSPS, currentYear);
+                     m_pDuneLayer->SetData(pt, m_colDLNourishVolSPS, volume);
 
                      // Calculate County wide metrics (volume, cost)
                      m_nourishVolumeSPS += (float)volume;
@@ -8415,7 +8420,7 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
    // ??? is there a nourish frequency for the whole county or location specific ???
    //      
 
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       double volume = 0.0;
       int lastNourishYear = 0;
@@ -8428,12 +8433,12 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
 
       int randNum = 100;
 
-      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
-      //   m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, parcelIndex);
-      m_pNewDuneLineLayer->GetData(point, m_colDLNourishYearBPS, lastNourishYear);
+      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+      //   m_pDuneLayer->GetData(point, m_colDLBeachType, parcelIndex);
+      m_pDuneLayer->GetData(point, m_colDLNourishYearBPS, lastNourishYear);
 
       int addBPSYear = 0;
-      m_pNewDuneLineLayer->GetData(point, m_colDLAddYearBPS, addBPSYear);
+      m_pDuneLayer->GetData(point, m_colDLAddYearBPS, addBPSYear);
 
       if (addBPSYear == 2010)
          lastNourishYear = 2010;
@@ -8454,13 +8459,13 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                {
                for (MapLayer::Iterator pt = point; pt < endPoint; pt++)
                   {
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneToe, duneToe);
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
+                  m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
                   float bruunRuleSlope;
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLShorelineChange, shorelineChangeRate);
-                  m_pNewDuneLineLayer->GetData(pt, m_colDLShoreface, bruunRuleSlope);
+                  m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+                  m_pDuneLayer->GetData(pt, m_colDLShorelineChange, shorelineChangeRate);
+                  m_pDuneLayer->GetData(pt, m_colDLShoreface, bruunRuleSlope);
 
 
                   // determine change in sea level rise from previous year
@@ -8516,21 +8521,21 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                         pi.IncurCost(cost);
 
                         int nourishFreq = 0;
-                        m_pNewDuneLineLayer->GetData(pt, m_colDLNourishFreqBPS, nourishFreq);
+                        m_pDuneLayer->GetData(pt, m_colDLNourishFreqBPS, nourishFreq);
                         nourishFreq += 1;
 
                         // easting location of MHW 
-                        m_pNewDuneLineLayer->SetData(pt, m_colDLEastingShoreline, m_colDLEastingToe - newBeachWidth);
+                        m_pDuneLayer->SetData(pt, m_colDLEastingShoreline, m_colDLEastingToe - newBeachWidth);
                         // Set new values in Duneline layer
 
-                        m_pNewDuneLineLayer->SetData(pt, m_colDLBeachWidth, newBeachWidth);
-                        m_pNewDuneLineLayer->SetData(pt, m_colDLNourishFreqBPS, nourishFreq);
+                        m_pDuneLayer->SetData(pt, m_colDLBeachWidth, newBeachWidth);
+                        m_pDuneLayer->SetData(pt, m_colDLNourishFreqBPS, nourishFreq);
 
                         float newBeachSlope = duneToe / newBeachWidth;
 
-                        m_pNewDuneLineLayer->SetData(pt, m_colDLTranSlope, newBeachSlope);
-                        m_pNewDuneLineLayer->SetData(pt, m_colDLNourishYearBPS, currentYear);
-                        m_pNewDuneLineLayer->SetData(pt, m_colDLNourishVolBPS, volume);
+                        m_pDuneLayer->SetData(pt, m_colDLTranSlope, newBeachSlope);
+                        m_pDuneLayer->SetData(pt, m_colDLNourishYearBPS, currentYear);
+                        m_pDuneLayer->SetData(pt, m_colDLNourishVolBPS, volume);
 
                         // Calculate County wide metrics (volume, cost)
                         m_nourishVolumeBPS += (float)volume;
@@ -8556,7 +8561,7 @@ bool ChronicHazards::FindNourishExtent(MapLayer::Iterator& endPoint)
    bool nourish = false;
    int beachType = -1;
 
-   while (endPoint < m_pNewDuneLineLayer->End() && GetBeachType(endPoint) == BchT_RIPRAP_BACKED)
+   while (endPoint < m_pDuneLayer->End() && GetBeachType(endPoint) == BchT_RIPRAP_BACKED)
       {
       MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(endPoint);
       float movingAvgIDPY = ipdyMovingWindow->GetAvgValue();
@@ -8592,7 +8597,7 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
       }
 
    int builtYear = 0;
-   m_pNewDuneLineLayer->GetData(startPoint, constructYrCol, builtYear);
+   m_pDuneLayer->GetData(startPoint, constructYrCol, builtYear);
 
    int yr = builtYear;
 
@@ -8608,7 +8613,7 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
          }
 
       //int bldgIndex = -1;
-      //m_pNewDuneLineLayer->GetData(endPoint, m_colDLDuneBldgIndex, bldgIndex);
+      //m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, bldgIndex);
 
       //// Retrieve the Flooding Frequency of the Protected Building
       //if (bldgIndex != -1)
@@ -8623,7 +8628,7 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
       //}
 
       endPoint++;
-      m_pNewDuneLineLayer->GetData(endPoint, constructYrCol, yr);
+      m_pDuneLayer->GetData(endPoint, constructYrCol, yr);
       }
 
    return nourish;
@@ -8636,7 +8641,7 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
      //   bool nourish = false;
      //   //   int beachType = -1;
      //
-     //   //   m_pNewDuneLineLayer->GetData(startPoint, m_colDLBeachType, beachType);
+     //   //   m_pDuneLayer->GetData(startPoint, m_colDLBeachType, beachType);
      //   int yr = builtYear;
      //
      //   /*while (beachType == BchT_RIPRAP_BACKED)*/
@@ -8649,8 +8654,8 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
      //         nourish = true;
      //
      //      endPoint++;
-     //      //   m_pNewDuneLineLayer->GetData(endPoint, m_colDLBeachType, beachType);
-     //      m_pNewDuneLineLayer->GetData(endPoint, m_colDLAddYearSPS, yr);
+     //      //   m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
+     //      m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, yr);
      //      }
      //
      //   return nourish;
@@ -8659,20 +8664,20 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
 
 void ChronicHazards::CompareBPSorNourishCosts(int currentYear)
    {
-   //   float cellHeight = m_pNewDuneLineLayer->GetGridCellHeight();
+   //   float cellHeight = m_pDuneLayer->GetGridCellHeight();
 
    //float cellHeight = m_pElevationGrid->GetGridCellHeight();
 
-   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       //For this policy in the less managed scenario, we need to compare the two methods, BPS and nourishment, to see which is cheaper
       float duneToe = 0.0f;
       float beachWidth = 0.0f;
       float shorelineChangeRate = 0.0f;
 
-      m_pNewDuneLineLayer->GetData(point, m_colDLDuneToe, duneToe);
-      m_pNewDuneLineLayer->GetData(point, m_colDLBeachWidth, beachWidth);
-      m_pNewDuneLineLayer->GetData(point, m_colDLShorelineChange, shorelineChangeRate);
+      m_pDuneLayer->GetData(point, m_colDLDuneToe, duneToe);
+      m_pDuneLayer->GetData(point, m_colDLBeachWidth, beachWidth);
+      m_pDuneLayer->GetData(point, m_colDLShorelineChange, shorelineChangeRate);
 
       // cost is determined over a 30 yr timeframe
       float newBeachWidth = beachWidth + (abs(shorelineChangeRate) * 30.0f);
@@ -8683,13 +8688,13 @@ void ChronicHazards::CompareBPSorNourishCosts(int currentYear)
       float newCrest;
       if (m_useMaxTWL == 1)
          {
-         m_pNewDuneLineLayer->GetData(point, m_colDLYrMaxTWL, newCrest);
+         m_pDuneLayer->GetData(point, m_colDLYrMaxTWL, newCrest);
          //add safety factor
          newCrest += 1.0;
          }
       /*else
       {
-      m_pNewDuneLineLayer->GetData(point, m_colYrAvgTWL, newCrest);
+      m_pDuneLayer->GetData(point, m_colYrAvgTWL, newCrest);
       newCrest += 1.0f;
       }*/
 
@@ -10169,16 +10174,16 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
         //////////   int prevDunePtCol = -1;
         //////////   int count = 0;
         //////////
-        //////////   MapLayer::Iterator endPoint = m_pNewDuneLineLayer->Begin();
+        //////////   MapLayer::Iterator endPoint = m_pDuneLayer->Begin();
         //////////
         //////////   // initialize boundary conditions for water free surface (water height) grid
         //////////   // at time t = 0
-        //////////   for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+        //////////   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
         //////////      {
         //////////      endPoint = point;
         //////////
         //////////      int beachType = -1;
-        //////////      m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+        //////////      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
         //////////
         //////////      REAL xDuneCrest = 0.0;
         //////////      REAL xDuneToe = 0.0;
@@ -10198,7 +10203,7 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
         //////////         manningsCoefficient = 0.0f;
         //////////
         //////////         float waterHeight = -9999.0f;
-        //////////         m_pNewDuneLineLayer->GetData(point, m_colDLYrMaxTWL, waterHeight);
+        //////////         m_pDuneLayer->GetData(point, m_colDLYrMaxTWL, waterHeight);
         //////////
         //////////         int colNorthing;
         //////////         int colEasting;
@@ -10243,10 +10248,10 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
         //////////      else if (beachType != BchT_UNDEFINED || beachType != BchT_RIVER) // || beachType != BchT_RIPRAP_BACKED)
         //////////         {
         //////////         manningsCoefficient = 0.0f;
-        //////////         /* m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, xCoord);
-        //////////          m_pNewDuneLineLayer->GetData(point, m_colNorthingCrest, yCoord);*/
-        //////////         m_pNewDuneLineLayer->GetPointCoords(point, xDuneToe, yCoord);
-        //////////         m_pNewDuneLineLayer->GetData(point, m_colDLEastingCrest, xDuneCrest);
+        //////////         /* m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
+        //////////          m_pDuneLayer->GetData(point, m_colNorthingCrest, yCoord);*/
+        //////////         m_pDuneLayer->GetPointCoords(point, xDuneToe, yCoord);
+        //////////         m_pDuneLayer->GetData(point, m_colDLEastingCrest, xDuneCrest);
         //////////
         //////////         m_pNewElevationGrid->GetGridCellFromCoord(xDuneToe, yCoord, startRow, duneToeCol);
         //////////         m_pWaterElevationGrid->GetGridCellFromCoord(xDuneCrest, yCoord, startRow, startCol);
@@ -10260,15 +10265,15 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
         //////////               {
         //////////               // get the yearly max TWL for this duneline point
         //////////               float waterHeight = -9999.0f;
-        //////////               m_pNewDuneLineLayer->GetData(point, m_colDLYrMaxTWL, waterHeight);
+        //////////               m_pDuneLayer->GetData(point, m_colDLYrMaxTWL, waterHeight);
         //////////
         //////////               //waterHeight = 9.0f;
         //////////               // get the duneCrest height for this dunePoint
         //////////               float duneCrest = 0.0f;
-        //////////               m_pNewDuneLineLayer->GetData(point, m_colDLDuneCrest, duneCrest);
+        //////////               m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
         //////////
         //////////               float duneToe = 0.0f;
-        //////////               m_pNewDuneLineLayer->GetData(point, m_colDLDuneToe, duneToe);
+        //////////               m_pDuneLayer->GetData(point, m_colDLDuneToe, duneToe);
         //////////
         //////////               float prevDuneCrest = 0.0f;
         //////////               m_pNewElevationGrid->SetData(startRow, startCol, duneCrest);
@@ -10277,7 +10282,7 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
         //////////
         //////////               // shift DEM west of DuneCrest
         //////////               /***************/
-        //////////               m_pNewDuneLineLayer->GetData(point, m_colPrevCol, prevDunePtCol);
+        //////////               m_pDuneLayer->GetData(point, m_colPrevCol, prevDunePtCol);
         //////////
         //////////               float elevation = 0.0f;
         //////////               m_pNewElevationGrid->GetData(startRow, startCol + 1, elevation);
@@ -10287,14 +10292,14 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
         //////////               m_pDischargeGrid->SetData(startRow, startCol, -9999.0f);
         //////////
         //////////               /*float shorefaceSlope = 0.0f;
-        //////////               m_pNewDuneLineLayer->GetData(point, m_colDLShoreface, shorefaceSlope);*/
+        //////////               m_pDuneLayer->GetData(point, m_colDLShoreface, shorefaceSlope);*/
         //////////
         //////////               endPoint++;
-        //////////               if (endPoint < m_pNewDuneLineLayer->End())
+        //////////               if (endPoint < m_pDuneLayer->End())
         //////////                  {
         //////////                  int nextRow = -1;
         //////////                  int nextCol = -1;
-        //////////                  m_pNewDuneLineLayer->GetPointCoords(endPoint, xCoord, yCoord);
+        //////////                  m_pDuneLayer->GetPointCoords(endPoint, xCoord, yCoord);
         //////////                  m_pWaterElevationGrid->GetGridCellFromCoord(xCoord, yCoord, nextRow, nextCol);
         //////////
         //////////                  if ((ABS(nextRow - startRow)) > 1)
@@ -10434,17 +10439,17 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
        int prevDunePtCol = -1;
        int count = 0;
        float elevDelta = 0;
-       MapLayer::Iterator endPoint = m_pNewDuneLineLayer->Begin();
+       MapLayer::Iterator endPoint = m_pDuneLayer->Begin();
 
        pFloodArea->m_pCellTypeGrid->SetAllData(CT_MODEL, false);
 
        // iterate through dune points, setting associated TWLs in the FloodArea
-       for (MapLayer::Iterator dunePtIndex = m_pNewDuneLineLayer->Begin(); dunePtIndex < m_pNewDuneLineLayer->End(); dunePtIndex++)
+       for (MapLayer::Iterator dunePtIndex = m_pDuneLayer->Begin(); dunePtIndex < m_pDuneLayer->End(); dunePtIndex++)
           {
           endPoint = dunePtIndex;
 
           int beachType = -1;
-          m_pNewDuneLineLayer->GetData(dunePtIndex, m_colDLBeachType, beachType);
+          m_pDuneLayer->GetData(dunePtIndex, m_colDLBeachType, beachType);
 
           REAL xDuneCrest = 0.0;
           REAL xDuneToe = 0.0;
@@ -10461,7 +10466,7 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
              {
              //manningsCoefficient = 0.0f;
              //float waterHeight = -9999.0f;
-             //m_pNewDuneLineLayer->GetData(dunePtIndex, m_colDLYrMaxTWL, waterHeight);
+             //m_pDuneLayer->GetData(dunePtIndex, m_colDLYrMaxTWL, waterHeight);
              //
              //int colNorthing;
              //int colEasting;
@@ -10504,10 +10509,10 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
              {
              // get the X/Y location of the dune point point.
              REAL yDune = 0;
-             m_pNewDuneLineLayer->GetPointCoords(dunePtIndex, xDuneToe, yDune);
+             m_pDuneLayer->GetPointCoords(dunePtIndex, xDuneToe, yDune);
 
              // get the dune crest X location
-             m_pNewDuneLineLayer->GetData(dunePtIndex, m_colDLEastingCrest, xDuneCrest);
+             m_pDuneLayer->GetData(dunePtIndex, m_colDLEastingCrest, xDuneCrest);
 
              // is this a location we need to examine?
              int row, col;
@@ -10524,10 +10529,10 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
 
              // set the dune crest as fixed height source if TWL exceed dune height
              float waterHeight = -9999.0f;
-             m_pNewDuneLineLayer->GetData(dunePtIndex, m_colDLYrMaxTWL, waterHeight);
+             m_pDuneLayer->GetData(dunePtIndex, m_colDLYrMaxTWL, waterHeight);
 
              float duneHeight = 0.0f;
-             m_pNewDuneLineLayer->GetData(dunePtIndex, m_colDLDuneCrest, duneHeight);
+             m_pDuneLayer->GetData(dunePtIndex, m_colDLDuneCrest, duneHeight);
 
              if (waterHeight > duneHeight)
                 {
@@ -10576,18 +10581,18 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
        float yearlyAvgLowSWL = 0.0f;
        float yearlyAvgSWL = 0.0f;
 
-       MapLayer::Iterator point = m_pNewDuneLineLayer->Begin();
+       MapLayer::Iterator point = m_pDuneLayer->Begin();
 
-       m_pNewDuneLineLayer->GetData(point, m_colYrAvgSWL, yearlyAvgSWL);
-       m_pNewDuneLineLayer->GetData(point, m_colYrAvgLowSWL, yearlyAvgLowSWL);
+       m_pDuneLayer->GetData(point, m_colYrAvgSWL, yearlyAvgSWL);
+       m_pDuneLayer->GetData(point, m_colYrAvgLowSWL, yearlyAvgLowSWL);
 
-       //for (MapLayer::Iterator point = m_pNewDuneLineLayer->Begin(); point < m_pNewDuneLineLayer->End(); point++)
+       //for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
        //{
        //   int beachType = 0;
-       //   m_pNewDuneLineLayer->GetData(point, m_colDLBeachType, beachType);
+       //   m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
 
        //   int duneIndex = -1;
-       //   m_pNewDuneLineLayer->GetData(point, m_colDLDuneIndex, duneIndex);
+       //   m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIndex);
 
        //   //REAL xCoord = 0.0;
        //   //REAL yCoord = 0.0;
@@ -10604,8 +10609,8 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
        float noDataValue = m_pBayBathyGrid->GetNoDataValue();
 
        //// get twl of inlet seed point
-       //m_pNewDuneLineLayer->GetData(point, m_colYrAvgLowSWL, yearlyAvgLowSWL);
-       //m_pNewDuneLineLayer->GetData(point, m_colYrAvgSWL, yearlyAvgSWL);
+       //m_pDuneLayer->GetData(point, m_colYrAvgLowSWL, yearlyAvgLowSWL);
+       //m_pDuneLayer->GetData(point, m_colYrAvgSWL, yearlyAvgSWL);
 
        //float avgWaterHeight = (yearlyAvgLowSWL + yearlyAvgSWL) / 2.0f;
 
@@ -10656,8 +10661,8 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
 // Determines Yearly Maximum TWL based upon daily TWL calculations at each Dune point
 void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvContext)
    {
-   if (m_pNewDuneLineLayer != nullptr)
-      m_pNewDuneLineLayer->m_readOnly = false;
+   if (m_pDuneLayer != nullptr)
+      m_pDuneLayer->m_readOnly = false;
 
    // iterate through each day of the year, getting 
    Report::Log_i("Calculating Impact Days for year %i", pEnvContext->currentYear);
@@ -10829,8 +10834,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          double northingDC = 0.0f;
          int rowDC = -1;
          int colDC = -1;
-         m_pNewDuneLineLayer->GetData(dunePt, m_colDLEastingCrest, eastingDC);
-         m_pNewDuneLineLayer->GetData(dunePt, m_colNorthingCrest, northingDC);
+         m_pDuneLayer->GetData(dunePt, m_colDLEastingCrest, eastingDC);
+         m_pDuneLayer->GetData(dunePt, m_colNorthingCrest, northingDC);
          m_pElevationGrid->GetGridCellFromCoord(eastingDC, northingDC, rowDC, colDC);
          m_pElevationGrid->GetData(rowDC, colDC, duneCrest);*/
 
@@ -10904,7 +10909,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
             // If we have raised the height of the BPS, we can no longer use the cross-shore profiles. Check if we have maintained
             int firstMaintYear = 0;
-            //    m_pNewDuneLineLayer->GetData(dunePt, m_colBPSMaintYear, maintYear);
+            //    m_pDuneLayer->GetData(dunePt, m_colBPSMaintYear, maintYear);
             //    int maintFreqInterval = pEnvContext->currentYear - maintYear;
             firstMaintYear = pEnvContext->startYear + m_maintFreqBPS;
 
@@ -10984,9 +10989,9 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                   int tempbreak = 10;
                   /////if (m_debugOn)
                   /////   {
-                  /////   m_pNewDuneLineLayer->SetData(dunePt, m_colRunupFlag, 0);
-                  /////   m_pNewDuneLineLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-                  /////   m_pNewDuneLineLayer->SetData(dunePt, m_colSTKTWL, STK_TWL);
+                  /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 0);
+                  /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+                  /////   m_pDuneLayer->SetData(dunePt, m_colSTKTWL, STK_TWL);
                   /////   }
                   }
                // RIP RAP has been constructed with a standard 2:1 slope
@@ -11000,8 +11005,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                      slope_TAW_local = m_slopeBPS;
                      /////if (m_debugOn)
                      /////   {
-                     /////   m_pNewDuneLineLayer->SetData(dunePt, m_colRunupFlag, 1);
-                     /////   m_pNewDuneLineLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+                     /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 1);
+                     /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
                      /////   }
                      }
 
@@ -11012,8 +11017,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                      slope_TAW_local = tanb1;
                      /////if (m_debugOn)
                      /////   {
-                     /////   m_pNewDuneLineLayer->SetData(dunePt, m_colRunupFlag, 2);
-                     /////   m_pNewDuneLineLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+                     /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 2);
+                     /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
                      /////   }
                      }
 
@@ -11034,8 +11039,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                      slope_TAW_local = (tanb1 * xBtmWidth + m_slopeBPS * xTopWidth) / (xTopWidth + xBtmWidth);
                      ////if (m_debugOn)
                      ////   {
-                     ////   m_pNewDuneLineLayer->SetData(dunePt, m_colRunupFlag, 3);
-                     ////   m_pNewDuneLineLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+                     ////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 3);
+                     ////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
                      ////   }
 
                      /*xBottom = yBottom / tanb1;
@@ -11057,8 +11062,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                   slope_TAW_local = S_comp;
                   //if (m_debugOn)
                   //   {
-                  //   m_pNewDuneLineLayer->SetData(dunePt, m_colRunupFlag, 4);
-                  //   m_pNewDuneLineLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+                  //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 4);
+                  //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
                   //   }
                   }
                else
@@ -11066,8 +11071,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                   slope_TAW_local = tanb1;
                   //if (m_debugOn)
                   //   {
-                  //   m_pNewDuneLineLayer->SetData(dunePt, m_colRunupFlag, 5);
-                  //   m_pNewDuneLineLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+                  //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 5);
+                  //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
                   //   }
                   }
                }
@@ -11081,8 +11086,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                slope_TAW_local = (tanb1 * beachwidth + height) / ((height / m_slopeBPS) + beachwidth);
                //if (m_debugOn)
                //   {
-               //   m_pNewDuneLineLayer->SetData(dunePt, m_colRunupFlag, 6);
-               //   m_pNewDuneLineLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+               //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 6);
+               //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
                //   }
                }
 
@@ -11149,13 +11154,13 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
             // Wave Runup consists of setup and swash (barrier runup)
             double structureR2 = (runup_TAW_local + 1.1f * setup);
-            r2Runup = structureR2;
+            r2Runup = (float) structureR2;
 
             // this attribute is for debugging
             ////if (m_debugOn)
             ////   {
-            ////   m_pNewDuneLineLayer->SetData(dunePt, m_colComputedSlope, slope_TAW_local);
-            ////   m_pNewDuneLineLayer->SetData(dunePt, m_colComputedSlope2, slope_TAW_local_2);
+            ////   m_pDuneLayer->SetData(dunePt, m_colComputedSlope, slope_TAW_local);
+            ////   m_pDuneLayer->SetData(dunePt, m_colComputedSlope2, slope_TAW_local_2);
             ////   }
             dailyTWL = swl + (float)structureR2;
             }  // end of: else if (beachType == BchT_RIPRAP_BACKED ||
