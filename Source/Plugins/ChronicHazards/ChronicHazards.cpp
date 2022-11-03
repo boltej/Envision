@@ -2048,6 +2048,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
          /////// m_pDuneLayer->SetData(point, m_colDLShorelineChange, shorelineChangeRate);
          /////// m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+         m_pDuneLayer->m_readOnly = true;
 
          } // end erosion calculation
       } // end dune line points
