@@ -183,7 +183,7 @@ bool EnvExtension::DefineVar( bool input, int index, LPCTSTR name, void *pVar, T
 MODEL_VAR *EnvExtension::FindOutputVar(LPCTSTR name)
    {
    MODEL_VAR *modelVarArray = NULL;
-   int varCount = m_outputVars.GetSize();
+   int varCount = (int) m_outputVars.GetSize();
 
    for (int j = 0; j < varCount; j++)
       {
