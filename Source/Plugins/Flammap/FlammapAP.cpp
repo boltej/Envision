@@ -542,12 +542,12 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
    Report::Log( msg );
    // randomly select a fire list
    int selNum = -1;
-   if (m_lastScenarioID != m_scenarioID)
+   if (m_lastScenarioID != m_scenarioID)  // different scenario?  Then reset replicate number
    {
 	   m_replicateNum = 0;
 	   m_lastScenarioID = m_scenarioID;
    }
-   if (m_sequentialFirelists)
+   if (m_sequentialFirelists) // if we are using sequential fire lists, 
    {
 	   if (m_replicateNum >= pScenario->m_fireListArray.GetSize())
 		   m_replicateNum = 0;

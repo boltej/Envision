@@ -686,6 +686,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLEastingToe = -1;
       int  m_colDLEastingToeBPS = -1;
       int  m_colDLEastingToeSPS = -1;
+      int  m_colDLEastingMHW = -1;
       int  m_colDLFlooded = -1;
       int  m_colDLForeshore = -1;
       //int  m_colDLGammaBerm = -1;

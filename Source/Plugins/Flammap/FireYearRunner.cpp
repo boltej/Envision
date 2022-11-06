@@ -244,79 +244,80 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 
 	int firesToDo = 0;
 	if (!gpFlamMapAP->m_staticFires)
-	{
-		if (!gpFlamMapAP->m_useFirelistIgnitions)
 		{
+		if (!gpFlamMapAP->m_useFirelistIgnitions)
+			{
 			m_pIgnitGenerator->UpdateProbArray(pEnvContext, pPolyGridLookups, &tFlamMap);
 			double pRatio = m_pIgnitGenerator->GetIgnitRatio();
 			m_firesList.AdjustYear(year, pRatio);
-			msg.Format(_T("  Adjusting fire probabilities for year %d by %lf"), year, pRatio);
+			msg.Format(_T("Adjusting fire probabilities for year %d by %lf"), year, pRatio);
 			Report::Log(msg);
-		}
+			}
 		FireList::iterator i;
 		int count = 0;
 		for (i = m_firesList.firesList.begin(); i != m_firesList.firesList.end(); ++i)
-		{
+			{
 			Fire fire = *i;
 			if (fire.GetYr() == year && fire.GetDoRun())
 				firesToDo++;
+			}
 		}
-	}
 	else     //running with static fires
-	{
+		{
 		firesToDo = 0;
 		for (int i = 0; i < gpFlamMapAP->m_numStaticFires; i++)
-		{
+			{
 			if (gpFlamMapAP->m_staticFires[i].GetYr() == year)
 				firesToDo++;
+			}
 		}
-	}
 
 	if (firesToDo <= 0)
-	{
+		{
 		msg.Format("  No fires selected for year %d", year);
 		Report::Log(msg);
 		return 0;
-	}
+		}
 
 	// create the fires.  The "Fire" class represents info about the fire
+	// these are the fires we will run
 	Fire *fireArray = new Fire[firesToDo];
 	if (gpFlamMapAP->m_staticFires)
-	{
+		{
 		int fLoc = 0;
 		for (int i = 0; i < gpFlamMapAP->m_numStaticFires; i++)
-		{
-			if (gpFlamMapAP->m_staticFires[i].GetYr() == year)
 			{
+			if (gpFlamMapAP->m_staticFires[i].GetYr() == year)
+				{
 				fireArray[fLoc] = gpFlamMapAP->m_staticFires[i];
 				fLoc++;
+				}
 			}
 		}
-	}
 	else
-	{
+		{
 		int fLoc = 0;
 		FireList::iterator i;
 
 		for (i = m_firesList.firesList.begin(); i != m_firesList.firesList.end(); ++i)
-		{
+			{
 			Fire fire = *i;
 			if (fire.GetYr() == year && fire.GetDoRun())
-			{
-				fireArray[fLoc] = fire;
+				{
+				fireArray[fLoc] = fire;  
 				fLoc++;
+				}
 			}
 		}
-	}
 
 	bool logFlameLengths = gpFlamMapAP->m_logFlameLengths ? true : false;
 	CMinTravelTime *pMtt = NULL;
 	int MaxTries = gpFlamMapAP->m_maxRetries + 1;
 	//get the ignition points here (avoid issues with random in OpenMP loop...
 	if (!gpFlamMapAP->m_staticFires && !gpFlamMapAP->m_useFirelistIgnitions)
-	{
-		for (int n = 0; n < firesToDo; n++)
 		{
+		for (int n = 0; n < firesToDo; n++)
+			{
 			//get ignition point for fire
 			REAL fireX, fireY;
 			int fuel;
@@ -324,31 +325,31 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 			//ensure ignition point is burnable!
 			fuel = (int)tFlamMap.GetLayerValue(FUEL, fireX, fireY);
 			while (FuelIsNonburnable(fuel))
-			{
+				{
 				//get ignition point for fire
 				m_pIgnitGenerator->GetIgnitionPointFromGrid(pEnvContext, fireX, fireY);
 				fuel = (int)tFlamMap.GetLayerValue(FUEL, fireX, fireY);
-			}
+				}
 			fireArray[n].SetFuel(fuel);
 			fireArray[n].SetIgnitionPoint(fireX, fireY);
+			}
 		}
-	}
 	else
-	{
-		for (int n = 0; n < firesToDo; n++)
 		{
+		for (int n = 0; n < firesToDo; n++)
+			{
 			int fuel = (int)tFlamMap.GetLayerValue(FUEL, fireArray[n].GetIgnitX(), fireArray[n].GetIgnitY());
 			fireArray[n].SetFuel(fuel);
+			}
 		}
-	}
 
 	FILE *envFireList = NULL;
 	FILE * echoFiresList = NULL;
 	if (gpFlamMapAP->m_outputEnvisionFirelists)
-	{
+		{
 		envFireList = fopen(gpFlamMapAP->m_outputEnvisionFirelistName, "a+t");
 		echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
-	}
+		}
 
 	msg.Format(_T(" Starting fires for year %d, running %d fires"), year, firesToDo);
 	Report::Log(msg);
@@ -378,10 +379,10 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 			tFlamMap.SetNoBurnMask(burnMask);
 		ret = tFlamMap.SetFuelMoistureFile(fireArray[n].GetFMSname());
 		if (ret != 1)
-		{
+			{
 			errorsFMS++;
 			continue;
-		}
+			}
 		tFlamMap.SetConstWind(fireArray[n].GetWindSpd(), fireArray[n].GetWindAzmth());
 		tFlamMap.SetFoliarMoistureContent(gpFlamMapAP->m_foliarMoistureContent);
 		tFlamMap.SetUseScottReinhardt(gpFlamMapAP->m_crownFireMethod);
