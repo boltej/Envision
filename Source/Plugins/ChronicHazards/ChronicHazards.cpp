@@ -775,6 +775,7 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    CheckCol(m_pDuneLayer, m_colDLShorelineChange, "SCR", TYPE_FLOAT, CC_MUST_EXIST);
    CheckCol(m_pDuneLayer, m_colDLBeachType, "BEACHTYPE", TYPE_INT, CC_MUST_EXIST);
    CheckCol(m_pDuneLayer, m_colDLGammaRough, "GAMMAROUGH", TYPE_FLOAT, CC_MUST_EXIST);
+   CheckCol(m_pDuneLayer, m_colDLBruunSlope, "BruunSlope", TYPE_FLOAT, CC_MUST_EXIST);
    //CheckCol(m_pDuneLayer, m_colDLScomp, "COMPSLOPE", TYPE_FLOAT, CC_AUTOADD);
 
    CheckCol(m_pDuneLayer, m_colDLDuneIndex, "DUNEINDEX", TYPE_LONG, CC_AUTOADD | TYPE_LONG);
@@ -946,6 +947,14 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    // Moving Average of Impact Days Per Year
    CheckCol(m_pDuneLayer, m_colDLMvAvgIDPY, "MVAVG_IDPY", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLMvAvgIDPY, VData(0.0f), true);
+
+   CheckCol(m_pDuneLayer, m_colDLSCR, "SCR_NEW", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLSCR, VData(0.0f), true);
+
+
+   CheckCol(m_pDuneLayer, m_colDLDeltaBruun, "DeltaBruun", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLDeltaBruun, VData(0.0f), true);
+
    ////////
    ////////
    ////////// ****** Protection Structures ****** //
@@ -1647,7 +1656,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
 
          // The foreshore and Bruun Rule slopes are calculated once using the 
          // cross-shore profile at the beginning of the simulation
-         float BruunRuleSlope = 0;
+         float bruunSlope = 0;
          float foreshoreSlope = 0;
 
          if (pEnvContext->yearOfRun == 0)
@@ -1675,13 +1684,15 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             // chronic erosion extents
             //distance = (easting25m - eastingMHW);
             //float BruunRuleSlope = (float)((-27.1) / distance);
-            float BruunRuleSlope = 0.008f;
-            //m_pDuneLayer->GetData(point, m_colDLFBruunRuleSlope, BruunRuleSlope);
+           // float BruunSlope = 0.008f;
+
+            //m_pDuneLayer->GetData(point, m_colDLBruunSlope, BruunSlope);
 
             //m_pDuneLayer->SetData(point, m_colDLShoreface, BruunRuleSlope);
             }
 
-         m_pDuneLayer->GetData(point, m_colDLShoreface, BruunRuleSlope);
+        // float BruunSlope = 0;
+         m_pDuneLayer->GetData(point, m_colDLBruunSlope, bruunSlope);
          m_pDuneLayer->GetData(point, m_colDLForeshore, foreshoreSlope);
 
          double xCoord = 0.0;
@@ -1826,7 +1837,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
 
             // Determine influence of SLR on chronic erosion, characterized using a Bruun rule calculation
             if (toeRise > 0.0f)
-               xBruun = toeRise / BruunRuleSlope;    // shoude be stored in dune line
+               xBruun = toeRise / bruunSlope;    // shoude be stored in dune line
             }
 
          // 
@@ -1907,6 +1918,8 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
                float x = 0.0f;
                m_pDuneLayer->GetData(point, m_colDLEastingToe, x);
                m_pDuneLayer->SetData(point, m_colDLEastingToe, x + dx);
+               m_pDuneLayer->SetData(point, m_colDLSCR, shorelineChangeRate);
+               m_pDuneLayer->SetData(point, m_colDLDeltaBruun, dx);
                m_pDuneLayer->GetData(point, m_colDLEastingCrest, x);
                m_pDuneLayer->SetData(point, m_colDLEastingCrest, x + dx);
 
@@ -2048,7 +2061,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
          /////// m_pDuneLayer->SetData(point, m_colDLShorelineChange, shorelineChangeRate);
          /////// m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
-         m_pDuneLayer->m_readOnly = true;
+         //m_pDuneLayer->m_readOnly = true;
 
          } // end erosion calculation
       } // end dune line points
@@ -8319,10 +8332,10 @@ void ChronicHazards::NourishSPS(int currentYear)
                   m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
                   m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
-                  float bruunRuleSlope;
+                  float bruunSlope;
                   m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
                   m_pDuneLayer->GetData(pt, m_colDLShorelineChange, shorelineChangeRate);
-                  m_pDuneLayer->GetData(pt, m_colDLShoreface, bruunRuleSlope);
+                  m_pDuneLayer->GetData(pt, m_colDLBruunSlope, bruunSlope);
 
                   // determine how much duen has eroded
 
@@ -8338,7 +8351,7 @@ void ChronicHazards::NourishSPS(int currentYear)
                   float nourishSLR = 0.0f;
                   // nourish only when increasing slr (beach is narrowing)
                   if ((slr - prevslr) > 0)
-                     nourishSLR = ((slr - prevslr) / bruunRuleSlope) * m_nourishFactor;
+                     nourishSLR = ((slr - prevslr) / bruunSlope) * m_nourishFactor;
 
                   // nourish only when negative shoreline change rate (beach is narrowing)
                   float nourishSCRate = 0.0f;
@@ -8463,10 +8476,10 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                   m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
                   m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
 
-                  float bruunRuleSlope;
+                  float bruunSlope;
                   m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
                   m_pDuneLayer->GetData(pt, m_colDLShorelineChange, shorelineChangeRate);
-                  m_pDuneLayer->GetData(pt, m_colDLShoreface, bruunRuleSlope);
+                  m_pDuneLayer->GetData(pt, m_colDLShoreface, bruunSlope);
 
 
                   // determine change in sea level rise from previous year
@@ -8482,7 +8495,7 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                   float nourishSLR = 0.0f;
                   // nourish only when increasing slr (beach is narrowing)
                   if ((slr - prevslr) > 0)
-                     nourishSLR = ((slr - prevslr) / bruunRuleSlope) * m_nourishFactor;
+                     nourishSLR = ((slr - prevslr) / bruunSlope) * m_nourishFactor;
 
                   // nourish only when negative shoreline change rate (beach is narrowing)
                   float nourishSCRate = 0.0f;
@@ -10743,6 +10756,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          float dailyTWL_Flood = 0.0f;
          float L = 0.0f;
          float shorelineAngle = 0.0f;
+         double bruunSlope = 0.0f;
 
          double eastingCrest = 0.0;
          double eastingToe = 0.0;
@@ -10770,6 +10784,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          //     m_pDuneLayer->GetData(dunePt, m_colEPR, EPR);
          m_pDuneLayer->GetData(dunePt, m_colDLShorelineAngle, shorelineAngle);
          m_pDuneLayer->GetData(dunePt, m_colDLBeachWidth, beachwidth);
+         m_pDuneLayer->GetData(dunePt, m_colDLBruunSlope, bruunSlope);
 
          // get wave conditions at intermediate depth, 20m contour from the RBF interpolations
          float radPeakHeightL = 0.0, radPeakHeightH = 0.0f, radPeakPeriodL = 0.0f, radPeakPeriodH = 0.0f;
