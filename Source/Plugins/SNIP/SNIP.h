@@ -414,6 +414,8 @@ class SNLayer
       int m_nextNodeIndex = 0;
       int m_nextEdgeIndex = 0;
 
+      int m_exportNetworkInterval = -1;
+
       // methods
       void ShuffleNodes(SNNode** nodeArray, int nodeCount);
 
@@ -447,6 +449,10 @@ class SNLayer
       //void Bonding(SNNode*);
       void GetOutputEdges(bool active, CArray< SNEdge*, SNEdge* >& out);
       //  bool NodeEdgeCount( SNNode *pNode, int nodeEdgeType );
+
+      bool ExportNetworkGraphML(LPCTSTR path);
+      bool ExportNetworkGEXF(LPCTSTR path, LPCTSTR date=nullptr);
+      int  CheckNetwork();
 
 
    };

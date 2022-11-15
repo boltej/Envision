@@ -27,8 +27,11 @@ Copywrite 2012 - Oregon State University
 #include <FDATAOBJ.H>
 #include <Vdataobj.h>
 #include <GEOMETRY.HPP>
+#include <Scenario.h>
+#include <colorramps.h>
 
 #include <format>
+#include <iostream>
 #include <fstream>
 #include <set>
 #include <unordered_set>
@@ -192,6 +195,269 @@ bool SNLayer::Init()
    m_pSNIPModel->Init();
    return true;
    }
+
+
+
+bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
+   {
+   // declare output file stream :
+   ofstream out;
+   out.open(path);
+
+   out << "<?xml version='1.0' encoding='UTF-8' ?>\n";
+   out << "<graphml xmlns='http://graphml.graphdrawing.org/xmlns' xmlns:xsi = 'http://www.w3.org/2001/XMLSchema-instance'\n";
+   out << "xsi:schemaLocation='http://graphml.graphdrawing.org/xmlns http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd'>\n";
+
+   // start with node, edge properties
+   //out << "<key id='react' for='node' attr.name='color' attr.type='string'>\n";
+   out << "<key id='n1' for='node' attr.name='color' attr.type='string'/>\n";
+   out << "<key id='n2' for='node' attr.name='size' attr.type='float' /> \n";
+   out << "<key id='n3' for='node' attr.name='reactivity' attr.type='float'/> \n";
+   out << "<key id='n4' for='node' attr.name='influence' attr.type='float'/> \n";
+
+   out << "<key id='e1' for='edge' attr.name='weight' attr.type='float' /> \n";
+   out << "<key id='e2' for='edge' attr.name='color' attr.type='string'><default>yellow</default></key>\n";
+   out << "<key id='e3' for='edge' attr.name='signal_strength' attr.type='float' /> \n";
+   out << "<key id='e4' for='edge' attr.name='trust' attr.type='float' /> \n";
+   out << "<key id='e5' for='edge' attr.name='influence' attr.type='float' /> \n";
+
+   out << "<graph id='G' edgedefault='directed'> \n";
+
+   for (int i = 0; i < (int)this->m_nodes.GetSize(); i++)
+      {
+      SNNode* pNode = this->m_nodes[i];
+      string color = "black";
+      switch (pNode->m_nodeType)
+         {
+         case NT_ASSESSOR:          color = "red";  break;
+         case NT_NETWORK_ACTOR:     color = "blue";  break;
+         case NT_ENGAGER:           color = "cyan";  break;
+         case NT_LANDSCAPE_ACTOR:   color = "green";  break;
+         }
+
+      out << "<node id='" << pNode->m_name << "'>\n";
+      out << " <data key='n1'>" << color << "</data>\n";
+      out << " <data key='n2'>" << pNode->m_reactivity << "</data>\n";
+      out << " <data key='n3'>" << pNode->m_reactivity << "</data>\n";
+      out << " <data key='n4'>" << pNode->m_influence << "</data>\n";
+      out << "</node> \n";
+      }
+
+   for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
+      {
+      SNEdge* pEdge = this->m_edges[i];
+
+      string color = "black";
+
+      //switch (pEdge->m_nodeType)
+      //   {
+      //   case NT_ASSESSOR:          color = "red";  break;
+      //   case NT_NETWORK_ACTOR:     color = "blue";  break;
+      //   case NT_ENGAGER:           color = "cyan";  break;
+      //   case NT_LANDSCAPE_ACTOR:   color = "green";  break;
+      //   }
+
+      out << "<edge id='" << pEdge->m_name << "' source='" << pEdge->m_pFromNode->m_name << "' target='" << pEdge->m_pToNode->m_name << "'>\n";
+      out << "  <data key='e1'>" << pEdge->m_trust << "</data> \n";  // weight
+      out << "  <data key='e2'>" << color << "</data> \n";  // color
+      out << "  <data key='e3'>" << pEdge->m_signalStrength << "</data> \n";  // signal strength
+      out << "  <data key='e4'>" << pEdge->m_trust << "</data> \n";   // trust
+      out << "  <data key='e5'>" << pEdge->m_influence << "</data> \n";  // influence
+      out << "</edge> \n";
+      }
+      
+   out << "</graph>\n";
+   out << "</graphml>\n";
+   out.close();
+
+   return true;
+   }
+
+
+bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
+   {
+   // declare output file stream :
+   ofstream out;
+   out.open(path);
+
+   out << "<?xml version='1.0' encoding='UTF-8'?>" << endl;
+   out << "<gexf xmlns='http://gexf.net/1.3' xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' xsi:schemaLocation='http://gexf.net/1.3 http://gexf.net/1.3/gexf.xsd' version='1.3' xmlns:viz='http://gexf.net/1.3/viz' >" << endl;
+   out << "<meta lastmodifieddate='2009-03-20'>" << endl;
+   out << "    <creator>Envision</creator>" << endl;
+   out << "    <description>SNIP network " << this->m_name << "</description>" << endl;
+   out << "</meta>" << endl;
+   if ( date == nullptr)
+      out << "<graph mode='static' defaultedgetype='directed'>" << endl;
+   else
+      out << "<graph mode='dynamic' timeformat='date' defaultedgetype='directed'>" << endl;
+
+   out << "<attributes class='node'>" << endl;
+   out << "  <attribute id='n1' title='color' type='string'/>" << endl;
+   out << "  <attribute id='n2' title='size' type='float' />" << endl;
+   out << "  <attribute id='n3' title='reactivity' type='float'/>" << endl;
+   out << "  <attribute id='n4' title='influence' type='float'/>" << endl;
+   out << "</attributes>" << endl;
+   out << "<attributes class='edge'>" << endl;
+   out << "  <attribute id='e1' title='weight' type='float' />" << endl;
+   out << "  <attribute id='e2' title='color' type='string'/>" << endl;
+   out << "  <attribute id='e3' title='signal_strength' type='float' />" << endl;
+   out << "  <attribute id='e4' title='trust' type='float' />" << endl;
+   out << "  <attribute id='e5' title='influence' type='float' />" << endl;
+   out << "</attributes>" << endl;
+
+   out << "<nodes>" << endl;
+
+   int nodes = (int)this->m_nodes.GetSize();
+
+   int nAssessors = this->GetNodeCount(NT_ASSESSOR);
+   int nNAs = this->GetNodeCount(NT_NETWORK_ACTOR);
+   int nEngagers = this->GetNodeCount(NT_ENGAGER);
+   int nLAs = this->GetNodeCount(NT_LANDSCAPE_ACTOR);
+
+   int na = 0, nn = 0, ne = 0, nl = 0;
+   int x=0, y=0;
+   for (int i = 0; i < nodes; i++)
+      {
+      SNNode* pNode = this->m_nodes[i];
+      // temporary
+      if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+         continue;
+
+      string color = "black";
+      switch (pNode->m_nodeType)
+         {
+         case NT_ASSESSOR:        color = "red";   x = 20; y = int(20+((60.0f*na)/nAssessors)); na++; break;
+         case NT_NETWORK_ACTOR:   color = "blue";  x = 40; y = int(20+((60.0f*nn)/nNAs));       nn++; break;
+         case NT_ENGAGER:         color = "cyan";  x = 60; y = int(20+((60.0f*ne)/nEngagers));  ne++; break;
+         case NT_LANDSCAPE_ACTOR: color = "green"; x = 80; y = int(20+((60.0f*nl)/nLAs));       nl++; break;
+         }
+
+      if ( date == nullptr)
+         out << "<node id='" << pNode->m_id << "' label='" << pNode->m_name << "' >" << endl;
+      else
+         out << "<node id='" << pNode->m_id << "' label='" << pNode->m_name << "' start='" << date << "' end='" << date << "' >" << endl;
+      
+      out << " <attvalues>\n";
+      out << "  <attvalue for='n1' value='" << color << "'/>" << endl;
+      out << "  <attvalue for='n2' value='" << pNode->m_reactivity << "'/>" << endl;
+      out << "  <attvalue for='n3' value='" << pNode->m_reactivity << "'/>" << endl;
+      out << "  <attvalue for='n4' value='" << pNode->m_influence << "'/>" << endl;
+      out << " </attvalues>\n";
+      
+      // node color=reactivity
+      // node size = influence
+      int r=0, g=0, b=0;
+      ::RWBColorRamp(-1,1, pNode->m_reactivity, r, g, b);
+
+      out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
+      out << " <viz:position x='" << x << "' y='" << y << "' z='0.0'/>" << endl;
+      out << " <viz:size value='" << (100*pNode->m_influence / this->m_pSNIPModel->m_netStats.maxNodeInfluence) << "'/>" << endl;
+      out << " <viz:shape value='disc'/>" << endl;
+
+      out << "</node> \n";
+      }
+
+   out << "</nodes>" << endl;
+   out << "<edges>" << endl;
+
+   for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
+      {
+      SNEdge* pEdge = this->m_edges[i];
+
+      // temporary
+      if (pEdge->m_pToNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+         continue;
+
+
+
+      string color = "black";
+
+      //switch (pEdge->m_nodeType)
+      //   {
+      //   case NT_ASSESSOR:          color = "red";  break;
+      //   case NT_NETWORK_ACTOR:     color = "blue";  break;
+      //   case NT_ENGAGER:           color = "cyan";  break;
+      //   case NT_LANDSCAPE_ACTOR:   color = "green";  break;
+      //   }
+
+      out << "<edge id='" << pEdge->m_id << "' source='" << pEdge->m_pFromNode->m_id << "' target='" << pEdge->m_pToNode->m_id << "'>" << endl;
+      out << " <attvalues>\n";
+      out << "  <attvalue for='e1' value='" << pEdge->m_trust << "'/>" << endl;
+      out << "  <attvalue for='e2' value='" << color << "'/>" << endl;  // color
+      out << "  <attvalue for='e3' value='" << pEdge->m_signalStrength << "'/>" << endl;  // signal strength
+      out << "  <attvalue for='e4' value='" << pEdge->m_trust << "'/>" << endl;   // trust
+      out << "  <attvalue for='e5' value='" << pEdge->m_influence << "'/>" << endl;  // influence
+      out << " </attvalues>" << endl;
+
+      // color = trust
+      // thickness = influence
+      int r = 0, g = 0, b = 0;
+      ::RWBColorRamp(-1, 1, pEdge->m_trust, r, g, b);
+
+      float thick = 1 + (8*pEdge->m_influence / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
+
+      out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
+      out << " <viz:thickness value='" <<  << "'/>" << endl;
+      out << " <viz:shape value='solid' />" << endl;
+
+      out << "</edge> \n";
+      }
+   out << "</edges>" << endl;
+   out << "</graph>" << endl;
+   out << "</gexf>";
+
+   out.close();
+
+   return true;
+   }
+
+
+
+int SNLayer::CheckNetwork()
+   {
+   int nIslandNodes = 0;
+   int nUnknownNodes = 0;
+
+   for (int i = 0; i < (int)this->m_nodes.GetSize(); i++)
+      {
+      SNNode* pNode = this->m_nodes[i];
+
+      if (pNode->m_inEdges.GetSize() == 0 && pNode->m_outEdges.GetSize() == 0)
+         nIslandNodes++;
+
+      if (pNode->m_nodeType == NT_UNKNOWN)
+         nUnknownNodes++;
+      }
+
+   int nEdgeMissingNodes = 0;
+   for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
+      {
+      SNEdge* pEdge = this->m_edges[i];
+
+      if ( pEdge->m_pToNode == nullptr)
+         nEdgeMissingNodes++;
+      else if ( FindNode(pEdge->m_pToNode->m_name) == nullptr )
+         nEdgeMissingNodes++;
+
+      if (pEdge->m_pFromNode == nullptr)
+         nEdgeMissingNodes++;
+      else if (FindNode(pEdge->m_pFromNode->m_name) == nullptr)
+         nEdgeMissingNodes++;
+      }
+
+   if (nIslandNodes > 0)
+      Report::Log_i("%i nodes in the network are unconnected to any other nodes", nIslandNodes, RA_NEWLINE, RT_WARNING);
+
+   if (nUnknownNodes > 0)
+      Report::Log_i("%i nodes in the network are of unknown type", nUnknownNodes, RA_NEWLINE, RT_WARNING);
+
+   if (nEdgeMissingNodes > 0)
+      Report::Log_i("%i edges in the network have missing connections (to/from nodes)", nEdgeMissingNodes, RA_NEWLINE, RT_WARNING);
+
+   return nIslandNodes + nUnknownNodes + nEdgeMissingNodes;
+   }
+
+
 
 
 ////////////////////////////////////////////////////////////////
@@ -420,18 +686,20 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
    this->SetInputNodeReactivity(1.0f); ///???
    this->m_maxNodeDegree = this->GetMaxDegree(false);
 
+   int nodeCount = GetNodeCount();
+   int edgeCount = GetEdgeCount();
+   int assessorCount = GetNodeCount(NT_ASSESSOR);
+   int engagerCount = GetNodeCount(NT_ENGAGER);
+   int laCount = GetNodeCount(NT_LANDSCAPE_ACTOR);
+   CString msg;
+   msg.Format("Loaded network %s (%i nodes, %i edges, %i assessors, %i engagers, %i landscape actors)", this->m_pSNLayer->m_name.c_str(), nodeCount, edgeCount, assessorCount, engagerCount, laCount);
+   Report::LogInfo(msg);
+
    this->SolveEqNetwork(0);
 
    //this->InitSimulation();
 
    this->UpdateNetworkStats();
-
-   int nodeCount = GetNodeCount();
-   int edgeCount = GetEdgeCount();
-   int laCount = GetNodeCount(NT_LANDSCAPE_ACTOR);
-   CString msg;
-   msg.Format("SNIP: Loaded network %s (%i nodes, %i edges, %i landscape actors", this->m_pSNLayer->m_name.c_str(), nodeCount, edgeCount, laCount);
-   Report::LogInfo(msg);
    return true;
    }
 
@@ -550,31 +818,44 @@ SNNode* SNLayer::FindNode(LPCTSTR name)
 
 bool SNLayer::RemoveNode(SNNode* pNode)
    {
+   // remove from node array
    m_nodes.Remove(pNode);  // also deletes node
 
+   // remove from nodeMap
    for (std::map<std::string, SNNode*>::iterator it = m_nodeMap.begin(); it != m_nodeMap.end();)
       {
-      if ((it->second) == itemToRemove)
+      if ((it->second) == pNode)
          {
-         it = map.erase(it);
+         it = m_nodeMap.erase(it);
+         break;
          }
       else
-         {
          it++;
-         }
       }
-
-   std::erase(m_nodeMap.po
+   // remove any edges that point from/to this node.
    for (int i = 0; i < (int)m_edges.GetSize(); i++)
       {
       SNEdge* pEdge = m_edges[i];
-      if (pEdge->m_pFromNode == pNode || pEdge->m_pToNode == pNode)
+      if (pEdge->m_pFromNode == pNode)
          {
          m_edges.Remove(pEdge);
+         for ( int j=0; j < (int) pEdge->m_pFromNode->m_outEdges.GetSize(); j++)
+            if (pEdge->m_pFromNode->m_outEdges[j] == pEdge)
+               {
+               pEdge->m_pFromNode->m_outEdges.RemoveAt(j);
+               break;
+               }   
+                  
+         for (int j = 0; j < (int)pEdge->m_pToNode->m_inEdges.GetSize(); j++)
+            if (pEdge->m_pToNode->m_inEdges[j] == pEdge)
+               {
+               pEdge->m_pToNode->m_inEdges.RemoveAt(j);
+               break;
+               }
+
          i--;
          }
       }
-
 
    return true;
    }
@@ -864,17 +1145,26 @@ int SNIPModel::RunSimulation(bool initialize, bool step)
 
    RunCycle(this->m_currentCycle, !step);
 
-   // Simulation is complete for 
-   for (int i = 0; i < this->GetNodeCount(); i++)
-      {
-      SNNode* pNode = this->GetNode(i);
-      if (pNode->IsLandscapeActor())
-         {
-         CString msg;
-         msg.Format("Landscape Actor Node %s: Reactivity = %.2f, Influence = %.2f", pNode->m_name, pNode->m_reactivity, pNode->m_influence);
-         Report::LogInfo(msg);
-         }
-      }
+   // Simulation is complete for, do a little reporting
+   ///////float meanLAReactivity = 0;
+   ///////int laCount = 0;
+   ///////for (int i = 0; i < this->GetNodeCount(); i++)
+   ///////   {
+   ///////   SNNode* pNode = this->GetNode(i);
+   ///////   if (pNode->IsLandscapeActor())
+   ///////      {
+   ///////      meanLAReactivity += pNode->m_reactivity;
+   ///////      laCount++;
+   ///////      //CString msg;
+   ///////      //msg.Format("Landscape Actor Node %s: Reactivity = %.2f, Influence = %.2f", pNode->m_name, pNode->m_reactivity, pNode->m_influence);
+   ///////      //Report::LogInfo(msg);
+   ///////      }
+   ///////   }
+   ///////
+   ///////meanLAReactivity /= laCount;
+   ///////CString msg;
+   ///////msg.Format("Landscape Actor Node: Mean Reactivity=%.2f from %i actors", meanLAReactivity, laCount);
+   ///////Report::LogInfo(msg);
 
    for (int i = 0; i < this->GetEdgeCount(); i++)
       {
@@ -887,8 +1177,14 @@ int SNIPModel::RunSimulation(bool initialize, bool step)
       //   }
       }
 
+   float inputReactivity = this->GetInputNode()->m_reactivity;
+   float meanEngagerReactivity = this->GetMeanReactivity(NT_ENGAGER);
+   float meanLAReactivity = this->GetMeanReactivity(NT_LANDSCAPE_ACTOR);
+   float netReactivity = this->GetMeanReactivity();
+
    CString msg;
-   msg.Format("SNIP simulation complete: Input Signal=%.2f, Mean LA reactivity=%.2f, Mean Network Reactivity=%.2f", this->GetInputNode()->m_reactivity, this->GetMeanReactivity(NT_ENGAGER), this->GetMeanReactivity());
+   msg.Format("SNIP simulation complete: Input Signal=%.2f, Mean Engager reactivity=%.2f, Mean LA reactivity=%.2f, Mean Network Reactivity=%.2f",
+      inputReactivity, meanEngagerReactivity, meanLAReactivity, netReactivity);
    Report::LogInfo(msg);
    return 0;
    }
@@ -1088,9 +1384,9 @@ float SNIPModel::PropagateSignal(int cycle)
          if (pEdge->m_pToNode->m_state != STATE_ACTIVE)
             {
             pEdge->m_pToNode->m_state = STATE_ACTIVE;  // set the target node to active as well
-            CString msg;
-            msg.Format("   Node %s activated", pEdge->m_pToNode->m_name);
-            TRACE(msg); // Report::LogInfo(msg);
+            //CString msg;
+            //msg.Format("   Node %s activated", pEdge->m_pToNode->m_name);
+            //TRACE(msg); // Report::LogInfo(msg);
             }
          }
       }
@@ -1877,7 +2173,7 @@ int SNIPModel::GetActiveNodeCount(int type)
    for (int i = 0; i < count; i++)
       {
       SNNode* pNode = m_pSNLayer->GetNode(i);
-      if ((pNode->m_nodeType & type) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
+      if ((pNode->m_nodeType == type) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
          activeCount++;
       }
    return activeCount;
@@ -1901,7 +2197,7 @@ int SNIPModel::GetNodeCount(int type)
    for (int i = 0; i < count; i++)
       {
       SNNode* pNode = m_pSNLayer->GetNode(i);
-      if (pNode->m_nodeType & type)
+      if (pNode->m_nodeType == type)
          _count++;
       }
    return _count;
@@ -1916,7 +2212,7 @@ float SNIPModel::GetMeanReactivity(int type)
    for (int i = 0; i < count; i++)
       {
       SNNode* pNode = m_pSNLayer->GetNode(i);
-      if (pNode->m_nodeType & type)
+      if (pNode->m_nodeType == type)
          {
          typeCount++;
          reactivity += pNode->m_reactivity;
@@ -2209,13 +2505,13 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                      if (ncount > 0)
                         {
                         int ri = (int)m_randShuffle.RandValue(0, ncount);
-                        SNNode* pNetNode = nodes[ri];   // this is the source node, our LA node is the target
+                        SNNode* pEngagerNode = nodes[ri];   // this is the source node, our LA node is the target
 
                         // do we already have a connection to this engager?
                         bool found = false;
                         for (int j = 0; j < (int)pNode->m_inEdges.GetSize(); j++)
                            {
-                           if (pNode->m_inEdges[j] == pNetNode)
+                           if (pNode->m_inEdges[j]->m_pFromNode == pEngagerNode)
                               {
                               found = true;
                               break;
@@ -2226,7 +2522,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                            {
                            int transTime = 1; // ???
                            float trust = 0.9f;
-                           SNEdge* pEdge = BuildEdge(pNetNode, pNode, transTime, trust, _traits);
+                           SNEdge* pEdge = BuildEdge(pEngagerNode, pNode, transTime, trust, _traits);
                            newEdgeCount++;
                            ASSERT(pEdge->Source()->m_nodeType == NT_ENGAGER);
                            newEngagers.insert(pEdge->Source());
@@ -2259,17 +2555,13 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                newLACount++;
                unconnectedLACount++;
                this->m_pSNLayer->RemoveNode(pNode);
-
-
                }
-
-
             }  // end of: if ( rn < mappingFrac
          }  // end of: if ( ok && result ) - passed query
       }  // end of: for each IDU
 
    CString msg;
-   msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i engagers", newLACount, newEdgeCount, newEngagers.size());
+   msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i engagers. %i Landscape Actors were not connectabel to any engagers", newLACount, newEdgeCount, newEngagers.size(), unconnectedLACount);
    Report::LogInfo(msg);
 
    delete[]_traits;
@@ -2899,6 +3191,18 @@ bool SNIP::Run(EnvContext* pEnvContext)
             this->UpdateIDU(pEnvContext, pNode->m_idu, pLayer->m_colReactivity, pNode->m_reactivity);
             }
          }
+
+      if (pLayer->m_exportNetworkInterval > 0)
+         {
+         CString outpath(PathManager::GetPath(PM_OUTPUT_DIR));
+         CString scname;
+         Scenario* pScenario = ::EnvGetScenario(pEnvContext->pEnvModel, pEnvContext->scenarioIndex);
+
+         CString path;
+         path.Format("%sSNIP_%s_Year%i_%s_Run%i.gexf", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR) pScenario->m_name, pEnvContext->run);
+
+         pLayer->ExportNetworkGEXF(path);
+         }
       }
 
    CollectData(pEnvContext);
@@ -2961,6 +3265,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
    while (pXmlLayer != nullptr)
       {
       LPTSTR name = nullptr, path = nullptr, mappings = nullptr, mappingQuery=nullptr, reactivityCol=nullptr, adaptCol=nullptr,landscapeSignal=nullptr;
+      int exportNetworks = -1;
       float mappingFrac = 0;
       XML_ATTR attrs[] = { // attr             type        address           isReq checkCol
                          { "name",             TYPE_STRING,  &name,            true,  0 },
@@ -2971,7 +3276,8 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "adapt_col",        TYPE_STRING,  &adaptCol,        false, 0 },
                          { "landscape_signal", TYPE_STRING,  &landscapeSignal, true,  0 },
                          { "mapping_fraction", TYPE_FLOAT,   &mappingFrac,     true,  0 },
-                         { nullptr,            TYPE_NULL,    nullptr,            false, 0 } };
+                         { "export_networks",  TYPE_INT,     &exportNetworks,  false,  0 },
+                         { nullptr,            TYPE_NULL,    nullptr,          false, 0 } };
 
       bool ok = TiXmlGetAttributes(pXmlLayer, attrs, filename);
 
@@ -2989,7 +3295,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          if (pEvaluator == nullptr)
             {
             CString msg;
-            msg.Format("  Unable to find signal source %s.  This must be fixed to run SNIP...", landscapeSignal);
+            msg.Format("Unable to find signal source %s.  This must be fixed to run SNIP...", landscapeSignal);
             Report::WarningMsg(msg);
             }
          else
@@ -3010,7 +3316,10 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          if (mappings != nullptr)
             ok = pLayer->m_pSNIPModel->ConnectToIDUs((MapLayer*)pEnvContext->pMapLayer, mappings, mappingFrac);
 
-         
+         pLayer->m_exportNetworkInterval = exportNetworks;
+
+         // network is fully created at this point, check for any problems
+         //pLayer->CheckNetwork();         
          }  // end of: if ( layer is ok )
 
       pXmlLayer = pXmlLayer->NextSiblingElement("layer");
