@@ -199,10 +199,9 @@ void AllocPrefsPP::SetMapLayer( MapLayer *pLayer )
 
    //MapWndContainer::SetMapLayer(pLayer);
 
-   if ( m_pQueryEngine != NULL )
-      delete m_pQueryEngine;
-      
-   m_pQueryEngine = new QueryEngine( pLayer );
+   //if ( m_pQueryEngine != NULL )
+   //   delete m_pQueryEngine;pLayer->Get   
+   m_pQueryEngine = pLayer->GetQueryEngine();
    }
 
 

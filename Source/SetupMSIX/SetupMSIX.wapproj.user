@@ -14,4 +14,9 @@
     <SplashScreenSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</SplashScreenSource>
     <PackageLogoSource>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</PackageLogoSource>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <DebuggerFlavor>AppHostLocalDebugger</DebuggerFlavor>
+    <RemoteDebugEnabled>False</RemoteDebugEnabled>
+    <DoNotLaunchApp>True</DoNotLaunchApp>
+  </PropertyGroup>
 </Project>

@@ -131,7 +131,7 @@ OutcomeInfo::OutcomeInfo( Policy *_pPolicy, LPCTSTR _field, VData _value, int _d
       CString name;
       name.Format("Policy_%i", pPolicy->m_pPolicyManager->m_nextPolicyID );
 
-      m_pMapExpr = pPolicy->m_pPolicyManager->m_pEnvModel->m_pExprEngine->AddExpr( (PCTSTR) name, value.val.vString, NULL );
+      m_pMapExpr = pPolicy->m_pPolicyManager->m_pEnvModel->m_pMapExprEngine->AddExpr( (PCTSTR) name, value.val.vString, NULL );
       bool ok = m_pMapExpr->Compile();
 
       if ( ! ok )

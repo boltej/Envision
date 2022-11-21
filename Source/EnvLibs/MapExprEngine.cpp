@@ -103,18 +103,21 @@ bool MapExprEngine::Compile( MapExpr *pExpr, LPCTSTR source /*=NULL*/ )
    // process query
    if ( m_pQueryEngine && ! pExpr->m_queryStr.IsEmpty() )
       {
+      //MapLayer* pOldLayer = m_pQueryEngine->m_pMapLayer;
+      //m_pQueryEngine->m_pMapLayer = this->m_pLayer;
+
       pExpr->m_pQuery = m_pQueryEngine->ParseQuery( pExpr->m_queryStr, -1, _source );
       if ( pExpr->m_pQuery )    // successful compile?
          pExpr->m_pQuery->m_text = pExpr->m_queryStr;
       else
          {
-#ifndef NO_MFC
          CString msg( "Unable to compile map expression query: " );
          msg += pExpr->m_queryStr;
-         AfxMessageBox( msg );
-#endif
+         Report::ErrorMsg(msg);            
          pExpr->m_pQuery = NULL;
          }
+
+      //m_pQueryEngine->m_pMapLayer = pOldLayer;
       }
    else    // no query specified, assume everywhere
       {

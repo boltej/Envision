@@ -38,6 +38,7 @@ Copywrite 2012 - Oregon State University
 #include "UNITCONV.H"
 #include "Report.h"
 #include "QueryEngine.h"
+#include "MapExprEngine.h"
 #include "Vdataobj.h"
 #include "IDATAOBJ.H"
 #include "FDATAOBJ.H"
@@ -2098,6 +2099,7 @@ MapLayer::MapLayer(Map *pMap)
    : m_pMap(pMap),
    m_totalArea(-1.0f),
    m_pQueryEngine(NULL),
+   m_pMapExprEngine(NULL),
    m_pSpatialIndex(NULL),
    m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
@@ -2262,6 +2264,8 @@ MapLayer::MapLayer(MapLayer &layer)
    //if ( m_activeField > 0 )
    //   m_pBinArray = m_binArrayArray.GetAt( m_activeField );
 
+   m_pQueryEngine = new QueryEngine(this);
+   m_pMapExprEngine = new MapExprEngine(this, m_pQueryEngine);
    }
 
 // create a shared layer (overlay type)
@@ -2269,6 +2273,7 @@ MapLayer::MapLayer(MapLayer *pLayer, int overlayFlags)
    : m_pMap(pLayer->m_pMap),
    m_totalArea(pLayer->m_totalArea),
    m_pQueryEngine(NULL),
+   m_pMapExprEngine(NULL),
    m_pSpatialIndex(NULL), 
    m_pNeighborTable(NULL),
    m_pAttrIndex(NULL),
@@ -2286,49 +2291,49 @@ MapLayer::MapLayer(MapLayer *pLayer, int overlayFlags)
    m_pData(NULL),
    m_mapUnits(pLayer->m_mapUnits),
    m_activeField(pLayer->m_activeField),
-   m_isVisible(pLayer->m_isVisible),
-   m_vxMin(pLayer->m_vxMin),
-   m_vxMax(pLayer->m_vxMax),
-   m_vyMin(pLayer->m_vyMin),
-   m_vyMax(pLayer->m_vyMax),
-   m_vzMin(pLayer->m_vzMin),
-   m_vzMax(pLayer->m_vzMax),
-   m_vExtent(pLayer->m_vExtent),
-   m_includeData(pLayer->m_includeData),
-   m_3D(pLayer->m_3D),
-   m_pOverlaySource(pLayer->m_pOverlaySource),
-   m_overlayFlags(overlayFlags),
-   m_recordsLoaded(pLayer->m_recordsLoaded),
-   m_readOnly(pLayer->m_readOnly),
-   m_cellWidth(pLayer->m_cellWidth),
-   m_cellHeight(pLayer->m_cellHeight),
-   m_noDataValue(pLayer->m_noDataValue),
-   m_showLegend(pLayer->m_showLegend),
-   m_expandLegend(pLayer->m_expandLegend),
-   m_showBinCount(pLayer->m_showBinCount),
-   m_showSingleValue(pLayer->m_showSingleValue),
-   m_ascending(pLayer->m_ascending),
-   m_binColorFlag(pLayer->m_binColorFlag),
-   m_useVarWidth(pLayer->m_useVarWidth),
-   m_minVarWidth(pLayer->m_minVarWidth),
-   m_maxVarWidth(pLayer->m_maxVarWidth),
-   m_lineWidth(pLayer->m_lineWidth),
-   m_outlineColor(pLayer->m_outlineColor),
-   m_hatchColor(pLayer->m_hatchColor),
-   m_hatchStyle(pLayer->m_hatchStyle),
-   m_transparency(pLayer->m_transparency),
-   m_showLabels(pLayer->m_showLabels),
-   m_labelColor(pLayer->m_labelColor),
-   m_labelCol(pLayer->m_labelCol),
-   m_labelSize(pLayer->m_labelSize),
-   m_labelQueryStr(pLayer->m_labelQueryStr),
-   m_pLabelQuery(pLayer->m_pLabelQuery),
-   m_labelMethod(pLayer->m_labelMethod),
-   m_useNoDataBin(pLayer->m_useNoDataBin),
-   m_changedFlag(CF_NONE),
-   m_useDisplayThreshold(pLayer->m_useDisplayThreshold),
-   m_displayThresholdValue(pLayer->m_displayThresholdValue),
-   m_deadCount(pLayer->m_deadCount)
+m_isVisible(pLayer->m_isVisible),
+m_vxMin(pLayer->m_vxMin),
+m_vxMax(pLayer->m_vxMax),
+m_vyMin(pLayer->m_vyMin),
+m_vyMax(pLayer->m_vyMax),
+m_vzMin(pLayer->m_vzMin),
+m_vzMax(pLayer->m_vzMax),
+m_vExtent(pLayer->m_vExtent),
+m_includeData(pLayer->m_includeData),
+m_3D(pLayer->m_3D),
+m_pOverlaySource(pLayer->m_pOverlaySource),
+m_overlayFlags(overlayFlags),
+m_recordsLoaded(pLayer->m_recordsLoaded),
+m_readOnly(pLayer->m_readOnly),
+m_cellWidth(pLayer->m_cellWidth),
+m_cellHeight(pLayer->m_cellHeight),
+m_noDataValue(pLayer->m_noDataValue),
+m_showLegend(pLayer->m_showLegend),
+m_expandLegend(pLayer->m_expandLegend),
+m_showBinCount(pLayer->m_showBinCount),
+m_showSingleValue(pLayer->m_showSingleValue),
+m_ascending(pLayer->m_ascending),
+m_binColorFlag(pLayer->m_binColorFlag),
+m_useVarWidth(pLayer->m_useVarWidth),
+m_minVarWidth(pLayer->m_minVarWidth),
+m_maxVarWidth(pLayer->m_maxVarWidth),
+m_lineWidth(pLayer->m_lineWidth),
+m_outlineColor(pLayer->m_outlineColor),
+m_hatchColor(pLayer->m_hatchColor),
+m_hatchStyle(pLayer->m_hatchStyle),
+m_transparency(pLayer->m_transparency),
+m_showLabels(pLayer->m_showLabels),
+m_labelColor(pLayer->m_labelColor),
+m_labelCol(pLayer->m_labelCol),
+m_labelSize(pLayer->m_labelSize),
+m_labelQueryStr(pLayer->m_labelQueryStr),
+m_pLabelQuery(pLayer->m_pLabelQuery),
+m_labelMethod(pLayer->m_labelMethod),
+m_useNoDataBin(pLayer->m_useNoDataBin),
+m_changedFlag(CF_NONE),
+m_useDisplayThreshold(pLayer->m_useDisplayThreshold),
+m_displayThresholdValue(pLayer->m_displayThresholdValue),
+m_deadCount(pLayer->m_deadCount)
    {
    lstrcpy(m_legendFormat, pLayer->m_legendFormat);
 #ifdef _WINDOWS
@@ -2379,11 +2384,14 @@ MapLayer::MapLayer(MapLayer *pLayer, int overlayFlags)
       m_pFieldInfoArray->Copy(*(pLayer->m_pFieldInfoArray));
 
    //if (overlayFlags & OT_SHARED_QUERYENGINE)
-      m_pQueryEngine = pLayer->m_pQueryEngine;
+   m_pQueryEngine = pLayer->m_pQueryEngine;
 
    m_polyBinArray.SetSize(GetPolygonCount());
    InitPolyBins();
    ClassifyData();
+
+   m_pQueryEngine = new QueryEngine(this);
+   m_pMapExprEngine = new MapExprEngine(this, m_pQueryEngine);
    }
 
 
@@ -2413,8 +2421,11 @@ MapLayer::~MapLayer()
    if (m_pNeighborTable != NULL)
       delete m_pNeighborTable;
 
-   //if (m_pQueryEngine != NULL && !(m_overlayFlags & OT_SHARED_QUERYENGINE))
-   //   delete m_pQueryEngine;
+   if (m_pQueryEngine != NULL && !(m_overlayFlags & OT_SHARED_QUERYENGINE))
+      delete m_pQueryEngine;
+
+   if (m_pMapExprEngine != NULL)
+      delete m_pMapExprEngine;
 
    if (m_pFieldInfoArray != NULL && !(m_overlayFlags & OT_SHARED_FIELDINFO))
       delete m_pFieldInfoArray;
@@ -3172,6 +3183,13 @@ int MapLayer::LoadShape(LPCTSTR filename, bool loadDB, int extraCols /* =0 */, i
       //   m_pMap->ZoomFull();
       }
 
+   if (m_pQueryEngine != NULL)
+      delete m_pQueryEngine;
+   if (m_pMapExprEngine != NULL)
+      delete m_pMapExprEngine;
+
+   m_pQueryEngine = new QueryEngine(this);
+   m_pMapExprEngine = new MapExprEngine(this, m_pQueryEngine);
    return count;
    }
 

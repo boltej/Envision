@@ -158,7 +158,7 @@ AppVar::AppVar( LPCTSTR name, LPCTSTR descr, LPCTSTR expr )
 AppVar::~AppVar( void )
    {
    //if ( this->m_pMapExpr != NULL )
-      //gpDoc->m_model.m_pExprEngine->RemoveExpr( this->m_pMapExpr );
+      //gpDoc->m_model.m_pMapExprEngine->RemoveExpr( this->m_pMapExpr );
    }
 
 
@@ -208,7 +208,7 @@ EnvModel::EnvModel()
    m_consideredCellCount(0),
    m_spatialIndexDistance(0),
    m_pQueryEngine(NULL),
-   m_pExprEngine(NULL),
+   m_pMapExprEngine(NULL),
    m_showMessages(true),
    m_inMultiRun(false),
    m_debug(0),
@@ -339,7 +339,7 @@ EnvModel::EnvModel()
       m_consideredCellCount(0),
       m_spatialIndexDistance(model.m_spatialIndexDistance),
       m_pQueryEngine(NULL),
-      m_pExprEngine(NULL),
+      m_pMapExprEngine(NULL),
       //m_pQueryEngine( NULL ),
       m_showMessages(model.m_showMessages),
       m_dynamicUpdate(model.m_dynamicUpdate),
@@ -425,8 +425,8 @@ EnvModel::EnvModel()
    m_envContext.pPolicyManager= m_pPolicyManager;
    m_envContext.pDeltaArray   = NULL;      // reset in init run
    m_envContext.pLulcTree     = &m_lulcTree;
-   m_envContext.pQueryEngine  = m_pQueryEngine;
-   m_envContext.pExprEngine   = NULL;
+   //m_envContext.pQueryEngine  = m_pQueryEngine;
+   //m_envContext.pExprEngine   = NULL;
    m_envContext.pScenario     = NULL;
    m_envContext.score         = 0;
    m_envContext.rawScore      = 0;
@@ -478,7 +478,7 @@ EnvModel::EnvModel()
    //else
    //   m_pSocialNetwork = NULL;
 
-   //m_pExprEngine = NULL;     // new MapExprEngine( *(model.m_pExprEngine) );
+   //m_pMapExprEngine = NULL;     // new MapExprEngine( *(model.m_pMapExprEngine) );
    }
 
 // note - doesn't delete the map
@@ -507,12 +507,12 @@ EnvModel::~EnvModel()
    //if ( m_pSocialNetwork )
    //   delete m_pSocialNetwork;
 
-   if ( m_pExprEngine )
-      delete m_pExprEngine;
+   //if ( m_pMapExprEngine )
+   //   delete m_pMapExprEngine;
 
    if ( m_pQueryEngine != NULL )
       {
-      delete m_pQueryEngine;
+      //delete m_pQueryEngine;
       m_pQueryEngine = NULL;
       m_pPolicyManager->m_pQueryEngine = NULL;
       }
@@ -1284,8 +1284,8 @@ int EnvModel::Run( int runFlag )
    Report::Log( msg );
    Report::Log( "---------------------------------------------------------------" );
    
-   if ( m_pExprEngine )
-      m_pExprEngine->SetCurrentTime( (float) this->m_currentYear );
+   if ( m_pMapExprEngine )
+      m_pMapExprEngine->SetCurrentTime( (float) this->m_currentYear );
 
    QueryEngine::SetCurrentTime(this->m_currentYear);
 
@@ -1354,8 +1354,8 @@ int EnvModel::Run( int runFlag )
          ResetPolicyStats( false );
 
          QueryEngine::SetCurrentTime(this->m_currentYear);
-         if (m_pExprEngine)
-            m_pExprEngine->SetCurrentTime((float) this->m_currentYear);
+         if (m_pMapExprEngine)
+            m_pMapExprEngine->SetCurrentTime((float) this->m_currentYear);
 
          // update global AppVars (of type AVT_APP, using pre- timing flag)
          UpdateAppVars( -1, 0, 1 );
@@ -3246,7 +3246,7 @@ void EnvModel::InitRun()
       m_envContext.pDeltaArray     = m_pDeltaArray;
       m_envContext.pLulcTree       = &m_lulcTree;
       m_envContext.pQueryEngine    = m_pQueryEngine;
-      m_envContext.pExprEngine     = m_pExprEngine;
+      m_envContext.pExprEngine     = m_pMapExprEngine;
       //???Check
       //m_envContext.showMessages    = m_showMessages = ( gpDoc->m_debug == 1 );
 	   m_envContext.exportMapInterval = m_exportMapInterval;
@@ -5230,30 +5230,33 @@ void EnvModel::SetIDULayer( MapLayer *pLayer )
    {
    m_pIDULayer = pLayer;
 
-   if ( m_pQueryEngine != NULL )
-      delete m_pQueryEngine;
+   //if ( m_pQueryEngine != NULL )
+   //   delete m_pQueryEngine;
+   //
+   //m_pQueryEngine = new QueryEngine( pLayer );
+   //
+   //ASSERT( m_pMapExprEngine == NULL );
+   //m_pMapExprEngine = new MapExprEngine( pLayer, m_pQueryEngine );
 
-   m_pQueryEngine = new QueryEngine( pLayer );
-
-   ASSERT( m_pExprEngine == NULL );
-   m_pExprEngine = new MapExprEngine( pLayer, m_pQueryEngine );
+   m_pQueryEngine = pLayer->GetQueryEngine();
+   m_pMapExprEngine  = pLayer->GetMapExprEngine();
 
    this->m_envContext.pMapLayer = pLayer;
-   this->m_envContext.pExprEngine = m_pExprEngine;
    this->m_envContext.pQueryEngine = m_pQueryEngine;
+   this->m_envContext.pExprEngine  = m_pMapExprEngine;
    }
 
 
 MapExpr *EnvModel::AddExpr( LPCTSTR name, LPCTSTR expr )
    {
-   MapExpr *pMapExpr = m_pExprEngine->AddExpr( name, expr, NULL ); // and in expression evaluator
+   MapExpr *pMapExpr = m_pMapExprEngine->AddExpr(name, expr, NULL); // and in expression evaluator
    return pMapExpr;
    }
 
 
 bool EnvModel::EvaluateExpr( MapExpr *pMapExpr, bool useQuery, float &result )
    {
-   bool ok = m_pExprEngine->EvaluateExpr( pMapExpr, useQuery );
+   bool ok = m_pMapExprEngine->EvaluateExpr( pMapExpr, useQuery );
    
    if ( ok )
       result = (float) pMapExpr->GetValue();
@@ -5281,7 +5284,7 @@ int EnvModel::AddAppVar(AppVar *pVar, bool useMapExpr)
    if (pVar->IsGlobal())
       pVar->Evaluate();
 
-   // each app var needs to be registered with the query engine so they can be seen   
+   // each app var needs to be registered with the query engines so they can be seen   
    //ASSERT( gpQueryEngine != NULL );
    if (pVar->m_avType == AVT_OUTPUT || pVar->m_avType == AVT_APP)
       {
@@ -5296,8 +5299,13 @@ int EnvModel::AddAppVar(AppVar *pVar, bool useMapExpr)
          case TYPE_PULONG:
          case TYPE_PSHORT:
             {
-            QExternal *pExternal = m_pQueryEngine->AddExternal(pVar->m_name);
-            pExternal->SetValue(pVar->GetValue());   // Note: the AppVar value is always a ptr to another value 
+            Map* pMap = this->m_pIDULayer->GetMapPtr();
+
+            for (int i = 0; i < pMap->GetLayerCount(); i++)
+               {
+               QExternal* pExternal = pMap->GetLayer(i)->GetQueryEngine()->AddExternal(pVar->m_name);
+               pExternal->SetValue(pVar->GetValue());   // Note: the AppVar value is always a ptr to another value 
+               }
             }
          }
       }
@@ -5422,12 +5430,12 @@ int EnvModel::GetAppVarCount( int avtypes /*=0*/ )
 // update all map expression-based App Vars with the specified timing to the specified IDU
 bool EnvModel::UpdateAppVars( int idu, int applyToCoverage, int timing )
    {
-   if ( m_pExprEngine == NULL )
+   if ( m_pMapExprEngine == NULL )
       return true;
 
    // note - idu < 0 means only evaluate expression that don't refer to a field
    if ( idu >= 0)
-      m_pExprEngine->SetCurrentRecord( idu );
+      m_pMapExprEngine->SetCurrentRecord( idu );
    
    int count = GetAppVarCount();
    for ( int i=0; i < count; i++ )
@@ -5482,10 +5490,10 @@ bool EnvModel::UpdateAppVars( int idu, int applyToCoverage, int timing )
 // update all map expression-based App Vars to the specified IDU
 bool EnvModel::StoreAppVarsToCoverage( int timing, bool useDelta )
    {
-   if ( m_pExprEngine == NULL )
+   if ( m_pMapExprEngine == NULL )
       return true;
 
-   m_pExprEngine->SetCurrentTime( float( this->m_currentYear ) );
+   m_pMapExprEngine->SetCurrentTime( float( this->m_currentYear ) );
    
    int count = GetAppVarCount();
    int colCount = 0;
@@ -5505,7 +5513,7 @@ bool EnvModel::StoreAppVarsToCoverage( int timing, bool useDelta )
    // iterate through polys, updating as we go
    for ( MapLayer::Iterator cell = m_pIDULayer->Begin(); cell != m_pIDULayer->End(); cell++ )
       {
-      m_pExprEngine->SetCurrentRecord( cell );
+      m_pMapExprEngine->SetCurrentRecord( cell );
 
       for ( int i=0; i < count; i++ )   // these are guaranteed to be first
          {
@@ -5539,13 +5547,13 @@ bool EnvModel::StoreAppVarsToCoverage( int timing, bool useDelta )
 
 void EnvModel::RemoveAllAppVars()
    {
-   for ( int i=0; i < GetAppVarCount(); i++ )
-      {
-      AppVar *pVar = GetAppVar( i );
-
-      if ( pVar->m_pMapExpr )
-         m_pExprEngine->RemoveExpr( pVar->m_pMapExpr );
-      }
+   //for ( int i=0; i < GetAppVarCount(); i++ )
+   //   {
+   //   AppVar *pVar = GetAppVar( i );
+   //
+   //   if ( pVar->m_pMapExpr )
+   //      m_pMapExprEngine->RemoveExpr( pVar->m_pMapExpr );
+   //   }
    
    m_appVarArray.Clear();
    }

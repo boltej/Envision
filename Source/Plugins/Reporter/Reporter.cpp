@@ -455,7 +455,6 @@ bool Reporter::Run( EnvContext *pEnvContext  )
 
    // reset outputs
    ResetOutputs( m_outputArray );
-
    for ( int j=0; j < (int) m_outputGroupArray.GetSize(); j++ )
       {
       OutputGroup *pGroup = m_outputGroupArray[ j ];
@@ -466,7 +465,7 @@ bool Reporter::Run( EnvContext *pEnvContext  )
 
    //for each map expression, iterate through it's features
    for ( int m = 0; m < (int) m_mapExprEngineArray.GetSize(); m++ )
-      {
+      {      
       MapExprEngine *pMapExprEngine = m_mapExprEngineArray[ m ];
       MapLayer *pLayer = pMapExprEngine->GetMapLayer();
       int colArea = m_colAreaArray[ m ];
@@ -495,12 +494,15 @@ bool Reporter::Run( EnvContext *pEnvContext  )
          }  // end of:  for each IDU
 
       // fix up values as needed
-      NormalizeOutputs( m_outputArray, pLayer, totalArea );
-
-      for ( int j=0; j < (int) m_outputGroupArray.GetSize(); j++ )
+      if (totalArea > 0)
          {
-         OutputGroup *pGroup = m_outputGroupArray[ j ];
-         NormalizeOutputs( pGroup->m_outputArray, pLayer, totalArea );
+         NormalizeOutputs(m_outputArray, pLayer, totalArea);
+
+         for (int j = 0; j < (int)m_outputGroupArray.GetSize(); j++)
+            {
+            OutputGroup* pGroup = m_outputGroupArray[j];
+            NormalizeOutputs(pGroup->m_outputArray, pLayer, totalArea);
+            }
          }
       }
 
@@ -572,7 +574,8 @@ void Reporter::ResetOutputs( PtrArray< Output > &outputArray )
    {
    // for each output in the passed in array, calculate a values for the give IDU and accummulate it
    // ditto for any stratified variables
-   MapExprEngine *pMapExprEngine = FindMapExprEngine( pLayer );
+    MapExprEngine* pMapExprEngine = pLayer->GetMapExprEngine();   // FindMapExprEngine( pLayer );
+
    if ( pMapExprEngine == NULL )
       return;
 
@@ -693,6 +696,7 @@ void Reporter::NormalizeOutputs( PtrArray < Output > &outputArray, MapLayer *pLa
           
                   case VT_AREAWTMEAN:
                   case VT_LENWTMEAN:
+                  case VT_MEAN:
                      if ( pOutput->m_queryArea > 0 )
                         pOutput->m_stratifiedValues[ i ] /= pOutput->m_queryArea;  // normalize to query area
                      break;
@@ -1203,17 +1207,19 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
             {
             MapExprEngine *pEngine = FindMapExprEngine( pOutput->m_pMapLayer );
             if ( pEngine == NULL )
-               {
-               m_mapExprEngineArray.Add( pEngine = new MapExprEngine( pOutput->m_pMapLayer, pQueryEngine ) );
+               m_mapExprEngineArray.Add(pOutput->m_pMapLayer->GetMapExprEngine());  // pEngine = new MapExprEngine(pOutput->m_pMapLayer, pQueryEngine) );
 
-               if (pOutput->m_pMapLayer->GetType() == LT_LINE)
-                  m_colAreaArray.Add(pOutput->m_pMapLayer->GetFieldCol("LENGTH"));
-               else
-                  m_colAreaArray.Add( pOutput->m_pMapLayer->GetFieldCol( "AREA"));
-               }
+            if (pOutput->m_pMapLayer->GetType() == LT_LINE)
+               m_colAreaArray.Add(pOutput->m_pMapLayer->GetFieldCol("LENGTH"));
+            else if (pOutput->m_pMapLayer->GetType() == LT_POINT)
+               m_colAreaArray.Add(-1);
+            else
+               m_colAreaArray.Add( pOutput->m_pMapLayer->GetFieldCol( "AREA"));
+            //   }
 
-            pOutput->m_pMapExprEngine = pEngine;
-            pOutput->m_pMapExpr = pEngine->AddExpr( pOutput->m_name, expr, pOutput->m_query );
+            //pOutput->m_pQueryEngine = pOutput->m_pMapLayer->GetQueryEngine();
+            pOutput->m_pMapExprEngine = pOutput->m_pMapLayer->GetMapExprEngine();
+            pOutput->m_pMapExpr = pOutput->m_pMapExprEngine->AddExpr( pOutput->m_name, expr, pOutput->m_query );
          
             if ( pOutput->m_pMapExpr == NULL )
                {

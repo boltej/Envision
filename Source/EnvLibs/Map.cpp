@@ -28,7 +28,6 @@ Copywrite 2012 - Oregon State University
 #include "COLORS.HPP"
 #include "GEOMETRY.HPP"
 #include "Maplayer.h"
-#include "QueryEngine.h"
 #include "IDATAOBJ.H"
 
 //#include <cximage/ximagif.h>

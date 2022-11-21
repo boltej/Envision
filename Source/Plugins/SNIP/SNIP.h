@@ -236,22 +236,22 @@ class SNIPModel;
 class TraitContainer
    {
    public:
-      CArray<float> m_traits;
+      std::vector<float> m_traits;
 
       void AddTraitsFrom(TraitContainer* pSource) {
-         int traitCount = (int)pSource->m_traits.GetSize();
-         m_traits.SetSize(traitCount);
+         size_t traitCount = pSource->m_traits.size();
+         m_traits.resize(traitCount);
          for (int i = 0; i < traitCount; i++)
             this->m_traits[i] = pSource->m_traits[i];
          }
 
-      void AddTraitsFromArray(float *src, int size) {
-         m_traits.SetSize(size);
-         for (int i = 0; i < size; i++)
-            this->m_traits[i] = src[i];
-         }
+      //void AddTraitsFromArray(std::vector<float> &src) {
+      //   m_traits.resize(size);
+      //   for (int i = 0; i < size; i++)
+      //      this->m_traits[i] = src[i];
+      //   }
 
-      void ClearTraits() { m_traits.RemoveAll(); }
+      void ClearTraits() { m_traits.clear(); }
 
       float ComputeSimilarity(TraitContainer*);
    };
@@ -454,6 +454,11 @@ class SNLayer
       bool ExportNetworkGEXF(LPCTSTR path, LPCTSTR date=nullptr);
       int  CheckNetwork();
 
+   private:
+      void _AddGEFXNode(ofstream &out, LPCTSTR date, LPCTSTR id, LPCTSTR label, SNIP_NODETYPE type, float reactivity, float influence, float size, int xMax, int yMax);
+      void _AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sourceID, LPCTSTR targetID, float thick, float ss, float trust, float influence);
+
+
 
    };
 
@@ -549,9 +554,9 @@ class SNIPModel
 
       bool LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors);
       //bool BuildNetwork( void );
-      SNNode* BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits);
+      SNNode* BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, std::vector<float>& traits);
       //SNNode* BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name);
-      SNEdge* BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, float* traits = nullptr);
+      SNEdge* BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, std::vector<float>& traits);
 
       bool LoadPreBuildSettings(json& settings);
       bool LoadPostBuildSettings(json& settings);

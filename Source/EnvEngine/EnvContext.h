@@ -223,8 +223,8 @@ public:
    DeltaArray     *pDeltaArray;           // pointer to the current delta array
    EnvModel       *pEnvModel;             // pointer to the current model
    LulcTree       *pLulcTree;             // pointer to the lulc tree used in the simulation
-   QueryEngine    *pQueryEngine;          // pointer to an query engine
-   MapExprEngine  *pExprEngine;           // pointer to an expression engine
+   QueryEngine    *pQueryEngine;          // pointer to an query engine  (deprecated, now bundled with each maplayer)
+   MapExprEngine  *pExprEngine;           // pointer to an expression engine (ditto)
    Scenario       *pScenario;             // pointer to current scenario 
    int             id;                    // id of the module being called
    int             handle;                // unique handle of the module

@@ -38,6 +38,7 @@ Copywrite 2012 - Oregon State University
 
 class Query;
 class QueryEngine;
+class MapExprEngine;
 class TiXmlElement;
 class RTreeIndex;
 
@@ -562,8 +563,11 @@ class  LIBSAPI  MapLayer
       float m_noDataValue;
 
       // query results information
-      QueryEngine *m_pQueryEngine;     // only used for labels for now
+      QueryEngine* m_pQueryEngine;     // memory managed here
       CArray< int, int > m_selection;
+
+      MapExprEngine *m_pMapExprEngine;     // memory managed here
+
 
       NeighborTable* m_pNeighborTable;
       SpatialIndex *m_pSpatialIndex;
@@ -887,7 +891,9 @@ class  LIBSAPI  MapLayer
       int  InitData(int cols, int rows, float value = 0);
       void SetField(int col, LPCTSTR label, COleVariant &v, bool show = true);
 
-      // query management (
+      // query management
+      QueryEngine* GetQueryEngine() { return m_pQueryEngine; }
+      MapExprEngine* GetMapExprEngine() { return m_pMapExprEngine; }
       int  AddSelection(int i) { return (int)m_selection.Add(i); }
       void SetSelection(int index, int i) { m_selection.SetAt(index, i); }
       void ClearSelection(void) { m_selection.RemoveAll(); }

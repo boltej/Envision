@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "rW7DNT7CJpgm8mxQR7VeArUfiEb9Lv/65qy42AmXltbsjANeK1Ds+N33QYivK0NGqyA5es/OQbwMnw/8awhXJQ==",
+  "success": true,
+  "projectFilePath": "D:\\Envision\\Source\\SetupEnvision\\SetupEnvision.wapproj",
+  "expectedPackageFiles": [
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.22000.194\\microsoft.windows.sdk.buildtools.10.0.22000.194.nupkg.sha512"
+  ],
+  "logs": []
+}

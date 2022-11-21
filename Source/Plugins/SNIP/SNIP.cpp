@@ -1,3 +1,4 @@
+EndProject
 /*
 This file is part of Envision.
 
@@ -29,6 +30,7 @@ Copywrite 2012 - Oregon State University
 #include <GEOMETRY.HPP>
 #include <Scenario.h>
 #include <colorramps.h>
+#include <randgen/Randunif.hpp>
 
 #include <format>
 #include <iostream>
@@ -42,19 +44,19 @@ Copywrite 2012 - Oregon State University
 
 //to do:  SNDensity is now in the Init function - should probably call from the getMetricValue fx.
 RandUniform SNIPModel::m_randShuffle;
-RandUniform randNodeInit;
+RandUniform randUnif;
 
 
 
 float TraitContainer::ComputeSimilarity(TraitContainer* pOther)
    {
    // use only numeric attributes
-   if (m_traits.GetSize() == 0 || pOther->m_traits.GetSize() == 0) {
+   if (m_traits.size() == 0 || pOther->m_traits.size() == 0) {
       Report::ErrorMsg("Error", "Missing traits when computing similarity");
       return 0;
       }
 
-   if (m_traits.GetSize() != pOther->m_traits.GetSize()) {
+   if (m_traits.size() != pOther->m_traits.size()) {
       Report::ErrorMsg("Error", "traits vectors different lengths when computing similarity");
       return 0;
       }
@@ -63,7 +65,7 @@ float TraitContainer::ComputeSimilarity(TraitContainer* pOther)
    float traitsDelta = 0;
    float similarity = 0;
 
-   for (int i = 0; i < m_traits.GetSize(); i++)
+   for (int i = 0; i < m_traits.size(); i++)
       {
       //if (isNaN(sTraits[i]) == false && isNaN(rTraits[i]) == false) {
       traitsDelta += (this->m_traits[i] - pOther->m_traits[i]) * (this->m_traits[i] - pOther->m_traits[i]);
@@ -286,129 +288,398 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
    out << "    <creator>Envision</creator>" << endl;
    out << "    <description>SNIP network " << this->m_name << "</description>" << endl;
    out << "</meta>" << endl;
-   if ( date == nullptr)
+   if (date == nullptr)
       out << "<graph mode='static' defaultedgetype='directed'>" << endl;
    else
       out << "<graph mode='dynamic' timeformat='date' defaultedgetype='directed'>" << endl;
 
    out << "<attributes class='node'>" << endl;
-   out << "  <attribute id='n1' title='color' type='string'/>" << endl;
-   out << "  <attribute id='n2' title='size' type='float' />" << endl;
-   out << "  <attribute id='n3' title='reactivity' type='float'/>" << endl;
-   out << "  <attribute id='n4' title='influence' type='float'/>" << endl;
+   out << "  <attribute id='type' title='node_type' type='string' />" << endl;
+   out << "  <attribute id='reactivity' title='reactivity' type='float' />" << endl;
+   out << "  <attribute id='influence' title='influence' type='float'  />" << endl;
    out << "</attributes>" << endl;
    out << "<attributes class='edge'>" << endl;
-   out << "  <attribute id='e1' title='weight' type='float' />" << endl;
-   out << "  <attribute id='e2' title='color' type='string'/>" << endl;
-   out << "  <attribute id='e3' title='signal_strength' type='float' />" << endl;
-   out << "  <attribute id='e4' title='trust' type='float' />" << endl;
-   out << "  <attribute id='e5' title='influence' type='float' />" << endl;
+   out << "  <attribute id='ss' title='signal_strength' type='float' />" << endl;
+   out << "  <attribute id='trust' title='trust' type='float' />" << endl;
+   out << "  <attribute id='influence' title='influence' type='float' />" << endl;
    out << "</attributes>" << endl;
 
    out << "<nodes>" << endl;
 
+   const float grpMembershipThreshold = 0.5f;
    int nodes = (int)this->m_nodes.GetSize();
 
    int nAssessors = this->GetNodeCount(NT_ASSESSOR);
-   int nNAs = this->GetNodeCount(NT_NETWORK_ACTOR);
+   //int nNAs = this->GetNodeCount(NT_NETWORK_ACTOR);
    int nEngagers = this->GetNodeCount(NT_ENGAGER);
    int nLAs = this->GetNodeCount(NT_LANDSCAPE_ACTOR);
 
-   int na = 0, nn = 0, ne = 0, nl = 0;
-   int x=0, y=0;
+   int nNA_Assessors = 0;
+   int nNA_Engagers = 0;
+   int nNA_Both = 0;
+   int nNA_Only = 0;
+   int numTraits = this->m_pSNIPModel->m_traitsLabels.size();
+
+   // get LA groupings and add LA nodes for each group
+   std::vector<string>& groups = this->m_pSNIPModel->m_traitsLabels;
+
+   float* grpReactivities = new float[groups.size()]; memset(grpReactivities, 0, groups.size() * sizeof(float));
+   float* grpInfluences = new float[groups.size()]; memset(grpInfluences, 0, groups.size() * sizeof(float));
+   int* grpCounts = new int[groups.size()]; memset(grpCounts, 0, groups.size() * sizeof(int));
+   int maxGrpCount = 0;
+
+   // gather various stats first
    for (int i = 0; i < nodes; i++)
       {
       SNNode* pNode = this->m_nodes[i];
-      // temporary
+      if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+         {
+         // which group to use?
+         int group = -1;
+         for (int j = 0; j < pNode->m_traits.size(); j++)
+            {
+            if (pNode->m_traits[j] > grpMembershipThreshold)  // is this node in this group?
+               {
+               grpReactivities[j] += pNode->m_reactivity;
+               grpInfluences[j] += pNode->m_influence;
+               grpCounts[j] += 1;
+
+               if (maxGrpCount < grpCounts[j])
+                  maxGrpCount = grpCounts[j];
+               }
+            }
+         }  // end of: if ( landscape actor)
+
+      if (pNode->m_nodeType == NT_NETWORK_ACTOR)
+         {
+         bool assessor = false;
+         bool engager = false;
+
+         //bool counted = false;
+         for (int j = 0; j < (int)pNode->m_inEdges.GetSize(); j++)
+            {
+            if (pNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
+               {
+               nNA_Assessors++;
+               assessor = true;
+               //counted = true;
+               break;
+               }
+            }
+
+         for (int j = 0; j < (int)pNode->m_outEdges.GetSize(); j++)
+            {
+            if (pNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
+               {
+               nNA_Engagers++;
+               engager = true;
+               //counted = true;
+               break;
+               }
+            }
+
+         if (assessor && engager)
+            nNA_Both++;
+         else if (!assessor && !engager)
+            nNA_Only++;
+         }
+      }
+
+   int na = 0, nnLeft = 0, nnRight = 0, nnCenter = 0, ne = 0;
+   int x = 0, y = 0;
+   const int xMax = 1000;
+   const int yMax = 1000;
+
+   // get number of network actor nodes of various types
+   for (int i = 0; i < nodes; i++)
+      {
+      SNNode* pNode = this->m_nodes[i];
+
+      // skip lanscape actors, replace with groups below
       if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
          continue;
 
-      string color = "black";
+      // bounds for actor types:
+      // | INPUT  |  ASSESSOR   |  LA->ASS | LA_UNAFFILATED | LA->BOTH | LA_UNAFFILIATED | LA_ENG | ENGAGER | LANDSCAPE_ACTOR
+      //      0       .12           .24        .30-.45           .5         .55-.70         0.76       .88         1.0   |
+      // -.6     .6            .18        .28              .47        .53               .72       .82      .94         1.06                             
+
+      //string color = "black";
       switch (pNode->m_nodeType)
          {
-         case NT_ASSESSOR:        color = "red";   x = 20; y = int(20+((60.0f*na)/nAssessors)); na++; break;
-         case NT_NETWORK_ACTOR:   color = "blue";  x = 40; y = int(20+((60.0f*nn)/nNAs));       nn++; break;
-         case NT_ENGAGER:         color = "cyan";  x = 60; y = int(20+((60.0f*ne)/nEngagers));  ne++; break;
-         case NT_LANDSCAPE_ACTOR: color = "green"; x = 80; y = int(20+((60.0f*nl)/nLAs));       nl++; break;
+         case NT_INPUT_SIGNAL:    x = 0;               y = int(yMax / 2);                          break;
+         case NT_ASSESSOR:        x = int(0.12f * xMax); y = int(float(yMax * na) / nAssessors); na++; break;
+         case NT_ENGAGER:         x = int(0.88f * xMax); y = int(float(yMax * ne) / nEngagers);  ne++; break;
+         case NT_LANDSCAPE_ACTOR:  ASSERT(0); break;  // skipped above
+         case NT_NETWORK_ACTOR:
+            {
+            bool assessor = false;
+            for (int j = 0; j < (int)pNode->m_inEdges.GetSize(); j++)
+               if (pNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
+                  {
+                  assessor = true;
+                  break;
+                  }
+
+            bool engager = false;
+            for (int j = 0; j < (int)pNode->m_outEdges.GetSize(); j++)
+               if (pNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
+                  {
+                  engager = true;
+                  break;
+                  }
+
+            // input only - left col
+            if (assessor && !engager)
+               {
+               y = int(float(yMax) * nnLeft / nNA_Assessors);
+               x = int(0.24f * xMax);
+               nnLeft++;
+               }
+            else if (engager && !assessor)  // enager only, right column 
+               {
+               y = int(yMax * nnRight / nNA_Engagers);
+               x = int(0.76f * xMax);
+               nnRight++;
+               }
+            else if (engager && assessor)  // both, center column
+               {
+               x = int(0.5 * xMax);
+               y = int(yMax * nnCenter / nNA_Both);
+               nnCenter++;
+               }
+            else // connect to neither engager or assessor
+               {
+               x = int(xMax * randUnif.RandValue(0.30, 0.70));
+               if (x > (0.45f * xMax) && x <= 0.50f * xMax)
+                  x = int(randUnif.RandValue(0.30, 0.45) * xMax);
+               if (x < (0.55f * xMax) && x > 0.50f * xMax)
+                  x = int(randUnif.RandValue(0.55, 0.70) * xMax);
+               y = int(randUnif.RandValue(0, yMax));
+               }
+            break;
+            }
          }
 
-      if ( date == nullptr)
-         out << "<node id='" << pNode->m_id << "' label='" << pNode->m_name << "' >" << endl;
-      else
-         out << "<node id='" << pNode->m_id << "' label='" << pNode->m_name << "' start='" << date << "' end='" << date << "' >" << endl;
-      
-      out << " <attvalues>\n";
-      out << "  <attvalue for='n1' value='" << color << "'/>" << endl;
-      out << "  <attvalue for='n2' value='" << pNode->m_reactivity << "'/>" << endl;
-      out << "  <attvalue for='n3' value='" << pNode->m_reactivity << "'/>" << endl;
-      out << "  <attvalue for='n4' value='" << pNode->m_influence << "'/>" << endl;
-      out << " </attvalues>\n";
-      
-      // node color=reactivity
-      // node size = influence
-      int r=0, g=0, b=0;
-      ::RWBColorRamp(-1,1, pNode->m_reactivity, r, g, b);
+      const int maxNodeSize = 20;
+      float size = maxNodeSize / 2;
+      if (!isnan(pNode->m_influence) && !isinf(pNode->m_influence))
+         size = maxNodeSize * pNode->m_influence / this->m_pSNIPModel->m_netStats.maxNodeInfluence;
+      if (size <= 0)
+         size = maxNodeSize / 2;
 
-      out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
-      out << " <viz:position x='" << x << "' y='" << y << "' z='0.0'/>" << endl;
-      out << " <viz:size value='" << (100*pNode->m_influence / this->m_pSNIPModel->m_netStats.maxNodeInfluence) << "'/>" << endl;
-      out << " <viz:shape value='disc'/>" << endl;
-
-      out << "</node> \n";
+      _AddGEFXNode(out, date, pNode->m_id.c_str(), pNode->m_name, pNode->m_nodeType, pNode->m_reactivity, pNode->m_influence, size, x, y);
       }
+
+   // add landscape actor group nodes
+   int i = 0;
+   for (string group : groups)
+      {
+      CString id;
+      id.Format("LA_%i", i);
+
+      const int maxNodeSize = 20;
+      float size = float(maxNodeSize) * grpCounts[i] / maxGrpCount;
+      if (size <= 0)
+         size = maxNodeSize / 2;
+      y = yMax * (float(i) / groups.size());
+      float reactivity = grpCounts[i] > 0 ? grpReactivities[i] / grpCounts[i] : 0;
+      float influence = grpCounts[i] > 0 ? grpInfluences[i] / grpCounts[i] : 0;
+      _AddGEFXNode(out, date, id, group.c_str(), NT_LANDSCAPE_ACTOR, influence, reactivity, size, xMax, y);
+      i++;
+      }
+
+   int newNodeCount = i;
 
    out << "</nodes>" << endl;
    out << "<edges>" << endl;
+
+   int newEdgeCount = 0;
+
+   // write out <edge> tags for each eadge.
+   // note that Lanscape Nodes are collapsed into groups, one for each trait type
 
    for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
       {
       SNEdge* pEdge = this->m_edges[i];
 
-      // temporary
+      //--------------------------------------------
+      // handle edges to landscape nodes separately
+      //  - use groups instead
+      //--------------------------------------------
       if (pEdge->m_pToNode->m_nodeType == NT_LANDSCAPE_ACTOR)
-         continue;
-
-
-
-      string color = "black";
-
-      //switch (pEdge->m_nodeType)
-      //   {
-      //   case NT_ASSESSOR:          color = "red";  break;
-      //   case NT_NETWORK_ACTOR:     color = "blue";  break;
-      //   case NT_ENGAGER:           color = "cyan";  break;
-      //   case NT_LANDSCAPE_ACTOR:   color = "green";  break;
-      //   }
-
-      out << "<edge id='" << pEdge->m_id << "' source='" << pEdge->m_pFromNode->m_id << "' target='" << pEdge->m_pToNode->m_id << "'>" << endl;
-      out << " <attvalues>\n";
-      out << "  <attvalue for='e1' value='" << pEdge->m_trust << "'/>" << endl;
-      out << "  <attvalue for='e2' value='" << color << "'/>" << endl;  // color
-      out << "  <attvalue for='e3' value='" << pEdge->m_signalStrength << "'/>" << endl;  // signal strength
-      out << "  <attvalue for='e4' value='" << pEdge->m_trust << "'/>" << endl;   // trust
-      out << "  <attvalue for='e5' value='" << pEdge->m_influence << "'/>" << endl;  // influence
-      out << " </attvalues>" << endl;
-
-      // color = trust
-      // thickness = influence
-      int r = 0, g = 0, b = 0;
-      ::RWBColorRamp(-1, 1, pEdge->m_trust, r, g, b);
-
-      float thick = 1 + (8*pEdge->m_influence / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
-
-      out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
-      out << " <viz:thickness value='" <<  << "'/>" << endl;
-      out << " <viz:shape value='solid' />" << endl;
-
-      out << "</edge> \n";
+         {
+         // get group type of the landscape actor
+         //int g = 0;
+         //for (string group : groups)
+         //   {
+         //   // is the Landscape Actor a member of this group?
+         //   if (pEdge->m_pToNode->m_traits[g] > grpMembershipThreshold)
+         //      {
+         //      CString id, targetID;
+         //      id.Format("%s_%i", pEdge->m_id.c_str(), g);
+         //      targetID.Format("LA_%i", g);
+         //
+         //      const int maxEdgeThick = 12;
+         //      float thick = 1 + (maxEdgeThick * pEdge->m_influence / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
+         //
+         //      newEdgeCount++;
+         //      _AddGEFXEdge(out, date, id, pEdge->m_pFromNode->m_id.c_str(), targetID, thick, pEdge->m_signalStrength, pEdge->m_trust, pEdge->m_influence);
+         //      }
+         //   g++;
+         //   }
+         }
+      else
+         {
+         //--------------------------------------------
+         // non-landscape - regular edge...
+         //--------------------------------------------
+         const int maxEdgeThick = 12;
+         float thick = 1 + (maxEdgeThick * pEdge->m_influence / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
+         _AddGEFXEdge(out, date, pEdge->m_id.c_str(), pEdge->m_pFromNode->m_id.c_str(), pEdge->m_pToNode->m_id.c_str(), thick, pEdge->m_signalStrength, pEdge->m_trust, pEdge->m_influence);
+         }
       }
+   
+   // add landscape actor group edges
+
+   // first get ready calc stats
+   float* grpTrusts = new float[groups.size()];
+   float* grpSigStrengths = new float[groups.size()];
+   memset(grpTrusts, 0, groups.size() * sizeof(float));
+   memset(grpSigStrengths, 0, groups.size() * sizeof(float));
+   memset(grpInfluences, 0, groups.size() * sizeof(float));
+   memset(grpCounts, 0, groups.size() * sizeof(int));
+   maxGrpCount = 0;
+
+   // for each ENGAGER node, add connection to LA groups if needed
+   for (int i = 0; i < (int)this->m_nodes.GetSize(); i++)
+      {
+      SNNode* pNode = this->m_nodes[i];
+
+      if (pNode->m_nodeType == NT_ENGAGER)
+         {
+         // pass one - compute edge stats for outgoing nodes
+         memset(grpTrusts, 0, groups.size() * sizeof(float));
+         memset(grpSigStrengths, 0, groups.size() * sizeof(float));
+         memset(grpInfluences, 0, groups.size() * sizeof(float));
+         memset(grpCounts, 0, groups.size() * sizeof(int));
+
+         for (int j = 0; j < (int)pNode->m_outEdges.GetSize(); j++)
+            {
+            SNEdge* pEdge = pNode->m_outEdges[i];
+            for (int k = 0; k < numTraits; k++)
+               {
+               // is the LA node corresponding to this edge trait a member of this group?
+               if (pEdge->m_pToNode->m_traits[k] >= grpMembershipThreshold)
+                  {
+                  grpTrusts[k] += pEdge->m_trust;
+                  grpSigStrengths[k] += pEdge->m_signalStrength;
+                  grpInfluences[k] += pEdge->m_influence;
+                  grpCounts[k]++;
+                  }
+               }
+            }
+         // normalize
+         for (int k = 0; k < numTraits; k++)
+            {
+            grpTrusts[k] /= grpCounts[k];
+            grpSigStrengths[k] /= grpCounts[k];
+            grpInfluences[k] /= grpCounts[k]; 
+            }
+
+         // have stats on edge groups, now make connections
+         for (int k = 0; k < numTraits; k++)
+             {
+             if ( grpCounts[k] > 0)  // if we have members, make an edge
+                {
+                CString id, targetID;
+                id.Format("%s_%i", pNode->m_id.c_str(), k);
+                targetID.Format("LA_%i", k);
+   
+                const int maxEdgeThick = 12;
+                float thick = 1 + (maxEdgeThick * grpInfluences[k] / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
+   
+                newEdgeCount++;
+                _AddGEFXEdge(out, date, id, pNode->m_id.c_str(), targetID, thick, grpSigStrengths[k], grpTrusts[k],grpInfluences[k]);   
+                }
+            }
+         }
+      }
+
+
    out << "</edges>" << endl;
    out << "</graph>" << endl;
    out << "</gexf>";
 
    out.close();
 
+   delete[] grpSigStrengths;
+   delete[] grpTrusts;
+   delete[] grpCounts;
+   delete[] grpInfluences;
+   delete[] grpReactivities;
+
    return true;
+   }
+
+
+void SNLayer::_AddGEFXNode(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR label, SNIP_NODETYPE type, float reactivity, float influence, float size, int x, int y)
+   {
+   if (date == nullptr)
+      out << "<node id='" << id << "' label='" << label << "' >" << endl;
+   else
+      out << "<node id='" << id << "' label='" << label << "' start='" << date << "' end='" << date << "' >" << endl;
+
+   string _type;
+   switch (type)
+      {
+      case NT_UNKNOWN:          _type = "Unknown";   break;
+      case NT_INPUT_SIGNAL:     _type = "Input";   break;
+      case NT_ASSESSOR:         _type = "Assessor";   break;
+      case NT_NETWORK_ACTOR:    _type = "Network Actor";   break;
+      case NT_ENGAGER:          _type = "Engager";   break;
+      case NT_LANDSCAPE_ACTOR:  _type = "Landscape Actor";   break;
+      }
+
+   out << " <attvalues>\n";
+   out << "  <attvalue for='type' value='" << _type << "'/>" << endl;
+   out << "  <attvalue for='reactivity' value='" << reactivity << "'/>" << endl;
+   out << "  <attvalue for='influence' value='" << influence << "'/>" << endl;
+   out << " </attvalues>\n";
+
+   // node color=reactivity
+   // node size = size of group
+   const int maxNodeSize = 20;
+
+   int r = 0, g = 0, b = 0;
+   //RWBColorRamp(0, 1, reactivity, r, g, b);
+
+   out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
+   out << " <viz:position x='" << x << "' y='" << y << "' z='0.0'/>" << endl;
+   out << " <viz:size value='" << size << "'/>" << endl;
+   out << " <viz:shape value='disc'/>" << endl;
+   out << "</node>" << endl;
+   }
+
+
+void SNLayer::_AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sourceID, LPCTSTR targetID, float thick, float ss, float trust, float influence)
+   {
+   out << "<edge id='" << id << "' source='" << sourceID << "' target='" << targetID << "'>" << endl;
+   out << " <attvalues>\n";
+   out << "  <attvalue for='ss' value='" << ss << "'/>" << endl;  // signal strength
+   out << "  <attvalue for='trust' value='" << trust << "'/>" << endl;   // trust
+   out << "  <attvalue for='influence' value='" << influence << "'/>" << endl;  // influence
+   out << " </attvalues>" << endl;
+
+   // color = trust
+   // thickness = influence
+   char r = 0, g = 0, b = 0;
+   ::RWBColorRamp(0, 1, trust, r, g, b);
+   out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
+   out << " <viz:thickness value='" << thick << "'/>" << endl;
+   out << " <viz:shape value='solid' />" << endl;
+
+   out << "</edge> \n";
    }
 
 
@@ -417,7 +688,7 @@ int SNLayer::CheckNetwork()
    {
    int nIslandNodes = 0;
    int nUnknownNodes = 0;
-
+   
    for (int i = 0; i < (int)this->m_nodes.GetSize(); i++)
       {
       SNNode* pNode = this->m_nodes[i];
@@ -430,6 +701,7 @@ int SNLayer::CheckNetwork()
       }
 
    int nEdgeMissingNodes = 0;
+   int duplicateEdges = 0;
    for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
       {
       SNEdge* pEdge = this->m_edges[i];
@@ -443,7 +715,17 @@ int SNLayer::CheckNetwork()
          nEdgeMissingNodes++;
       else if (FindNode(pEdge->m_pFromNode->m_name) == nullptr)
          nEdgeMissingNodes++;
+
+      for (int j = 0; j < (int)this->m_edges.GetSize(); j++)
+         {
+         if (j == i)
+            continue;
+
+         if (pEdge->m_pFromNode == m_edges[j]->m_pFromNode && pEdge->m_pToNode == m_edges[j]->m_pToNode)
+            duplicateEdges++;
+         }
       }
+   duplicateEdges /= 2;  // down count redunduncies
 
    if (nIslandNodes > 0)
       Report::Log_i("%i nodes in the network are unconnected to any other nodes", nIslandNodes, RA_NEWLINE, RT_WARNING);
@@ -453,8 +735,10 @@ int SNLayer::CheckNetwork()
 
    if (nEdgeMissingNodes > 0)
       Report::Log_i("%i edges in the network have missing connections (to/from nodes)", nEdgeMissingNodes, RA_NEWLINE, RT_WARNING);
+   if (duplicateEdges > 0)
+      Report::Log_i("%i edges are duplicates (same to/from nodes)", duplicateEdges, RA_NEWLINE, RT_WARNING);
 
-   return nIslandNodes + nUnknownNodes + nEdgeMissingNodes;
+   return nIslandNodes + nUnknownNodes + nEdgeMissingNodes + duplicateEdges;
    }
 
 
@@ -595,7 +879,8 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       this->LoadPreBuildSettings(m_networkJSON["settings"]);
 
    int traitsCount = (int)this->m_traitsLabels.size();
-   float* _traits = new float[traitsCount];
+   std::vector<float> _traits;
+   //float* _traits = new float[traitsCount];
 
    // build nodes
    for (const auto& node : m_networkJSON["nodes"])
@@ -615,8 +900,10 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       else if (ntype == "landscape")
          nodeType = SNIP_NODETYPE::NT_LANDSCAPE_ACTOR;
 
+      _traits.clear();
       for (int i = 0; i < traitsCount; i++)
-         _traits[i] = ntraits[i];
+         _traits.push_back(ntraits[i]);
+         //_traits[i] = ntraits[i];
 
       // add node to collection
       if ((nodeType != NT_LANDSCAPE_ACTOR || includeLandscapeActors))
@@ -633,7 +920,8 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       // set node data???
       }
 
-   delete[] _traits;
+   //delete[] _traits;
+   _traits.assign(traitsCount, 0);
 
    // build edges
    int errorCount = 0;
@@ -670,11 +958,11 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       
       //ASSERT(pFromNode != nullptr && pToNode != nullptr);
       int transTime = 1; // ???
-      this->BuildEdge(pFromNode, pToNode, transTime, trust, nullptr);   // note: no traits
+      this->BuildEdge(pFromNode, pToNode, transTime, trust, _traits);   // note: no traits
 
       auto bidirectional = edge.find("bidirectional");
       if (bidirectional != edge.end() && bidirectional[0].get<bool>() == true)
-         this->BuildEdge(pToNode, pFromNode, transTime, trust, nullptr);
+         this->BuildEdge(pToNode, pFromNode, transTime, trust, _traits);
       }
 
    this->LoadPostBuildSettings(m_networkJSON["settings"]);
@@ -704,7 +992,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
    }
 
 
-SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits)
+SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, std::vector<float>& traits)
    {
    SNNode* pNode = new SNNode(nodeType);
 
@@ -724,10 +1012,10 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits
 
    // copy traits
    int traitsCount = (int)this->m_traitsLabels.size();
-   ASSERT(pNode->m_traits.IsEmpty());
+   ASSERT(pNode->m_traits.empty());
 
    for (int i = 0; i < traitsCount; i++)
-      pNode->m_traits.Add(traits[i]);
+      pNode->m_traits.push_back(traits[i]);
 
    pNode->m_name = name;
    ////pNode->m_landscapeGoal= landscapeGoal;
@@ -744,7 +1032,7 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, float* traits
    }
 
 
-SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, float* traits)
+SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, std::vector<float> &traits)
    {
    ASSERT(pFromNode != nullptr && pToNode != nullptr);
 
@@ -776,8 +1064,8 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
    pFromNode->m_outEdges.Add(pEdge);
    pToNode->m_inEdges.Add(pEdge);
 
-   if (traits != nullptr)
-      pEdge->AddTraitsFromArray(traits, (int) this->m_traitsLabels.size());
+   //pEdge->AddTraitsFromArray(traits, (int) this->m_traitsLabels.size());
+   pEdge->m_traits = traits;  // copy
 
    this->m_pSNLayer->m_edges.Add(pEdge);
 
@@ -2429,22 +2717,25 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    pIDULayer->SetColData(colProfileID, VData(-1), true);
 
    int traitsCount = (int)this->m_traitsLabels.size();
-   float* _traits = new float[traitsCount];
-   memset(_traits, 0, traitsCount * sizeof(float));  // zero out array
-
+   //float* _traits = new float[traitsCount];
+   //memset(_traits, 0, traitsCount * sizeof(float));  // zero out array
+   std::vector<float> _traits;
    std::set<string> missingTraits;
    int newLACount = 0;
    int unconnectedLACount = 0;
    int newEdgeCount = 0;
    std::unordered_set<SNNode*> newEngagers;
-  
+   const float membershipThreshold = 0.5f;
+
+   _traits.resize(traitsCount);
+
    // go through IDU's bulding network nodes/links for IDU's that pass the mapping query
    for (MapLayer::Iterator idu = pIDULayer->Begin(); idu != pIDULayer->End(); idu++)
       {
       bool result = false;
       bool ok = this->m_pMappingQuery->Run(idu, result);
 
-      if (ok && result)
+      if (ok && result) // passes mapping query, roll dice fo mapping fraction
          {
          double rn = m_randShuffle.RandValue(0, 1);  // randomly select based on mapping fraction
          if (rn < mappingFrac)
@@ -2479,17 +2770,33 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
             // if the trait matches the actor profile, that signals that we want to creating a landscape actor
             // and connect it to an engager actor matching the trait in the SNIP network.
             // Note that this implies that one landscape actor can be connected to many engager network nodes.
+            int t = -1;
+            _traits.assign(traitsCount, 0);;
             for (auto& trait : this->m_traitsLabels)
                {
+               t++;
                int col = actorProfiles.GetCol(trait.c_str());
                if (col >= 0)
                   {
                   // should a link be created to the network actor(s)? 
-                  int link = actorProfiles.GetAsInt(col, closest);
-                  if (link > 0)
+                  float wt = actorProfiles.GetAsFloat(col, closest);
+                  if ( wt > membershipThreshold)
                      {// make a LA node if we haven't already
                      if (pNode == nullptr)
                         {
+                        // copy actor profile traits for new LA node
+                        int _t = 0;
+                        for (auto& _trait : this->m_traitsLabels)
+                           {
+                           int _col = actorProfiles.GetCol(_trait.c_str());
+                           if (_col >= 0)
+                              _traits[_t] = actorProfiles.GetAsFloat(_col, closest);
+                           else
+                              _traits[_t] = 0;
+
+                           _t++;
+                           }
+
                         // we want to add a node to our network for this landscape actor
                         CString nname;
                         nname.Format("LA_%i", (int)idu);
@@ -2564,7 +2871,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i engagers. %i Landscape Actors were not connectabel to any engagers", newLACount, newEdgeCount, newEngagers.size(), unconnectedLACount);
    Report::LogInfo(msg);
 
-   delete[]_traits;
+   //delete[]_traits;
    return 0;
    }
 
@@ -3313,13 +3620,14 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
             pLayer->m_pSNIPModel->m_pMappingQuery = pEnvContext->pQueryEngine->ParseQuery(mappingQuery, 0, "MappingQuery");
             }
 
+         // connect ENGAGER nodes to IDU-based landscape actors
          if (mappings != nullptr)
             ok = pLayer->m_pSNIPModel->ConnectToIDUs((MapLayer*)pEnvContext->pMapLayer, mappings, mappingFrac);
 
          pLayer->m_exportNetworkInterval = exportNetworks;
 
          // network is fully created at this point, check for any problems
-         //pLayer->CheckNetwork();         
+         pLayer->CheckNetwork();         
          }  // end of: if ( layer is ok )
 
       pXmlLayer = pXmlLayer->NextSiblingElement("layer");
