@@ -452,7 +452,8 @@ bool QNode::Solve( void )
 
          case WITHINAREA:
             {
-            // Arg List should be a QNode ( the query ) and a VData of type double ( the distance )
+            // Arg List should be a QNode ( the query ) and a VData of type double ( the distance ), and an area constraint/
+            //
             QArgList *pArgList = (QArgList*) m_extra;
             ASSERT( pArgList->GetCount() == 3 );
 

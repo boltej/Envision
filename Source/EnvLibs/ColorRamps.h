@@ -7,15 +7,51 @@
 
 
 #pragma once
+#include <COLORS.HPP>
 
 
 inline
-void RWBColorRamp(float vmin, float vmax, float m, int& r, int& g, int& b)
+RGBA RColorRamp(float vmin, float vmax, float m ) //, unsigned char& r, unsigned char& g, unsigned char& b)
+   {
+   const int ncolors = 13;
+
+   int index = int(ncolors * (m - vmin) / (vmax - vmin));
+   if (index >= ncolors)
+      index = ncolors - 1;
+
+   int colorRamp[ncolors][3] =
+      { { 255, 21, 216 },
+        { 255, 19, 199 },
+        { 255, 18, 183 },
+        { 255, 16, 166 },
+        { 255, 14, 149 },
+        { 255, 13, 132 },
+        { 255, 11, 115 },
+        { 255,  98,   98 },
+        { 255,  82,   82 },
+        { 255,  65,   65 },
+        { 255,  48,   48 },
+        { 255,  31,   31 },
+        { 255, 25, 25 } };
+
+   int r = colorRamp[index][0];
+   int g = colorRamp[index][1];
+   int b = colorRamp[index][2];
+
+   return RGBA(r,g,b,1);
+   }
+
+
+
+
+
+inline
+void RWBColorRamp(float vmin, float vmax, float m, unsigned char& r, unsigned char& g, unsigned char& b)
    {
    const int ncolors = 252;
 
-   int index = int(ncolors * (m / (vmax - vmin)));
-   if (index < ncolors)
+   int index = int(ncolors * (m-vmin) / (vmax - vmin));
+   if (index >= ncolors)
       index = ncolors - 1;
 
    int rwbColorRamp[ncolors][3] =

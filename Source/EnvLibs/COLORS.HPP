@@ -9,6 +9,7 @@
 #define _COLORS_HPP  1
 
 
+
 //-- RGB triplets for "standard" colors --//
 
 const COLORREF BLACK     = RGB(    0,    0,    0 );
@@ -27,6 +28,12 @@ const COLORREF LTRED     = RGB( 0xFF,    0,    0 );
 const COLORREF LTMAGENTA = RGB( 0xFF,    0, 0xFF );
 const COLORREF YELLOW    = RGB( 0xFF, 0xFF,    0 );
 const COLORREF WHITE     = RGB( 0xFF, 0xFF, 0xFF );
+
+
+struct RGBA
+   {
+   unsigned char r, g, b, a;
+   };
 
 
 #endif

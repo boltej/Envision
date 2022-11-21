@@ -52,7 +52,7 @@ TargetProcess* gTargetProcess = nullptr;
 
 extern "C" _EXPORT EnvExtension* Factory(EnvContext*)
    {
-   if ( gTargetProcess != nullptr)
+   if ( gTargetProcess == nullptr)
       gTargetProcess = new TargetProcess; 
 
    return (EnvExtension*) gTargetProcess;

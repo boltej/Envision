@@ -185,6 +185,7 @@
     <ClInclude Include="BitArray.h" />
     <ClInclude Include="Budget.h" />
     <ClInclude Include="CacheManager.h" />
+    <ClInclude Include="ColorRamps.h" />
     <ClInclude Include="COLORS.HPP" />
     <ClInclude Include="CompressedRow2DArray.h" />
     <ClInclude Include="CONTAINR.HPP" />
