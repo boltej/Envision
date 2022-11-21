@@ -11458,8 +11458,11 @@ bool ChronicHazards::SetDuneToeUTM2LL(MapLayer* pLayer, int point)
    double latitude = 0.0;
    gdal.UTMtoLL(22, northing, easting, utmZone, latitude, longitude);
 
+   bool readOnly = pLayer->m_readOnly;
+   pLayer->m_readOnly = false;
    pLayer->SetData(point, m_colDLLatitudeToe, latitude);
    pLayer->SetData(point, m_colDLLongitudeToe, longitude);
+   pLayer->m_readOnly = readOnly;
 
    return true;
    } // end CalculateUTM2LL

@@ -397,7 +397,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
       float thick = 1 + (8*pEdge->m_influence / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
 
       out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
-      out << " <viz:thickness value='" <<  << "'/>" << endl;
+      out << " <viz:thickness value='" <<  thick << "'/>" << endl;
       out << " <viz:shape value='solid' />" << endl;
 
       out << "</edge> \n";

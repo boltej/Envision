@@ -421,7 +421,7 @@ class ENVAPI EnvModel
       PtrArray< AppVar > m_appVarArray;
 
    public:
-      MapExprEngine *m_pExprEngine;   // for evaluating global and site-based expressions
+      MapExprEngine *m_pMapExprEngine;   // for evaluating global and site-based expressions
       QueryEngine   *m_pQueryEngine;
 
    public:

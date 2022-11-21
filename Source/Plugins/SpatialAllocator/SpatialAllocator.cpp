@@ -2384,7 +2384,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
       while (pXmlBudget != NULL)
          {
          if (this->m_pBudget == NULL)
-            this->m_pBudget = new Budget("Budget", pContext->pEnvModel->m_pExprEngine);
+            this->m_pBudget = new Budget("Budget", pContext->pEnvModel->m_pMapExprEngine);
 
          const char* name = pXmlBudget->Attribute("name");
          const char* type = pXmlBudget->Attribute("type");

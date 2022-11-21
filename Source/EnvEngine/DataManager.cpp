@@ -4300,7 +4300,9 @@ bool DataManager::FixSubdividePointers(DeltaArray *pDA)
          }
       
       // create query from query string
-      QueryEngine *queryEng = new QueryEngine(this->m_pEnvModel->m_pIDULayer);
+      //QueryEngine *queryEng = new QueryEngine(this->m_pEnvModel->m_pIDULayer);
+      QueryEngine* queryEng = this->m_pEnvModel->m_pIDULayer->GetQueryEngine();
+
       Query *qry = queryEng->ParseQuery( qryString, 0, "FixSubdividePointers()");
       if (qry == NULL)
          {
@@ -4429,7 +4431,7 @@ bool DataManager::FixSubdividePointers(DeltaArray *pDA)
          count += m_pEnvModel->ApplyDelta( this->m_pEnvModel->m_pIDULayer, deltaCheck );
          }
 
-      delete queryEng;
+      //delete queryEng;
       }
 
    // reset map to starting state
