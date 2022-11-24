@@ -317,7 +317,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
    int nNA_Engagers = 0;
    int nNA_Both = 0;
    int nNA_Only = 0;
-   int numTraits = this->m_pSNIPModel->m_traitsLabels.size();
+   int numTraits = (int) this->m_pSNIPModel->m_traitsLabels.size();
 
    // get LA groupings and add LA nodes for each group
    std::vector<string>& groups = this->m_pSNIPModel->m_traitsLabels;
@@ -481,7 +481,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
       float size = float(maxNodeSize) * grpCounts[i] / maxGrpCount;
       if (size <= 0)
          size = maxNodeSize / 2;
-      y = yMax * (float(i) / groups.size());
+      y = int(yMax * (float(i) / groups.size()));
       float reactivity = grpCounts[i] > 0 ? grpReactivities[i] / grpCounts[i] : 0;
       float influence = grpCounts[i] > 0 ? grpInfluences[i] / grpCounts[i] : 0;
       _AddGEFXNode(out, date, id, group.c_str(), NT_LANDSCAPE_ACTOR, influence, reactivity, size, xMax, y);
@@ -650,10 +650,10 @@ void SNLayer::_AddGEFXNode(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR labe
    // node size = size of group
    const int maxNodeSize = 20;
 
-   int r = 0, g = 0, b = 0;
+   unsigned char r = 0, g = 0, b = 0;
    ::RWBColorRamp(0, 1, reactivity, r, g, b);
 
-   out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
+   out << " <viz:color r='" << (int) r << "' g='" << (int) g << "' b='" << (int) b << "' a='1.0'/>" << endl;
    out << " <viz:position x='" << x << "' y='" << y << "' z='0.0'/>" << endl;
    out << " <viz:size value='" << size << "'/>" << endl;
    out << " <viz:shape value='disc'/>" << endl;
@@ -672,9 +672,9 @@ void SNLayer::_AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sour
 
    // color = trust
    // thickness = influence
-   int r = 0, g = 0, b = 0;
+   unsigned char r = 0, g = 0, b = 0;
    ::RWBColorRamp(0, 1, trust, r, g, b);
-   out << " <viz:color r='" << r << "' g='" << g << "' b='" << b << "' a='1.0'/>" << endl;
+   out << " <viz:color r='" << (int) r << "' g='" << (int) g << "' b='" << (int) b << "' a='1.0'/>" << endl;
    out << " <viz:thickness value='" << thick << "'/>" << endl;
    out << " <viz:shape value='solid' />" << endl;
 
