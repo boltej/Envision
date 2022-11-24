@@ -653,7 +653,6 @@ void SNLayer::_AddGEFXNode(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR labe
 
    unsigned char r = 0, g = 0, b = 0;
    ::RWBColorRamp(0, 1, reactivity, r, g, b);
-
    out << " <viz:color r='" << (int) r << "' g='" << (int) g << "' b='" << (int) b << "' a='1.0'/>" << endl;
    out << " <viz:position x='" << x << "' y='" << y << "' z='0.0'/>" << endl;
    out << " <viz:size value='" << size << "'/>" << endl;
@@ -673,7 +672,7 @@ void SNLayer::_AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sour
 
    // color = trust
    // thickness = influence
-   int r = 0, g = 0, b = 0;
+   unsigned char r = 0, g = 0, b = 0;
    ::RWBColorRamp(0, 1, trust, r, g, b);
    out << " <viz:color r='" << (int) r << "' g='" << (int) g << "' b='" << (int) b << "' a='1.0'/>" << endl;
    out << " <viz:thickness value='" << thick << "'/>" << endl;
