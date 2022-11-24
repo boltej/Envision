@@ -279,12 +279,11 @@ void QueryBuilder::OnCbnSelchangeFields()
 void QueryBuilder::OnBnClickedRun()
    {
    UpdateData( 1 );
-   QueryEngine *pQE = m_pQueryEngine;
+   m_pQueryEngine = m_pLayer->GetQueryEngine();
+   ASSERT(m_pQueryEngine->m_pMapLayer != m_pLayer);
+   //pQE = new QueryEngine( m_pLayer );
 
-   if ( m_pQueryEngine->m_pMapLayer != m_pLayer )
-      pQE = new QueryEngine( m_pLayer );
-
-   Query *pQuery = pQE->ParseQuery( m_queryString, 0, "Query Setup" );
+   Query *pQuery = m_pQueryEngine->ParseQuery( m_queryString, 0, "Query Setup" );
 
    if ( pQuery == NULL )
       {
@@ -297,7 +296,7 @@ void QueryBuilder::OnBnClickedRun()
 
    if ( m_runGlobal )
       {
-      pQE->SelectQuery( pQuery, m_clearPrev ? true : false );
+      m_pQueryEngine->SelectQuery( pQuery, m_clearPrev ? true : false );
       if ( m_pMapWnd != NULL )
          m_pMapWnd->RedrawWindow();
       }
@@ -371,10 +370,17 @@ void QueryBuilder::OnBnClickedRun()
                   (LPCTSTR) m_queryString, selCount, area, pctArea, (float)duration);
          }
          break;
+
+      case LT_POINT:
+         {
+         resultStr.Format( "Query [%s] returned %i points, %4.1f of the total study area. [%.3f secs]",
+               (LPCTSTR) m_queryString, selCount, 100.0f*selCount/m_pLayer->GetRecordCount(), (float)duration);
+         }
+         break;
       }
 
-   if (m_pQueryEngine->m_pMapLayer != m_pLayer)
-      delete pQE;
+   //if (m_pQueryEngine->m_pMapLayer != m_pLayer)
+   //   delete pQE;
    
    Report::InfoMsg( resultStr, _T("Query Result") );
    

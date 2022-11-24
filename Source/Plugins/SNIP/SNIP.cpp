@@ -1,3 +1,4 @@
+EndProject
 /*
 This file is part of Envision.
 
@@ -672,7 +673,7 @@ void SNLayer::_AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sour
 
    // color = trust
    // thickness = influence
-   unsigned char r = 0, g = 0, b = 0;
+   int r = 0, g = 0, b = 0;
    ::RWBColorRamp(0, 1, trust, r, g, b);
    out << " <viz:color r='" << (int) r << "' g='" << (int) g << "' b='" << (int) b << "' a='1.0'/>" << endl;
    out << " <viz:thickness value='" << thick << "'/>" << endl;

@@ -1428,10 +1428,11 @@ void MapWindow::DrawLabels( CDC &dc )
          // need to create a query?
          if ( pLayer->m_labelQueryStr.GetLength() > 0 )
             {
-            if ( pLayer->m_pQueryEngine == NULL )
-               pLayer->m_pQueryEngine = new QueryEngine( pLayer );
+            ASSERT(pLayer->GetQueryEngine() != NULL);
+            //if ( pLayer->m_pQueryEngine == NULL )
+            //   pLayer->m_pQueryEngine = new QueryEngine( pLayer );
             
-            ASSERT( pLayer->m_pQueryEngine != NULL );
+            //ASSERT( pLayer->m_pQueryEngine != NULL );
 
             if ( pLayer->m_pLabelQuery == NULL  )
                pLayer->m_pLabelQuery = pLayer->m_pQueryEngine->ParseQuery( pLayer->m_labelQueryStr, 0, "Label Query" );
@@ -1882,7 +1883,7 @@ void MapWindow::DrawDirections( MapLayer *pDirLayer )
    int dir;
    POINT center;
 
-   float _width = pDirLayer->GetGridCellWidth();
+   float _width = (float) pDirLayer->GetGridCellWidth();
    int width = m_pMap->VDtoLD( _width );
    int arrow = width*3/4;
 

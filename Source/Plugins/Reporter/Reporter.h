@@ -269,7 +269,7 @@ protected:
 
    //MapExprEngine *m_pMapExprEngine;
    // MapExprEngine array - one for each layer referenced in the input file
-   PtrArray< MapExprEngine > m_mapExprEngineArray;
+   CArray< MapExprEngine* > m_mapExprEngineArray;
    CArray< int, int > m_colAreaArray;
 
    MapExprEngine *FindMapExprEngine( MapLayer *pLayer );
@@ -299,8 +299,6 @@ protected:
 
 
 extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new Reporter; }
-
-
 
 inline
 MapExprEngine *Reporter::FindMapExprEngine( MapLayer *pLayer )
