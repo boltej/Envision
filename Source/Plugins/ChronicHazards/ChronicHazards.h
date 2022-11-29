@@ -734,6 +734,9 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLShoreface = -1;
       int  m_colDLShorelineAngle = -1;
       int  m_colDLShorelineChange = -1;
+      int  m_colDLSCR = -1;
+      int  m_colDLDeltaBruun = -1;
+      int m_colDLBruunSlope = -1;
       //int  m_colDLTD = -1;
       //int  m_colDLThreshDate = -1;
       int  m_colDLTopWidthSPS = -1;
