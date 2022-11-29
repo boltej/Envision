@@ -236,12 +236,12 @@ class UgUpzoneWhen : public UgTrigger
    public:
       UgUpzoneWhen(void)
          : UgTrigger()
-         , m_step(-1)
+         , m_steps(-1)
          , m_rural(0)
       { }
 
    public:
-      int m_step;
+      int m_steps;
       int m_rural;           // >0 indicates rule to be applied outside UGA with m_adjacent distance
    };
 

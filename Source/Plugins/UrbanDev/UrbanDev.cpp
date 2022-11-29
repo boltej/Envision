@@ -1555,7 +1555,7 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                { "trigger",          TYPE_FLOAT,     &(pUpzone->m_trigger),         false,   0 },
                { "start_after",      TYPE_INT,       &(pUpzone->m_startAfter),      false,   0 },
                { "stop_after",       TYPE_INT,       &(pUpzone->m_stopAfter),       false,   0 },
-               { "step",             TYPE_INT,       &(pUpzone->m_step),            false,   0 },
+               { "steps",            TYPE_INT,       &(pUpzone->m_steps),           false,   0 },
                { "rural",            TYPE_INT,       &(pUpzone->m_rural),           false,    0 },
                { NULL,               TYPE_NULL,      NULL,                          false,   0 } };
 
@@ -2091,7 +2091,7 @@ bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContex
 
          if (pUpzone->m_rural)
             {
-            while (steps < pUpzone->m_step && upIndex < this->m_ruralResZoneArray.GetSize() - 1)
+            while (steps < pUpzone->m_steps && upIndex < this->m_ruralResZoneArray.GetSize() - 1)
                {
                upIndex++;
                if (this->m_ruralResZoneArray[upIndex]->m_density > this->m_ruralResZoneArray[zIndex]->m_density)
@@ -2104,7 +2104,7 @@ bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContex
             }
          else
             {
-            while (steps < pUpzone->m_step && upIndex < this->m_resZoneArray.GetSize() - 1)
+            while (steps < pUpzone->m_steps && upIndex < this->m_resZoneArray.GetSize() - 1)
                {
                upIndex++;
                if (this->m_resZoneArray[upIndex]->m_density > this->m_resZoneArray[zIndex]->m_density)
