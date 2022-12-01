@@ -27,10 +27,7 @@ const int NN = 8;  //???
 const int HOURLY_DATA_IN_A_DAY = 24;
 const float TANB1_005 = 0.05f;
 const int MAX_DAYS_FOR_FLOODING = 5; 
-// this privides a basic class definition for this
-// plug-in module.
-// Note that we want to override the parent methods
-// for Init, InitRun, and Run.
+
 
 
 #define _EXPORT __declspec( dllexport )
@@ -63,9 +60,10 @@ enum CH_FLAGS
    CH_MODEL_FLOODING = 2,
    CH_MODEL_EROSION = 4,
    CH_MODEL_BAYFLOODING = 8,
-   CH_MODEL_INFRASTRUCTURE = 16,
-   CH_MODEL_POLICY = 32,   
-   CH_ALL = 127
+   CH_MODEL_BUILDINGS = 16,
+   CH_MODEL_INFRASTRUCTURE = 32,
+   CH_MODEL_POLICY = 64,   
+   CH_ALL = 0x1111111
    };
 
 
@@ -94,7 +92,7 @@ enum FLOODHAZARDZONE
    FHZ_OPENWATER = -1,
    FHZ_ONEHUNDREDYR = 1,			// Flood Zones : A, AE, AH, AH, AO, VE, FW
    FHZ_FIVEHUNDREDYR = 2,			// Flood Zones: X, X500, X PROTECTED BY LEVEE
-   FHZ_UNSTUDIED = 3				// Tahaloh in latest FEMA coverage
+   FHZ_UNSTUDIED = 3				   //
    };
 
 enum TRANSECTDAILYDATA
@@ -279,39 +277,40 @@ class _EXPORT ChronicHazards : public EnvModelProcess
    protected:
       int m_runFlags;
       Map * m_pMap;									            // ptr to Map required to create grids
+
+      // input layers used by submodels
       MapLayer *m_pIDULayer = nullptr;							// ptr to IDU Layer
       MapLayer *m_pRoadLayer = nullptr;                  // ptr to Road Layer
       MapLayer *m_pBldgLayer = nullptr;                  // ptr to Building Layer
       MapLayer *m_pInfraLayer = nullptr;                 // ptr to Infrastructure Building Layer
-      MapLayer *m_pElevationGrid = nullptr;              // ptr to Minimum Elevation Grid
 
-      MapLayer *m_pBayBathyGrid = nullptr;               // ptr to Bay Bathymetry Grid
-      MapLayer *m_pBayTraceLayer = nullptr;
-      MapLayer *m_pManningMaskGrid = nullptr;            // ptr to Bates Model Mannings Coefficient Grid (value = -1 if not running Bates model in region)
-      MapLayer *m_pTidalBathyGrid = nullptr;             // ptr to Tidal Bathymetry Grid
+      //MapLayer *m_pElevationGrid = nullptr;              // ptr to Minimum Elevation Grid
+      //MapLayer *m_pBayBathyGrid = nullptr;               // ptr to Bay Bathymetry Grid
+      //MapLayer *m_pBayTraceLayer = nullptr;
+      //MapLayer *m_pManningMaskGrid = nullptr;            // ptr to Bates Model Mannings Coefficient Grid (value = -1 if not running Bates model in region)
+      //MapLayer *m_pTidalBathyGrid = nullptr;             // ptr to Tidal Bathymetry Grid
 
-      //MapLayer *m_pOrigDuneLineLayer = nullptr;          // ptr to Original Dune Line Layer
-      //MapLayer *m_pNewDuneLineLayer = nullptr;           // ptr to Changed Dune Line Layer
       MapLayer* m_pDuneLayer = nullptr;
 
-      //   MapLayer *m_pTsunamiInunLayer = nullptr;                  // ptr to Tsunami Inundaiton Layer
+      // Created grids for mapping flooding, erosion
+      MapLayer* m_pFloodedGrid = nullptr;                   // ptr to Flooded Grid
+      MapLayer* m_pCumFloodedGrid = nullptr;                // ptr to Flooded Grid
+      MapLayer* m_pErodedGrid = nullptr;                    // ptr to Eroded Grid
 
-      //PolyGridMapper *m_pPolygonGridLkUp = nullptr;		   // provides mapping between IDU layer and DEM grid
-      //PolyGridMapper *m_pPolylineGridLkUp = nullptr;			// provides mapping between roads layer and DEM grid
-      PolyGridMapper* m_pIduFloodedGridLkUp = nullptr;		   // provides mapping between IDU layer and DEM grid
+      //MapLayer* m_pEelgrassGrid = nullptr;                  // ptr to Eel Grass Grid
+
+
+      //PolyGridMapper *m_pPolygonGridLkUp = nullptr;		      // provides mapping between IDU layer and DEM grid
+      PolyGridMapper *m_pRoadErodedGridLkUp = nullptr;			// provides mapping between roads layer and eroded grid
+      PolyGridMapper* m_pIduFloodedGridLkUp = nullptr;		   // provides mapping between IDU layer and flooded grid
       PolyGridMapper* m_pRoadFloodedGridLkUp = nullptr;			// provides mapping between roads layer and flooded grid
-      //PolyPointMapper* m_pBldgFloodedGridLkUp = nullptr;			// provides mapping between roads layer and flooded grid
-      //PolyPointMapper* m_pInfraFloodedGridLkUp = nullptr;			// provides mapping between roads layer and flooded grid
-      PolyGridMapper* m_pIduElevationGridLkUp = nullptr;
+      //PolyPointMapper* m_pBldgFloodedGridLkUp = nullptr;		// provides mapping between bldg layer and flooded grid
+      //PolyPointMapper* m_pInfraFloodedGridLkUp = nullptr;		// provides mapping between bldg layer and flooded grid
+      PolyGridMapper* m_pIduErodedGridLkUp = nullptr;      
       PolyPointMapper *m_pIduBuildingLkUp = nullptr;			// provides mapping between IDU layer, building (point) layer
       PolyPointMapper *m_pIduInfraLkUp = nullptr;	// provides mapping between IDU layer, infrastructure (point) layer
 
-      // Created grids that overlay DEM grid
-      MapLayer *m_pFloodedGrid = nullptr;                   // ptr to Flooded Grid
-      MapLayer *m_pCumFloodedGrid = nullptr;                // ptr to Flooded Grid
-      MapLayer *m_pErodedGrid = nullptr;                    // ptr to Eroded Grid
 
-      MapLayer *m_pEelgrassGrid = nullptr;                  // ptr to Eel Grass Grid
 
       // Bates Flooding Model
       MapLayer *m_pNewElevationGrid = nullptr;
@@ -649,11 +648,11 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLAvgKD = -1;
       //int  m_colDLBackshoreElev = -1;
       int  m_colDLBackSlope = -1;
-      //int  m_colDLBchAccess = -1;
-      //int  m_colDLBchAccessFall = -1;
-      //int  m_colDLBchAccessSpring = -1;
-      //int  m_colDLBchAccessSummer = -1;
-      //int  m_colDLBchAccessWinter = -1;
+      int  m_colDLBchAccess = -1;
+      int  m_colDLBchAccessFall = -1;
+      int  m_colDLBchAccessSpring = -1;
+      int  m_colDLBchAccessSummer = -1;
+      int  m_colDLBchAccessWinter = -1;
       //
       int  m_colDLBeachWidth = -1;
       int  m_colDLConstructVolumeSPS = -1;
@@ -837,6 +836,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool LoadXml(LPCTSTR filename);
       bool InitTWLModel(EnvContext*);
       bool InitDuneModel(EnvContext*);
+      bool InitBldgModel(EnvContext*);
       bool InitInfrastructureModel(EnvContext*);
       bool InitFloodingModel(EnvContext*);
       bool InitErosionModel(EnvContext*);

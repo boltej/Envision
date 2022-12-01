@@ -4741,23 +4741,25 @@ int MapLayer::SaveShapeFile(LPCTSTR filename, bool selectedPolysOnly, int saveDe
    if (pSaveRecordsArray)
       delete pSaveRecordsArray;
 
+   SaveProjection(filename);
+
    // if projection is defined, save it as well
-   char *prj = new char[lstrlen(filename) + 4];
-   lstrcpy(prj, filename);
-   pindex = strrchr(prj, '.');
-   pindex++;
-   lstrcpy(pindex, _T("prj"));
-
-   FILE *fpp;
-   fopen_s(&fpp, prj, "wt");
-
-   if (fpp)
-      {
-      fputs((LPCTSTR) this->m_projection, fpp);
-      fclose(fpp);
-      }
-
-   delete[] prj;
+   //char *prj = new char[lstrlen(filename) + 4];
+   //lstrcpy(prj, filename);
+   //pindex = strrchr(prj, '.');
+   //pindex++;
+   //lstrcpy(pindex, _T("prj"));
+   //
+   //FILE *fpp;
+   //fopen_s(&fpp, prj, "wt");
+   //
+   //if (fpp)
+   //   {
+   //   fputs((LPCTSTR) this->m_projection, fpp);
+   //   fclose(fpp);
+   //   }
+   //
+   //delete[] prj;
 
 
    /*
@@ -4914,7 +4916,7 @@ bool MapLayer::WriteShapeHeader(FILE *fp, int fileSize, int fileType)
 
 bool MapLayer::SaveGridFile(LPCTSTR filename) //, int maxLineLength )
    {
-   FILE *fp;
+   FILE* fp;
    fopen_s(&fp, filename, "wt");
 
    if (fp == NULL)
@@ -4975,6 +4977,41 @@ bool MapLayer::SaveGridFile(LPCTSTR filename) //, int maxLineLength )
       }  // end of:  for ( row < nRows )
 
    fclose(fp);
+   SaveProjection(filename);
+   return true;
+   }
+
+
+bool MapLayer::SaveProjection(LPCTSTR prjPath /*=nullptr*/)
+   {
+   CString proj;
+   if (this->m_projection.GetLength() > 0)
+      proj = this->m_projection;
+   else
+      {
+      if (this->GetMapPtr()->GetLayer(0)->m_projection.GetLength() > 0)
+         proj = this->GetMapPtr()->GetLayer(0)->m_projection;
+      }
+
+   if (proj.GetLength() > 0)
+      {
+      nsPath::CPath _prjPath;
+
+      if (prjPath != nullptr)
+         _prjPath = prjPath;
+      else
+         _prjPath = this->m_path;
+
+      _prjPath.RenameExtension("prj");
+      FILE* fpp;
+      fopen_s(&fpp, _prjPath, "wt");
+
+      if (fpp)
+         {
+         fputs((LPCTSTR)proj, fpp);
+         fclose(fpp);
+         }
+      }
 
    return true;
    }
@@ -6318,6 +6355,7 @@ void MapLayer::InitPolyLogicalPoints(Map *pMap /*=NULL*/)
          pPoly->SetLabelPoint(m_labelMethod);
       }
    }
+
 int MapLayer::InitData(int cols, int rows, float value)
    {
    ASSERT(m_layerType != LT_GRID);  // Note:  this code assume a dataobj of type float - needs to be updated if ever called

@@ -701,6 +701,7 @@ class  LIBSAPI  MapLayer
       int   LoadShape(LPCTSTR filename, bool loadDB = true, int extraCols = 0, int records = -1);
       int   LoadVectorsCSV(LPCTSTR filename, LPCTSTR data = NULL);
       int   SaveShapeFile(LPCTSTR filename, bool selectedPolysOnly = false, int saveDefunctPolysFlag = 0, int saveEmptyPolys = 0); // NOTE: saveDefunctPolysFlag: 0=ask,1=save,2=don't save
+      bool  SaveProjection(LPCTSTR filename=nullptr);
 
    protected:
       bool   WriteShapeHeader(FILE *fp, int fileSize, int fileType);

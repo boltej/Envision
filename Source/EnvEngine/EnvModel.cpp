@@ -5303,8 +5303,13 @@ int EnvModel::AddAppVar(AppVar *pVar, bool useMapExpr)
 
             for (int i = 0; i < pMap->GetLayerCount(); i++)
                {
-               QExternal* pExternal = pMap->GetLayer(i)->GetQueryEngine()->AddExternal(pVar->m_name);
-               pExternal->SetValue(pVar->GetValue());   // Note: the AppVar value is always a ptr to another value 
+               MapLayer* pLayer = pMap->GetLayer(i);
+               if (pLayer->m_layerType != LT_GRID)
+                  {
+                  QueryEngine* pQE = pLayer->GetQueryEngine();
+                  QExternal* pExternal = pQE->AddExternal(pVar->m_name);
+                  pExternal->SetValue(pVar->GetValue());   // Note: the AppVar value is always a ptr to another value 
+                  }
                }
             }
          }
