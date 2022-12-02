@@ -1348,8 +1348,6 @@ bool ChronicHazards::InitPolicyInfo(EnvContext* pEnvContext)
 
 bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    {
-   // TODO: Ensure we update the climate scenario through input XML
-   m_climateScenarioID = 1;
    // Determine which climate scenario is chosen
    switch (m_climateScenarioID)
       {
@@ -3164,12 +3162,9 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
       // otherwise, we can just read it from files stored in the climate scenario/daily data folder
       if (m_writeDailyBouyData)
          {
-         if (i % 10 == 0)
-            {
-            CString msg;
-            msg.Format("Generating RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
-            Report::StatusMsg(msg);
-            }
+         CString msg;
+         msg.Format("Generating RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
+         Report::StatusMsg(msg);
 
          // create a data obj for buoy observations, rows=day of year
          pDailyRBFOutput->SetLabel(0, "Height_L");
