@@ -132,6 +132,8 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       int m_colIduRemoved;       // REMOVED - buildings removed
       //int m_colBldRestYr;   // BD_REST_YR
       int m_colIduCasualties;
+      int m_colIduInjuries;
+      int m_colIduFatalities;
 
       // exposed outputs
       //float m_annualRepairCosts;
@@ -152,10 +154,12 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       float m_pctFunctionalBldgs;
 
       // life safety
-      float m_numCasSev1;
-      float m_numCasSev2;
-      float m_numCasSev3;
-      float m_numCasSev4;
-      float m_numCasTotal;
-
+      //float m_numCasSev1;
+      //float m_numCasSev2;
+      //float m_numCasSev3;
+      //float m_numCasSev4;
+      //float m_numCasTotal;
+      float m_numCasualities = 0;
+      float m_numFatalities = 0;
+      float m_numInjuries = 0;
    };

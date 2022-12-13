@@ -26,6 +26,33 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        }
       }
     },
     "UAP,Version=v10.0.17763/win10-arm": {
@@ -52,6 +79,33 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
+        }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -80,6 +134,33 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        }
       }
     },
     "UAP,Version=v10.0.17763/win10-arm64-aot": {
@@ -106,6 +187,33 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
+        }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -134,6 +242,33 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        }
       }
     },
     "UAP,Version=v10.0.17763/win10-x64-aot": {
@@ -160,6 +295,33 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
+        }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -188,6 +350,33 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        }
       }
     },
     "UAP,Version=v10.0.17763/win10-x86-aot": {
@@ -214,6 +403,33 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
+        }
+      },
+      "EnvServer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/EnvServer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/EnvServer.dll": {}
+        }
+      },
+      "NetViewer/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/NetViewer.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/NetViewer.dll": {}
+        }
+      },
+      "VersionUpdater/1.0.0": {
+        "type": "project",
+        "compile": {
+          "bin/placeholder/VersionUpdater.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     }
@@ -364,17 +580,35 @@
       "type": "project",
       "path": "../Envision/Envision.vcxproj",
       "msbuildProject": "../Envision/Envision.vcxproj"
+    },
+    "EnvServer/1.0.0": {
+      "type": "project",
+      "path": "../EnvServer/EnvServer.vcxproj",
+      "msbuildProject": "../EnvServer/EnvServer.vcxproj"
+    },
+    "NetViewer/1.0.0": {
+      "type": "project",
+      "path": "../NetViewer/NetViewer.vcxproj",
+      "msbuildProject": "../NetViewer/NetViewer.vcxproj"
+    },
+    "VersionUpdater/1.0.0": {
+      "type": "project",
+      "path": "../VersionUpdater/VersionUpdater.vcxproj",
+      "msbuildProject": "../VersionUpdater/VersionUpdater.vcxproj"
     }
   },
   "projectFileDependencyGroups": {
     "UAP,Version=v10.0.17763": [
+      "EnvServer >= 1.0.0",
       "Envision >= 1.0.0",
       "Microsoft.Windows.SDK.BuildTools >= 10.0.22000.194",
+      "NetViewer >= 1.0.0",
+      "VersionUpdater >= 1.0.0",
       "envcmd >= 1.0.0"
     ]
   },
   "packageFolders": {
-    "C:\\Users\\boltej\\.nuget\\packages\\": {},
+    "C:\\Users\\boltej.ONID\\.nuget\\packages\\": {},
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
@@ -383,19 +617,19 @@
       "projectUniqueName": "D:\\Envision\\Source\\SetupMSIX\\SetupMSIX.wapproj",
       "projectName": "SetupMSIX",
       "projectPath": "D:\\Envision\\Source\\SetupMSIX\\SetupMSIX.wapproj",
-      "packagesPath": "C:\\Users\\boltej\\.nuget\\packages\\",
+      "packagesPath": "C:\\Users\\boltej.ONID\\.nuget\\packages\\",
       "outputPath": "D:\\Envision\\Source\\SetupMSIX\\obj\\",
       "projectStyle": "PackageReference",
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
       "configFilePaths": [
-        "C:\\Users\\boltej\\AppData\\Roaming\\NuGet\\NuGet.Config",
+        "C:\\Users\\boltej.ONID\\AppData\\Roaming\\NuGet\\NuGet.Config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
         "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
       ],
       "originalTargetFrameworks": [
-        "net451"
+        "uap10.0.17763"
       ],
       "sources": {
         "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
@@ -410,6 +644,15 @@
             },
             "D:\\Envision\\Source\\Envision\\Envision.vcxproj": {
               "projectPath": "D:\\Envision\\Source\\Envision\\Envision.vcxproj"
+            },
+            "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj": {
+              "projectPath": "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj"
+            },
+            "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj": {
+              "projectPath": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj"
+            },
+            "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj": {
+              "projectPath": "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj"
             }
           }
         }
@@ -439,12 +682,12 @@
           "net471",
           "net472",
           "net48",
-          "net7.0-windows10.0.19041",
+          "net6.0-windows10.0.19041",
           "net461"
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.402\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.400\\RuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {

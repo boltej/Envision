@@ -268,8 +268,8 @@ Expression::~Expression( void )
    {
    if ( m_pQuery != NULL )
       {
-      Modeler::m_pQueryEngine->RemoveQuery( m_pQuery );  // deletes query
-      m_pQuery = NULL;
+      //Modeler::m_pQueryEngine->RemoveQuery( m_pQuery );  // deletes query
+      //m_pQuery = NULL;
       }
 
    if ( m_pParser != NULL )

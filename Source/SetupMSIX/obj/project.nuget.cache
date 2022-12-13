@@ -1,10 +1,10 @@
 {
   "version": 2,
-  "dgSpecHash": "PFLmehuby1wwwkKcCdd/hyjUCN9OuptMaQi950l+vymD94IO6LmArGQkYiNBGz7q4E/e9U8dDIGBmXAclCl0eQ==",
+  "dgSpecHash": "6Acbi7Z1EB7h+/fOTDvrK1aeHendY5SG1hiByZkcmeSl9huKAGHPPIfCCfr7SMJRHMxg8Ccv40mESqkmM7WTOw==",
   "success": true,
   "projectFilePath": "D:\\Envision\\Source\\SetupMSIX\\SetupMSIX.wapproj",
   "expectedPackageFiles": [
-    "C:\\Users\\boltej\\.nuget\\packages\\microsoft.windows.sdk.buildtools\\10.0.22000.194\\microsoft.windows.sdk.buildtools.10.0.22000.194.nupkg.sha512"
+    "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages\\microsoft.windows.sdk.buildtools\\10.0.22000.194\\microsoft.windows.sdk.buildtools.10.0.22000.194.nupkg.sha512"
   ],
   "logs": []
 }

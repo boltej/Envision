@@ -33,9 +33,23 @@ Copywrite 2012 - Oregon State University
 
 #pragma once
 
+enum LOG_TYPES
+   {
+   LOGBOOK_NONE = 0,
+   LOGBOOK_INFO = 1,
+   LOGBOOK_WARNING = 2,
+   LOGBOOK_ERROR = 3,
+   LOGBOOK_FATAL = 4,
+   LOGBOOK_SYSTEM = 5,
+   LOGBOOK_DEBUG1 = 6,
+   LOGBOOK_DEBUG2 = 7,
+   LOGBOOK_DEBUG3 = 8,
+   LOGBOOK_DEBUG4 = 9,
+   LOGBOOK_TRACE = 10,
+   };
 
 //#include "OutputWnd.h"
-#include <Logbook\Logbook.h>
+//#include <Logbook\Logbook.h>
 #include <afxDockablePane.h>
 class EnvModel;
 class Scenario;
@@ -43,17 +57,27 @@ class Scenario;
 class CLogPane : public CDockablePane
 {
 public:
-   CLogPane() : m_hLogbook( 0 ) { }
+   CLogPane() {} // : m_hLogbook(0) { }
 
-   CLogbook m_logbook;
-   HWND m_hLogbook;
+   //CLogbook m_logbook;
+   //HWND m_hLogbook;
   
+   CFont m_font;
+   CListBox m_logCtrl;
+
+
+   void AddLogLine( LPCTSTR msg, LOG_TYPES type, COLORREF color);
+
+   int Log(LPCTSTR str) { return m_logCtrl.AddString(str); }
+
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 
 	DECLARE_MESSAGE_MAP()
-};
+public:
+   afx_msg void OnClose();
+   };
 
 
 class CEnvDoc;
@@ -169,9 +193,8 @@ public:
    
    void ShowOutputPanel( bool show=true ); // { ShowPane( &m_wndOutput, show ? 1 : 0, FALSE, TRUE ); RecalcLayout (); gpDoc->m_outputWndStatus = show==true? 1 ; 0;  } // m_wndOutput.ShowWindow( show ? 1 : 0 ); }
    bool IsOutputOpen( void ) { return m_wndOutput.IsPaneVisible() ? true : false; }
-   void AddLogLine( LPCTSTR msg, LOGBOOK_TEXTTYPES type, COLORREF color ) { CString _msg( msg ); _msg.Replace( "%", "%%" ), m_wndOutput.m_logbook.AddLogLine( _msg, type, color ); m_wndOutput.RedrawWindow(); }
-   void AddMemoryLine() { m_wndOutput.m_logbook.AddMemoryLine(); m_wndOutput.RedrawWindow(); }
-   void AddSeparatorLine() { m_wndOutput.m_logbook.AddSeparatorLine(); m_wndOutput.RedrawWindow(); }
+   void AddLogLine(LPCTSTR msg, LOG_TYPES type, COLORREF color) { m_wndOutput.AddLogLine( msg, type, color);  }
+   void AddSeparatorLine() { m_wndOutput.Log("------------------------------------"); }
 
    int  GetCurrentlySelectedScenario( void );
    int  GetCurrentlySelectedZoom( void );

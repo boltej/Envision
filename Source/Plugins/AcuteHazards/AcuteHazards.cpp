@@ -8,6 +8,8 @@
 #include <Maplayer.h>
 #include <tixml.h>
 #include <Path.h>
+#include <PathManager.h>
+#include <EnvConstants.h>
 
 #include <direct.h>
 
@@ -41,7 +43,12 @@ static PyObject *Redirection_stdoutredirect(PyObject *self, PyObject *args)
    if (!PyArg_ParseTuple(args, "s", &str))
       return NULL;
 
-   Report::Log(str);
+   // remove newlines from strings
+   std::string _str(str);
+   _str.erase(std::remove(_str.begin(), _str.end(), '\r'), _str.end());
+   _str.erase(std::remove(_str.begin(), _str.end(), '\n'), _str.end());
+   if (_str.size() > 0)
+      Report::Log(_str.c_str()); // , RA_APPEND);
 
    Py_INCREF(Py_None);
    return Py_None;
@@ -94,8 +101,11 @@ bool AHEvent::Run(EnvContext *pEnvContext)
    char cwd[512];
    _getcwd(cwd, 512);
 
-   _chdir("/Envision/StudyAreas/OrCoast/Hazus");
-     
+   CString path = PathManager::GetPath(PM_PROJECT_DIR);
+   path += "Hazus";
+   _chdir((LPCTSTR) path);
+   //_chdir("/Envision/StudyAreas/OrCoast/Hazus");
+
    // add hazus path to system path
    CString code;
    code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
@@ -205,18 +215,20 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    CString msg("Acute Hazards: reading building damage parameter file ");
    msg += this->m_earthquakeInputPath;
    Report::Log(msg);
-   this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
+   int rows = this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
+
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+   int idus = pIDULayer->GetRowCount();
+   ASSERT(rows == idus);
 
    // pull out needed columns
    PtrArray<HazDataColInfo> eqColInfos;
    eqColInfos.Add(new HazDataColInfo{ "DS", -1 });
    eqColInfos.Add(new HazDataColInfo{ "rep_time", -1 });
    eqColInfos.Add(new HazDataColInfo{ "rep_cost",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "habitable",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "CasSev1",  -1 });  // casuality severitys
-   eqColInfos.Add(new HazDataColInfo{ "CasSev2",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "CasSev3",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "CasSev4",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "habitable", -1 });
+   eqColInfos.Add(new HazDataColInfo{ "Cas_Ftly",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "Cas_Injy",  -1 });
 
    // find the CSV column associated with each statistic type
    for (int i = 0; i < eqColInfos.GetSize(); i++)
@@ -236,10 +248,13 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
 
    // pull out needed columns
    PtrArray<HazDataColInfo> tsuColInfos;
-   tsuColInfos.Add(new HazDataColInfo{ "DS", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "rep_time", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "rep_cost", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "habitable",-1 });
+   tsuColInfos.Add(new HazDataColInfo{ "DS",        -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "rep_time",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "rep_cost",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "habitable", -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "Cas_Ftly",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "Cas_Injy",  -1 });
+
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev1",  -1 });  // casuality severitys
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev2",  -1 });
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev3",  -1 });
@@ -254,16 +269,12 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       }
 
    // iterate through IDUs, populating data on hazard states as needed
-   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-   int idus = pIDULayer->GetRowCount();
    ASSERT(idus == m_earthquakeData.GetRowCount());
    ASSERT(idus == m_tsunamiData.GetRowCount());
 
-   enum HAZARD_METRIC_INDEX { HMI_DS, HMI_REP_TIME, HMI_REP_COST, HMI_HABITABLE, HMI_CASSEV1,
-      HMI_CASSEV2, HMI_CASSEV3, HMI_CASSEV4 };
-   
-   int currentYear = pEnvContext->currentYear;
+   enum HAZARD_METRIC_INDEX { HMI_DS, HMI_REP_TIME, HMI_REP_COST, HMI_HABITABLE, HMI_CASFTLY, HMI_CASINJY };
 
+   int currentYear = pEnvContext->currentYear;
 
    for (int idu = 0; idu < idus; idu++)
       {
@@ -322,19 +333,26 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
          }  // end of: if ( damageIndex > 0 )
 
       // life safety next
-      float casSev1 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV1]->col, idu);  // people
-      float casSev2 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV2]->col, idu);
-      float casSev3 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV3]->col, idu);
-      float casSev4 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV4]->col, idu);
-      float casTotal = casSev1 + casSev2 + casSev3 + casSev4;
-      m_pAHModel->m_numCasSev1 += casSev1;
-      m_pAHModel->m_numCasSev2 += casSev2;
-      m_pAHModel->m_numCasSev3 += casSev3;
-      m_pAHModel->m_numCasSev4 += casSev4;
+      //float casSev1 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV1]->col, idu);  // people
+      //float casSev2 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV2]->col, idu);
+      //float casSev3 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV3]->col, idu);
+      //float casSev4 = m_earthquakeData.Get(eqColInfos[HMI_CASSEV4]->col, idu);
+      //float casTotal = casSev1 + casSev2 + casSev3 + casSev4;
+      //m_pAHModel->m_numCasSev1 += casSev1;
+      //m_pAHModel->m_numCasSev2 += casSev2;
+      //m_pAHModel->m_numCasSev3 += casSev3;
+      //m_pAHModel->m_numCasSev4 += casSev4;
+      //
+      //m_pAHModel->m_numCasTotal += casTotal;
+      float injuries = m_earthquakeData.Get(eqColInfos[HMI_CASFTLY]->col, idu);  // people
+      float fatalities= m_earthquakeData.Get(eqColInfos[HMI_CASINJY]->col, idu);
+      m_pAHModel->m_numInjuries += injuries;
+      m_pAHModel->m_numFatalities += fatalities;
+      m_pAHModel->m_numCasualities += (injuries + fatalities);
 
-      m_pAHModel->m_numCasTotal += casTotal;
-
-      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduCasualties, casTotal, ADD_DELTA);
+      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduInjuries, injuries, ADD_DELTA);
+      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduFatalities, fatalities, ADD_DELTA);
+      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduCasualties, injuries+fatalities, ADD_DELTA);
       }  // end of: for each IDU
 
    return true;
@@ -496,11 +514,6 @@ AcuteHazards::AcuteHazards(void)
       , m_pctInhabitableStructures(0)
       , m_nFunctionalBldgs(0)
       , m_pctFunctionalBldgs(0)
-      , m_numCasSev1(0)
-      , m_numCasSev2(0)
-      , m_numCasSev3(0)
-      , m_numCasSev4(0)
-      , m_numCasTotal(0)
    { }
 
 AcuteHazards::~AcuteHazards(void)
@@ -527,8 +540,10 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->CheckCol(pIDULayer, m_colIduBldgDamage, "BLDGDAMAGE", TYPE_INT,   CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduBldgDamageEq, "BLDGDMGEQ", TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduBldgDamageTsu, "BLDGDMGTS", TYPE_INT, CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colIduRemoved, "REMOVED", TYPE_INT, CC_MUST_EXIST);
-   this->CheckCol(pIDULayer, m_colIduCasualties, "CASUALTIES", TYPE_FLOAT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduRemoved,    "REMOVED",     TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(pIDULayer, m_colIduCasualties, "CASUALTIES",  TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduInjuries,   "INJURIES",    TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduFatalities, "FATALITIES",  TYPE_INT, CC_AUTOADD);
 
    // initialize column info
    pIDULayer->SetColData(m_colIduRepairYrs, VData(-1), true);
@@ -538,6 +553,10 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    pIDULayer->SetColData(m_colIduBldgDamage, VData(0), true);
    pIDULayer->SetColData(m_colIduBldgDamageEq, VData(0), true);
    pIDULayer->SetColData(m_colIduBldgDamageTsu, VData(0), true);
+   pIDULayer->SetColData(m_colIduCasualties, VData(0), true);
+   pIDULayer->SetColData(m_colIduInjuries, VData(0), true);
+   pIDULayer->SetColData(m_colIduFatalities, VData(0), true);
+
 
    // add input variables
    for (int i = 0; i < m_events.GetSize(); i++)
@@ -565,11 +584,9 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("Bldgs Repaired", m_bldgsRepaired, "");
    this->AddOutputVar("Bldgs Being Repaired", m_bldgsBeingRepaired, "");
    // life safety
-   this->AddOutputVar("Casulties (Severity 1)", m_numCasSev1, "" );
-   this->AddOutputVar("Casulties (Severity 2)", m_numCasSev2, "" );
-   this->AddOutputVar("Casulties (Severity 3)", m_numCasSev3, "" );
-   this->AddOutputVar("Casulties (Severity 4)", m_numCasSev4, "" );
-   this->AddOutputVar("Casulties (Total)", m_numCasTotal, "");
+   this->AddOutputVar("Casualties", m_numCasualities, "" );
+   this->AddOutputVar("Fatalities", m_numFatalities, "" );
+   this->AddOutputVar("Injuries", m_numInjuries, "" );
 
    InitPython();
 
@@ -680,7 +697,11 @@ bool AcuteHazards::InitPython()
    char cwd[512];
    _getcwd(cwd, 512);
 
-   _chdir("d:/Envision/studyAreas/OrCoast/Hazus");
+
+
+   CString _path(PathManager::GetPath(PM_PROJECT_DIR) );
+   _path += "Hazus";
+   _chdir(_path);
 
    // launch a python instance and run the model
    Py_SetProgramName(L"Envision");  // argv[0]

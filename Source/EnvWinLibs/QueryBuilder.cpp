@@ -280,7 +280,7 @@ void QueryBuilder::OnBnClickedRun()
    {
    UpdateData( 1 );
    m_pQueryEngine = m_pLayer->GetQueryEngine();
-   ASSERT(m_pQueryEngine->m_pMapLayer != m_pLayer);
+   ASSERT(m_pQueryEngine->m_pMapLayer == m_pLayer);
    //pQE = new QueryEngine( m_pLayer );
 
    Query *pQuery = m_pQueryEngine->ParseQuery( m_queryString, 0, "Query Setup" );

@@ -6,7 +6,6 @@
 
 #include <thread>
 
-#include <Logbook/Logbook.h>
 #include <PtrArray.h>
 #include <EnvModel.h>
 #include "RestServer.h"

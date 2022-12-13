@@ -9,4 +9,7 @@
     <LocalDebuggerCommand />
     <MpiDebuggerApplicationCommand />
   </PropertyGroup>
+  <PropertyGroup>
+    <RESOURCE_FILE>Envision.rc</RESOURCE_FILE>
+  </PropertyGroup>
 </Project>

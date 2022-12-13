@@ -34,25 +34,55 @@
         "native": {}
       }
     },
+    "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj": {
+      "restore": {
+        "projectUniqueName": "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj",
+        "projectName": "EnvServer",
+        "projectPath": "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj",
+        "frameworks": {
+          "native": {
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "native": {}
+      }
+    },
+    "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj": {
+      "restore": {
+        "projectUniqueName": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj",
+        "projectName": "NetViewer",
+        "projectPath": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj",
+        "frameworks": {
+          "native": {
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "native": {}
+      }
+    },
     "D:\\Envision\\Source\\SetupMSIX\\SetupMSIX.wapproj": {
       "version": "1.0.0",
       "restore": {
         "projectUniqueName": "D:\\Envision\\Source\\SetupMSIX\\SetupMSIX.wapproj",
         "projectName": "SetupMSIX",
         "projectPath": "D:\\Envision\\Source\\SetupMSIX\\SetupMSIX.wapproj",
-        "packagesPath": "C:\\Users\\boltej\\.nuget\\packages\\",
+        "packagesPath": "C:\\Users\\boltej.ONID\\.nuget\\packages\\",
         "outputPath": "D:\\Envision\\Source\\SetupMSIX\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "C:\\Users\\boltej\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Users\\boltej.ONID\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
         ],
         "originalTargetFrameworks": [
-          "net451"
+          "uap10.0.17763"
         ],
         "sources": {
           "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
@@ -67,6 +97,15 @@
               },
               "D:\\Envision\\Source\\Envision\\Envision.vcxproj": {
                 "projectPath": "D:\\Envision\\Source\\Envision\\Envision.vcxproj"
+              },
+              "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj": {
+                "projectPath": "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj"
+              },
+              "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj": {
+                "projectPath": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj"
+              },
+              "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj": {
+                "projectPath": "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj"
               }
             }
           }
@@ -96,12 +135,12 @@
             "net471",
             "net472",
             "net48",
-            "net7.0-windows10.0.19041",
+            "net6.0-windows10.0.19041",
             "net461"
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.402\\RuntimeIdentifierGraph.json"
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.400\\RuntimeIdentifierGraph.json"
         }
       },
       "runtimes": {
@@ -126,6 +165,21 @@
         "win10-x86-aot": {
           "#import": []
         }
+      }
+    },
+    "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj": {
+      "restore": {
+        "projectUniqueName": "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj",
+        "projectName": "VersionUpdater",
+        "projectPath": "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj",
+        "frameworks": {
+          "native": {
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "native": {}
       }
     }
   }

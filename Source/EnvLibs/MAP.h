@@ -141,9 +141,14 @@ class LIBSAPI Map
       MapLayer *CloneLayer(MapLayer &layer);
 
       MapLayer *CreateOverlay(MapLayer *pSourceLayer, int overlayType, int activeCol);
-
       MapLayer *CreatePointOverlay(MapLayer *pSourceLayer, int col);
       MapLayer *CreateDotDensityPointLayer(MapLayer *pPolyLayer, int col);
+      MapLayer* CreateGrid(int rows, int cols, REAL xLLCorner, REAL yLLCorner, REAL cellsize, float initialValue, DO_TYPE type, bool classify) {
+         MapLayer* pLayer = new MapLayer(this);
+         pLayer->CreateGrid(rows, cols, xLLCorner, yLLCorner, cellsize, initialValue, type, true, classify);
+         this->AddLayer(pLayer);
+         return pLayer;
+         }
 
       MapLayer *GetLayer(int mapLayer) { VERIFY_LAYER; return LAYERPTR; }
       MapLayer *GetLayer(LPCTSTR name);
