@@ -119,6 +119,7 @@ enum SNIP_MOTIF {
    };
 
 
+enum SN_ELEMENTTYPE { ET_NODE, ET_EDGE };
 
 // Node Status
 // On LOAD    | Input  | Network  | LA       |
@@ -233,6 +234,16 @@ class SNNode;
 class SNLayer;
 class SNIPModel;
 
+
+//template <typename T>
+//void remove(std::vector<T>& vec, size_t pos)
+//   {
+//   std::vector<T>::iterator it = vec.begin();
+//   std::advance(it, pos);
+//   vec.erase(it);
+//   }
+
+
 class TraitContainer
    {
    public:
@@ -257,21 +268,30 @@ class TraitContainer
    };
 
 
+class SNNetElement
+   {
+   public:
+      int m_index = -1;         // : this.nextNode/EdgeIndex,
+      std::string m_id;    // : 'n' + this.nextNode/EdgeIndex,
+      CString  m_name;
+      bool m_show = true;
+
+      SNLayer* m_pLayer = nullptr;   // snipModel: this,
+
+      virtual int GetElementType() = 0;
+
+   };
+
+
 // social network node class
-class SNNode : public TraitContainer
+class SNNode : public SNNetElement, public TraitContainer
    {
    friend class SNIP;
    friend class SNLayer;
 
    public:
       // data
-      CString  m_name;
       SNIP_NODETYPE  m_nodeType = NT_UNKNOWN;
-
-      SNLayer* m_pLayer = nullptr;   // snipModel: this,
-      int m_index = -1;         // : this.nextNodeIndex,
-      std::string m_id;    // : 'n' + this.nextNodeIndex,
-      //label : '',
 
       SNIP_STATE m_state = STATE_INACTIVE;  // : STATE_ACTIVE,
       float m_reactivity=0;  // : reactivity,
@@ -295,10 +315,12 @@ class SNNode : public TraitContainer
          m_nodeType = node.m_nodeType;
          //m_extra = node.m_extra; 
          m_reactivity = node.m_reactivity;
-         m_inEdges.Copy(node.m_inEdges);
-         m_outEdges.Copy(node.m_outEdges);
+         m_inEdges = node.m_inEdges;
+         m_outEdges = node.m_outEdges;
          return *this;
          }
+
+      virtual int GetElementType() { return ET_NODE;  }
 
       //   CArray < SNEdge*, SNEdge* > DecideActive();
 
@@ -306,9 +328,8 @@ class SNNode : public TraitContainer
       //float m_landscapeValue;
    public:
       // edges - note that these are stored at the layer level, just ptrs here
-      CArray<SNEdge*, SNEdge*> m_inEdges;
-      CArray<SNEdge*, SNEdge*> m_outEdges;
-      //std::vector<std::shared_ptr<SNEdge>>;
+      std::vector<SNEdge*> m_inEdges;
+      std::vector<SNEdge*> m_outEdges;
 
       bool IsActive() { return m_state == SNIP_STATE::STATE_ACTIVE; }
       bool IsActivating() { return m_state == SNIP_STATE::STATE_ACTIVATING; }
@@ -328,7 +349,7 @@ class SNNode : public TraitContainer
 typedef SNNode* LPSNNode;
 
 
-class SNEdge : public TraitContainer
+class SNEdge : public SNNetElement, public TraitContainer
    {
    friend class SNLayer;
 
@@ -336,10 +357,6 @@ class SNEdge : public TraitContainer
       SNNode* m_pFromNode;
       SNNode* m_pToNode;
 
-      std::string m_name;
-
-      //bool m_active;
-      std::string m_id;  // : 'e' + this.nextEdgeIndex,   // FromIndex_ToIndex
       float m_signalStrength; // : 0,   // [-1,1]
       float m_signalTraits;   // : signalTraits,  // traits vector for current signal, or null if inactive
       float m_transEff;       // : transEff,
@@ -373,6 +390,8 @@ class SNEdge : public TraitContainer
          return *this;
          }
 
+      virtual int GetElementType() { return ET_EDGE; }
+
       bool IsFrom(SNNode* pNode) { return pNode == m_pFromNode; }
       bool IsTo(SNNode* pNode) { return pNode == m_pToNode; }
 
@@ -397,18 +416,18 @@ class SNLayer
       int m_outputNodeCount = 0;
       int m_colReactivity = -1;
 
-   protected:
+   public:
       // container
       SNIP* m_pSNIP = nullptr;
 
       SNIPModel* m_pSNIPModel = nullptr;
-      //unique_ptr<SNIPModel> m_pSNIPModel;
 
+   public:
       // nodes and edges
-      //SNNode* m_pInputNode;
-      PtrArray< SNNode > m_nodes;
-      PtrArray< SNEdge > m_edges;
+      vector<SNNode*> m_nodes;
+      vector<SNEdge*> m_edges;
 
+   protected:
       map< std::string, SNNode* > m_nodeMap;
 
       int m_nextNodeIndex = 0;
@@ -429,25 +448,25 @@ class SNLayer
       SNNode* FindNode(LPCTSTR name);
       SNNode* GetNode(int i) { return m_nodes[i]; }
       //SNNode *GetInputNode( void )     { return m_pInputNode; }  
-      int GetNodeCount(void) { return (int)m_nodes.GetSize(); }
+      int GetNodeCount(void) { return (int)m_nodes.size(); }
       int GetNodeCount(SNIP_NODETYPE type) { int count = 0; for (int i = 0; i < GetNodeCount(); i++) if (m_nodes[i]->m_nodeType == type) count++; return count; }
       int GetOutputNodeCount(void) { return m_outputNodeCount; }
       bool RemoveNode(SNNode* pNode);
 
-      void GetInteriorNodes(CArray< SNNode*, SNNode* >& out);		//
-      void GetInteriorNodes(bool active, CArray< SNNode*, SNNode* >& out);
-      void GetInteriorEdges(CArray< SNEdge*, SNEdge* >& out);
-      void GetInteriorEdges(bool active, CArray< SNEdge*, SNEdge* >& out);
+      void GetInteriorNodes(std::vector<SNNode* >& out);		//
+      void GetInteriorNodes(bool active, std::vector< SNNode* >& out);
+      void GetInteriorEdges(std::vector< SNEdge* >& out);
+      void GetInteriorEdges(bool active, std::vector< SNEdge* >& out);
       //bool GetDegreeCentrality();
       SNEdge* GetEdge(int i) { return m_edges[i]; }
-      int GetEdgeCount(void) { return (int)m_edges.GetSize(); }
+      int GetEdgeCount(void) { return (int)m_edges.size(); }
 
       //int  Activate(void);
       //void GetContactedNodes(const CArray< SNEdge*, SNEdge* >& ActiveEdges, CArray <SNNode*>& ContactedNodes);
       double SNWeight_Density();	//
       double SNDensity();			//
       //void Bonding(SNNode*);
-      void GetOutputEdges(bool active, CArray< SNEdge*, SNEdge* >& out);
+      void GetOutputEdges(bool active, std::vector< SNEdge* >& out);
       //  bool NodeEdgeCount( SNNode *pNode, int nodeEdgeType );
 
       bool ExportNetworkGraphML(LPCTSTR path);
@@ -457,9 +476,6 @@ class SNLayer
    private:
       void _AddGEFXNode(ofstream &out, LPCTSTR date, LPCTSTR id, LPCTSTR label, SNIP_NODETYPE type, float reactivity, float influence, float size, int xMax, int yMax);
       void _AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sourceID, LPCTSTR targetID, float thick, float ss, float trust, float influence);
-
-
-
    };
 
 
@@ -468,10 +484,12 @@ class SNIPModel
    friend class SNLayer;
    friend class SNIP;
 
+   public:
+      SNLayer* m_pSNLayer = nullptr;       // associated network layer
+
    protected:
       bool m_use = true;
       int m_colAdapt = -1;
-      SNLayer* m_pSNLayer = nullptr;       // associated network layer
       json m_networkJSON; // / networkInfo = null;   // dictionary with description, traits, etc read from JSON file
 
       std::string m_name;
@@ -618,7 +636,11 @@ class _EXPORT SNIP : public  EnvModelProcess
    public:
       SNIP() { }
       SNIP(SNIP&);
-      //~SNIP(); {}
+      ~SNIP()
+         {
+         for (SNLayer* pLayer : m_layerArray)
+            delete pLayer;
+         }
 
       virtual bool Init(EnvContext* pEnvContext, LPCTSTR initStr);
 
@@ -634,16 +656,17 @@ class _EXPORT SNIP : public  EnvModelProcess
       //virtual int  OutputVar(int id, MODEL_VAR** modelVar);
 
    public:
-      SNLayer* AddLayer(void) { if (m_layerArray.Add(new SNLayer(this)) >= 0) return m_layerArray[m_layerArray.GetUpperBound()]; else return nullptr; }
+      SNLayer* AddLayer(void) { m_layerArray.push_back(new SNLayer(this)); return m_layerArray[m_layerArray.size() - 1]; }
       bool     RemoveLayer(LPCTSTR name);
       SNLayer* GetLayer(int i) { return m_layerArray[i]; }
-      int      GetLayerCount(void) { return (int)m_layerArray.GetSize(); }
+      int      GetLayerCount(void) { return (int)m_layerArray.size(); }
       bool     CollectData(EnvContext*);
 
 
    protected:
       bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);
-      PtrArray< SNLayer > m_layerArray;
+      //PtrArray< SNLayer > m_layerArray;
+      std::vector<SNLayer*> m_layerArray;
    };
 
 

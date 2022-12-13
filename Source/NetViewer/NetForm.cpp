@@ -40,6 +40,11 @@ void NetForm::SetNetworkDescription(std::string&desc)
 
 	}
 
+void NetForm::SetNetworkStats(std::string& stats)
+	{
+	m_netStats.SetWindowText(stats.c_str());
+	}
+
 int NetForm::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	{
 	if (CWnd::OnCreate(lpCreateStruct) == -1)
@@ -56,13 +61,19 @@ int NetForm::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	rect.bottom = rect.top + 100;  // should be based on font size
 	m_netName.Create("Network", WS_CHILD | WS_VISIBLE, rect, this, 1000);
 
-	// net stats
+	// net description
 	rect.top = rect.bottom + margin;
-	rect.bottom = rect.top + 200;
+	rect.bottom = rect.top + 120;
 	m_netDescription.Create("", WS_CHILD | WS_VISIBLE, rect, this, 1001);
+	
+		// net stats
+	rect.top = rect.bottom + margin;
+	rect.bottom = rect.top + 120;
+	m_netStats.Create("", WS_CHILD | WS_VISIBLE, rect, this, 1002);
 	
 	rect.top = rect.bottom + 10;
 	rect.bottom = rect.top + 600;
+
 
 	// property grid
 	m_nodePropGrid.Create(WS_CHILD | WS_VISIBLE, rect, this, 1010);
@@ -71,8 +82,10 @@ int NetForm::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	// set fonts
 	fontName.CreatePointFont(160, "Arial");
 	fontDesc.CreatePointFont(120, "Arial");
+	fontStats.CreatePointFont(80, "Arial");
 	m_netName.SetFont(&fontName);
 	m_netDescription.SetFont(&fontDesc);
+	m_netStats.SetFont(&fontStats);
 
 	m_nodePropGrid.ShowWindow(SW_SHOW);
 	m_edgePropGrid.ShowWindow(SW_SHOW);

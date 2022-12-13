@@ -23,13 +23,16 @@ public:
 public:
 	CFont fontName;
 	CFont fontDesc;
+	CFont fontStats;
 	CStatic m_netName;
 	CStatic m_netDescription;
+	CStatic m_netStats;
 	CMFCPropertyGridCtrl m_nodePropGrid;
 	CMFCPropertyGridCtrl m_edgePropGrid;
 
 	void SetNetworkName(std::string&);
 	void SetNetworkDescription(std::string&);
+	void SetNetworkStats(std::string&);
 
 	void AddNodePropertyPage(Node* node);
 	void AddEdgePropertyPage(Edge* edge);

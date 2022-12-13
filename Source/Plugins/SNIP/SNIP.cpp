@@ -1,4 +1,3 @@
-EndProject
 /*
 This file is part of Envision.
 
@@ -32,6 +31,7 @@ Copywrite 2012 - Oregon State University
 #include <colorramps.h>
 #include <randgen/Randunif.hpp>
 
+#include <vector>
 #include <format>
 #include <iostream>
 #include <fstream>
@@ -46,6 +46,12 @@ Copywrite 2012 - Oregon State University
 RandUniform SNIPModel::m_randShuffle;
 RandUniform randUnif;
 
+
+template <typename T>
+void remove(std::vector<T>& vec, size_t pos)
+   {
+   vec.erase(vec.begin + pos);
+   }
 
 
 float TraitContainer::ComputeSimilarity(TraitContainer* pOther)
@@ -95,7 +101,7 @@ SNNode::SNNode(SNIP_NODETYPE nodeType)
 //void SNNode::GetTrust()//get total trust for a single organization
 //{
 //   double out = 0;
-//   for (int i = 0; i < m_edges.GetSize(); i++)
+//   for (int i = 0; i < m_edges.size(); i++)
 //   {
 //      SNEdge *edge = m_edges[i];
 //      if (edge->m_pFromNode->m_nodeType == NT_LANDSCAPE_ACTOR)
@@ -187,6 +193,11 @@ SNLayer::SNLayer(SNLayer& sl)
 
 SNLayer::~SNLayer()
    {
+   for (SNNode* pNode : m_nodes)
+      delete pNode;
+   for (SNEdge* pEdge : m_edges)
+      delete pEdge;
+
    if (m_pSNIPModel != nullptr)
       delete m_pSNIPModel;
    }
@@ -225,9 +236,10 @@ bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
 
    out << "<graph id='G' edgedefault='directed'> \n";
 
-   for (int i = 0; i < (int)this->m_nodes.GetSize(); i++)
+   //for (int i = 0; i < (int)this->m_nodes.size(); i++)
+   for( SNNode *pNode : this->m_nodes)
       {
-      SNNode* pNode = this->m_nodes[i];
+      //SNNode* pNode = this->m_nodes[i];
       string color = "black";
       switch (pNode->m_nodeType)
          {
@@ -245,10 +257,9 @@ bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
       out << "</node> \n";
       }
 
-   for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
-      {
-      SNEdge* pEdge = this->m_edges[i];
-
+   //for (int i = 0; i < (int)this->m_edges.size(); i++)
+   for (SNEdge* pEdge : this->m_edges )
+{
       string color = "black";
 
       //switch (pEdge->m_nodeType)
@@ -307,7 +318,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
    out << "<nodes>" << endl;
 
    const float grpMembershipThreshold = 0.5f;
-   int nodes = (int)this->m_nodes.GetSize();
+   int nodes = (int)this->m_nodes.size();
 
    int nAssessors = this->GetNodeCount(NT_ASSESSOR);
    //int nNAs = this->GetNodeCount(NT_NETWORK_ACTOR);
@@ -356,7 +367,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
          bool engager = false;
 
          //bool counted = false;
-         for (int j = 0; j < (int)pNode->m_inEdges.GetSize(); j++)
+         for (int j = 0; j < (int)pNode->m_inEdges.size(); j++)
             {
             if (pNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
                {
@@ -367,7 +378,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
                }
             }
 
-         for (int j = 0; j < (int)pNode->m_outEdges.GetSize(); j++)
+         for (int j = 0; j < (int)pNode->m_outEdges.size(); j++)
             {
             if (pNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
                {
@@ -385,7 +396,8 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
          }
       }
 
-   int na = 0, nnLeft = 0, nnRight = 0, nnCenter = 0, ne = 0;
+   // updating y positions
+   int na = 0, nnLeft = 0, nnRight = 0, nnCenter = 0, ne = 0, nla = 0;
    int x = 0, y = 0;
    const int xMax = 1000;
    const int yMax = 1000;
@@ -396,8 +408,8 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
       SNNode* pNode = this->m_nodes[i];
 
       // skip lanscape actors, replace with groups below
-      if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
-         continue;
+      //if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+      //   continue;
 
       // bounds for actor types:
       // | INPUT  |  ASSESSOR   |  LA->ASS | LA_UNAFFILATED | LA->BOTH | LA_UNAFFILIATED | LA_ENG | ENGAGER | LANDSCAPE_ACTOR
@@ -410,11 +422,11 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
          case NT_INPUT_SIGNAL:    x = 0;               y = int(yMax / 2);                          break;
          case NT_ASSESSOR:        x = int(0.12f * xMax); y = int(float(yMax * na) / nAssessors); na++; break;
          case NT_ENGAGER:         x = int(0.88f * xMax); y = int(float(yMax * ne) / nEngagers);  ne++; break;
-         case NT_LANDSCAPE_ACTOR:  ASSERT(0); break;  // skipped above
+         case NT_LANDSCAPE_ACTOR: x = xMax; y = int(float(yMax * nla) / nLAs);  nla++; break; 
          case NT_NETWORK_ACTOR:
             {
             bool assessor = false;
-            for (int j = 0; j < (int)pNode->m_inEdges.GetSize(); j++)
+            for (int j = 0; j < (int)pNode->m_inEdges.size(); j++)
                if (pNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
                   {
                   assessor = true;
@@ -422,7 +434,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
                   }
 
             bool engager = false;
-            for (int j = 0; j < (int)pNode->m_outEdges.GetSize(); j++)
+            for (int j = 0; j < (int)pNode->m_outEdges.size(); j++)
                if (pNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
                   {
                   engager = true;
@@ -471,25 +483,27 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
       _AddGEFXNode(out, date, pNode->m_id.c_str(), pNode->m_name, pNode->m_nodeType, pNode->m_reactivity, pNode->m_influence, size, x, y);
       }
 
-   // add landscape actor group nodes
-   int i = 0;
-   for (string group : groups)
-      {
-      CString id;
-      id.Format("LA_%i", i);
+   ////// add landscape actor group nodes
+   ////int i = 0;
+   ////for (string group : groups)
+   ////   {
+   ////   CString id;
+   ////   id.Format("LA_%i", i);
+   ////
+   ////   const int maxNodeSize = 20;
+   ////   float size = float(maxNodeSize) * grpCounts[i] / maxGrpCount;
+   ////   if (size <= 0)
+   ////      size = maxNodeSize / 2;
+   ////   y = int(yMax * (float(i) / groups.size()));
+   ////   float reactivity = grpCounts[i] > 0 ? grpReactivities[i] / grpCounts[i] : 0;
+   ////   float influence = grpCounts[i] > 0 ? grpInfluences[i] / grpCounts[i] : 0;
+   ////   _AddGEFXNode(out, date, id, group.c_str(), NT_LANDSCAPE_ACTOR, influence, reactivity, size, xMax, y);
+   ////   i++;
+   ////   }
 
-      const int maxNodeSize = 20;
-      float size = float(maxNodeSize) * grpCounts[i] / maxGrpCount;
-      if (size <= 0)
-         size = maxNodeSize / 2;
-      y = int(yMax * (float(i) / groups.size()));
-      float reactivity = grpCounts[i] > 0 ? grpReactivities[i] / grpCounts[i] : 0;
-      float influence = grpCounts[i] > 0 ? grpInfluences[i] / grpCounts[i] : 0;
-      _AddGEFXNode(out, date, id, group.c_str(), NT_LANDSCAPE_ACTOR, influence, reactivity, size, xMax, y);
-      i++;
-      }
 
-   int newNodeCount = i;
+
+   //int newNodeCount = i;
 
    out << "</nodes>" << endl;
    out << "<edges>" << endl;
@@ -499,15 +513,13 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
    // write out <edge> tags for each eadge.
    // note that Lanscape Nodes are collapsed into groups, one for each trait type
 
-   for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
+   for (SNEdge* pEdge : this->m_edges)
       {
-      SNEdge* pEdge = this->m_edges[i];
-
       //--------------------------------------------
       // handle edges to landscape nodes separately
       //  - use groups instead
       //--------------------------------------------
-      if (pEdge->m_pToNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+      if (false) //pEdge->m_pToNode->m_nodeType == NT_LANDSCAPE_ACTOR)
          {
          // get group type of the landscape actor
          //int g = 0;
@@ -542,69 +554,69 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
    
    // add landscape actor group edges
 
-   // first get ready calc stats
-   float* grpTrusts = new float[groups.size()];
-   float* grpSigStrengths = new float[groups.size()];
-   memset(grpTrusts, 0, groups.size() * sizeof(float));
-   memset(grpSigStrengths, 0, groups.size() * sizeof(float));
-   memset(grpInfluences, 0, groups.size() * sizeof(float));
-   memset(grpCounts, 0, groups.size() * sizeof(int));
-   maxGrpCount = 0;
-
-   // for each ENGAGER node, add connection to LA groups if needed
-   for (int i = 0; i < (int)this->m_nodes.GetSize(); i++)
-      {
-      SNNode* pNode = this->m_nodes[i];
-
-      if (pNode->m_nodeType == NT_ENGAGER)
-         {
-         // pass one - compute edge stats for outgoing nodes
-         memset(grpTrusts, 0, groups.size() * sizeof(float));
-         memset(grpSigStrengths, 0, groups.size() * sizeof(float));
-         memset(grpInfluences, 0, groups.size() * sizeof(float));
-         memset(grpCounts, 0, groups.size() * sizeof(int));
-
-         for (int j = 0; j < (int)pNode->m_outEdges.GetSize(); j++)
-            {
-            SNEdge* pEdge = pNode->m_outEdges[i];
-            for (int k = 0; k < numTraits; k++)
-               {
-               // is the LA node corresponding to this edge trait a member of this group?
-               if (pEdge->m_pToNode->m_traits[k] >= grpMembershipThreshold)
-                  {
-                  grpTrusts[k] += pEdge->m_trust;
-                  grpSigStrengths[k] += pEdge->m_signalStrength;
-                  grpInfluences[k] += pEdge->m_influence;
-                  grpCounts[k]++;
-                  }
-               }
-            }
-         // normalize
-         for (int k = 0; k < numTraits; k++)
-            {
-            grpTrusts[k] /= grpCounts[k];
-            grpSigStrengths[k] /= grpCounts[k];
-            grpInfluences[k] /= grpCounts[k]; 
-            }
-
-         // have stats on edge groups, now make connections
-         for (int k = 0; k < numTraits; k++)
-             {
-             if ( grpCounts[k] > 0)  // if we have members, make an edge
-                {
-                CString id, targetID;
-                id.Format("%s_%i", pNode->m_id.c_str(), k);
-                targetID.Format("LA_%i", k);
-   
-                const int maxEdgeThick = 12;
-                float thick = 1 + (maxEdgeThick * grpInfluences[k] / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
-   
-                newEdgeCount++;
-                _AddGEFXEdge(out, date, id, pNode->m_id.c_str(), targetID, thick, grpSigStrengths[k], grpTrusts[k],grpInfluences[k]);   
-                }
-            }
-         }
-      }
+   /////// first get ready calc stats
+   /////float* grpTrusts = new float[groups.size()];
+   /////float* grpSigStrengths = new float[groups.size()];
+   /////memset(grpTrusts, 0, groups.size() * sizeof(float));
+   /////memset(grpSigStrengths, 0, groups.size() * sizeof(float));
+   /////memset(grpInfluences, 0, groups.size() * sizeof(float));
+   /////memset(grpCounts, 0, groups.size() * sizeof(int));
+   /////maxGrpCount = 0;
+   /////
+   /////// for each ENGAGER node, add connection to LA groups if needed
+   /////for (int i = 0; i < (int)this->m_nodes.size(); i++)
+   /////   {
+   /////   SNNode* pNode = this->m_nodes[i];
+   /////
+   /////   if (pNode->m_nodeType == NT_ENGAGER)
+   /////      {
+   /////      // pass one - compute edge stats for outgoing nodes
+   /////      memset(grpTrusts, 0, groups.size() * sizeof(float));
+   /////      memset(grpSigStrengths, 0, groups.size() * sizeof(float));
+   /////      memset(grpInfluences, 0, groups.size() * sizeof(float));
+   /////      memset(grpCounts, 0, groups.size() * sizeof(int));
+   /////
+   /////      for (int j = 0; j < (int)pNode->m_outEdges.size(); j++)
+   /////         {
+   /////         SNEdge* pEdge = pNode->m_outEdges[i];
+   /////         for (int k = 0; k < numTraits; k++)
+   /////            {
+   /////            // is the LA node corresponding to this edge trait a member of this group?
+   /////            if (pEdge->m_pToNode->m_traits[k] >= grpMembershipThreshold)
+   /////               {
+   /////               grpTrusts[k] += pEdge->m_trust;
+   /////               grpSigStrengths[k] += pEdge->m_signalStrength;
+   /////               grpInfluences[k] += pEdge->m_influence;
+   /////               grpCounts[k]++;
+   /////               }
+   /////            }
+   /////         }
+   /////      // normalize
+   /////      for (int k = 0; k < numTraits; k++)
+   /////         {
+   /////         grpTrusts[k] /= grpCounts[k];
+   /////         grpSigStrengths[k] /= grpCounts[k];
+   /////         grpInfluences[k] /= grpCounts[k]; 
+   /////         }
+   /////
+   /////      // have stats on edge groups, now make connections
+   /////      for (int k = 0; k < numTraits; k++)
+   /////          {
+   /////          if ( grpCounts[k] > 0)  // if we have members, make an edge
+   /////             {
+   /////             CString id, targetID;
+   /////             id.Format("%s_%i", pNode->m_id.c_str(), k);
+   /////             targetID.Format("LA_%i", k);
+   /////
+   /////             const int maxEdgeThick = 12;
+   /////             float thick = 1 + (maxEdgeThick * grpInfluences[k] / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
+   /////
+   /////             newEdgeCount++;
+   /////             _AddGEFXEdge(out, date, id, pNode->m_id.c_str(), targetID, thick, grpSigStrengths[k], grpTrusts[k],grpInfluences[k]);   
+   /////             }
+   /////         }
+   /////      }
+   /////   }
 
 
    out << "</edges>" << endl;
@@ -613,8 +625,8 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
 
    out.close();
 
-   delete[] grpSigStrengths;
-   delete[] grpTrusts;
+   //delete[] grpSigStrengths;
+   //delete[] grpTrusts;
    delete[] grpCounts;
    delete[] grpInfluences;
    delete[] grpReactivities;
@@ -688,11 +700,11 @@ int SNLayer::CheckNetwork()
    int nIslandNodes = 0;
    int nUnknownNodes = 0;
    
-   for (int i = 0; i < (int)this->m_nodes.GetSize(); i++)
+   for (int i = 0; i < (int)this->m_nodes.size(); i++)
       {
       SNNode* pNode = this->m_nodes[i];
 
-      if (pNode->m_inEdges.GetSize() == 0 && pNode->m_outEdges.GetSize() == 0)
+      if (pNode->m_inEdges.size() == 0 && pNode->m_outEdges.size() == 0)
          nIslandNodes++;
 
       if (pNode->m_nodeType == NT_UNKNOWN)
@@ -701,7 +713,7 @@ int SNLayer::CheckNetwork()
 
    int nEdgeMissingNodes = 0;
    int duplicateEdges = 0;
-   for (int i = 0; i < (int)this->m_edges.GetSize(); i++)
+   for (int i = 0; i < (int)this->m_edges.size(); i++)
       {
       SNEdge* pEdge = this->m_edges[i];
 
@@ -715,7 +727,7 @@ int SNLayer::CheckNetwork()
       else if (FindNode(pEdge->m_pFromNode->m_name) == nullptr)
          nEdgeMissingNodes++;
 
-      for (int j = 0; j < (int)this->m_edges.GetSize(); j++)
+      for (int j = 0; j < (int)this->m_edges.size(); j++)
          {
          if (j == i)
             continue;
@@ -804,7 +816,8 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "normNLA_TransEff");
    m_pOutputData->SetLabel(col++, "normEdgeSignalStrength");
 
-   this->m_pSNLayer->m_pSNIP->AddOutputVar(this->m_pSNLayer->m_name.c_str(), m_pOutputData, "");
+   if ( this->m_pSNLayer->m_pSNIP != nullptr)
+      this->m_pSNLayer->m_pSNIP->AddOutputVar(this->m_pSNLayer->m_name.c_str(), m_pOutputData, "");
 
    return true;
    }
@@ -1024,7 +1037,7 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, std::vector<f
    else if (nodeType == NT_LANDSCAPE_ACTOR)
       this->m_pSNLayer->m_outputNodeCount++;
 
-   this->m_pSNLayer->m_nodes.Add(pNode); //SNNode( nodeType ) );
+   this->m_pSNLayer->m_nodes.push_back(pNode); //SNNode( nodeType ) );
    this->m_pSNLayer->m_nodeMap[string((LPCTSTR) pNode->m_name)] = pNode;
 
    return pNode;
@@ -1060,13 +1073,13 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
    pEdge->m_state = STATE_ACTIVE;
    pEdge->m_influence = 0;
 
-   pFromNode->m_outEdges.Add(pEdge);
-   pToNode->m_inEdges.Add(pEdge);
+   pFromNode->m_outEdges.push_back(pEdge);
+   pToNode->m_inEdges.push_back(pEdge);
 
    //pEdge->AddTraitsFromArray(traits, (int) this->m_traitsLabels.size());
    pEdge->m_traits = traits;  // copy
 
-   this->m_pSNLayer->m_edges.Add(pEdge);
+   this->m_pSNLayer->m_edges.push_back(pEdge);
 
    return pEdge;
    }
@@ -1106,7 +1119,9 @@ SNNode* SNLayer::FindNode(LPCTSTR name)
 bool SNLayer::RemoveNode(SNNode* pNode)
    {
    // remove from node array
-   m_nodes.Remove(pNode);  // also deletes node
+   //m_nodes.Remove(pNode);  // also deletes node
+   delete pNode;
+   std::erase(m_nodes, pNode);
 
    // remove from nodeMap
    for (std::map<std::string, SNNode*>::iterator it = m_nodeMap.begin(); it != m_nodeMap.end();)
@@ -1120,23 +1135,24 @@ bool SNLayer::RemoveNode(SNNode* pNode)
          it++;
       }
    // remove any edges that point from/to this node.
-   for (int i = 0; i < (int)m_edges.GetSize(); i++)
+   for (int i = 0; i < (int)m_edges.size(); i++)
       {
       SNEdge* pEdge = m_edges[i];
       if (pEdge->m_pFromNode == pNode)
          {
-         m_edges.Remove(pEdge);
-         for ( int j=0; j < (int) pEdge->m_pFromNode->m_outEdges.GetSize(); j++)
+         //m_edges.Remove(pEdge);
+         std::erase(m_edges, pEdge);
+         for ( int j=0; j < (int) pEdge->m_pFromNode->m_outEdges.size(); j++)
             if (pEdge->m_pFromNode->m_outEdges[j] == pEdge)
                {
-               pEdge->m_pFromNode->m_outEdges.RemoveAt(j);
+               std::erase(pEdge->m_pFromNode->m_outEdges, pEdge);
                break;
                }   
                   
-         for (int j = 0; j < (int)pEdge->m_pToNode->m_inEdges.GetSize(); j++)
+         for (int j = 0; j < (int)pEdge->m_pToNode->m_inEdges.size(); j++)
             if (pEdge->m_pToNode->m_inEdges[j] == pEdge)
                {
-               pEdge->m_pToNode->m_inEdges.RemoveAt(j);
+               std::erase(pEdge->m_pToNode->m_inEdges, pEdge); // .RemoveAt(j);
                break;
                }
 
@@ -1620,7 +1636,7 @@ float SNIPModel::PropagateSignal(int cycle)
          // edge is currently inactive and pointing away from this node,
          // set it's state to 'activating'  This mean it is preparing to propagate
          // a signal when the edges 'travel time' has elapsed.
-         int edgeCount = (int)pNode->m_outEdges.GetSize();
+         int edgeCount = (int)pNode->m_outEdges.size();
          for (int j = 0; j < edgeCount; j++)
             {
             SNEdge* pEdge = pNode->m_outEdges[j];
@@ -1812,7 +1828,7 @@ float SNIPModel::SolveEqNetwork(float  bias)
       if (pNode->IsActive())
          {
          float influence = 0;
-         int count = (int)pNode->m_outEdges.GetSize();
+         int count = (int)pNode->m_outEdges.size();
          for (int j = 0; j < count; j++)
             influence += pNode->m_outEdges[j]->m_influence;
 
@@ -1998,7 +2014,7 @@ float SNIPModel::ActivateNode(SNNode* pNode, float bias)
    //var incomers = node.incomers('edge');  // Note - incomers are nodes, not edges
    float sumInfs = 0;
 
-   for (int i = 0; i < pNode->m_inEdges.GetSize(); i++)
+   for (int i = 0; i < pNode->m_inEdges.size(); i++)
       {
       SNEdge* pEdge = pNode->m_inEdges[i];
 
@@ -2332,7 +2348,7 @@ void SNIPModel::UpdateNetworkStats()
          float cont_temp = 0;
          float max_inf = 0;
          //pNode.incomers('edge').forEach(function(edge) {
-         for (int j = 0; j < pNode->m_inEdges.GetSize(); j++)
+         for (int j = 0; j < pNode->m_inEdges.size(); j++)
             {
             //let sn = edge.data('source');
             //let nodetraits = _this->m_cy.elements('node#' + sn).data('traits');
@@ -2445,7 +2461,7 @@ int SNIPModel::GetMaxDegree(bool)
    {
    int count = GetNodeCount(); int maxDegree = 0;
    for (int i = 0; i < count; i++) {
-      int edges = int(GetNode(i)->m_inEdges.GetSize() + GetNode(i)->m_outEdges.GetSize());
+      int edges = int(GetNode(i)->m_inEdges.size() + GetNode(i)->m_outEdges.size());
       if (edges > maxDegree)
          maxDegree = edges;
       }
@@ -2707,7 +2723,14 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    // based on ??? and build a network actor->landscape actor edge in SNIP to 
    // represent the onnection
    int colIDUProfileID = -1;
-   this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_AUTOADD);
+
+   if (this->m_pSNLayer->m_pSNIP)
+      this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_AUTOADD);
+   else
+      {
+      /// ????????
+      }
+
 
    int colX = actorProfiles.GetCol("POINT_X");
    int colY = actorProfiles.GetCol("POINT_Y");
@@ -2815,7 +2838,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
 
                         // do we already have a connection to this engager?
                         bool found = false;
-                        for (int j = 0; j < (int)pNode->m_inEdges.GetSize(); j++)
+                        for (int j = 0; j < (int)pNode->m_inEdges.size(); j++)
                            {
                            if (pNode->m_inEdges[j]->m_pFromNode == pEngagerNode)
                               {
@@ -2856,7 +2879,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                }  // end of:  for each trait
 
             // if no engagers found, remove LA node from network
-            if (pNode && pNode->m_inEdges.GetSize() == 0)
+            if (pNode && pNode->m_inEdges.size() == 0)
                {
                newLACount++;
                unconnectedLACount++;
@@ -3106,81 +3129,81 @@ GetInfWtClosenessCentralities(selector, normed) {
 //int SNLayer::Activate( void )
 /////////////////////////////////////////////////////////////////////
 
-void SNLayer::GetInteriorNodes(CArray< SNNode*, SNNode* >& out) //get all interior nodes (ie organizations)
+void SNLayer::GetInteriorNodes(std::vector<SNNode* >& out) //get all interior nodes (ie organizations)
    {
-   for (int i = 0; i < m_nodes.GetSize(); i++)
+   for (int i = 0; i < m_nodes.size(); i++)
       {
       SNNode* node = m_nodes[i];
       if (node->IsInterior())
-         out.Add(node);
+         out.push_back(node);
       }
    }
 
-void SNLayer::GetInteriorNodes(bool active, CArray< SNNode*, SNNode* >& out)   //get organizations that are 'active' or inactive
+void SNLayer::GetInteriorNodes(bool active, std::vector<SNNode* >& out)   //get organizations that are 'active' or inactive
    {
-   for (int i = 0; i < m_nodes.GetSize(); i++)
+   for (int i = 0; i < m_nodes.size(); i++)
       {
       SNNode* node = m_nodes[i];
       if (node->IsInterior())
          {
          if (active && node->IsActive())
-            out.Add(node);
+            out.push_back(node);
          else if (active == false && node->IsActive() == false)
-            out.Add(node);
+            out.push_back(node);
          }
       }
    }
 
-void SNLayer::GetInteriorEdges(CArray< SNEdge*, SNEdge* >& out) //get interior edges
+void SNLayer::GetInteriorEdges(std::vector< SNEdge* >& out) //get interior edges
    {
-   for (int i = 0; i < m_edges.GetSize(); i++)
+   for (int i = 0; i < m_edges.size(); i++)
       {
       SNEdge* edge = m_edges[i];
       if (edge->m_pFromNode->IsInterior())
-         out.Add(edge);
+         out.push_back(edge);
       }
    }
 
-void SNLayer::GetInteriorEdges(bool active, CArray< SNEdge*, SNEdge* >& out) //get active/inactive edges
+void SNLayer::GetInteriorEdges(bool active, std::vector< SNEdge* >& out) //get active/inactive edges
    {
-   for (int i = 0; i < m_edges.GetSize(); i++)
+   for (int i = 0; i < m_edges.size(); i++)
       {
       SNEdge* edge = m_edges[i];
       if (edge->m_pFromNode->m_nodeType == NT_NETWORK_ACTOR && edge->m_pToNode->m_nodeType == NT_NETWORK_ACTOR && edge->m_state == STATE_ACTIVE)
          {
-         out.Add(edge);
+         out.push_back(edge);
          }
       else if (edge->m_pFromNode->m_nodeType == NT_NETWORK_ACTOR && edge->m_pToNode->m_nodeType == NT_NETWORK_ACTOR && edge->m_state == STATE_ACTIVE)
          {
-         out.Add(edge);
+         out.push_back(edge);
          }
       }
    }
 
-void SNLayer::GetOutputEdges(bool active, CArray< SNEdge*, SNEdge* >& out) //get active edges from orgs to actor groups
+void SNLayer::GetOutputEdges(bool active, std::vector< SNEdge* >& out) //get active edges from orgs to actor groups
    {
-   for (int i = 0; i < m_edges.GetSize(); i++)
+   for (int i = 0; i < m_edges.size(); i++)
       {
       SNEdge* edge = m_edges[i];
       if (edge->m_pToNode->IsLandscapeActor() && edge->IsActive())
-         out.Add(edge);
+         out.push_back(edge);
       }
    }
 
 
 double SNLayer::SNDensity()//number of edges/max possible number of edges
    {
-   CArray< SNNode*, SNNode* > interiorNodes;
+   std::vector< SNNode* > interiorNodes;
    GetInteriorNodes(interiorNodes);
-   CArray < SNEdge*, SNEdge* > interiorEdges;
+   std::vector< SNEdge*> interiorEdges;
    GetInteriorEdges(interiorEdges);
    double ret = -1;
 
-   int nodeCount = (int)interiorNodes.GetSize();
+   int nodeCount = (int)interiorNodes.size();
    if (nodeCount > 1)
       {
       double max_edges = (nodeCount) * (nodeCount - 1);
-      ret = ((double)interiorEdges.GetSize()) / max_edges;
+      ret = ((double)interiorEdges.size()) / max_edges;
       }
    return ret;
    }
@@ -3188,15 +3211,15 @@ double SNLayer::SNDensity()//number of edges/max possible number of edges
 double SNLayer::SNWeight_Density() //sum of weights/max possible sum of weights
    {
    double ret = -1;
-   CArray< SNNode*, SNNode* > interiorNodes;
+   std::vector<SNNode* > interiorNodes;
    GetInteriorNodes(interiorNodes);
-   CArray < SNEdge*, SNEdge* > interiorEdges;
+   std::vector< SNEdge* > interiorEdges;
    GetInteriorEdges(interiorEdges);
-   int nodeCount = (int)interiorNodes.GetSize();
+   int nodeCount = (int)interiorNodes.size();
    if (nodeCount > 1)
       {
       float sum_weights = 0;
-      for (int i = 0; i < interiorEdges.GetSize(); i++)
+      for (int i = 0; i < interiorEdges.size(); i++)
          {
          SNNode* pNode = interiorEdges[i]->m_pFromNode;
          ////sum_weights += interiorEdges[i]->m_weight;
@@ -3214,7 +3237,7 @@ bool SNLayer::SetInCountTable()//in degree for each organization
    m_inCountTable.clear();
    CArray < SNEdge*, SNEdge* > interiorEdges;
    GetInteriorEdges(interiorEdges);
-   for (int i = 0; i < interiorEdges.GetSize(); i++)
+   for (int i = 0; i < interiorEdges.size(); i++)
    {
       SNEdge *pEdge = interiorEdges[i];
       if (m_inCountTable.find(pEdge->m_pToNode->m_name) == m_inCountTable.end())
@@ -3231,7 +3254,7 @@ bool SNLayer::SetOutCountTable()//out degree for each organization
    m_outCountTable.clear();
    CArray < SNEdge*, SNEdge* > interiorEdges;
    GetInteriorEdges(interiorEdges);
-   for (int i = 0; i < interiorEdges.GetSize(); i++)
+   for (int i = 0; i < interiorEdges.size(); i++)
    {
       SNEdge *pEdge = interiorEdges[i];
       if (m_outCountTable.find(pEdge->m_pFromNode->m_name) == m_outCountTable.end())
@@ -3336,7 +3359,7 @@ bool SNLayer::GetDegreeCentrality()
 
    CArray< SNNode*, SNNode* > interiorNodes;
    GetInteriorNodes(interiorNodes);
-   for (int i = 0; i < interiorNodes.GetSize(); i++)
+   for (int i = 0; i < interiorNodes.size(); i++)
    {
       int count = 0;
       count += m_inCountTable[interiorNodes[i]->m_name];
@@ -3345,14 +3368,14 @@ bool SNLayer::GetDegreeCentrality()
    }
    m_degreeCentrality = max;
    int diffs = 0;
-   for (int i = 0; i < interiorNodes.GetSize(); i++)
+   for (int i = 0; i < interiorNodes.size(); i++)
    {//degree centrality is the sum of the differences between the greatest node degree and the rest of the nodes degrees divided by the theoretical maximum = (N-1)*(N-2) = star network.
       int count = max;
       count -=  m_inCountTable[interiorNodes[i]->m_name];
       count -= m_outCountTable[interiorNodes[i]->m_name];
       diffs += count;
    }
-   m_degreeCentrality = (double) diffs / ((double)(interiorNodes.GetSize()-1) * (interiorNodes.GetSize() - 2));
+   m_degreeCentrality = (double) diffs / ((double)(interiorNodes.size()-1) * (interiorNodes.size() - 2));
    return false;
 }
 */
@@ -3365,7 +3388,7 @@ bool SNLayer::GetDegreeCentrality()
 bool SNLayer::SetTrustTable()
 {
    m_trustTable.clear();
-   for (int i = 0; i < m_edges.GetSize(); i++)
+   for (int i = 0; i < m_edges.size(); i++)
    {
       SNEdge *pEdge = m_edges[i];
       if (m_trustTable.find(pEdge->m_pToNode->m_name) == m_trustTable.end())
@@ -3417,7 +3440,7 @@ void SNLayer::ShuffleNodes(SNNode** nodeArray, int nodeCount)
 SNIP::SNIP(SNIP& sn)
    : m_layerArray(sn.m_layerArray)
    {
-   for (int i = 0; i < (int)m_layerArray.GetSize(); i++)
+   for (int i = 0; i < (int)m_layerArray.size(); i++)
       m_layerArray[i]->m_pSNIP = this;
    }
 
@@ -3479,7 +3502,7 @@ bool SNIP::Run(EnvContext* pEnvContext)
                pIDULayer->GetData(pNode->m_idu, pLayer->m_pSNIPModel->m_colAdapt, adapt);
 
                // apply to each edge
-               for (int k = 0; k < pNode->m_inEdges.GetSize(); k++)
+               for (int k = 0; k < pNode->m_inEdges.size(); k++)
                   pNode->m_inEdges[k]->m_trust *= adapt;
                }
             }
@@ -3639,7 +3662,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
 bool SNIP::RemoveLayer(LPCTSTR name)
    {
-   for (INT_PTR i = 0; i < this->m_layerArray.GetSize(); i++)
+   for (int i = 0; i < (int) this->m_layerArray.size(); i++)
       {
       ////if ( m_layerArray[ i ]->m_name.CompareNoCase( name ) == 0 )
       ////   {

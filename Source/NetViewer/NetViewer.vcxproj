@@ -93,7 +93,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\Plugins\SNIP;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -119,7 +119,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\Plugins\SNIP;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -145,7 +145,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>WIN32;_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\Plugins\SNIP;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -173,7 +173,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_WINDOWS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\EnvLibs;..\EnvWinLibs;..\EnvEngine;..\Plugins\SNIP;</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpplatest</LanguageStandard>
     </ClCompile>
     <Link>
@@ -197,6 +197,7 @@
   <ItemGroup>
     <ClInclude Include="ChildView.h" />
     <ClInclude Include="framework.h" />
+    <ClInclude Include="InfoBar.h" />
     <ClInclude Include="MainFrm.h" />
     <ClInclude Include="NetForm.h" />
     <ClInclude Include="NetView.h" />
@@ -206,7 +207,9 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="..\Plugins\SNIP\SNIP.cpp" />
     <ClCompile Include="ChildView.cpp" />
+    <ClCompile Include="InfoBar.cpp" />
     <ClCompile Include="MainFrm.cpp" />
     <ClCompile Include="NetForm.cpp" />
     <ClCompile Include="NetView.cpp" />

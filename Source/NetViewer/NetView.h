@@ -8,20 +8,30 @@
 #include <COLORS.HPP>
 #include <Vdata.h>
 
+#include <snip.h>
+
 class NetForm;
 class Node;
 
 enum NE_TYPE { NE_NODE, NE_EDGE };
 
-
+// node types
+//enum NV_NODETYPE
+//	{
+//	NT_UNKNOWN = 0,
+//	NT_INPUT_SIGNAL = 1,
+//	NT_NETWORK_ACTOR = 2,
+//	NT_ASSESSOR = 3,
+//	NT_ENGAGER = 4,
+//	NT_LANDSCAPE_ACTOR = 5
+//	};
 
 class NetElement
 	{
 	public:
-		std::string id;
-		std::string label;
 		std::string displayLabel;
 		int index = 0;
+		bool show = true;
 		RGBA color;
 
 		std::vector<VData> attrs;
@@ -34,15 +44,13 @@ class NetElement
 class Edge : public NetElement
 	{
 	public:
-		virtual NE_TYPE GetType() { return NE_EDGE; }
-		int thickness = 1;
-
-		float trust = 0;
-		float influence = 0;
-		float signalStrength = 0;
+		SNEdge* pSNEdge = nullptr;
 
 		Node* pFromNode = nullptr;
 		Node* pToNode = nullptr;
+
+		virtual NE_TYPE GetType() { return NE_EDGE; }
+		int thickness = 1;
 
 		static std::vector<std::string> attrIDs;
 		static std::vector<std::string> attrLabels;
@@ -53,20 +61,16 @@ class Edge : public NetElement
 class Node : public NetElement
 	{
 	public:
+		SNNode* pSNNode = nullptr;
+
 		virtual NE_TYPE GetType() { return NE_NODE; }
 
-		std::string id;
-		int nodeSize=1;	// logical coords
+		int nodeSize = 1;	// logical coords
+		int x = 0;
+		int y = 0;
 
 		std::vector<Edge*> inEdges;
 		std::vector<Edge*> outEdges;
-
-
-		int x=0;
-		int y=0;
-
-		float reactivity;
-		float influence;
 
 		static std::vector<std::string> attrIDs;
 		static std::vector<std::string> attrLabels;
@@ -84,7 +88,6 @@ class Node : public NetElement
 	};
 
 
-
 enum DRAW_FLAG { DF_NORMAL, DF_GRAYED, DF_NEIGHBORHOODS, DF_SHORTESTROUTE };
 enum DRAW_MODE { DM_SELECT, DM_SELECTRECT, DM_PANNING, DM_ZOOMING};
 
@@ -98,12 +101,19 @@ enum EDGELABEL { EL_LABEL, EL_TRUST, EL_SIGNALSTRENGTH, EL_INFLUENCE };
 class NetView :public CWnd
     {
 	 public:
+		 SNIPModel* m_pSNIPModel = nullptr;
+		 SNLayer * m_pSNLayer = nullptr;
+
+	 public:
 		 ~NetView()
 			 {
+			 if (m_pSNIPModel != nullptr)
+				 delete m_pSNIPModel;
+
 			 for (Node* node : nodes)
-				 delete node;
+			 	 delete node;
 			 for (Edge* edge : edges)
-				 delete edge;
+			 	 delete edge;
 			 }
 
 		NetForm* netForm;
@@ -125,6 +135,13 @@ class NetView :public CWnd
 		int edgeType = 0;  // 1=beziers;
 		int maxDegree = 0;
 
+		int nodeCount = 0;
+		int nodeCountIS = 0;
+		int nodeCountASS = 0;
+		int nodeCountNA = 0;
+		int nodeCountENG = 0;
+		int nodeCountLA = 0;
+
 		NODESIZE nodeSizeFlag   = NS_REACTIVITY;
 		NODECOLOR nodeColorFlag = NC_INFLUENCE;
 		NODELABEL nodeLabelFlag = NL_LABEL;
@@ -132,13 +149,17 @@ class NetView :public CWnd
 		EDGECOLOR edgeColorFlag = EC_SIGNALSTRENGTH;
 		EDGELABEL edgeLabelFlag = EL_LABEL;
 
-		bool LoadNetwork(LPCTSTR path);
+		bool AttachSNIPModel(SNIPModel* pModel);
+
+		bool LoadNetwork(LPCTSTR path); // deprecated
 		Node* FindNode(std::string& id)
 			{
 			for (Node* node : nodes)
-				{ if (node->id == id) return node; }
+				{ if (node->pSNNode->m_id == id) return node; }
 			return nullptr;
 			}
+
+		void GetNetworkStats(std::string &);
 
 		void SetDrawMode(DRAW_MODE m);
 		bool GetAnchorPoints(CPoint start, CPoint end, float alpha, float frac, CPoint& anchor0, CPoint& anchor1);
@@ -147,6 +168,7 @@ class NetView :public CWnd
 
 		NetElement *HitTest(UINT, CPoint );
 		void SetHoverText(LPCTSTR msg, CPoint pos);
+		int SampleNodes(SNIP_NODETYPE nodeType, int count);
 
 	 protected:
 		 //void InitPaint(Graphics &graphics);

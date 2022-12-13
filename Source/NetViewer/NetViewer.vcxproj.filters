@@ -42,6 +42,9 @@
     <ClInclude Include="NetForm.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="InfoBar.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="NetViewer.cpp">
@@ -60,6 +63,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="NetForm.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="InfoBar.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Plugins\SNIP\SNIP.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

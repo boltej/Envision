@@ -16,6 +16,8 @@
 #pragma once
 #include "NetForm.h"
 #include "NetView.h"
+#include "InfoBar.h"
+
 
 // CChildView window
 
@@ -29,6 +31,7 @@ public:
 public:
 	NetForm netForm;
 	NetView netView;
+	InfoBar infoBar;
 
 // Operations
 public:

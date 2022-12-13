@@ -10,6 +10,59 @@
 #include <COLORS.HPP>
 
 
+
+
+inline
+RGBA WRColorRamp(float vmin, float vmax, float m) //, unsigned char& r, unsigned char& g, unsigned char& b)
+   {
+   const int ncolors_WR = 27;
+   int WR_ColorRamp[ncolors_WR][3] = {
+      { 250, 250, 250 }, // #FAFAFA
+      { 249, 240, 240 }, // #F9F0F0
+      { 248, 230, 230 }, // #F8E6E6
+      { 247, 221, 221 }, // #F7DDDD
+      { 246, 211, 211 }, // #F6D3D3
+      { 246, 201, 201 }, // #F6C9C9
+      { 245, 192, 192 }, // #F5C0C0
+      { 244, 182, 182 }, // #F4B6B6
+      { 243, 173, 173 }, // #F3ADAD
+      { 243, 163, 163 }, // #F3A3A3
+      { 242, 153, 153 }, // #F29999
+      { 241, 144, 144 }, // #F19090
+      { 240, 134, 134 }, // #F08686
+      { 240, 125, 125 }, // #F07D7D
+      { 239, 115, 115 }, // #EF7373
+      { 238, 105, 105 }, // #EE6969
+      { 237, 96, 96 }, // #ED6060
+      { 236, 86, 86 }, // #EC5656
+      { 236, 76, 76 }, // #EC4C4C
+      { 235, 67, 67 }, // #EB4343
+      { 234, 57, 57 }, // #EA3939
+      { 233, 48, 48 }, // #E93030
+      { 233, 38, 38 }, // #E92626
+      { 232, 28, 28 }, // #E81C1C
+      { 231, 19, 19 }, // #E71313
+      { 230, 9, 9 },   //#E60909
+      { 230, 0, 0 } };  //#E60000
+
+   int index = int(ncolors_WR * (m - vmin) / (vmax - vmin));
+   if (index >= ncolors_WR)
+      index = ncolors_WR - 1;
+
+   int r = WR_ColorRamp[index][0];
+   int g = WR_ColorRamp[index][1];
+   int b = WR_ColorRamp[index][2];
+
+   return RGBA(r, g, b, 1);
+   }
+
+
+
+
+
+
+
+
 inline
 RGBA RColorRamp(float vmin, float vmax, float m ) //, unsigned char& r, unsigned char& g, unsigned char& b)
    {

@@ -86,6 +86,10 @@ void CChildView::OnFileOpen()
 		netForm.SetNetworkName(netView.name);
 		netForm.SetNetworkDescription(netView.desc);
 
+		std::string stats;
+		netView.GetNetworkStats(stats);
+		netForm.SetNetworkStats(stats);
+
 		//TRACKMOUSEEVENT e{};
 		//e.dwFlags = TME_HOVER;
 		//e.hwndTrack = netView.GetSafeHwnd();
@@ -107,12 +111,18 @@ int CChildView::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 	CRect formRect(rect);
 	formRect.right = panelWidth;
+
 	CRect viewRect(rect);
 	viewRect.left = panelWidth;
+	viewRect.top = infoBarHeight+1;
+
+	CRect infoRect(rect);
+	infoRect.bottom = infoBarHeight;
 
 
 	netForm.Create(NULL, "NetForm", WS_CHILD | WS_VISIBLE, formRect, this, 100);
 	netView.Create(NULL, "NetView", WS_CHILD | WS_VISIBLE | WS_BORDER, viewRect, this, 101);
+	infoBar.Create(NULL, "InfoBar", WS_CHILD | WS_VISIBLE | WS_BORDER, infoRect, this, 102);
 
 	netView.netForm = &netForm;
 	
@@ -125,5 +135,6 @@ void CChildView::OnSize(UINT nType, int cx, int cy)
 	CWnd::OnSize(nType, cx, cy);
 
 	netForm.MoveWindow(0, 0, panelWidth, cy, TRUE);
-	netView.MoveWindow(panelWidth, 0, cx - panelWidth, cy, TRUE);
+	netView.MoveWindow(panelWidth+1, infoBarHeight+1, cx - panelWidth, cy-infoBarHeight-1, TRUE);
+	infoBar.MoveWindow(panelWidth + 1, 0, cx - panelWidth, infoBarHeight, TRUE);
 	}

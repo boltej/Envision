@@ -18,17 +18,21 @@
 
 extern CMainFrame* gpMainFrame;
 
+const int MAX_NODE_SIZE = 20;  // radius, logical coords
+const int MIN_NODE_SIZE = 3;
+const float MAX_EDGE_WIDTH = 30;  // 
+const float MIN_EDGE_WIDTH = 0.5f;
 
-std::vector<std::string>   Node::attrIDs;
-std::vector<std::string>   Node::attrLabels;
-std::vector<std::string>   Node::attrTypes;
-std::map<std::string, int> Node::attrMap;
-
-
-std::vector<std::string>   Edge::attrIDs;
-std::vector<std::string>   Edge::attrLabels;
-std::vector<std::string>   Edge::attrTypes;
-std::map<std::string, int> Edge::attrMap;
+//std::vector<std::string>   Node::attrIDs;
+//std::vector<std::string>   Node::attrLabels;
+//std::vector<std::string>   Node::attrTypes;
+//std::map<std::string, int> Node::attrMap;
+//
+//
+//std::vector<std::string>   Edge::attrIDs;
+//std::vector<std::string>   Edge::attrLabels;
+//std::vector<std::string>   Edge::attrTypes;
+//std::map<std::string, int> Edge::attrMap;
 
 
 BEGIN_MESSAGE_MAP(NetView, CWnd)
@@ -70,18 +74,38 @@ void NetView::OnPaint()
 
    CPaintDC dc(this); // device context for painting
 
+   /*
+   const int barSize = 1000;
+   const CRect barRect(10, 10, 40, 10 + barSize);
+   CPen pen(PS_SOLID, 1, BLACK);
+   CPen* pOldPen = dc.SelectObject(&pen);
+   dc.Rectangle(barRect);
+
+   for (int i = 1; i < barSize-1; i++)
+      {
+      RGBA color = ::RColorRamp(0, barSize, i);
+      COLORREF _color = RGB(color.r, color.g, color.b);
+      pen.DeleteObject();
+      pen.CreatePen(PS_SOLID, 1, _color);
+      dc.SelectObject(&pen);
+      dc.MoveTo(11, 10 + i);
+      dc.LineTo(39, 10 + i);
+      }
+
+    dc.SelectObject(pOldPen);
+    pen.DeleteObject(); */
 
    ////// test /////////////////////
-   CPoint p0(200,600);
-   CPoint p1(300,100);  // horizontal
-   CPoint p2(200,150);  // horizontal
-   CPoint a0, a1;
-   GetAnchorPoints(p1, p0, PI /8, .2f, a0, a1);
-   
-   DrawPoint(dc, p0, 4, 1);
-   DrawPoint(dc, p1, 4, 1);
-   DrawPoint(dc, a0, 2, 1);
-   DrawPoint(dc, a1, 2, 1);
+   /////CPoint p0(200,600);
+   /////CPoint p1(300,100);  // horizontal
+   /////CPoint p2(200,150);  // horizontal
+   /////CPoint a0, a1;
+   /////GetAnchorPoints(p1, p0, PI /8, .2f, a0, a1);
+   /////
+   /////DrawPoint(dc, p0, 4, 1);
+   /////DrawPoint(dc, p1, 4, 1);
+   /////DrawPoint(dc, a0, 2, 1);
+   /////DrawPoint(dc, a1, 2, 1);
    
    //GetAnchorPoints(p2, p0, PI / 8, .2f, a0, a1);
    //DrawPoint(dc, p0, 4, 1);
@@ -89,11 +113,11 @@ void NetView::OnPaint()
    //DrawPoint(dc, a0, 2, 1);
    //DrawPoint(dc, a1, 2, 1);
    
-   dc.TextOut(p0.x, p0.y, CString("p0"));
-   dc.TextOut(p1.x, p1.y, CString("p1"));
+   //dc.TextOut(p0.x, p0.y, CString("p0"));
+   //dc.TextOut(p1.x, p1.y, CString("p1"));
    //dc.TextOut(p2.x, p2.y, CString("p2"));
 
-   //DrawNetwork(dc,true,DF_NORMAL);
+   DrawNetwork(dc,true,DF_NORMAL);
 
    //clock_t finish = clock();
    //float duration = (float)(finish - startTime) / CLOCKS_PER_SEC;
@@ -169,8 +193,11 @@ void NetView::DrawNetwork(CDC& dc, bool drawBkgr, DRAW_FLAG drawFlag)
    CPoint start;
    CPoint end;
    int i = 0;
-   for (Edge* edge : edges)
+   for (Edge* edge : this->edges)
       {
+      if (edge->show == false)
+         continue;
+
       if ( drawFlag != DF_GRAYED ) //&& (i == 0
          //|| (edges[i - 1]->color.a != edge->color.a) || (edges[i - 1]->color.r != edge->color.r) || (edges[i - 1]->color.g != edge->color.g) || (edges[i - 1]->color.b != edge->color.b)
          //|| edge->thickness != edges[i-1]->thickness || edge->selected != edges[i-1]->selected))
@@ -193,8 +220,8 @@ void NetView::DrawNetwork(CDC& dc, bool drawBkgr, DRAW_FLAG drawFlag)
                continue;
                }
             }
-         else if (drawFlag == DF_SHORTESTROUTE)
-            ;
+         //else if (drawFlag == DF_SHORTESTROUTE)
+         //   ;
 
          dc.SelectObject(pOldPen);
          pen.DeleteObject();
@@ -230,19 +257,28 @@ void NetView::DrawNetwork(CDC& dc, bool drawBkgr, DRAW_FLAG drawFlag)
          {
          int x = (start.x + end.x) / 2;
          int y = (start.y + end.y) / 2;
-         dc.TextOut(x, y, CString(edge->label.c_str()));
+         dc.TextOut(x, y, CString(edge->displayLabel.c_str()));
          }
       i++;
       }
 
    // then nodes:
    i = 0;
+   int lastNode = 0;
 
    for (Node* node : nodes)
       {
-      if (i == 0
-         || (nodes[i - 1]->color.a != node->color.a) || (nodes[i - 1]->color.r != node->color.r) || (nodes[i - 1]->color.g != node->color.g) || (nodes[i - 1]->color.b != node->color.b)
-         || node->reactivity != nodes[i-1]->reactivity || node->selected != nodes[i-1]->selected)
+      i++;
+      if (node->show == false)
+         continue;
+
+      if (i == 1
+         || (nodes[lastNode]->color.a != node->color.a) 
+         || (nodes[lastNode]->color.r != node->color.r) 
+         || (nodes[lastNode]->color.g != node->color.g)
+         || (nodes[lastNode]->color.b != node->color.b)
+         //|| node->reactivity != nodes[i-1]->reactivity 
+         || node->selected != nodes[i-1]->selected)
          {
          dc.SelectObject(pOldPen);
          dc.SelectObject(pOldBrush);
@@ -279,8 +315,8 @@ void NetView::DrawNetwork(CDC& dc, bool drawBkgr, DRAW_FLAG drawFlag)
             if ( ! neighbor)
                penColor = fillColor = GRAY;
             }
-         else if (drawFlag == DF_SHORTESTROUTE)
-            ;
+         //else if (drawFlag == DF_SHORTESTROUTE)
+         //   ;
          pen.DeleteObject();
          pen.CreatePen(PS_SOLID, 1, penColor);
 
@@ -292,29 +328,28 @@ void NetView::DrawNetwork(CDC& dc, bool drawBkgr, DRAW_FLAG drawFlag)
 
       CPoint pos(node->x, node->y);
 
-      const int NODESIZE_MAX = 24; // radius, pxs
-      int nodeSize = 3;
-
-      switch (nodeSizeFlag)
-         {
-         case NS_INFLUENCE:   nodeSize += int(NODESIZE_MAX * node->influence);  break;
-         case NS_REACTIVITY:  nodeSize += int(NODESIZE_MAX * node->reactivity); break;
-         case NS_CONNECTIONS: nodeSize += int(NODESIZE_MAX * node->degree/this->maxDegree);  break;
-         }
-      
-      if (nodeSize > NODESIZE_MAX+3)
-         nodeSize = NODESIZE_MAX+3;
+      //const int NODESIZE_MAX = 24; // radius, pxs
+      //int nodeSize = 3;
+      //
+      //switch (nodeSizeFlag)
+      //   {
+      //   case NS_INFLUENCE:   nodeSize += int(NODESIZE_MAX * node->influence);  break;
+      //   case NS_REACTIVITY:  nodeSize += int(NODESIZE_MAX * node->reactivity); break;
+      //   case NS_CONNECTIONS: nodeSize += int(NODESIZE_MAX * node->degree/this->maxDegree);  break;
+      //   }
+      //
+      //if (nodeSize > NODESIZE_MAX+3)
+      //   nodeSize = NODESIZE_MAX+3;
 
       // logical coords
-      DrawPoint(dc, pos, nodeSize, aspect);
-      //dc.Ellipse(pos.x - int(nodeSize/aspect), pos.y-nodeSize, pos.x + int(nodeSize/aspect), pos.y + nodeSize);
+      DrawPoint(dc, pos, node->nodeSize, aspect);
 
       if (this->showNodeLabels)
          {
          //CString out;
          //out.Format("%s, (%i,%i)(dc)", node->label.c_str(), pos.x, pos.y);
          //dc.TextOut(pos.x, pos.y - nodeSize, out);   // logical coords
-         dc.TextOut(pos.x, pos.y - nodeSize, CString(node->label.c_str()));
+         dc.TextOut(pos.x, pos.y - node->nodeSize, CString(node->displayLabel.c_str()));
          }
      
       dc.LPtoDP(&pos);
@@ -323,11 +358,11 @@ void NetView::DrawNetwork(CDC& dc, bool drawBkgr, DRAW_FLAG drawFlag)
 
       // determeine node radius in device coords
       CPoint pt0(0, 0);
-      CPoint pt1(nodeSize, 0);
+      CPoint pt1(node->nodeSize, 0);
       dc.LPtoDP(&pt0);
       dc.LPtoDP(&pt1);
       node->nodeSizeDC = pt1.x - pt0.x;
-      i++;
+      lastNode = i-1;
       }
 
    dc.SelectObject(pOldPen);
@@ -554,13 +589,13 @@ void NetView::OnLButtonUp(UINT nFlags, CPoint point)
                   {
                   Edge* pEdge = (Edge*)pElem;
                   this->netForm->AddEdgePropertyPage(pEdge);
-                  msg.Format("%s: SS=%.2f, T=%.2f, I=%.2f", pEdge->label.c_str(), pEdge->signalStrength, pEdge->trust, pEdge->influence); // point.x, point.y);
+                  msg.Format("%s: SS=%.2f, T=%.2f, I=%.2f", (LPCTSTR)pEdge->pSNEdge->m_name, pEdge->pSNEdge->m_signalStrength, pEdge->pSNEdge->m_trust, pEdge->pSNEdge->m_influence); // point.x, point.y);
                   gpMainFrame->SetStatusMsg(msg);
                   }
                else
                   {
                   Node* pNode = (Node*)pElem;
-                  msg.Format("%s: R=%.2f, I=%.2f", pNode->label.c_str(), pNode->reactivity, pNode->influence); // point.x, point.y);
+                  msg.Format("%s: R=%.2f, I=%.2f", (LPCTSTR) pNode->pSNNode->m_name, pNode->pSNNode->m_reactivity, pNode->pSNNode->m_influence); // point.x, point.y);
                   gpMainFrame->SetStatusMsg(msg);
 
                   this->netForm->AddNodePropertyPage(pNode);
@@ -816,9 +851,12 @@ void NetView::ClearSelection()
    }
 
 
-
+/*
 bool NetView::LoadNetwork(LPCTSTR path)
    {
+   this->m_pSNLayer = new SNLayer(NULL);
+   this->m_pSNIPModel = this->m_pSNLayer->m_pSNIPModel;
+
    // search for file along path
 
    TiXmlDocument doc;
@@ -844,6 +882,8 @@ bool NetView::LoadNetwork(LPCTSTR path)
    TiXmlElement* pXmlGraph = pXmlRoot->FirstChildElement("graph");
 
    TiXmlElement* pXmlAttributes = pXmlGraph->FirstChildElement("attributes");
+
+   // node attributes
    TiXmlElement* pXmlAttr = pXmlAttributes->FirstChildElement("attribute");
    while (pXmlAttr != NULL)
       {
@@ -865,7 +905,7 @@ bool NetView::LoadNetwork(LPCTSTR path)
       pXmlAttr = pXmlAttr->NextSiblingElement("attribute");
       }
 
-
+   // edge attributes
    pXmlAttributes = pXmlAttributes->NextSiblingElement("attributes");
    pXmlAttr = pXmlAttributes->FirstChildElement("attribute");
    while (pXmlAttr != NULL)
@@ -904,6 +944,16 @@ bool NetView::LoadNetwork(LPCTSTR path)
          return false;
 
       Node* pNode = new Node;
+      m_pSNLayer->
+         SNNode* pNode = this->BuildNode(nodeType, nname.c_str(), _traits);
+
+      // if input node, set its reactivity
+      if (pNode->IsInputSignal())
+         {
+         this->m_pInputNode = pNode;
+         //pNode->m_reactivity = this->GetInputLevel(0);
+         }
+
       pNode->id = id;
       pNode->label = label;
       pNode->displayLabel = label;
@@ -943,17 +993,34 @@ bool NetView::LoadNetwork(LPCTSTR path)
       pXmlVizPosition->Attribute("y", &y);
       //pXmlVizPosition->Attribute("z", &z);
 
+      int tIndex = Node::attrMap["type"];
       int rIndex = Node::attrMap["reactivity"];
       int iIndex = Node::attrMap["influence"];
 
-      pNode->attrs[rIndex].GetAsFloat(pNode->reactivity);
-      pNode->attrs[iIndex].GetAsFloat(pNode->influence);
+      pNode->attrs[rIndex].GetAsFloat(pNode->pSNNode->m_reactivity);
+      pNode->attrs[iIndex].GetAsFloat(pNode->pSNNode->m_influence);
 
-      pNode->color.r = (char)r;
-      pNode->color.g = (char)g;
-      pNode->color.b = (char)b;
-      pNode->color.a = (char)(int)(a * 255);
+      std::string nodeType = pNode->attrs[tIndex].GetAsString();
+      if (nodeType == "Assessor")
+         { pNode->pSNNode->m_nodeType = NT_ASSESSOR; nodeCountASS++; }
+      else if (nodeType == "Engager") 
+         { pNode->pSNNode->m_nodeType = NT_ENGAGER; nodeCountENG++; }
+      else if (nodeType == "Input") 
+         { pNode->pSNNode->m_nodeType = NT_INPUT_SIGNAL; nodeCountIS++; }
+      else if (nodeType == "Network Actor") 
+         {pNode->pSNNode->m_nodeType = NT_NETWORK_ACTOR; nodeCountNA++; }
+      else if (nodeType == "Landscape Actor") 
+         { pNode->pSNNode->m_nodeType = NT_LANDSCAPE_ACTOR; nodeCountLA++; }
 
+      nodeCount++;
+
+      // by default, nodes are sized by reactivity, colored by Influence
+      pNode->color = ::WRColorRamp(0, 1, pNode->pSNNode->m_influence);
+      //pNode->color.r = (char)r;
+      //pNode->color.g = (char)g;
+      //pNode->color.b = (char)b;
+      //pNode->color.a = (char)(int)(a * 255);
+      pNode->nodeSize = MIN_NODE_SIZE + (pNode->pSNNode->m_reactivity * MAX_NODE_SIZE);
       pNode->x = x;
       pNode->y = y;
 
@@ -1040,11 +1107,12 @@ bool NetView::LoadNetwork(LPCTSTR path)
       pXmlVizColor->Attribute("a", &a);
       pXmlVizThick->Attribute("value", &thickness);
 
-      pEdge->color.r = (char)r;
-      pEdge->color.g = (char)g;
-      pEdge->color.b = (char)b;
-      pEdge->color.a = (char)(int)(a * 255);
-      pEdge->thickness = (int)thickness;
+      pEdge->color = ::WRColorRamp(0, 1, pEdge->signalStrength);
+      //pEdge->color.r = (char)r;
+      //pEdge->color.g = (char)g;
+      //pEdge->color.b = (char)b;
+      //pEdge->color.a = (char)(int)(a * 255);
+      pEdge->thickness = int(0.5f + 5 * pEdge->trust);
 
       int sIndex = Node::attrMap["ss"];
       int tIndex = Node::attrMap["trust"];
@@ -1059,13 +1127,16 @@ bool NetView::LoadNetwork(LPCTSTR path)
       pXmlEdge = pXmlEdge->NextSiblingElement("edge");
       }
 
+
+   SampleNodes(NT_LANDSCAPE_ACTOR, 20);
+
    msg.Format("Loaded %i node, %i edges", nodes.size(), edges.size());
    gpMainFrame->SetStatusMsg(msg);
-
    this->OnZoomfull();
 
    return true;
    }
+  */
 
 void NetView::OnDarkMode()
    {
@@ -1110,8 +1181,6 @@ void NetView::OnPan()
    }
 
 
-const int MAX_NODE_SIZE = 20;  // radius, logical coords
-const int MIN_NODE_SIZE = 3;
 
 void NetView::OnNodeSize()
    {
@@ -1122,11 +1191,13 @@ void NetView::OnNodeSize()
 
    for (Node* node : this->nodes)
       {
-      float nodeSize = MIN_NODE_SIZE + (node->reactivity * MAX_NODE_SIZE);
+      float nodeSize = MIN_NODE_SIZE + (node->pSNNode->m_reactivity * MAX_NODE_SIZE);
+      
       if (this->nodeSizeFlag == NS_CONNECTIONS)
-         nodeSize = MIN_NODE_SIZE + (node->inDegree * MAX_NODE_SIZE / this->maxDegree);
+         nodeSize = float(MIN_NODE_SIZE + (node->inDegree * MAX_NODE_SIZE / this->maxDegree));
+
       else if (this->nodeSizeFlag == NS_INFLUENCE)
-         nodeSize = MIN_NODE_SIZE + (node->influence * MAX_NODE_SIZE);
+         nodeSize = MIN_NODE_SIZE + (node->pSNNode->m_influence * MAX_NODE_SIZE);
 
       node->nodeSize = int(nodeSize);
       }
@@ -1143,13 +1214,13 @@ void NetView::OnNodeColor()
 
    for (Node* node : this->nodes)
       {
-      float _color = node->reactivity;
+      float _color = node->pSNNode->m_reactivity;
       if (this->nodeColorFlag == NC_CONNECTIONS)
-         _color = node->influence;
+         _color = node->degree;
       else if (this->nodeColorFlag == NC_INFLUENCE)
-         _color = node->influence;
+         _color = node->pSNNode->m_influence;
 
-      node->color = ::RColorRamp(0, 1, _color);
+      node->color = ::WRColorRamp(0, 1, _color);
       }
 
    this->Invalidate();
@@ -1166,9 +1237,9 @@ void NetView::OnNodeLabel()
       {
       switch (this->nodeLabelFlag)
          {
-         case NL_LABEL:          node->displayLabel = node->label;      break;
-         case NL_INFLUENCE:      node->displayLabel = std::format("{}", node->influence);      break;
-         case NL_REACTIVITY:     node->displayLabel = std::format("{}", node->reactivity);     break;
+         case NL_LABEL:          node->displayLabel = node->pSNNode->m_name;      break;
+         case NL_INFLUENCE:      node->displayLabel = std::format("{:.2f}", node->pSNNode->m_influence);      break;
+         case NL_REACTIVITY:     node->displayLabel = std::format("{:.2f}", node->pSNNode->m_reactivity);     break;
          }
 
       }
@@ -1184,13 +1255,13 @@ void NetView::OnEdgeSize()
 
    for (Edge* edge : this->edges)
       {
-      float thickness = edge->trust;
+      float thickness = edge->pSNEdge->m_trust;
       if (this->edgeSizeFlag == ES_SIGNALSTRENGTH)
-         thickness = edge->signalStrength;
+         thickness = edge->pSNEdge->m_signalStrength;
       else if (this->edgeSizeFlag == ES_INFLUENCE)
-         thickness = edge->influence;
+         thickness = edge->pSNEdge->m_influence;
 
-      edge->thickness = int(0.5f + 5 * thickness);
+      edge->thickness = int(MIN_EDGE_WIDTH + (MAX_EDGE_WIDTH * thickness));
       }
 
    this->Invalidate();
@@ -1205,13 +1276,13 @@ void NetView::OnEdgeColor()
 
    for (Edge* edge : this->edges)
       {
-      float _color = edge->trust;
+      float _color = edge->pSNEdge->m_trust;
       if (this->edgeColorFlag == EC_SIGNALSTRENGTH)
-         _color = edge->signalStrength;
+         _color = edge->pSNEdge->m_signalStrength;
       else if (this->edgeColorFlag == EC_INFLUENCE)
-         _color = edge->influence;
+         _color = edge->pSNEdge->m_influence;
 
-      edge->color = ::RColorRamp(0, 1, _color); 
+      edge->color = ::WRColorRamp(0, 1, _color); 
       }
 
    this->Invalidate();
@@ -1226,12 +1297,12 @@ void NetView::OnEdgeLabel()
 
    for (Edge* edge : edges)
       {
-      switch (this->nodeLabelFlag)
+      switch (this->edgeLabelFlag)
          {
-         case EL_LABEL:          edge->displayLabel = edge->label;      break;
-         case EL_TRUST:          edge->displayLabel = std::format("{}", edge->trust);              break;
-         case EL_SIGNALSTRENGTH: edge->displayLabel = std::format("{}", edge->signalStrength);     break;
-         case EL_INFLUENCE:      edge->displayLabel = std::format("{}", edge->influence);          break;
+         case EL_LABEL:          edge->displayLabel = edge->pSNEdge->m_name;      break;
+         case EL_TRUST:          edge->displayLabel = std::format("tr:{:.2f}", edge->pSNEdge->m_trust);              break;
+         case EL_SIGNALSTRENGTH: edge->displayLabel = std::format("ss:{:.2f}", edge->pSNEdge->m_signalStrength);     break;
+         case EL_INFLUENCE:      edge->displayLabel = std::format("inf:{:.2f}", edge->pSNEdge->m_influence);          break;
          }
       }
    this->Invalidate();
@@ -1244,12 +1315,12 @@ void NetView::OnShowNeighborhood()
 
    DrawNetwork(*pDC, true, DF_GRAYED);
    DrawNetwork(*pDC, false, DF_NEIGHBORHOODS);
-   for (Node* node : this->nodes)
-      {
-      if (node->selected)
-         { 
-         }
-      }
+   //for (Node* node : this->nodes)
+   //   {
+   //   if (node->selected)
+   //      { 
+   //      }
+   //   }
    }
 
 
@@ -1280,8 +1351,8 @@ void NetView::ComputeEdgeArc(Edge* edge, float alpha)
 
    // compute ellipse params
    float m0 = theta + alpha;
-   float x0 = edge->pFromNode->x;
-   float y0 = edge->pFromNode->y;   // WRONG - assumes ellipse origin=0,0
+   float x0 = (float) edge->pFromNode->x;
+   float y0 = (float) edge->pFromNode->y;   // WRONG - assumes ellipse origin=0,0
    float b = sqrt((x0 * m0 * y0) + (y0 * y0));
    float a = b * sqrt(x0 / (m0 * y0));
 
@@ -1289,4 +1360,158 @@ void NetView::ComputeEdgeArc(Edge* edge, float alpha)
    }
 
 
+void NetView::GetNetworkStats(std::string& str)
+   {
+   int nodeCount = this->nodes.size();
+   int edgeCount = this->edges.size();
+   int maxInDegree = 0, maxOutDegree = 0, maxDegree = 0;
+   float meanNodeReactivity = 0;
+   float meanNodeInfluence = 0;
+   float meanEdgeSignalStrength = 0;
+   float meanEdgeTrust = 0;
+   float networkEfficiency = 0;
+
+   for (Node* node : nodes)
+      {
+      if (node->inDegree > maxInDegree)
+         maxInDegree = node->inDegree;
+
+      if (node->outDegree > maxOutDegree)
+         maxOutDegree = node->outDegree;
+
+      if (node->degree > maxDegree)
+         maxDegree = node->degree;
+
+      meanNodeReactivity += node->pSNNode->m_reactivity;
+      meanNodeInfluence += node->pSNNode->m_influence;
+      }
+
+   meanNodeReactivity /= nodeCount;
+   meanNodeInfluence /= nodeCount;
+
+   for ( Edge* edge : edges)
+      {
+      meanEdgeSignalStrength += edge->pSNEdge->m_signalStrength;
+      meanEdgeTrust += edge->pSNEdge->m_trust;
+      }
+
+   meanEdgeSignalStrength /= edgeCount;
+   meanEdgeTrust /= edgeCount;
+
+   str = std::format("Nodes: {}, Edges: {}\nMax Degrees: In={}, Out={}, Total={}\nMean Node Reactivity: {:.2f}\nMean Node Influence: {:.2f}\nMean Edge Signal Strength: {:.2f}\nMean Edge Trust: {:.2f}\n",
+      nodeCount, edgeCount, maxInDegree, maxOutDegree, maxDegree, meanNodeReactivity, meanNodeInfluence, meanEdgeSignalStrength, meanEdgeTrust);
+
+   return;
+   }
+
+
+
+int NetView::SampleNodes(SNIP_NODETYPE nodeType, int count)
+   {
+   int total = 0;
+   switch (nodeType)
+      {
+      case NT_UNKNOWN:  break;
+      case NT_INPUT_SIGNAL: total = nodeCountIS;   break;
+      case NT_NETWORK_ACTOR: total = nodeCountNA;   break;
+      case NT_ASSESSOR: total = nodeCountASS;   break;
+      case NT_ENGAGER: total = nodeCountENG;   break;
+      case NT_LANDSCAPE_ACTOR: total = nodeCountLA;   break;
+      }
+
+   float frac = float(count) / total;
+
+   int i = 0;
+   float infrac = 1.0f / frac;
+   int inc = int( infrac + 0.1f);
+   int showCount = 0;
+   for (Node* node : nodes)
+      {
+      if (node->pSNNode->m_nodeType == nodeType)
+         {
+         bool show = false;
+         if (i % inc == 0)
+            {
+            show = true;
+            showCount++;
+            }
+
+         node->show = show;
+         for (Edge* edge : node->inEdges)
+            edge->show = show;
+         for (Edge* edge : node->outEdges)
+            edge->show = show;
+
+         i++;
+         }
+      }
+   return showCount;
+   }
+
+
+
+
+
+bool NetView::AttachSNIPModel(SNIPModel* pModel)
+   {
+   m_pSNIPModel = pModel;
+   m_pSNLayer = pModel->m_pSNLayer;
+
+   // build nodes
+   int index = 0;
+   for ( SNNode *pSNNode : m_pSNLayer->m_nodes)
+      {      
+      Node* node = new Node;
+      node->pSNNode = pSNNode;
+      node->displayLabel = pSNNode->m_name;
+      node->index = index++;
+      
+
+      // by default, nodes are sized by reactivity, colored by Influence
+      node->color = ::WRColorRamp(0, 1, pSNNode->m_influence);
+      node->nodeSize = MIN_NODE_SIZE + (pSNNode->m_reactivity * MAX_NODE_SIZE);
+      //node->x = x;
+      //node->y = y;
+      this->nodes.push_back(node);
+      }
+
+   index = 0;
+   for (SNEdge* pSNEdge: m_pSNLayer->m_edges)
+      {
+      Edge* edge = new Edge;
+      edge->index = index++;
+      edge->pSNEdge = pSNEdge;
+      edge->displayLabel = pSNEdge->m_name;
+
+      edge->pFromNode = FindNode(pSNEdge->Source()->m_id);
+      edge->pFromNode->outEdges.push_back(edge);
+     
+      edge->pToNode = FindNode(pSNEdge->Target()->m_id);
+      edge->pToNode->inEdges.push_back(edge);
+
+      edge->pFromNode->degree++;
+      edge->pFromNode->outDegree++;
+      edge->pToNode->degree++;
+      edge->pToNode->inDegree++;
+
+      if (edge->pFromNode->degree > this->maxDegree)
+         maxDegree = edge->pFromNode->degree;
+      if (edge->pToNode->degree > this->maxDegree)
+         maxDegree = edge->pToNode->degree;
+
+      
+      this->edges.push_back(edge);
+      }
+
+   LayoutNetwork();
+
+   SampleNodes(NT_LANDSCAPE_ACTOR, 20);
+
+   CString msg;
+   msg.Format("Loaded %i node, %i edges", nodes.size(), edges.size());
+   gpMainFrame->SetStatusMsg(msg);
+
+   this->OnZoomfull();
+
+   }
 
