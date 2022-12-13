@@ -70,6 +70,6 @@ class ENVAPI EnvLoader
       // Note: valid 'types' are -1=detect from extension, 0=shape, 1=integer grid, 2=float grid
       MapLayer *AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, int records, bool loadFieldInfo, bool expandLegend );
 
-      int AddGDALPath();
+      int AddGDALPath(LPCTSTR envPath);
    };
 

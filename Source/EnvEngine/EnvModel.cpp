@@ -3919,7 +3919,7 @@ void EnvModel::RunModelProcesses( bool isPostYear )
          try
             {
             CString msg;
-            msg.Format("%s running...", (LPCTSTR)pInfo->m_name);
+            msg.Format("%s running (%i)...", (LPCTSTR)pInfo->m_name, m_envContext.currentYear);
             Report::Log(msg);
             Report::indentLevel++;
 

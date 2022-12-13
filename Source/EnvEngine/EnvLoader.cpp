@@ -36,6 +36,8 @@ Copywrite 2012 - Oregon State University
 #include <PathManager.h>
 #include <QueryEngine.h>
 
+#include <direct.h>
+
 
 #ifdef BUILD_ENVISION
 #include "../EnvView.h"
@@ -76,8 +78,6 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    ASSERT( m_pMap      != NULL );
    ASSERT( m_pEnvModel != NULL );
 
-   AddGDALPath();
-
    //???Check
    //Report::errorMsgProc  = NULL; // ErrorReportProc;
    //Report::statusMsgProc = NULL; // StatusMsgProc;
@@ -91,7 +91,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
    // set up default paths.
    // first, ENVISION.EXE executable directory
-   TCHAR _path[ MAX_PATH ];  // e.g. _path = "D:\Envision\src\x64\Debug\Envision.exe"
+   TCHAR _path[ MAX_PATH ] = {0};  // e.g. _path = "D:\Envision\src\x64\Debug\Envision.exe"
    _path[0] = NULL;
    int count = GetModuleFileName( NULL, _path, MAX_PATH );
 
@@ -100,6 +100,9 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
    CPath appPath( _path, epcTrim | epcSlashToBackslash );
    appPath.RemoveFileSpec();           // e.g. c:\Envision - directory for executables
+
+   AddGDALPath(appPath);
+
    PathManager::AddPath( appPath, PM_ENVISION_DIR );
 
    // second, the directory of the envx file
@@ -1897,70 +1900,104 @@ void EnvLoader::InitVisualizers()
    }
 
 
-int EnvLoader::AddGDALPath()
+int EnvLoader::AddGDALPath(LPCTSTR envPath)
    {
+   char cwd[512];
+   if ( _getcwd(cwd, 512) != nullptr)
+      Report::Log_s("Current working directory is %s", cwd);
+
+
    // handle GDAL path
    size_t requiredSize;
    _tgetenv_s(&requiredSize, NULL, 0, "PATH");
 
-   // Get the value of the LIB environment variable.
+   // Get the value of the PATH environment variable.
    TCHAR *path = new TCHAR[requiredSize + 256];
    _tgetenv_s(&requiredSize, path, requiredSize, "PATH");
+
+   Report::Log_s("The current PATH is %s", path);
+
 
    // Attempt to change path. Note that this only affects
    // the environment variable of the current process. The command
    // processor's environment is not changed.
-   if (1) // _tcsstr( path, "GDAL" ) == NULL )    // no GDAL in path?
+   bool isGDALinPath = _tcsstr(path, "GDAL") != nullptr ? true : false;
+   
+   TCHAR exePath[MAX_PATH] = { 0 };  // e.g. _path = "D:\Envision\src\x64\Debug\Envision.exe"
+   exePath[0] = NULL;
+   int count = GetModuleFileName(NULL, exePath, MAX_PATH);  // c:\users\boltej\winapps
+
+   if (count == 0)
+      return -1;
+
+   nsPath::CPath envRootPath(exePath); // eg. d:/Envision/source/x64/Release/envision.exe
+   envRootPath.RemoveFileSpec();       // eg. d:/Envision/source/x64/Release/
+
+
+   // if it contains "WinApp", then this is an app install
+   CString _envRootPath(envRootPath);
+   Report::Log_s("Envision root directory is %s", (LPCTSTR)_envRootPath);
+
+   if (_envRootPath.Find("WindowsApps") >= 0)
       {
-      TCHAR _path[MAX_PATH];  // e.g. _path = "D:\Envision\src\x64\Debug\Envision.exe"
-      _path[0] = NULL;
-      int count = GetModuleFileName(NULL, _path, MAX_PATH);
-
-      if (count == 0)
-         return -1;
-
-      //???Check - does this return Envisionexe or EnvEngine.dll?
-
-
-      for (int i = 0; i < lstrlen(_path); i++)
-         _path[i] = tolower(_path[i]);
-
-      // special cases - contains "Debug" or "Release"? (on a developer machine?)
-      TCHAR *debug = _tcsstr(_path, _T("debug"));
-      TCHAR *release = _tcsstr(_path, _T("release"));
-      TCHAR *end = NULL;
-      if (debug || release)
+      Report::LogInfo("Envision is running as a WinApp");
+      int len = (int)_envRootPath.GetLength();
+      CString envHome = _envRootPath.Left(len - 8);  // leaves backslash
+      if (envHome.CompareNoCase(cwd) == 0)
          {
-         end = _tcsstr(_path, _T("envision"));
-         if (end != NULL)
+         Report::Log_s("Setting current working directory to %s", (LPCTSTR)envHome);
+         _chdir(envHome);
+         }
+      }
+   else if (_envRootPath.Find("Debug") >= 0 || _envRootPath.Find("Release") >= 0)
+      Report::LogInfo("Envision is running as a Desktop Windows Application on a developer machine");
+   else
+      Report::LogInfo("Envision is running as a Desktop Windows Application");
+
+   // set GDAL path if needed
+   if (_tcsstr(path, "GDAL") == NULL)    // no GDAL in path?
+      {
+      CString gdalPath;
+
+      if (_envRootPath.Find("WindowsApps") >= 0)
+         {
+         int len = (int)_envRootPath.GetLength();
+         //gdalPath = _envRootPath.Left(len - 8);  // leaves backslash
+         //gdalPath += "GDAL\\";
+         CString envHome = _envRootPath.Left(len - 8);  // leaves backslash
+         gdalPath = "GDAL\\";
+
+         if (envHome.CompareNoCase(cwd) == 0)
             {
-            end += 8 * sizeof(TCHAR);
-            *end = NULL;
+            Report::Log_s("Setting current working directory to %s", (LPCTSTR) envHome);
+            _chdir(envHome);
             }
+         
+         gdalPath = "GDAL\\";
          }
-
-      else     // installed as an application
+      else if (_envRootPath.Find("Debug") >= 0 || _envRootPath.Find("Release") >= 0) // developer machine?
          {
-         end = _tcsrchr(_path, '\\');
-         if (end == NULL)
-            end = _tcsrchr(_path, '/');
-         if (end != NULL)
-            *end = NULL;
+         int i = _envRootPath.Find("Envision");
+         gdalPath = _envRootPath.Left(i + 9);  // leaves backslash
+         gdalPath += "GDAL\\";
+         }
+      else     // regual desktop
+         {
+         //Report::LogInfo("Envision is running as a Desktop Windows Application");
+         int i = _envRootPath.Find("Envision");
+         gdalPath = _envRootPath.Left(i + 9);  // leaves backslash
          }
 
-      CString gdalPath(_path);
-      CString gdalPluginPath(_path);
-      CString gdalPluginData(_path);
+      Report::Log_s("GDAL folder is %s", (LPCTSTR) gdalPath);
 
 #if defined( _WIN64 )
-      gdalPath += "\\GDAL\\release-1600-x64\\bin";
-      gdalPluginPath += "\\GDAL\\release-1600-x64\\bin\\gdalplugins";
-      gdalPluginData += "\\GDAL\\release-1600-x64\\bin\\gdal-data";
+      gdalPath += "release-1600-x64\\bin";
 #else
-      gdalPath += "\\GDAL\\release-1600-x86\\bin";
-      gdalPluginPath += "\\GDAL\\release-1600-x86\\bin\\gdalplugins";
-      gdalPluginData += "\\GDAL\\release-1600-x86\\bin\\gdal-data";
-#endif      
+      gdalPath += "release-1600-x86\\bin";
+#endif
+      CString gdalPluginPath = gdalPath + "\\gdalplugins";
+      CString gdalPluginData = gdalPath + "\\gdal-data"; 
+
       lstrcat(path, ";");
       lstrcat(path, gdalPath);
 

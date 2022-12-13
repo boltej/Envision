@@ -68,6 +68,7 @@ extern EnvModel        *gpModel;
 BEGIN_MESSAGE_MAP(CLogPane, CDockablePane)
 	ON_WM_CREATE()
 	ON_WM_SIZE()
+   ON_WM_CLOSE()
 END_MESSAGE_MAP()
 
 int CLogPane::OnCreate(LPCREATESTRUCT lpCreateStruct)
@@ -75,71 +76,19 @@ int CLogPane::OnCreate(LPCREATESTRUCT lpCreateStruct)
 	if (CDockablePane::OnCreate(lpCreateStruct) == -1)
 		return -1;
 
-   // ----- Initialize LogBook ---
-   LOGBOOK_INIT_INFOS stInfos;
-   CLogbook::InitInfos(stInfos);
-   stInfos.strDateTimeFormat    = _T( "DD-MM-YYYY hh:mm:ss" );
-   stInfos.bUseThreadManagement = 0;
-   stInfos.bCaptureTRACE        = 0;
-  
-   // ----- INIT FILE INFOS ----- 
-   //LOGBOOK_INIT_FILE_INFOS *pstFileInfos = NULL; 
-   LOGBOOK_INIT_FILE_INFOS *pstFileInfos = new LOGBOOK_INIT_FILE_INFOS;
-   CLogbook::InitInfos( *pstFileInfos );
-   pstFileInfos->bClearFileEachOpen = TRUE;
-   pstFileInfos->bCreateNewFileEachDay = FALSE;
-   pstFileInfos->bReuseSameFile = TRUE;
-   pstFileInfos->nMaxFlushCounter = 0;
-   pstFileInfos->nMaxSize = 0;
+    CRect rect;
+   this->GetClientRect(rect);
+   m_logCtrl.Create(WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER, rect, this, 0x118);
+
+   m_font.CreatePointFont(90, _T("Lucida"));
+
+   m_logCtrl.SetFont(&m_font);
 
    TCHAR exePath[ MAX_PATH ];
-   ::GetModuleFileName( 0, exePath, MAX_PATH );
-
-   TCHAR *slash = _tcsrchr( exePath, '\\' );
-   if ( slash )
-      *slash = NULL;
-   else
-      {
-      slash = _tcsrchr( exePath, '/' );
-      if ( slash )
-         *slash = NULL;
-      }
-
-   _tcscat_s( exePath, MAX_PATH,  "\\log" );
-   nsPath::CPath logPath(exePath);
-   CreateDirectory(logPath, NULL);
-   //m_logbook.AttachFile( exePath);
-   pstFileInfos->strPath = (LPCTSTR) logPath;
- 
-   LOGBOOK_INIT_GUI_INFOS *pstGuiInfos = new LOGBOOK_INIT_GUI_INFOS;
-   CLogbook::InitInfos(*pstGuiInfos);
-   pstGuiInfos->bDrawColumnSeparators = 0;
-   pstGuiInfos->bAddToEndOfList       = 1;
-   pstGuiInfos->nMaxLines             = 2000;
-   pstGuiInfos->bShowFocusRectangle   = 0;
-   pstGuiInfos->bUseDefaultTypeColors = 1;
-   pstGuiInfos->clrList               = RGB( 255, 255, 255 ); //m_CB_ListBackColor.GetSelectedColorValue();
-   pstGuiInfos->bDateTimeBOLD         = 0;
+   GetModuleFileName( 0, exePath, MAX_PATH );
    
-   // ----- INIT LOGBOOK -----
-   int nRet = m_logbook.Initialize(stInfos, pstFileInfos, pstGuiInfos);
-
-   if (pstFileInfos) delete pstFileInfos;
-   if (pstGuiInfos ) delete pstGuiInfos;
-  
-   // ----- SET PERSONAL TYPES -----
-   //theApp.m_pLogbook->SetPersonalType(LOGBOOK_PERSONAL1, "MICKEY MOUSE");
-
-   // ----- SET GUI ICONS -----
-   m_logbook.SetTypeIcon(LOGBOOK_INFO   , IDI_LOGINFO);
-   m_logbook.SetTypeIcon(LOGBOOK_WARNING, IDI_LOGWARNING);
-   m_logbook.SetTypeIcon(LOGBOOK_ERROR  , IDI_LOGERROR);
-
-   // ----- ATTACH FILE -----
-   m_logbook.AttachFile( "Envision_log.txt" );
-   m_hLogbook = m_logbook.AttachGUI( this );
-
-  
+   nsPath::CPath cPath(exePath);
+   cPath.RemoveFileSpec();
  
    SYSTEMTIME tm;
    ::GetSystemTime( &tm );
@@ -151,20 +100,44 @@ int CLogPane::OnCreate(LPCREATESTRUCT lpCreateStruct)
 #else
    target = _T( "(Win32)" );
 #endif
-   msg.Format( _T("ENVISION %s started at %i-%i-%i %i:%i:%i"), target, (int)tm.wMonth, (int)tm.wDay, (int)tm.wYear, (int)tm.wHour, (int)tm.wMinute, (int)tm.wSecond );
-   m_logbook.AddTitleLine( msg );
-   // ----- END CLogbook initialization -----
+   msg.Format( _T("ENVISION %s started at %i/%i/%i %i:%i:%i from %s"), target, (int)tm.wMonth, (int)tm.wDay, (int)tm.wYear, (int)tm.wHour, (int)tm.wMinute, (int)tm.wSecond, (LPCTSTR) cPath );
+   Log(msg);
 
 	return 0;
 }
+
+void CLogPane::OnClose()
+   {
+   // TODO: Add your message handler code here and/or call default
+   this->m_font.DeleteObject();
+
+   CDockablePane::OnClose();
+   }
+
 
 void CLogPane::OnSize(UINT nType, int cx, int cy)
 {
 	CDockablePane::OnSize(nType, cx, cy);
 
-   if ( m_hLogbook )
-      ::MoveWindow( m_hLogbook, 0,0, cx, cy, TRUE );
+   if ( this->GetSafeHwnd() != nullptr)
+      ::MoveWindow( m_logCtrl, 0,0, cx, cy, TRUE );
 }
+
+
+
+void CLogPane::AddLogLine(LPCTSTR msg, LOG_TYPES type, COLORREF color)
+   {
+   CString _msg(msg);
+   _msg.Replace("%", "%%");
+   CString __msg;
+   SYSTEMTIME tm;
+   ::GetSystemTime(&tm);
+   __msg.Format(_T("%i/%i/%i %i:%i:%i: %s"), (int)tm.wMonth, (int)tm.wDay, (int)tm.wYear, (int)tm.wHour, (int)tm.wMinute, (int)tm.wSecond, (LPCTSTR)_msg);
+   Log(__msg);
+   }
+
+
+
 
 // CMainFrame
 

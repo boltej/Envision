@@ -69,7 +69,7 @@ void LogMsgProc( LPCTSTR msg, REPORT_ACTION action, REPORT_TYPE type )
          break;
       }
 
-   gpMain->AddLogLine( msg, (LOGBOOK_TEXTTYPES)type, color );
+   gpMain->AddLogLine( msg, (LOG_TYPES) type, color );
    }
 
 

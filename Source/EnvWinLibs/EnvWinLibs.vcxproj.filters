@@ -16,9 +16,6 @@
     <Filter Include="Header Files\LogBook">
       <UniqueIdentifier>{1cbfdacb-a167-4228-88d4-90314214a862}</UniqueIdentifier>
     </Filter>
-    <Filter Include="Source Files\LogBook">
-      <UniqueIdentifier>{f79160f7-94d9-41f6-939d-ada3dd523c93}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
@@ -285,22 +282,10 @@
     <ClCompile Include="MapToolbar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="Logbook\Logbook.cpp">
-      <Filter>Source Files\LogBook</Filter>
-    </ClCompile>
-    <ClCompile Include="Logbook\LogbookFile.cpp">
-      <Filter>Source Files\LogBook</Filter>
-    </ClCompile>
-    <ClCompile Include="Logbook\LogbookGUI.cpp">
-      <Filter>Source Files\LogBook</Filter>
-    </ClCompile>
-    <ClCompile Include="Logbook\LogbookGUIItem.cpp">
-      <Filter>Source Files\LogBook</Filter>
-    </ClCompile>
-    <ClCompile Include="Logbook\ThreadObject.cpp">
-      <Filter>Source Files\LogBook</Filter>
-    </ClCompile>
     <ClCompile Include="CubicSpline.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="LogWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -663,6 +648,9 @@
       <Filter>Header Files\LogBook</Filter>
     </ClInclude>
     <ClInclude Include="CubicSpline.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="LogWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

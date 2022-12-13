@@ -43,7 +43,12 @@ static PyObject *Redirection_stdoutredirect(PyObject *self, PyObject *args)
    if (!PyArg_ParseTuple(args, "s", &str))
       return NULL;
 
-   Report::Log(str); // , RA_APPEND);
+   // remove newlines from strings
+   std::string _str(str);
+   _str.erase(std::remove(_str.begin(), _str.end(), '\r'), _str.end());
+   _str.erase(std::remove(_str.begin(), _str.end(), '\n'), _str.end());
+   if (_str.size() > 0)
+      Report::Log(_str.c_str()); // , RA_APPEND);
 
    Py_INCREF(Py_None);
    return Py_None;
@@ -221,19 +226,9 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    eqColInfos.Add(new HazDataColInfo{ "DS", -1 });
    eqColInfos.Add(new HazDataColInfo{ "rep_time", -1 });
    eqColInfos.Add(new HazDataColInfo{ "rep_cost",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "habitable",  -1 });
-   //eqColInfos.Add(new HazDataColInfo{ "CasSev1",  -1 });  // casuality severitys
-   //eqColInfos.Add(new HazDataColInfo{ "CasSev2",  -1 });
-   //eqColInfos.Add(new HazDataColInfo{ "CasSev3",  -1 });
-   //eqColInfos.Add(new HazDataColInfo{ "CasSev4",  -1 });
-
-
-   eqColInfos.Add(new HazDataColInfo{ "Cas_Ftly",      -1 });
-   eqColInfos.Add(new HazDataColInfo{ "Cas_Injy",      -1 });
-   eqColInfos.Add(new HazDataColInfo{ "population",    -1 });
-   eqColInfos.Add(new HazDataColInfo{ "ugbName",       -1 });
-   eqColInfos.Add(new HazDataColInfo{ "in_inundation", -1 });
-
+   eqColInfos.Add(new HazDataColInfo{ "habitable", -1 });
+   eqColInfos.Add(new HazDataColInfo{ "Cas_Ftly",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "Cas_Injy",  -1 });
 
    // find the CSV column associated with each statistic type
    for (int i = 0; i < eqColInfos.GetSize(); i++)
@@ -253,10 +248,13 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
 
    // pull out needed columns
    PtrArray<HazDataColInfo> tsuColInfos;
-   tsuColInfos.Add(new HazDataColInfo{ "DS", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "rep_time", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "rep_cost", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "habitable",-1 });
+   tsuColInfos.Add(new HazDataColInfo{ "DS",        -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "rep_time",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "rep_cost",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "habitable", -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "Cas_Ftly",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "Cas_Injy",  -1 });
+
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev1",  -1 });  // casuality severitys
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev2",  -1 });
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev3",  -1 });
@@ -274,8 +272,6 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    ASSERT(idus == m_earthquakeData.GetRowCount());
    ASSERT(idus == m_tsunamiData.GetRowCount());
 
-   //enum HAZARD_METRIC_INDEX { HMI_DS, HMI_REP_TIME, HMI_REP_COST, HMI_HABITABLE, HMI_CASSEV1,
-   //   HMI_CASSEV2, HMI_CASSEV3, HMI_CASSEV4 };
    enum HAZARD_METRIC_INDEX { HMI_DS, HMI_REP_TIME, HMI_REP_COST, HMI_HABITABLE, HMI_CASFTLY, HMI_CASINJY };
 
    int currentYear = pEnvContext->currentYear;
@@ -701,7 +697,11 @@ bool AcuteHazards::InitPython()
    char cwd[512];
    _getcwd(cwd, 512);
 
-   _chdir("d:/Envision/studyAreas/OrCoast/Hazus");
+
+
+   CString _path(PathManager::GetPath(PM_PROJECT_DIR) );
+   _path += "Hazus";
+   _chdir(_path);
 
    // launch a python instance and run the model
    Py_SetProgramName(L"Envision");  // argv[0]

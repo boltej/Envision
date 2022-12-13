@@ -317,11 +317,7 @@
     <ClCompile Include="Graphwnd.cpp" />
     <ClCompile Include="Label.cpp" />
     <ClCompile Include="Legend.cpp" />
-    <ClCompile Include="Logbook\Logbook.cpp" />
-    <ClCompile Include="Logbook\LogbookFile.cpp" />
-    <ClCompile Include="Logbook\LogbookGUI.cpp" />
-    <ClCompile Include="Logbook\LogbookGUIItem.cpp" />
-    <ClCompile Include="Logbook\ThreadObject.cpp" />
+    <ClCompile Include="LogWnd.cpp" />
     <ClCompile Include="MapFrame.cpp" />
     <ClCompile Include="MapLabelDlg.cpp" />
     <ClCompile Include="MapLayerDlg.cpp" />
@@ -435,6 +431,7 @@
     <ClInclude Include="Logbook\LogbookGUI.h" />
     <ClInclude Include="Logbook\LogbookGUIItem.h" />
     <ClInclude Include="Logbook\ThreadObject.h" />
+    <ClInclude Include="LogWnd.h" />
     <ClInclude Include="MapFrame.h" />
     <ClInclude Include="MapToolbar.h" />
     <ClInclude Include="QueryBuilder.h" />

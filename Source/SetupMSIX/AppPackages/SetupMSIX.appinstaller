@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<AppInstaller
+	Uri="http://envision.bee.oregonstate.edu/Installer/SetupMSIX.appinstaller"
+	Version="1.0.4.0" xmlns="http://schemas.microsoft.com/appx/appinstaller/2017/2">
+	<MainBundle
+		Name="EnvisionMSIX"
+		Version="1.0.4.0"
+		Publisher="CN=boltej"
+		Uri="http://envision.bee.oregonstate.edu/Installer/SetupMSIX_1.0.4.0_Test/SetupMSIX_1.0.4.0_x64.msixbundle" />
+	<Dependencies>
+		<Package
+			Name="Microsoft.VCLibs.140.00.UWPDesktop"
+			Publisher="CN=Microsoft Corporation, O=Microsoft Corporation, L=Redmond, S=Washington, C=US"
+			ProcessorArchitecture="x64"
+			Uri="http://envision.bee.oregonstate.edu/Installer/SetupMSIX_1.0.4.0_Test/Dependencies/x64/Microsoft.VCLibs.x64.14.00.Desktop.appx"
+			Version="14.0.30035.0" />
+	</Dependencies>
+	<UpdateSettings>
+		<OnLaunch
+			HoursBetweenUpdateChecks="0" />
+	</UpdateSettings>
+</AppInstaller>

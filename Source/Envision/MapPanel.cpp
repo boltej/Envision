@@ -120,10 +120,10 @@ int MapPanel::OnCreate(LPCREATESTRUCT lpCreateStruct)
    m_pMapWnd = m_mapFrame.m_pMapWnd;
   
    // Map Text definitions       X    Y     position flags,                                           fontSize
-   m_pMapWnd->AddMapText( "",      20,   20,   MTP_ALIGNRIGHT | MTP_FROMRIGHT | MTP_FROMTOP,     180 );    // text
-   m_pMapWnd->AddMapText( "",      20,   45,   MTP_ALIGNRIGHT | MTP_FROMRIGHT | MTP_FROMTOP,     100 );    // subtext 
-   m_pMapWnd->AddMapText( "",      20,   20,   MTP_ALIGNLEFT  | MTP_FROMLEFT  | MTP_FROMBOTTOM,  100 );    // lower right
-   m_pMapWnd->AddMapText( "",      20,   20,   MTP_ALIGNLEFT  | MTP_FROMLEFT  | MTP_FROMTOP,     180 );    // upper right
+   m_pMapWnd->AddMapText( "",   20,   20,   MTP_ALIGNRIGHT | MTP_FROMRIGHT | MTP_FROMTOP,     180 );    // text
+   m_pMapWnd->AddMapText( "",   20,   65,   MTP_ALIGNRIGHT | MTP_FROMRIGHT | MTP_FROMTOP,     100 );    // subtext 
+   m_pMapWnd->AddMapText( "",   20,   20,   MTP_ALIGNLEFT  | MTP_FROMLEFT  | MTP_FROMBOTTOM,  100 );    // lower right
+   m_pMapWnd->AddMapText( "",   20,   20,   MTP_ALIGNLEFT  | MTP_FROMLEFT  | MTP_FROMTOP,     180 );    // upper right
 
    return 0;
    }
