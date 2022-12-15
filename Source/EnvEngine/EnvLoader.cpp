@@ -849,12 +849,13 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             useCol = 1;
 
          bool ok = LoadModel(m_pEnvModel, name, path, description, imageURL, id, use, timing, initInfo, dependencyNames);
-         if ( ok )
-            msg.Format( "Loaded Model %s (%s)", name, path );
+         if (ok)
+            ; // msg.Format("Loaded Model %s (%s)", name, path);
          else
-            msg.Format( "Unable to Load Model %s (%s)", name, path );
-
-         Report::Log( msg );
+            {
+            msg.Format("Unable to Load model %s (%s)", name, path);
+            Report::Log(msg);
+            }
          pXmlModel = pXmlModel->NextSiblingElement( _T("model" ) );
          }
       }
@@ -927,13 +928,13 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
          bool ok = LoadEvaluator(m_pEnvModel, name, path, description, imageURL, id, use, showInResults, initInfo, dependencyNames);
 
-			if (ok)
-				msg.Format("Loaded Evaluator %s (%s)", name, path);
-			else
-				msg.Format("Unable to Load Evaluator %s (%s)", name, path);
-
-			Report::Log(msg);
-
+         if (ok)
+            ; // msg.Format("Loaded Evaluator %s (%s)", name, path);
+         else
+            {
+            msg.Format("Unable to Load evaluator %s (%s)", name, path);
+            Report::Log(msg);
+            }
 			pXmlEvaluator = pXmlEvaluator->NextSiblingElement(_T("evaluator"));
 			}
 		}

@@ -207,7 +207,6 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\Plugins\SNIP\SNIP.cpp" />
     <ClCompile Include="ChildView.cpp" />
     <ClCompile Include="InfoBar.cpp" />
     <ClCompile Include="MainFrm.cpp" />

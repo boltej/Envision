@@ -68,9 +68,6 @@
     <ClCompile Include="InfoBar.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\Plugins\SNIP\SNIP.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="NetViewer.rc">

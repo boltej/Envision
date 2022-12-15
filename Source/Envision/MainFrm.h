@@ -51,6 +51,9 @@ enum LOG_TYPES
 //#include "OutputWnd.h"
 //#include <Logbook\Logbook.h>
 #include <afxDockablePane.h>
+
+#include <misc.h>
+
 class EnvModel;
 class Scenario;
 
@@ -68,7 +71,13 @@ public:
 
    void AddLogLine( LPCTSTR msg, LOG_TYPES type, COLORREF color);
 
-   int Log(LPCTSTR str) { return m_logCtrl.AddString(str); }
+   int Log(LPCTSTR str) { 
+      m_logCtrl.AddString(str); 
+      m_logCtrl.SetCurSel(m_logCtrl.GetCount() - 1);
+      ::YieldMsg();
+
+      return 1;
+   }
 
 protected:
 	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);

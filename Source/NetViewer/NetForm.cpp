@@ -96,7 +96,7 @@ int NetForm::OnCreate(LPCREATESTRUCT lpCreateStruct)
 
 void NetForm::AddNodePropertyPage(Node* node)
 	{
-	std::string label = std::format("Node: {}", node->label.c_str());
+	std::string label = std::format("Node: {}", node->pSNNode->m_name.c_str());
 	CMFCPropertyGridProperty* pGroup = new CMFCPropertyGridProperty(label.c_str(), node->index);
 
 	// construct a COleVariant object.
@@ -114,25 +114,25 @@ void NetForm::AddNodePropertyPage(Node* node)
 	int size = node->inDegree;
 	std::string ins = std::format("{} incomers: ", size);
 	for (int i = 0; i < size - 1; i++)
-		{ ins += node->inEdges[i]->label; ins += ", "; }
+		{ ins += node->inEdges[i]->pSNEdge->m_name.c_str(); ins += ", "; }
 	if (size > 0)
-		ins += node->inEdges[size - 1]->label;
+		ins += node->inEdges[size - 1]->pSNEdge->m_name.c_str();
 
 
 	size = node->outDegree;
 	std::string outs = std::format("{} outgoers: ", size);
 	for (int i = 0; i < size - 1; i++)
-		{ outs += node->outEdges[i]->label; outs += ", "; }
+		{ outs += node->outEdges[i]->pSNEdge->m_name; outs += ", "; }
 	if (size > 0)
-		outs += node->outEdges[size - 1]->label;
+		outs += node->outEdges[size - 1]->pSNEdge->m_name;
 
 	// build group w/ properties
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("ID"),				COleVariant(node->id.c_str()), "ID of the node", 1));   // 1
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Label"),			COleVariant(node->label.c_str()), "Label (title) of the node", 2));    // 2
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("ID"),				COleVariant(node->pSNNode->m_id.c_str()), "ID of the node", 1));   // 1
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Label"),			COleVariant(node->pSNNode->m_name.c_str()), "Label (title) of the node", 2));    // 2
 	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("In Edges"),		COleVariant(ins.c_str()), "In Edges for this node", 3));			 // 3
 	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Out Edges"),	COleVariant(outs.c_str()), "Out Edges for this node", 4));		 // 4 
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Reactivity"),	COleVariant(node->reactivity), "Reactivity of the node(-1, 1)", 5));	 // 5
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Influence"),	COleVariant(node->influence), "Influence of the node(-1???, 1)", 6)); // 6
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Reactivity"),	COleVariant(node->pSNNode->m_reactivity), "Reactivity of the node(-1, 1)", 5));	 // 5
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Influence"),	COleVariant(node->pSNNode->m_influence), "Influence of the node(-1???, 1)", 6)); // 6
 
 	pGroup->AdjustButtonRect();
 	//pGroup1->AllowEdit();
@@ -147,17 +147,17 @@ void NetForm::AddNodePropertyPage(Node* node)
 
 void NetForm::AddEdgePropertyPage(Edge* edge)
 	{
-	std::string label = std::format("Edge: {}", edge->label.c_str());
+	std::string label = std::format("Edge: {}", edge->pSNEdge->m_name.c_str());
 	CMFCPropertyGridProperty* pGroup = new CMFCPropertyGridProperty(label.c_str(), edge->index);
 
 	// build group w/ properties
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("ID"), COleVariant(edge->id.c_str()), "ID of the edge", 1));   // 1
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Label"), COleVariant(edge->label.c_str()), "Label (title) of the edge", 2));    // 2
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("From Node"), COleVariant(edge->pFromNode->label.c_str()), "FROM node for this edge", 3));			 // 3
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("To Node"), COleVariant(edge->pToNode->label.c_str()), "TO node for this edge", 4));		 // 4 
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Signal Strength"), COleVariant(edge->signalStrength), "Signal Strength (-1???, 1)", 5));	 // 5
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Trust"), COleVariant(edge->trust), "Trust Level of the edge(-1???, 1)", 6)); // 6
-	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Influence"), COleVariant(edge->influence), "Influence of the edge(-1???, 1)", 7));
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("ID"), COleVariant(edge->pSNEdge->m_id.c_str()), "ID of the edge", 1));   // 1
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Label"), COleVariant(edge->pSNEdge->m_name.c_str()), "Label (title) of the edge", 2));    // 2
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("From Node"), COleVariant(edge->pSNEdge->m_pFromNode->m_name.c_str()), "FROM node for this edge", 3));			 // 3
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("To Node"), COleVariant(edge->pToNode->pSNNode->m_name.c_str()), "TO node for this edge", 4));		 // 4 
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Signal Strength"), COleVariant(edge->pSNEdge->m_signalStrength), "Signal Strength (-1???, 1)", 5));	 // 5
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Trust"), COleVariant(edge->pSNEdge->m_trust), "Trust Level of the edge(-1???, 1)", 6)); // 6
+	pGroup->AddSubItem(new CMFCPropertyGridProperty(CString("Influence"), COleVariant(edge->pSNEdge->m_influence), "Influence of the edge(-1???, 1)", 7));
 
 	pGroup->AdjustButtonRect();
 	//pGroup1->AllowEdit();
@@ -196,6 +196,48 @@ BOOL NetForm::OnEraseBkgnd(CDC* pDC)
 	pDC->SelectObject(pOldBrush);
 	return TRUE;
 	}
+
+
+void NetForm::SetSize(int ctrlID)
+	{
+	CWnd* dlgItem = GetDlgItem(ctrlID);
+
+	if (!dlgItem)
+		return;
+
+	CString s;
+	dlgItem->GetWindowText(s);
+
+	CDC dc;
+	dc.CreateCompatibleDC(NULL);
+	dc.SelectObject(dlgItem->GetFont());
+
+	CRect r;
+	dlgItem->GetClientRect(&r);
+
+	if (s.Find('\n') < 0)
+		dc.DrawText(s, &r, DT_CALCRECT | DT_NOPREFIX | DT_SINGLELINE | DT_EDITCONTROL);
+	else
+		dc.DrawText(s, &r, DT_CALCRECT | DT_NOPREFIX | DT_EDITCONTROL);
+
+	dlgItem->SetWindowPos(0, 0, 0, r.Width(), r.Height(), SWP_NOMOVE);
+	}
+
+
+void NetForm::Layout()
+{
+	SetSize(1000);
+	SetSize(1001);
+	SetSize(1002);
+
+	CRect rect;
+	this->GetDlgItem(1000)->GetWindowRect(&rect);
+
+}
+
+
+
+
 
 
 /*

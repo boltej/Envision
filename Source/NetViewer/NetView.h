@@ -8,7 +8,7 @@
 #include <COLORS.HPP>
 #include <Vdata.h>
 
-#include <snip.h>
+//#include <snip.h>
 
 class NetForm;
 class Node;
@@ -16,15 +16,47 @@ class Node;
 enum NE_TYPE { NE_NODE, NE_EDGE };
 
 // node types
-//enum NV_NODETYPE
-//	{
-//	NT_UNKNOWN = 0,
-//	NT_INPUT_SIGNAL = 1,
-//	NT_NETWORK_ACTOR = 2,
-//	NT_ASSESSOR = 3,
-//	NT_ENGAGER = 4,
-//	NT_LANDSCAPE_ACTOR = 5
-//	};
+enum SNIP_NODETYPE
+	{
+	NT_UNKNOWN = 0,
+	NT_INPUT_SIGNAL = 1,
+	NT_NETWORK_ACTOR = 2,
+	NT_ASSESSOR = 3,
+	NT_ENGAGER = 4,
+	NT_LANDSCAPE_ACTOR = 5
+	};
+
+class SNEdge;
+
+class SNNode
+{
+public:
+	std::string m_name;
+	std::string m_id;
+	float m_influence = 0;
+	float m_reactivity = 0;
+
+
+	SNIP_NODETYPE m_nodeType = NT_UNKNOWN;
+
+	std::vector<SNEdge*> m_inEdges;
+	std::vector<SNEdge*> m_outEdges;
+};
+
+class SNEdge 
+{
+public:
+	std::string m_name;
+	std::string m_id;
+	float m_trust=0;
+	float m_signalStrength=0;
+	float m_influence=0;
+
+	SNNode* m_pFromNode = nullptr;
+	SNNode* m_pToNode = nullptr;
+};
+
+
 
 class NetElement
 	{
@@ -44,6 +76,9 @@ class NetElement
 class Edge : public NetElement
 	{
 	public:
+		Edge() { pSNEdge = new SNEdge; }
+		~Edge() { delete pSNEdge; }
+
 		SNEdge* pSNEdge = nullptr;
 
 		Node* pFromNode = nullptr;
@@ -61,6 +96,9 @@ class Edge : public NetElement
 class Node : public NetElement
 	{
 	public:
+		Node() { pSNNode = new SNNode; }
+		~Node() { delete pSNNode; }
+		
 		SNNode* pSNNode = nullptr;
 
 		virtual NE_TYPE GetType() { return NE_NODE; }
@@ -101,14 +139,14 @@ enum EDGELABEL { EL_LABEL, EL_TRUST, EL_SIGNALSTRENGTH, EL_INFLUENCE };
 class NetView :public CWnd
     {
 	 public:
-		 SNIPModel* m_pSNIPModel = nullptr;
-		 SNLayer * m_pSNLayer = nullptr;
+		 //SNIPModel* m_pSNIPModel = nullptr;
+		 //SNLayer * m_pSNLayer = nullptr;
 
 	 public:
 		 ~NetView()
 			 {
-			 if (m_pSNIPModel != nullptr)
-				 delete m_pSNIPModel;
+			//if (m_pSNIPModel != nullptr)
+			//	 delete m_pSNIPModel;
 
 			 for (Node* node : nodes)
 			 	 delete node;
@@ -133,7 +171,9 @@ class NetView :public CWnd
 		bool showEdgeLabels = false;
 		bool darkMode = false;
 		int edgeType = 0;  // 1=beziers;
-		int maxDegree = 0;
+
+		int maxNodeDegree = 0;
+		float maxNodeInfluence = 0;
 
 		int nodeCount = 0;
 		int nodeCountIS = 0;
@@ -149,7 +189,7 @@ class NetView :public CWnd
 		EDGECOLOR edgeColorFlag = EC_SIGNALSTRENGTH;
 		EDGELABEL edgeLabelFlag = EL_LABEL;
 
-		bool AttachSNIPModel(SNIPModel* pModel);
+		//bool AttachSNIPModel(SNIPModel* pModel);
 
 		bool LoadNetwork(LPCTSTR path); // deprecated
 		Node* FindNode(std::string& id)
@@ -160,7 +200,7 @@ class NetView :public CWnd
 			}
 
 		void GetNetworkStats(std::string &);
-
+		void LayoutNetwork();
 		void SetDrawMode(DRAW_MODE m);
 		bool GetAnchorPoints(CPoint start, CPoint end, float alpha, float frac, CPoint& anchor0, CPoint& anchor1);
 		void RotatePoint(CPoint& point, int x0, int y0, float theta);

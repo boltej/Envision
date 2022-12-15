@@ -11,6 +11,7 @@
 #include <colors.hpp>
 #include <ColorRamps.h>
 #include <GEOMETRY.HPP>
+#include <randgen/Randunif.hpp>
 
 
 //using namespace Gdiplus;
@@ -18,21 +19,23 @@
 
 extern CMainFrame* gpMainFrame;
 
+RandUniform randUnif;
+
 const int MAX_NODE_SIZE = 20;  // radius, logical coords
 const int MIN_NODE_SIZE = 3;
 const float MAX_EDGE_WIDTH = 30;  // 
 const float MIN_EDGE_WIDTH = 0.5f;
 
-//std::vector<std::string>   Node::attrIDs;
-//std::vector<std::string>   Node::attrLabels;
-//std::vector<std::string>   Node::attrTypes;
-//std::map<std::string, int> Node::attrMap;
-//
-//
-//std::vector<std::string>   Edge::attrIDs;
-//std::vector<std::string>   Edge::attrLabels;
-//std::vector<std::string>   Edge::attrTypes;
-//std::map<std::string, int> Edge::attrMap;
+std::vector<std::string>   Node::attrIDs;
+std::vector<std::string>   Node::attrLabels;
+std::vector<std::string>   Node::attrTypes;
+std::map<std::string, int> Node::attrMap;
+
+
+std::vector<std::string>   Edge::attrIDs;
+std::vector<std::string>   Edge::attrLabels;
+std::vector<std::string>   Edge::attrTypes;
+std::map<std::string, int> Edge::attrMap;
 
 
 BEGIN_MESSAGE_MAP(NetView, CWnd)
@@ -335,7 +338,7 @@ void NetView::DrawNetwork(CDC& dc, bool drawBkgr, DRAW_FLAG drawFlag)
       //   {
       //   case NS_INFLUENCE:   nodeSize += int(NODESIZE_MAX * node->influence);  break;
       //   case NS_REACTIVITY:  nodeSize += int(NODESIZE_MAX * node->reactivity); break;
-      //   case NS_CONNECTIONS: nodeSize += int(NODESIZE_MAX * node->degree/this->maxDegree);  break;
+      //   case NS_CONNECTIONS: nodeSize += int(NODESIZE_MAX * node->degree/this->maxNodeDegree);  break;
       //   }
       //
       //if (nodeSize > NODESIZE_MAX+3)
@@ -589,13 +592,13 @@ void NetView::OnLButtonUp(UINT nFlags, CPoint point)
                   {
                   Edge* pEdge = (Edge*)pElem;
                   this->netForm->AddEdgePropertyPage(pEdge);
-                  msg.Format("%s: SS=%.2f, T=%.2f, I=%.2f", (LPCTSTR)pEdge->pSNEdge->m_name, pEdge->pSNEdge->m_signalStrength, pEdge->pSNEdge->m_trust, pEdge->pSNEdge->m_influence); // point.x, point.y);
+                  msg.Format("%s: SS=%.2f, T=%.2f, I=%.2f", (LPCTSTR)pEdge->pSNEdge->m_name.c_str(), pEdge->pSNEdge->m_signalStrength, pEdge->pSNEdge->m_trust, pEdge->pSNEdge->m_influence); // point.x, point.y);
                   gpMainFrame->SetStatusMsg(msg);
                   }
                else
                   {
                   Node* pNode = (Node*)pElem;
-                  msg.Format("%s: R=%.2f, I=%.2f", (LPCTSTR) pNode->pSNNode->m_name, pNode->pSNNode->m_reactivity, pNode->pSNNode->m_influence); // point.x, point.y);
+                  msg.Format("%s: R=%.2f, I=%.2f", (LPCTSTR) pNode->pSNNode->m_name.c_str(), pNode->pSNNode->m_reactivity, pNode->pSNNode->m_influence); // point.x, point.y);
                   gpMainFrame->SetStatusMsg(msg);
 
                   this->netForm->AddNodePropertyPage(pNode);
@@ -851,11 +854,11 @@ void NetView::ClearSelection()
    }
 
 
-/*
+
 bool NetView::LoadNetwork(LPCTSTR path)
    {
-   this->m_pSNLayer = new SNLayer(NULL);
-   this->m_pSNIPModel = this->m_pSNLayer->m_pSNIPModel;
+   //this->m_pSNLayer = new SNLayer(NULL);
+   //this->m_pSNIPModel = this->m_pSNLayer->m_pSNIPModel;
 
    // search for file along path
 
@@ -931,6 +934,9 @@ bool NetView::LoadNetwork(LPCTSTR path)
    TiXmlElement* pXmlNodes = pXmlGraph->FirstChildElement("nodes");
 
    TiXmlElement* pXmlNode = pXmlNodes->FirstChildElement("node");
+   this->maxNodeInfluence = 0;
+   this->maxNodeDegree = 0;
+
    while (pXmlNode != NULL)
       {
       LPTSTR id = NULL, label = NULL;
@@ -944,18 +950,8 @@ bool NetView::LoadNetwork(LPCTSTR path)
          return false;
 
       Node* pNode = new Node;
-      m_pSNLayer->
-         SNNode* pNode = this->BuildNode(nodeType, nname.c_str(), _traits);
-
-      // if input node, set its reactivity
-      if (pNode->IsInputSignal())
-         {
-         this->m_pInputNode = pNode;
-         //pNode->m_reactivity = this->GetInputLevel(0);
-         }
-
-      pNode->id = id;
-      pNode->label = label;
+      pNode->pSNNode->m_id = id;
+      pNode->pSNNode->m_name = label;
       pNode->displayLabel = label;
       pNode->index = (int) this->nodes.size();
       pNode->attrs.resize(Node::attrLabels.size());
@@ -1020,9 +1016,12 @@ bool NetView::LoadNetwork(LPCTSTR path)
       //pNode->color.g = (char)g;
       //pNode->color.b = (char)b;
       //pNode->color.a = (char)(int)(a * 255);
-      pNode->nodeSize = MIN_NODE_SIZE + (pNode->pSNNode->m_reactivity * MAX_NODE_SIZE);
+      pNode->nodeSize = MIN_NODE_SIZE +  int(pNode->pSNNode->m_reactivity * MAX_NODE_SIZE);
       pNode->x = x;
       pNode->y = y;
+
+      if (pNode->pSNNode->m_influence > this->maxNodeInfluence)
+         this->maxNodeInfluence = pNode->pSNNode->m_influence;
 
       this->nodes.push_back(pNode);
 
@@ -1047,7 +1046,7 @@ bool NetView::LoadNetwork(LPCTSTR path)
          return false;
 
       Edge* pEdge = new Edge;
-      pEdge->id = id;
+      pEdge->pSNEdge->m_id = id;
       pEdge->index = (int)this->edges.size();
 
       std::string _source(source);
@@ -1059,8 +1058,10 @@ bool NetView::LoadNetwork(LPCTSTR path)
       ASSERT(pEdge->pFromNode != nullptr);
       ASSERT(pEdge->pToNode != nullptr);
 
-      pEdge->label = pEdge->pFromNode->label + "->" + pEdge->pToNode->label;
-      pEdge->displayLabel = pEdge->label;
+      pEdge->pSNEdge->m_name = pEdge->pFromNode->pSNNode->m_name + "->" + pEdge->pToNode->pSNNode->m_name;
+      pEdge->displayLabel = pEdge->pSNEdge->m_name;
+      
+      // add in/out edges to appropriate nodes
       pEdge->pFromNode->outEdges.push_back(pEdge);
       pEdge->pToNode->inEdges.push_back(pEdge);
 
@@ -1069,10 +1070,10 @@ bool NetView::LoadNetwork(LPCTSTR path)
       pEdge->pToNode->degree++;
       pEdge->pToNode->inDegree++;
 
-      if ( pEdge->pFromNode->degree > this->maxDegree)
-         maxDegree = pEdge->pFromNode->degree;
-      if (pEdge->pToNode->degree > this->maxDegree)
-         maxDegree = pEdge->pToNode->degree;
+      if ( pEdge->pFromNode->degree > this->maxNodeDegree)
+         this->maxNodeDegree = pEdge->pFromNode->degree;
+      if (pEdge->pToNode->degree > this->maxNodeDegree)
+         maxNodeDegree = pEdge->pToNode->degree;
 
       pEdge->attrs.resize(Edge::attrIDs.size());
       // <attvalues>
@@ -1107,20 +1108,20 @@ bool NetView::LoadNetwork(LPCTSTR path)
       pXmlVizColor->Attribute("a", &a);
       pXmlVizThick->Attribute("value", &thickness);
 
-      pEdge->color = ::WRColorRamp(0, 1, pEdge->signalStrength);
+      pEdge->color = ::WRColorRamp(0, 1, pEdge->pSNEdge->m_signalStrength);
       //pEdge->color.r = (char)r;
       //pEdge->color.g = (char)g;
       //pEdge->color.b = (char)b;
       //pEdge->color.a = (char)(int)(a * 255);
-      pEdge->thickness = int(0.5f + 5 * pEdge->trust);
+      pEdge->thickness = int(0.5f + 5 * pEdge->pSNEdge->m_trust);
 
       int sIndex = Node::attrMap["ss"];
       int tIndex = Node::attrMap["trust"];
       int iIndex = Node::attrMap["influence"];
 
-      pEdge->attrs[sIndex].GetAsFloat(pEdge->signalStrength);
-      pEdge->attrs[tIndex].GetAsFloat(pEdge->trust);
-      pEdge->attrs[iIndex].GetAsFloat(pEdge->influence);
+      pEdge->attrs[sIndex].GetAsFloat(pEdge->pSNEdge->m_signalStrength);
+      pEdge->attrs[tIndex].GetAsFloat(pEdge->pSNEdge->m_trust);
+      pEdge->attrs[iIndex].GetAsFloat(pEdge->pSNEdge->m_influence);
 
       this->edges.push_back(pEdge);
 
@@ -1134,9 +1135,16 @@ bool NetView::LoadNetwork(LPCTSTR path)
    gpMainFrame->SetStatusMsg(msg);
    this->OnZoomfull();
 
+   OnNodeColor();
+   OnNodeSize();
+   OnNodeLabel();
+   OnEdgeColor();
+   OnEdgeSize();
+   OnEdgeLabel();
+
    return true;
    }
-  */
+
 
 void NetView::OnDarkMode()
    {
@@ -1194,7 +1202,7 @@ void NetView::OnNodeSize()
       float nodeSize = MIN_NODE_SIZE + (node->pSNNode->m_reactivity * MAX_NODE_SIZE);
       
       if (this->nodeSizeFlag == NS_CONNECTIONS)
-         nodeSize = float(MIN_NODE_SIZE + (node->inDegree * MAX_NODE_SIZE / this->maxDegree));
+         nodeSize = float(MIN_NODE_SIZE + (node->inDegree * MAX_NODE_SIZE / this->maxNodeDegree));
 
       else if (this->nodeSizeFlag == NS_INFLUENCE)
          nodeSize = MIN_NODE_SIZE + (node->pSNNode->m_influence * MAX_NODE_SIZE);
@@ -1216,7 +1224,7 @@ void NetView::OnNodeColor()
       {
       float _color = node->pSNNode->m_reactivity;
       if (this->nodeColorFlag == NC_CONNECTIONS)
-         _color = node->degree;
+         _color = float(node->degree);
       else if (this->nodeColorFlag == NC_INFLUENCE)
          _color = node->pSNNode->m_influence;
 
@@ -1362,9 +1370,9 @@ void NetView::ComputeEdgeArc(Edge* edge, float alpha)
 
 void NetView::GetNetworkStats(std::string& str)
    {
-   int nodeCount = this->nodes.size();
-   int edgeCount = this->edges.size();
-   int maxInDegree = 0, maxOutDegree = 0, maxDegree = 0;
+   int nodeCount = (int) this->nodes.size();
+   int edgeCount = (int) this->edges.size();
+   int maxInDegree = 0, maxOutDegree = 0, maxNodeDegree = 0;
    float meanNodeReactivity = 0;
    float meanNodeInfluence = 0;
    float meanEdgeSignalStrength = 0;
@@ -1379,8 +1387,8 @@ void NetView::GetNetworkStats(std::string& str)
       if (node->outDegree > maxOutDegree)
          maxOutDegree = node->outDegree;
 
-      if (node->degree > maxDegree)
-         maxDegree = node->degree;
+      if (node->degree > maxNodeDegree)
+         maxNodeDegree = node->degree;
 
       meanNodeReactivity += node->pSNNode->m_reactivity;
       meanNodeInfluence += node->pSNNode->m_influence;
@@ -1399,7 +1407,7 @@ void NetView::GetNetworkStats(std::string& str)
    meanEdgeTrust /= edgeCount;
 
    str = std::format("Nodes: {}, Edges: {}\nMax Degrees: In={}, Out={}, Total={}\nMean Node Reactivity: {:.2f}\nMean Node Influence: {:.2f}\nMean Edge Signal Strength: {:.2f}\nMean Edge Trust: {:.2f}\n",
-      nodeCount, edgeCount, maxInDegree, maxOutDegree, maxDegree, meanNodeReactivity, meanNodeInfluence, meanEdgeSignalStrength, meanEdgeTrust);
+      nodeCount, edgeCount, maxInDegree, maxOutDegree, maxNodeDegree, meanNodeReactivity, meanNodeInfluence, meanEdgeSignalStrength, meanEdgeTrust);
 
    return;
    }
@@ -1451,7 +1459,7 @@ int NetView::SampleNodes(SNIP_NODETYPE nodeType, int count)
 
 
 
-
+/*
 bool NetView::AttachSNIPModel(SNIPModel* pModel)
    {
    m_pSNIPModel = pModel;
@@ -1494,9 +1502,9 @@ bool NetView::AttachSNIPModel(SNIPModel* pModel)
       edge->pToNode->degree++;
       edge->pToNode->inDegree++;
 
-      if (edge->pFromNode->degree > this->maxDegree)
-         maxDegree = edge->pFromNode->degree;
-      if (edge->pToNode->degree > this->maxDegree)
+      if (edge->pFromNode->degree > this->maxNodeDegree)
+         maxNodeDegree = edge->pFromNode->degree;
+      if (edge->pToNode->degree > this->maxNodeDegree)
          maxDegree = edge->pToNode->degree;
 
       
@@ -1513,5 +1521,192 @@ bool NetView::AttachSNIPModel(SNIPModel* pModel)
 
    this->OnZoomfull();
 
+   }
+   */
+
+void NetView::LayoutNetwork()
+   {
+   int nNodes = (int)this->nodes.size();
+
+   int nAssessors = 0;
+   int nEngagers = 0;
+   int nLAs = 0;
+
+   int nNA_Assessors = 0;
+   int nNA_Engagers = 0;
+   int nNA_Both = 0;
+   int nNA_Only = 0;
+
+   for (Node* node : this->nodes)
+   {
+      switch (node->pSNNode->m_nodeType)
+      {
+      case  NT_INPUT_SIGNAL:  break;
+      case  NT_NETWORK_ACTOR:
+      {
+
+         bool assessor = false;
+         bool engager = false;
+
+         //bool counted = false;
+         for (int j = 0; j < (int) node->pSNNode->m_inEdges.size(); j++)
+         {
+            if (node->pSNNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
+            {
+               nNA_Assessors++;
+               assessor = true;
+               //counted = true;
+               break;
+            }
+         }
+
+         for (int j = 0; j < (int) node->pSNNode->m_outEdges.size(); j++)
+         {
+            if ( node->pSNNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
+            {
+               nNA_Engagers++;
+               engager = true;
+               //counted = true;
+               break;
+            }
+         }
+
+         if (assessor && engager)
+            nNA_Both++;
+         else if (!assessor && !engager)
+            nNA_Only++;
+      } 
+      break;
+
+      case NT_ASSESSOR: nAssessors++;  break;
+      case NT_ENGAGER:  nEngagers++;   break;
+      case NT_LANDSCAPE_ACTOR: nLAs++; break;
+      }
+   }
+
+
+
+   // gather various stats first
+   for (Node *pNode : this->nodes)
+      {
+      if (pNode->pSNNode->m_nodeType == NT_NETWORK_ACTOR)
+         {
+         bool assessor = false;
+         bool engager = false;
+
+         //bool counted = false;
+         for (int j = 0; j < (int)pNode->pSNNode->m_inEdges.size(); j++)
+            {
+            if (pNode->pSNNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
+               {
+               nNA_Assessors++;
+               assessor = true;
+               //counted = true;
+               break;
+               }
+            }
+
+         for (int j = 0; j < (int)pNode->pSNNode->m_outEdges.size(); j++)
+            {
+            if (pNode->pSNNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
+               {
+               nNA_Engagers++;
+               engager = true;
+               //counted = true;
+               break;
+               }
+            }
+
+         if (assessor && engager)
+            nNA_Both++;
+         else if (!assessor && !engager)
+            nNA_Only++;
+         }
+      }
+
+   // updating y positions
+   int na = 0, nnLeft = 0, nnRight = 0, nnCenter = 0, ne = 0, nla = 0;
+   int x = 0, y = 0;
+   const int xMax = 1000;
+   const int yMax = 1000;
+
+   // get number of network actor nodes of various types
+   for (Node* pNode : this->nodes )
+      {
+      // skip lanscape actors, replace with groups below
+      //if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+      //   continue;
+
+      // bounds for actor types:
+      // | INPUT  |  ASSESSOR   |  LA->ASS | LA_UNAFFILATED | LA->BOTH | LA_UNAFFILIATED | LA_ENG | ENGAGER | LANDSCAPE_ACTOR
+      //      0       .12           .24        .30-.45           .5         .55-.70         0.76       .88         1.0   |
+      // -.6     .6            .18        .28              .47        .53               .72       .82      .94         1.06                             
+
+      //string color = "black";
+      switch (pNode->pSNNode->m_nodeType)
+         {
+         case NT_INPUT_SIGNAL:    x = 0;               y = int(yMax / 2);                          break;
+         case NT_ASSESSOR:        x = int(0.12f * xMax); y = int(float(yMax * na) / nAssessors); na++; break;
+         case NT_ENGAGER:         x = int(0.88f * xMax); y = int(float(yMax * ne) / nEngagers);  ne++; break;
+         case NT_LANDSCAPE_ACTOR: x = xMax; y = int(float(yMax * nla) / nLAs);  nla++; break; 
+         case NT_NETWORK_ACTOR:
+            {
+            bool assessor = false;
+            for (int j = 0; j < (int)pNode->pSNNode->m_inEdges.size(); j++)
+               if (pNode->pSNNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
+                  {
+                  assessor = true;
+                  break;
+                  }
+
+            bool engager = false;
+            for (int j = 0; j < (int)pNode->pSNNode->m_outEdges.size(); j++)
+               if (pNode->pSNNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
+                  {
+                  engager = true;
+                  break;
+                  }
+
+            // input only - left col
+            if (assessor && !engager)
+               {
+               y = int(float(yMax) * nnLeft / nNA_Assessors);
+               x = int(0.24f * xMax);
+               nnLeft++;
+               }
+            else if (engager && !assessor)  // enager only, right column 
+               {
+               y = int(yMax * nnRight / nNA_Engagers);
+               x = int(0.76f * xMax);
+               nnRight++;
+               }
+            else if (engager && assessor)  // both, center column
+               {
+               x = int(0.5 * xMax);
+               y = int(yMax * nnCenter / nNA_Both);
+               nnCenter++;
+               }
+            else // connect to neither engager or assessor
+               {
+               x = int(xMax * randUnif.RandValue(0.30, 0.70));
+               if (x > (0.45f * xMax) && x <= 0.50f * xMax)
+                  x = int(randUnif.RandValue(0.30, 0.45) * xMax);
+               if (x < (0.55f * xMax) && x > 0.50f * xMax)
+                  x = int(randUnif.RandValue(0.55, 0.70) * xMax);
+               y = int(randUnif.RandValue(0, yMax));
+               }
+            break;
+            }
+         }
+
+      const int maxNodeSize = 20;
+      float size = maxNodeSize / 2;
+      if (!isnan(pNode->pSNNode->m_influence) && !isinf(pNode->pSNNode->m_influence))
+         size = maxNodeSize * pNode->pSNNode->m_influence / this->maxNodeInfluence;
+      if (size <= 0)
+         size = maxNodeSize / 2;
+
+      //_AddGEFXNode(out, date, pNode->m_id.c_str(), pNode->m_name, pNode->m_nodeType, pNode->m_reactivity, pNode->m_influence, size, x, y);
+      }
    }
 

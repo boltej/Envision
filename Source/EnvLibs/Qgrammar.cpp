@@ -650,8 +650,8 @@ char *QParseString( char **p )
 
 void QCompilerError( LPCSTR errorStr, LPSTR buffer )
    {
-   char _buffer[ 512 ];
-   strncpy_s( _buffer, 512, buffer, 512);
+   char _buffer[ 1024 ];
+   strncpy_s( _buffer, 1024, buffer, 1024);
    _buffer[511] = '\0';
 
    CString msg;

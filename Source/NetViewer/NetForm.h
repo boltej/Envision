@@ -34,6 +34,9 @@ public:
 	void SetNetworkDescription(std::string&);
 	void SetNetworkStats(std::string&);
 
+	void Layout();
+	void SetSize(int ctrlID);
+
 	void AddNodePropertyPage(Node* node);
 	void AddEdgePropertyPage(Edge* edge);
 	void RemoveNodePropertyPage(Node* node);

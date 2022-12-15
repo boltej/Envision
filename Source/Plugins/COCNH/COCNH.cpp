@@ -185,7 +185,7 @@ bool FuelModelLookup::Init(LPCTSTR filename)
          || m_lutColTIV < 0 || m_lutColFuelModel < 0 || m_lutColFireRegime < 0 || m_lutColSfSmoke < 0
          || m_lutColMxSmoke < 0 || m_lutColSrSmoke < 0)
          {
-         Report::ErrorMsg("  COCNH::FuelModelLookup::Init:  missing column in fuels lookup table");
+         Report::ErrorMsg("FuelModelLookup::Init:  missing column in fuels lookup table");
          return FALSE;
          }
 
@@ -543,48 +543,48 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
       }
  
    // set developed classes, structures based on pop density
-   Report::Log("  Initializing population structure information");
+   Report::Log("Initializing population structure information");
    PopulateStructure(pContext, false);
 
    // update vegclass related variables: CoverType, StructStg, CanopyCover, Size, Layers
-   Report::Log("  Initializing Veg structure information");
+   Report::Log("Initializing Veg structure information");
    bool uvcv = UpdateVegClassVars(pContext, false);
    if (!uvcv)
-      FailAndReturn("  UpdateVegClassVars() returned false in COCNH.cpp Init");
+      FailAndReturn("UpdateVegClassVars() returned false in COCNH.cpp Init");
 
    // load lookup tables from .csv file
-   //Report::Log("  COCNH: initializing veg and fuel model lookup tables");
+   //Report::Log("initializing veg and fuel model lookup tables");
    //m_vegLookupTable.Init(m_vegStructurePath);
    //m_fuelModelLookupTable.Init(m_fuelModelPath);
 
    // write data from lookup table to idu table for update
    bool wlds = InitVegParamsFromTable(pContext, false);
 
-   Report::Log("  Updating Trees per hectare");
+   Report::Log("Updating Trees per hectare");
    bool tph = UpdateAvgTreesPerHectare(pContext);
    if (!tph)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp Init");
 
    //write data from lookup table to idu table for fuel models
-   Report::Log("  Updating fuel models");
+   Report::Log("Updating fuel models");
    bool wldfm = UpdateFuelModel(pContext, false);
    if (!wldfm)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp Init");
 
    //update column potential habitat for threatened or endangered species (0/1)
-   Report::Log("  Updating threatend species");
+   Report::Log("Updating threatend species");
    bool utes = UpdateThreatenedSpecies(pContext, false);
    if (!utes)
       FailAndReturn("UpdateThreatEndSpecies() returned false in COCNH.cpp Init");
 
    //update costs for different fuel treatments on idus
-   Report::Log("  Calculating treatment costs");
+   Report::Log("Calculating treatment costs");
    bool ctc = CalcTreatmentCost(pContext, false);
    if (!ctc)
       FailAndReturn("CalcTreatmentCost() returned false in COCNH.cpp Init");
 
    //update WUI parameters
-   Report::Log("  Populating WUI");
+   Report::Log("Populating WUI");
    bool pw = PopulateWUI(pContext, false);
    if (!pw)
       FailAndReturn("PopulateWUI() returned false in COCNH.cpp Init");
@@ -627,7 +627,7 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( ! ok )
       {
       CString msg;
-      msg.Format("  COCNH: Error reading input file %s:  %s", filename, doc.ErrorDesc() );
+      msg.Format("Error reading input file %s:  %s", filename, doc.ErrorDesc() );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -637,7 +637,7 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( pXmlRoot == NULL )
       {
       CString msg;
-      msg.Format("  COCNH: Missing <cnh> tag in input file %s", filename );
+      msg.Format("Missing <cnh> tag in input file %s", filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -683,7 +683,7 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( ! ok )
       {
       CString msg; 
-      msg.Format( _T("  COCNH: Misformed element reading <plan_area> attributes in input file %s"), filename );
+      msg.Format( _T("Misformed element reading <plan_area> attributes in input file %s"), filename );
       Report::ErrorMsg( msg );
       }
 
@@ -692,7 +692,7 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( pXmlPlanAreaFire == NULL )
       {
       CString msg;
-      msg.Format("  COCNH: Missing <plan_area_fire> tag in input file %s", filename );
+      msg.Format("Missing <plan_area_fire> tag in input file %s", filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -709,7 +709,7 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( ! ok )
       {
       CString msg; 
-      msg.Format( _T("  COCNH: Misformed element reading <plan_area_fire> attributes in input file %s"), filename );
+      msg.Format( _T("Misformed element reading <plan_area_fire> attributes in input file %s"), filename );
       Report::ErrorMsg( msg );
       }
 
@@ -1557,7 +1557,7 @@ TRACE(_T("Starting COCNH.cpp LoadLookupTableTreatCosts"));
 // get entries from csv file
 int records = m_costInputtable.ReadAscii( initStr, ',', TRUE );
 if ( records <= 0 )
-FailAndReturn("  COCNH: Cannot load .csv file specified by initInfo in .envx file.");
+FailAndReturn("Cannot load .csv file specified by initInfo in .envx file.");
 
 int rows = m_costInputtable.GetRowCount();
 int cols = m_costInputtable.GetColCount();
@@ -3013,6 +3013,7 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
    float m_thresDistFire500m = 500.0f;
 
    // iterate through idu shapefile
+   int idus = pLayer->GetPolygonCount();
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -3029,6 +3030,8 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
       int fPotentialShortSR = 0;
       int fPotentialShortMX = 0;
       int fPotential500m = 0;
+
+      Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
 
       Poly *pPoly = pLayer->GetPolygon(idu);
       int countFShort = pLayer->GetNearbyPolys(pPoly, neighborsFireShort, NULL, expPolyDistShort, m_thresDistFireShort);
@@ -3282,7 +3285,7 @@ bool COCNHProcess::ScoreAllocationAreas(EnvContext *pContext)
          BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
          if ( ! found )
             {
-            Report::ErrorMsg( "  COCNH: Error finding plan area ID");
+            Report::ErrorMsg( "Error finding plan area ID");
             continue;
             }
 
@@ -3366,7 +3369,7 @@ bool COCNHProcess::ScoreAllocationAreas(EnvContext *pContext)
          BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
          if ( ! found )
             {
-            Report::ErrorMsg( "  COCNH: Error finding plan area ID");
+            Report::ErrorMsg( "Error finding plan area ID");
             continue;
             }
 
@@ -3426,7 +3429,7 @@ bool COCNHProcess::ScoreAllocationAreasFire(EnvContext *pContext)
          BOOL found = m_planAreaFireMap.Lookup(planArea, pInfo);
          if ( ! found )    // none found, so create one
             {
-            Report::ErrorMsg( "  COCNH: Error finding plan area ID");
+            Report::ErrorMsg( "Error finding plan area ID");
             continue;
             }
 
@@ -3483,7 +3486,7 @@ bool COCNHProcess::ScoreAllocationAreasFire(EnvContext *pContext)
       if ( i < 10 )
          {
          CString msg;
-         msg.Format( "  PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
+         msg.Format( "PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
            pInfo->id, i, pInfo->areaFracUsed, pInfo->lastUsed, pInfo->score );
          Report::Log( msg );
          }
@@ -3503,7 +3506,7 @@ bool COCNHProcess::ScoreAllocationAreasFire(EnvContext *pContext)
          BOOL found = m_planAreaFireMap.Lookup(planArea, pInfo);
          if ( ! found )
             {
-            Report::ErrorMsg( "  COCNH: Error finding plan area ID");
+            Report::ErrorMsg( "Error finding plan area ID");
             continue;
             }
 
@@ -3823,7 +3826,7 @@ int COCNHProcessPre2::CalcFireEffect(EnvContext *pContext, bool useAddDelta)
                if ( fireKillVol < 0.0f && calcFireEffectErrCount < 10 )
                   {
                   CString msg;
-                  msg.Format("  CalcFireKill: Negative volume killed: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, priorLiveVol, liveVol, fireKillVol );
+                  msg.Format("CalcFireKill: Negative volume killed: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, priorLiveVol, liveVol, fireKillVol );
                   Report::LogWarning(msg);
    
                   calcFireEffectErrCount++;
@@ -3983,7 +3986,7 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
             if ( timberHarvVol < 0.0f && disturb != 51 && calcHarvBiomassErrCount < 10 )
                {
                CString msg;
-               msg.Format("  CalcHarvestBiomass: Negative volume harvested: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, m_priorLiveVolumeGe3, liveVolumeGe3, timberHarvVol);
+               msg.Format("CalcHarvestBiomass: Negative volume harvested: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, m_priorLiveVolumeGe3, liveVolumeGe3, timberHarvVol);
                Report::LogWarning(msg);
 
                calcHarvBiomassErrCount++;
@@ -4116,7 +4119,7 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
          if ((m_priorLiveBiomassIDUArray[idu] < 0 || m_priorLiveCarbonIDUArray[idu] < 0) && decayPostDisturbBioErrCount < 10)
             {
             CString msg;
-            msg.Format("  DecayDeadResiduals() - negative prior biomass found: vegClass=%i, pvt=%i, region=%i, biomass=%f.", pvt, region, m_priorLiveBiomassIDUArray[idu]);
+            msg.Format("DecayDeadResiduals() - negative prior biomass found: vegClass=%i, pvt=%i, region=%i, biomass=%f.", pvt, region, m_priorLiveBiomassIDUArray[idu]);
             Report::LogWarning(msg);
             m_priorLiveBiomassIDUArray[idu] = 0;
             m_priorLiveCarbonIDUArray[idu] = 0;

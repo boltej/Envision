@@ -111,6 +111,7 @@ public:
    // status messages
    static void StatusMsg (LPCTSTR msg);
    static void Status_i(LPCTSTR msg, int i) { CString _msg; _msg.Format(msg, i); StatusMsg(_msg); };
+   static void Status_ii(LPCTSTR msg, int i, int j) { CString _msg; _msg.Format(msg, i,j); StatusMsg(_msg); };
 
    // log messages
    static int  Log_i(LPCTSTR msg, int i, REPORT_ACTION action = RA_NEWLINE, REPORT_TYPE type = RT_INFO) { CString _msg; _msg.Format(msg, i); return LogMsg(_msg, action, type); }
