@@ -343,7 +343,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
    for (int i = 0; i < nodes; i++)
       {
       SNNode* pNode = this->m_nodes[i];
-      if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+      if (pNode->IsLandscapeActor())
          {
          // which group to use?
          int group = -1;
@@ -548,7 +548,17 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
          //--------------------------------------------
          const int maxEdgeThick = 12;
          float thick = 1 + (maxEdgeThick * pEdge->m_influence / this->m_pSNIPModel->m_netStats.maxEdgeInfluence);
-         _AddGEFXEdge(out, date, pEdge->m_id.c_str(), pEdge->m_pFromNode->m_id.c_str(), pEdge->m_pToNode->m_id.c_str(), thick, pEdge->m_signalStrength, pEdge->m_trust, pEdge->m_influence);
+         if (thick < 0)
+            thick = 0.5f;
+
+         if (isnan(pEdge->m_signalStrength) || isnan(pEdge->m_trust) || isnan(pEdge->m_influence))
+            {
+            CString msg;
+            msg.Format("Bad edge vales encountered for edge %s", (LPCTSTR)pEdge->m_name);
+            Report::LogError(msg);
+            }
+         else
+            _AddGEFXEdge(out, date, pEdge->m_id.c_str(), pEdge->m_pFromNode->m_id.c_str(), pEdge->m_pToNode->m_id.c_str(), thick, pEdge->m_signalStrength, pEdge->m_trust, pEdge->m_influence);
          }
       }
    
@@ -771,20 +781,30 @@ bool SNIPModel::Init()
    {
    int col = 0;
 
-   m_pOutputData = new FDataObj(42, 0);
+   m_pOutputData = new FDataObj(45, 0);
    m_pOutputData->SetName(this->m_pSNLayer->m_name.c_str());
    m_pOutputData->SetLabel(col++, "Time");
    m_pOutputData->SetLabel(col++, "cycles");
    m_pOutputData->SetLabel(col++, "convergeIterations");
    m_pOutputData->SetLabel(col++, "nodeCount");
-   m_pOutputData->SetLabel(col++, "edgeCount");
-   m_pOutputData->SetLabel(col++, "nodeCountNLA");
+   m_pOutputData->SetLabel(col++, "nodeCountInputs");
+   m_pOutputData->SetLabel(col++, "nodeCountAssessors");
+   m_pOutputData->SetLabel(col++, "nodeCountEngagers");
+   m_pOutputData->SetLabel(col++, "nodeCountLAs");  //8
+
    m_pOutputData->SetLabel(col++, "minNodeReactivity");
    m_pOutputData->SetLabel(col++, "meanNodeReactivity");
    m_pOutputData->SetLabel(col++, "maxNodeReactivity");
+
+   m_pOutputData->SetLabel(col++, "minLAReactivity");
+   m_pOutputData->SetLabel(col++, "meanLAReactivity");
+   m_pOutputData->SetLabel(col++, "maxLAReactivity");
+
    m_pOutputData->SetLabel(col++, "minNodeInfluence");
    m_pOutputData->SetLabel(col++, "meanNodeInfluence");
-   m_pOutputData->SetLabel(col++, "maxNodeInfluence");
+   m_pOutputData->SetLabel(col++, "maxNodeInfluence"); //17
+
+   m_pOutputData->SetLabel(col++, "edgeCount");
    m_pOutputData->SetLabel(col++, "minEdgeTransEff");
    m_pOutputData->SetLabel(col++, "meanEdgeTransEff");
    m_pOutputData->SetLabel(col++, "maxEdgeTransEff");
@@ -792,14 +812,12 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "meanEdgeInfluence");
    m_pOutputData->SetLabel(col++, "maxEdgeInfluence");
    m_pOutputData->SetLabel(col++, "edgeDensity");
+
    m_pOutputData->SetLabel(col++, "totalEdgeSignalStrength");
    m_pOutputData->SetLabel(col++, "inputActivation");
    m_pOutputData->SetLabel(col++, "landscapeSignalInfluence");
-   m_pOutputData->SetLabel(col++, "outputReactivity");
-   m_pOutputData->SetLabel(col++, "meanLANodeReactivity");
-   m_pOutputData->SetLabel(col++, "maxLANodeReactivity");
-   m_pOutputData->SetLabel(col++, "signalContestedness");
-   m_pOutputData->SetLabel(col++, "meanDegreeCentrality");
+   m_pOutputData->SetLabel(col++, "signalContestedness"); 
+   m_pOutputData->SetLabel(col++, "meanDegreeCentrality");//30
    m_pOutputData->SetLabel(col++, "meanBetweenessCentrality");
    m_pOutputData->SetLabel(col++, "meanClosenessCentrality");
    m_pOutputData->SetLabel(col++, "meanInfWtDegreeCentrality");
@@ -807,9 +825,9 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "meanInfWtClosenessCentrality");
    m_pOutputData->SetLabel(col++, "normCoordinators");
    m_pOutputData->SetLabel(col++, "normGatekeeper");
-   m_pOutputData->SetLabel(col++, "normRepresentative");
+   m_pOutputData->SetLabel(col++, "normRepresentative"); 
    m_pOutputData->SetLabel(col++, "notLeaders");
-   m_pOutputData->SetLabel(col++, "clusteringCoefficient");
+   m_pOutputData->SetLabel(col++, "clusteringCoefficient"); //40
    m_pOutputData->SetLabel(col++, "NLA_Influence");
    m_pOutputData->SetLabel(col++, "NLA_TransEff");
    m_pOutputData->SetLabel(col++, "normNLA_Influence");
@@ -1034,7 +1052,7 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, std::vector<f
    if (nodeType == NT_INPUT_SIGNAL)
       this->m_pInputNode = pNode;
 
-   else if (nodeType == NT_LANDSCAPE_ACTOR)
+   else if (pNode->IsLandscapeActor())
       this->m_pSNLayer->m_outputNodeCount++;
 
    this->m_pSNLayer->m_nodes.push_back(pNode); //SNNode( nodeType ) );
@@ -1480,13 +1498,20 @@ int SNIPModel::RunSimulation(bool initialize, bool step)
       //   }
       }
 
+   int activeNodeCount = this->GetActiveNodeCount();
+   int activeEdgeCount = this->GetActiveEdgeCount();
+   int laCount = this->GetActiveNodeCount(NT_LANDSCAPE_ACTOR);
+   CString msg;
+   msg.Format("SNIP simulation complete.  Solved equilibrium network in %i cycles, %i active nodes, %i active edges, %i landscape actors)",
+      this->m_currentCycle, activeNodeCount, activeEdgeCount, laCount);
+   Report::LogInfo(msg);
+
    float inputReactivity = this->GetInputNode()->m_reactivity;
    float meanEngagerReactivity = this->GetMeanReactivity(NT_ENGAGER);
    float meanLAReactivity = this->GetMeanReactivity(NT_LANDSCAPE_ACTOR);
    float netReactivity = this->GetMeanReactivity();
 
-   CString msg;
-   msg.Format("SNIP simulation complete: Input Signal=%.2f, Mean Engager reactivity=%.2f, Mean LA reactivity=%.2f, Mean Network Reactivity=%.2f",
+   msg.Format("SNIP Input Signal=%.2f, Mean Engager reactivity=%.2f, Mean LA reactivity=%.2f, Mean Network Reactivity=%.2f",
       inputReactivity, meanEngagerReactivity, meanLAReactivity, netReactivity);
    Report::LogInfo(msg);
    return 0;
@@ -1574,7 +1599,7 @@ void SNIPModel::RunCycle(int cycle, bool repeatUntilDone)
       //$('#ulWatchListCalcs').empty();
       }
 
-   // set an inputs to the level called for this cycles
+   // set any inputs to the level called for this cycles
    float inputLevel = this->GetInputLevel(cycle);  // this is the landscape signal.
 
    for (int i = 0; i < this->GetNodeCount(); i++)
@@ -1682,6 +1707,12 @@ float SNIPModel::PropagateSignal(int cycle)
          // set signal strength for the activating edge based on upstream signal minus degradation
          // signal strength is based on the reactivity of the upstream node
          float srcReactivity = pEdge->m_pFromNode->m_reactivity;    // what if it's an input signal?
+
+         if (pEdge->m_pToNode->IsLandscapeActor())
+            {
+            ;
+            }
+
          pEdge->m_signalStrength = srcReactivity * (1 - this->m_kD);    // confirm for input signals!!!!
          pEdge->AddTraitsFrom(this->m_pInputNode);   // establish edge signal traits ADD INPUT NODE
          if (pEdge->m_pToNode->m_state != STATE_ACTIVE)
@@ -1698,6 +1729,19 @@ float SNIPModel::PropagateSignal(int cycle)
    for (int i = 0; i < this->GetNodeCount(); i++)
       {
       SNNode* pNode = this->GetNode(i);
+
+      ///
+      ///if (pNode->m_nodeType == NT_LANDSCAPE_ACTOR)
+      ///   {
+      ///   bool isActive = pNode->IsActive();
+      ///
+      ///   if (isActive)
+      ///      {
+      ///      float r = pNode->m_reactivity;
+      ///      r += 0;
+      ///      }
+      ///   }
+      ///
 
       if (pNode->IsActive())
          {
@@ -1757,7 +1801,7 @@ float SNIPModel::SolveEqNetwork(float  bias)
    CString msg;
    msg.Format("Solving equilibrium network for cycle %i (%i active nodes, %i active edges, %i landscape actors), Input=%.2f",
                   this->m_currentCycle, nodeCount, edgeCount, laCount, m_pInputNode->m_reactivity);
-   Report::LogInfo(msg);
+   Report::StatusMsg(msg);
 
    // set input nodes to their appropriate values
    float stepDelta = 9999999.0f;
@@ -1797,8 +1841,8 @@ float SNIPModel::SolveEqNetwork(float  bias)
       for (int i = 0; i < nodeCount; i++)
          {
          SNNode* pNode = this->GetNode(i);
-         if (pNode->IsActive() && pNode->IsInputSignal() == false)
-            {  // don't compute reactivities for input nodes 
+         if (pNode->IsActive() && pNode->IsInputSignal() == false)  // don't compute reactivities for input nodes 
+            {
             float oldReactivity = pNode->m_reactivity;   //  [-1,1]
             float newReactivity = this->ActivateNode(pNode, bias); // this updates the node's 'reactivity', 'sumInf', 'srTotal' data
             float delta = newReactivity - oldReactivity;
@@ -1876,6 +1920,11 @@ void SNIPModel::ComputeEdgeTransEffs()   // NOTE: Only need to do active edges
 
       if (pEdge->m_state == STATE_ACTIVE)  ////??????
          {
+         //if (pEdge->Target()->IsLandscapeActor())
+         //   {
+         //   int a = 0;
+         //   }
+
          if (this->m_infSubmodel == IM_SENDER_RECEIVER
             || this->m_infSubmodel == IM_SIGNAL_RECEIVER
             || this->m_infSubmodel == IM_SIGNAL_SENDER_RECEIVER)
@@ -1932,7 +1981,11 @@ void SNIPModel::ComputeEdgeTransEffs()   // NOTE: Only need to do active edges
             pEdge->m_transEffSender = transEffSender;
             }
          else // IM_TRUST
+            {
+            //if (pEdge->m_pToNode->IsLandscapeActor())
+            //   ;
             pEdge->m_transEff = pEdge->m_trust;  // nothing required
+            }
          }
       }
    }
@@ -2040,6 +2093,11 @@ float SNIPModel::ActivateNode(SNNode* pNode, float bias)
    //   reactivity = 0;
    //   }
 
+   //if (pNode->IsLandscapeActor())
+   //   {
+   //   TRACE("\nLA: sumInf=%.2f, srTotal=%.2f, reactivity=%.2f, inTrust=%.2f", sumInfs, srTotal, reactivity, pNode->m_inEdges[0]->m_trust);
+   //   }
+
    pNode->m_sumInfs = sumInfs;
    pNode->m_srTotal = srTotal;
    pNode->m_reactivity = reactivity;    // update store to new activation level
@@ -2118,11 +2176,14 @@ float SNIPModel::GetInputLevel(int cycle)
          return this->m_netInputs[cycle];
 
       case I_ENVISION_SIGNAL:
-         float score = 0;
-         if ( this->m_pEvaluator != nullptr)
-            score = this->m_pEvaluator->m_score;  // -3 - +3?
-         // do any necessary scaling
-         score /= 3;
+         float score = 1;  ///TEMPORARY !!!!!
+
+         ////if ( this->m_pEvaluator != nullptr)
+         ////   score = this->m_pEvaluator->m_score;  // -3 - +3?
+         ////// do any necessary scaling
+         ////score += 3;    // 0-6 
+         ////score /= 6;    // 0-1
+
          return score;
 
 
@@ -2173,13 +2234,28 @@ void SNIPModel::UpdateNetworkStats()
    this->m_netStats.outputReactivity = this->GetOutputLevel();
    this->m_netStats.clusteringCoefficient = localClusterCoeff;
 
+   this->m_netStats.minEdgeInfluence = 99;
+   this->m_netStats.minEdgeTransEff = 99;
+   this->m_netStats.minLANodeReactivity = 99;
+   this->m_netStats.minNodeInfluence = 99;
+   this->m_netStats.minNodeReactivity = 99;
+
+   this->m_netStats.maxEdgeInfluence = -99;
+   this->m_netStats.maxEdgeTransEff = -99;
+   this->m_netStats.maxLANodeReactivity = -99;
+   this->m_netStats.maxNodeInfluence = -99;
+   this->m_netStats.maxNodeReactivity = -99;
+
    int landscapeActorCount = 0;
    int inputSignalCount = 0;
    //let _this = this;
 
+   // get node info
    for (int i = 0; i < this->GetNodeCount(); i++)
       {
       SNNode* pNode = this->GetNode(i);
+      ASSERT(isnan(pNode->m_reactivity) == false);
+
       if (pNode->IsInputSignal() == false )
          {
          // min reactivity
@@ -2192,16 +2268,19 @@ void SNIPModel::UpdateNetworkStats()
          // mean reactivity
          this->m_netStats.meanNodeReactivity += nodeReactivity;
          }
+      else
+         inputSignalCount += 1;
 
       if (pNode->IsLandscapeActor())
          {
-         this->m_netStats.meanLANodeReactivity += pNode->m_reactivity;
-         landscapeActorCount += 1;
-         }
+         if ( pNode->m_reactivity < this->m_netStats.minLANodeReactivity)
+            this->m_netStats.minLANodeReactivity = pNode->m_reactivity;
 
-      else if (pNode->IsInputSignal())
-         {
-         inputSignalCount += 1;
+         this->m_netStats.meanLANodeReactivity += pNode->m_reactivity;
+         
+         if (pNode->m_reactivity > this->m_netStats.maxLANodeReactivity)
+            this->m_netStats.maxLANodeReactivity = pNode->m_reactivity;
+         landscapeActorCount += 1;
          }
       }
 
@@ -2410,33 +2489,43 @@ bool SNIPModel::CollectData(EnvContext* pEnvContext)
    UpdateNetworkStats();
    CArray<float, float> data;
 
+
    data.Add((float) pEnvContext->currentYear);
-   data.Add((float) m_netStats.cycle);
-   data.Add((float) m_netStats.convergeIterations);
-   data.Add((float) m_netStats.nodeCount);
-   data.Add((float) m_netStats.edgeCount);
-   data.Add((float) m_netStats.nodeCountNLA);
+   data.Add((float) this->m_cycles);
+   data.Add((float) this->m_convergeIterations);
+   data.Add((float) this->GetNodeCount());
+   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_INPUT_SIGNAL));
+   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_ASSESSOR));
+   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_ENGAGER));
+   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_LANDSCAPE_ACTOR));
+
    data.Add(m_netStats.minNodeReactivity);
    data.Add(m_netStats.meanNodeReactivity);
    data.Add(m_netStats.maxNodeReactivity);
+
+   data.Add(m_netStats.minLANodeReactivity);
+   data.Add(m_netStats.meanLANodeReactivity);
+   data.Add(m_netStats.maxLANodeReactivity);
+
    data.Add(m_netStats.minNodeInfluence);
    data.Add(m_netStats.meanNodeInfluence);
-   data.Add(m_netStats.maxNodeInfluence);
+   data.Add(m_netStats.maxNodeInfluence);  //17
+
+   data.Add((float)this->GetEdgeCount());
    data.Add(m_netStats.minEdgeTransEff);
    data.Add(m_netStats.meanEdgeTransEff);
    data.Add(m_netStats.maxEdgeTransEff);
+   
    data.Add(m_netStats.minEdgeInfluence);
    data.Add(m_netStats.meanEdgeInfluence);
    data.Add(m_netStats.maxEdgeInfluence);
    data.Add(m_netStats.edgeDensity);
+
    data.Add(m_netStats.totalEdgeSignalStrength);
    data.Add(m_netStats.inputActivation);
    data.Add(m_netStats.landscapeSignalInfluence);
-   data.Add(m_netStats.outputReactivity);
-   data.Add(m_netStats.meanLANodeReactivity);
-   data.Add(m_netStats.maxLANodeReactivity);
    data.Add(m_netStats.signalContestedness);
-   data.Add(m_netStats.meanDegreeCentrality);
+   data.Add(m_netStats.meanDegreeCentrality); // 30
    data.Add(m_netStats.meanBetweenessCentrality);
    data.Add(m_netStats.meanClosenessCentrality);
    data.Add(m_netStats.meanInfWtDegreeCentrality);
@@ -2446,7 +2535,7 @@ bool SNIPModel::CollectData(EnvContext* pEnvContext)
    data.Add(m_netStats.normGatekeeper);
    data.Add(m_netStats.normRepresentative);
    data.Add(m_netStats.notLeaders);
-   data.Add(m_netStats.clusteringCoefficient);
+   data.Add(m_netStats.clusteringCoefficient); //40
    data.Add(m_netStats.NLA_Influence);
    data.Add(m_netStats.NLA_TransEff);
    data.Add(m_netStats.normNLA_Influence);
@@ -2469,14 +2558,14 @@ int SNIPModel::GetMaxDegree(bool)
    }
 
 
-int SNIPModel::GetActiveNodeCount(int type)
+int SNIPModel::GetActiveNodeCount(SNIP_NODETYPE type)
    {
    int count = GetNodeCount();
    int activeCount = 0;
    for (int i = 0; i < count; i++)
       {
       SNNode* pNode = m_pSNLayer->GetNode(i);
-      if ((pNode->m_nodeType == type) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
+      if ((pNode->m_nodeType == type || type==NT_UNKNOWN) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
          activeCount++;
       }
    return activeCount;
@@ -2493,9 +2582,10 @@ int SNIPModel::GetActiveEdgeCount()
    }
 
 
-int SNIPModel::GetNodeCount(int type) 
+int SNIPModel::GetNodeCount(SNIP_NODETYPE type)
    {
-   int count = GetNodeCount();
+   int count = this->GetNodeCount();
+
    int _count = 0;
    for (int i = 0; i < count; i++)
       {
@@ -2507,7 +2597,7 @@ int SNIPModel::GetNodeCount(int type)
    }
 
 
-float SNIPModel::GetMeanReactivity(int type)
+float SNIPModel::GetMeanReactivity(SNIP_NODETYPE type)
    {
    int count = GetNodeCount();
    int typeCount = 0;
@@ -2515,7 +2605,7 @@ float SNIPModel::GetMeanReactivity(int type)
    for (int i = 0; i < count; i++)
       {
       SNNode* pNode = m_pSNLayer->GetNode(i);
-      if (pNode->m_nodeType == type)
+      if (type == NT_UNKNOWN || pNode->m_nodeType == type)
          {
          typeCount++;
          reactivity += pNode->m_reactivity;
@@ -2881,7 +2971,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
             // if no engagers found, remove LA node from network
             if (pNode && pNode->m_inEdges.size() == 0)
                {
-               newLACount++;
+               newLACount--;
                unconnectedLACount++;
                this->m_pSNLayer->RemoveNode(pNode);
                }
@@ -2890,7 +2980,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
       }  // end of: for each IDU
 
    CString msg;
-   msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i engagers. %i Landscape Actors were not connectabel to any engagers", newLACount, newEdgeCount, newEngagers.size(), unconnectedLACount);
+   msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i engagers. %i Landscape Actors were not connectable to any engagers", newLACount, newEdgeCount, (int) newEngagers.size(), unconnectedLACount);
    Report::LogInfo(msg);
 
    //delete[]_traits;
@@ -3503,7 +3593,7 @@ bool SNIP::Run(EnvContext* pEnvContext)
 
                // apply to each edge
                for (int k = 0; k < pNode->m_inEdges.size(); k++)
-                  pNode->m_inEdges[k]->m_trust *= adapt;
+                  pNode->m_inEdges[k]->m_trust *= (1.0f + adapt);
                }
             }
          }

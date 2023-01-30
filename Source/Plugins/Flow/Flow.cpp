@@ -32,7 +32,7 @@ Copywrite 2012 - Oregon State University
 #include <EnvModel.h>
 #include <UNITCONV.H>
 #include <DATE.HPP>
-#include <VideoRecorder.h>
+//#include <VideoRecorder.h>
 #include <PathManager.h>
 #include <GDALWrapper.h>
 #include <GeoSpatialDataObj.h>
@@ -2209,8 +2209,8 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
    if (m_useRecorder && !m_estimateParameters)
       {
-      for (int i = 0; i < (int)m_vrIDArray.GetSize(); i++)
-         ::EnvStartVideoCapture(m_vrIDArray[i]);
+      //for (int i = 0; i < (int)m_vrIDArray.GetSize(); i++)
+      //   ::EnvStartVideoCapture(m_vrIDArray[i]);
       }
 
    OpenDetailedOutputFiles();
@@ -2352,8 +2352,8 @@ bool FlowModel::EndRun(EnvContext *pEnvContext)
 
    if (m_useRecorder && !m_estimateParameters)
       {
-      for (int i = 0; i < (int)m_vrIDArray.GetSize(); i++)
-         ::EnvEndVideoCapture(m_vrIDArray[i]);   // capture main map
+      //for (int i = 0; i < (int)m_vrIDArray.GetSize(); i++)
+      //   ::EnvEndVideoCapture(m_vrIDArray[i]);   // capture main map
       }
 
    //Get the objective function for each of the locations with measured values
@@ -3679,8 +3679,8 @@ bool FlowModel::Run(EnvContext *pEnvContext)
 
       if (m_useRecorder && !m_estimateParameters)
          {
-         for (int i = 0; i < (int)m_vrIDArray.GetSize(); i++)
-            ::EnvCaptureVideo(m_vrIDArray[i]);
+         //for (int i = 0; i < (int)m_vrIDArray.GetSize(); i++)
+         //   ::EnvCaptureVideo(m_vrIDArray[i]);
          }
 
       if (dayOfYear == 90 && !m_estimateParameters)
@@ -9674,7 +9674,9 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }
 
    // video capture
+   /*
    TiXmlElement *pXmlVideoCapture = pXmlRoot->FirstChildElement(_T("video_capture"));
+   
    if (pXmlVideoCapture != NULL)
       {
       //pModel->m_useRecorder = true;
@@ -9726,7 +9728,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
                if (col >= 0)
                   {
-                  int vrID = EnvAddVideoRecorder( /*VRT_MAPPANEL*/ 2, _T("Flow Results"), file, 30, VRM_CALLDIRECT, col);
+                  int vrID = EnvAddVideoRecorder( VRT_MAPPANEL, _T("Flow Results"), file, 30, VRM_CALLDIRECT, col);
                   pModel->m_vrIDArray.Add(vrID);
                   }
                }
@@ -9735,7 +9737,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             }
          }
       }  // end of <video capture>
-
+      */
    return true;
    }
 

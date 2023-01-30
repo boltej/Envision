@@ -469,28 +469,23 @@ class DynamicVeg : public EnvModelProcess
       
    protected:
 
+		void RunTimeInAgeClass(EnvContext* pEnvContext);
+		void RunTransitions(EnvContext* pEnvContext);
+
       bool LoadProbCSV( CString probfilename, EnvContext *pEnvContext);
-
       bool LoadFireTransCSV( CString firefilename, EnvContext *pEnvContext);
-
-	   bool LoadDeterministicTransCSV( CString firefilename, EnvContext *pEnvContext);
-
+		bool LoadDeterministicTransCSV( CString firefilename, EnvContext *pEnvContext);
       bool LoadProbMultiplierCSV( CString firefilename, EnvContext *pEnvContext);
-
       bool LoadMC1PvtSiCSV( CString MC1Sifilename, CString MC1Pvtfilename, EnvContext *pEnvContext);
-      
       bool ProbabilityTransition( EnvContext *pEnvContext,int idu ); 
-	  
 	   bool DeterministicTransition( EnvContext *pEnvContext,int idu );
-	  
-	  bool DisturbanceTransition( EnvContext *pEnvContext,int idu ); 
+      bool DisturbanceTransition( EnvContext *pEnvContext,int idu ); 
       
       int ChooseProbTrans(double rand_num, float probability_sum, std::vector<std::pair<int,float> > *m_permute_prob_vec,std::vector< std::pair<int,float> > *m_original_final_probs);
       
       //int jportable_rand(void);
       
       int RoundToNearest10(float fNumberToRound);
-
 	  bool CreateRandomVariant( LPCTSTR filename,EnvContext *pEnvContext );
 
 	  bool PvtSiteindex2DeltaArr(EnvContext *pEnvContext, int idu, int mc1row, int mc1col, int year);

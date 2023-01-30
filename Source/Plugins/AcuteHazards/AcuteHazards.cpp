@@ -682,8 +682,10 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
    // run any events that are scheduled for this year
    for (int i = 0; i < m_events.GetSize(); i++)
       {
-      if (m_events[i]->m_use && m_events[i]->m_year == currentYear)
-         m_events[i]->Run(pEnvContext);
+      AHEvent* pEvent = m_events[i];
+
+      if (pEvent->m_use && pEvent->m_year == currentYear)
+         pEvent->Run(pEnvContext);
       }
      
    return TRUE;
@@ -696,8 +698,6 @@ bool AcuteHazards::InitPython()
 
    char cwd[512];
    _getcwd(cwd, 512);
-
-
 
    CString _path(PathManager::GetPath(PM_PROJECT_DIR) );
    _path += "Hazus";

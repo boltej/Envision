@@ -220,6 +220,8 @@ bool FuelModelLookup::Init(LPCTSTR filename)
 
 
 bool COCNHProcess::m_isInitialized = false;
+int COCNHProcess::m_wuiUpdateFreq = 5;
+int COCNHProcess::m_initWUI = 1;
 int COCNHProcess::m_colVegClass = -1;
 int COCNHProcess::m_colCoverType = -1;
 int COCNHProcess::m_colStructStg = -1;
@@ -537,7 +539,7 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
             for ( int i=0; i < m_planAreaFireTreatmentWindow; i++ )
                pInfo->areaArray[ i ] = 0;
 
-            m_planAreaFireMap.SetAt(planArea, pInfo);
+            m_planAreaFireMap.SetAt(planArea, pInfo); 
             }
          }
       }
@@ -584,13 +586,17 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
       FailAndReturn("CalcTreatmentCost() returned false in COCNH.cpp Init");
 
    //update WUI parameters
-   Report::Log("Populating WUI");
-   bool pw = PopulateWUI(pContext, false);
-   if (!pw)
-      FailAndReturn("PopulateWUI() returned false in COCNH.cpp Init");
+   if (this->m_initWUI > 0)
+      {
+      Report::Log("Populating WUI");
+      bool pw = PopulateWUI(pContext, false);
+      if (!pw)
+         FailAndReturn("PopulateWUI() returned false in COCNH.cpp Init");
+      }
 
    // randomize TSD (temporary) 
-    pLayer->SetColData(m_colHarvestVol, VData(0), true);
+   Report::Log("Initializing Harvest Fields");
+   pLayer->SetColData(m_colHarvestVol, VData(0), true);
    pLayer->SetColData(m_colSawTimberHarvVolume, VData(0), true);
    pLayer->SetColData(m_colPFSawHarvestVol, VData(0), true);
 
@@ -646,6 +652,8 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
       // attr             type           address                     isReq  checkCol
       { "struct_lookup",  TYPE_CSTRING,  &m_vegStructurePath,  true,   0 },
       { "fuels_lookup",   TYPE_CSTRING,  &m_fuelModelPath,     true,   0 },
+      { "init_wui",       TYPE_INT,      &m_initWUI,           false, 0 },
+      { "wui_update_freq",TYPE_INT,      &m_wuiUpdateFreq,     false, 0 },
       { "restore_values_on_initrun", TYPE_BOOL, &m_restoreValuesOnInitRun, false, 0 },
       { NULL,             TYPE_NULL,     NULL,                        false,   0 } };
 
@@ -653,11 +661,11 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( ! ok )
       {
       CString msg; 
-      msg.Format( _T("  Misformed element reading <plan_area> attributes in input file %s"), filename );
+      msg.Format( _T("Misformed element reading <plan_area> attributes in input file %s"), filename );
       Report::ErrorMsg( msg );
       }
 
-   Report::Log("  Initializing veg and fuel model lookup tables");
+   Report::Log("Initializing veg and fuel model lookup tables");
    m_vegLookupTable.Init( m_vegStructurePath );
    m_fuelModelLookupTable.Init( m_fuelModelPath );
 
@@ -666,7 +674,7 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
    if ( pXmlPlanArea == NULL )
       {
       CString msg;
-      msg.Format("  Missing <plan_area> tag in input file %s", filename );
+      msg.Format("Missing <plan_area> tag in input file %s", filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -744,13 +752,18 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
       }
 
    // set developed vegclasses, structures based on pop density   
+   Report::StatusMsg("Populating Structures");
    PopulateStructure(pContext, true);
 
    // update WUI categorization
-   //if ( pContext->yearOfRun % 5 == 0 )
-   PopulateWUI(pContext, true);
+   if (pContext->yearOfRun % m_wuiUpdateFreq == 0)
+      {
+      Report::StatusMsg("Populating WUI");
+      PopulateWUI(pContext, true);
+      }
 
    // update time related values (e.g. time since harvest)
+   Report::StatusMsg("Updating Times Since...");
    UpdateTimeSinceTreatment(pContext);   // TST
 
    UpdateTimeSinceThinning(pContext);   // TSTH
@@ -770,6 +783,7 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
 
    //reset for each time step
    
+   Report::StatusMsg("Initialing IDU data");
    pLayer->SetColData(m_colPdisturb, VData(0), true);
    pLayer->SetColData(m_colPotentialFlameLen, VData(0), true);
    pLayer->SetColData(m_colFire1000, VData(0), true);
@@ -793,6 +807,7 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
    pLayer->SetColData(m_colSmoke, VData(0), true);
    pLayer->m_readOnly = true;
 
+   Report::StatusMsg("");
    return TRUE;
    }
 
@@ -893,7 +908,7 @@ bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
 
    clock_t finish = clock();
    double duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  ScoreAllocationAreas =%.2f secs", (float)duration);
+   msg.Format("ScoreAllocationAreas =%.2f secs", (float)duration);
    Report::Log(msg);
 
    int cnt = (int) m_timeSinceFirewise.GetSize();
@@ -956,7 +971,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    double duration = (float)(finish - start) / CLOCKS_PER_SEC;
    CString msg;
-   msg.Format("  UpdateAvgTreesPerHectare = %.2f secs", (float)duration);
+   msg.Format("Updating Avg Trees Per Hectare (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -969,7 +984,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
    msg;
-   msg.Format("  UpdateVegParams = %.2f secs", (float)duration);
+   msg.Format("Updated Veg Params (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    // updates dead bio and dead carbon, post fire saw timber
@@ -984,7 +999,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  UpdateVegClassVars= %.2f secs", (float)duration);
+   msg.Format("Updated Veg Class Vars  (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    // write data from lookup table to idu table for fuel models
@@ -995,7 +1010,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  UpdateFuelModel = %.2f secs", (float)duration);
+   msg.Format("Updated Fuel Model  (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    // update costs for different fuel treatments on idus
@@ -1006,7 +1021,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  CalcTreatmentCosts = %.2f secs", (float)duration);
+   msg.Format("Calculated Treatment Costs (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    // update fire occurence variables for decision making
@@ -1017,7 +1032,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  UpdateFireOccurance = %.2f secs", (float)duration);
+   msg.Format("Updated Fire Occurance (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -1027,7 +1042,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  ScoreAllocationAreas =%.2f secs", (float)duration);
+   msg.Format("Scored Allocation Areas  (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -1037,7 +1052,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  ScoreAllocationAreasFire = %.2f secs", (float)duration);
+   msg.Format("Scored Allocation Areas Fire  (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    start = clock();
@@ -1047,7 +1062,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 
    finish = clock();
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   msg.Format("  CalculateFirewise = %.2f secs", (float)duration);
+   msg.Format("Calculated Firewise  (%.1f secs)", (float)duration);
    Report::Log(msg);
 
    pLayer->m_readOnly = true;
@@ -1101,7 +1116,7 @@ bool COCNHProcessPost1::Run(EnvContext *pContext)
    if (!wlds)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp Init");
 
-   Report::Log("  Updating Trees per hectare");
+   Report::Log("Updating Trees per hectare");
    bool tph = UpdateAvgTreesPerHectare(pContext);
    if (!tph)
       FailAndReturn("WriteLookupDataStruct() returned false in COCNH.cpp COCNHProcessPost1::Run");
@@ -1472,7 +1487,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          if (lcpFuelModel == 0) // pathological case
             {
             CString msg;
-            msg.Format("  Bad Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i, tiv=%i",
+            msg.Format("Bad Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i, tiv=%i",
                vegClass, pvt, variant, region, tiv);
             Report::LogWarning(msg);
             }
@@ -1497,7 +1512,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          if (reportErrors && vegClass > 2000000 && updateFuelModelErrCount < 10 )//minimum value for vegclass that have STMs
             {
             CString msg;
-            msg.Format("  Missing Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i",
+            msg.Format("Missing Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i",
                vegClass, pvt, variant, region);
             Report::LogWarning(msg);
             //reportErrors = false;
@@ -1512,7 +1527,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
       ::EnvApplyDeltaArray(pContext->pEnvModel);
 
    CString msg;
-   msg.Format("  UpdateFuelModel:  Found count=%i, missing count=%i", foundCount, missingCount);
+   msg.Format("UpdateFuelModel:  Found count=%i, missing count=%i", foundCount, missingCount);
    Report::Log(msg);
 
    return true;
@@ -1749,7 +1764,7 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
          else if ( vegClass >= 2000000 && updateVegParamsErrCount < 10 )
             {
             CString msg;
-            msg.Format("  UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
+            msg.Format("UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
             Report::LogWarning(msg);
             updateVegParamsErrCount++;
             }
@@ -2047,7 +2062,7 @@ bool COCNHProcess::InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta
       else if (vegClass >= 2000000 && updateVegParamsErrCount < 10)
          {
          CString msg;
-         msg.Format("  UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
+         msg.Format("UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
          Report::LogWarning(msg);
          updateVegParamsErrCount++;
          }
@@ -3031,14 +3046,15 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
       int fPotentialShortMX = 0;
       int fPotential500m = 0;
 
-      Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
+      if (idu % 10000 == 0 )
+         Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
 
       Poly *pPoly = pLayer->GetPolygon(idu);
       int countFShort = pLayer->GetNearbyPolys(pPoly, neighborsFireShort, NULL, expPolyDistShort, m_thresDistFireShort);
-      int countFMedium = pLayer->GetNearbyPolys(pPoly, neighborsFireMedium, NULL, expPolyDistMedium, m_thresDistFireMedium);
-      int countFLong = pLayer->GetNearbyPolys(pPoly, neighborsFireLong, NULL, expPolyDistLong, m_thresDistFireLong);
-      int countPreFLong = pLayer->GetNearbyPolys(pPoly, neighborsPreFireLong, NULL, expPolyDistPreFireLong, m_thresDistPreFireLong);
-      int countF500m = pLayer->GetNearbyPolys(pPoly, neighborsFire500m, NULL, expPolyDist500m, m_thresDistFire500m);
+      ////int countFMedium = pLayer->GetNearbyPolys(pPoly, neighborsFireMedium, NULL, expPolyDistMedium, m_thresDistFireMedium);
+      ////int countFLong = pLayer->GetNearbyPolys(pPoly, neighborsFireLong, NULL, expPolyDistLong, m_thresDistFireLong);
+      ////int countPreFLong = pLayer->GetNearbyPolys(pPoly, neighborsPreFireLong, NULL, expPolyDistPreFireLong, m_thresDistPreFireLong);
+      ////int countF500m = pLayer->GetNearbyPolys(pPoly, neighborsFire500m, NULL, expPolyDist500m, m_thresDistFire500m);
       
       float sumPotentialFlameLength = 0.0f;
       float avePotentialFlameLength1000 = 0.0f;
@@ -3048,43 +3064,39 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
       
       // IDUs with dwellings owners only
       if (nDU > 0)
-         {
-         
+         {         
          // calculate average potential flame lenght within 1km
          for ( int i = 0; i < countFShort; i++ )
-            {
-            
+            {            
             float potentialFlameLenth = 0.0f;
-
             pLayer->GetData(neighborsFireShort[i], m_colPotentialFlameLen, potentialFlameLenth);
             
             sumPotentialFlameLength =  sumPotentialFlameLength + potentialFlameLenth;
-
             }
 
          if ( countFShort > 0 && sumPotentialFlameLength > 0 )
             avePotentialFlameLength1000 = sumPotentialFlameLength/countFShort;
 
          // calculate value for FIRE5_500
-         for (int i = 0; i < countF500m; i++)
-            {
-            int tsf = -1;
-            int dstrb = -1;
-            int potentialDisturb = -1;
-
-            //get values from idu file
-            pLayer->GetData(neighborsFire500m[i], m_colTSF, tsf);
-            pLayer->GetData(neighborsFire500m[i], m_colDisturb, dstrb);
-            pLayer->GetData(neighborsFire500m[i], m_colPdisturb, potentialDisturb);
-            // TODO: check timing, pre or post defines upper limit (5 or 6)
-            // only wildfire, no prescribed fire considered in utility model development
-
-            if ( ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE ) || ( tsf >= 0 && tsf <= 5 ) )
-               f500m++;
-
-            if (  potentialDisturb >= SURFACE_FIRE  &&  potentialDisturb <= STAND_REPLACING_FIRE )
-               fPotential500m++;
-            }
+         /////for (int i = 0; i < countF500m; i++)
+         /////   {
+         /////   int tsf = -1;
+         /////   int dstrb = -1;
+         /////   int potentialDisturb = -1;
+         /////
+         /////   //get values from idu file
+         /////   pLayer->GetData(neighborsFire500m[i], m_colTSF, tsf);
+         /////   pLayer->GetData(neighborsFire500m[i], m_colDisturb, dstrb);
+         /////   pLayer->GetData(neighborsFire500m[i], m_colPdisturb, potentialDisturb);
+         /////   // TODO: check timing, pre or post defines upper limit (5 or 6)
+         /////   // only wildfire, no prescribed fire considered in utility model development
+         /////
+         /////   if ( ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE ) || ( tsf >= 0 && tsf <= 5 ) )
+         /////      f500m++;
+         /////
+         /////   if (  potentialDisturb >= SURFACE_FIRE  &&  potentialDisturb <= STAND_REPLACING_FIRE )
+         /////      fPotential500m++;
+         /////   }
 
          if (f500m > 0)
             f500m = 1;
@@ -3145,44 +3157,42 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
             fPotentialShortMX = 1;
 
          // calculate value for FIRE5_2000
-         for (int j = 0; j < countFMedium; j++)
-            {
-            int
-               tsf = -1,
-               dstrb = -1;
-
-            //get values from idu file
-            pLayer->GetData(neighborsFireMedium[j], m_colTSF, tsf);
-            pLayer->GetData(neighborsFireMedium[j], m_colDisturb, dstrb);
-            // TODO: check timing, pre or post defines upper limit (5 or 6)
-            // only wildfire, no prescribed fire considered in utility model development
-            if ( ( dstrb >= SURFACE_FIRE  && dstrb <= STAND_REPLACING_FIRE ) || ( tsf >= 0 && tsf <= 5 ) )
-               fMedium++;
-            }
+         ////for (int j = 0; j < countFMedium; j++)
+         ////   {
+         ////   int tsf = -1, dstrb = -1;
+         ////
+         ////   //get values from idu file
+         ////   pLayer->GetData(neighborsFireMedium[j], m_colTSF, tsf);
+         ////   pLayer->GetData(neighborsFireMedium[j], m_colDisturb, dstrb);
+         ////   // TODO: check timing, pre or post defines upper limit (5 or 6)
+         ////   // only wildfire, no prescribed fire considered in utility model development
+         ////   if ( ( dstrb >= SURFACE_FIRE  && dstrb <= STAND_REPLACING_FIRE ) || ( tsf >= 0 && tsf <= 5 ) )
+         ////      fMedium++;
+         ////   }
          if (fMedium > 0)
             fMedium = 1;
 
          // calculate value for FIR5_10000
-         for (int k = 0; k < countFLong; k++)
-            {
-                       
-            int tsf = -1;
-            int dstrb = -1;
-            int tspf = -1;
-
-            //get values from idu file
-            pLayer->GetData(neighborsFireLong[k], m_colTSPF, tspf);
-            pLayer->GetData(neighborsFireLong[k], m_colTSF, tsf);
-            pLayer->GetData(neighborsFireLong[k], m_colDisturb, dstrb);
-            
-            // TODO: check timing, pre or post defines upper limit (5 or 6)
-            // only wildfire, no prescribed fire considered in utility model development
-            if ( ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE )  || ( tsf >= 0 && tsf <= 5 ) )
-               fLong++;
-
-            if ( (dstrb >= PRESCRIBED_SURFACE_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE )  || ( tspf >= 0 && tspf <= 5 ) )
-               fPSFLong++;
-            }
+         ////for (int k = 0; k < countFLong; k++)
+         ////   {
+         ////              
+         ////   int tsf = -1;
+         ////   int dstrb = -1;
+         ////   int tspf = -1;
+         ////
+         ////   //get values from idu file
+         ////   pLayer->GetData(neighborsFireLong[k], m_colTSPF, tspf);
+         ////   pLayer->GetData(neighborsFireLong[k], m_colTSF, tsf);
+         ////   pLayer->GetData(neighborsFireLong[k], m_colDisturb, dstrb);
+         ////   
+         ////   // TODO: check timing, pre or post defines upper limit (5 or 6)
+         ////   // only wildfire, no prescribed fire considered in utility model development
+         ////   if ( ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE )  || ( tsf >= 0 && tsf <= 5 ) )
+         ////      fLong++;
+         ////
+         ////   if ( (dstrb >= PRESCRIBED_SURFACE_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE )  || ( tspf >= 0 && tspf <= 5 ) )
+         ////      fPSFLong++;
+         ////   }
 
          if (fLong > 0)
             fLong = 1;
@@ -3191,23 +3201,23 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
             fPSFLong = 1;
 
          // calculate value for PREF5_2000
-         for (int l = 0; l < countFMedium; l++)
-            {
-           
-            int tsf = -1;
-            int dstrb = -1;
-            int tspf = -1;
-
-            //get values from idu file
-            pLayer->GetData(neighborsPreFireLong[l], m_colTSPF, tspf);
-            pLayer->GetData(neighborsPreFireLong[l], m_colTSF, tsf);
-            pLayer->GetData(neighborsPreFireLong[l], m_colDisturb, dstrb);
-
-            // TODO: check timing, pre or post defines upper limit (5 or 6)
-            // only wildfire, no prescribed fire considered in utility model development
-            if ( ( dstrb >= PRESCRIBED_SURFACE_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE ) || ( tspf >= 0 && tspf <= 5 ) )
-               pFLong++;
-            }
+         ////for (int l = 0; l < countFMedium; l++)
+         ////   {
+         ////  
+         ////   int tsf = -1;
+         ////   int dstrb = -1;
+         ////   int tspf = -1;
+         ////
+         ////   //get values from idu file
+         ////   pLayer->GetData(neighborsPreFireLong[l], m_colTSPF, tspf);
+         ////   pLayer->GetData(neighborsPreFireLong[l], m_colTSF, tsf);
+         ////   pLayer->GetData(neighborsPreFireLong[l], m_colDisturb, dstrb);
+         ////
+         ////   // TODO: check timing, pre or post defines upper limit (5 or 6)
+         ////   // only wildfire, no prescribed fire considered in utility model development
+         ////   if ( ( dstrb >= PRESCRIBED_SURFACE_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE ) || ( tspf >= 0 && tspf <= 5 ) )
+         ////      pFLong++;
+         ////   }
 
          if (pFLong > 0)
             pFLong = 1;

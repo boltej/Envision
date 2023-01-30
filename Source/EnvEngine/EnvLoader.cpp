@@ -1916,7 +1916,7 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
    TCHAR *path = new TCHAR[requiredSize + 256];
    _tgetenv_s(&requiredSize, path, requiredSize, "PATH");
 
-   Report::Log_s("The current PATH is %s", path);
+   //Report::Log_s("The current PATH is %s", path);
 
 
    // Attempt to change path. Note that this only affects
@@ -1934,11 +1934,11 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
    nsPath::CPath envRootPath(exePath); // eg. d:/Envision/source/x64/Release/envision.exe
    envRootPath.RemoveFileSpec();       // eg. d:/Envision/source/x64/Release/
 
-
    // if it contains "WinApp", then this is an app install
    CString _envRootPath(envRootPath);
-   Report::Log_s("Envision root directory is %s", (LPCTSTR)_envRootPath);
+   //Report::Log_s("Envision root directory is %s", (LPCTSTR)_envRootPath);
 
+   bool isWinApp = false;
    if (_envRootPath.Find("WindowsApps") >= 0)
       {
       Report::LogInfo("Envision is running as a WinApp");
@@ -1949,6 +1949,7 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
          Report::Log_s("Setting current working directory to %s", (LPCTSTR)envHome);
          _chdir(envHome);
          }
+      isWinApp = true;
       }
    else if (_envRootPath.Find("Debug") >= 0 || _envRootPath.Find("Release") >= 0)
       Report::LogInfo("Envision is running as a Desktop Windows Application on a developer machine");
@@ -1956,27 +1957,10 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
       Report::LogInfo("Envision is running as a Desktop Windows Application");
 
    // set GDAL path if needed
-   if (_tcsstr(path, "GDAL") == NULL)    // no GDAL in path?
+   if (isWinApp == false && _tcsstr(path, "GDAL") == NULL)    // no GDAL in path?
       {
       CString gdalPath;
-
-      if (_envRootPath.Find("WindowsApps") >= 0)
-         {
-         int len = (int)_envRootPath.GetLength();
-         //gdalPath = _envRootPath.Left(len - 8);  // leaves backslash
-         //gdalPath += "GDAL\\";
-         CString envHome = _envRootPath.Left(len - 8);  // leaves backslash
-         gdalPath = "GDAL\\";
-
-         if (envHome.CompareNoCase(cwd) == 0)
-            {
-            Report::Log_s("Setting current working directory to %s", (LPCTSTR) envHome);
-            _chdir(envHome);
-            }
-         
-         gdalPath = "GDAL\\";
-         }
-      else if (_envRootPath.Find("Debug") >= 0 || _envRootPath.Find("Release") >= 0) // developer machine?
+      if (_envRootPath.Find("Debug") >= 0 || _envRootPath.Find("Release") >= 0) // developer machine?
          {
          int i = _envRootPath.Find("Envision");
          gdalPath = _envRootPath.Left(i + 9);  // leaves backslash
@@ -1984,9 +1968,7 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
          }
       else     // regual desktop
          {
-         //Report::LogInfo("Envision is running as a Desktop Windows Application");
-         int i = _envRootPath.Find("Envision");
-         gdalPath = _envRootPath.Left(i + 9);  // leaves backslash
+         gdalPath = _envRootPath + "GDAL\\";
          }
 
       Report::Log_s("GDAL folder is %s", (LPCTSTR) gdalPath);

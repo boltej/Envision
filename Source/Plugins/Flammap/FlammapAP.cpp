@@ -300,7 +300,7 @@ bool FlamMapAP::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    if(this->m_strStaticFireList.GetLength() > 0)
       {
       if ( !ReadStaticFires())
-         Report::Log(_T("  Error reading static fires file, running normally"));
+         Report::Log(_T("Error reading static fires file, running normally"));
       }
    if (m_outputEnvisionFirelists)
    {
@@ -317,7 +317,7 @@ bool FlamMapAP::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 	   fprintf(deltaArrayCSV, "Yr, Run, IDU, FireID, Flamelength, PFlameLen, CTSS, VegClass, Variant, DISTURB, FUELMODEL\n");
 	   fclose(deltaArrayCSV);
    }
-   Report::Log(_T("  Completed FlamMapAP Init successfully"));
+   Report::Log(_T("Completed FlamMapAP Init successfully"));
 
    return TRUE;
    }
@@ -332,7 +332,7 @@ int FlamMapAP::ReadStaticFires()
    if ( PathManager::FindPath( m_strStaticFireList, fName ) < 0 )    // search envision paths
       {
       CString msg;
-      msg.Format( "  Unable to locate firelist file '%s' on path", m_strStaticFireList );
+      msg.Format( "Unable to locate firelist file '%s' on path", m_strStaticFireList );
       Report::ErrorMsg( msg );
       return 0;
       }
@@ -341,7 +341,7 @@ int FlamMapAP::ReadStaticFires()
    if((recordsTtl = (int) inData.ReadAscii( fName )) <= 0) 
       {
       CString msg;
-      msg.Format( "  Error reading static firelist '%s'", fName );
+      msg.Format( "Error reading static firelist '%s'", fName );
       Report::ErrorMsg( msg );
       return 0;
       }
@@ -505,7 +505,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
    CString msg;
    CString nameCStr;
    CString failureID( _T("FlamMapAP::InitRun Failed: ") );
-   msg = "  Entering FlamMapAP::InitRun";
+   msg = "Entering FlamMapAP::InitRun";
    Report::Log( msg );
    // Get the Scenario directory
    LPCTSTR scenarioName = NULL;
@@ -518,7 +518,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
    //Report::InfoMsg(_T("FlamMapAP::InitRun 010"));
    m_scenarioName = scenarioName;
 
-   msg = "  InitRun searching for scenario";
+   msg = "InitRun searching for scenario";
    Report::Log( msg );
  
     // jpb - change this to be random selected within a specified scenario
@@ -538,7 +538,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
       return FALSE;
       }
 
-   msg = "  InitRun retrieving scenario firelist";
+   msg = "InitRun retrieving scenario firelist";
    Report::Log( msg );
    // randomly select a fire list
    int selNum = -1;
@@ -556,7 +556,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
    }
    FIRELIST *pFireList = pScenario->GetFireList(selNum);
    m_scenarioFiresFName =  pFireList->m_path;
-   msg = "  Using scenario '";
+   msg = "Using scenario '";
    msg += pScenario->m_name;
    msg += "', firelist file ";
    msg += m_scenarioFiresFName;
@@ -590,13 +590,13 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
 	   m_hShpPerims = SHPCreate(PerimeterFName, SHPT_POLYGON);
 	   if (!m_hShpPerims)
 	   {
-			msg.Format("  Unable to create perimeter shape file: %s", PerimeterFName);
+			msg.Format("Unable to create perimeter shape file: %s", PerimeterFName);
 			Report::ErrorMsg(msg);
 	   }
 	   m_hDbfPerims = DBFCreate(dbfName);
 	   if (!m_hDbfPerims)
 	   {
-		   msg.Format("  Unable to create perimeter shape file database: %s", dbfName);
+		   msg.Format("Unable to create perimeter shape file database: %s", dbfName);
 		   Report::ErrorMsg(msg);
 	   }
 	   else
@@ -624,7 +624,7 @@ bool FlamMapAP::InitRun(EnvContext *pEnvContext, bool useInitSeed)
 		   m_hDbfPerims = DBFOpen(dbfName, "rb+");
 		   if (!m_hDbfPerims)
 		   {
-			   msg.Format("  Unable to open perimeter shape file database: %s", dbfName);
+			   msg.Format("Unable to open perimeter shape file database: %s", dbfName);
 			   Report::ErrorMsg(msg);
 		   }
 	   }
@@ -695,7 +695,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
    if ( result < 0 )
       {
-      CString msg( "  Unable to find input file " );
+      CString msg( "Unable to find input file " );
       msg += filename;
       Report::ErrorMsg( msg );
       return false;
@@ -764,7 +764,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    if ( ! ok )
       {
       CString msg; 
-      msg.Format( _T("  Misformed root element reading <flammap> attributes in FlammapAP input file %s"), filename );
+      msg.Format( _T("Misformed root element reading <flammap> attributes in FlammapAP input file %s"), filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -787,14 +787,14 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    ResolvePath( m_startingLCPFName,       "Unable to find starting LCP file" );
    ResolvePath( m_vegClassLCPLookupFName, "Unable to find veg class LCP lookup file" );
    ResolvePath( m_customFuelFileName,     "Unable to find custom fuel file" );
-   ResolvePath( m_strStaticFMS,           "Unable to find static FMS file"  );
+   ResolvePath( m_strStaticFMS,           "Unable to find static FMS file");
 
    // Done with root elements, get scenarios  
    TiXmlElement *pXmlScenarios = pXmlRoot->FirstChildElement( "scenarios" );
    if ( pXmlScenarios == NULL )
       {
       CString msg;
-      msg.Format( _T("  Error reading FlammapAP input file %s: Missing <scenarios> entry.  This is required to continue..."), filename );
+      msg.Format( _T("Error reading FlammapAP input file %s: Missing <scenarios> entry.  This is required to continue..."), filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -803,7 +803,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    if ( pXmlScenario == NULL )
       {
       CString msg;
-      msg.Format( _T("  Error reading FlammapAP input file %s: Missing <scenario> entry.  This is required to continue..."), filename );
+      msg.Format( _T("Error reading FlammapAP input file %s: Missing <scenario> entry.  This is required to continue..."), filename );
       Report::ErrorMsg( msg );
       return false;
       }
@@ -837,7 +837,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
       if ( pXmlFireList == NULL )
          {
          CString msg;
-         msg.Format( _T("  Error reading FlammapAP input file %s: Missing <firelist> entry.  This is required to continue..."), filename );
+         msg.Format( _T("Error reading FlammapAP input file %s: Missing <firelist> entry.  This is required to continue..."), filename );
          Report::ErrorMsg( msg );
          return false;
          }
@@ -861,13 +861,13 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
             if ( retVal < 0 )
                {
                CString msg;
-               msg.Format( "  Unable to find firelist file '%s'", name );
+               msg.Format( "Unable to find firelist file '%s'", name );
                Report::ErrorMsg( msg );
                }
             else
                {
                CString msg;
-               msg.Format( "  Scenario '%s': Adding Firelist file '%s'", (LPCTSTR) pScenario->m_name, (LPCTSTR) path );
+               msg.Format( "Scenario '%s': Adding Firelist file '%s'", (LPCTSTR) pScenario->m_name, (LPCTSTR) path );
                Report::Log( msg );
 
                pScenario->AddFireList( new FIRELIST( path ) );
@@ -907,7 +907,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    default:
          {
          CString msg;
-         msg.Format( _T("  FlamMapAP outputDirectory can not be created"));
+         msg.Format( _T("FlamMapAP outputDirectory can not be created"));
          Report::ErrorMsg( msg );
          return false;
          }
@@ -915,7 +915,7 @@ bool FlamMapAP::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
 
    CString msg;
-   msg.Format( "  Loaded %i scenarios, %i firelists from input file '%s'", scenarioCount, firelistCount, path );
+   msg.Format( "Loaded %i scenarios, %i firelists from input file '%s'", scenarioCount, firelistCount, path );
    Report::Log( msg );
   
    return true;
@@ -962,19 +962,19 @@ bool FlamMapAP::LoadPolyGridLookup( MapLayer *pIDULayer )
    // if .pgl file exists: read poly - grid - lookup table from file
    if ( status >= 0  )
       {      
-      msg = _T("  Loading PolyGrid from File: ");
+      msg = _T("Loading PolyGrid from File: ");
       msg += pglPath;
       Report::Log(msg);
          
-      //Report::Log(_T("  Creating PolyGrid - Starting"));
+      //Report::Log(_T("Creating PolyGrid - Starting"));
       m_pPolyGridLkUp = new PolyGridLookups( pglPath );
-      //Report::Log(_T("  Creating PolyGrid - Finished"));
+      //Report::Log(_T("Creating PolyGrid - Finished"));
       }
    else   // else (if .pgl file does NOT exists): create poly - grid - lookup table and write to .pgl file
       {
       int maxEls = m_rows * m_cols * 2;
    
-      Report::Log(_T("  Creating PolyGrid from Data - Starting"));
+      Report::Log(_T("Creating PolyGrid from Data - Starting"));
       m_pPolyGridLkUp = new PolyGridLookups(
          m_ptLayer,
          pIDULayer,
@@ -983,7 +983,7 @@ bool FlamMapAP::LoadPolyGridLookup( MapLayer *pIDULayer )
          0,               // int defaultVal,
          -9999);          // int nullVal
    
-      Report::Log(_T("  Generating PolyGrid from Data - Finished"));
+      Report::Log(_T("Generating PolyGrid from Data - Finished"));
 
       pglPath = m_polyGridFName;
 
@@ -995,15 +995,15 @@ bool FlamMapAP::LoadPolyGridLookup( MapLayer *pIDULayer )
          pglPath += m_polyGridFName;
          }
 
-      msg = _T("  Writing PolyGrid to File: ");
+      msg = _T("Writing PolyGrid to File: ");
       msg += pglPath;
       Report::Log( msg );
       m_pPolyGridLkUp->WriteToFile( pglPath );
 
-      Report::Log(_T("  Writing PolyGrid to File - Finished"));
+      Report::Log(_T("Writing PolyGrid to File - Finished"));
       }
 
-   msg.Format( "  Polygrid Rows=%i, Cols=%i", m_pPolyGridLkUp->GetNumGridRows(), m_pPolyGridLkUp->GetNumGridCols() ); 
+   msg.Format( "Polygrid Rows=%i, Cols=%i", m_pPolyGridLkUp->GetNumGridRows(), m_pPolyGridLkUp->GetNumGridCols() ); 
    Report::Log( msg );
 	return TRUE;
    } 
@@ -1016,13 +1016,13 @@ int FlamMapAP::ResolvePath( CString &filename, LPCTSTR errorMsg  )
    if ( retVal < 0 )
       {
       CString msg;
-      msg.Format( "  %s '%s' when searching paths", errorMsg, (LPCTSTR) filename );
+      msg.Format( "%s '%s' when searching paths", errorMsg, (LPCTSTR) filename );
       Report::ErrorMsg( msg );
       }
    else
       {
       CString msg;
-      msg.Format( "  Resolving file '%s' to path '%s'", (LPCTSTR) filename, (LPCTSTR) path );
+      msg.Format( "Resolving file '%s' to path '%s'", (LPCTSTR) filename, (LPCTSTR) path );
       Report::Log( msg );
 
       filename = path;
@@ -1168,13 +1168,13 @@ bool FlamMapAP::CreateLCPGenerator()
 	if (!m_pLcpGenerator->InitLCPValues(m_startingLCPFName))
 		return FailAndReturn(failureID, " LCP initialization failed.") ? true : false;
 	else
-		Report::Log(_T("  LCP Initialized"));
+		Report::Log(_T("LCP Initialized"));
 
 	// Write LCP Header to ASCII file for checking
 	if (!m_pLcpGenerator->InitVegClassLCPLookup(m_vegClassLCPLookupFName))
 		return FailAndReturn(failureID, " VegClassLCPLookup initialization failed.") ? true : false;
 	else
-		Report::Log(_T("  VegClassLCPLookup Initialized"));
+		Report::Log(_T("VegClassLCPLookup Initialized"));
 
 	REAL xMin = 0;
 	REAL xMax = 0;
@@ -1188,7 +1188,7 @@ bool FlamMapAP::CreateLCPGenerator()
 	m_rows = (int)ceil(yExtent / m_cellDim);
 	m_cols = (int)ceil(xExtent / m_cellDim);
 
-	msg.Format(_T("  Params from LCP file: Rows: %d  Cols: %d  CellDim: %f"), m_rows, m_cols, m_cellDim);
+	msg.Format(_T("Params from LCP file: Rows: %d  Cols: %d  CellDim: %f"), m_rows, m_cols, m_cellDim);
 	Report::Log(msg);
 
 	m_pMap = m_pPolyMapLayer->GetMapPtr();

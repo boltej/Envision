@@ -45,7 +45,12 @@ RGBA WRColorRamp(float vmin, float vmax, float m) //, unsigned char& r, unsigned
       { 230, 9, 9 },   //#E60909
       { 230, 0, 0 } };  //#E60000
 
-   int index = int(ncolors_WR * (m - vmin) / (vmax - vmin));
+   int index = 0;
+   if (_isnan(m))
+      index = 1;
+   else
+      index = int(ncolors_WR * (m - vmin) / (vmax - vmin));
+   
    if (index >= ncolors_WR)
       index = ncolors_WR - 1;
 

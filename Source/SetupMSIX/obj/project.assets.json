@@ -27,15 +27,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -43,15 +34,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -81,15 +63,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -97,15 +70,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -135,15 +99,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -151,15 +106,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -189,15 +135,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -205,15 +142,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -243,15 +171,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -259,15 +178,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -297,15 +207,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -313,15 +214,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -351,15 +243,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -367,15 +250,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     },
@@ -405,15 +279,6 @@
           "bin/placeholder/Envision.dll": {}
         }
       },
-      "EnvServer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/EnvServer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/EnvServer.dll": {}
-        }
-      },
       "NetViewer/1.0.0": {
         "type": "project",
         "compile": {
@@ -421,15 +286,6 @@
         },
         "runtime": {
           "bin/placeholder/NetViewer.dll": {}
-        }
-      },
-      "VersionUpdater/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/VersionUpdater.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/VersionUpdater.dll": {}
         }
       }
     }
@@ -581,29 +437,17 @@
       "path": "../Envision/Envision.vcxproj",
       "msbuildProject": "../Envision/Envision.vcxproj"
     },
-    "EnvServer/1.0.0": {
-      "type": "project",
-      "path": "../EnvServer/EnvServer.vcxproj",
-      "msbuildProject": "../EnvServer/EnvServer.vcxproj"
-    },
     "NetViewer/1.0.0": {
       "type": "project",
       "path": "../NetViewer/NetViewer.vcxproj",
       "msbuildProject": "../NetViewer/NetViewer.vcxproj"
-    },
-    "VersionUpdater/1.0.0": {
-      "type": "project",
-      "path": "../VersionUpdater/VersionUpdater.vcxproj",
-      "msbuildProject": "../VersionUpdater/VersionUpdater.vcxproj"
     }
   },
   "projectFileDependencyGroups": {
     "UAP,Version=v10.0.17763": [
-      "EnvServer >= 1.0.0",
       "Envision >= 1.0.0",
       "Microsoft.Windows.SDK.BuildTools >= 10.0.22000.194",
       "NetViewer >= 1.0.0",
-      "VersionUpdater >= 1.0.0",
       "envcmd >= 1.0.0"
     ]
   },
@@ -645,14 +489,8 @@
             "D:\\Envision\\Source\\Envision\\Envision.vcxproj": {
               "projectPath": "D:\\Envision\\Source\\Envision\\Envision.vcxproj"
             },
-            "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj": {
-              "projectPath": "D:\\Envision\\Source\\EnvServer\\EnvServer.vcxproj"
-            },
             "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj": {
               "projectPath": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj"
-            },
-            "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj": {
-              "projectPath": "D:\\Envision\\Source\\VersionUpdater\\VersionUpdater.vcxproj"
             }
           }
         }
@@ -687,7 +525,7 @@
         ],
         "assetTargetFallback": true,
         "warn": true,
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\6.0.402\\RuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.101\\RuntimeIdentifierGraph.json"
       }
     },
     "runtimes": {

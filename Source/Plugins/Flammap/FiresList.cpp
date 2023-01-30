@@ -47,7 +47,7 @@ void FiresList::Init(const char *_initFName)
    if ( PathManager::FindPath( _initFName, initFName ) < 0 )    // search envision paths
       {
       CString msg;
-      msg.Format( "  Unable to locate firelist file '%s' on path", _initFName );
+      msg.Format( "Unable to locate firelist file '%s' on path", _initFName );
       Report::ErrorMsg( msg );
       return;
       }
@@ -57,7 +57,7 @@ void FiresList::Init(const char *_initFName)
    CString tRecord;
    if ( records < 0 )
       {
-      CString msg( _T("  Init(): Failed to open file ") );
+      CString msg( _T("Init(): Failed to open file ") );
       msg += _initFName;
       Report::ErrorMsg(msg);
       gpFlamMapAP->m_runStatus = 0;
@@ -161,7 +161,7 @@ void FiresList::Init(const char *_initFName)
       if ( retVal < 0 )
          {
          CString msg;
-         msg.Format( "  Unable to find fuel moisture file '%s' when searching paths", (LPCTSTR) fmsFull );
+         msg.Format( "Unable to find fuel moisture file '%s' when searching paths", (LPCTSTR) fmsFull );
          Report::ErrorMsg( msg );
          }
 
@@ -187,7 +187,7 @@ void FiresList::Init(const char *_initFName)
 
 
    CString msg;
-   msg.Format( "  Loaded %i fires from firelist file '%s'", data.GetRowCount(), initFName );
+   msg.Format( "Loaded %i fires from firelist file '%s'", data.GetRowCount(), initFName );
    Report::Log( msg );
    /// OLD CODE BELOW
    //int tmp = (int) Fires.size();

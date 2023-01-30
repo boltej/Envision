@@ -61,7 +61,7 @@ Copywrite 2012 - Oregon State University
 #include <Path.h>
 
 #include <ColumnTrace.h>
-#include "VideoRecorderDlg.h"
+//#include "VideoRecorderDlg.h"
 
 #include <raster.h>
 
@@ -186,7 +186,7 @@ BEGIN_MESSAGE_MAP(CEnvView, CView)
    ON_COMMAND(ID_ANALYSIS_EXPORTOUTPUTS, OnExportOutputs)
    ON_COMMAND(ID_ANALYSIS_EXPORTDELTAS, OnExportDeltas)
    ON_COMMAND(ID_ANALYSIS_EXPORTDELTAFIELDS, OnExportDeltaFields)
-   ON_COMMAND(ID_ANALYSIS_VIDEORECORDERS, OnVideoRecorders)
+ //  ON_COMMAND(ID_ANALYSIS_VIDEORECORDERS, OnVideoRecorders)
  
 	ON_UPDATE_COMMAND_UI(ID_ANALYSIS_EXPORTCOVERAGES, OnUpdateExportCoverages)
 	ON_UPDATE_COMMAND_UI(ID_ANALYSIS_EXPORTOUTPUTS, OnUpdateExportOutputs)
@@ -1121,11 +1121,11 @@ void CEnvView::OnAnalysisSetupRun()
 
 
 
-void CEnvView::OnVideoRecorders()
-   {
-   VideoRecorderDlg dlg;
-   dlg.DoModal();
-   }
+//void CEnvView::OnVideoRecorders()
+//   {
+//   VideoRecorderDlg dlg;
+//   dlg.DoModal();
+//   }
 
 
 void CEnvView::OnSaveShapefile()
@@ -1464,7 +1464,7 @@ BOOL CEnvView::OnCmdMsg(UINT nID, int nCode, void* pExtra, AFX_CMDHANDLERINFO* p
    return this->m_viewPanel.OnCmdMsg( nID, nCode, pExtra, pHandlerInfo );
    }
 
-
+/*
 bool CEnvView::AddStandardRecorders( void )
    {
    nsPath::CPath path( gpDoc->m_iniFile );
@@ -1572,7 +1572,7 @@ void CEnvView::StopVideoRecorders( void )
          }
       }
    }
-
+   */
 
 void CEnvView::UpdateUI( int flags, INT_PTR extra )
    {
@@ -1585,7 +1585,7 @@ void CEnvView::UpdateUI( int flags, INT_PTR extra )
    if ( flags & 2 )  // update map.   TODO: Implement dynamic update for multi-run case
       {
       m_mapPanel.m_mapFrame.Update();
-      UpdateVideoRecorders();
+      //UpdateVideoRecorders();
       }
 
    if ( flags & 4 ) // show year
@@ -1675,6 +1675,6 @@ void CEnvView::EndRun()
          }
       }  // end of:  for( i < vizCount )
 
-   StopVideoRecorders();   // generates AVI files
+   //StopVideoRecorders();   // generates AVI files
    return;
    }

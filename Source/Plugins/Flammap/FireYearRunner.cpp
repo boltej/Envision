@@ -132,8 +132,8 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 	CString tmpStr;
 
 	int fireCnt = 0;
-	int year = pEnvContext->currentYear;
-
+	//int year = pEnvContext->currentYear;
+	int year = pEnvContext->yearOfRun;
 	//int numOmpProcs = omp_get_num_procs();
 
 	__int64 nRows = gpFlamMapAP->m_rows;
@@ -210,19 +210,24 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 			pflName.Format("%s%d_FlameLength_%03d_%04d.asc", gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->run, year);
 			tFlamMap.WriteOutputLayerToDisk(FLAMELENGTH, (char *)pflName.GetString());
 
+			CString msg;
+			msg.Format("Writing potential flame length grid to %s", (LPCTSTR) pflName);
+			Report::StatusMsg(msg);
+
 			CString cfName;
 			cfName.Format("%s%d_CrownFire_%03d_%04d.asc", gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->run, year);
 			tFlamMap.WriteOutputLayerToDisk(CROWNSTATE, (char *)cfName.GetString());
+			msg.Format("Writing crown fire grid to %s", (LPCTSTR)cfName);
+			Report::StatusMsg(msg);
 
 			// reload potential flame length as ASCII grids 
 
 			MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
 			Map *pMap = pLayer->GetMapPtr();
 
+			msg.Format("Adding potential flame length grid %s to Envision", (LPCTSTR) pflName);
+			Report::StatusMsg(msg);
 			MapLayer *pGrid = pMap->AddGridLayer(pflName, DOT_FLOAT, -1, 10, BCF_RED_INCR);
-
-			Report::StatusMsg("Done Adding Grid");
-
 
 			if (pGrid)
 			{
@@ -274,7 +279,7 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 
 	if (firesToDo <= 0)
 		{
-		msg.Format("  No fires selected for year %d", year);
+		msg.Format("No fires selected for year %d (%d)", year, pEnvContext->currentYear);
 		Report::Log(msg);
 		return 0;
 		}
@@ -351,7 +356,7 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 		echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
 		}
 
-	msg.Format(_T(" Starting fires for year %d, running %d fires"), year, firesToDo);
+	msg.Format(_T("Starting fires for year %d (%d), running %d fires"), year, pEnvContext->currentYear, firesToDo);
 	Report::Log(msg);
 
 	float *flameLenLayer, maxFlameLen = 0;
@@ -362,7 +367,7 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 	long nCellsBurned;
 	long iduCells;
 	double iduArea, newX, newY, originalX, originalY;
-	int errorsFMS = 0, errorsFMP = 0, errorsMTT = 0, errorsIgnition = 0, offLandscapeIgnition = 0, retryCount = 0, flLoc;
+	int errorsFMS = 0, errorsFMP = 0, errorsMTT = 0, errorsIgnition = 0, offLandscapeIgnition = 0, retryCount = 0, flLoc=0;
 	bool needToRetry = false;
 	CPerimeter *perim;
 	__int64 nCells = nRows * nCols;
@@ -408,9 +413,11 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 		retryCount = 0;
 		while (needToRetry && retryCount < MaxTries)
 		{
+			double cellSize = tFlamMap.GetCellSize();
+			int burnPeriod = fireArray[n].GetBurnPeriod();
 			pMtt->SetFlamMap(&tFlamMap);
-			pMtt->SetResolution(tFlamMap.GetCellSize());
-			pMtt->SetMaxSimTime(fireArray[n].GetBurnPeriod());
+			pMtt->SetResolution(cellSize);
+			pMtt->SetMaxSimTime(burnPeriod);
 			pMtt->SetNumProcessors(1);
 			pMtt->SetSpotProbability(gpFlamMapAP->m_spotProbability);
 			if (retryCount > 0)
@@ -419,28 +426,32 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 				getNewIgnitionPoint(&tFlamMap, gpFlamMapAP->m_pIgnitRand, originalX, originalY, &newX, &newY);
 				fireArray[n].SetIgnitionPoint(newX, newY);
 			}
-			if (fireArray[n].GetIgnitX() >= pMtt->GetWest() && fireArray[n].GetIgnitX() <= pMtt->GetEast()
-				&& fireArray[n].GetIgnitY() >= pMtt->GetSouth() && fireArray[n].GetIgnitY() <= pMtt->GetNorth())
+			// is this fire's ignition point inside the MTT grid?
+			double xIgnition = fireArray[n].GetIgnitX();
+			double yIgnition = fireArray[n].GetIgnitY();
+
+			if ( BETWEEN(pMtt->GetWest(), xIgnition, pMtt->GetEast()) && BETWEEN(pMtt->GetSouth(), yIgnition, pMtt->GetNorth()))     //if (xIgnition >= pMtt->GetWest() && xIgnition <= pMtt->GetEast() 	&& yIgnition >= pMtt->GetSouth() && yIgnition <= pMtt->GetNorth())
 			{
-				ret = pMtt->SetIgnitionPoint(fireArray[n].GetIgnitX(), fireArray[n].GetIgnitY());
+				// return value of "1" indicates success
+				ret = pMtt->SetIgnitionPoint(xIgnition, yIgnition);
 			}
-			else
+			else  // outside the grid, records as off-landscape ignition
 			{
-				ret = 2;
+				ret = 2;  // signal it was unsuccessful
 				offLandscapeIgnition++;
 				delete pMtt;
 				pMtt = NULL;
 				break;
 			}
+			// if unsuccessful, try again
 			if (ret != 1)
 			{
 				retryCount++;
 				if (retryCount < MaxTries)
 					continue;
 
-				if (envFireList && MaxTries <= 1)
+				if (envFireList && MaxTries <= 1)  // write to firelist output file
 				{
-
 					fprintf(envFireList, "%d, %f, %d, %d, %d, %d, %s, %f, %f, %f, %d, %f, %d, 0.0, 0, -1, %s, %d, %d, %s, %d",
 						year,
 						fireArray[n].GetBurnProb(),
@@ -460,20 +471,21 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 						ret == 2 ? RESULT_IGNIT_OFF_LCP : RESULT_IGNIT_NON_BURNABLE,
 						fireArray[n].GetFireID(),
 						fireArray[n].GetEnvisionFireID());
+
 					for (flLoc = 0; flLoc < 20; flLoc++)
 						fprintf(envFireList, ", 0.000000");
+					
 					fprintf(envFireList, "\n");
 					if (echoFiresList)
-					{
 						fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
-					}
 				}
 				delete pMtt;
 				pMtt = NULL;
-				if (ret != 2)
+				if (ret != 2)    // if return value not equal to 1 or 2, signals an ignition error
 					errorsIgnition++;
 				continue;
 			}
+			
 			ret = pMtt->LaunchMTTQuick();
 			if (ret != 1)
 			{
@@ -696,37 +708,37 @@ int FireYearRunner::RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyG
 	   }
 	   else
 	   {
-		   msg.Format(_T("  Error creating annual flame length grid file: %s\n"), AnnualFlameLengthName);
-		   Report::Log(msg);
+		   msg.Format(_T("Error creating annual flame length grid file: %s"), AnnualFlameLengthName);
+		   Report::LogError(msg);
 	   }
    }
 
    //TRACE3(_T(" Finished fires for year %d, ran %d of %d fires\n"), year, firesDone, firesToDo);
-   msg.Format(_T("  Finished fires for year %d, ran %d of %d fires\n"), year, firesDone, firesToDo);
+   msg.Format(_T("Finished fires for year %d (%d), attempted to run %d of %d fires"), year, pEnvContext->currentYear, firesDone, firesToDo);
    Report::Log(msg);
    if (errorsFMS > 0)
    {
-	   msg.Format(_T("  Encountered %d FMS file errors\n"), errorsFMS);
-	   Report::LogError(msg);
+	   msg.Format(_T("Encountered %d FMS file errors"), errorsFMS);
+	   Report::LogWarning(msg);
    }
    if (errorsFMP > 0)
    {
-	   msg.Format(_T("  Encountered %d FlamMap run errors\n"), errorsFMP);
-	   Report::LogError(msg);
+	   msg.Format(_T("Encountered %d FlamMap run errors"), errorsFMP);
+	   Report::LogWarning(msg);
    }
    if (offLandscapeIgnition > 0)
    {
-	   msg.Format(_T("  Encountered %d Ignitions off landscape\n"), offLandscapeIgnition);
+	   msg.Format(_T("Encountered %d Ignitions off landscape"), offLandscapeIgnition);
 	   Report::LogWarning(msg);
    }
    if (errorsIgnition > 0)
    {
-	   msg.Format(_T("  Encountered %d Ignition errors\n"), errorsIgnition);
+	   msg.Format(_T("Encountered %d Ignition errors"), errorsIgnition);
 	   Report::LogWarning(msg);
    }
    if (errorsMTT > 0)
    {
-	   msg.Format(_T("  Encountered %d MTT non-burning fires\n"), errorsMTT);
+	   msg.Format(_T("Encountered %d MTT non-burning fires"), errorsMTT);
 	   Report::LogWarning(msg);
    }
    // cleanup to be sure

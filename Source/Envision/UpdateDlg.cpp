@@ -87,7 +87,7 @@ bool UpdateDlg::Init( void )
  
    if ( service.GetEnvisionVersion( &g, &r ) != SOAP_OK )
       {
-      Report::Log( "Unable to connect to Envision Update Service, updating services will be disabled for this session" );
+      //Report::Log( "Unable to connect to Envision Update Service, updating services will be disabled for this session" );
       return false;
       }
    

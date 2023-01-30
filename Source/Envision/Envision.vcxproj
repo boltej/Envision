@@ -304,14 +304,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|x64'">false</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="BasemapDlg.cpp" />
-    <ClCompile Include="camera.cpp">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Template|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="ChangeTypeDlg.cpp" />
     <ClCompile Include="ConstraintsDlg.cpp" />
     <ClCompile Include="ConvertDlg.cpp" />
@@ -436,12 +428,7 @@
     <ClCompile Include="TextToIdDlg.cpp" />
     <ClCompile Include="TipDlg.cpp" />
     <ClCompile Include="TrajectorySpaceWnd.cpp" />
-    <ClCompile Include="UpdateDlg.cpp" />
-    <ClCompile Include="VideoRecorderDlg.cpp" />
     <ClCompile Include="Visualizer.cpp" />
-    <ClCompile Include="WebServices\soapC.cpp" />
-    <ClCompile Include="WebServices\soapEnvWebServiceSoapProxy.cpp" />
-    <ClCompile Include="WebServices\stdsoap2.cpp" />
     <ClCompile Include="WizRun.cpp" />
     <ClCompile Include="UltimateToolbox\OXLayoutManager.cpp" />
   </ItemGroup>
@@ -568,19 +555,9 @@
     <ClInclude Include="TrajectorySpaceWnd.h" />
     <ClInclude Include="ugctelps.h" />
     <ClInclude Include="UpdateDlg.h" />
-    <ClInclude Include="VideoRecorderDlg.h" />
     <ClInclude Include="Visualizer.h" />
-    <ClInclude Include="WebServices\soapEnvWebServiceSoapProxy.h" />
-    <ClInclude Include="WebServices\soapH.h" />
-    <ClInclude Include="WebServices\soapStub.h" />
-    <ClInclude Include="WebServices\stdsoap2.h" />
     <ClInclude Include="WizardDlg.h" />
     <ClInclude Include="Wizrun.h" />
-    <ClInclude Include="Logbook\Logbook.h" />
-    <ClInclude Include="Logbook\LogbookFile.h" />
-    <ClInclude Include="Logbook\LogbookGUI.h" />
-    <ClInclude Include="Logbook\LogbookGUIItem.h" />
-    <ClInclude Include="Logbook\ThreadObject.h" />
     <ClInclude Include="UltimateToolbox\OXDllExt.h" />
     <ClInclude Include="UltimateToolbox\OXLayoutManager.h" />
     <ClInclude Include="UltimateToolbox\UTB64Bit.h" />
@@ -634,7 +611,6 @@
     <None Include="res\writesmall.bmp" />
     <None Include="Envision.reg" />
     <None Include="ReadMe.txt" />
-    <None Include="WebServices\EnvWebServiceSoap.nsmap" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Envision.rc" />

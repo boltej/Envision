@@ -8,6 +8,7 @@
 #include <misc.h>
 #include <FDATAOBJ.H>
 
+
 FieldCalculator* theModel = nullptr;
 
 
@@ -85,12 +86,7 @@ bool FieldDef::Init()
 
 FieldCalculator::FieldCalculator()
    : EnvModelProcess()
-   //, m_colArea(-1)
-   //, m_shuffleIDUs(false)
-   //, m_pRandUnif(NULL)
-   //, m_pOutputData(NULL)
       {
-      //ASSERT(theModel == NULL);  // singleton
       theModel = this;
       }
 
@@ -124,7 +120,7 @@ bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       }
 
    // set data obj column labels
-   ASSERT(m_pOutputData == NULL);
+   ASSERT(m_pOutputData == nullptr);
 
    int fieldCount = (int)m_fields.GetSize();
    int fc = 0;
@@ -132,8 +128,8 @@ bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       if (m_fields[i]->m_modelID == theModel->m_id || m_fields[i]->m_modelID == -99)
          fc++;
 
-
    m_pOutputData = new FDataObj(1+2*fc, 0);
+   m_pOutputData->SetName((LPCTSTR) this->m_name);
    m_pOutputData->SetLabel(0, "Year");
    int j = 1;
    for (int i = 0; i < fieldCount; i++)
@@ -276,6 +272,7 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             }
          }
       }
+
    // do anynecessary cleanup
    for (int i = 0; i < fieldCount; i++)
       {
@@ -374,11 +371,12 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
    // start interating through the nodes
    TiXmlElement* pXmlRoot = doc.RootElement();  // field_calculator
 
-   LPTSTR areaCol = NULL;
+   LPTSTR areaCol = nullptr, checkCols=nullptr;
    int    shuffleIDUs = 1;
    XML_ATTR rattrs[] = { // attr          type           address       isReq checkCol
                       { "area_col",     TYPE_STRING,   &areaCol,       false, CC_MUST_EXIST | TYPE_FLOAT },
                       { "shuffle_idus", TYPE_INT,      &shuffleIDUs,   false, 0 },
+                      { "check_cols",   TYPE_STRING,   &checkCols,     false, 0 },
                       { NULL,           TYPE_NULL,     NULL,           false, 0 } };
 
    if (TiXmlGetAttributes(pXmlRoot, rattrs, path, FieldCalculator::m_pMapLayer) == false)
@@ -405,6 +403,33 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
    else
       m_shuffleIDUs = false;
 
+
+   if (checkCols != nullptr)
+      {
+      CStringArray tokens;
+      int count = ::Tokenize(checkCols, _T(",;"), tokens);
+
+      int col = 0;
+      for (int i = 0; i < count; i++)
+         {
+         CStringArray token;
+         int _count = ::Tokenize(tokens[i], _T(":"), token);
+
+         TYPE type = TYPE_INT;
+         if (_count == 2)
+            {
+            switch (_tolower(token[1][0]))
+               {
+               case 'f':   type = TYPE_FLOAT;   break;
+               case 'd':   type = TYPE_DOUBLE;  break;
+               case 's':   type = TYPE_STRING;  break;
+               case 'l':   type = TYPE_LONG;    break;
+               }
+            }
+         this->CheckCol(m_pMapLayer, col, token[0], type, CC_AUTOADD);
+         }
+      }
+
    // constants
    TiXmlElement* pXmlConst = pXmlRoot->FirstChildElement("const");
    while (pXmlConst != NULL)
@@ -419,7 +444,10 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       if (TiXmlGetAttributes(pXmlConst, attrs, path, NULL ) == false)
          delete pConst;         
       else
+         {
          m_constants.Add(pConst);
+         m_pMapExprEngine->AddVariable(pConst->m_name, &(pConst->m_value));
+         }
 
       pXmlConst = pXmlConst->NextSiblingElement("const");
       }

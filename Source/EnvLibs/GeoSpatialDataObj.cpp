@@ -1223,7 +1223,7 @@ bool GeoSpatialDataObj::ReadSpatialData(void)
             break;
 
          case GDT_CInt32:    // Complex Int32
-            BuildDataObj((complex< long >*) m_pafScanband, (complex< long >) m_noDataValue, m_pafScanbandbool, m_RasterXYZSize);
+            //BuildDataObj((complex< long >*) m_pafScanband, (complex< long >) m_noDataValue, m_pafScanbandbool, m_RasterXYZSize);
             break;
 
          case GDT_Int32:    // Thirty two bit signed integer

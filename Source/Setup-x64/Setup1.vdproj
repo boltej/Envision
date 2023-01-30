@@ -45,12 +45,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_0A8A9ABF10B144D18734A063B668CE1C"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_0BF8F52973E64DF9AAA9B61C44B133C8"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -81,6 +75,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_1141197D4DA54B7F842DAE88C4BA050E"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_14B8BAE0FE73453B80DF17C0F47D4590"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -105,12 +105,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_1BD6A40C9034474C9EFA42D68F007BFA"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_1D35A7A0C60442C3AFD6F45C2378CC44"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -124,12 +118,6 @@
         "Entry"
         {
         "MsmKey" = "8:_2174E23EC3D64D3D8AD5D5F4ABDE63C3"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_254231F766614AD98A5B685696E59C79"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -226,6 +214,12 @@
         "Entry"
         {
         "MsmKey" = "8:_4A9B78C677EE4246805BA250E573ED0E"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_4ADEA9A2AEAF4746A816E76A46F65BF4"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -351,6 +345,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_6E01001EEEB449DDAC5280EB94FC9429"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_706ED6EC086D48A59D9AE800501805C2"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -358,12 +358,6 @@
         "Entry"
         {
         "MsmKey" = "8:_7369064ECA444CF99FC1ED71ED56FE6C"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_73D8F549B3E744BFA77D3A6F20D8B218"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -447,12 +441,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_8E4B8FA281D04C69A2CBC6265AC46AEA"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_9182AE610C0E4C0BBFF77DC5F56388B2"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -489,12 +477,6 @@
         }
         "Entry"
         {
-        "MsmKey" = "8:_AB21FE43DD52485698B7D7585F02B3AE"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
         "MsmKey" = "8:_AC97A81E1F6547558DA06DF4DE53911A"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -514,12 +496,6 @@
         "Entry"
         {
         "MsmKey" = "8:_B6E8B9C858EB48DDA1ED4009DAD9A745"
-        "OwnerKey" = "8:_UNDEFINED"
-        "MsmSig" = "8:_UNDEFINED"
-        }
-        "Entry"
-        {
-        "MsmKey" = "8:_B7763FC199574394A9AE2388D36C0583"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -567,6 +543,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_BA178FCEDEFF4E72828AA0F57F5BA1A5"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_BA7159A3FABB497A8994725A0EE665C3"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -597,6 +579,12 @@
         }
         "Entry"
         {
+        "MsmKey" = "8:_C71D9798FFB640E8B3E082C37BDCB28B"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
         "MsmKey" = "8:_C851983EA50A485D8976A6FE0F8C4DAA"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
@@ -622,6 +610,12 @@
         "Entry"
         {
         "MsmKey" = "8:_CFC38C32ACD3453CB19F93920876F567"
+        "OwnerKey" = "8:_UNDEFINED"
+        "MsmSig" = "8:_UNDEFINED"
+        }
+        "Entry"
+        {
+        "MsmKey" = "8:_D30E27BFD735498095167B4D305D55B9"
         "OwnerKey" = "8:_UNDEFINED"
         "MsmSig" = "8:_UNDEFINED"
         }
@@ -783,7 +777,7 @@
         "DisplayName" = "8:Debug"
         "IsDebugOnly" = "11:TRUE"
         "IsReleaseOnly" = "11:FALSE"
-        "OutputFilename" = "8:\\\\envsvr\\envision\\Downloads\\Setup-x64.msi"
+        "OutputFilename" = "8:\\\\envweb\\envision\\Downloads\\Setup-x64.msi"
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
@@ -820,7 +814,7 @@
         "DisplayName" = "8:Release"
         "IsDebugOnly" = "11:FALSE"
         "IsReleaseOnly" = "11:TRUE"
-        "OutputFilename" = "8:\\\\envsvr\\envision\\Downloads\\Setup-x64.msi"
+        "OutputFilename" = "8:\\\\envweb\\envision\\Downloads\\Setup-x64.msi"
         "PackageFilesAs" = "3:2"
         "PackageFileSize" = "3:-2147483648"
         "CabType" = "3:1"
@@ -872,7 +866,7 @@
                 {
                 "Name" = "8:.NET Framework"
                 "Message" = "8:[VSDNETMSG]"
-                "FrameworkVersion" = "8:.NETFramework,Version=v4.0,Profile=Client"
+                "FrameworkVersion" = "8:v4.0 Client  "
                 "AllowLaterVersions" = "11:FALSE"
                 "InstallUrl" = "8:http://go.microsoft.com/fwlink/?LinkId=131000"
                 }
@@ -1080,6 +1074,26 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_1141197D4DA54B7F842DAE88C4BA050E"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\FieldCalc.dll"
+            "TargetName" = "8:FieldCalc.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_14B8BAE0FE73453B80DF17C0F47D4590"
             {
             "SourcePath" = "8:..\\EnvisionUpdater.bat"
@@ -1204,26 +1218,6 @@
             {
             "SourcePath" = "8:..\\x64\\Release\\Trigger.dll"
             "TargetName" = "8:Trigger.dll"
-            "Tag" = "8:"
-            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:FALSE"
-            "IsolateTo" = "8:"
-            }
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_254231F766614AD98A5B685696E59C79"
-            {
-            "SourcePath" = "8:..\\x64\\Release\\F2R.dll"
-            "TargetName" = "8:F2R.dll"
             "Tag" = "8:"
             "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
             "Condition" = "8:"
@@ -1546,6 +1540,26 @@
             "TargetName" = "8:trailer.dxf"
             "Tag" = "8:"
             "Folder" = "8:_D6CCBBEFFA1A4E26A483AD30F8B7428C"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_4ADEA9A2AEAF4746A816E76A46F65BF4"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\Transitions.dll"
+            "TargetName" = "8:Transitions.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -1924,6 +1938,26 @@
             {
             "SourcePath" = "8:..\\x64\\Release\\DynamicVeg.dll"
             "TargetName" = "8:DynamicVeg.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_6E01001EEEB449DDAC5280EB94FC9429"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\Modeler.dll"
+            "TargetName" = "8:Modeler.dll"
             "Tag" = "8:"
             "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
             "Condition" = "8:"
@@ -2340,26 +2374,6 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
-            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_AB21FE43DD52485698B7D7585F02B3AE"
-            {
-            "SourcePath" = "8:..\\x64\\Release\\freeglut.dll"
-            "TargetName" = "8:freeglut.dll"
-            "Tag" = "8:"
-            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
-            "Condition" = "8:"
-            "Transitive" = "11:FALSE"
-            "Vital" = "11:TRUE"
-            "ReadOnly" = "11:FALSE"
-            "Hidden" = "11:FALSE"
-            "System" = "11:FALSE"
-            "Permanent" = "11:FALSE"
-            "SharedLegacy" = "11:FALSE"
-            "PackageAs" = "3:1"
-            "Register" = "3:1"
-            "Exclude" = "11:FALSE"
-            "IsDependency" = "11:FALSE"
-            "IsolateTo" = "8:"
-            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_AC97A81E1F6547558DA06DF4DE53911A"
             {
             "SourcePath" = "8:..\\..\\GDAL\\release-1600-x64\\bin\\gdal-data\\s57agencies.csv"
@@ -2580,6 +2594,26 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_BA178FCEDEFF4E72828AA0F57F5BA1A5"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\UrbanDev.dll"
+            "TargetName" = "8:UrbanDev.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_BA7159A3FABB497A8994725A0EE665C3"
             {
             "SourcePath" = "8:..\\x64\\Release\\CVA.dll"
@@ -2680,6 +2714,26 @@
             "IsDependency" = "11:FALSE"
             "IsolateTo" = "8:"
             }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_C71D9798FFB640E8B3E082C37BDCB28B"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\SNIP.dll"
+            "TargetName" = "8:SNIP.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
             "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_C851983EA50A485D8976A6FE0F8C4DAA"
             {
             "SourcePath" = "8:..\\..\\GDAL\\release-1600-x64\\bin\\gdal-data\\gcs.csv"
@@ -2766,6 +2820,26 @@
             "TargetName" = "8:xerces-c_2_8.dll"
             "Tag" = "8:"
             "Folder" = "8:_D71046CC19854F38854696270EE1F35D"
+            "Condition" = "8:"
+            "Transitive" = "11:FALSE"
+            "Vital" = "11:TRUE"
+            "ReadOnly" = "11:FALSE"
+            "Hidden" = "11:FALSE"
+            "System" = "11:FALSE"
+            "Permanent" = "11:FALSE"
+            "SharedLegacy" = "11:FALSE"
+            "PackageAs" = "3:1"
+            "Register" = "3:1"
+            "Exclude" = "11:FALSE"
+            "IsDependency" = "11:FALSE"
+            "IsolateTo" = "8:"
+            }
+            "{1FB2D0AE-D3B9-43D4-B9DD-F88EC61E35DE}:_D30E27BFD735498095167B4D305D55B9"
+            {
+            "SourcePath" = "8:..\\x64\\Release\\ChronicHazards.dll"
+            "TargetName" = "8:ChronicHazards.dll"
+            "Tag" = "8:"
+            "Folder" = "8:_B4BBA1D75D824FB58D8D343C12683CBA"
             "Condition" = "8:"
             "Transitive" = "11:FALSE"
             "Vital" = "11:TRUE"
@@ -3590,7 +3664,7 @@
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:Envision"
         "ProductCode" = "8:{1C34F68E-5C94-46AD-A7D6-E81B6708F64E}"
-        "PackageCode" = "8:{B9A6E4B3-A51D-4740-9EEF-C005E481F856}"
+        "PackageCode" = "8:{49806990-0E85-46E0-9DBA-135D4C8973F0}"
         "UpgradeCode" = "8:{E12193A8-6D50-4ADE-9DC9-2A3ABB9EB3C4}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
@@ -4148,76 +4222,6 @@
         }
         "MergeModule"
         {
-            "{CEE29DC0-9FBA-4B99-8D47-5BC643D9B626}:_0A8A9ABF10B144D18734A063B668CE1C"
-            {
-            "UseDynamicProperties" = "11:TRUE"
-            "IsDependency" = "11:FALSE"
-            "SourcePath" = "8:C:\\Program Files (x86)\\Common Files\\Merge Modules\\Microsoft_VC140_MFC_x64.msm"
-                "Properties"
-                {
-                }
-            "LanguageId" = "3:0"
-            "Exclude" = "11:FALSE"
-            "Folder" = "8:"
-            "Feature" = "8:"
-            "IsolateTo" = "8:"
-            }
-            "{CEE29DC0-9FBA-4B99-8D47-5BC643D9B626}:_1BD6A40C9034474C9EFA42D68F007BFA"
-            {
-            "UseDynamicProperties" = "11:TRUE"
-            "IsDependency" = "11:FALSE"
-            "SourcePath" = "8:C:\\Program Files (x86)\\Common Files\\Merge Modules\\Microsoft_VC140_CRT_x64.msm"
-                "Properties"
-                {
-                }
-            "LanguageId" = "3:0"
-            "Exclude" = "11:FALSE"
-            "Folder" = "8:"
-            "Feature" = "8:"
-            "IsolateTo" = "8:"
-            }
-            "{CEE29DC0-9FBA-4B99-8D47-5BC643D9B626}:_73D8F549B3E744BFA77D3A6F20D8B218"
-            {
-            "UseDynamicProperties" = "11:TRUE"
-            "IsDependency" = "11:FALSE"
-            "SourcePath" = "8:C:\\Program Files (x86)\\Common Files\\Merge Modules\\Microsoft_VC140_OpenMP_x64.msm"
-                "Properties"
-                {
-                }
-            "LanguageId" = "3:0"
-            "Exclude" = "11:FALSE"
-            "Folder" = "8:"
-            "Feature" = "8:"
-            "IsolateTo" = "8:"
-            }
-            "{CEE29DC0-9FBA-4B99-8D47-5BC643D9B626}:_8E4B8FA281D04C69A2CBC6265AC46AEA"
-            {
-            "UseDynamicProperties" = "11:TRUE"
-            "IsDependency" = "11:FALSE"
-            "SourcePath" = "8:C:\\Program Files (x86)\\Common Files\\Merge Modules\\Microsoft_VC140_CXXAMP_x64.msm"
-                "Properties"
-                {
-                }
-            "LanguageId" = "3:0"
-            "Exclude" = "11:FALSE"
-            "Folder" = "8:"
-            "Feature" = "8:"
-            "IsolateTo" = "8:"
-            }
-            "{CEE29DC0-9FBA-4B99-8D47-5BC643D9B626}:_B7763FC199574394A9AE2388D36C0583"
-            {
-            "UseDynamicProperties" = "11:TRUE"
-            "IsDependency" = "11:FALSE"
-            "SourcePath" = "8:C:\\Program Files (x86)\\Common Files\\Merge Modules\\Microsoft_VC140_MFCLOC_x64.msm"
-                "Properties"
-                {
-                }
-            "LanguageId" = "3:0"
-            "Exclude" = "11:FALSE"
-            "Folder" = "8:"
-            "Feature" = "8:"
-            "IsolateTo" = "8:"
-            }
         }
         "ProjectOutput"
         {

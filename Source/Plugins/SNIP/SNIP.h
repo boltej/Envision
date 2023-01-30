@@ -140,12 +140,19 @@ struct NetStats {
    int nodeCount=-1;
    int edgeCount=-1;
    int nodeCountNLA=-1;
+   
    float minNodeReactivity=-99.0f;
    float meanNodeReactivity = -99.0f;
    float maxNodeReactivity = -99.0f;
+
+   float minLANodeReactivity = -99.0f;
+   float meanLANodeReactivity = -99.0f;
+   float maxLANodeReactivity = -99.0f;
+
    float minNodeInfluence = -99.0f;
    float meanNodeInfluence = -99.0f;
    float maxNodeInfluence = -99.0f;
+   
    float minEdgeTransEff = -99.0f;
    float meanEdgeTransEff = -99.0f;
    float maxEdgeTransEff = -99.0f;
@@ -159,8 +166,6 @@ struct NetStats {
    float inputActivation = -99.0f;
    float landscapeSignalInfluence = -99.0f;
    float outputReactivity = -99.0f;
-   float meanLANodeReactivity = -99.0f;
-   float maxLANodeReactivity = -99.0f;
    float signalContestedness = -99.0f;
 
    // network
@@ -619,11 +624,11 @@ class SNIPModel
 
       // stats
       int GetMaxDegree(bool);
-      int GetActiveNodeCount(int type=NT_INPUT_SIGNAL | NT_ASSESSOR | NT_NETWORK_ACTOR | NT_ENGAGER | NT_LANDSCAPE_ACTOR);
+      int GetActiveNodeCount(SNIP_NODETYPE type=NT_UNKNOWN);
       int GetActiveEdgeCount();
-      int GetNodeCount(int type);
+      int GetNodeCount(SNIP_NODETYPE type);
 
-      float GetMeanReactivity(int type=NT_INPUT_SIGNAL | NT_ASSESSOR | NT_NETWORK_ACTOR | NT_ENGAGER | NT_LANDSCAPE_ACTOR);
+      float GetMeanReactivity(SNIP_NODETYPE type=NT_UNKNOWN);
    };
 
 

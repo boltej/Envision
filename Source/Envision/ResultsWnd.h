@@ -29,7 +29,7 @@ Copywrite 2012 - Oregon State University
 #include "MapPanel.h"
 #include <afxtempl.h>
 
-class CAVIGenerator;
+//class CAVIGenerator;
 
 typedef bool (*REPLAYFN)( CWnd*, int year );  // -1=reset
 typedef bool (*SETYEARFN)( CWnd*, int oldYear, int newYear );
@@ -147,12 +147,12 @@ public:
 
 public:
    //AVI production
-   void WriteFrame();
-   void InitMovieCapture();
-   void CleanupMovieCapture();
-   bool m_createMovie;
-   CAVIGenerator** m_aviGenerators;
-   struct AuxMovieStuff* m_auxMovieStuff;
+   //void WriteFrame();
+   //void InitMovieCapture();
+   //void CleanupMovieCapture();
+   //bool m_createMovie;
+   //CAVIGenerator** m_aviGenerators;
+   //struct AuxMovieStuff* m_auxMovieStuff;
 
 
    bool m_showDeltas;
@@ -171,6 +171,7 @@ public:
 };
 
 // this is all just for precalculating and storing things to avoid doing it per-frame
+/*
 struct AuxMovieStuff
 {
    CDC bitmapDC;
@@ -179,7 +180,7 @@ struct AuxMovieStuff
    LPBITMAPINFO lpbi;
    BYTE* bitAddress;
 };
-
+*/
 
 /////////////////////////////////////////////////////////////////////////////
 

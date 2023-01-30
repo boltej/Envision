@@ -341,7 +341,7 @@ void LCPGenerator::PrepLandscape(EnvContext *pEnvContext)
    } // for(i=0;i<m_pPolyGridLkUp->numGridRows;i++)
 
    double propFModel = ((double)nCellsFModel) / (double)(m_pPolyGridLkUp->GetNumGridRows() * m_pPolyGridLkUp->GetNumGridCols());
-   msg.Format(_T("  Proportion cells using FModelplus: %lf"), propFModel);
+   msg.Format(_T("Proportion cells using FModelplus: %lf"), propFModel);
    Report::Log(msg);
 
 		// Build filename and write to file

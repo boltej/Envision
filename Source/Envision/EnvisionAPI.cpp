@@ -29,7 +29,7 @@ Copywrite 2012 - Oregon State University
 //#include "PathManager.h"
 
 #include "PolQueryDlg.h"
-#include <VideoRecorder.h>
+//#include <VideoRecorder.h>
 
 extern MapPanel      *gpMapPanel; 
 extern EnvModel      *gpModel;
@@ -77,77 +77,77 @@ Scenario *EnvGetScenarioFromName( LPCTSTR name, int *index )
    return pScenario;
    }
 
-int EnvAddVideoRecorder( int type, LPCTSTR name, LPCTSTR path, int frameRate, int method, int extra )
-   {
-   VideoRecorder *pVR = new VideoRecorder( path, gpMapPanel, frameRate );
-
-   pVR->SetType( type );
-   pVR->SetName( name );
-   //pVR->SetPath( path );
-   //pVR->SetFrameRate( frameRate );
-   pVR->SetCaptureMethod( (VRMETHOD) method );
-   pVR->SetExtra( extra );
-
-   int index = gpView->AddVideoRecorder( pVR );
-   return index;   
-   }
-
-int EnvStartVideoCapture( int vrID )
-   {
-   VideoRecorder *pVR = gpView->GetVideoRecorder( vrID );
-
-   if ( pVR != NULL )
-      {
-      pVR->StartCapture();
-      return 1;
-      }
-
-   return 0;
-   }
-
-int EnvCaptureVideo( int vrID )
-   {
-   VideoRecorder *pVR = gpView->GetVideoRecorder( vrID );
-
-   if ( pVR != NULL )
-      {
-      if ( pVR->m_pCaptureWnd == gpMapPanel && pVR->m_extra > 0 )  // is there a column defined?  If so, make sure it is active
-         {
-         // get existing active layer
-         int activeCol = gpCellLayer->GetActiveField();
-
-         int col = (int) pVR->m_extra;
-
-         if ( col != activeCol )
-            {
-            gpMapPanel->m_mapFrame.SetActiveField( col, true );
-            gpMapPanel->RedrawWindow();
-            }
-
-         pVR->CaptureFrame();
-         if ( col != activeCol )
-            {
-            gpMapPanel->m_mapFrame.SetActiveField( activeCol, true );
-            gpMapPanel->RedrawWindow();
-            }
-         }
-      }
-   
-   return 1;
-   }
-
-int EnvEndVideoCapture( int vrID )
-   {
-   VideoRecorder *pVR = gpView->GetVideoRecorder( vrID );
-   
-   if ( pVR )
-      {
-      pVR->EndCapture();
-      return 1;
-      }
-
-   return 0;
-   }
+//int EnvAddVideoRecorder( int type, LPCTSTR name, LPCTSTR path, int frameRate, int method, int extra )
+//   {
+//   VideoRecorder *pVR = new VideoRecorder( path, gpMapPanel, frameRate );
+//
+//   pVR->SetType( type );
+//   pVR->SetName( name );
+//   //pVR->SetPath( path );
+//   //pVR->SetFrameRate( frameRate );
+//   pVR->SetCaptureMethod( (VRMETHOD) method );
+//   pVR->SetExtra( extra );
+//
+//   int index = gpView->AddVideoRecorder( pVR );
+//   return index;   
+//   }
+//
+//int EnvStartVideoCapture( int vrID )
+//   {
+//   VideoRecorder *pVR = gpView->GetVideoRecorder( vrID );
+//
+//   if ( pVR != NULL )
+//      {
+//      pVR->StartCapture();
+//      return 1;
+//      }
+//
+//   return 0;
+//   }
+//
+//int EnvCaptureVideo( int vrID )
+//   {
+//   VideoRecorder *pVR = gpView->GetVideoRecorder( vrID );
+//
+//   if ( pVR != NULL )
+//      {
+//      if ( pVR->m_pCaptureWnd == gpMapPanel && pVR->m_extra > 0 )  // is there a column defined?  If so, make sure it is active
+//         {
+//         // get existing active layer
+//         int activeCol = gpCellLayer->GetActiveField();
+//
+//         int col = (int) pVR->m_extra;
+//
+//         if ( col != activeCol )
+//            {
+//            gpMapPanel->m_mapFrame.SetActiveField( col, true );
+//            gpMapPanel->RedrawWindow();
+//            }
+//
+//         pVR->CaptureFrame();
+//         if ( col != activeCol )
+//            {
+//            gpMapPanel->m_mapFrame.SetActiveField( activeCol, true );
+//            gpMapPanel->RedrawWindow();
+//            }
+//         }
+//      }
+//   
+//   return 1;
+//   }
+//
+//int EnvEndVideoCapture( int vrID )
+//   {
+//   VideoRecorder *pVR = gpView->GetVideoRecorder( vrID );
+//   
+//   if ( pVR )
+//      {
+//      pVR->EndCapture();
+//      return 1;
+//      }
+//
+//   return 0;
+//   }
 
 void EnvSetLLMapText( LPCTSTR text )
    {

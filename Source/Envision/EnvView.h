@@ -46,7 +46,7 @@ Copywrite 2012 - Oregon State University
 #include "Visualizer.h"
 
 #include <PtrArray.h>
-#include <VideoRecorder.h>
+//#include <VideoRecorder.h>
 
 
 // "standard" video recorders
@@ -143,20 +143,20 @@ public:
 	virtual void Dump(CDumpContext& dc) const;
 #endif
 
-   // video recorders
-protected:
-   PtrArray< VideoRecorder > m_vrArray;
-   int m_vrFrameRate;      // default for new recorders
-
-public:
-   int AddVideoRecorder( VideoRecorder *pVR ) { return (int) m_vrArray.Add( pVR ); }
-   int GetVideoRecorderCount()     { return (int) m_vrArray.GetSize(); }
-   VideoRecorder *GetVideoRecorder( int i ) { return m_vrArray[ i ]; }
-   bool AddStandardRecorders();
-
-   void StartVideoRecorders();
-   void UpdateVideoRecorders();
-   void StopVideoRecorders(); // writes associated AVIs
+//   // video recorders
+//protected:
+//   PtrArray< VideoRecorder > m_vrArray;
+//   int m_vrFrameRate;      // default for new recorders
+//
+//public:
+//   int AddVideoRecorder( VideoRecorder *pVR ) { return (int) m_vrArray.Add( pVR ); }
+//   int GetVideoRecorderCount()     { return (int) m_vrArray.GetSize(); }
+//   VideoRecorder *GetVideoRecorder( int i ) { return m_vrArray[ i ]; }
+//   bool AddStandardRecorders();
+//
+//   void StartVideoRecorders();
+//   void UpdateVideoRecorders();
+//   void StopVideoRecorders(); // writes associated AVIs
 
    // Zooms
 protected:

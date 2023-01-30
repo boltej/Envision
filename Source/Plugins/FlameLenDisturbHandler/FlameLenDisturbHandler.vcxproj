@@ -118,6 +118,9 @@
       <Command>
       </Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(SolutionDir)SetupMSIX\Envision\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="FlameLenDisturbHandler.cpp" />
