@@ -71,18 +71,18 @@ enum BEACHTYPE
    {
    BchT_UNDEFINED = 0,
    BchT_SANDY_DUNE_BACKED = 1,
-   BchT_SANDY_BLUFF_BACKED = 2,
-   BchT_RIPRAP_BACKED = 3,
-   BchT_SEAWALL_BACKED = 4,
+   BchT_SANDY_BLUFF_CLIFF_BACKED = 2,
+   BchT_SANDY_RIPRAP_BACKED = 3,
+   BchT_SANDY_SEAWALL_BACKED = 4,
    BchT_MIXED_SEDIMENT_DUNE_BACKED = 5,
    BchT_MIXED_SEDIMENT_BLUFF_BACKED = 6,
-   BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED = 7,
-   BchT_SANDY_COBBLEGRAVEL  = 8,	
-   BchT_WOODY_DEBRIS_BACKED = 9,	
+   BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED = 7,//
+   BchT_SANDY_COBBLEGRAVEL_BERM_BACKED  = 8,	
+   BchT_SANDY_WOODY_DEBRIS_BACKED = 9,	
    BchT_BAY                 = 10,	
    BchT_RIVER               = 11,	
    BchT_ROCKY_CLIFF_HEADLAND= 12,	
-   BchT_SANDY_BURIED_RIPRAP = 13,	
+   BchT_SANDY_BURIED_RIPRAP_BACKED = 13,	
    BchT_JETTY               = 14	
    };
 
@@ -270,6 +270,9 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       // a number of subgridcells specified by the variable m_numSubGridCells. Furthermore, the calculated 
       // PolyGridLookup relation is written to a binary file (*.pgl), in case such a file does not yet exist.
       int SetInfrastructureValues();
+      float KDmodel(int point);
+      float Bruunmodel(EnvContext* pEnvContext, int point);
+      float SCRmodel(int point);
 
       // bool LoadPolyGridLookup();
       //  bool LoadPolyGridLookup(MapLayer *pGridLayer, MapLayer *pPolyLayer, CString filename, PolyGridLookups *&pLookupLayer);
