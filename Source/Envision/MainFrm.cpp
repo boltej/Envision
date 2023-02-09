@@ -80,8 +80,7 @@ int CLogPane::OnCreate(LPCREATESTRUCT lpCreateStruct)
    this->GetClientRect(rect);
    m_logCtrl.Create(WS_CHILD | WS_VISIBLE | WS_VSCROLL | WS_BORDER, rect, this, 0x118);
 
-   m_font.CreatePointFont(90, _T("Lucida"));
-
+   m_font.CreatePointFont(90, _T("Courier New"));
    m_logCtrl.SetFont(&m_font);
 
    TCHAR exePath[ MAX_PATH ];

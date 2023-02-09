@@ -254,8 +254,8 @@ void FlameLengthUpdater::UpdateDeltaArray(
 
       if (totalPolyFlameLength != oldFlameLength)
          {
-         gpFlamMapAP->AddDelta(pEnvContext, polyIndex, colFlamLen, totalPolyFlameLength);
-         gpFlamMapAP->AddDelta(pEnvContext, polyIndex, colFireID, fireID);
+         gpFlamMapAP->UpdateIDU(pEnvContext, polyIndex, colFlamLen, totalPolyFlameLength, ADD_DELTA);
+         gpFlamMapAP->UpdateIDU(pEnvContext, polyIndex, colFireID, fireID, ADD_DELTA);
          if (deltaArrayCSV)
             {
             //fprintf(deltaArrayCSV, "Yr, Run, IDU, FireID, Flamelength, PFlameLen, CTSS, VegClass, Variant, DISTURB, FUELMODEL\n");

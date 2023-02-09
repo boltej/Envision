@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<map_sequence>
+
+  <sequence source="myMaplayer2010.shp" time="2010" source_col="myMapLayerCol" target_col="someIduCol" />
+  <sequence source="myMaplayer2011.shp" time="2011" source_col="myMapLayerCol" target_col="someIduCol" />
+  <sequence source="myMaplayer2012.shp" time="2012" source_col="myMapLayerCol" target_col="someIduCol" />
+
+  <sequence source="mytable.csv" source_col="myTableCol" target_col="someIDUCol" />
+
+</map_sequence>

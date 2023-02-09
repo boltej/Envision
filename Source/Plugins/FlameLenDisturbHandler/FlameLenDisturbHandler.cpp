@@ -404,13 +404,13 @@ bool FlameLenDisturbHandler::Run( EnvContext *pEnvContext )
 
 		if (m_disturb > 0)
 			{
-			AddDelta(pEnvContext, idu, m_colDisturb, m_disturb);
-			AddDelta(pEnvContext, idu, m_colTSD, 0);
+			UpdateIDU(pEnvContext, idu, m_colDisturb, m_disturb, ADD_DELTA);
+			UpdateIDU(pEnvContext, idu, m_colTSD, 0, ADD_DELTA);
 			}
 
 		if (potentialDisturb > 0 && m_colPotentialDisturb != -1 )
 			{
-			AddDelta(pEnvContext, idu, m_colPotentialDisturb, potentialDisturb);
+			UpdateIDU(pEnvContext, idu, m_colPotentialDisturb, potentialDisturb, ADD_DELTA);
 			}
 		
       }// end IDU loop

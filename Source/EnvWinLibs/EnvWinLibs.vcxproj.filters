@@ -13,21 +13,12 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
     </Filter>
-    <Filter Include="Header Files\LogBook">
-      <UniqueIdentifier>{1cbfdacb-a167-4228-88d4-90314214a862}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AVIAdapter.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="AVIGenerator.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="BalloonHelp.cpp">
@@ -204,9 +195,6 @@
     <ClCompile Include="VDataTable.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VideoRecorder.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="XBalloonMsg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -238,9 +226,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="CustomTabCtrl\ThemeUtil.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="plot3d\BarPlot3DWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="plot3d\ColorScaleWnd.cpp">
@@ -288,6 +273,9 @@
     <ClCompile Include="LogWnd.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="plot3d\BarPlot3DWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
@@ -321,9 +309,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="misc.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AVIGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="BalloonHelp.h">
@@ -524,9 +509,6 @@
     <ClInclude Include="VDataTable.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VideoRecorder.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="XBalloonMsg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -569,9 +551,6 @@
     <ClInclude Include="CustomTabCtrl\Tmschema.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="plot3d\BarPlot3DWnd.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="plot3d\ColorScaleWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -591,12 +570,6 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="gl\glReal.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="gl\Wglext.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="AVIAdapter.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="MapFrame.h">
@@ -632,25 +605,13 @@
     <ClInclude Include="EnvWinLib_resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Logbook\Logbook.h">
-      <Filter>Header Files\LogBook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\LogbookFile.h">
-      <Filter>Header Files\LogBook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\LogbookGUI.h">
-      <Filter>Header Files\LogBook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\LogbookGUIItem.h">
-      <Filter>Header Files\LogBook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\ThreadObject.h">
-      <Filter>Header Files\LogBook</Filter>
-    </ClInclude>
     <ClInclude Include="CubicSpline.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="LogWnd.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="plot3d\BarPlot3DWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

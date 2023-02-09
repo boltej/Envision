@@ -1538,7 +1538,7 @@ int EnvModel::Run( int runFlag )
    //TRACE( "Leaving EnvModel::Run()\n" );
 
    CString time;
-   time.Format( _T("-Actor Decisionmmaking: %g secs" ), m_actorDecisionRunTime );
+   time.Format( _T("-Actor Decisionmmaking: %.1f secs" ), m_actorDecisionRunTime );
    Report::Log( time );
 
    for ( int i=0; i < m_modelProcessArray.GetCount(); i++ )
@@ -1547,7 +1547,7 @@ int EnvModel::Run( int runFlag )
 
       if ( pInfo->m_use )
          {
-         time.Format( _T("--%s: %g secs (Auto Process)" ), (LPCTSTR) pInfo->m_name, pInfo->m_runTime );
+         time.Format( _T("--%s: %.1f secs (Model)" ), (LPCTSTR) pInfo->m_name, pInfo->m_runTime );
          time.Replace( _T("%"), _T("percent") );
          Report::Log( time );
          }
@@ -1559,7 +1559,7 @@ int EnvModel::Run( int runFlag )
 
       if ( pInfo->m_use )
          {
-         time.Format( _T("--%s: %g secs (Eval Model)" ), (LPCTSTR) pInfo->m_name, pInfo->m_runTime );
+         time.Format( _T("--%s: %.1f secs (Evaluator)" ), (LPCTSTR) pInfo->m_name, pInfo->m_runTime );
          time.Replace( _T("%"), _T("percent") );
          Report::Log( time );
          }
@@ -1567,7 +1567,7 @@ int EnvModel::Run( int runFlag )
    
    m_runStatus = RS_PRERUN;   // return to pre run status in anticipation of the next run
    
-   time.Format( _T("Data Collection: %g secs" ), m_dataCollectionRunTime );
+   time.Format( _T("Data Collection: %.1f secs" ), m_dataCollectionRunTime );
    Report::Log( time );
    Report::CloseFile();
    //gpMain->AddMemoryLine();

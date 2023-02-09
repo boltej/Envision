@@ -392,6 +392,10 @@ class COCNHProcess : public EnvModelProcess
 
    public:
       static bool m_isInitialized;
+
+      static int m_wuiUpdateFreq;
+      static int m_initWUI;
+
       //! Column number in the IDU table for VEGCLASS, which is the CTSS identifier.
       static int m_colVegClass;
       //! Colum number in the IDU table for Cover Type, which is the dominant species.

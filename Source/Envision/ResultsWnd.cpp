@@ -32,7 +32,7 @@ Copywrite 2012 - Oregon State University
 #include <maplayer.h>
 #include "resultsMapWnd.h"
 
-#include <avigenerator.h>
+//#include <avigenerator.h>
 
 
 #ifdef _DEBUG
@@ -124,8 +124,8 @@ ResultsWnd::ResultsWnd()
 : m_resultCount( 0 )
 , m_pActiveWnd( NULL )
 , m_syncMapZoom( true )
-, m_createMovie( false )
-, m_aviGenerators(NULL)
+//, m_createMovie( false )
+//, m_aviGenerators(NULL)
 , m_year( 0 )
    { }
 
@@ -133,8 +133,8 @@ ResultsWnd::ResultsWnd()
 ResultsWnd::~ResultsWnd()
    {
    RemoveAll();
-   if(m_aviGenerators != NULL)
-      delete [] m_aviGenerators;
+   //if(m_aviGenerators != NULL)
+   //   delete [] m_aviGenerators;
    }
 
 
@@ -385,14 +385,14 @@ void ResultsWnd::ReplayReset()
 void ResultsWnd::ReplayStop()
    {
    KillTimer( 4242 );
-   if (m_createMovie)
-      CleanupMovieCapture();
+   //if (m_createMovie)
+   //   CleanupMovieCapture();
    }
 
 void ResultsWnd::ReplayPlay()
    {
-   if (m_createMovie)
-      InitMovieCapture();
+   //if (m_createMovie)
+   //   InitMovieCapture();
 
    SetTimer( 4242, 100, NULL );
    }
@@ -431,8 +431,8 @@ void ResultsWnd::OnTimer(UINT_PTR nIDEvent)
 
    m_year++;
 
-   if (m_createMovie)
-      WriteFrame();
+   //if (m_createMovie)
+   //   WriteFrame();
 
    if ( ! dontStop )  // if all windows are are the end of the replay
       ReplayStop();
@@ -440,7 +440,7 @@ void ResultsWnd::OnTimer(UINT_PTR nIDEvent)
    CWnd::OnTimer(nIDEvent);
    }
 
-
+/*
 void ResultsWnd::WriteFrame()
    {
    // get a device context to the entire application window (view)
@@ -520,6 +520,7 @@ void ResultsWnd::CleanupMovieCapture()
       delete [] m_auxMovieStuff;
       m_aviGenerators = NULL;
       }
+      */
 
 /*
 void ResultsWnd::SyncMapZoom( Map *pSourceMap, ResultsMapWnd *pResultsMapWnd )

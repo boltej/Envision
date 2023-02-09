@@ -2248,6 +2248,33 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
    // start interating through the nodes
    TiXmlElement *pXmlRoot = doc.RootElement();
 
+   LPCTSTR checkCols = pXmlRoot->Attribute("check_cols");
+   if (checkCols != nullptr)
+      {
+      CStringArray tokens;
+      int count = ::Tokenize(checkCols, _T(",;"), tokens);
+
+      int col = 0;
+      for (int i = 0; i < count; i++)
+         {
+         CStringArray token;
+         int _count = ::Tokenize(tokens[i], _T(":"), token);
+
+         TYPE type = TYPE_INT;
+         if (_count == 2)
+            {
+            switch (_tolower(token[1][0]))
+               {
+               case 'f':   type = TYPE_FLOAT;   break;
+               case 'd':   type = TYPE_DOUBLE;  break;
+               case 's':   type = TYPE_STRING;  break;
+               case 'l':   type = TYPE_LONG;    break;
+               }
+            }
+         pLayer->CheckCol(col, token[0], type, CC_AUTOADD);
+         }
+      }
+
    TiXmlNode *pXmlNode = NULL;
    while( pXmlNode = pXmlRoot->IterateChildren( pXmlNode ) )
       {
@@ -2389,7 +2416,7 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
       { _T("imageURL"),          TYPE_CSTRING,  &pEval->m_imageURL,        false,   0 },
       { NULL,                    TYPE_NULL,     NULL,                false,   0 } };
 
-   bool ok = TiXmlGetAttributes(pXmlNode->ToElement(), attrs, filename, NULL);
+   bool ok = TiXmlGetAttributes(pXmlNode->ToElement(), attrs, filename, pLayer);
    if (!ok)
       {
       CString msg;
@@ -2592,12 +2619,6 @@ Modeler::~Modeler()
       }
 
    Clear();
-
-   //if ( m_pQueryEngine != NULL )
-   //   {
-   //   delete m_pQueryEngine;
-   //   m_pQueryEngine = NULL;
-   //   }
    }
 
 

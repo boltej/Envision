@@ -52,10 +52,10 @@ extern "C" {  // only need to export C interface if used by C++ source code
 #endif
 
 // map window interactions
-ENVISIONAPI int EnvAddVideoRecorder( int type, LPCTSTR name, LPCTSTR path, int frameRate, int method, int extra );  // method: see VRMETHOD enum in videorecorder.h
-ENVISIONAPI int EnvStartVideoCapture( int vrID );
-ENVISIONAPI int EnvCaptureVideo( int vrID );
-ENVISIONAPI int EnvEndVideoCapture( int vrID );
+//ENVISIONAPI int EnvAddVideoRecorder( int type, LPCTSTR name, LPCTSTR path, int frameRate, int method, int extra );  // method: see VRMETHOD enum in videorecorder.h
+//ENVISIONAPI int EnvStartVideoCapture( int vrID );
+//ENVISIONAPI int EnvCaptureVideo( int vrID );
+//ENVISIONAPI int EnvEndVideoCapture( int vrID );
 
 ENVISIONAPI void EnvSetLLMapText( LPCTSTR text );
 ENVISIONAPI void EnvRedrawMap( void );

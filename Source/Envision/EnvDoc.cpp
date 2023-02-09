@@ -72,7 +72,7 @@ Copywrite 2012 - Oregon State University
 #include "EnvExtension.h"
 #include "ConvertDlg.h"
 #include "Envision.h"
-#include "UpdateDlg.h"
+//#include "UpdateDlg.h"
 #include "SensitivityDlg.h"
 #include "envmsg.h"
 #include <EnvConstants.h>
@@ -167,8 +167,8 @@ void NotifyProc( EM_NOTIFYTYPE type, INT_PTR param, INT_PTR extra, INT_PTR model
          gpResultsPanel->AddRun( (int) param );
          gpView->m_viewPanel.SetRun( (int) param );
          gpView->m_viewPanel.SetYear( gpModel->m_currentYear );
-         gpView->StartVideoRecorders();
-         gpView->UpdateVideoRecorders();   // initial capture
+         //gpView->StartVideoRecorders();
+         //gpView->UpdateVideoRecorders();   // initial capture
          break;
 
       case EMNT_ENDSTEP:
@@ -2737,7 +2737,7 @@ int CEnvDoc::OpenDocXml( LPCTSTR filename )
 
    if ( gpMapPanel->m_pMap->GetLayerCount() == 0 )
       {
-      AfxMessageBox( "No IDU coverage loaded - Envision cannot continue... This is likely caused by a bad <layer> specification in your ENVX file", MB_OK );
+      Report::ErrorMsg( "No IDU coverage loaded - Envision cannot continue... This is likely caused by a bad <layer> specification in your ENVX file", MB_OK );
       return -1;
       }
 
@@ -2754,7 +2754,7 @@ int CEnvDoc::OpenDocXml( LPCTSTR filename )
    m_model.CheckValidFieldNames( );
 
    gpView->m_policyEditor.ReloadPolicies( false );
-   gpView->AddStandardRecorders();
+   //gpView->AddStandardRecorders();
    gpDoc->UnSetChanged( CHANGED_ACTORS | CHANGED_POLICIES | CHANGED_SCENARIOS | CHANGED_PROJECT );
    return 1;   
    }
@@ -3524,16 +3524,17 @@ int CEnvDoc::LoadExtensions()
      
 bool CEnvDoc::CheckForUpdates( void )     // return true to update, false otherwise
    {
-   UpdateDlg dlg;
-
-   if ( dlg.Init() )
-      {
-      if ( ! dlg.m_disable  )
-         {
-         if ( dlg.DoModal() == IDOK )
-            theApp.OnHelpUpdateEnvision();
-         }
-      }
+   ////////////// deprecated //////////////
+   ////UpdateDlg dlg;
+   ////
+   ////if ( dlg.Init() )
+   ////   {
+   ////   if ( ! dlg.m_disable  )
+   ////      {
+   ////      if ( dlg.DoModal() == IDOK )
+   ////         theApp.OnHelpUpdateEnvision();
+   ////      }
+   ////   }
    
    return true;
    }

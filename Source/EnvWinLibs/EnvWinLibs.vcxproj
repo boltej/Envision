@@ -256,6 +256,9 @@
       <TargetMachine>MachineX64</TargetMachine>
       <AdditionalLibraryDirectories>$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
     </Link>
+    <PostBuildEvent>
+      <Command>copy $(TargetPath) $(SolutionDir)SetupMSIX\Envision\</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Template|Win32'">
     <Link>
@@ -282,8 +285,6 @@
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AVIAdapter.cpp" />
-    <ClCompile Include="AVIGenerator.cpp" />
     <ClCompile Include="BalloonHelp.cpp" />
     <ClCompile Include="BarPlotWnd.cpp" />
     <ClCompile Include="CellPropDlg.cpp" />
@@ -327,6 +328,7 @@
     <ClCompile Include="Marker.cpp" />
     <ClCompile Include="NameDlg.cpp" />
     <ClCompile Include="OpenGLWnd.cpp" />
+    <ClCompile Include="plot3d\BarPlot3DWnd.cpp" />
     <ClCompile Include="PPPlotAxes.cpp" />
     <ClCompile Include="PPPlotLines.cpp" />
     <ClCompile Include="PPPlotSetup.cpp" />
@@ -371,7 +373,6 @@
     <ClCompile Include="TreePropertySheet\TreePropSheetSplitter.cpp" />
     <ClCompile Include="TreePropertySheet\TreePropSheetTreeCtrl.cpp" />
     <ClCompile Include="VDataTable.cpp" />
-    <ClCompile Include="VideoRecorder.cpp" />
     <ClCompile Include="XBalloonMsg.cpp" />
     <ClCompile Include="XGlyphButton.cpp" />
     <ClCompile Include="XHTMLStatic.cpp" />
@@ -383,7 +384,6 @@
     <ClCompile Include="Grid\TitleTip.cpp" />
     <ClCompile Include="CustomTabCtrl\CustomTabCtrl.cpp" />
     <ClCompile Include="CustomTabCtrl\ThemeUtil.cpp" />
-    <ClCompile Include="plot3d\BarPlot3DWnd.cpp" />
     <ClCompile Include="plot3d\ColorScaleWnd.cpp" />
     <ClCompile Include="plot3d\Plot3DWnd.cpp" />
     <ClCompile Include="plot3d\ScatterLegendWnd.cpp" />
@@ -398,8 +398,6 @@
     <None Include="TreePropertySheet\ResizableMsgSupport.inl" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AVIAdapter.h" />
-    <ClInclude Include="AVIGenerator.h" />
     <ClInclude Include="BalloonHelp.h" />
     <ClInclude Include="BAR.HPP" />
     <ClInclude Include="BarPlotWnd.h" />
@@ -426,14 +424,10 @@
     <ClInclude Include="INIFILE.HPP" />
     <ClInclude Include="Label.h" />
     <ClInclude Include="LEGEND.H" />
-    <ClInclude Include="Logbook\Logbook.h" />
-    <ClInclude Include="Logbook\LogbookFile.h" />
-    <ClInclude Include="Logbook\LogbookGUI.h" />
-    <ClInclude Include="Logbook\LogbookGUIItem.h" />
-    <ClInclude Include="Logbook\ThreadObject.h" />
     <ClInclude Include="LogWnd.h" />
     <ClInclude Include="MapFrame.h" />
     <ClInclude Include="MapToolbar.h" />
+    <ClInclude Include="plot3d\BarPlot3DWnd.h" />
     <ClInclude Include="QueryBuilder.h" />
     <ClInclude Include="QueryViewer.h" />
     <ClInclude Include="ReportBox.h" />
@@ -488,7 +482,6 @@
     <ClInclude Include="TreePropertySheet\TreePropSheetTreeCtrl.h" />
     <ClInclude Include="TreePropertySheet\TreePropSheetUtil.hpp" />
     <ClInclude Include="VDataTable.h" />
-    <ClInclude Include="VideoRecorder.h" />
     <ClInclude Include="WinLib_resource.h" />
     <ClInclude Include="XBalloonMsg.h" />
     <ClInclude Include="XGlyphButton.h" />
@@ -506,7 +499,6 @@
     <ClInclude Include="CustomTabCtrl\Schemadef.h" />
     <ClInclude Include="CustomTabCtrl\ThemeUtil.h" />
     <ClInclude Include="CustomTabCtrl\Tmschema.h" />
-    <ClInclude Include="plot3d\BarPlot3DWnd.h" />
     <ClInclude Include="plot3d\ColorScaleWnd.h" />
     <ClInclude Include="plot3d\Plot3DWnd.h" />
     <ClInclude Include="plot3d\ScatterLegendWnd.h" />
@@ -514,7 +506,6 @@
     <ClInclude Include="plot3d\ScatterPropertiesDlg.h" />
     <ClInclude Include="plot3d\ShapePreviewWnd.h" />
     <ClInclude Include="gl\glReal.h" />
-    <ClInclude Include="gl\Wglext.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="EnvWinLibs.rc" />

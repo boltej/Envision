@@ -44,7 +44,6 @@ enum FC_OP {            //  Description                                         
 
 
 // class Constant defines a constant value, stored in m_value
-
 class Constant
    {
    public:
@@ -57,10 +56,6 @@ class Constant
 
       bool Evaluate() { return true; }  // nothing required
    };
-
-
-
-
 
 //-- class Variable defines a variable. ----------------------------------------
 //
@@ -146,7 +141,7 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
       static PtrArray<FieldDef> m_fields;
       static PtrArray<Constant> m_constants;
 
-      FDataObj* m_pOutputData;
+      FDataObj* m_pOutputData = nullptr;
 
       bool _Run(EnvContext* pEnvContext, bool init);
 

@@ -12,9 +12,6 @@
       <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
       <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
     </Filter>
-    <Filter Include="Header Files\Logbook">
-      <UniqueIdentifier>{f41fac69-f90b-4d1a-a621-9ba45d488f7b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Header Files\UlitmateToolbox">
       <UniqueIdentifier>{2c99cd0d-a14c-4487-b017-3f265e610c93}</UniqueIdentifier>
     </Filter>
@@ -24,12 +21,6 @@
     <Filter Include="Resource Files">
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
-    </Filter>
-    <Filter Include="Source Files\WebServices">
-      <UniqueIdentifier>{a575872d-4cc6-4206-ac14-5c7a6c667305}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Header Files\WebServices">
-      <UniqueIdentifier>{0e01f246-bc2d-4248-bfe0-b990979f8443}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -336,9 +327,6 @@
     <ClCompile Include="DeltaViewer.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="VideoRecorderDlg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="ConvertDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -346,18 +334,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="ResultsGraphWnd.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="WebServices\stdsoap2.cpp">
-      <Filter>Source Files\WebServices</Filter>
-    </ClCompile>
-    <ClCompile Include="WebServices\soapC.cpp">
-      <Filter>Source Files\WebServices</Filter>
-    </ClCompile>
-    <ClCompile Include="WebServices\soapEnvWebServiceSoapProxy.cpp">
-      <Filter>Source Files\WebServices</Filter>
-    </ClCompile>
-    <ClCompile Include="UpdateDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="SensitivityDlg.cpp">
@@ -379,9 +355,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="AnalyticsPanel.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="camera.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="EnvisionAPI.cpp">
@@ -668,21 +641,6 @@
     <ClInclude Include="Wizrun.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Logbook\Logbook.h">
-      <Filter>Header Files\Logbook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\LogbookFile.h">
-      <Filter>Header Files\Logbook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\LogbookGUI.h">
-      <Filter>Header Files\Logbook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\LogbookGUIItem.h">
-      <Filter>Header Files\Logbook</Filter>
-    </ClInclude>
-    <ClInclude Include="Logbook\ThreadObject.h">
-      <Filter>Header Files\Logbook</Filter>
-    </ClInclude>
     <ClInclude Include="UltimateToolbox\OXDllExt.h">
       <Filter>Header Files\UlitmateToolbox</Filter>
     </ClInclude>
@@ -749,9 +707,6 @@
     <ClInclude Include="DeltaViewerEx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="VideoRecorderDlg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="ConvertDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -760,18 +715,6 @@
     </ClInclude>
     <ClInclude Include="ResultsGraphWnd.h">
       <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="WebServices\soapEnvWebServiceSoapProxy.h">
-      <Filter>Header Files\WebServices</Filter>
-    </ClInclude>
-    <ClInclude Include="WebServices\soapH.h">
-      <Filter>Header Files\WebServices</Filter>
-    </ClInclude>
-    <ClInclude Include="WebServices\soapStub.h">
-      <Filter>Header Files\WebServices</Filter>
-    </ClInclude>
-    <ClInclude Include="WebServices\stdsoap2.h">
-      <Filter>Header Files\WebServices</Filter>
     </ClInclude>
     <ClInclude Include="UpdateDlg.h">
       <Filter>Header Files</Filter>
@@ -953,9 +896,6 @@
     <None Include="ReadMe.txt" />
     <None Include="res\fieldInfoDlg.bmp">
       <Filter>Resource Files</Filter>
-    </None>
-    <None Include="WebServices\EnvWebServiceSoap.nsmap">
-      <Filter>Header Files\WebServices</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

@@ -69,21 +69,21 @@ Preference::Preference( Allocation *pAlloc, LPCTSTR name, LPCTSTR queryStr, LPCT
    : m_name( name )
    , m_queryStr( queryStr )
    , m_weightExpr( weightExpr )
-   , m_pQuery( NULL )
-   , m_pMapExpr( NULL ) 
+   , m_pQuery( nullptr )
+   , m_pMapExpr( nullptr ) 
    , m_pAlloc( pAlloc )
    , m_value( 0 )
    {
    // compile query
-   if (queryStr != NULL && queryStr[0] != NULL )
+   if (queryStr != nullptr && queryStr[0] != 0 )
       {
       SpatialAllocator *pModel = this->m_pAlloc->m_pAllocSet->m_pSAModel;
       m_pQuery = pModel->m_pQueryEngine->ParseQuery( queryStr, 0, "SpatialAllocator.Preference" );
 
-      if ( m_pQuery == NULL )
+      if ( m_pQuery == nullptr )
          {
          CString msg;
-         msg.Format( "  Spatial Allocator: Bad Preference query encountered reading Allocation '%s' - Query is '%s'", (LPCTSTR) pAlloc->m_name, queryStr );
+         msg.Format( "Bad Preference query encountered reading Allocation '%s' - Query is '%s'", (LPCTSTR) pAlloc->m_name, queryStr );
          msg += queryStr;
          Report::ErrorMsg( msg );
          }
@@ -109,7 +109,7 @@ Preference::Preference( Allocation *pAlloc, LPCTSTR name, LPCTSTR queryStr, LPCT
 
       if ( ! ok )
          {
-         CString msg( "  Spatial Allocator: Unable to compile map expression " );
+         CString msg( "Unable to compile map expression " );
          msg += weightExpr;
          msg += " for <preference> '";
          msg += name;
@@ -126,8 +126,8 @@ Preference &Preference::operator=( Preference &p )
    m_queryStr = p.m_queryStr;
    m_weightExpr = p.m_weightExpr;
 
-   m_pQuery = NULL;
-   m_pMapExpr = NULL;
+   m_pQuery = nullptr;
+   m_pMapExpr = nullptr;
    m_value = p.m_value;
 
    m_pAlloc = p.m_pAlloc;
@@ -150,7 +150,7 @@ Constraint::Constraint( Allocation *pAlloc, LPCTSTR queryStr )
    : m_pAlloc( pAlloc )
    , m_queryStr( queryStr )
    , m_cType( CT_QUERY )
-   , m_pQuery( NULL ) 
+   , m_pQuery( nullptr ) 
    { 
    SetConstraintQuery( queryStr );
    }
@@ -160,7 +160,7 @@ Constraint &Constraint::operator=( Constraint &c )
    {
    m_queryStr = c.m_queryStr;
    m_cType = c.m_cType;
-   m_pQuery = NULL;
+   m_pQuery = nullptr;
    m_pAlloc = c.m_pAlloc;
 
    CompileQuery();
@@ -184,9 +184,9 @@ Query *Constraint::CompileQuery()
    SpatialAllocator *pModel = this->m_pAlloc->m_pSAModel;
    m_pQuery = pModel->m_pQueryEngine->ParseQuery( queryStr, 0, "SpatialAllocator.Constraint" );
 
-   if ( m_pQuery == NULL )
+   if ( m_pQuery == nullptr )
       {
-      CString msg( "  Spatial Allocator: Unable to compile constraint query" );
+      CString msg( "Unable to compile constraint query" );
       msg += m_queryStr;
       msg += "'.  The query will be ignored";
       Report::ErrorMsg( msg );
@@ -221,7 +221,7 @@ float TargetContainer::SetTarget( int year )
       float targetArea = 0;
       MapLayer *pLayer = pModel->m_pMapLayer;
 
-      if ( this->m_pTargetQuery != NULL )
+      if ( this->m_pTargetQuery != nullptr )
          {
          // run query
          this->m_pTargetQuery->Select( true );
@@ -260,14 +260,14 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
       return;
       }
 
-   if ( m_pTargetData != NULL )
+   if ( m_pTargetData != nullptr )
       delete m_pTargetData;
 
    m_pTargetData = new FDataObj( 2, 0, U_YEARS );   // two cols, zero rows
 
    //if ( m_targetLocation.GetLength() > 0 )
    //   {
-   //   m_pTargetMapExpr = theProcess->m_pMapExprEngine->AddExpr( m_name, m_targetLocation, NULL );  // no query string needed, this is handled by constraints
+   //   m_pTargetMapExpr = theProcess->m_pMapExprEngine->AddExpr( m_name, m_targetLocation, nullptr );  // no query string needed, this is handled by constraints
    //   bool ok = theProcess->m_pMapExprEngine->Compile( m_pTargetMapExpr );
    //
    //   if ( ! ok )
@@ -280,7 +280,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
    //      Report::ErrorMsg( msg );
    //
    //      theProcess->m_pMapExprEngine->RemoveExpr( pExpr );
-   //      m_pTargetMapExpr = NULL;
+   //      m_pTargetMapExpr = nullptr;
    //      }
    //   }
 
@@ -291,7 +291,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
          int rows = m_pTargetData->ReadAscii( this->m_targetValues );
          if ( rows <= 0 )
             {
-            CString msg( "  Spatial Allocator: Unable to load target file '" );
+            CString msg( "Unable to load target file '" );
             msg += m_targetValues;
             msg += "' - this allocation will be ignored";
             Report::ErrorMsg( msg );
@@ -305,17 +305,17 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
          memset( targetValues, 0, (this->m_targetValues.GetLength()+2) * sizeof( TCHAR ) );
 
          lstrcpy( targetValues, this->m_targetValues );
-         TCHAR *nextToken = NULL;
+         TCHAR *nextToken = nullptr;
 
          // note: target values look like sequences of x/y pairs
          LPTSTR token = _tcstok_s( targetValues, _T(",() ;\r\n"), &nextToken );
          float pair[2];
-         while ( token != NULL )
+         while ( token != nullptr )
             {
             pair[0] = (float) atof( token );
-            token   = _tcstok_s( NULL, _T(",() ;\r\n"), &nextToken );
+            token   = _tcstok_s( nullptr, _T(",() ;\r\n"), &nextToken );
             pair[1] = (float) atof( token );
-            token   = _tcstok_s( NULL, _T(",() ;\r\n"), &nextToken );
+            token   = _tcstok_s( nullptr, _T(",() ;\r\n"), &nextToken );
    
             m_pTargetData->AppendRow( pair, 2 );
             }
@@ -323,7 +323,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
          if ( m_pTargetData->GetRowCount() == 0 )
             {
             CString msg;
-            msg.Format("SA: Time series values missing for Allocation '%s'!", (LPCTSTR) this->m_name );
+            msg.Format("Time series values missing for Allocation '%s'!", (LPCTSTR) this->m_name );
             Report::LogWarning(msg);
             }
 
@@ -340,7 +340,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
          memset( targetValues, 0, (this->m_targetValues.GetLength()+2 )*sizeof( TCHAR ) );
 
          lstrcpy( targetValues, this->m_targetValues );
-         TCHAR *nextToken = NULL;
+         TCHAR *nextToken = nullptr;
 
          float rate = (float) atof( targetValues );
          float basis = 0;
@@ -425,7 +425,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
 void TargetContainer::SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR source, LPCTSTR values, LPCTSTR domain, LPCTSTR query )
    {
    // source
-   if ( source != NULL )
+   if ( source != nullptr )
       {
       if ( source[0] == 't' || source[0] == 'T' )
          this->m_targetSource = TS_TIMESERIES;
@@ -448,22 +448,22 @@ void TargetContainer::SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR 
       }
 
    // values
-   if ( values != NULL )
+   if ( values != nullptr )
       this->m_targetValues = values;      
 
    // domain
-   if ( domain != NULL && domain[ 0 ] == 'p' )   // note - if not specified, TD_AREA is used
+   if ( domain != nullptr && domain[ 0 ] == 'p' )   // note - if not specified, TD_AREA is used
       {
       m_targetDomain = TD_PCTAREA;
       
-      if ( query != NULL )
+      if ( query != nullptr )
          {
          this->m_targetQuery = query;
          this->m_pTargetQuery = m_pSAModel->m_pQueryEngine->ParseQuery( query, 0, "" );
 
-         if ( this->m_pTargetQuery == NULL )
+         if ( this->m_pTargetQuery == nullptr )
             {
-            CString msg( "  Spatial Allocator: Unable to parse target query '" );
+            CString msg( "Unable to parse target query '" );
             msg += query;
             msg += "' - it will be ignored";
             Report::WarningMsg( msg );
@@ -472,7 +472,7 @@ void TargetContainer::SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR 
       }
          
    // basis field (default is "AREA" unless defined elsewhere, in which case it is blank.)
-   if ( basis != NULL )
+   if ( basis != nullptr )
       this->m_targetBasisField = basis;
    else
       {
@@ -493,17 +493,17 @@ Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_S
    : TargetContainer( pSet->m_pSAModel, name ) // targetSource, TD_AREA, targetValues )
    , m_id( id )
    , m_constraint()
-   //, m_pTargetMapExpr( NULL )
+   //, m_pTargetMapExpr( nullptr )
    , m_useExpand( false )       // allo expanded outcomes?
    , m_expandAreaStr()
    , m_expandType( 0 )
-   , m_pRand( NULL )
+   , m_pRand( nullptr )
    , m_expandMaxArea( -1 )      // maximum area allowed for expansion, total including kernal
    , m_expandAreaParam0( -1 )
    , m_expandAreaParam1( 0 )
    , m_expandQueryStr()         // expand into adjacent IDUs that satify this query 
-   , m_pExpandQuery( NULL )
-   , m_pCostItem(NULL)
+   , m_pExpandQuery( nullptr )
+   , m_pCostItem(nullptr)
    , m_initPctArea( 0 )
    , m_cumBasisActual( 0 )
    , m_cumBasisTarget( 0 )
@@ -519,7 +519,7 @@ Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_S
    , m_constraintAreaSatisfied( 0 )
    , m_colScores( -1 )
    , m_pAllocSet( pSet )
-   //, m_iduScoreArray( NULL )
+   //, m_iduScoreArray( nullptr )
    , m_currentIduScoreIndex( -1 )
    {
    m_constraint.m_pAlloc = this;
@@ -527,7 +527,7 @@ Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_S
 
 Allocation::~Allocation( void )
    {
-   if ( m_pRand != NULL )
+   if ( m_pRand != nullptr )
       delete m_pRand;
    }
 
@@ -540,7 +540,7 @@ Allocation& Allocation::operator = ( Allocation &a )
    m_expandAreaStr = a.m_expandAreaStr;
    m_expandType    = a.m_expandType;
 
-   if ( a.m_pRand != NULL )
+   if ( a.m_pRand != nullptr )
       {
       switch( m_expandType )
          {
@@ -566,17 +566,17 @@ Allocation& Allocation::operator = ( Allocation &a )
          }
       }
    else
-      m_pRand = NULL;
+      m_pRand = nullptr;
 
    m_expandAreaParam0 = a.m_expandAreaParam0;
    m_expandAreaParam1 = a.m_expandAreaParam1;
 
    m_expandMaxArea = a.m_expandMaxArea;   
    m_expandQueryStr = a.m_expandQueryStr;
-   if ( a.m_pExpandQuery != NULL )
+   if ( a.m_pExpandQuery != nullptr )
       m_pExpandQuery = new Query( *a.m_pExpandQuery );
    else
-      m_pExpandQuery = NULL;
+      m_pExpandQuery = nullptr;
 
    m_limit = a.m_limit;
 
@@ -620,7 +620,7 @@ Allocation& Allocation::operator = ( Allocation &a )
    // ScorePriority temporary variables
    m_currentIduScoreIndex = 0;   // this stores the current index of this allocation in the 
    
-   m_pAllocSet = NULL;     // fixed up in AlloctionSet:: operator=()
+   m_pAllocSet = nullptr;     // fixed up in AlloctionSet:: operator=()
 
    return *this;
    }
@@ -633,7 +633,7 @@ void Allocation::SetExpandQuery( LPCTSTR expandQuery )
    if ( m_expandQueryStr.IsEmpty() )
       {
       m_useExpand = false;
-      m_pExpandQuery = NULL;
+      m_pExpandQuery = nullptr;
       return;
       }
    
@@ -649,9 +649,9 @@ void Allocation::SetExpandQuery( LPCTSTR expandQuery )
 
    m_pExpandQuery = this->m_pSAModel->m_pQueryEngine->ParseQuery( _expandQuery, 0, "Allocation.Expand" );
 
-   if ( m_pExpandQuery == NULL )
+   if ( m_pExpandQuery == nullptr )
       {
-      CString msg( "  Spatial Allocator: Unable to parse expand query '" );
+      CString msg( "Unable to parse expand query '" );
       msg += _expandQuery;
       msg += "' - it will be ignored";
       Report::WarningMsg( msg );
@@ -668,10 +668,10 @@ void Allocation::SetMaxExpandAreaStr( LPCTSTR expandAreaStr )
 
    // legal possibiliites include:  a constant number, uniform(lb,ub), normal( mean, variance)
    bool success = true;
-   if ( m_pRand != NULL )
+   if ( m_pRand != nullptr )
       {
       delete m_pRand;
-      m_pRand = NULL;
+      m_pRand = nullptr;
       }
 
    switch( expandAreaStr[ 0 ] )
@@ -690,7 +690,7 @@ void Allocation::SetMaxExpandAreaStr( LPCTSTR expandAreaStr )
          TCHAR buffer[ 64 ];
          lstrcpy( buffer, expandAreaStr );
          TCHAR *token = _tcschr( buffer, '(' );
-         if ( token == NULL ) { success = false; break; }
+         if ( token == nullptr ) { success = false; break; }
 
          token++;    // point to first param (mean)
          m_expandAreaParam0 = atof( token );
@@ -698,7 +698,7 @@ void Allocation::SetMaxExpandAreaStr( LPCTSTR expandAreaStr )
          if ( expandAreaStr[ 0 ] != 'e' && expandAreaStr[ 0 ] != 'E' )
             {
             token = _tcschr( buffer, ',' );
-            if ( token == NULL ) { success = false; break; }
+            if ( token == nullptr ) { success = false; break; }
             m_expandAreaParam1 = atof( token+1 );
             }
 
@@ -759,7 +759,7 @@ void Allocation::SetMaxExpandAreaStr( LPCTSTR expandAreaStr )
 
    if ( success == false )
       {
-      CString msg( "  Spatial Allocator: unrecognized expand area specification: " );
+      CString msg( "Unrecognized expand area specification: " );
       msg += expandAreaStr;
       Report::ErrorMsg( msg );
       //m_useExpand = false;
@@ -779,7 +779,7 @@ float Allocation::SetMaxExpandArea( void )
       case ET_WEIBULL:
       case ET_LOGNORMAL:
       case ET_EXPONENTIAL:
-         ASSERT( m_pRand != NULL );
+         ASSERT( m_pRand != nullptr );
          m_expandMaxArea = (float) m_pRand->RandValue();
          break;
       }
@@ -813,16 +813,16 @@ AllocationSet &AllocationSet::operator = ( AllocationSet &as )
    for ( int i=0; i < m_allocationArray.GetCount(); i++ )
       m_allocationArray[ i ]->m_pAllocSet = this;
 
-   if ( as.m_pOutputData != NULL )  
+   if ( as.m_pOutputData != nullptr )  
       m_pOutputData = new FDataObj( *as.m_pOutputData );
    else
-      m_pOutputData = NULL;
+      m_pOutputData = nullptr;
    //m_pOutputDataCum = new FDataObj( *as.m_pOutputDataCum );
 
-   if ( as.m_pTargetMapExpr != NULL  )
+   if ( as.m_pTargetMapExpr != nullptr  )
       m_pTargetMapExpr = new MapExpr( *as.m_pTargetMapExpr );
    else
-      m_pTargetMapExpr = NULL;
+      m_pTargetMapExpr = nullptr;
 
    m_targetLocation = as.m_targetLocation;
 
@@ -890,21 +890,21 @@ SpatialAllocator::SpatialAllocator()
 : EnvModelProcess()
 , m_xmlPath()
 , m_allocationSetArray()
-, m_pMapLayer( NULL )
+, m_pMapLayer( nullptr )
 , m_colArea( -1 ) 
 , m_allocMethod( AM_SCORE_PRIORITY )
 , m_expansionIDUs()
 , m_scoreThreshold( 0 )
-, m_pBudget(NULL)
+, m_pBudget(nullptr)
 , m_iduArray()
 , m_shuffleIDUs( true )
-, m_pRandUnif(NULL)
+, m_pRandUnif(nullptr)
 , m_totalArea(0)
 , m_runNumber( -1 )
-, m_pBudgetData(NULL)
+, m_pBudgetData(nullptr)
 , m_collectExpandStats(false)
-, m_pExpandStats(NULL)
-, m_pBuildFromFile(NULL)
+, m_pExpandStats(nullptr)
+, m_pBuildFromFile(nullptr)
    { }
 
 
@@ -920,12 +920,12 @@ SpatialAllocator::SpatialAllocator( SpatialAllocator &sa )
    , m_pBudget(sa.m_pBudget) // problematic
    , m_iduArray()
    , m_shuffleIDUs( sa.m_shuffleIDUs )
-   , m_pRandUnif( NULL )
+   , m_pRandUnif( nullptr )
    , m_totalArea( sa.m_totalArea )
    , m_runNumber( -1 )
    , m_pBudgetData( sa.m_pBudgetData)   // ?????????????????
    , m_collectExpandStats( false )    // ????????????????
-   , m_pExpandStats( NULL )
+   , m_pExpandStats( nullptr )
    {
    m_iduArray.Copy( sa.m_iduArray );   
    
@@ -973,7 +973,7 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
 
    // load input file (or just return if no file specified)
 
-   if ( initStr == NULL || *initStr == '\0' )
+   if ( initStr == nullptr || *initStr == '\0' )
       return TRUE;
 
    if ( LoadXml( pEnvContext, initStr ) == false )
@@ -1038,7 +1038,7 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
          }
       }
 
-   if (this->m_pBudget != NULL)
+   if (this->m_pBudget != nullptr)
       {
       AddOutputVar("AllocationBudget", m_pBudgetData, "");
       }
@@ -1050,14 +1050,14 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
       AllocationSet *pAllocSet = m_allocationSetArray[ i ];
 
       CString msg;
-      msg.Format( "  Spatial Allocator:  Loaded Allocation Set %s", pAllocSet->m_name );
+      msg.Format( "Loaded Allocation Set %s", pAllocSet->m_name );
       Report::Log( msg );
 
       for ( int j=0; j < pAllocSet->GetAllocationCount(); j++ )
          {
          Allocation *pAlloc = pAllocSet->GetAllocation( j );
 
-         msg.Format( "                    Allocation %s", pAlloc->m_name );
+         msg.Format( "    Allocation %s", pAlloc->m_name );
          Report::Log( msg );
          }
       }
@@ -1146,7 +1146,7 @@ void SpatialAllocator::InitAllocSetData( void )
       }  // end of: for each allocation set
 
    // initial budget data obf is needed
-   if (m_pBudget != NULL)
+   if (m_pBudget != nullptr)
       {
       int cols = 1;  // year
       for (int i = 0; i < this->m_pBudget->GetBudgetItemCount(); i++)
@@ -1446,7 +1446,7 @@ bool SpatialAllocator::PopulateSequences( void )
             if ( pAlloc->IsSequence() )
                {
                CString msg;
-               msg.Format( "  Spatial Allocator: Sequence '%s' allocated to %4.1f percent of the area (target = %4.1f)",
+               msg.Format( "Sequence '%s' allocated to %4.1f percent of the area (target = %4.1f)",
                   (LPCTSTR) pAlloc->m_name, pAlloc->m_allocationSoFar * 100 / m_totalArea, pAlloc->m_initPctArea*100 );
    
                pAlloc->m_allocationSoFar = 0;
@@ -1488,7 +1488,7 @@ void SpatialAllocator::ScoreIduAllocations( EnvContext *pContext, bool useAddDel
    {
    int iduCount = m_pMapLayer->GetRecordCount();
 
-   if ( m_shuffleIDUs && m_pRandUnif == NULL )
+   if ( m_shuffleIDUs && m_pRandUnif == nullptr )
       m_pRandUnif = new RandUniform( 0.0, (double) m_pMapLayer->GetRecordCount(), 0 );
 
    /////////////////
@@ -1564,7 +1564,7 @@ void SpatialAllocator::ScoreIduAllocations( EnvContext *pContext, bool useAddDel
                bool passConstraints = true;
                // first, apply any constraints
 
-               if ( pAlloc->m_constraint.m_pQuery == NULL )   // skip this constraint
+               if ( pAlloc->m_constraint.m_pQuery == nullptr )   // skip this constraint
                   {
                   passConstraints = false;
                   continue;
@@ -1593,7 +1593,7 @@ void SpatialAllocator::ScoreIduAllocations( EnvContext *pContext, bool useAddDel
                      float value = 0;
 
                      bool passedQuery = true;
-                     if ( pPref->m_pQuery != NULL ) // is the preference associated with a query?
+                     if ( pPref->m_pQuery != nullptr ) // is the preference associated with a query?
                         {
                         bool result = false;
                         bool ok = pPref->m_pQuery->Run( idu, result );
@@ -1720,7 +1720,7 @@ void SpatialAllocator::ScoreIduAllocation( Allocation *pAlloc, int flags )
       // first, apply any constraints
       bool passConstraints = true;
 
-      if ( pAlloc->m_constraint.m_pQuery == NULL )   // skip this constraint
+      if ( pAlloc->m_constraint.m_pQuery == nullptr )   // skip this constraint
          {
          passConstraints = false;
          continue;
@@ -1748,7 +1748,7 @@ void SpatialAllocator::ScoreIduAllocation( Allocation *pAlloc, int flags )
             float value = 0;
 
             bool passedQuery = true;
-            if ( pPref->m_pQuery != NULL ) // is the preference associated with a query?
+            if ( pPref->m_pQuery != nullptr ) // is the preference associated with a query?
                {
                bool result = false;
                bool ok = pPref->m_pQuery->Run( idu, result );
@@ -1991,7 +1991,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
             // at the end of each step, the allocation stack are checked to see if any of the top IDUs 
             // are no longer available - if so, those are popped of the list.
    
-            Allocation *pBest = NULL;
+            Allocation *pBest = nullptr;
             float currentBestScore = (float) -LONG_MAX;
 
             bool budgetApproached = false;
@@ -2015,7 +2015,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
                   }
 
                // is any budget for this item exhausted?
-               if (pAlloc->m_pCostItem != NULL)
+               if (pAlloc->m_pCostItem != nullptr)
                   {
                   BudgetItem* pBudgetItem = pAlloc->m_pCostItem->m_pBudgetItem;
                   float cost = 0;
@@ -2066,7 +2066,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
                currentBestScore = currentScore;
                }  // end of: for each Allocation
    
-            if ( pBest == NULL && budgetApproached == false)
+            if ( pBest == nullptr && budgetApproached == false)
                {
                terminateFlag = 1; 
                break;      // nothing left to allocate
@@ -2118,7 +2118,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
                this->UpdateIDU( pContext, idu, pAllocSet->m_colSequence, newSequenceID, useAddDelta ?ADD_DELTA : SET_DATA );
 
             // update budget if needed
-            if (pBest->m_pCostItem != NULL)
+            if (pBest->m_pCostItem != nullptr)
                {
                float area = 0;
                m_pMapLayer->GetData(idu, m_colArea, area);
@@ -2278,7 +2278,7 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
    }
 
 
-bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray /*=NULL */)
+bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray< AllocationSet > *pAllocSetArray /*=nullptr */)
    {
    // search for file along path
    CString path;
@@ -2286,7 +2286,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
 
    if ( result < 0 )
       {
-      CString msg( "  Spatial Allocator: Unable to find input file " );
+      CString msg( "Unable to find input file " );
       msg += filename;
       Report::ErrorMsg( msg );
       return false;
@@ -2301,10 +2301,10 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
       return false;
       }
 
-   if ( pAllocSetArray == NULL )
+   if ( pAllocSetArray == nullptr )
       pAllocSetArray = &( this->m_allocationSetArray );
 
-   CString msg( "  Spatial Allocator: Loading input file " );
+   CString msg( "Loading input file " );
    msg += path;
    Report::Log( msg );
 
@@ -2313,24 +2313,26 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
    // start interating through the nodes
    TiXmlElement *pXmlRoot = doc.RootElement();  // spatial_allocator
 
-   LPTSTR areaCol = NULL; //, scoreCol=NULL;
-   LPTSTR method  = NULL;
-   LPTSTR updatefromfile = NULL;
+   LPTSTR areaCol = nullptr; //, scoreCol=nullptr;
+   LPTSTR method  = nullptr;
+   LPTSTR checkCols = nullptr;
+   LPTSTR updatefromfile = nullptr;
    int    shuffleIDUs = 1;
    XML_ATTR rattrs[] = { // attr          type           address       isReq checkCol
                       { "area_col",     TYPE_STRING,   &areaCol,       false, CC_MUST_EXIST | TYPE_FLOAT },
                       //{ "score_col",    TYPE_STRING,   &scoreCol,      false, CC_AUTOADD    | TYPE_FLOAT },
                       { "method",       TYPE_STRING,   &method,        false, 0 },
                       { "shuffle_idus", TYPE_INT,      &shuffleIDUs,   false, 0 },
+                      { "check_cols",   TYPE_STRING,   &checkCols,     false, 0 },
                       { "update_from_file", TYPE_STRING,   &updatefromfile,        false, 0 },
-                      { NULL,           TYPE_NULL,     NULL,           false, 0 } };
+                      { nullptr,           TYPE_NULL,     nullptr,           false, 0 } };
 
    if ( TiXmlGetAttributes( pXmlRoot, rattrs, path, m_pMapLayer ) == false )
       return false;
    
-   if ( areaCol == NULL )
+   if ( areaCol == nullptr )
       areaCol = "AREA";
-   if (updatefromfile != NULL)
+   if (updatefromfile != nullptr)
      {
       m_pBuildFromFile = new FDataObj();
       m_pBuildFromFile->ReadAscii(updatefromfile);
@@ -2340,7 +2342,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
    this->m_colArea = m_pMapLayer->GetFieldCol( areaCol );
    if ( m_colArea < 0 )
       {
-      CString msg( "  Spatial Allocator: unable to find AREA field in input file" );
+      CString msg( "Unable to find AREA field in input file" );
       msg += filename;
       Report::ErrorMsg( msg );
       return false;
@@ -2351,7 +2353,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
 
 
    ALLOC_METHOD am = AM_SCORE_PRIORITY;
-   if ( method != NULL )
+   if ( method != nullptr )
       {
       switch( method[ 0 ] )
          {
@@ -2375,15 +2377,42 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
       m_shuffleIDUs = false;
 
 
+   if (checkCols != nullptr)
+      {
+      CStringArray tokens;
+      int count = ::Tokenize(checkCols, _T(",;"), tokens);
+
+      int col = 0;
+      for (int i = 0; i < count; i++)
+         {
+         CStringArray token;
+         int _count = ::Tokenize(tokens[i], _T(":"), token);
+
+         TYPE type = TYPE_INT;
+         if (_count == 2)
+            {
+            switch (_tolower(token[1][0]))
+               {
+               case 'f':   type = TYPE_FLOAT;   break;
+               case 'd':   type = TYPE_DOUBLE;  break;
+               case 's':   type = TYPE_STRING;  break;
+               case 'l':   type = TYPE_LONG;    break;
+               }
+            }
+         this->CheckCol(m_pMapLayer, col, token[0], type, CC_AUTOADD);
+         }
+      }
+
+
    // Budgets 
    TiXmlElement* pXmlBudgets = pXmlRoot->FirstChildElement("budgets");
-   if (pXmlBudgets != NULL)
+   if (pXmlBudgets != nullptr)
       {
       // budgets
       TiXmlElement* pXmlBudget = pXmlBudgets->FirstChildElement("budget");
-      while (pXmlBudget != NULL)
+      while (pXmlBudget != nullptr)
          {
-         if (this->m_pBudget == NULL)
+         if (this->m_pBudget == nullptr)
             this->m_pBudget = new Budget("Budget", pContext->pEnvModel->m_pMapExprEngine);
 
          const char* name = pXmlBudget->Attribute("name");
@@ -2405,25 +2434,25 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
 
    // allocation sets
    TiXmlElement *pXmlAllocSet = pXmlRoot->FirstChildElement( "allocation_set" );
-   if ( pXmlAllocSet == NULL )
+   if ( pXmlAllocSet == nullptr )
       {
-      CString msg( "  Spatial Allocator: missing <allocation_set> element in input file " );
+      CString msg( "Missing <allocation_set> element in input file " );
       msg += path;
       Report::ErrorMsg( msg );
       return false;
       }
 
-   while ( pXmlAllocSet != NULL )
+   while ( pXmlAllocSet != nullptr )
       {
       // lookup fields
-      LPTSTR name     = NULL;
-      LPTSTR field    = NULL;
-      LPTSTR seqField = NULL;
-      LPTSTR targetSource = NULL;
-      LPTSTR targetType   = NULL;
-      LPTSTR targetValues = NULL;
-      LPTSTR targetBasis  = NULL;
-      LPTSTR description  = NULL;
+      LPTSTR name     = nullptr;
+      LPTSTR field    = nullptr;
+      LPTSTR seqField = nullptr;
+      LPTSTR targetSource = nullptr;
+      LPTSTR targetType   = nullptr;
+      LPTSTR targetValues = nullptr;
+      LPTSTR targetBasis  = nullptr;
+      LPTSTR description  = nullptr;
       int use = 1;
 
       XML_ATTR attrs[] = { // attr          type           address       isReq checkCol
@@ -2438,7 +2467,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                          { "target_basis",  TYPE_STRING,   &targetBasis,  false,  0 },
                          { "target_values", TYPE_STRING,   &targetValues, false,  0 },
 
-                         { NULL,           TYPE_NULL,     NULL,          false, 0 } };
+                         { nullptr,           TYPE_NULL,     nullptr,          false, 0 } };
 
       if ( TiXmlGetAttributes( pXmlAllocSet, attrs, path, m_pMapLayer ) == false )
          return false;
@@ -2448,15 +2477,15 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
       pAllocSet->m_inUse = use ? true : false;
 
       pAllocSet->m_targetSource = TS_USEALLOCATION;
-      if ( targetSource == NULL )
+      if ( targetSource == nullptr )
          targetSource = targetType;
 
-      pAllocSet->SetTargetParams( m_pMapLayer, targetBasis, targetSource, targetValues, NULL, NULL );      
+      pAllocSet->SetTargetParams( m_pMapLayer, targetBasis, targetSource, targetValues, nullptr, nullptr );      
       
-      if ( description != NULL )
+      if ( description != nullptr )
          pAllocSet->m_description = description;
 
-      if ( seqField != NULL )
+      if ( seqField != nullptr )
          {
          pAllocSet->m_seqField = seqField;
          pAllocSet->m_colSequence = m_pMapLayer->GetFieldCol( seqField );
@@ -2466,43 +2495,43 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
 
       // have allocationset set up, get allocations
       TiXmlElement *pXmlAlloc = pXmlAllocSet->FirstChildElement( "allocation" );
-      if ( pXmlAlloc == NULL )
+      if ( pXmlAlloc == nullptr )
          {
-         CString msg( "  Spatial Allocator: missing <allocation> element in input file - at least one allocation is required..." );
+         CString msg( "Missing <allocation> element in input file - at least one allocation is required..." );
          msg += path;
          Report::ErrorMsg( msg );
          return false;
          }
 
-      while ( pXmlAlloc != NULL )
+      while ( pXmlAlloc != nullptr )
          {
          // lookup fields
-         LPTSTR name   = NULL;
-         LPTSTR description = NULL;
+         LPTSTR name   = nullptr;
+         LPTSTR description = nullptr;
          int attrCode  = -1;
-         LPTSTR targetSource = NULL;
-         LPTSTR targetType   = NULL;
-         LPTSTR targetValues = NULL;
-         LPTSTR targetBasis  = NULL;
-         LPTSTR targetDomain = NULL;
-         LPTSTR targetQuery  = NULL;
-         LPTSTR constraint   = NULL;
-         LPCTSTR scoreCol    = NULL;
-         LPCTSTR seq   = NULL;
+         LPTSTR targetSource = nullptr;
+         LPTSTR targetType   = nullptr;
+         LPTSTR targetValues = nullptr;
+         LPTSTR targetBasis  = nullptr;
+         LPTSTR targetDomain = nullptr;
+         LPTSTR targetQuery  = nullptr;
+         LPTSTR constraint   = nullptr;
+         LPCTSTR scoreCol    = nullptr;
+         LPCTSTR seq   = nullptr;
 
-         LPCTSTR expandQuery = NULL;
+         LPCTSTR expandQuery = nullptr;
          //float   expandMaxArea  = -1;
-         LPCTSTR expandArea = NULL;
-         LPCTSTR expandMatch = NULL;
+         LPCTSTR expandArea = nullptr;
+         LPCTSTR expandMatch = nullptr;
 
          // cost item
-         LPCTSTR budgetItem = NULL;
-         LPCTSTR basis = NULL;
-         LPCTSTR initialCostExpr = NULL;
-         LPCTSTR valueStr = NULL;
-         LPCTSTR maintenanceCostExpr = NULL;
-         LPCTSTR durationExpr = NULL;
-         LPCTSTR lookup = NULL;
+         LPCTSTR budgetItem = nullptr;
+         LPCTSTR basis = nullptr;
+         LPCTSTR initialCostExpr = nullptr;
+         LPCTSTR valueStr = nullptr;
+         LPCTSTR maintenanceCostExpr = nullptr;
+         LPCTSTR durationExpr = nullptr;
+         LPCTSTR lookup = nullptr;
 
          float initPctArea = 0;
 
@@ -2529,7 +2558,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                             { "init_cost",        TYPE_STRING,   &initialCostExpr,     false, 0 },
                             { "maintenance_cost", TYPE_STRING,   &maintenanceCostExpr, false, 0 },
                             { "duration",         TYPE_STRING,   &durationExpr,        false, 0 },
-                            { NULL,               TYPE_NULL,     NULL,             false, 0 } };
+                            { nullptr,               TYPE_NULL,     nullptr,             false, 0 } };
 
          if ( TiXmlGetAttributes( pXmlAlloc, attrs, path, m_pMapLayer ) == false )
             return false;
@@ -2537,15 +2566,15 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
          // is a target specified?  Okay if allocation set has targets defined.  An AllocationSet assumes the
          // Allocation defines the source if the AllocationSet source is UNDEFINED or USEALLOCATION 
          bool ok = true;
-         //if ( targetSource == NULL && pAllocSet->m_targetSource != TS_UNDEFINED && pAllocSet->m_targetSource != TS_USEALLOCATION )
-         if ( targetSource == NULL )
+         //if ( targetSource == nullptr && pAllocSet->m_targetSource != TS_UNDEFINED && pAllocSet->m_targetSource != TS_USEALLOCATION )
+         if ( targetSource == nullptr )
             targetSource = targetType;
 
-         if ( targetSource == NULL && ( pAllocSet->m_targetSource == TS_UNDEFINED || pAllocSet->m_targetSource == TS_USEALLOCATION ) )
+         if ( targetSource == nullptr && ( pAllocSet->m_targetSource == TS_UNDEFINED || pAllocSet->m_targetSource == TS_USEALLOCATION ) )
             {
             ok = false;
             CString msg;
-            msg.Format( "  Spatial Allocator: missing 'target_source' attribute for allocation %s", name );
+            msg.Format( "Missing 'target_source' attribute for allocation %s", name );
             Report::ErrorMsg( msg );
             }
 
@@ -2553,33 +2582,33 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
             {
             Allocation *pAlloc = new Allocation( pAllocSet, name, attrCode ); //, ttype, targetValues );
 
-            if ( description != NULL )
+            if ( description != nullptr )
                pAllocSet->m_description = description;
    
-            if ( targetSource == NULL )
+            if ( targetSource == nullptr )
                targetSource = targetType;
            
             pAlloc->SetTargetParams( m_pMapLayer, targetBasis, targetSource, targetValues, targetDomain, targetQuery );
 
             // score column (optional)
-            if ( scoreCol != NULL )
+            if ( scoreCol != nullptr )
                {
                pAlloc->m_scoreCol = scoreCol;
                m_pMapLayer->CheckCol( pAlloc->m_colScores, scoreCol, TYPE_FLOAT, CC_AUTOADD );
                }
 
-            if ( seq != NULL ) // is this a sequence?  then parse out attr codes
+            if ( seq != nullptr ) // is this a sequence?  then parse out attr codes
                {
                TCHAR *buffer = new TCHAR[ lstrlen( seq ) + 1 ];
                lstrcpy( buffer, seq );
-               TCHAR *next = NULL;
+               TCHAR *next = nullptr;
                TCHAR *token = _tcstok_s( buffer, _T(","), &next );
-               while ( token != NULL )
+               while ( token != nullptr )
                   {
                   int attrCode = atoi( token );
                   int index = (int) pAlloc->m_sequenceArray.Add( attrCode );
                   pAlloc->m_sequenceMap.SetAt( attrCode, index );
-                  token = _tcstok_s( NULL, _T( "," ), &next );
+                  token = _tcstok_s( nullptr, _T( "," ), &next );
                   }
                delete [] buffer;
 
@@ -2587,19 +2616,19 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                }
 
             // constraint
-            if ( constraint != NULL )
+            if ( constraint != nullptr )
                pAlloc->m_constraint.SetConstraintQuery( constraint );
             
             // expansion query
-            if ( expandQuery != NULL )
+            if ( expandQuery != nullptr )
                pAlloc->SetExpandQuery( expandQuery );
                
             // was a string provided describing the max area expansion?  If so, parse it.
-            if ( expandArea != NULL )
+            if ( expandArea != nullptr )
                pAlloc->SetMaxExpandAreaStr( expandArea );
 
             // are we limiting epansion to match kernel fields?
-            if (expandMatch != NULL)
+            if (expandMatch != nullptr)
                {
                CStringArray fields;
                ::Tokenize(expandMatch, ",", fields);
@@ -2618,14 +2647,14 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                }
 
             // is this a cost item?
-            if ( budgetItem != NULL )
+            if ( budgetItem != nullptr )
                {
                // have constraint, add it to the policy manager
                CI_BASIS _basis = CIB_ABSOLUTE;
-               if (basis != NULL && basis[0] == 'u' )  // "unit_area") == 0)
+               if (basis != nullptr && basis[0] == 'u' )  // "unit_area") == 0)
                   _basis = CIB_UNIT_AREA;
 
-               if (initialCostExpr == NULL )
+               if (initialCostExpr == nullptr )
                   {
                   CString msg;
                   msg.Format("Unrecognized/missing 'cost' expression reading costitem %s", name );
@@ -2635,7 +2664,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                CostItem* pCostItem = new CostItem;  // note - name matches allocation name)
                pCostItem->Init(m_pBudget, budgetItem, name, _basis, initialCostExpr, maintenanceCostExpr, durationExpr, lookup);
                pAlloc->m_pCostItem = pCostItem;
-               }  // end of: if ( budgetItem != NULL )
+               }  // end of: if ( budgetItem != nullptr )
                   
             // all done, add allocation to set's array
             pAllocSet->m_allocationArray.Add( pAlloc );
@@ -2643,18 +2672,18 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
             // next, get any preferences
             TiXmlElement *pXmlPref = pXmlAlloc->FirstChildElement( "preference" );
       
-            while ( pXmlPref != NULL )
+            while ( pXmlPref != nullptr )
                {
                // lookup fields
-               LPTSTR name   = NULL;
-               LPTSTR query  = NULL;
-               LPTSTR wtExpr = NULL;
+               LPTSTR name   = nullptr;
+               LPTSTR query  = nullptr;
+               LPTSTR wtExpr = nullptr;
       
                XML_ATTR attrs[] = { // attr          type           address   isReq checkCol
                                   { "name",          TYPE_STRING,   &name,    true,  0 },
                                   { "query",         TYPE_STRING,   &query,   true,  0 },
                                   { "weight",        TYPE_STRING,   &wtExpr,  true,  0 },
-                                  { NULL,            TYPE_NULL,     NULL,          false, 0 } };
+                                  { nullptr,            TYPE_NULL,     nullptr,          false, 0 } };
             
                if ( TiXmlGetAttributes( pXmlPref, attrs, path ) == false )
                   return false;
@@ -2668,16 +2697,16 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
             // next, get any constraints  NOTE: THIS HAS BEEN DEPRECATED
             TiXmlElement *pXmlConstraint = pXmlAlloc->FirstChildElement( "constraint" );
             bool hasConstraints = false;
-            while ( pXmlConstraint != NULL )
+            while ( pXmlConstraint != nullptr )
                {
                // lookup fields
-               LPTSTR name  = NULL;
-               LPTSTR query = NULL;
+               LPTSTR name  = nullptr;
+               LPTSTR query = nullptr;
       
                XML_ATTR attrs[] = { // attr          type           address   isReq checkCol
                                   { "name",          TYPE_STRING,   &name,    true,  0 },
                                   { "query",         TYPE_STRING,   &query,   true,  0 },
-                                  { NULL,            TYPE_NULL,     NULL,     false, 0 } };
+                                  { nullptr,            TYPE_NULL,     nullptr,     false, 0 } };
             
                if ( TiXmlGetAttributes( pXmlConstraint, attrs, path ) == false )
                   return false;
@@ -2701,7 +2730,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
    return true;
    }
 
-   // The method can be called each timestep (it will be if m_pBuildFromFile is not NULL.  A tag has been added to the LoadXml code:
+   // The method can be called each timestep (it will be if m_pBuildFromFile is not nullptr.  A tag has been added to the LoadXml code:
 
   // <spatial_allocator area_col = "AREA" method = "score priority" shuffle_idus = "1" update_from_file = "D:\\Envision\\StudyAreas\\CALFEWS\\calvin\\AgModel_Envision.csv">
   //    <allocation_set name = "AgCrops" col = "SWAT_ID" use = "1" >
@@ -2720,7 +2749,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
    // as a time series with 2 points.  Because the 2 values in the updated time series are equivalent, the sampling will return the same value.
 bool SpatialAllocator::UpdateAllocationsFromFile()
    {
-   if (m_pBuildFromFile != NULL)
+   if (m_pBuildFromFile != nullptr)
       {
       m_pBuildFromFile->Clear();
       m_pBuildFromFile->ReadAscii(m_update_from_file_name);
@@ -2747,7 +2776,7 @@ bool SpatialAllocator::UpdateAllocationsFromFile()
             CString prefQuery;
             prefQuery.Format("SWAT_ID = %i", m_pBuildFromFile->GetAsInt(1, i));//preference for land already growing this crop
             pPref->m_queryStr = prefQuery;
-            if (pAllocSet->m_inUse && pAlloc->m_pTargetData != NULL)
+            if (pAllocSet->m_inUse && pAlloc->m_pTargetData != nullptr)
                //pAlloc->SetTarget(m_pBuildFromFile->GetAsFloat(1, j));//area to disaggregate
                {
                pAlloc->m_pTargetData->Set(1, 0, m_pBuildFromFile->GetAsFloat(1, j));
@@ -2777,7 +2806,7 @@ bool SpatialAllocator::SaveXml( LPCTSTR path )
    // open the file and write contents
    FILE *fp;
    fopen_s( &fp, path, "wt" );
-   if ( fp == NULL )
+   if ( fp == nullptr )
       {
       LONG s_err = GetLastError();
       CString msg = "Failure to open ";
@@ -2801,7 +2830,7 @@ int SpatialAllocator::SaveXml( FILE *fp )
    {
    bool useXmlStrings = false;
    
-   ASSERT( fp != NULL );
+   ASSERT( fp != nullptr );
    fputs( "<?xml version='1.0' encoding='utf-8' ?>\n\n", fp );
    fputs( "<!--\n", fp );
    fputs( "<spatial_allocator> \n", fp );
@@ -2880,7 +2909,7 @@ int SpatialAllocator::SaveXml( FILE *fp )
 
       if ( pSet->m_targetSource != TS_UNDEFINED )
          {
-         LPCTSTR ts = NULL, tv = NULL, tb=NULL, td=NULL;
+         LPCTSTR ts = nullptr, tv = nullptr, tb=nullptr, td=nullptr;
          switch( pSet->m_targetSource )
             {
             case TS_TIMESERIES:    ts = "timeseries";       tv = (LPCTSTR) pSet->m_targetValues;  break;
@@ -2902,16 +2931,16 @@ int SpatialAllocator::SaveXml( FILE *fp )
          if ( pSet->m_targetBasisField.IsEmpty() == false )
             tb = pSet->m_targetBasisField;
 
-         if ( ts != NULL )
+         if ( ts != nullptr )
             fprintf( fp, "\n      target_source='%s'", ts );
          
-         if ( tv != NULL )
+         if ( tv != nullptr )
             fprintf( fp, "\n      target_values='%s'", tv );
 
-         if ( td != NULL )
+         if ( td != nullptr )
             fprintf( fp, "\n      target_domain='%s'", td );
 
-         if ( tb != NULL )
+         if ( tb != nullptr )
             fprintf( fp, "\n      target_basis='%s'", tb );
          }
 
@@ -2924,7 +2953,7 @@ int SpatialAllocator::SaveXml( FILE *fp )
          {
          Allocation *pAlloc = pSet->GetAllocation( j );
 
-         LPCTSTR ts = NULL, td=NULL, tb=NULL, tv=NULL;
+         LPCTSTR ts = nullptr, td=nullptr, tb=nullptr, tv=nullptr;
          if ( pAlloc->m_targetSource != TS_UNDEFINED )
             {
             switch( pAlloc->m_targetSource )
@@ -2952,13 +2981,13 @@ int SpatialAllocator::SaveXml( FILE *fp )
          GetXmlStr((LPCTSTR)pAlloc->m_name, xmlStr);
          fprintf( fp, "   <allocation name='%s' id='%i' \n", (LPCTSTR) xmlStr, pAlloc->m_id );
 
-         if ( ts != NULL )
+         if ( ts != nullptr )
             fprintf( fp, "         target_source='%s' \n", ts );
-         if ( tv != NULL )
+         if ( tv != nullptr )
             fprintf( fp, "         target_values='%s' \n", tv );
-         if ( td != NULL )
+         if ( td != nullptr )
             fprintf( fp, "         target_domain='%s' \n", td );
-         if ( tb != NULL )
+         if ( tb != nullptr )
             fprintf( fp, "         target_basis='%s' \n", tb );
    
          // expansion stuff
@@ -3021,7 +3050,7 @@ float SpatialAllocator::Expand( int idu, Allocation *pAlloc, bool useAddDelta, i
    {   
    // expand the allocation to the area around the idu provided
    // returns the basis value associated with the expand area.
-   ASSERT( this->m_pMapLayer != NULL );
+   ASSERT( this->m_pMapLayer != nullptr );
    MapLayer *pLayer = this->m_pMapLayer;
 
    // basic idea - expand in concentric circles around the idu (subject to constraints)
@@ -3060,7 +3089,7 @@ float SpatialAllocator::Expand( int idu, Allocation *pAlloc, bool useAddDelta, i
          if ( nextIDU >= 0 )   // is this an expandable IDU?
             {
             Poly *pPoly = pLayer->GetPolygon( nextIDU );  // -1 );    // why -1?
-            int count = pLayer->GetNearbyPolys( pPoly, neighbors, NULL, 64, 1 );
+            int count = pLayer->GetNearbyPolys( pPoly, neighbors, nullptr, 64, 1 );
 
             for ( int i=0; i < count; i++ )
                {
@@ -3279,7 +3308,7 @@ void SpatialAllocator::CollectData(EnvContext *pContext)
       //if ( pAllocSet->m_inUse )
       //   {
       // collect data (whether in use or not - should be smarter than this!!!
-      CString msg( "  Spatial Allocator: " );
+      CString msg( "" );
 
       CArray< float, float > outputs;
       outputs.Add( (float) pContext->currentYear );  // time
@@ -3341,7 +3370,7 @@ void SpatialAllocator::CollectData(EnvContext *pContext)
       }
 
    // global budget next
-   if (this->m_pBudget != NULL && pContext->yearOfRun >= 0)
+   if (this->m_pBudget != nullptr && pContext->yearOfRun >= 0)
       {
       // if budget defined:
       //   For each BudgetItem for each year:
@@ -3399,9 +3428,9 @@ void SpatialAllocator::ReportOutcomes(EnvContext *pContext)
          // report resutls for this allocation set
          CString msg;
          if (isTargetDefined)
-            msg.Format("Spatial Allocator [%s]: Time: %i,  Total Target: %.0f,  Realized: %.0f", (LPCTSTR)pAllocSet->m_name, pContext->currentYear, pAllocSet->m_currentTarget, pAllocSet->m_allocationSoFar);
+            msg.Format("Allocating %s: Total Target: %.0f,  Realized: %.0f", (LPCTSTR)pAllocSet->m_name, pAllocSet->m_currentTarget, pAllocSet->m_allocationSoFar);
          else
-            msg.Format("Spatial Allocator [%s]: Time: %i", (LPCTSTR)pAllocSet->m_name, pContext->currentYear);
+            msg.Format("Allocating %s: (No defined target)", (LPCTSTR)pAllocSet->m_name);
 
          pAllocSet->m_status = msg;
          Report::Log(msg);
@@ -3427,7 +3456,7 @@ void SpatialAllocator::ReportOutcomes(EnvContext *pContext)
          }
       }
 
-   if (m_pBudget != NULL)
+   if (m_pBudget != nullptr)
       {
       //setlocale(LC_NUMERIC, "");
 
