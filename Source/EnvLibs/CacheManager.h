@@ -40,6 +40,7 @@ class LIBSAPI CacheManager {
 	public:
 		CacheManager();
 		CacheManager(double sensitivity);
+		~CacheManager();
 		bool hasImage(double top, double bot, double left, double right);
 		CImage* getImage(double top, double bot, double left, double right);
 		void storeImage(CImage* image, double top, double bot, double left, double right);

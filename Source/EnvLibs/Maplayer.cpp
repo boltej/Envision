@@ -8699,6 +8699,31 @@ int MapLayer::GetUniqueValues(int col, CUIntArray &valueArray, int maxCount) con
    return valueArray.GetSize();
    }
 
+// std lib version
+int MapLayer::GetUniqueValues(int col, std::vector<int>& valueArray, int maxCount) const
+   {
+   bool found;
+
+   if (col == -1)
+      {
+      for (int i = 0; i < m_pData->GetColCount(); i++)
+         GetUniqueValues(i, valueArray, maxCount);
+      }
+   else
+      {
+      for (int row = 0; row < m_pData->GetRowCount(); row++)
+         {
+         found = false;
+         int value = m_pData->GetAsInt(col, row);
+
+         if ( std::find(valueArray.begin(), valueArray.end(), value) == valueArray.end() )
+            valueArray.push_back(value);
+         }
+      }
+
+   return valueArray.size();
+   }
+
 
 
 // Get an array of unique values for the specified data column. 

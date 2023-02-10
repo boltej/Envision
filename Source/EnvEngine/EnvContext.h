@@ -227,7 +227,7 @@ public:
    MapExprEngine  *pExprEngine;           // pointer to an expression engine (ditto)
    Scenario       *pScenario;             // pointer to current scenario 
    int             id;                    // id of the module being called
-   int             handle;                // unique handle of the module
+   INT_PTR         handle;                // unique handle of the module
    int             col;                   // database column to populate, -1 for no column
    LPCTSTR         initInfo;
    INT_PTR         firstUnseenDelta;      // models should start scanning the deltaArray here

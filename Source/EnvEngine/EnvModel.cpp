@@ -608,23 +608,28 @@ int EnvModel::FindMetagoalIndex( LPCTSTR name )
 
 void EnvModel::FreeLibraries()
    {
-   for (int i = 0; i < m_modelProcessArray.GetSize(); i++)
-      {
-      EnvModelProcess *pModel = m_modelProcessArray[i];
-      HINSTANCE hDLL = pModel->m_hDLL;
-      delete pModel;
-      FREE_LIBRARY(hDLL);
-      }
-
-   for ( int i=0; i < m_evaluatorArray.GetSize(); i++ )
+   int count = (int) m_evaluatorArray.GetSize();
+   for ( int i=0; i < count;  i++ )
       {
       EnvEvaluator *pEval = m_evaluatorArray[i];
       HINSTANCE hDLL = pEval->m_hDLL;
       delete pEval;
-      FREE_LIBRARY(hDLL);
+      if ( hDLL )
+         FREE_LIBRARY(hDLL);
+      }  
+
+   count = (int)m_modelProcessArray.GetSize();
+   for (int i = 0; i < count; i++)
+      {
+      EnvModelProcess *pModel = m_modelProcessArray[i];
+      HINSTANCE hDLL = pModel->m_hDLL;
+      delete pModel;
+      if (hDLL)
+         FREE_LIBRARY(hDLL);
       }
 
-   for ( int i=0; i < m_vizInfoArray.GetSize(); i++ )
+   count = (int)m_vizInfoArray.GetSize();
+   for ( int i=0; i < count; i++ )
       {
       EnvVisualizer *pViz = m_vizInfoArray[i];
       HINSTANCE hDLL = pViz->m_hDLL;
@@ -3911,6 +3916,7 @@ void EnvModel::RunModelProcesses( bool isPostYear )
 
          Notify( EMNT_RUNAP, 1, (INT_PTR) pInfo );
 
+         //UpdateUI( 8, (LONG_PTR) m_envContext.pEnvExtension );   // extension info
          //UpdateUI( 8, (LONG_PTR) m_envContext.pEnvExtension );   // extension info
          //Notify( EMNT_UPDATEUI, 8, (INT_PTR) m_envContext.pEnvExtension );
 

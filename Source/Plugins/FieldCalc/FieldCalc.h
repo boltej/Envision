@@ -10,6 +10,7 @@
 #include <MapExprEngine.h>
 #include <PtrArray.h>
 
+#include <map>
 
 #define _EXPORT __declspec( dllexport )
 
@@ -74,8 +75,8 @@ class FieldDef
       CString   m_mapExprStr;
       bool      m_useDelta = false;      //
       bool      m_initColData=false;
-      Query*    m_pQuery=NULL;
-      MapExpr*  m_pMapExpr=NULL;
+      Query*    m_pQuery=nullptr;
+      MapExpr*  m_pMapExpr=nullptr;
       int       m_col=-1;           // column associated with this variable (-1 if no col)
       float     m_value=0;
       int       m_modelID = -99;    // should match .envx entry if needed
@@ -85,9 +86,9 @@ class FieldDef
       int       m_colGroupBy = -1;   // corresponding column
       FC_OP     m_operator = FC_OP::FCOP_UNDEFINED;
 
-      CMap<int, int, int, int> m_groupByIndexMap; // key=FN_ID, value=values
-      CArray<float, float> m_groupByValues;
-      CArray<float, float> m_groupByAreas;
+      std::map<int,int> m_groupByIndexMap; // key=FN_ID, value=index in groupby arrays
+      std::vector<float> m_groupByValues;
+      std::vector<float> m_groupByAreas;
 
       // miscellaneous trackers
       int m_count = 0;
@@ -111,19 +112,11 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
    {
    public:
       FieldCalculator();
+      ~FieldCalculator();
 
       virtual bool Init(EnvContext* pEnvContext, LPCTSTR initStr);
-
       virtual bool InitRun(EnvContext* pEnvContext, bool useInitialSeed);
-      
       virtual bool Run(EnvContext* pEnvContext){ return _Run(pEnvContext, false); }
-
-      //virtual bool EndRun(EnvContext *pContext) { return true; }
-      //virtual bool Setup(EnvContext *pContext, HWND hWnd) { return false; }
-      //virtual bool GetConfig(std::string &configStr) { return false; }
-      //virtual bool SetConfig(EnvContext*, LPCTSTR configStr) { return false; }
-      //virtual int  InputVar(int id, MODEL_VAR** modelVar);
-      //virtual int  OutputVar(int id, MODEL_VAR** modelVar);
 
    public:
       static MapLayer*      m_pMapLayer;            // memory managed by EnvModel
@@ -131,15 +124,16 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
       static QueryEngine*   m_pQueryEngine;         // memory managed by EnvModel
 
    protected:
-      static bool m_initialized;
       static int m_colArea;
 
       static CUIntArray m_iduArray;    // used for shuffling IDUs
       static bool m_shuffleIDUs;
       static RandUniform* m_pRandUnif;
 
-      static PtrArray<FieldDef> m_fields;
-      static PtrArray<Constant> m_constants;
+      PtrArray<Constant> m_constants;  // only added to the first instance
+
+      PtrArray<FieldDef> m_fields;
+      //std::vector<unique_ptr<FieldDef>> m_fields;
 
       FDataObj* m_pOutputData = nullptr;
 
@@ -147,14 +141,6 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
 
       bool CollectData(int year);
 
-      int GetActiveFieldCount(int modelID) {
-         int fieldCount = (int)m_fields.GetSize(); 
-         int fc = 0;
-         for (int i = 0; i < fieldCount; i++)
-            if (m_fields[i]->m_modelID == modelID || m_fields[i]->m_modelID == -99)
-               fc++;
-         return fc;
-         }
       bool IsFieldInModel(FieldDef* pFD, int modelID) { return (pFD->m_modelID == modelID || pFD->m_modelID == -99); }
 
       bool LoadXml(EnvContext*, LPCTSTR);
@@ -162,5 +148,5 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
    };
 
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new FieldCalculator; }
+extern "C" _EXPORT EnvExtension * Factory(EnvContext*); // { return (EnvExtension*) new FieldCalculator; }
 

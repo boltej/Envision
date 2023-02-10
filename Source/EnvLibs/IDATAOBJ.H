@@ -38,11 +38,6 @@ Copywrite 2012 - Oregon State University
 #include "DATAOBJ.H"
 #endif
 
-#if !defined ( _TARRAY_HPP )
-#include "TARRAY.HPP"
-#endif
-
-
 #if !defined ( _IMATRIX_HPP )
 #include "IMATRIX.HPP"
 #endif

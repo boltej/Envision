@@ -27,6 +27,7 @@ Copywrite 2012 - Oregon State University
 #include <PtrArray.h>
 #include <RANDOM.HPP>
 #include <EnvConstants.h>
+#include <vector>
 
 #include <Budget.h>
 
@@ -314,7 +315,8 @@ public:
    CArray< int > m_sequenceArray;   // array of sequence codes if defined
    CMap< int, int, int, int > m_sequenceMap;   // key=Attr code, value=index in sequence array
 
-   CArray< IDU_SCORE, IDU_SCORE& > m_iduScoreArray;  // sorted list of idu/score pairs
+   std::vector<IDU_SCORE> m_iduScoreArray;
+   //CArray< IDU_SCORE, IDU_SCORE& > m_iduScoreArray;  // sorted list of idu/score pairs
 
    CString m_scoreCol;
    int     m_colScores;
@@ -337,8 +339,10 @@ public:
    void  SetExpandQuery( LPCTSTR expandQuery );
    void  SetMaxExpandAreaStr( LPCTSTR expandAreaStr );
    float SetMaxExpandArea( void );
-   int   GetCurrentIdu  ( void ) { return m_currentIduScoreIndex >= m_iduScoreArray.GetSize() ? -1 : m_iduScoreArray[ m_currentIduScoreIndex ].idu; }
-   float GetCurrentScore( void ) { return m_currentIduScoreIndex >= m_iduScoreArray.GetSize() ? -1 : m_iduScoreArray[ m_currentIduScoreIndex ].score; }
+   //int   GetCurrentIdu  ( void ) { return m_currentIduScoreIndex >= m_iduScoreArray.GetSize() ? -1 : m_iduScoreArray[ m_currentIduScoreIndex ].idu; }
+   //float GetCurrentScore( void ) { return m_currentIduScoreIndex >= m_iduScoreArray.GetSize() ? -1 : m_iduScoreArray[ m_currentIduScoreIndex ].score; }
+   int   GetCurrentIdu(void) { return m_currentIduScoreIndex >= m_iduScoreArray.size() ? -1 : m_iduScoreArray[m_currentIduScoreIndex].idu; }
+   float GetCurrentScore(void) { return m_currentIduScoreIndex >= m_iduScoreArray.size() ? -1 : m_iduScoreArray[m_currentIduScoreIndex].score; }
 
    bool  IsSequence( void ) { return m_sequenceArray.GetSize() > 0; }
    float GetCurrentTarget();  // returns allocation if defined, otherwise, allocation set target
@@ -359,6 +363,9 @@ public:
    int m_col;                 // the IDU field which is populated by the "winning" allocation ID
 
    int m_colSequence;
+
+   int m_defaultValue = 0;
+   bool m_resetToDefault = false;  // flag
 
    // note: the following are also defined at the Allocation level 
    bool m_inUse;

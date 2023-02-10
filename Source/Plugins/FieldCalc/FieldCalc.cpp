@@ -9,48 +9,53 @@
 #include <FDATAOBJ.H>
 
 
-FieldCalculator* theModel = nullptr;
-
-
-
+// the one and only
+FieldCalculator* theMainModel = nullptr;
 
 MapLayer* FieldCalculator::m_pMapLayer=nullptr;               // memory managed by EnvModel
 MapExprEngine* FieldCalculator::m_pMapExprEngine = nullptr;     // memory managed by EnvModel
 QueryEngine* FieldCalculator::m_pQueryEngine = nullptr;         // memory managed by EnvModel
 
-
-bool  FieldCalculator::m_initialized = false;
+//bool  FieldCalculator::m_initialized = false;
 int  FieldCalculator::m_colArea=-1;
 
 CUIntArray  FieldCalculator::m_iduArray;    // used for shuffling IDUs
 bool  FieldCalculator::m_shuffleIDUs=true;
 RandUniform* FieldCalculator::m_pRandUnif=nullptr;
 
-PtrArray<FieldDef>  FieldCalculator::m_fields;
-PtrArray<Constant>  FieldCalculator::m_constants;
+//PtrArray<FieldDef>  FieldCalculator::m_fields;
+//PtrArray<Constant>  FieldCalculator::m_constants;
+
+
+std::vector<FieldCalculator*> fieldCalculators;
+
 
 //FDataObj* FieldCalculator::m_pOutputData;
 
 
 
 
+extern "C" EnvExtension * Factory(EnvContext*)
+   {
+   FieldCalculator *pFC = new FieldCalculator;
+   fieldCalculators.push_back(pFC);
 
-//extern "C" EnvExtension* Factory(EnvContext*)
-//   { 
-//   return (EnvExtension*) new ExampleModel; 
-//   }
+   return (EnvExtension*) pFC;
+   }
+
+
 
 
 bool FieldDef::Init()
    {
-   ASSERT(theModel != NULL);
-   theModel->CheckCol(FieldCalculator::m_pMapLayer, this->m_col, this->m_field, TYPE_FLOAT, CC_AUTOADD);
+   ASSERT(theMainModel != nullptr);
+   theMainModel->CheckCol(FieldCalculator::m_pMapLayer, this->m_col, this->m_field, TYPE_FLOAT, CC_AUTOADD);
 
-   LPTSTR query = NULL;
+   LPTSTR query = nullptr;
    if (m_queryStr.IsEmpty() == false)
       query = (LPTSTR)(LPCTSTR)m_queryStr;
 
-   m_pMapExpr = FieldCalculator::m_pMapExprEngine->AddExpr(m_name, m_mapExprStr, m_queryStr);
+   m_pMapExpr = FieldCalculator::m_pMapExprEngine->AddExpr(m_name, m_mapExprStr); // , m_queryStr);
    bool ok = FieldCalculator::m_pMapExprEngine->Compile(m_pMapExpr);
 
    if (!ok)
@@ -63,19 +68,23 @@ bool FieldDef::Init()
       Report::ErrorMsg(msg);
       }
 
-   m_pQuery = m_pMapExpr->GetQuery();
+   if (this->m_queryStr.IsEmpty() == false)
+      this->m_pQuery = FieldCalculator::m_pQueryEngine->ParseQuery(this->m_queryStr, 0, this->m_name); //      m_pMapExpr->GetQuery();
 
    if (IsGroupBy())
       {
-      CUIntArray attrValues;
+      std::vector<int> attrValues;
       int count = FieldCalculator::m_pMapLayer->GetUniqueValues(this->m_colGroupBy, attrValues);
 
-      m_groupByValues.SetSize(count);  // set up array to store values
-      m_groupByAreas.SetSize(count);  // set up array to store values
+      m_groupByValues.resize(count);  // set up array to store values
+      m_groupByAreas.resize(count);  // set up array to store values
 
       // create maps of (groupAttr,index) pairs
       for (int i = 0; i < count; i++)
-         m_groupByIndexMap[attrValues[i], i];
+         {
+         int attrVal = attrValues[i];
+         m_groupByIndexMap[attrVal] = i;  // key = attribute vale (e.g. FN_ID, value = index in group arrays
+         }
       }
 
    return true;
@@ -86,28 +95,27 @@ bool FieldDef::Init()
 
 FieldCalculator::FieldCalculator()
    : EnvModelProcess()
-      {
-      theModel = this;
-      }
+   {
+   }
 
+FieldCalculator::~FieldCalculator()
+   {
+   if (m_pOutputData != nullptr)
+      delete m_pOutputData;
+
+   // remove the fieldcalc ptr from the global collection
+   fieldCalculators.erase(std::remove(fieldCalculators.begin(), fieldCalculators.end(), this), fieldCalculators.end());
+   }
 
 bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
-   theModel = (FieldCalculator*) pEnvContext->pEnvExtension;
-
-   if (FieldCalculator::m_initialized == false)
+   if (theMainModel == nullptr)
       {
+      theMainModel = this;
+
       FieldCalculator::m_pMapLayer = (MapLayer*)pEnvContext->pMapLayer;
       FieldCalculator::m_pMapExprEngine = pEnvContext->pExprEngine;
       FieldCalculator::m_pQueryEngine = pEnvContext->pQueryEngine;
-
-      // load input file (or just return if no file specified)
-
-      if (initStr == NULL || *initStr == '\0')
-         return false;
-
-      if (LoadXml(pEnvContext, initStr) == false)
-         return false;
 
       // initialize internal array for sorting IDUs
       int iduCount = FieldCalculator::m_pMapLayer->GetPolygonCount();
@@ -115,37 +123,33 @@ bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       m_iduArray.SetSize(iduCount);
       for (int i = 0; i < iduCount; i++)
          m_iduArray[i] = i;
-
-      FieldCalculator::m_initialized = true;
       }
+     
+   // load input file (or just return if no file specified)
+   if (initStr == nullptr || *initStr == '\0')
+      return false;
+
+   if (LoadXml(pEnvContext, initStr) == false)
+      return false;
 
    // set data obj column labels
    ASSERT(m_pOutputData == nullptr);
 
    int fieldCount = (int)m_fields.GetSize();
-   int fc = 0;
-   for (int i = 0; i < fieldCount; i++)
-      if (m_fields[i]->m_modelID == theModel->m_id || m_fields[i]->m_modelID == -99)
-         fc++;
-
-   m_pOutputData = new FDataObj(1+2*fc, 0);
+ 
+   m_pOutputData = new FDataObj(1+2*fieldCount, 0);
    m_pOutputData->SetName((LPCTSTR) this->m_name);
    m_pOutputData->SetLabel(0, "Year");
    int j = 1;
    for (int i = 0; i < fieldCount; i++)
       {
-      if (m_fields[i]->m_modelID == theModel->m_id || m_fields[i]->m_modelID == -99)
-         {
-         CString label = m_fields[i]->m_name + ".count";
-         m_pOutputData->SetLabel(j++, label);
-         label = m_fields[i]->m_name + ".area";
-         m_pOutputData->SetLabel(j++, label);
-         }
+      CString label = m_fields[i]->m_name + ".count";
+      m_pOutputData->SetLabel(j++, label);
+      label = m_fields[i]->m_name + ".area";
+      m_pOutputData->SetLabel(j++, label);
       }
 
-   CString outvar = theModel->m_name;
-   outvar += ".";
-   outvar += "FieldCalc";
+   CString outvar = this->m_name;
 
    AddOutputVar(outvar, m_pOutputData, "");
 
@@ -156,13 +160,9 @@ bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    }
 
 
-
 bool FieldCalculator::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
-   {
-   theModel = (FieldCalculator*)pEnvContext->pEnvExtension;
-
+   {   
    m_pOutputData->ClearRows();
-
    return true;
    }
 
@@ -170,8 +170,6 @@ bool FieldCalculator::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
 bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
    {
-   theModel = (FieldCalculator*)pEnvContext->pEnvExtension;
-
    int iduCount = FieldCalculator::m_pMapLayer->GetPolygonCount();
 
    // shuffle IDU array to randomly look through IDUs when allocating sequences
@@ -181,39 +179,32 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
    
    // reset field def application counters
    int fieldCount = (int)m_fields.GetSize();
-   int fcUsed = 0;
    for (int i = 0; i < fieldCount; i++)
       {
       FieldDef* pFD = m_fields[i];
+      pFD->m_count = 0;
+      pFD->m_totalArea = 0;
 
-      if (pFD->m_modelID == theModel->m_id || pFD->m_modelID == -99)
+      if (pFD->IsGroupBy())
          {
-         fcUsed++;
-         pFD->m_count = 0;
-         pFD->m_totalArea = 0;
-
-         if (pFD->IsGroupBy())
+         int attrCount = (int)pFD->m_groupByValues.size();
+         for (int j = 0; j < attrCount; j++)
             {
-            int attrCount = (int)pFD->m_groupByValues.GetSize();
-            for (int j = 0; j < attrCount; j++)
-               {
-               pFD->m_groupByValues[j] = 0;
-               pFD->m_groupByAreas[j] = 0;
-               }
+            pFD->m_groupByValues[j] = 0;
+            pFD->m_groupByAreas[j] = 0;
             }
          }
       }
 
    // iterate through IDUs, applying field defs as needed
-   if (fcUsed > 0)
+   if (fieldCount > 0)
       {
       for (int m = 0; m < iduCount; m++)
          {
          UINT idu = m_iduArray[m];         // a random grab (if shuffled)
 
-
-         theModel->m_pQueryEngine->SetCurrentRecord(idu);
-         theModel->m_pMapExprEngine->SetCurrentRecord(idu);
+         FieldCalculator::m_pQueryEngine->SetCurrentRecord(idu);
+         FieldCalculator::m_pMapExprEngine->SetCurrentRecord(idu);
 
          float area;
          FieldCalculator::m_pMapLayer->GetData(idu, m_colArea, area);
@@ -222,25 +213,24 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             {
             FieldDef* pFD = m_fields[i];
 
-            if (pFD->m_modelID == theModel->m_id || pFD->m_modelID == -99)
+            // if we are in initialization, only initialize field if called for in the input file
+            if (init && pFD->m_initColData == false)
+               continue;
+
+            bool result = false;
+            if (pFD->m_pQuery == nullptr || (pFD->m_pQuery->Run(idu, result) && result == true))
                {
-               // if we are in initialization, only initialize field if called for in the input file
-               if (init && pFD->m_initColData == false)
-                  continue;
-
-               // is the timing right?
-               //if ( pFD->m_timing == 1 && pEnvContext->)
-
                // apply the map expression the the map layer
-               if (pFD->m_pMapExpr != NULL)   // is the map expr for the field definition
+               if (pFD->m_pMapExpr != nullptr)   // is the map expr for the field definition
                   {
                   bool ok = m_pMapExprEngine->EvaluateExpr(pFD->m_pMapExpr, true);
+                  float value = (float)pFD->m_pMapExpr->GetValue();
+                  ASSERT(std::isnan(value) == false);
+
                   if (ok)
                      {
                      if (pFD->IsGroupBy())
                         {
-                        float value = (float)pFD->m_pMapExpr->GetValue();
-
                         int groupAttr;
                         FieldCalculator::m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
                         int index = pFD->m_groupByIndexMap[groupAttr];
@@ -259,10 +249,7 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                         pFD->m_groupByAreas[index] += area;
                         }
                      else
-                        {
-                        pFD->m_value = (float)pFD->m_pMapExpr->GetValue();
-                        theModel->UpdateIDU(pEnvContext, idu, pFD->m_col, pFD->m_value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
-                        }
+                        this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
 
                      pFD->m_count++;
                      pFD->m_totalArea += area;
@@ -273,39 +260,46 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
          }
       }
 
-   // do anynecessary cleanup
+   int colA2rxn = FieldCalculator::m_pMapLayer->GetFieldCol("A2rxn");
+   int colSocCap = FieldCalculator::m_pMapLayer->GetFieldCol("SocialCap");
+
+   // do any necessary cleanup
    for (int i = 0; i < fieldCount; i++)
       {
       FieldDef* pFD = m_fields[i];
+      if (init && pFD->m_initColData == false)
+         continue;
 
-      if (pFD->m_modelID == theModel->m_id || pFD->m_modelID == -99)
+      // write groupbys to each qualifying IDU (non-groupbys handled during _Run())
+      if (pFD->IsGroupBy())
          {
-         if (pFD->IsGroupBy())
+         // fix up area wted means
+         if (pFD->m_operator == FC_OP::FCOP_AREAWTMEAN)
             {
-            // fix up area wted means
-            if (pFD->m_operator == FC_OP::FCOP_AREAWTMEAN)
+            int attrCount = (int)pFD->m_groupByValues.size();
+            for (int j = 0; j < attrCount; j++)
                {
-               int attrCount = (int)pFD->m_groupByValues.GetSize();
-               for (int j = 0; j < attrCount; j++)
-                  {
+               if (pFD->m_groupByAreas[j] != 0)
                   pFD->m_groupByValues[j] /= pFD->m_groupByAreas[j];
-                  }
+               else
+                  pFD->m_groupByValues[j] = 0;
                }
+            }
 
-            // write results to IDUs in each group
-            for (int m = 0; m < iduCount; m++)
+         // write results to IDUs in each group
+         for (int m = 0; m < iduCount; m++)
+            {
+            UINT idu = m_iduArray[m];         // a random grab (if shuffled)
+            bool result=false;
+            if (pFD->m_pQuery == nullptr || (pFD->m_pQuery->Run(idu, result) && result == true))
                {
-               UINT idu = m_iduArray[m];         // a random grab (if shuffled)
-               bool result;
-               if (pFD->m_pQuery == NULL || (pFD->m_pQuery->Run(idu, result) && result == true))
-                  {
-                  int groupAttr;
-                  FieldCalculator::m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
-                  int index = pFD->m_groupByIndexMap[groupAttr];
-                  float value = pFD->m_groupByValues[index];
+               int groupAttr;
+               FieldCalculator::m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
+               int index = pFD->m_groupByIndexMap[groupAttr];
+               float value = pFD->m_groupByValues[index];
 
-                  theModel->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
-                  }
+               ASSERT(std::isnan(value) == false);
+               this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
                }
             }
          }
@@ -320,24 +314,18 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
 bool FieldCalculator::CollectData(int year) 
    {
    int fieldCount = (int) m_fields.GetSize();
-   int fc = GetActiveFieldCount( theModel->m_id);
 
-   float* data = new float[1+(2*fc)];
+   std::vector<float> data;
 
-   data[0] = (float) year;
-   int j = 1;
+   data.push_back((float)year);
    for (int i = 0; i < fieldCount; i++)
       {
-      if (IsFieldInModel( m_fields[i], theModel->m_id ))
-         {
-         data[j++] = (float)m_fields[i]->m_count;
-         data[j++] = (float)m_fields[i]->m_totalArea;
-         }
+      data.push_back((float)m_fields[i]->m_totalArea);
+      data.push_back((float)m_fields[i]->m_count);
       }
 
-   m_pOutputData->AppendRow(data, 1+(2*fc));
+   m_pOutputData->AppendRow(data.data(), (int) data.size());
 
-   delete [] data;
    return true;
    }
 
@@ -371,93 +359,97 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
    // start interating through the nodes
    TiXmlElement* pXmlRoot = doc.RootElement();  // field_calculator
 
-   LPTSTR areaCol = nullptr, checkCols=nullptr;
-   int    shuffleIDUs = 1;
-   XML_ATTR rattrs[] = { // attr          type           address       isReq checkCol
-                      { "area_col",     TYPE_STRING,   &areaCol,       false, CC_MUST_EXIST | TYPE_FLOAT },
-                      { "shuffle_idus", TYPE_INT,      &shuffleIDUs,   false, 0 },
-                      { "check_cols",   TYPE_STRING,   &checkCols,     false, 0 },
-                      { NULL,           TYPE_NULL,     NULL,           false, 0 } };
-
-   if (TiXmlGetAttributes(pXmlRoot, rattrs, path, FieldCalculator::m_pMapLayer) == false)
-      return false;
-
-   if (areaCol == NULL)
-      this->m_colArea = FieldCalculator::m_pMapLayer->GetFieldCol("AREA");
-   else
-      this->m_colArea = FieldCalculator::m_pMapLayer->GetFieldCol(areaCol);
-
-   if (m_colArea < 0)
+   if (this == theMainModel)
       {
-      CString msg("Field Calculator: unable to find AREA field in input file");
-      msg += filename;
-      Report::ErrorMsg(msg);
-      return false;
-      }
 
-   if (shuffleIDUs)
-      {
-      m_shuffleIDUs = true;
-      m_pRandUnif = new RandUniform(0.0, (double)FieldCalculator::m_pMapLayer->GetRecordCount(), 0);
-      }
-   else
-      m_shuffleIDUs = false;
+      LPTSTR areaCol = nullptr, checkCols = nullptr;
+      int    shuffleIDUs = 1;
+      XML_ATTR rattrs[] = { // attr          type           address       isReq checkCol
+                         { "area_col",     TYPE_STRING,   &areaCol,       false, CC_MUST_EXIST | TYPE_FLOAT },
+                         { "shuffle_idus", TYPE_INT,      &shuffleIDUs,   false, 0 },
+                         { "check_cols",   TYPE_STRING,   &checkCols,     false, 0 },
+                         { nullptr,           TYPE_NULL,     nullptr,           false, 0 } };
 
+      if (TiXmlGetAttributes(pXmlRoot, rattrs, path, FieldCalculator::m_pMapLayer) == false)
+         return false;
 
-   if (checkCols != nullptr)
-      {
-      CStringArray tokens;
-      int count = ::Tokenize(checkCols, _T(",;"), tokens);
-
-      int col = 0;
-      for (int i = 0; i < count; i++)
-         {
-         CStringArray token;
-         int _count = ::Tokenize(tokens[i], _T(":"), token);
-
-         TYPE type = TYPE_INT;
-         if (_count == 2)
-            {
-            switch (_tolower(token[1][0]))
-               {
-               case 'f':   type = TYPE_FLOAT;   break;
-               case 'd':   type = TYPE_DOUBLE;  break;
-               case 's':   type = TYPE_STRING;  break;
-               case 'l':   type = TYPE_LONG;    break;
-               }
-            }
-         this->CheckCol(m_pMapLayer, col, token[0], type, CC_AUTOADD);
-         }
-      }
-
-   // constants
-   TiXmlElement* pXmlConst = pXmlRoot->FirstChildElement("const");
-   while (pXmlConst != NULL)
-      {
-      Constant* pConst = new Constant;
-
-      XML_ATTR attrs[] = { // attr          type           address       isReq checkCol
-                         { "name",         TYPE_CSTRING,  &pConst->m_name,   true,  0 },
-                         { "value",        TYPE_FLOAT,    &pConst->m_value,  true,  0 },
-                         { NULL,           TYPE_NULL,     NULL,              false, 0 } };
-
-      if (TiXmlGetAttributes(pXmlConst, attrs, path, NULL ) == false)
-         delete pConst;         
+      if (areaCol == nullptr)
+         this->m_colArea = FieldCalculator::m_pMapLayer->GetFieldCol("AREA");
       else
+         this->m_colArea = FieldCalculator::m_pMapLayer->GetFieldCol(areaCol);
+
+      if (m_colArea < 0)
          {
-         m_constants.Add(pConst);
-         m_pMapExprEngine->AddVariable(pConst->m_name, &(pConst->m_value));
+         CString msg("Field Calculator: unable to find AREA field in input file");
+         msg += filename;
+         Report::ErrorMsg(msg);
+         return false;
          }
 
-      pXmlConst = pXmlConst->NextSiblingElement("const");
-      }
+      if (shuffleIDUs)
+         {
+         m_shuffleIDUs = true;
+         m_pRandUnif = new RandUniform(0.0, (double)FieldCalculator::m_pMapLayer->GetRecordCount(), 0);
+         }
+      else
+         m_shuffleIDUs = false;
+
+
+      if (checkCols != nullptr)
+         {
+         CStringArray tokens;
+         int count = ::Tokenize(checkCols, _T(",;"), tokens);
+
+         int col = 0;
+         for (int i = 0; i < count; i++)
+            {
+            CStringArray token;
+            int _count = ::Tokenize(tokens[i], _T(":"), token);
+
+            TYPE type = TYPE_INT;
+            if (_count == 2)
+               {
+               switch (_tolower(token[1][0]))
+                  {
+                  case 'f':   type = TYPE_FLOAT;   break;
+                  case 'd':   type = TYPE_DOUBLE;  break;
+                  case 's':   type = TYPE_STRING;  break;
+                  case 'l':   type = TYPE_LONG;    break;
+                  }
+               }
+            this->CheckCol(m_pMapLayer, col, token[0], type, CC_AUTOADD);
+            }
+         }
+
+      // constants
+      TiXmlElement* pXmlConst = pXmlRoot->FirstChildElement("const");
+      while (pXmlConst != nullptr)
+         {
+         Constant* pConst = new Constant;
+
+         XML_ATTR attrs[] = { // attr          type           address       isReq checkCol
+                            { "name",         TYPE_CSTRING,  &pConst->m_name,   true,  0 },
+                            { "value",        TYPE_FLOAT,    &pConst->m_value,  true,  0 },
+                            { nullptr,           TYPE_NULL,     nullptr,              false, 0 } };
+
+         if (TiXmlGetAttributes(pXmlConst, attrs, path, nullptr) == false)
+            delete pConst;
+         else
+            {
+            m_constants.Add(pConst);
+            m_pMapExprEngine->AddVariable(pConst->m_name, &(pConst->m_value));
+            }
+
+         pXmlConst = pXmlConst->NextSiblingElement("const");
+         }
+      }  // end of: if (this ==theMainModel)
 
 
    TiXmlElement* pXmlFieldDef = pXmlRoot->FirstChildElement("field_def");
-   while (pXmlFieldDef != NULL)
+   while (pXmlFieldDef != nullptr)
       {
       FieldDef* pFD = new FieldDef;
-      LPTSTR op = NULL;
+      LPTSTR op = nullptr;
 
       XML_ATTR attrs[] = { // attr          type           address             isReq checkCol
                          { "name",         TYPE_CSTRING,  &pFD->m_name,       false, 0 },
@@ -469,36 +461,40 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "groupby",      TYPE_CSTRING,  &pFD->m_groupBy,     false, 0 },
                          { "op",           TYPE_STRING,   &op,                 false, 0 },
                          { "model_id",     TYPE_INT,      &pFD->m_modelID,     false, 0 },
-                         { NULL,           TYPE_NULL,     NULL,                false, 0 } };
+                         { nullptr,           TYPE_NULL,     nullptr,                false, 0 } };
 
       if (TiXmlGetAttributes(pXmlFieldDef, attrs, path, FieldCalculator::m_pMapLayer) == false)
          delete pFD;
       else
          {
-         if (pFD->m_groupBy.IsEmpty() == false)
+         if (pFD->m_modelID == this->m_id || pFD->m_modelID == -99)
             {
-            this->CheckCol(m_pMapLayer, pFD->m_colGroupBy, pFD->m_groupBy, TYPE_LONG, CC_AUTOADD | TYPE_FLOAT);
-            if (op == NULL)
-               {
-               CString msg;
-               msg.Format("  Warning - Field Definition using groupby should specify operation - AREAWTMEAN() assumed!");
-               Report::WarningMsg(msg);
-               pFD->m_operator = FCOP_AREAWTMEAN;
-               }
-            else 
-               {
-               FC_OP _op = FCOP_AREAWTMEAN;
-               if (op[0] == 's' or op[0] == 'S')
-                  _op = FCOP_SUM;
-               else if (op[0] == 'm' or op[0] == 'M')
-                  _op = FCOP_MEAN;
 
-               pFD->m_operator = _op;
+            if (pFD->m_groupBy.IsEmpty() == false)
+               {
+               this->CheckCol(m_pMapLayer, pFD->m_colGroupBy, pFD->m_groupBy, TYPE_LONG, CC_AUTOADD | TYPE_FLOAT);
+               if (op == nullptr)
+                  {
+                  CString msg;
+                  msg.Format("  Warning - Field Definition using groupby should specify operation - AREAWTMEAN() assumed!");
+                  Report::WarningMsg(msg);
+                  pFD->m_operator = FCOP_AREAWTMEAN;
+                  }
+               else
+                  {
+                  FC_OP _op = FCOP_AREAWTMEAN;
+                  if (op[0] == 's' or op[0] == 'S')
+                     _op = FCOP_SUM;
+                  else if (op[0] == 'm' or op[0] == 'M')
+                     _op = FCOP_MEAN;
+
+                  pFD->m_operator = _op;
+                  }
                }
+
+            pFD->Init();
+            m_fields.Add(pFD);
             }
-
-         pFD->Init();
-         m_fields.Add(pFD);
          }
 
       pXmlFieldDef = pXmlFieldDef->NextSiblingElement("field_def");

@@ -49,100 +49,48 @@ Copywrite 2012 - Oregon State University
 
 DDataObj::DDataObj()
    : DataObj(U_UNDEFINED),
-   matrix(),
-   statArray()
+     matrix()
    {
    }
 
 
 DDataObj::DDataObj(UNIT_MEASURE m)
    : DataObj(m),
-     matrix  (),
-     statArray()
+     matrix  ()
    { }
 
 
 //-------------------------------------------------------------------
 DDataObj::DDataObj( DDataObj &dataObj )
    : DataObj( dataObj ),
-     matrix  ( dataObj.matrix ),
-     statArray  ( dataObj.statArray )
+     matrix  ( dataObj.matrix )
    { }
 
 
 //-------------------------------------------------------------------
 DDataObj::DDataObj( int _cols, int _rows, UNIT_MEASURE m)
    : DataObj( _cols, _rows,m ),
-     matrix  ( _rows, _cols ),     
-     statArray()
+     matrix  ( _rows, _cols ) 
    {
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-   statArray.ReFill( stat, _cols );
-
    return;
    }
 
 DDataObj::DDataObj( int _cols, int _rows, double initialValue, UNIT_MEASURE m)
    : DataObj( _cols, _rows, m ),
-     matrix  ( _rows, _cols, initialValue ),     
-     statArray()
+     matrix  ( _rows, _cols, initialValue )
    {
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-   statArray.ReFill( stat, _cols );
-
-   return;
+    return;
    }
 
 DDataObj::DDataObj( const DoubleMatrix::type_data * data, int _cols, int _rows, UNIT_MEASURE m)
 : DataObj( _cols, _rows, m ),
-  matrix  ( data, _rows, _cols ),     
-  statArray()
+  matrix  ( data, _rows, _cols )
    {
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-   statArray.ReFill( stat, _cols );
-
    return;
    }
 
 
 
-
-//-- DDataObj::DDataObj() ---------------------------------------------
-//
-//-- stats constructor
-//-------------------------------------------------------------------
-
-DDataObj::DDataObj( int _cols, int _rows, STATSFLAG *statFlagArray, UNIT_MEASURE m)
-   : DataObj( _cols, _rows, m ),
-     matrix  ( _rows, _cols ),
-     statArray()
-   {
-   int i = 0;
-
-   //for ( i=0; i < m_dataCols; i++ )
-   //   {
-   //   if ( statFlagArray[ i ] & SF_STORE_MEAN )
-   //      _cols++;
-   //
-	//	if ( statFlagArray[ i ] & SF_STORE_VARIANCE )
-   //      _cols++;
-   //   }
-
-   //matrix.Resize( _rows, _cols );
-
-   for ( i=0; i < _cols; i++ )
-      {
-      STATSFLAG statFlag = SF_NONE;
-
-		if ( i < m_dataCols )
-			statFlag = statFlagArray[ i ];
-
-		DO_STATS stat =
-			{ (float) LONG_MAX, (float) LONG_MIN, (float)0.0, float(0.0), statFlag };
-
-		statArray.Append( stat );
-		}
-   }
 
 
 double DDataObj::Get( int col, int row )
@@ -466,7 +414,6 @@ void DDataObj::Clear( void )
    DataObj::Clear();  // clear parent
 
    matrix.Clear();
-   statArray.Clear();
    }
 
 
@@ -482,9 +429,6 @@ bool DDataObj::SetSize( int _cols, int _rows )
 	matrix.Resize( _rows, _cols );   // actual data
 
 	m_dataCols = _cols;  // assumes no stats!!!
-
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-	statArray.ReFill( stat, _cols );
 
    return TRUE;
    }

@@ -426,7 +426,6 @@
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
     </ClCompile>
     <ClCompile Include="TextToIdDlg.cpp" />
-    <ClCompile Include="TipDlg.cpp" />
     <ClCompile Include="TrajectorySpaceWnd.cpp" />
     <ClCompile Include="Visualizer.cpp" />
     <ClCompile Include="WizRun.cpp" />
@@ -551,7 +550,6 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="TextToIdDlg.h" />
-    <ClInclude Include="TipDlg.h" />
     <ClInclude Include="TrajectorySpaceWnd.h" />
     <ClInclude Include="ugctelps.h" />
     <ClInclude Include="UpdateDlg.h" />

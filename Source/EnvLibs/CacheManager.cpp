@@ -33,6 +33,13 @@ CacheManager::CacheManager(double sens) : sensitivity(sens) {
 	cache = new vector<CachedImage>;
 }
 
+CacheManager::~CacheManager()
+	{
+	if ( cache != nullptr)
+		delete cache;
+	}
+
+
 void CacheManager::storeImage(CImage* image, double top, double bot, double left, double right) {
 	CachedImage newImage;
 	newImage.image = image;

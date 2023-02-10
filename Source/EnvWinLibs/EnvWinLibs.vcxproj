@@ -375,7 +375,6 @@
     <ClCompile Include="VDataTable.cpp" />
     <ClCompile Include="XBalloonMsg.cpp" />
     <ClCompile Include="XGlyphButton.cpp" />
-    <ClCompile Include="XHTMLStatic.cpp" />
     <ClCompile Include="Grid\GridCell.cpp" />
     <ClCompile Include="Grid\GridCellBase.cpp" />
     <ClCompile Include="Grid\GridCtrl.cpp" />
@@ -485,7 +484,6 @@
     <ClInclude Include="WinLib_resource.h" />
     <ClInclude Include="XBalloonMsg.h" />
     <ClInclude Include="XGlyphButton.h" />
-    <ClInclude Include="XHTMLStatic.h" />
     <ClInclude Include="XNamedColors.h" />
     <ClInclude Include="Grid\CellRange.h" />
     <ClInclude Include="Grid\GRIDCELL.H" />

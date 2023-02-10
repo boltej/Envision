@@ -29,6 +29,7 @@ Copywrite 2012 - Oregon State University
 #include <MapExprEngine.h>
 #include <PtrArray.h>
 #include <randgen/Randunif.hpp>
+#include <Vdataobj.h>
 #include <vector>
 #include <map>
 #include <string>
@@ -277,7 +278,7 @@ class SNNetElement
    {
    public:
       int m_index = -1;         // : this.nextNode/EdgeIndex,
-      std::string m_id;    // : 'n' + this.nextNode/EdgeIndex,
+      std::string m_id;         // : 'n' + this.nextNode/EdgeIndex,
       CString  m_name;
       bool m_show = true;
 
@@ -420,6 +421,7 @@ class SNLayer
 
       int m_outputNodeCount = 0;
       int m_colReactivity = -1;
+      int m_colEngager = -1;
 
    public:
       // container
@@ -501,8 +503,10 @@ class SNIPModel
       std::string m_description;
       
       // mapping setup
-      std::string m_mappingQuery;
-      Query* m_pMappingQuery = nullptr;
+      std::string m_profileQuery;
+      Query* m_pProfileQuery = nullptr;
+      float m_mappingFrac = 0.1f;
+      VDataObj m_actorProfiles;
 
       // input definition
       EnvEvaluator* m_pEvaluator = nullptr;
@@ -569,7 +573,7 @@ class SNIPModel
       float m_maxNodeInfluence = 1;
 
    public:
-      SNIPModel(SNLayer* pLayer) : m_pSNLayer(pLayer) {}
+      SNIPModel(SNLayer* pLayer);
       ~SNIPModel(void);
 
       // SNIP Methods
@@ -584,7 +588,10 @@ class SNIPModel
       bool LoadPreBuildSettings(json& settings);
       bool LoadPostBuildSettings(json& settings);
 
-      int ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR filename, float mappingFrac);
+      int PopulateActorProfiles(MapLayer* pIDULayer);
+      int PopulateActorAttitudes(MapLayer* pIDULayer);
+      int ConnectToIDUs(MapLayer* pIDULayer);
+
       float FindTraitValue(TraitContainer* pTC, string &name);
       int FindNodesFromTrait(string &trait, SNIP_NODETYPE ntype, float threshold, vector<SNNode*>&);
 

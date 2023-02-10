@@ -38,16 +38,12 @@ Copywrite 2012 - Oregon State University
 #endif
 
 // idu field variable values shared by all parsers
-Modeler     *gpModeler = NULL;
+Modeler     *gpModeler = nullptr;
 
-double      *Modeler::m_parserVars = NULL;
 int          Modeler::m_nextID = 0;
-int          Modeler::m_colArea;
-MapLayer    *Modeler::m_pMapLayer    = NULL;
-QueryEngine *Modeler::m_pQueryEngine = NULL;
-CMap<int, int, int, int > Modeler::m_usedParserVars;
+int          Modeler::m_colArea = -1;
 
-Variable *gpCurrentVar = NULL;
+Variable *gpCurrentVar = nullptr;
 int gCurrentIDU  = -1;
 
 
@@ -61,7 +57,7 @@ bool LoadLookup( TiXmlNode *pXmlNode, LookupArray&, MapLayer* );
 bool LoadConstant( TiXmlNode *pXmlNode, ConstantArray&, bool isInput  );
 bool LoadVariable( TiXmlNode *pXmlNode, VariableArray&, bool isReport );
 bool LoadExpr    ( TiXmlNode *pXmlNode, ModelBase* );
-bool LoadHistograms( TiXmlNode *pXmlNode, HistoArray&, MapLayer* ); //, LPCTSTR defaultName=NULL, LPCTSTR defaultUse=NULL );
+bool LoadHistograms( TiXmlNode *pXmlNode, HistoArray&, MapLayer* ); //, LPCTSTR defaultName=nullptr, LPCTSTR defaultUse=nullptr );
 bool ParseUseDelta( LPCTSTR deltaStr, CArray< USE_DELTA, USE_DELTA& > &useDeltaArray );
 
 HistogramArray *FindHistogram( HistoArray &histogramsArray, LPCTSTR name );
@@ -78,13 +74,13 @@ MTDOUBLE GetNeighborCountFct::evaluate(unsigned int nbArgs, const MTDOUBLE *pArg
       return -1;
 
    int neighbors[ 32 ];
-   Poly *pPoly = Modeler::m_pMapLayer->GetPolygon( gCurrentIDU );
-   int count = Modeler::m_pMapLayer->GetNearbyPolys( pPoly, neighbors, NULL, 32, 0.001f );
+   Poly *pPoly = gpModeler->m_pMapLayer->GetPolygon( gCurrentIDU );
+   int count = gpModeler->m_pMapLayer->GetNearbyPolys( pPoly, neighbors, nullptr, 32, 0.001f );
 
    int retCount = 0;
 
    //solve with an associate query?
-   if ( gpCurrentVar != NULL && gpCurrentVar->m_pValueQuery != NULL )
+   if ( gpCurrentVar != nullptr && gpCurrentVar->m_pValueQuery != nullptr )
       {
       for ( int i=0; i < count; i++ )
          {
@@ -92,7 +88,7 @@ MTDOUBLE GetNeighborCountFct::evaluate(unsigned int nbArgs, const MTDOUBLE *pArg
          // check to see if neighbor passes query
 
          bool result = false;
-         if ( Modeler::m_pQueryEngine->Run( gpCurrentVar->m_pValueQuery, idu, result ) && result == true )
+         if (gpModeler->m_pQueryEngine->Run( gpCurrentVar->m_pValueQuery, idu, result ) && result == true )
             retCount++;         
          }
 
@@ -112,7 +108,7 @@ HistogramArray *FindHistogram( HistoArray &histogramsArray, LPCTSTR name )
          return pHistos;
       }
 
-   return NULL;
+   return nullptr;
    }
 
 LookupTable *FindLookup( LookupArray &lookupTableArray, LPCTSTR name )
@@ -124,7 +120,7 @@ LookupTable *FindLookup( LookupArray &lookupTableArray, LPCTSTR name )
          return pTable;
       }
 
-   return NULL;
+   return nullptr;
    }
 
 Constant *FindConstant( ConstantArray &constantArray, LPCTSTR name )
@@ -136,7 +132,7 @@ Constant *FindConstant( ConstantArray &constantArray, LPCTSTR name )
          return pConst;
       }
 
-   return NULL;
+   return nullptr;
    }
 
 Variable *FindVariable( VariableArray &variableArray, LPCTSTR name )
@@ -148,18 +144,18 @@ Variable *FindVariable( VariableArray &variableArray, LPCTSTR name )
          return pVar;
       }
 
-   return NULL;
+   return nullptr;
    }
 
 //-- LookupTable methods ---------------------------------------------------------
 bool LookupTable::Evaluate( int idu )
    {
-   ASSERT( Modeler::m_pMapLayer != NULL );
+   ASSERT(gpModeler->m_pMapLayer != nullptr );
    int fieldVal;
 
    ASSERT ( this->m_colAttr >= 0 );
 
-   Modeler::m_pMapLayer->GetData( idu, this->m_colAttr, fieldVal );
+   gpModeler->m_pMapLayer->GetData( idu, this->m_colAttr, fieldVal );
    bool ok = Lookup( fieldVal, m_value ) ? true : false;
 
    if ( ! ok )
@@ -173,24 +169,24 @@ bool LookupTable::Evaluate( int idu )
 
 Variable::~Variable()
    { 
-   if ( m_pParser != NULL ) 
+   if ( m_pParser != nullptr ) 
       delete m_pParser; 
 
-   //if ( m_pRaster != NULL )
+   //if ( m_pRaster != nullptr )
    //   delete m_pRaster;
    
    if ( m_pQuery ) 
-      Modeler::m_pQueryEngine->RemoveQuery( m_pQuery ); 
+      gpModeler->m_pQueryEngine->RemoveQuery( m_pQuery );
 
    if ( m_pValueQuery ) 
-      Modeler::m_pQueryEngine->RemoveQuery( m_pValueQuery ); 
+      gpModeler->m_pQueryEngine->RemoveQuery( m_pValueQuery );
    }
 
 
 bool Variable::Compile( ModelBase *pModel, ModelCollection *pCollection, MapLayer *pLayer )
    {
-   ASSERT( m_pParser == NULL );
-   //ASSERT( m_pQuery == NULL );
+   ASSERT( m_pParser == nullptr );
+   //ASSERT( m_pQuery == nullptr );
    ASSERT( ! m_expression.IsEmpty()  );
 
    // NOTE: ASSUMES all evaluable expressions/field have been defined
@@ -202,13 +198,13 @@ bool Variable::Compile( ModelBase *pModel, ModelCollection *pCollection, MapLaye
       case VT_AREAWTMEAN:
       case VT_GLOBALEXT:
          {
-         ASSERT( m_pParser == NULL );
+         ASSERT( m_pParser == nullptr );
          m_pParser = new MParser;
 
          if ( CompileExpression( pModel, pCollection, m_pParser, m_expression, pLayer ) == false )
             {
             delete m_pParser;
-            m_pParser = NULL;
+            m_pParser = nullptr;
             return false;
             }
          }
@@ -218,7 +214,7 @@ bool Variable::Compile( ModelBase *pModel, ModelCollection *pCollection, MapLaye
       //case VT_PCT_CONTRIB_AREA:
          {
          //m_pQuery = Modeler::m_pQueryEngine->ParseQuery( m_expression );  // parsed when first read
-         if ( m_pQuery == NULL )
+         if ( m_pQuery == nullptr )
             return false;
          }
          break;
@@ -245,7 +241,7 @@ bool Variable::Evaluate( void )
       //case VT_GLOBALEXT:  // only evaluated once at end of cycle
          // for expressions, evaluate the expression with the parser. 
          // Assumes all variables defined, current for the given IDU
-         if ( ( m_pParser != NULL ) && ( ! m_pParser->evaluate( m_value ) ) )
+         if ( ( m_pParser != nullptr ) && ( ! m_pParser->evaluate( m_value ) ) )
             m_value = 0; 
 
          retVal = true;
@@ -254,28 +250,28 @@ bool Variable::Evaluate( void )
       case VT_PCT_AREA:
       //case VT_PCT_CONTRIB_AREA:
          // for pctArea variables, nothing is required
-         ASSERT( m_pQuery != NULL );
+         ASSERT( m_pQuery != nullptr );
          retVal =  true;
          break;
       }
 
-   gpCurrentVar = NULL;
+   gpCurrentVar = nullptr;
    return retVal;
    }
 
 
 Expression::~Expression( void )
    {
-   if ( m_pQuery != NULL )
+   if ( m_pQuery != nullptr )
       {
       //Modeler::m_pQueryEngine->RemoveQuery( m_pQuery );  // deletes query
-      //m_pQuery = NULL;
+      //m_pQuery = nullptr;
       }
 
-   if ( m_pParser != NULL )
+   if ( m_pParser != nullptr )
       {
       delete m_pParser;
-      m_pParser = NULL;
+      m_pParser = nullptr;
       }
    }
 
@@ -284,7 +280,7 @@ Expression::~Expression( void )
 
 Expression *ModelBase::AddExpression( LPCTSTR expr, LPCTSTR query )
    {
-   ASSERT ( expr != NULL );
+   ASSERT ( expr != nullptr );
 
    Expression *pExpr = new Expression;
    pExpr->m_expression = expr;
@@ -295,22 +291,22 @@ Expression *ModelBase::AddExpression( LPCTSTR expr, LPCTSTR query )
    //bool CompileExpression( this, ModelCollection *pCollection, MParser *pParser, LPCTSTR expr, MapLayer *pLayer )      
    //pExpr->m_pParser->compile( expr );
 
-   if ( query != NULL )
+   if ( query != nullptr )
       {
-      pExpr->m_pQuery = Modeler::m_pQueryEngine->ParseQuery( query, 0, "Modeler" );
+      pExpr->m_pQuery = gpModeler->m_pQueryEngine->ParseQuery( query, 0, "Modeler" );
 
-      if ( pExpr->m_pQuery == NULL )
+      if ( pExpr->m_pQuery == nullptr )
          {
          CString msg( _T("Error parsing query for model expression " ) );
          msg += this->m_modelName;
          msg += _T(": Query=");
          msg += query;
          msg += _T( ". Query will be ignored" );
-         AfxMessageBox( msg, MB_OK );
+         Report::LogWarning(msg);
          }
       }
 
-   m_exprArray.Add( pExpr );
+   m_exprArray.Add( pExpr );  // this is a ptrarray
    return pExpr;
    }
 
@@ -336,10 +332,10 @@ void ModelBase::Clear()
 
    m_exprArray.RemoveAll();
 
-   //if ( m_pRaster != NULL )
+   //if ( m_pRaster != nullptr )
    //   {
    //   delete m_pRaster;
-   //   m_pRaster = NULL;
+   //   m_pRaster = nullptr;
    //   }
    }
 
@@ -348,7 +344,7 @@ bool ModelBase::LoadModelBaseXml( TiXmlNode *pXmlModelNode, MapLayer *pLayer )
    {
    bool loadSuccess = true;
 
-   TiXmlNode *pXmlNode = NULL;
+   TiXmlNode *pXmlNode = nullptr;
    while( pXmlNode = pXmlModelNode->IterateChildren( pXmlNode ) )
       {
       if ( pXmlNode->Type() != TiXmlNode::ELEMENT )
@@ -431,7 +427,7 @@ bool ModelBase::LoadInclude( TiXmlNode *pXmlIncludeNode, MapLayer *pLayer )
    TiXmlElement *pXmlIncludeElement = pXmlIncludeNode->ToElement();
    LPCTSTR file = pXmlIncludeElement->Attribute( "file" );
 
-   if ( file == NULL )
+   if ( file == nullptr )
       return false;
 
    // have xml string, start parsing
@@ -463,30 +459,30 @@ bool ParseUseDelta( LPCTSTR deltaStr, CArray< USE_DELTA, USE_DELTA&> &useDeltaAr
 
    LPTSTR p = _deltaStr;
    LPTSTR field = p;
-   LPTSTR value = NULL;
+   LPTSTR value = nullptr;
 
    VData vdata;
 
    CString _field;
    CString _value;
 
-   while ( *p != NULL )
+   while ( *p != 0 )
       {
       switch( *p )
          {
          case '=':
-            *p = NULL;
+            *p = 0;
             value = p+1;
             break;
 
          case ';':
             {
-            *p = NULL;
+            *p = 0;
 
             _field = field;
             _field.Trim();
 
-            int col = Modeler::m_pMapLayer->GetFieldCol( _field );
+            int col = gpModeler->m_pMapLayer->GetFieldCol( _field );
 
             if ( col < 0 )
                {
@@ -514,7 +510,7 @@ bool ParseUseDelta( LPCTSTR deltaStr, CArray< USE_DELTA, USE_DELTA&> &useDeltaAr
    _field = field;
    _field.Trim();
 
-   int col = Modeler::m_pMapLayer->GetFieldCol( _field );
+   int col = gpModeler->m_pMapLayer->GetFieldCol( _field );
 
    if ( col < 0 )
       {
@@ -551,10 +547,10 @@ bool LoadLookup( TiXmlNode *pXmlLookupNode, LookupArray &lookupArray, MapLayer *
    LPCTSTR outputColName = pXmlLookupElement->Attribute( "col" );
    LPCTSTR defValue      = pXmlLookupElement->Attribute( "default" );
 
-   if ( name == NULL )
+   if ( name == nullptr )
       name = attrColName;
 
-   if ( attrColName == NULL )
+   if ( attrColName == nullptr )
       {
       CString msg( "  Misformed <lookup> element [" );
       msg += name;
@@ -568,7 +564,7 @@ bool LoadLookup( TiXmlNode *pXmlLookupNode, LookupArray &lookupArray, MapLayer *
    pTable->m_colName = attrColName;
    pTable->m_colAttr  = pLayer->GetFieldCol( attrColName );
    
-   if ( outputColName != NULL )
+   if ( outputColName != nullptr )
       {
       pTable->m_outputColName = outputColName;
       pTable->m_colOutput = pLayer->GetFieldCol( outputColName ); 
@@ -593,11 +589,11 @@ bool LoadLookup( TiXmlNode *pXmlLookupNode, LookupArray &lookupArray, MapLayer *
       Report::WarningMsg( msg );
       }
 
-   if ( defValue != NULL )
+   if ( defValue != nullptr )
       pTable->m_defaultValue = atof( defValue );
 
    // have basics, get map elements for this lookup table
-   TiXmlNode *pXmlMapNode = NULL;
+   TiXmlNode *pXmlMapNode = nullptr;
    while( pXmlMapNode = pXmlLookupNode->IterateChildren( pXmlMapNode ) )
       {
       if ( pXmlMapNode->Type() != TiXmlNode::ELEMENT )
@@ -609,7 +605,7 @@ bool LoadLookup( TiXmlNode *pXmlLookupNode, LookupArray &lookupArray, MapLayer *
       LPCTSTR attr = pXmlMapElement->Attribute( "attr_val" );
       LPCTSTR val  = pXmlMapElement->Attribute( "value" );
 
-      if ( attr == NULL || val == NULL )
+      if ( attr == nullptr || val == nullptr )
          {
          Report::ErrorMsg( _T("  Misformed <map> element: A required attribute is missing."));
          loadSuccess = false;
@@ -637,7 +633,7 @@ bool LoadHistograms( TiXmlNode *pXmlHistogramsNode, HistoArray &histoArray, MapL
    LPCTSTR file    = pXmlHistogramsElement->Attribute( "file" );
    LPCTSTR use     = pXmlHistogramsElement->Attribute( "use" );
 
-   if ( name == NULL || file == NULL || use== NULL )
+   if ( name == nullptr || file == nullptr || use== nullptr )
       {      
       CString msg( _T("Error loading <histograms> - A required attribute is missing loading Modeler file: ") );
       msg += name;
@@ -707,13 +703,13 @@ bool LoadConstant( TiXmlNode *pXmlConstantNode, ConstantArray &constantArray, bo
    LPCTSTR input = pXmlElement->Attribute( "input" );  // optional
    LPCTSTR descr = pXmlElement->Attribute( "description" );  // optional
 
-   if ( name == NULL )
+   if ( name == nullptr )
       {
       Report::ErrorMsg( _T("  <const/input> element missing name attribute" ) );
       return false;
       }
 
-   if ( value == NULL )
+   if ( value == nullptr )
       {
       Report::ErrorMsg( _T("  <const/input> element missing value attribute" ) );
       return false;
@@ -760,14 +756,14 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
 
    //LPCTSTR extent  = pXmlElement->Attribute( "extent" );   // options - defaults to EXTENT_IDU - note - this in inferred from the type
 
-   if ( name == NULL )
+   if ( name == nullptr )
       {
       Report::ErrorMsg( _T("  <var> element missing 'name' attribute" ) );
       return false;
       }
 
    // make sure name doesn't conflict with any field name
-   int _col_ = Modeler::m_pMapLayer->GetFieldCol( name );
+   int _col_ = gpModeler->m_pMapLayer->GetFieldCol( name );
    if ( _col_ >= 0 )
       {
       CString msg;
@@ -778,7 +774,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
 
    // get type
    VAR_TYPE vtype = VT_UNDEFINED;
-   if ( type == NULL )
+   if ( type == nullptr )
       vtype = VT_EXPRESSION;
    else if ( lstrcmpi( "pctArea", type ) == 0 )
       vtype = VT_PCT_AREA;
@@ -802,7 +798,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
       return false;
       }
 
-   if ( ( vtype != VT_PCT_AREA && vtype != VT_RASTER ) && value == NULL )
+   if ( ( vtype != VT_PCT_AREA && vtype != VT_RASTER ) && value == nullptr )
       {
       CString msg;
       msg.Format( _T("  <var> '%s' missing 'value' expression attribute - this is required" ), name );
@@ -812,7 +808,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
 
    if ( vtype == VT_PCT_AREA )
       {
-      if ( query == NULL )
+      if ( query == nullptr )
          {
          CString msg;
          msg.Format( _T("  <var> '%s' missing 'query' attribute - this is required for pctArea and pctContribArea-type variables" ), name );
@@ -832,7 +828,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
    if ( vtype == VT_RASTER )
       {
       LPCTSTR _cellSize = pXmlElement->Attribute( "cell_size" );
-      if ( _cellSize == NULL )
+      if ( _cellSize == nullptr )
          {
          CString msg;
          msg.Format( _T("  <var> element '%s' is missing a 'cell-size' attribute - this is required for raster variables" ), name );
@@ -842,7 +838,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
       else
          cellSize = (float) atof( _cellSize );
 
-      if ( col == NULL )
+      if ( col == nullptr )
          {
          CString msg;
          msg.Format( _T("  <var> '%s' is missing a 'col' attribute is empty - this is required for raster variables" ), name );
@@ -863,7 +859,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
    pVariable->m_name    = name;
    pVariable->m_varType = vtype;
    
-   if ( useDelta != NULL )
+   if ( useDelta != nullptr )
       {
       if ( _extent != EXTENT_GLOBAL )
          {
@@ -881,7 +877,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
          }
       }
 
-   if ( timing != NULL )
+   if ( timing != nullptr )
       {
       if ( _extent != EXTENT_GLOBAL )
          {
@@ -894,16 +890,16 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
       }
 
    // store and process query if defined
-   if ( query != NULL )
+   if ( query != nullptr )
       {
       pVariable->m_query = query;
-      ASSERT( Modeler::m_pQueryEngine != NULL );
+      ASSERT(gpModeler->m_pQueryEngine != nullptr );
       CString source( "Modeler Variable '" );
       source += pVariable->m_name;
       source += "'";
 
-      pVariable->m_pQuery = Modeler::m_pQueryEngine->ParseQuery( query, 0, source );
-      if ( pVariable->m_pQuery == NULL )
+      pVariable->m_pQuery = gpModeler->m_pQueryEngine->ParseQuery( query, 0, source );
+      if ( pVariable->m_pQuery == nullptr )
          {
          CString msg;
          msg.Format( _T("  Invalid query encountered processing <var name='%s' query='%s'...>" ), name, query );
@@ -913,16 +909,16 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
          }
       }
 
-   if ( valueQuery != NULL )
+   if ( valueQuery != nullptr )
       {
       pVariable->m_valueQuery = query;
-      ASSERT( Modeler::m_pQueryEngine != NULL );
+      ASSERT(gpModeler->m_pQueryEngine != nullptr );
       CString source( "Modeler Variable '" );
       source += pVariable->m_name;
       source += "'";
 
-      pVariable->m_pValueQuery = Modeler::m_pQueryEngine->ParseQuery( valueQuery, 0, source );
-      if ( pVariable->m_pValueQuery == NULL )
+      pVariable->m_pValueQuery = gpModeler->m_pQueryEngine->ParseQuery( valueQuery, 0, source );
+      if ( pVariable->m_pValueQuery == nullptr )
          {
          CString msg;
          msg.Format( _T("  Invalid value query encountered processing <var name='%s' value_query='%s'...>" ), name, valueQuery );
@@ -932,9 +928,9 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
          }
       }
 
-   if ( col != NULL )
+   if ( col != nullptr )
       {
-      int _col = Modeler::m_pMapLayer->GetFieldCol( col );
+      int _col = gpModeler->m_pMapLayer->GetFieldCol( col );
 
       if ( _col < 0 )
          {
@@ -944,13 +940,13 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
          int result = AfxMessageBox( msg, MB_YESNO );
 
          if ( result == IDYES )
-            _col = Modeler::m_pMapLayer->m_pDbTable->AddField( col, TYPE_FLOAT, true );
+            _col = gpModeler->m_pMapLayer->m_pDbTable->AddField( col, TYPE_FLOAT, true );
          }
 
       if ( _col >= 0 )
          {
          pVariable->m_col = _col;
-         pVariable->m_dataType = Modeler::m_pMapLayer->GetFieldType( _col );
+         pVariable->m_dataType = gpModeler->m_pMapLayer->GetFieldType( _col );
          }
       }
 
@@ -974,7 +970,7 @@ bool LoadVariable( TiXmlNode *pXmlVariableNode, VariableArray &variableArray, bo
       }
 
    //if ( vtype == VT_RASTER )
-   //   pVariable->m_pRaster = new Raster( Modeler::m_pMapLayer, NULL, NULL, false );
+   //   pVariable->m_pRaster = new Raster( Modeler::m_pMapLayer, nullptr, nullptr, false );
 
    variableArray.Add( pVariable ); 
 
@@ -1000,13 +996,13 @@ bool LoadExpr( TiXmlNode *pXmlExprNode, ModelBase *pModel  )
    //LPCTSTR output = pXmlElement->Attribute( "output" );  // optional
    //LPCTSTR extent  = pXmlElement->Attribute( "extent" );   // options - defaults to EXTENT_IDU
 
-   //if ( name == NULL )
+   //if ( name == nullptr )
    //   {
    //   ErrorMsg( _T("<eval> element missing 'name' attribute - this is required" ) );
    //   return false;
    //   }
 
-   if ( value == NULL )
+   if ( value == nullptr )
       {
       Report::ErrorMsg( _T("  Modeler: <eval> element missing 'value' expression attribute - this is required" ) );
       return false;
@@ -1028,7 +1024,7 @@ bool ModelBase::Compile( MapLayer *pLayer )
    //      these can be a) field cols, b) lookup tables,
    //        c) constants, d) variables, or e) histograms
    //  3) define each parser variable appropriately
-   //ASSERT( m_pParser != NULL );
+   //ASSERT( m_pParser != nullptr );
 
    // compile any variables
    for ( int i=0; i < m_variableArray.GetSize(); i++ )
@@ -1045,7 +1041,7 @@ bool ModelBase::Compile( MapLayer *pLayer )
       if ( ! success )
          {
          delete pExpr->m_pParser;
-         pExpr->m_pParser = NULL;
+         pExpr->m_pParser = nullptr;
          return false;
          }
       }
@@ -1111,7 +1107,7 @@ bool ModelBase::UpdateVariables( EnvContext *pEnvContext, int idu, bool useAddDe
          if ( pVar->m_col >= 0 )
             {
             bool ok = true;
-            if ( pVar->m_pQuery != NULL )
+            if ( pVar->m_pQuery != nullptr )
                {
                bool result = false;
                bool ok2 = pVar->m_pQuery->Run( idu, result );
@@ -1171,23 +1167,23 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
          {
          // have we already seen this column?
          int index = col;
-         if ( Modeler::m_usedParserVars.Lookup( col, index ) )
+         if (gpModeler->m_usedParserVars.Lookup( col, index ) )
             {
             ASSERT( col == index );
             }
          else  // add it
-            Modeler::m_usedParserVars.SetAt( col, col );
+            gpModeler->m_usedParserVars.SetAt( col, col );
 
-         pParser->redefineVar( varName, Modeler::m_parserVars+index );
+         pParser->redefineVar( varName, gpModeler->m_parserVars+index );
          continue;
          }
 
       // ModelBase scope?
-      if ( pModel != NULL )
+      if ( pModel != nullptr )
          {
          // is it a histogram?
          HistogramArray *pHisto = FindHistogram( pModel->m_histogramsArray, varName );
-         if ( pHisto != NULL )
+         if ( pHisto != nullptr )
             {
             pParser->redefineVar( varName, &pHisto->m_value );
             continue;
@@ -1195,7 +1191,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
          // is it a lookup table
          LookupTable *pLookup = FindLookup( pModel->m_lookupTableArray, varName );
-         if ( pLookup != NULL )
+         if ( pLookup != nullptr )
             {
             pParser->redefineVar( varName, &pLookup->m_value );
             continue;
@@ -1203,7 +1199,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
          // is it a constant?
          Constant *pConst = FindConstant( pModel->m_constantArray, varName );
-         if ( pConst != NULL )
+         if ( pConst != nullptr )
             {
             pParser->redefineVar( varName, &pConst->m_value );
             continue;
@@ -1211,7 +1207,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
          // is it a variable?
          Variable *pVar = FindVariable( pModel->m_variableArray, varName );
-         if ( pVar != NULL )
+         if ( pVar != nullptr )
             {
             pParser->redefineVar( varName, &pVar->m_value );
 
@@ -1225,7 +1221,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
          {
          // is it a histogram?
          HistogramArray *pHisto = FindHistogram( pCollection->m_histogramsArray, varName );
-         if ( pHisto != NULL )
+         if ( pHisto != nullptr )
             {
             pParser->redefineVar( varName, &pHisto->m_value );
             continue;
@@ -1233,7 +1229,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
          // is it a lookup table
          LookupTable *pLookup = FindLookup( pCollection->m_lookupTableArray, varName );
-         if ( pLookup != NULL )
+         if ( pLookup != nullptr )
             {
             pParser->redefineVar( varName, &pLookup->m_value );
             continue;
@@ -1241,7 +1237,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
          // is it a constant?
          Constant *pConst = FindConstant( pCollection->m_constantArray, varName );
-         if ( pConst != NULL )
+         if ( pConst != nullptr )
             {
             pParser->redefineVar( varName, &pConst->m_value );
             continue;
@@ -1249,7 +1245,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
          // is it a variable?
          Variable *pVar = FindVariable( pCollection->m_variableArray, varName );
-         if ( pVar != NULL )
+         if ( pVar != nullptr )
             {
             pParser->redefineVar( varName, &pVar->m_value );
 
@@ -1261,7 +1257,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
       // if we get this far, the variable is undefiend
       CString msg( "Unable to compile Modeler expression for Model: " );
-      if ( pModel != NULL )
+      if ( pModel != nullptr )
          {
          msg += pModel->m_modelName;
          msg +=" [";
@@ -1271,7 +1267,7 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
       msg += "Expression: ";
       msg += expr;
       msg += " This expression will be ignored";
-      AfxMessageBox( msg );
+      Report::LogWarning( msg );
       return false;
       }  // end of:  for ( i < varCount )
 
@@ -1356,7 +1352,7 @@ bool Evaluator::RunMap( EnvContext *pEnvContext, bool useAddDelta )
          {
          Expression *pExpr = m_exprArray[ i ];
 
-         if ( pExpr->m_pQuery == NULL )
+         if ( pExpr->m_pQuery == nullptr )
             {
             runExpr[ i ] = true;
             runIDU = true;
@@ -1394,7 +1390,7 @@ bool Evaluator::RunMap( EnvContext *pEnvContext, bool useAddDelta )
                {
                Expression *pExpr = m_exprArray[ i ];
 
-               ASSERT( pExpr->m_pParser != NULL );
+               ASSERT( pExpr->m_pParser != nullptr );
                if ( ! pExpr->m_pParser->evaluate( iduValue ) )
                   iduValue = 0;
                }
@@ -1515,7 +1511,7 @@ bool Evaluator::RunDelta( EnvContext *pEnvContext )
             {
             // does it pass the query?
             bool passQuery = true;
-            if ( pExpr->m_pQuery != NULL )
+            if ( pExpr->m_pQuery != nullptr )
                pExpr->m_pQuery->Run( delta.cell, passQuery );
 
             if ( passQuery )
@@ -1534,7 +1530,7 @@ bool Evaluator::RunDelta( EnvContext *pEnvContext )
          UpdateVariables( pEnvContext, delta.cell, true );
 
          // done evalating all inputs - run model formula(s)                     
-         ASSERT( pExpr->m_pParser != NULL );
+         ASSERT( pExpr->m_pParser != nullptr );
          double iduValue;
          if ( ! pExpr->m_pParser->evaluate( iduValue ) )
             iduValue = 0;
@@ -1648,7 +1644,7 @@ bool ModelProcess::Run( EnvContext *pEnvContext )
             {
             Expression *pExpr = m_exprArray[ i ];
 
-            if ( pExpr->m_pQuery == NULL )
+            if ( pExpr->m_pQuery == nullptr )
                {
                runExpr[ i ] = true;
                runIDU = true;
@@ -1703,7 +1699,7 @@ bool ModelProcess::Run( EnvContext *pEnvContext )
                   {
                   Expression *pExpr = m_exprArray[ i ];
 
-                  ASSERT( pExpr->m_pParser != NULL );
+                  ASSERT( pExpr->m_pParser != nullptr );
                   if ( ! pExpr->m_pParser->evaluate( iduValue ) )
                      iduValue = 0;
                   }
@@ -1781,7 +1777,7 @@ BOOL ModelProcess::RunDelta( EnvContext *pEnvContext )
             UpdateVariables( pEnvContext, delta.cell, true );
 
             // done evalating all inputs - run model formula
-            ASSERT( pExpr->m_pParser != NULL );
+            ASSERT( pExpr->m_pParser != nullptr );
             double iduValue;
             if ( ! pExpr->m_pParser->evaluate( iduValue ) )
                iduValue = 0;
@@ -1810,7 +1806,7 @@ Evaluator *ModelCollection::GetEvaluatorFromID( int id )
          return m_evaluatorArray[ i ];
       }
 
-   return NULL;
+   return nullptr;
    }
 
 
@@ -1822,7 +1818,7 @@ ModelProcess *ModelCollection::GetModelProcessFromID( int id )
          return m_modelProcessArray[ i ];
       }
 
-   return NULL;
+   return nullptr;
    }
 
 
@@ -1834,15 +1830,18 @@ bool ModelCollection::UpdateVariables( EnvContext *pEnvContext, int idu, bool us
 
    VData value;
    float fValue;
-   int colCount = Modeler::m_pMapLayer->GetFieldCount();
+
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+
+   int colCount = pIDULayer->GetFieldCount();
 
    // (NOTE: THIS SHOULD ONLY HAPPEN DURING THE FIRST INVOCATION OF A MODEL IN A GIVEN TIMESTEP...
    for ( int j=0; j < colCount; j++ )
       {
-      bool okay = Modeler::m_pMapLayer->GetData( idu, j, value );
+      bool okay = pIDULayer->GetData( idu, j, value );
 
       if ( okay && value.GetAsFloat( fValue ) )
-         Modeler::m_parserVars[ j ] = fValue;
+         gpModeler->m_parserVars[ j ] = fValue;
       }
 
    // evaluate lookups
@@ -1860,8 +1859,7 @@ bool ModelCollection::UpdateVariables( EnvContext *pEnvContext, int idu, bool us
             }
          else
             {
-            MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
-            pLayer->SetData( idu, pTable->m_colOutput, pTable->m_value );
+            pIDULayer->SetData( idu, pTable->m_colOutput, pTable->m_value );
             }
          }
       }
@@ -1893,7 +1891,7 @@ bool ModelCollection::UpdateVariables( EnvContext *pEnvContext, int idu, bool us
          if ( pVar->m_col >= 0 )
             {
             bool ok = true;
-            if ( pVar->m_pQuery != NULL )
+            if ( pVar->m_pQuery != nullptr )
                {
                bool result = false;
                bool ok2 = pVar->m_pQuery->Run( idu, result );
@@ -1911,8 +1909,7 @@ bool ModelCollection::UpdateVariables( EnvContext *pEnvContext, int idu, bool us
                   }
                else
                   {
-                  MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
-                  pLayer->SetData( idu, pVar->m_col, pVar->m_value );
+                  pIDULayer->SetData( idu, pVar->m_col, pVar->m_value );
                   }
                }
             } 
@@ -1950,7 +1947,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
 
    // global variables exist.  Evaluate them.  SOme of these may be delta-based, others may be map based.
    // Do Delta-based ones first, followed be map-based ones.
-   if ( deltaCount > 0 && pEnvContext->pDeltaArray != NULL )
+   if ( deltaCount > 0 && pEnvContext->pDeltaArray != nullptr )
       {
       DeltaArray *deltaArray = pEnvContext->pDeltaArray;// get a ptr to the delta array
 
@@ -1981,7 +1978,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
                   {
                   // does it pass the query?
                   bool passQuery = true;
-                  if ( pVar->m_pQuery != NULL )
+                  if ( pVar->m_pQuery != nullptr )
                      pVar->m_pQuery->Run( delta.cell, passQuery );
 
                   if ( passQuery )
@@ -2003,7 +2000,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
 
             float area;
             ASSERT( Modeler::m_colArea >= 0 );
-            Modeler::m_pMapLayer->GetData( delta.cell, Modeler::m_colArea, area );
+            gpModeler->m_pMapLayer->GetData( delta.cell, Modeler::m_colArea, area );
 
             // done evalating all inputs - run model formula(s) 
             for ( int j=0; j < globalCount; j++ )
@@ -2041,7 +2038,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
 
    if ( mapCount > 0 )
       {
-      for ( MapLayer::Iterator i = Modeler::m_pMapLayer->Begin(); i != Modeler::m_pMapLayer->End(); i++ )
+      for ( MapLayer::Iterator i = gpModeler->m_pMapLayer->Begin(); i != gpModeler->m_pMapLayer->End(); i++ )
          {
          bool evalIDU = false;
 
@@ -2053,7 +2050,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
             if ( pVar->m_useDelta )
                continue;
          
-            if ( pVar->m_pQuery == NULL || pVar->m_query.GetLength() == 0 )
+            if ( pVar->m_pQuery == nullptr || pVar->m_query.GetLength() == 0 )
                {
                pVar->m_evaluate = true;
                evalIDU = true;
@@ -2075,7 +2072,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
             {
             UpdateVariables( pEnvContext, i, useAddDelta ); // update ModelCollection-scope variables only
             float area;
-            Modeler::m_pMapLayer->GetData( i, Modeler::m_colArea, area );
+            gpModeler->m_pMapLayer->GetData( i, Modeler::m_colArea, area );
 
             for ( int j=0; j < globalCount; j++ )
                {
@@ -2126,7 +2123,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
          case VT_PCT_AREA:
          //case VT_PCT_CONTRIB_AREA:
             {
-            float totalArea = Modeler::m_pMapLayer->GetTotalArea();
+            float totalArea = gpModeler->m_pMapLayer->GetTotalArea();
             pVar->m_value = pVar->m_queryArea*100/totalArea;
             }
             break;
@@ -2146,7 +2143,7 @@ bool ModelCollection::UpdateGlobalExtentVariables( EnvContext *pEnvContext, int 
 
       if ( pVar->m_varType == VT_GLOBALEXT )   // these are based only on other global extent variables, so they only
          {                                     // are only evaluate here.
-         ASSERT( pVar->m_pParser != NULL );
+         ASSERT( pVar->m_pParser != nullptr );
          if ( ! pVar->m_pParser->evaluate( pVar->m_value ) )
             pVar->m_value = 0;
          }
@@ -2201,12 +2198,11 @@ int ModelCollection::CollectGlobalExtentVariables( VariableArray &va, int timing
    }
 
 
-
 void ModelCollection::Clear()
    {
    m_fileName.Empty();
    
-   m_modelProcessArray.RemoveAll();
+   m_modelProcessArray.RemoveAll();  // memory managed by EnvModel for these two
    m_evaluatorArray.RemoveAll();
    m_histogramsArray.RemoveAll();
    m_lookupTableArray.RemoveAll();
@@ -2232,7 +2228,7 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
    if ( ! isImporting )
       {
       m_fileName = filename;
-      Modeler::m_pMapLayer = pLayer;
+      gpModeler->m_pMapLayer = pLayer;
       }
 
    // have xml string, start parsing
@@ -2275,7 +2271,7 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
          }
       }
 
-   TiXmlNode *pXmlNode = NULL;
+   TiXmlNode *pXmlNode = nullptr;
    while( pXmlNode = pXmlRoot->IterateChildren( pXmlNode ) )
       {
       if ( pXmlNode->Type() != TiXmlNode::ELEMENT )
@@ -2289,7 +2285,7 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
             {
             Variable *pVar = m_variableArray.GetAt( m_variableArray.GetSize()-1 );     // one just added
             pVar->m_pCollection = this;
-            pVar->Compile( NULL, this, pLayer );
+            pVar->Compile( nullptr, this, pLayer );
             }
          }
 
@@ -2322,7 +2318,7 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
          {
          TiXmlElement *pXmlElement = pXmlNode->ToElement();
          LPCTSTR file = pXmlElement->Attribute( "file" );
-         if ( file == NULL )
+         if ( file == nullptr )
             {
             Report::ErrorMsg( _T("No 'file' attribute specified for <include> element") );
             continue;
@@ -2339,7 +2335,7 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
 		    else
 			   {
             Evaluator *pModel = m_evaluatorArray.GetAt( m_evaluatorArray.GetCount()-1 ); 
-            ASSERT( pModel != NULL );
+            ASSERT( pModel != nullptr );
             pModel->SetVars( (EnvExtension*) pModel );
             ////pModel->Init( pEnvContext, initStr );
             }
@@ -2353,7 +2349,7 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
          else
             {
             ModelProcess *pModel = m_modelProcessArray.GetAt( m_modelProcessArray.GetCount()-1 ); 
-            ASSERT( pModel != NULL );
+            ASSERT( pModel != nullptr );
             pModel->SetVars( (EnvExtension*) pModel );
             }
          }
@@ -2368,7 +2364,7 @@ bool ModelCollection::LoadXml( LPCTSTR _filename, MapLayer *pLayer, bool isImpor
    //for ( int i=0; i < (int) m_variableArray.GetSize(); i++ )
    //   {
    //   Variable *pVar = m_variableArray.GetAt( i );
-   //   pVar->Compile( NULL, this, pLayer );
+   //   pVar->Compile( nullptr, this, pLayer );
    //   }
 
    return loadSuccess;
@@ -2414,7 +2410,7 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
       { _T("dependencies"),      TYPE_CSTRING,  &pEval->m_dependencyNames, false,   0 },
       { _T("description"),       TYPE_CSTRING,  &pEval->m_description,     false,   0 },
       { _T("imageURL"),          TYPE_CSTRING,  &pEval->m_imageURL,        false,   0 },
-      { NULL,                    TYPE_NULL,     NULL,                false,   0 } };
+      { nullptr,                    TYPE_NULL,     nullptr,                false,   0 } };
 
    bool ok = TiXmlGetAttributes(pXmlNode->ToElement(), attrs, filename, pLayer);
    if (!ok)
@@ -2481,12 +2477,12 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
          pEval->m_constraints = C_DECREASE_ONLY;
       }
 
-   //if ( type != NULL )
+   //if ( type != nullptr )
    //   {
    //   if ( lstrcmpi( type, "raster" ) == 0 )
    //      {
    //      LPCTSTR _cellSize = pXmlElement->Attribute( "cell_size" );
-   //      if ( _cellSize == NULL )
+   //      if ( _cellSize == nullptr )
    //         {
    //         CString msg;
    //         msg.Format( "'cell_size' attribute missing from raster model '%s' - this is a required element", name );
@@ -2497,15 +2493,15 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
    //
    //      float cellSize = (float) atof( _cellSize );
    //
-   //      //pModel->m_pRaster = new Raster( pLayer, NULL, NULL, false ); 
+   //      //pModel->m_pRaster = new Raster( pLayer, nullptr, nullptr, false ); 
    //      }
    //   }
 
    // make a parser for this formula and add to the parser array
-   //ASSERT( pModel->m_pParser == NULL );
+   //ASSERT( pModel->m_pParser == nullptr );
 
    //MParser *pParser = new MParser; 
-   //ASSERT( pParser != NULL );
+   //ASSERT( pParser != nullptr );
    if ( _evalMethod == EM_PCT_AREA && pEval->m_valueExpr.IsEmpty())
       pEval->m_valueExpr = "1";
 
@@ -2554,9 +2550,9 @@ bool ModelCollection::LoadModelProcess( TiXmlNode *pXmlNode, MapLayer *pLayer, L
       { _T("dependencies"),      TYPE_CSTRING,  &pModel->m_dependencyNames, false,   0 },
       { _T("description"),       TYPE_CSTRING,  &pModel->m_description,     false,   0 },
       { _T("imageURL"),          TYPE_CSTRING,  &pModel->m_imageURL,        false,   0 },
-      { NULL,                    TYPE_NULL,     NULL,                false,   0 } };
+      { nullptr,                    TYPE_NULL,     nullptr,                false,   0 } };
 
-   bool ok = TiXmlGetAttributes(pXmlNode->ToElement(), attrs, filename, NULL);
+   bool ok = TiXmlGetAttributes(pXmlNode->ToElement(), attrs, filename, nullptr);
    if (!ok)
       {
       CString msg;
@@ -2604,18 +2600,18 @@ bool ModelCollection::LoadModelProcess( TiXmlNode *pXmlNode, MapLayer *pLayer, L
 
 Modeler::Modeler()
 : m_isInitialized( false )
-, m_pCurrentCollection( NULL )
+, m_pCurrentCollection( nullptr )
    {
-   ASSERT( m_pQueryEngine == NULL );
+   ASSERT( m_pQueryEngine == nullptr );
    }
 
 
 Modeler::~Modeler()
    {
-   if ( m_parserVars != NULL )
+   if ( m_parserVars != nullptr )
       {
       delete [] m_parserVars;
-      m_parserVars = NULL;
+      m_parserVars = nullptr;
       }
 
    Clear();
@@ -2641,11 +2637,11 @@ Evaluator *Modeler::GetEvaluatorFromID( int id )
       {
       Evaluator *pModel = m_modelCollectionArray[ i ]->GetEvaluatorFromID( id );
 
-      if ( pModel != NULL )
+      if ( pModel != nullptr )
          return pModel;
       }
 
-   return NULL;
+   return nullptr;
    }
 
 ModelProcess *Modeler::GetModelProcessFromID( int id )
@@ -2654,11 +2650,11 @@ ModelProcess *Modeler::GetModelProcessFromID( int id )
       {
       ModelProcess *pProcess = m_modelCollectionArray[ i ]->GetModelProcessFromID( id );
 
-      if ( pProcess != NULL )
+      if ( pProcess != nullptr )
          return pProcess;
       }
 
-   return NULL;
+   return nullptr;
    }
 
 
@@ -2672,25 +2668,23 @@ bool Modeler::Init(EnvContext* pEnvContext)
    simTime = pEnvContext->currentYear;
 
    // take care of static stuff if needed
-   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
-   Modeler::m_pMapLayer = pLayer;
-   Modeler::m_colArea = pLayer->GetFieldCol(_T("Area"));
+   m_pMapLayer = (MapLayer*)pEnvContext->pMapLayer;
+   Modeler::m_colArea = m_pMapLayer->GetFieldCol(_T("Area"));
 
    // make a query engine if one doesn't exist already
-   if (m_pQueryEngine == NULL)
-      m_pQueryEngine = pEnvContext->pQueryEngine;
+   m_pQueryEngine = pEnvContext->pQueryEngine;
 
    // allocate field vars if not already allocated
-   if (m_parserVars == NULL)
+   if (m_parserVars == nullptr)
       {
-      int fieldCount = pLayer->GetFieldCount();
+      int fieldCount = m_pMapLayer->GetFieldCount();
       m_parserVars = new double[fieldCount];
       }
 
    // proceed with loading the file specified by the initStr
    ModelCollection* pCollection = new ModelCollection;
 
-   if (pCollection->LoadXml(pEnvContext->initInfo, pLayer, false))
+   if (pCollection->LoadXml(pEnvContext->initInfo, m_pMapLayer, false))
       {
       m_modelCollectionArray.Add(pCollection);
       EnvModel* pEnvModel = pEnvContext->pEnvModel;
@@ -2708,7 +2702,7 @@ bool Modeler::Init(EnvContext* pEnvContext)
             //pModel->m_description = ""; // description;  // description, from ENVX file
             //pModel->m_imageURL = tru;     // not currently used
             pModel->m_use = true;          // use this model during the run?
-            pModel->m_hDLL = (HINSTANCE)pEnvContext->handle;
+            pModel->m_hDLL = (HINSTANCE)0;
             //pModel->m_frequency;    // how often this process is executed
             //pModel->m_dependencyNames = dependencyNames;
             //pModel->m_showInResults = true; // showInResults;
@@ -2734,7 +2728,7 @@ bool Modeler::Init(EnvContext* pEnvContext)
             //pEval->m_description = ""; // description;  // description, from ENVX file
             //pEval->m_imageURL = tru;     // not currently used
             pEval->m_use = true;          // use this model during the run?
-            pEval->m_hDLL = (HINSTANCE) pEnvContext->handle;
+            pEval->m_hDLL = (HINSTANCE) 0;
             //pModel->m_frequency;    // how often this process is executed
             //pEval->m_dependencyNames = dependencyNames;
             pEval->m_showInResults = true; // showInResults;
@@ -2766,7 +2760,7 @@ BOOL Modeler::EmInit( EnvContext *pEnvContext, LPCTSTR initStr )
 
    // note: this gets called for each eval model specified in the envx file.
    Evaluator *pModel = GetEvaluatorFromID( pEnvContext->id );
-   if ( pModel != NULL && pModel->m_name != pEnvContext->pEnvExtension->m_name )   // already exists - generate error and return
+   if ( pModel != nullptr && pModel->m_name != pEnvContext->pEnvExtension->m_name )   // already exists - generate error and return
       {
       CString msg;
       msg.Format( _T("The model [%s] (id:%i) conflicts with a previously specified model [%s] - change the [id] in your .envx file before proceeding..."),
@@ -2775,7 +2769,7 @@ BOOL Modeler::EmInit( EnvContext *pEnvContext, LPCTSTR initStr )
       return FALSE;
       }
 
-   if ( pModel != NULL )   // already exist?  no other work needed
+   if ( pModel != nullptr )   // already exist?  no other work needed
       return TRUE;
 
    // take care of static stuff if needed
@@ -2784,11 +2778,11 @@ BOOL Modeler::EmInit( EnvContext *pEnvContext, LPCTSTR initStr )
    Modeler::m_colArea = pLayer->GetFieldCol( _T("Area") );
 
    // make a query engine if one doesn't exist already
-   if (m_pQueryEngine == NULL)
+   if (m_pQueryEngine == nullptr)
       m_pQueryEngine = pEnvContext->pQueryEngine;
 
    // allocate field vars if not already allocated
-   if ( m_parserVars == NULL )
+   if ( m_parserVars == nullptr )
       {
       int fieldCount = pLayer->GetFieldCount();
       m_parserVars = new double[ fieldCount ];
@@ -2821,8 +2815,8 @@ BOOL Modeler::EmInitRun( EnvContext *pEnvContext, bool )
    simTime = pEnvContext->currentYear;
 
    Evaluator *pModel = GetEvaluatorFromID( pEnvContext->id );
-   ASSERT( pModel != NULL );
-   if ( pModel == NULL )
+   ASSERT( pModel != nullptr );
+   if ( pModel == nullptr )
       return FALSE;
 
    return pModel->Run( pEnvContext, false );
@@ -2834,8 +2828,8 @@ BOOL Modeler::EmRun( EnvContext *pEnvContext )
    simTime = pEnvContext->currentYear;
 
    Evaluator *pModel = GetEvaluatorFromID( pEnvContext->id );
-   ASSERT( pModel != NULL );
-   if ( pModel == NULL )
+   ASSERT( pModel != nullptr );
+   if ( pModel == nullptr )
       return FALSE;
 
    return pModel->Run( pEnvContext, true );
@@ -2851,7 +2845,7 @@ int Modeler::EmInputVar( int id, MODEL_VAR** modelVar )
    {
    Evaluator *pModel = GetEvaluatorFromID( id );
 
-   if ( pModel != NULL )
+   if ( pModel != nullptr )
       return pModel->InputVar( id, modelVar );
    else
       return 0;
@@ -2861,7 +2855,7 @@ int Modeler::EmOutputVar( int id, MODEL_VAR** modelVar )
    {
    Evaluator *pModel = GetEvaluatorFromID( id );
 
-   if ( pModel != NULL )
+   if ( pModel != nullptr )
       return pModel->OutputVar( id, modelVar );
    else
       return 0;
@@ -2875,7 +2869,7 @@ BOOL Modeler::ApInit( EnvContext *pEnvContext, LPCTSTR initStr )
 
    // note: this gets called for each eval model specified in the envx file.
    ModelProcess *pModel = GetModelProcessFromID( pEnvContext->id );
-   if ( pModel != NULL && pModel->m_name != pEnvContext->pEnvExtension->m_name )   // already exists - generate error and return
+   if ( pModel != nullptr && pModel->m_name != pEnvContext->pEnvExtension->m_name )   // already exists - generate error and return
       {
       CString msg;
       msg.Format( _T("The model [%s] (id:%i) conflicts with a previously specified process [%s] - change the [id] in your .envx file before proceeding..."),
@@ -2884,7 +2878,7 @@ BOOL Modeler::ApInit( EnvContext *pEnvContext, LPCTSTR initStr )
       return FALSE;
       }
 
-   if ( pModel != NULL )   // already loaded?
+   if ( pModel != nullptr )   // already loaded?
       {
       ApInitRun( pEnvContext, false );
       return TRUE; 
@@ -2896,11 +2890,11 @@ BOOL Modeler::ApInit( EnvContext *pEnvContext, LPCTSTR initStr )
    Modeler::m_colArea = pLayer->GetFieldCol( _T("Area") );
 
    // make a query engine if one doesn't exist already
-   if (m_pQueryEngine == NULL)
+   if (m_pQueryEngine == nullptr)
       m_pQueryEngine = pEnvContext->pQueryEngine;
 
    // allocate field vars if not already allocated
-   if ( m_parserVars == NULL )
+   if ( m_parserVars == nullptr )
       {
       int fieldCount = pEnvContext->pMapLayer->GetFieldCount();
       m_parserVars = new double[ fieldCount ];
@@ -2929,8 +2923,8 @@ BOOL Modeler::ApInitRun( EnvContext *pEnvContext, bool )
    simTime = pEnvContext->currentYear;
 
    ModelProcess *pModel = GetModelProcessFromID( pEnvContext->id );
-   ASSERT( pModel != NULL );
-   if ( pModel == NULL )
+   ASSERT( pModel != nullptr );
+   if ( pModel == nullptr )
       return FALSE;
 
    return pModel->Run( pEnvContext, false );
@@ -2942,8 +2936,8 @@ BOOL Modeler::ApRun( EnvContext *pEnvContext )
    simTime = pEnvContext->currentYear;
 
    ModelProcess *pModel = GetModelProcessFromID( pEnvContext->id );
-   ASSERT( pModel != NULL );
-   if ( pModel == NULL )
+   ASSERT( pModel != nullptr );
+   if ( pModel == nullptr )
       return FALSE;
 
 
@@ -2960,7 +2954,7 @@ int Modeler::ApInputVar( int id, MODEL_VAR** modelVar )
    {
    ModelProcess *pModel = GetModelProcessFromID( id );
 
-   if ( pModel != NULL )
+   if ( pModel != nullptr )
       return pModel->InputVar( id, modelVar );
    else
       return 0;
@@ -2970,7 +2964,7 @@ int Modeler::ApOutputVar( int id, MODEL_VAR** modelVar )
    {
    ModelProcess *pModel = GetModelProcessFromID( id );
 
-   if ( pModel != NULL )
+   if ( pModel != nullptr )
       return pModel->OutputVar( id, modelVar );
    else
       return 0;
@@ -2978,11 +2972,13 @@ int Modeler::ApOutputVar( int id, MODEL_VAR** modelVar )
    */
 
 EnvExtension * Factory(EnvContext *pContext)
-   { 
-   gpModeler = new Modeler;
-   gpModeler->Init(pContext);
-   
-   return nullptr;
-   //return (EnvExtension*) new Modeler; 
-   
+   {
+   ASSERT(gpModeler == nullptr);
+   if (gpModeler == nullptr)
+      {
+      gpModeler = new Modeler;
+      gpModeler->Init(pContext);
+      }
+
+   return gpModeler;  // nullptr
    }

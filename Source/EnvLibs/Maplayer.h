@@ -36,6 +36,8 @@ Copywrite 2012 - Oregon State University
 #include "NeighborTable.h"
 //#include "RTreeIndex.h"
 
+#include <vector>
+
 class Query;
 class QueryEngine;
 class MapExprEngine;
@@ -1039,6 +1041,7 @@ class  LIBSAPI  MapLayer
 
       int GetUniqueValues(int col, CStringArray&, int maxCount = -1) const;  // col=-1 for unique values over all columns
       int GetUniqueValues(int col, CUIntArray&, int maxCount = -1) const;    // col=-1 for unique values over all columns
+      int GetUniqueValues(int col, std::vector<int>&, int maxCount = -1) const;    // col=-1 for unique values over all columns
       int GetUniqueValues(int col, CArray< VData, VData& >&, int maxCount = -1) const;   // col=-1 for unique values over all columns
 
       bool ClassifyPoly(int col, int index);
@@ -1209,7 +1212,7 @@ void MapLayer::SetData(int rec, int col, double value)
    ASSERT(rec >= 0 && rec < m_pData->GetRowCount());
    ASSERT(col >= 0 && col < m_pData->GetColCount());
 
-   ASSERT(m_readOnly == false);
+   //ASSERT(m_readOnly == false);
    if (!m_readOnly)
       {
       COleVariant v(value);
@@ -1225,7 +1228,7 @@ void MapLayer::SetData(int rec, int col, int value)
    ASSERT(rec >= 0 && rec < m_pData->GetRowCount());
    ASSERT(col >= 0 && col < m_pData->GetColCount());
 
-   ASSERT(m_readOnly == false);
+   //ASSERT(m_readOnly == false);
    if (!m_readOnly)
       {
       VData v(value);
@@ -1244,7 +1247,7 @@ void MapLayer::SetData(int rec, int col, const VData &value)
    ASSERT(rec >= 0 && rec < m_pData->GetRowCount());
    ASSERT(col >= 0 && col < m_pData->GetColCount());
 
-   ASSERT(m_readOnly == false);
+   //ASSERT(m_readOnly == false);
    if (!m_readOnly)
       {
       ASSERT(m_pData != NULL);
@@ -1259,7 +1262,7 @@ void MapLayer::SetData(int rec, int col, COleVariant &value)
    ASSERT(rec >= 0 && rec < m_pData->GetRowCount());
    ASSERT(col >= 0 && col < m_pData->GetColCount());
 
-   ASSERT(m_readOnly == false);
+   //ASSERT(m_readOnly == false);
    if (!m_readOnly)
       {
       ASSERT(m_pData != NULL);
@@ -1274,7 +1277,7 @@ void MapLayer::SetData(int rec, int col, LPCTSTR value)
    ASSERT(rec >= 0 && rec < m_pData->GetRowCount());
    ASSERT(col >= 0 && col < m_pData->GetColCount());
 
-   ASSERT(m_readOnly == false);
+   //ASSERT(m_readOnly == false);
    if (!m_readOnly)
       {
       ASSERT(m_pData != NULL);

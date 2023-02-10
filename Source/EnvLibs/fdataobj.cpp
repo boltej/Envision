@@ -48,57 +48,57 @@ Copywrite 2012 - Oregon State University
 //-------------------------------------------------------------------
 FDataObj::FDataObj()
    : DataObj(U_UNDEFINED),
-   matrix(),
-   statArray()
+   matrix()
+   //statArray()
    {
    }
 
 
 FDataObj::FDataObj(UNIT_MEASURE m)
    : DataObj(m),
-     matrix  (),
-     statArray()
+     matrix  ()
+     //statArray()
    { }
 
 
 //-------------------------------------------------------------------
 FDataObj::FDataObj( FDataObj &dataObj )
    : DataObj( dataObj ),
-     matrix  ( dataObj.matrix ),
-     statArray  ( dataObj.statArray )
+     matrix  ( dataObj.matrix )
+     //statArray  ( dataObj.statArray )
    { }
 
 
 //-------------------------------------------------------------------
 FDataObj::FDataObj( int _cols, int _rows, UNIT_MEASURE m )
    : DataObj( _cols, _rows, m ),
-     matrix  ( _rows, _cols ),     
-     statArray()
+     matrix  ( _rows, _cols )
+     //statArray()
    {
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-   statArray.ReFill( stat, _cols );
+   //DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
+   //statArray.ReFill( stat, _cols );
 
    return;
    }
 
 FDataObj::FDataObj( int _cols, int _rows, float initialValue, UNIT_MEASURE m )
    : DataObj( _cols, _rows, m ),
-     matrix  ( _rows, _cols, initialValue ),     
-     statArray()
+     matrix  ( _rows, _cols, initialValue )    
+     //statArray()
    {
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-   statArray.ReFill( stat, _cols );
+   //DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
+   //statArray.ReFill( stat, _cols );
 
    return;
    }
 
 FDataObj::FDataObj( const FloatMatrix::type_data * data, int _cols, int _rows, UNIT_MEASURE m )
 : DataObj( _cols, _rows, m ),
-  matrix  ( data, _rows, _cols ),     
-  statArray()
+  matrix  ( data, _rows, _cols )
+  //statArray()
    {
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-   statArray.ReFill( stat, _cols );
+   //DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
+   //statArray.ReFill( stat, _cols );
 
    return;
    }
@@ -113,34 +113,34 @@ FDataObj::FDataObj( const FloatMatrix::type_data * data, int _cols, int _rows, U
 
 FDataObj::FDataObj( int _cols, int _rows, STATSFLAG *statFlagArray, UNIT_MEASURE m )
    : DataObj( _cols, _rows, m ),
-     matrix  ( _rows, _cols ),
-     statArray()
+     matrix  ( _rows, _cols )
+     //statArray()
    {
    int i = 0;
 
-   for ( i=0; i < m_dataCols; i++ )
-      {
-      if ( statFlagArray[ i ] & SF_STORE_MEAN )
-         _cols++;
-
-		if ( statFlagArray[ i ] & SF_STORE_VARIANCE )
-         _cols++;
-      }
+   //for ( i=0; i < m_dataCols; i++ )
+   //   {
+   //   if ( statFlagArray[ i ] & SF_STORE_MEAN )
+   //      _cols++;
+   //
+	//	if ( statFlagArray[ i ] & SF_STORE_VARIANCE )
+   //      _cols++;
+   //   }
 
    matrix.Resize( _rows, _cols );
 
-   for ( i=0; i < _cols; i++ )
-      {
-      STATSFLAG statFlag = SF_NONE;
-
-		if ( i < m_dataCols )
-			statFlag = statFlagArray[ i ];
-
-		DO_STATS stat =
-			{ (float) LONG_MAX, (float) LONG_MIN, (float)0.0, float(0.0), statFlag };
-
-		statArray.Append( stat );
-		}
+   //for ( i=0; i < _cols; i++ )
+   //   {
+   //   STATSFLAG statFlag = SF_NONE;
+   //
+	//	if ( i < m_dataCols )
+	//		statFlag = statFlagArray[ i ];
+   //
+	//	DO_STATS stat =
+	//		{ (float) LONG_MAX, (float) LONG_MIN, (float)0.0, float(0.0), statFlag };
+   //
+	//	statArray.Append( stat );
+	//	}
    }
 
 
@@ -465,7 +465,7 @@ void FDataObj::Clear( void )
    DataObj::Clear();  // clear parent
 
    matrix.Clear();
-   statArray.Clear();
+   //statArray.Clear();
    }
 
 
@@ -482,8 +482,8 @@ bool FDataObj::SetSize( int _cols, int _rows )
 
 	m_dataCols = _cols;  // assumes no stats!!!
 
-   DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
-	statArray.ReFill( stat, _cols );
+   //DO_STATS stat = { (float) LONG_MAX, (float) LONG_MIN, (float)0.0, (float)0.0, SF_NONE };
+	//statArray.ReFill( stat, _cols );
 
    return TRUE;
    }

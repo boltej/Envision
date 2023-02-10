@@ -201,9 +201,6 @@
     <ClCompile Include="XGlyphButton.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="XHTMLStatic.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="Grid\GridCell.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -291,9 +288,6 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="NetworkTree.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="XHTMLStatic.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="XNamedColors.h">

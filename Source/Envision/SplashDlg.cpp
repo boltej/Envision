@@ -26,7 +26,6 @@ Copywrite 2012 - Oregon State University
 #include <Scenario.h>
 #include "IniFileEditor.h"
 #include "NewIniFileDlg.h"
-#include "tipdlg.h"
 #include "EnvDoc.h"
 
 #include <EnvLoader.h>
@@ -359,8 +358,6 @@ bool SplashDlg::OpenProject()
 
 void SplashDlg::OnStartup()
    {
-   CXHTMLTipOfTheDayDlg tipDlg( "tips.txt" );
-   tipDlg.DoModal();
    }
 
 void SplashDlg::OnBnClickedNew()

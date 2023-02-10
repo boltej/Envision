@@ -33,7 +33,7 @@ Copywrite 2012 - Oregon State University
 
 #pragma once
 #include "EnvLibs.h"
-#include "TARRAY.HPP"
+//#include "TARRAY.HPP"
 
 #include <unitconv.h>
 
@@ -72,19 +72,19 @@ enum STATSFLAG
    };
 
 
-struct DO_STATS
-   {
-   float min;
-   float max;
-   float sx;         // sum of x's
-   float ssx;        // sum of squares of x's
-   STATSFLAG  flag;   // type of statistic we collect
-   };
-
-
-class StatArray : public TArray< DO_STATS >
-   {
-   };
+//struct DO_STATS
+//   {
+//   float min;
+//   float max;
+//   float sx;         // sum of x's
+//   float ssx;        // sum of squares of x's
+//   STATSFLAG  flag;   // type of statistic we collect
+//   };
+//
+//
+//class StatArray : public TArray< DO_STATS >
+//   {
+//   };
 
 
 enum IMETHOD { IM_LINEAR, IM_QUADRATIC, IM_CONSTANT_RATE, IM_NONE };

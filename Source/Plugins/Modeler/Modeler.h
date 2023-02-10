@@ -296,16 +296,16 @@ class Variable
       // additional members
       bool      m_evaluate;    // temporary variable to indicate this variable should be evaluated for an IDU
 
-      ModelBase* m_pModel;       // NULL for collection-level variable;
+      ModelBase* m_pModel;       // nullptr for collection-level variable;
       ModelCollection* m_pCollection;  // collection this variable belongs to
 
       bool Compile(ModelBase*, ModelCollection*, MapLayer*);
       bool Evaluate(void);
 
       Variable() : m_value(0), m_cumValue(0), m_queryArea(0), m_isOutput(false), m_col(-1),
-         m_varType(VT_UNDEFINED), m_dataType(TYPE_DOUBLE), m_pParser(NULL),
-         m_pQuery(NULL), m_pValueQuery(NULL), m_extent(EXTENT_IDU),
-         m_useDelta(false), /*m_pRaster( NULL ),*/ m_cellSize(0), m_timing(0), m_stepSize(1), m_pModel(NULL), m_pCollection(NULL) { }
+         m_varType(VT_UNDEFINED), m_dataType(TYPE_DOUBLE), m_pParser(nullptr),
+         m_pQuery(nullptr), m_pValueQuery(nullptr), m_extent(EXTENT_IDU),
+         m_useDelta(false), /*m_pRaster( nullptr ),*/ m_cellSize(0), m_timing(0), m_stepSize(1), m_pModel(nullptr), m_pCollection(nullptr) { }
 
       ~Variable();
    };
@@ -322,7 +322,7 @@ class Expression
       Query* m_pQuery;
       MParser* m_pParser;
 
-      Expression(void) : m_name(), m_expression(), m_queryStr(), m_pParser(NULL), m_pQuery(NULL) { }
+      Expression(void) : m_name(), m_expression(), m_queryStr(), m_pParser(nullptr), m_pQuery(nullptr) { }
       ~Expression(void);
    };
 
@@ -360,7 +360,7 @@ class ModelBase       // base class for EvalModels, AutoProcesses - just some ba
       //MTParser *m_pParser;
       //Query    *m_pQuery;
       bool     m_isRaster;
-      //Raster  *m_pRaster;     // NULL for idu-based models, nonNULL for raster-based models
+      //Raster  *m_pRaster;     // nullptr for idu-based models, nonNULL for raster-based models
 
       ModelCollection* m_pCollection;     // collection this belongs to
 
@@ -373,7 +373,7 @@ class ModelBase       // base class for EvalModels, AutoProcesses - just some ba
    public:
       ModelBase(ModelCollection* pCollection)
          : m_col(-1), m_constraints(0), m_useDelta(false), m_isRaster(false),
-         /*m_pRaster( NULL ),*/ m_pCollection(pCollection) { }
+         /*m_pRaster( nullptr ),*/ m_pCollection(pCollection) { }
 
       ~ModelBase() { Clear(); }
 
@@ -461,8 +461,10 @@ class ModelCollection
 
       // model collection info
       CString   m_fileName;
-      PtrArray< ModelProcess > m_modelProcessArray;
-      PtrArray< Evaluator >   m_evaluatorArray;
+      //PtrArray< ModelProcess > m_modelProcessArray;
+      //PtrArray< Evaluator >   m_evaluatorArray;
+      CArray< ModelProcess*, ModelProcess* > m_modelProcessArray;
+      CArray< Evaluator*, Evaluator* >   m_evaluatorArray;
 
       bool LoadXml(LPCTSTR filename, MapLayer* pLayer, bool isImporting);       // returns number of nodes in the first level
       bool LoadXml(TiXmlNode*, bool isImporting);
@@ -484,7 +486,7 @@ class ModelCollection
    };
 
 
-class Modeler
+class Modeler : public EnvModelProcess
    {
    protected:
       CArray< ModelCollection*, ModelCollection* > m_modelCollectionArray;
@@ -497,39 +499,20 @@ class Modeler
       bool m_isInitialized;
 
       // idu field variable values shared by all parsers
-      static double* m_parserVars;
-      static CMap<int, int, int, int > m_usedParserVars;  // key and value is column index
-      //static void SetParserVars( MapLayer *pLayer, int record );
+      double* m_parserVars = nullptr;
+      CMap<int, int, int, int > m_usedParserVars;  // key and value is column index
+      
+      static int m_nextID;
+      static int m_colArea;
+      ModelCollection* m_pCurrentCollection = nullptr;
 
-      static int     m_nextID;
-      static int     m_colArea;
-      ModelCollection* m_pCurrentCollection;
-
-      static QueryEngine* m_pQueryEngine;
-      static MapLayer* m_pMapLayer;
+      QueryEngine* m_pQueryEngine = nullptr;  // memory managed elsewhere
+      MapLayer* m_pMapLayer = nullptr;        // memory managed elsewhere
       
       bool Init(EnvContext* pEnvContext);
 
-
       Evaluator* GetEvaluatorFromID(int id);
       ModelProcess* GetModelProcessFromID(int id);
-
-      // autoprocess entry points
-      //BOOL ApInit(EnvContext* pEnvContext, LPCTSTR initStr);
-      //BOOL ApInitRun(EnvContext* pEnvContext, bool);
-      //BOOL ApRun(EnvContext* pEnvContext);
-      //BOOL ApSetup(EnvContext* pContext, HWND hWnd);
-      //int  ApInputVar(int id, MODEL_VAR** modelVar);
-      //int  ApOutputVar(int id, MODEL_VAR** modelVar);
-      ////BOOL ApProcessMap( MapLayer *pLayer, int id ) { ASSERT( 0 );  return TRUE; }
-      //
-      //// eval model entry points
-      //virtual BOOL EmInit(EnvContext* pEnvContext, LPCTSTR initStr);
-      //BOOL EmInitRun(EnvContext* pEnvContext, bool);
-      //BOOL EmRun(EnvContext* pEnvContext);
-      //BOOL EmSetup(EnvContext* pContext, HWND hWnd);
-      //int  EmInputVar(int id, MODEL_VAR** modelVar);
-      //int  EmOutputVar(int id, MODEL_VAR** modelVar);
 
       int AddModelCollection(ModelCollection* pModel) { return (int)m_modelCollectionArray.Add(pModel); }
 

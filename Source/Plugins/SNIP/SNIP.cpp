@@ -712,6 +712,9 @@ int SNLayer::CheckNetwork()
    
    for (int i = 0; i < (int)this->m_nodes.size(); i++)
       {
+      if ((i % 100) == 0)
+         Report::Status_ii("Checking node %i of %i", i, (int)this->m_nodes.size());
+
       SNNode* pNode = this->m_nodes[i];
 
       if (pNode->m_inEdges.size() == 0 && pNode->m_outEdges.size() == 0)
@@ -725,6 +728,10 @@ int SNLayer::CheckNetwork()
    int duplicateEdges = 0;
    for (int i = 0; i < (int)this->m_edges.size(); i++)
       {
+      if ((i % 1000) == 0)
+         Report::Status_ii("Checking edge %i of %i", i, (int)this->m_edges.size());
+
+
       SNEdge* pEdge = this->m_edges[i];
 
       if ( pEdge->m_pToNode == nullptr)
@@ -768,6 +775,11 @@ int SNLayer::CheckNetwork()
 ////////////////////////////////////////////////////////////////
 // SNIP Model
 ////////////////////////////////////////////////////////////////
+
+SNIPModel::SNIPModel(SNLayer* pLayer)
+   : m_actorProfiles(UNIT_MEASURE::U_UNDEFINED)
+   , m_pSNLayer(pLayer) 
+   { }
 
 
 SNIPModel::~SNIPModel()
@@ -1068,8 +1080,8 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
 
    SNEdge* pEdge = new SNEdge(pFromNode, pToNode);
 
-   pEdge->m_transTime = transTime;
    pEdge->m_name = pFromNode->m_name + "->" + pToNode->m_name;
+   pEdge->m_transTime = transTime;
    pEdge->m_trust = trust;
    pEdge->m_edgeType = ET_NETWORK;
 
@@ -1874,7 +1886,11 @@ float SNIPModel::SolveEqNetwork(float  bias)
          float influence = 0;
          int count = (int)pNode->m_outEdges.size();
          for (int j = 0; j < count; j++)
-            influence += pNode->m_outEdges[j]->m_influence;
+            {
+            SNEdge* pEdge = pNode->m_outEdges[j];
+            if (pEdge->IsActive())
+               influence += pEdge->m_influence;
+            }
 
          pNode->m_influence = influence;
          if (influence > this->m_maxNodeInfluence) ////// && node.data('type') !== 0)  // exclude signals
@@ -1984,6 +2000,7 @@ void SNIPModel::ComputeEdgeTransEffs()   // NOTE: Only need to do active edges
             {
             //if (pEdge->m_pToNode->IsLandscapeActor())
             //   ;
+            ASSERT(std::isnan(pEdge->m_trust) == false);
             pEdge->m_transEff = pEdge->m_trust;  // nothing required
             }
          }
@@ -2043,6 +2060,7 @@ void SNIPModel::ComputeEdgeInfluences()
             break;
             }
 
+         ASSERT(std::isnan(influence) == false);
          pEdge->m_influence = influence;
          //if (this.OnWatchMsg != = null)
          //   this.OnWatchMsg(edge, "Edge " + edge.data('name') + ": Influence=" + influence.toFixed(3));
@@ -2296,6 +2314,8 @@ void SNIPModel::UpdateNetworkStats()
       {
       SNNode* pNode = this->GetNode(i);
       float nodeInfluence = pNode->m_influence;
+      ASSERT(std::isnan(nodeInfluence) == false);
+
       // min reactivity
       if (nodeInfluence < this->m_netStats.minNodeInfluence)
          this->m_netStats.minNodeInfluence = nodeInfluence;
@@ -2325,6 +2345,9 @@ void SNIPModel::UpdateNetworkStats()
          {
          // transmission efficiency
          float transEff = pEdge->m_transEff;
+
+         ASSERT(std::isnan(transEff) == false);
+
          if (transEff < this->m_netStats.minEdgeTransEff)
             this->m_netStats.minEdgeTransEff = transEff;
 
@@ -2335,6 +2358,7 @@ void SNIPModel::UpdateNetworkStats()
 
          // influence
          float influence = pEdge->m_influence;
+         ASSERT(std::isnan(influence) == false);
 
          if (influence < this->m_netStats.minEdgeInfluence)
             this->m_netStats.minEdgeInfluence = influence;
@@ -2382,7 +2406,7 @@ void SNIPModel::UpdateNetworkStats()
    ///// this->m_netStats.normLeaders = leaders.length / this->m_netStats.nodeCount;
 
    // ???
-   int edgeCountNLA = 0;
+   int edgeCountNLA = 0;   // network to landscape actors
    int edgeCountLSN = 0;
    int edgeCountN = 0;
    float NLA_Influence = 0;
@@ -2398,13 +2422,13 @@ void SNIPModel::UpdateNetworkStats()
 
       if (pEdge->Target()->IsLandscapeActor())
          {   // is target of edge a landscape actor?
-         edgeCountNLA = edgeCountNLA + 1;
+         edgeCountNLA++;
          NLA_Influence = NLA_Influence + pEdge->m_influence;
          NLA_TransEff = NLA_TransEff + pEdge->m_transEff;
          }
       else if (pEdge->Source()->IsInputSignal())
          {
-         edgeCountLSN += 1;
+         edgeCountLSN++;
          totalEdgeSignalStrength += pEdge->m_signalStrength;
          }
 
@@ -2447,10 +2471,11 @@ void SNIPModel::UpdateNetworkStats()
       }
 
    this->m_netStats.signalContestedness = contestt / landscapeActorNodeCount;
-
-   this->m_netStats.normNLA_Influence = NLA_Influence / edgeCountNLA;
-   this->m_netStats.normNLA_TransEff = NLA_TransEff / edgeCountNLA;
-
+   if (edgeCountNLA > 0)
+      {
+      this->m_netStats.normNLA_Influence = NLA_Influence / edgeCountNLA;
+      this->m_netStats.normNLA_TransEff = NLA_TransEff / edgeCountNLA;
+      }
    this->m_netStats.normEdgeSignalStrength = totalEdgeSignalStrength / this->m_netStats.edgeCount;
 
    // Measure of Edge Density w/r/t Landscape Signals and Landscape Actors
@@ -2802,12 +2827,9 @@ bool SNIPModel::LoadPostBuildSettings(json& settings)
 
 
 
-int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappingFrac)
+int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
    {
-   // read mapping csv
-   VDataObj actorProfiles(UNIT_MEASURE::U_UNDEFINED);
-
-   int profileCount = actorProfiles.ReadAscii(mappings, ',');
+   int profileCount = m_actorProfiles.GetRowCount();
 
    // basic idea:  We want to assign each candidate IDU (actor) to a specific actor profile
    // based on ??? and build a network actor->landscape actor edge in SNIP to 
@@ -2815,18 +2837,9 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    int colIDUProfileID = -1;
 
    if (this->m_pSNLayer->m_pSNIP)
-      this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_AUTOADD);
+      this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_MUST_EXIST);
    else
-      {
-      /// ????????
-      }
-
-
-   int colX = actorProfiles.GetCol("POINT_X");
-   int colY = actorProfiles.GetCol("POINT_Y");
-   int colProfileID = actorProfiles.GetCol("ProfileID");
-
-   pIDULayer->SetColData(colProfileID, VData(-1), true);
+      ASSERT(0);      /// ????????
 
    int traitsCount = (int)this->m_traitsLabels.size();
    //float* _traits = new float[traitsCount];
@@ -2844,38 +2857,19 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    // go through IDU's bulding network nodes/links for IDU's that pass the mapping query
    for (MapLayer::Iterator idu = pIDULayer->Begin(); idu != pIDULayer->End(); idu++)
       {
-      bool result = false;
-      bool ok = this->m_pMappingQuery->Run(idu, result);
+      int profileID = -1;
+      pIDULayer->GetData(idu, colIDUProfileID, profileID);  // one-based
 
-      if (ok && result) // passes mapping query, roll dice fo mapping fraction
+      // is there a profile for this IDU
+      if (profileID != 0)
          {
+         ASSERT(profileID > 0);
+         int profileIndex = profileID - 1;
+
+         // roll the dice to see if this idu/profile should be connected to the SNIP network
          double rn = m_randShuffle.RandValue(0, 1);  // randomly select based on mapping fraction
-         if (rn < mappingFrac)
+         if (rn < m_mappingFrac)
             {
-            // iterate through actor profiles, building landscape actor nodes connections for each actor
-            // assign the closest profile to the IDU
-            int closest = -1;
-            float closestDist = 999999999.0f;
-            Vertex c = pIDULayer->GetPolygon(idu)->GetCentroid();
-
-            for (int i = 0; i < profileCount; i++)
-               {
-               float x = actorProfiles.GetAsFloat(colX, i);
-               float y = actorProfiles.GetAsFloat(colY, i);
-
-               float d = ::DistancePtToPt(c.x, c.y, x, y);
-               if (d < closestDist)
-                  {
-                  closest = i;
-                  closestDist = d;
-                  }
-               }
-
-            // have the closest agent profile, next assign to IDU and build connections in SNIP.
-            // Note that both nodes, representing landscape actors, and edges connecting these LA nodes
-            // to in-network Engager nodes are built 
-            pIDULayer->SetData(idu, colIDUProfileID, closest);
-
             SNNode* pNode = nullptr; // for this IDU
 
             // iterate though the list of traits, comparing to the trait strength in the matched actor profile.
@@ -2887,11 +2881,11 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
             for (auto& trait : this->m_traitsLabels)
                {
                t++;
-               int col = actorProfiles.GetCol(trait.c_str());
+               int col = m_actorProfiles.GetCol(trait.c_str());
                if (col >= 0)
                   {
                   // should a link be created to the network actor(s)? 
-                  float wt = actorProfiles.GetAsFloat(col, closest);
+                  float wt = m_actorProfiles.GetAsFloat(col, profileIndex);
                   if ( wt > membershipThreshold)
                      {// make a LA node if we haven't already
                      if (pNode == nullptr)
@@ -2900,9 +2894,9 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                         int _t = 0;
                         for (auto& _trait : this->m_traitsLabels)
                            {
-                           int _col = actorProfiles.GetCol(_trait.c_str());
+                           int _col = m_actorProfiles.GetCol(_trait.c_str());
                            if (_col >= 0)
-                              _traits[_t] = actorProfiles.GetAsFloat(_col, closest);
+                              _traits[_t] = m_actorProfiles.GetAsFloat(_col, profileIndex);
                            else
                               _traits[_t] = 0;
 
@@ -2913,6 +2907,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                         CString nname;
                         nname.Format("LA_%i", (int)idu);
                         pNode = BuildNode(NT_LANDSCAPE_ACTOR, nname, _traits);
+                        ASSERT(pNode != nullptr);
                         pNode->m_idu = (int)idu;
                         newLACount++;
                         }
@@ -2945,6 +2940,8 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                            newEdgeCount++;
                            ASSERT(pEdge->Source()->m_nodeType == NT_ENGAGER);
                            newEngagers.insert(pEdge->Source());
+                           if (this->m_pSNLayer->m_colEngager >= 0)
+                              pIDULayer->SetData(idu, this->m_pSNLayer->m_colEngager, (LPCTSTR) pEngagerNode->m_name);
                            }
                         }
                      else
@@ -2974,8 +2971,11 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
                newLACount--;
                unconnectedLACount++;
                this->m_pSNLayer->RemoveNode(pNode);
+               pIDULayer->SetData(idu, colIDUProfileID, -(abs(profileID)));  // flag profile as unused
                }
             }  // end of: if ( rn < mappingFrac
+         else
+            pIDULayer->SetData(idu, colIDUProfileID, -(abs(profileID)));  // flag profile as unused
          }  // end of: if ( ok && result ) - passed query
       }  // end of: for each IDU
 
@@ -2986,6 +2986,133 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer, LPCTSTR mappings, float mappin
    //delete[]_traits;
    return 0;
    }
+
+int SNIPModel::PopulateActorProfiles(MapLayer* pIDULayer)
+   {
+   int profileCount = m_actorProfiles.GetRowCount();
+
+   // basic idea:  We want to assign each candidate IDU (actor) to a specific actor profile
+   // based on ??? and build a network actor->landscape actor edge in SNIP to 
+   // represent the onnection
+   int colIDUProfileID = -1;
+
+   if (this->m_pSNLayer->m_pSNIP)
+      this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_AUTOADD);  // 1-based (0=no profile)
+   else
+      ASSERT(0);
+
+   int colX = m_actorProfiles.GetCol("POINT_X");
+   int colY = m_actorProfiles.GetCol("POINT_Y");
+   //int colProfileID = m_actorProfiles.GetCol("ProfileID");
+
+   int usedIDUCount = 0;
+
+   std::vector<int> profileUsage(profileCount);
+   std::fill(profileUsage.begin(), profileUsage.end(), 0);
+
+   // go through IDU's bulding network nodes/links for IDU's that pass the mapping query
+   for (MapLayer::Iterator idu = pIDULayer->Begin(); idu != pIDULayer->End(); idu++)
+      {
+      bool result = false;
+      bool ok = this->m_pProfileQuery->Run(idu, result);
+
+      if (ok && result) // passes mapping query, roll dice for mapping fraction
+         {
+         // iterate through actor profiles, building landscape actor nodes connections for each actor
+         // assign the closest profile to the IDU
+         int closest = -1;
+         float closestDist = 999999999.0f;
+         Vertex c = pIDULayer->GetPolygon(idu)->GetCentroid();
+
+         for (int i = 0; i < profileCount; i++)
+            {
+            float x = m_actorProfiles.GetAsFloat(colX, i);
+            float y = m_actorProfiles.GetAsFloat(colY, i);
+
+            float d = ::DistancePtToPt(c.x, c.y, x, y);
+            if (d < closestDist)
+               {
+               closest = i;
+               closestDist = d;
+               }
+            }
+
+         // have the closest agent profile, next assign to IDU and build connections in SNIP.
+         // Note that both nodes, representing landscape actors, and edges connecting these LA nodes
+         // to in-network Engager nodes are built 
+         pIDULayer->SetData(idu, colIDUProfileID, closest+1);  // profiles are one-based
+         profileUsage[closest]++;
+         usedIDUCount++;
+         }
+      else
+         pIDULayer->SetData(idu, colIDUProfileID, 0);  // zero indicates no profile
+      }
+
+   int profilesUsed = 0;
+   for (int p : profileUsage)
+      if (p > 0)
+         profilesUsed++;  
+
+   CString msg;
+   msg.Format("Populated %i of %i Actor Profiles to %i IDUs", profilesUsed, profileCount, usedIDUCount);
+   Report::LogInfo(msg);
+
+   return 0;
+   }
+
+int SNIPModel::PopulateActorAttitudes(MapLayer* pIDULayer)
+   {
+    int profileCount = m_actorProfiles.GetRowCount();
+
+   // basic idea:  We want to assign each IDU with a profile an initial actor candidate IDU (actor) to a specific actor profile
+   // based on ??? and build a network actor->landscape actor edge in SNIP to 
+   // represent the onnection
+   int colIDUProfileID = -1;
+   int colIDUA2rxn = -1;
+   if (this->m_pSNLayer->m_pSNIP)
+      {
+      this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_AUTOADD);
+      this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUA2rxn, "A2rxn", TYPE_FLOAT, CC_AUTOADD);
+      }
+   else
+      ASSERT(0);
+
+   int colA2rxn = m_actorProfiles.GetCol("A2_rxn0");
+
+   int count = 0;
+
+   // go through IDU's bulding network nodes/links for IDU's that pass the mapping query
+   for (MapLayer::Iterator idu = pIDULayer->Begin(); idu != pIDULayer->End(); idu++)
+      {
+      int profileID = 0;
+      pIDULayer->GetData(idu, colIDUProfileID, profileID);  // one-based
+
+      float a2rxn = 0;
+      if (profileID != 0)  // has a profile
+         {
+         int profileIndex = abs(profileID) - 1;
+         // -2.5 - 2.5
+         a2rxn = m_actorProfiles.GetAsFloat(colA2rxn, profileIndex);
+         //a2rxn0 += 5;
+         a2rxn /= 2.5;
+         }
+
+      pIDULayer->SetData(idu, colIDUA2rxn, a2rxn);
+      count++;
+      }
+
+   CString msg;
+   msg.Format("Populated %i Actor attitudes", count);
+   Report::LogInfo(msg);
+
+   return 0;
+   }
+
+
+
+
+
+
 
 
 /*
@@ -3590,7 +3717,10 @@ bool SNIP::Run(EnvContext* pEnvContext)
                {
                // get adaptive factor from map
                pIDULayer->GetData(pNode->m_idu, pLayer->m_pSNIPModel->m_colAdapt, adapt);
+               ASSERT(std::isnan(adapt) == false);
 
+               if (std::isnan(adapt))
+                  adapt = 0;
                // apply to each edge
                for (int k = 0; k < pNode->m_inEdges.size(); k++)
                   pNode->m_inEdges[k]->m_trust *= (1.0f + adapt);
@@ -3683,20 +3813,23 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
    while (pXmlLayer != nullptr)
       {
-      LPTSTR name = nullptr, path = nullptr, mappings = nullptr, mappingQuery=nullptr, reactivityCol=nullptr, adaptCol=nullptr,landscapeSignal=nullptr;
-      int exportNetworks = -1;
-      float mappingFrac = 0;
+      LPTSTR name = nullptr, path = nullptr, profiles = nullptr, profileQuery=nullptr, reactivityCol=nullptr, adaptCol=nullptr, engagerCol=nullptr, landscapeSignal=nullptr;
+      int exportNetwork = 0, verifyNetwork = 0,  popProfileID = 0;
+      float m_mappingFrac = 0;
       XML_ATTR attrs[] = { // attr             type        address           isReq checkCol
-                         { "name",             TYPE_STRING,  &name,            true,  0 },
-                         { "path",             TYPE_STRING,  &path,            true,  0 },
-                         { "mappings",         TYPE_STRING,  &mappings,        true,  0 },
-                         { "mapping_query",    TYPE_STRING,  &mappingQuery,    true,  0 },
-                         { "reactivity_col",   TYPE_STRING,  &reactivityCol,   true,  0 },
-                         { "adapt_col",        TYPE_STRING,  &adaptCol,        false, 0 },
-                         { "landscape_signal", TYPE_STRING,  &landscapeSignal, true,  0 },
-                         { "mapping_fraction", TYPE_FLOAT,   &mappingFrac,     true,  0 },
-                         { "export_networks",  TYPE_INT,     &exportNetworks,  false,  0 },
-                         { nullptr,            TYPE_NULL,    nullptr,          false, 0 } };
+                         { "name",               TYPE_STRING,  &name,            true,  0 },
+                         { "path",               TYPE_STRING,  &path,            true,  0 },
+                         { "profiles",           TYPE_STRING,  &profiles,        true,  0 },
+                         { "profile_query",      TYPE_STRING,  &profileQuery,    true,  0 },
+                         { "populate_profileID", TYPE_INT,     &popProfileID,    true,  0 },
+                         { "reactivity_col",     TYPE_STRING,  &reactivityCol,   true,  0 },
+                         { "adapt_col",          TYPE_STRING,  &adaptCol,        false, 0 },
+                         { "engager_col",        TYPE_STRING,  &engagerCol,      false,  0 },
+                         { "landscape_signal",   TYPE_STRING,  &landscapeSignal, true,  0 },
+                         { "mapping_fraction",   TYPE_FLOAT,   &m_mappingFrac,   true,  0 },
+                         { "export_network",     TYPE_INT,     &exportNetwork,   false,  0 },
+                         { "verify_network",     TYPE_INT,     &verifyNetwork,   false,  0 },
+                         { nullptr,              TYPE_NULL,    nullptr,          false, 0 } };
 
       bool ok = TiXmlGetAttributes(pXmlLayer, attrs, filename);
 
@@ -3723,23 +3856,40 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
             }
 
          CheckCol(pIDULayer, pLayer->m_colReactivity, reactivityCol, TYPE_FLOAT, CC_AUTOADD);
-         if ( adaptCol != nullptr && adaptCol[0] != 0)
-            CheckCol(pIDULayer, pLayer->m_pSNIPModel->m_colAdapt, adaptCol, TYPE_FLOAT, CC_AUTOADD);
 
-         if (mappingQuery != nullptr)
+         if (engagerCol != nullptr && engagerCol[0] != 0)
+            CheckCol(pIDULayer, pLayer->m_colEngager, engagerCol, TYPE_STRING, CC_AUTOADD);
+         
+         if (adaptCol != nullptr && adaptCol[0] != 0)
             {
-            pLayer->m_pSNIPModel->m_mappingQuery = mappingQuery;
-            pLayer->m_pSNIPModel->m_pMappingQuery = pEnvContext->pQueryEngine->ParseQuery(mappingQuery, 0, "MappingQuery");
+            CheckCol(pIDULayer, pLayer->m_pSNIPModel->m_colAdapt, adaptCol, TYPE_FLOAT, CC_AUTOADD);
+            if (pLayer->m_pSNIPModel->m_colAdapt >= 0)
+               pIDULayer->SetColData(pLayer->m_pSNIPModel->m_colAdapt, VData(0), true);
+            }
+
+         if (profileQuery != nullptr)
+            {
+            pLayer->m_pSNIPModel->m_profileQuery = profileQuery;
+            pLayer->m_pSNIPModel->m_pProfileQuery = pEnvContext->pQueryEngine->ParseQuery(profileQuery, 0, "ProfileQuery");
             }
 
          // connect ENGAGER nodes to IDU-based landscape actors
-         if (mappings != nullptr)
-            ok = pLayer->m_pSNIPModel->ConnectToIDUs((MapLayer*)pEnvContext->pMapLayer, mappings, mappingFrac);
+         ASSERT(profiles != nullptr);
+         pLayer->m_pSNIPModel->m_actorProfiles.ReadAscii(profiles, ',');
 
-         pLayer->m_exportNetworkInterval = exportNetworks;
+         if (popProfileID > 0)
+            {
+            pLayer->m_pSNIPModel->PopulateActorProfiles( pIDULayer);
+            pLayer->m_pSNIPModel->PopulateActorAttitudes(pIDULayer);
+            }
+
+         pLayer->m_pSNIPModel->ConnectToIDUs(pIDULayer);
+         
+         pLayer->m_exportNetworkInterval = exportNetwork;
 
          // network is fully created at this point, check for any problems
-         pLayer->CheckNetwork();         
+         if ( verifyNetwork > 0 )
+            pLayer->CheckNetwork();         
          }  // end of: if ( layer is ok )
 
       pXmlLayer = pXmlLayer->NextSiblingElement("layer");

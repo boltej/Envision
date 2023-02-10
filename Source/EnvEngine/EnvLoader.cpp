@@ -1618,6 +1618,8 @@ bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, L
       {
       pEnvModel->m_envContext.id = id;
       pEnvModel->m_envContext.initInfo = initInfo;
+      pEnvModel->m_envContext.handle = (INT_PTR) hDLL;
+
       EnvEvaluator* pEval = (EnvEvaluator*)factory(&pEnvModel->m_envContext);
       if (pEval != nullptr)
          {
@@ -1629,7 +1631,6 @@ bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, L
          pEval->m_imageURL = imageURL;     // not currently used
          pEval->m_use = use;          // use this model during the run?
          pEval->m_hDLL = hDLL;
-
          //pModel->m_frequency;    // how often this process is executed
          pEval->m_dependencyNames = dependencyNames;
          pEval->m_showInResults = showInResults;
@@ -1667,6 +1668,7 @@ bool EnvLoader::LoadModel( EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCT
       {
       pEnvModel->m_envContext.id = id;
       pEnvModel->m_envContext.initInfo = initInfo;
+      pEnvModel->m_envContext.handle = (INT_PTR) hDLL;
       EnvModelProcess *pModel = (EnvModelProcess*) factory(&pEnvModel->m_envContext);
 
       if (pModel != nullptr)
@@ -1676,9 +1678,9 @@ bool EnvLoader::LoadModel( EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCT
          pModel->m_path = path;         // path to the dll
          pModel->m_initInfo = initInfo;     // string passed to the model, specified in the project file
          pModel->m_description = description;  // description, from ENVX file
+         pModel->m_hDLL = hDLL;
          pModel->m_imageURL = imageURL;     // not currently used
          pModel->m_use = use;          // use this model during the run?
-         pModel->m_hDLL = hDLL;
          pModel->m_timing = timing;
          //pModel->m_frequency;    // how often this process is executed
          pModel->m_dependencyNames = dependencyNames;

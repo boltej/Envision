@@ -756,7 +756,7 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
    PopulateStructure(pContext, true);
 
    // update WUI categorization
-   if (pContext->yearOfRun % m_wuiUpdateFreq == 0)
+   if ((pContext->yearOfRun % m_wuiUpdateFreq == 0 ) && (pContext->yearOfRun != 0))
       {
       Report::StatusMsg("Populating WUI");
       PopulateWUI(pContext, true);
@@ -765,6 +765,7 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
    // update time related values (e.g. time since harvest)
    Report::StatusMsg("Updating Times Since...");
    UpdateTimeSinceTreatment(pContext);   // TST
+
 
    UpdateTimeSinceThinning(pContext);   // TSTH
 
@@ -2449,6 +2450,7 @@ bool COCNHProcess::UpdatePriorVeg(EnvContext *pContext)
 
 bool COCNHProcess::UpdateThreatenedSpecies(EnvContext *pContext, bool useAddDelta)
    {
+   /*
    MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
 
    int colTESpecies = pLayer->GetFieldCol("TESPECIES");
@@ -2492,13 +2494,14 @@ bool COCNHProcess::UpdateThreatenedSpecies(EnvContext *pContext, bool useAddDelt
       UpdateIDU(pContext, idu, colTESpecies, speciesCount, useAddDelta ? ADD_DELTA : SET_DATA );
       
       }
-
+      */
    return true;
    }
 
 
 bool COCNHProcess::PopulateStructure(EnvContext *pContext, bool useAddDelta)
    {
+   /*
    // iterate through idu shapefile
    MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
@@ -2559,7 +2562,7 @@ bool COCNHProcess::PopulateStructure(EnvContext *pContext, bool useAddDelta)
       UpdateIDU(pContext, idu, m_colStructure, structr, useAddDelta ? ADD_DELTA : SET_DATA );
       
       }
-
+      */
    return true;
    }
 
@@ -3031,6 +3034,7 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
    int idus = pLayer->GetPolygonCount();
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   //for ( int idu=0; idu < idus; idu++)
       {
       // init counters
       int fShort = 0;
@@ -3046,8 +3050,8 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
       int fPotentialShortMX = 0;
       int fPotential500m = 0;
 
-      if (idu % 10000 == 0 )
-         Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
+      //if (idu % 10000 == 0 )
+      //   Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
 
       Poly *pPoly = pLayer->GetPolygon(idu);
       int countFShort = pLayer->GetNearbyPolys(pPoly, neighborsFireShort, NULL, expPolyDistShort, m_thresDistFireShort);

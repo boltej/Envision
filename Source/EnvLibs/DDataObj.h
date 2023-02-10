@@ -33,7 +33,6 @@ Copywrite 2012 - Oregon State University
 #pragma once
 #include "EnvLibs.h"
 #include "DATAOBJ.H"
-#include "TARRAY.HPP"
 #include "DMatrix.h"
 
 #pragma warning ( push )
@@ -46,7 +45,6 @@ class  LIBSAPI DDataObj : public DataObj
    {
    protected:
       DoubleMatrix matrix;        // matrix of floating pt values
-      StatArray   statArray;     // column of statistics
 
    public:
       //-- constructor --//
@@ -55,7 +53,6 @@ class  LIBSAPI DDataObj : public DataObj
 
       DDataObj( int cols, int allocRows, UNIT_MEASURE m);  // by dimension (must Append())
       DDataObj( int cols, int allocRows, double initialValue, UNIT_MEASURE m);
-      DDataObj( int col, int allocRows, STATSFLAG*, UNIT_MEASURE m);
 
       //-- converstion ctor -- copies form arg, data, which is row-by-row in memory --//
       DDataObj( const DoubleMatrix::type_data * data, int cols, int allocRows, UNIT_MEASURE m);
@@ -139,7 +136,6 @@ class  LIBSAPI DDataObj : public DataObj
       //-- various gets --//
       virtual int   GetRowCount( void ) { return matrix.GetRows(); }
       virtual int   GetColCount( void ) { return matrix.GetCols(); }
-      void  SetColFlags( int col, STATSFLAG flag ) { statArray[ col ].flag = flag; }
 
       //-- access data directly --//
       double **GetDataPtr( void    ) { return matrix.GetBase(); }
@@ -151,9 +147,6 @@ class  LIBSAPI DDataObj : public DataObj
       //-- statistical information --//
       double  GetMean   ( int col, int startRow=0 );
       double GetStdDev ( int col, int startRow=0 );
-
-      //double GetSums      ( int col ) { return statArray[ col ].sx;  }
-      //double GetSumSquares( int col ) { return statArray[ col ].ssx; }
 
       //-- File I/O --//
       int   ReadAscii ( LPCTSTR fileName, TCHAR delimiter=0, BOOL showMsg=TRUE );

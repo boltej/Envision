@@ -255,13 +255,7 @@
     <ClCompile Include="SpatialIndexDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="SplashDlg.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="TipDlg.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="TrajectorySpaceWnd.cpp">
@@ -368,6 +362,9 @@
     </ClCompile>
     <ClCompile Include="UltimateToolbox\OXLayoutManager.cpp">
       <Filter>Source Files\UltimateToolbox</Filter>
+    </ClCompile>
+    <ClCompile Include="SplashDlg.cpp">
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -617,16 +614,10 @@
     <ClInclude Include="SpatialIndexDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="SplashDlg.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="stdafx.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="TipDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TrajectorySpaceWnd.h">
@@ -753,6 +744,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="EvaluatorLearnDlg.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SplashDlg.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

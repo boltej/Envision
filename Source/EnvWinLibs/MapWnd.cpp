@@ -146,6 +146,9 @@ MapWindow::~MapWindow()
    if ( m_pMap )
       delete m_pMap;
 
+   if (m_pMapCache)
+      delete m_pMapCache;
+
    if ( m_pTipWnd )
       delete m_pTipWnd;
 

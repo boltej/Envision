@@ -34,6 +34,8 @@ Copywrite 2012 - Oregon State University
 #include <EnvModel.h>
 #include <stdio.h>
 
+#include <algorithm>
+
 
 #ifndef NO_MFC
 #include "SAllocView.h"
@@ -519,7 +521,6 @@ Allocation::Allocation( AllocationSet *pSet, LPCTSTR name, int id ) //, TARGET_S
    , m_constraintAreaSatisfied( 0 )
    , m_colScores( -1 )
    , m_pAllocSet( pSet )
-   //, m_iduScoreArray( nullptr )
    , m_currentIduScoreIndex( -1 )
    {
    m_constraint.m_pAlloc = this;
@@ -612,7 +613,8 @@ Allocation& Allocation::operator = ( Allocation &a )
       m_sequenceMap.SetAt(key,value);
       } 
 
-   m_iduScoreArray.Copy( a.m_iduScoreArray );
+   //m_iduScoreArray.Copy( a.m_iduScoreArray );
+   m_iduScoreArray = a.m_iduScoreArray;
 
    m_scoreCol = a.m_scoreCol;
    m_colScores = a.m_colScores;
@@ -988,7 +990,8 @@ bool SpatialAllocator::Init( EnvContext *pEnvContext, LPCTSTR initStr )
          {
          Allocation *pAlloc = pAllocSet->m_allocationArray[ j ];
 
-         pAlloc->m_iduScoreArray.SetSize( iduCount );
+         //pAlloc->m_iduScoreArray.SetSize( iduCount );
+         pAlloc->m_iduScoreArray.resize(iduCount);
          for ( int k=0; k < iduCount; k++ )
             {
             pAlloc->m_iduScoreArray[ k ].idu = -1;
@@ -1260,6 +1263,7 @@ bool SpatialAllocator::Run( EnvContext *pContext )
 
    if (m_pBuildFromFile)
       UpdateAllocationsFromFile();
+
    // set the desired value for the targets
    SetAllocationTargets( pContext->currentYear );
 
@@ -1704,9 +1708,12 @@ void SpatialAllocator::ScoreIduAllocation( Allocation *pAlloc, int flags )
    int scoreCount = 0;
    /////////////////
 
-   if ( pAlloc->m_iduScoreArray.IsEmpty() )
-      pAlloc->m_iduScoreArray.SetSize( m_pMapLayer->GetRecordCount() );
-   
+   //if ( pAlloc->m_iduScoreArray.IsEmpty() )
+   //   pAlloc->m_iduScoreArray.SetSize( m_pMapLayer->GetRecordCount() );
+   if (pAlloc->m_iduScoreArray.size() == 0)
+      pAlloc->m_iduScoreArray.resize(m_pMapLayer->GetRecordCount());
+
+
    for ( int i=0; i < iduCount; i++ )
       {
       pAlloc->m_iduScoreArray[ i ].idu = i;
@@ -1944,8 +1951,16 @@ void SpatialAllocator::AllocScorePriority( EnvContext *pContext, bool useAddDelt
             Allocation *pAlloc = pAllocSet->m_allocationArray[ j ];   // an Allocation defines scores for a particular alloc tpe (e.g. "Corn")
    
             // sort it, so the front of the list is the best scoring 
-            qsort( pAlloc->m_iduScoreArray.GetData(), iduCount, sizeof( IDU_SCORE ), CompareScores );
-          
+            //qsort( pAlloc->m_iduScoreArray.GetData(), iduCount, sizeof( IDU_SCORE ), CompareScores );
+            qsort(pAlloc->m_iduScoreArray.data(), iduCount, sizeof(IDU_SCORE), CompareScores);
+
+            // from https://en.cppreference.com/w/cpp/algorithm/sort
+            //std::sort(s.begin(), s.end(), [](int a, int b)
+            //   {
+            //   return a > b;
+            //   });
+
+
             //////////////////////////////
             // dump the allocations
             //int colLulcA = m_pMapLayer->GetFieldCol( "LULC_A" );
@@ -2453,12 +2468,13 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
       LPTSTR targetValues = nullptr;
       LPTSTR targetBasis  = nullptr;
       LPTSTR description  = nullptr;
-      int use = 1;
+      int use = 1, default = -9999999;
 
       XML_ATTR attrs[] = { // attr          type           address       isReq checkCol
                          { "name",          TYPE_STRING,   &name,         true,  0 },
                          { "use",           TYPE_INT,      &use,          false, 0 },
-                         { "description",   TYPE_STRING,    &description,  false,  0 },
+                         { "description",   TYPE_STRING,   &description,  false,  0 },
+                         { "default",       TYPE_INT,      &default,      false,  0 },
                          { "col",           TYPE_STRING,   &field,        true,  CC_MUST_EXIST | TYPE_LONG },
                          { "sequence_col",  TYPE_STRING,   &seqField,     false, CC_AUTOADD | TYPE_LONG },
                          // these are optional, only specify if using global (meaning allocation_set) targets
@@ -2484,6 +2500,12 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
       
       if ( description != nullptr )
          pAllocSet->m_description = description;
+
+      if (default > -9999999)
+         {
+         pAllocSet->m_resetToDefault = true;
+         pAllocSet->m_defaultValue = default;
+         }
 
       if ( seqField != nullptr )
          {
@@ -3486,6 +3508,10 @@ void SpatialAllocator::Reset()
    for (int i = 0; i < (int)m_allocationSetArray.GetSize(); i++)
       {
       AllocationSet* pAllocSet = m_allocationSetArray[i];
+
+      if (pAllocSet->m_resetToDefault)
+         this->m_pMapLayer->SetColData(pAllocSet->m_col, VData(pAllocSet->m_defaultValue), false);
+
       for (int j = 0; j < pAllocSet->GetAllocationCount(); j++)
          {
          Allocation* pAlloc = pAllocSet->GetAllocation(j);

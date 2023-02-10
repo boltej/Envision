@@ -38,9 +38,9 @@ Copywrite 2012 - Oregon State University
 #include "DATAOBJ.H"
 #endif
 
-#if !defined ( _TARRAY_HPP )
-#include "TARRAY.HPP"
-#endif
+//#if !defined ( _TARRAY_HPP )
+//#include "TARRAY.HPP"
+//#endif
 
 
 #if !defined ( _FMATRIX_HPP )
@@ -55,7 +55,7 @@ class  LIBSAPI FDataObj : public DataObj
    {
    protected:
       FloatMatrix matrix;        // matrix of floating pt values
-      StatArray   statArray;     // column of statistics
+      //StatArray   statArray;     // column of statistics
 
    public:
       //-- constructor --//
@@ -148,7 +148,7 @@ class  LIBSAPI FDataObj : public DataObj
       //-- various gets --//
       virtual int   GetRowCount( void ) { return matrix.GetRows(); }
       virtual int   GetColCount( void ) { return matrix.GetCols(); }
-      void  SetColFlags( int col, STATSFLAG flag ) { statArray[ col ].flag = flag; }
+      //void  SetColFlags( int col, STATSFLAG flag ) { statArray[ col ].flag = flag; }
 
       //-- access data directly --//
       float **GetDataPtr( void    ) { return matrix.GetBase(); }
