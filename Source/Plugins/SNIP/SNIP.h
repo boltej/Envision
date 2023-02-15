@@ -530,6 +530,7 @@ class SNIPModel
       float m_kD = 0;   // signal decay constant
       float m_kF = 0;   // reactivity decay factor
       float m_aggInputSigma = 3;
+      float m_nodeReactivityMax = 1.0f;
       float m_transEffMax = 1.2f;
       float m_transEffAlpha = 0;
       float m_transEffBetaTraits0 = 1.0f;

@@ -1593,6 +1593,7 @@ lookup.at(j) = m_costInputtable.GetAsInt( (j), i );
 m_mapLookupTreatCostsInt.insert(make_pair( iduID, lookup ) );
 
 float fuelLoad = m_costInputtable.GetAsFloat( 3, i );
+float fuelLoad = m_costInputtable.GetAsFloat( 3, i );
 m_mapLookupTreatCostsFloat.insert(make_pair( iduID, fuelLoad ) );
 }
 
@@ -2710,14 +2711,6 @@ bool COCNHProcess::PopulateWUI(EnvContext *pContext, bool useAddDelta)
 float GetPeoplePerDU(int uga)
    {
    return 2.3f;
-   /*
-   if ( uga == 8 )
-   return PEOPLE_PER_DU_EUGENE;
-
-   if ( uga > 0 )
-   return PEOPLE_PER_DU_OTHERUGB;
-
-   return PEOPLE_PER_DU_RURAL;*/
    }
 
 
@@ -2842,7 +2835,6 @@ bool COCNHProcess::CalcTreatmentCost(EnvContext *pContext, bool useAddDelta)
          fr = 0.0f;
 
       // aspect factor values are specified for mechanical treatment
-      //!!! hier nochmal ueberpruefen, welche werte stehen tatsaechlich fuer south, southeast, southwest !!!
       if ((aspect == 0) || (aspect == 1) || (aspect == 2))// aspect in [southeast, south, southwest]
          aspect = 1;
       else

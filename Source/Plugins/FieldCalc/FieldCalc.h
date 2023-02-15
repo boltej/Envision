@@ -15,7 +15,7 @@
 #define _EXPORT __declspec( dllexport )
 
 class RandUniform;
-
+class FieldCalculator;
 
 
 enum FC_OP {            //  Description                                              |      Extent         | useDelta?|
@@ -71,6 +71,7 @@ class FieldDef
       CString   m_field;
 
    protected:
+      FieldCalculator* m_pFieldCalculator = nullptr;
       CString   m_queryStr;
       CString   m_mapExprStr;
       bool      m_useDelta = false;      //
@@ -96,7 +97,7 @@ class FieldDef
 
    public:
       // methods                               
-      FieldDef() {}
+      FieldDef(FieldCalculator* pFC) { m_pFieldCalculator = pFC; }
       ~FieldDef() {}
 
       bool Init();
@@ -119,20 +120,20 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
       virtual bool Run(EnvContext* pEnvContext){ return _Run(pEnvContext, false); }
 
    public:
-      static MapLayer*      m_pMapLayer;            // memory managed by EnvModel
-      static MapExprEngine* m_pMapExprEngine;       // memory managed by EnvModel
-      static QueryEngine*   m_pQueryEngine;         // memory managed by EnvModel
+      MapLayer*      m_pMapLayer;            // memory managed by EnvModel
+      MapExprEngine* m_pMapExprEngine;       // memory managed by EnvModel
+      QueryEngine*   m_pQueryEngine;         // memory managed by EnvModel
 
    protected:
-      static int m_colArea;
+      int m_colArea;
 
-      static CUIntArray m_iduArray;    // used for shuffling IDUs
-      static bool m_shuffleIDUs;
-      static RandUniform* m_pRandUnif;
+      CUIntArray m_iduArray;    // used for shuffling IDUs
+      bool m_shuffleIDUs;
+      RandUniform* m_pRandUnif;
 
       PtrArray<Constant> m_constants;  // only added to the first instance
-
       PtrArray<FieldDef> m_fields;
+
       //std::vector<unique_ptr<FieldDef>> m_fields;
 
       FDataObj* m_pOutputData = nullptr;

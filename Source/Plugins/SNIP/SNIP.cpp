@@ -895,6 +895,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
    this->m_infSubmodelWt = settings["infSubmodelWt"].get<float>();
    this->m_aggInputSigma = settings["agg_input_sigma"].get<float>();
    this->m_transEffMax = settings["trans_eff_max"].get<float>();
+   this->m_nodeReactivityMax = settings["reactivity_max"].get<float>();
    this->m_activationThreshold = settings["reactivity_threshold"].get<float>();
    this->m_activationSteepFactB = settings["reactivity_steepness_factor_B"].get<float>();
    //settings["node_size"];
@@ -1991,6 +1992,8 @@ void SNIPModel::ComputeEdgeTransEffs()   // NOTE: Only need to do active edges
                   break;
                }
 
+            if (transEff > this->m_transEffMax)
+               transEff = this->m_transEffMax;
             //transEff *= edge.data('transEffMultiplier');
             pEdge->m_transEff = transEff;
             pEdge->m_transEffSignal = transEffSignal;
@@ -2003,6 +2006,9 @@ void SNIPModel::ComputeEdgeTransEffs()   // NOTE: Only need to do active edges
             ASSERT(std::isnan(pEdge->m_trust) == false);
             pEdge->m_transEff = pEdge->m_trust;  // nothing required
             }
+
+         if (pEdge->m_transEff > this->m_transEffMax)
+            pEdge->m_transEff = this->m_transEffMax;
          }
       }
    }
@@ -2157,7 +2163,7 @@ float SNIPModel::ActivationFn(float inputSignal, float reactivityMovAvg)
       //const shift = 1.0;
       float b = this->m_activationSteepFactB - this->m_kF * reactivityMovAvg;
 
-      reactivity = (2 * (1 / (1 + exp(-b * inputSignal)))) - 1;
+      reactivity = this->m_nodeReactivityMax * ((2 * (1 / (1 + exp(-b * inputSignal)))) - 1);
       }
 
    return reactivity;
