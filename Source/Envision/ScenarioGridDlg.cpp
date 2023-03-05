@@ -26,7 +26,7 @@ Copywrite 2012 - Oregon State University
 #include "afxdialogex.h"
 
 #include <Scenario.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 extern ScenarioManager *gpScenarioManager;
 extern PolicyManager   *gpPolicyManager;
@@ -57,7 +57,7 @@ ScenarioGrid::~ScenarioGrid()
    }
 
 
-int ScenarioGrid::AddPolicy( Policy *pPolicy )
+int ScenarioGrid::AddPolicy( EnvPolicy *pPolicy )
    {
    CUGCtrl::AppendRow();
 
@@ -489,7 +489,7 @@ BOOL ScenarioGridDlg::OnInitDialog()
 
    for ( int i=0; i < gpPolicyManager->GetPolicyCount(); i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
       m_scenarioGrid.AddPolicy( pPolicy );
       }
 

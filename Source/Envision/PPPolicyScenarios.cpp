@@ -24,7 +24,7 @@ Copywrite 2012 - Oregon State University
 
 #include ".\pppolicyscenarios.h"
 
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <Scenario.h>
 #include "PolEditor.h"
 #include "outcomeEditor.h"
@@ -37,7 +37,7 @@ extern ScenarioManager *gpScenarioManager;
 
 IMPLEMENT_DYNAMIC(PPPolicyScenarios, CTabPageSSL)
 
-PPPolicyScenarios::PPPolicyScenarios( PolEditor *pParent, Policy *&pPolicy )
+PPPolicyScenarios::PPPolicyScenarios( PolEditor *pParent, EnvPolicy *&pPolicy )
 	: CTabPageSSL()
    , m_pPolicy( pPolicy )
    , m_pParent( pParent )

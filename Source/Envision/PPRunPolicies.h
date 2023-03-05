@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 #include "resource.h"
 #include "afxwin.h"
 
-class Policy;
+class EnvPolicy;
 
 // PPolicyUse dialog
 
@@ -52,7 +52,7 @@ public:
    afx_msg void OnBnClickedSelectnone();
 
 protected:
-   bool ShowPolicy( Policy *pPolicy );
+   bool ShowPolicy( EnvPolicy *pPolicy );
    void LoadPolicies();
 
 public:

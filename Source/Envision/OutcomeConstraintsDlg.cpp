@@ -36,7 +36,7 @@ extern CEnvDoc       *gpDoc;
 
 IMPLEMENT_DYNAMIC(OutcomeConstraintsDlg, CDialogEx)
 
-OutcomeConstraintsDlg::OutcomeConstraintsDlg(CWnd* pParent, MultiOutcomeInfo *pOutcome, Policy *pPolicy )
+OutcomeConstraintsDlg::OutcomeConstraintsDlg(CWnd* pParent, MultiOutcomeInfo *pOutcome, EnvPolicy *pPolicy )
 	: CDialogEx(OutcomeConstraintsDlg::IDD, pParent)
    , m_isDirtyGlobal( false )
    , m_isDirtyOutcome( false )

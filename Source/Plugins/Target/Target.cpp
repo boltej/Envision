@@ -612,6 +612,8 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
          float modifiedAvailCapacity = availCapacity;   // for this idu
          if ( availCapacity > 0 )
             {
+            // apply preferences.  the sum of the preferences is stored in this Target's
+            // m_preference array
             for ( int p=0; p < pAllocationSet->m_preferences.GetSize(); p++ )
                {
                PREFERENCE *pPref = pAllocationSet->m_preferences.GetAt( p );
@@ -1741,7 +1743,7 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
             ////////////////////////////////////////
 
             // iterate through preferences for this set
-            const TiXmlElement* pXmlPreference = pXmlAllocationSet->FirstChildElement(_T("preference"));
+            const TiXmlElement* pXmlPreference = pXmlAllocationSet->FirstChildElement(_T("bias"));
 
             while (pXmlPreference != NULL)
                {
@@ -1767,7 +1769,7 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
                if (_target != NULL)
                   pModifier->target = (float)atof(_target);
 
-               pXmlPreference = pXmlPreference->NextSiblingElement(_T("preference"));
+               pXmlPreference = pXmlPreference->NextSiblingElement(_T("bias"));
                }
             }
          pXmlAllocationSet = pXmlAllocationSet->NextSiblingElement( _T("allocation_set") );

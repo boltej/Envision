@@ -29,7 +29,7 @@ Copywrite 2012 - Oregon State University
 #include "SelectIduDiag.h"
 
 #include "Envdoc.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <EnvModel.h>
 #include <deltaArray.h>
 #include <DataManager.h>

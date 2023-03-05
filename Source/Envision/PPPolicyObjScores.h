@@ -23,7 +23,7 @@ Copywrite 2012 - Oregon State University
 #include "afxwin.h"
 #include "afxcmn.h"
 
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 #include "UGCtrl.h"
 #include "ugctelps.h"
@@ -134,7 +134,7 @@ class PPPolicyObjScores : public CTabPageSSL
 	DECLARE_DYNAMIC(PPPolicyObjScores)
 
 public:
-	PPPolicyObjScores( PolEditor*, Policy *&policy );
+	PPPolicyObjScores( PolEditor*, EnvPolicy *&policy );
 	virtual ~PPPolicyObjScores();
 
    // Dialog Data
@@ -142,7 +142,7 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
 protected:
-   Policy   *&m_pPolicy;     // ref to pointer to current policy
+   EnvPolicy   *&m_pPolicy;     // ref to pointer to current policy
    PolEditor *m_pParent;
 
    CComboBox m_policies;

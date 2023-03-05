@@ -138,7 +138,8 @@ public:
    CString m_name;
    TARGET_SOURCE  m_targetSource;   // where are target values defined? timeseries, rate, file, ...
    TARGET_DOMAIN  m_targetDomain;   // what units are being allocated area, pctarea, attr???
-  
+   MapLayer* m_pTargetLayer = nullptr;
+
    CString m_targetValues;          // string containing target source information/values
    
    CString m_targetBasisField;      // NEW, contains name of field that is the basis for what is used as the target
@@ -164,6 +165,7 @@ public:
       : m_name( "" )
       , m_targetSource( TS_UNDEFINED )
       , m_targetDomain( TD_UNDEFINED )
+      , m_pTargetLayer(nullptr)
       , m_targetValues()
       , m_targetBasisField()
       , m_colTargetBasis( -1 )
@@ -182,6 +184,7 @@ public:
       : m_name( name )
       , m_targetSource( TS_UNDEFINED )
       , m_targetDomain( TD_UNDEFINED )
+      , m_pTargetLayer(nullptr)
       , m_targetValues()
       , m_targetBasisField()
       , m_colTargetBasis( -1 )
@@ -200,6 +203,7 @@ public:
       : m_name( name )
       , m_targetSource( source )
       , m_targetDomain( domain )
+      , m_pTargetLayer(nullptr)
       , m_targetValues( targetValues )
       , m_targetBasisField()
       , m_colTargetBasis( -1 )
@@ -225,6 +229,7 @@ public:
       m_targetSource = tc.m_targetSource;
       m_targetDomain = tc.m_targetDomain;
       m_targetValues = tc.m_targetValues;
+      m_pTargetLayer = tc.m_pTargetLayer;
       m_targetBasisField = tc.m_targetBasisField;
       m_colTargetBasis = tc.m_colTargetBasis;
       m_description = tc.m_description;
@@ -243,7 +248,7 @@ public:
    
    virtual TARGET_CLASS GetTargetClass( void ) = 0;
 
-   void SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR source, LPCTSTR values, LPCTSTR domain, LPCTSTR query );
+   void SetTargetParams( LPCTSTR basis, LPCTSTR source, LPCTSTR values, LPCTSTR domain, LPCTSTR query );
 
    float SetTarget( int year );   
    bool GetTargetRate( float &rate ) { if ( m_targetSource != TS_RATE ) return false; rate = (float) atof( m_targetValues ); return true; }

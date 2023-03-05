@@ -42,7 +42,7 @@ public:
 // Dialog Data
 	enum { IDD = IDD_EVAL_MODEL_LEARN_DLG };
 
-   map< int, Policy * > m_policySet;  // <PolID, Policy*> to be consumed by users of this
+   map< int, EnvPolicy * > m_policySet;  // <PolID, EnvPolicy*> to be consumed by users of this
    set<int>          m_idxModelInfo; // indices in EnvModel::m_modelInfoArray
    set<Scenario *>   m_scenarioSet;
 

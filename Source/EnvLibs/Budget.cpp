@@ -285,14 +285,14 @@ bool BudgetItem::ApplyCostItem(CostItem* pCostItem, int idu, float area, bool us
 
 
 CostItem::CostItem()
-   : m_initialCost(0)
-   , m_maintenanceCost(0)
-   , m_duration(0)
-   , m_pBudgetItem(NULL)
-   , m_pLookupTable(NULL)
-   , m_pLookupTableIndex(NULL)
-   , m_colMaintenanceCost(-1)
-   , m_colInitialCost(-1)
+   //: m_initialCost(0)
+   //, m_maintenanceCost(0)
+   //, m_duration(0)
+   //, m_pBudgetItem(NULL)
+   //, m_pLookupTable(NULL)
+   //, m_pLookupTableIndex(NULL)
+   //, m_colMaintenanceCost(-1)
+   //, m_colInitialCost(-1)
    {}
 
 

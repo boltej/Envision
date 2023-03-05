@@ -906,7 +906,7 @@ int ModifierGrid::OnHint(int col,long row,int section,CString *string)
 
 IMPLEMENT_DYNAMIC(PPPolicyObjScores, CTabPageSSL)
 
-PPPolicyObjScores::PPPolicyObjScores( PolEditor *pParent, Policy *&pPolicy)
+PPPolicyObjScores::PPPolicyObjScores( PolEditor *pParent, EnvPolicy *&pPolicy)
 	: CTabPageSSL()
    , m_pPolicy( pPolicy )
    , m_pParent( pParent )

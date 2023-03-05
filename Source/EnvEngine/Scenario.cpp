@@ -23,7 +23,7 @@ Copywrite 2012 - Oregon State University
 #include "Scenario.h"
 
 #include "EnvModel.h"
-#include "Policy.h"
+#include "EnvPolicy.h"
 
 #include <tinyxml.h>
 #include <PathManager.h>
@@ -219,7 +219,7 @@ Scenario::Scenario( ScenarioManager *pSM, LPCTSTR name )
 
    SCENARIO_VAR sv("Decision Elements", V_SYSTEM, (void*)&m_decisionElements,
       TYPE_INT, NULL, VData(pModel->m_decisionElements), VData(), VData(), false,
-      "Decision Elements to use. This should be the sum of the desired elements: 0=none, 1=Actor Value Alignment, 2=Landscape Feedback, 4=Global Policy Preferences, 8=Utility, 16=Social Network");
+      "Decision Elements to use. This should be the sum of the desired elements: 0=none, 1=Actor Value Alignment, 2=Landscape Feedback, 4=Global EnvPolicy Preferences, 8=Utility, 16=Social Network");
    m_scenarioVarArray.Add(sv);
 
    //=================================== P O L I C I E S =====================================
@@ -227,7 +227,7 @@ Scenario::Scenario( ScenarioManager *pSM, LPCTSTR name )
    int policyCount = pSM->m_pEnvModel->m_pPolicyManager->GetPolicyCount();
    for( int i=0; i < policyCount; i++ )
 	   {
-      Policy *pPolicy = pSM->m_pEnvModel->m_pPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = pSM->m_pEnvModel->m_pPolicyManager->GetPolicy( i );
       m_policyInfoArray.AddPolicyInfo( pPolicy, pPolicy->m_use );
       }   
 
@@ -355,7 +355,7 @@ POLICY_INFO *Scenario::GetPolicyInfoFromID( int id )
    }
 
 
-void Scenario::RemovePolicyInfo( Policy *pPolicy )
+void Scenario::RemovePolicyInfo( EnvPolicy *pPolicy )
    {
    for ( int i=0; i < GetPolicyCount(); i++ )
       {
@@ -470,7 +470,7 @@ int Scenario::SetScenarioVars( int runFlag )
       {
       POLICY_INFO &pInfo = m_policyInfoArray[ i ];
 
-      Policy *pPolicy = pModel->m_pPolicyManager->GetPolicyFromID( pInfo.policyID );
+      EnvPolicy *pPolicy = pModel->m_pPolicyManager->GetPolicyFromID( pInfo.policyID );
       if ( pPolicy )
          {
          // if doing sensitivity with this policy, reverse it's normal use.
@@ -982,7 +982,7 @@ int ScenarioManager::LoadXml( TiXmlNode *pScenarios, bool appendToExisting )
                pXmlPolicy->Attribute( "inUse", &inUse );
 
                // make sure the policy name, id match an existing policy
-               Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( id );
+               EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( id );
 
                if ( pPolicy == NULL )
                   {
@@ -1264,7 +1264,7 @@ int ScenarioManager::SaveXml( FILE *fp, bool includeHdr, bool useFileRef )
    }
 
 
-void ScenarioManager::AddPolicyToScenarios( Policy *pPolicy, bool inUse )
+void ScenarioManager::AddPolicyToScenarios( EnvPolicy *pPolicy, bool inUse )
    {
    for ( int i=0; i < GetCount(); i++ )
       {
@@ -1275,7 +1275,7 @@ void ScenarioManager::AddPolicyToScenarios( Policy *pPolicy, bool inUse )
 
 
 
-void ScenarioManager::RemovePolicyFromScenarios( Policy *pPolicy )
+void ScenarioManager::RemovePolicyFromScenarios( EnvPolicy *pPolicy )
    {
    for ( int i=0; i < GetCount(); i++ )
       {

@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 #include "stdafx.h"
 
 #include "pppolicysiteattr.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "spatialOperatorsDlg.h"
 #include <EnvModel.h>
 #include "PolEditor.h"
@@ -43,7 +43,7 @@ extern PolicyManager *gpPolicyManager;
 
 IMPLEMENT_DYNAMIC(PPPolicySiteAttr, CTabPageSSL)
 
-PPPolicySiteAttr::PPPolicySiteAttr( PolEditor *pParent, Policy *&pPolicy )
+PPPolicySiteAttr::PPPolicySiteAttr( PolEditor *pParent, EnvPolicy *&pPolicy )
 	: CTabPageSSL()
    , m_pPolicy( pPolicy )
    , m_pParent( pParent )

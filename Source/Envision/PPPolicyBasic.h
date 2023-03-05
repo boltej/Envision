@@ -24,7 +24,7 @@ Copywrite 2012 - Oregon State University
 #include "afxwin.h"
 #include "afxcmn.h"
 #include "resource.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 #include <TabPageSSL.h>
 
@@ -37,7 +37,7 @@ class PPPolicyBasic : public CTabPageSSL
 	DECLARE_DYNAMIC(PPPolicyBasic)
 
 public:
-	PPPolicyBasic( PolEditor*, Policy *&pPolicy  );
+	PPPolicyBasic( PolEditor*, EnvPolicy *&pPolicy  );
 	virtual ~PPPolicyBasic();
 
 // Dialog Data
@@ -45,7 +45,7 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
 protected:
-   Policy    *&m_pPolicy;
+   EnvPolicy    *&m_pPolicy;
    PolEditor  *m_pParent;
 
    CStatic     m_color;    // the control

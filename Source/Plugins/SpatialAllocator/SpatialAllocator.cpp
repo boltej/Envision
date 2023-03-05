@@ -221,7 +221,7 @@ float TargetContainer::SetTarget( int year )
       SpatialAllocator *pModel = this->m_pSAModel;
 
       float targetArea = 0;
-      MapLayer *pLayer = pModel->m_pMapLayer;
+      MapLayer* pLayer = this->m_pTargetLayer; // pModel->m_pMapLayer;
 
       if ( this->m_pTargetQuery != nullptr )
          {
@@ -346,7 +346,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
 
          float rate = (float) atof( targetValues );
          float basis = 0;
-         MapLayer *pLayer = m_pSAModel->m_pMapLayer;
+         MapLayer* pLayer = this->m_pTargetLayer; // m_pSAModel->m_pMapLayer;
 
          //bool isSequence = this->IsSequence() && m_pAllocSet->m_colSequence >= 0;
          
@@ -424,7 +424,7 @@ void TargetContainer::Init( int id, int colAllocSet, int colSequence )
    }
 
 
-void TargetContainer::SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR source, LPCTSTR values, LPCTSTR domain, LPCTSTR query )
+void TargetContainer::SetTargetParams( LPCTSTR basis, LPCTSTR source, LPCTSTR values, LPCTSTR domain, LPCTSTR query )
    {
    // source
    if ( source != nullptr )
@@ -487,7 +487,7 @@ void TargetContainer::SetTargetParams( MapLayer *pLayer, LPCTSTR basis, LPCTSTR 
          this->m_targetBasisField == "";
       }
 
-   this->m_colTargetBasis = pLayer->GetFieldCol( this->m_targetBasisField );
+   this->m_colTargetBasis = this->m_pTargetLayer->GetFieldCol( this->m_targetBasisField );
    }
 
 
@@ -2496,7 +2496,9 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
       if ( targetSource == nullptr )
          targetSource = targetType;
 
-      pAllocSet->SetTargetParams( m_pMapLayer, targetBasis, targetSource, targetValues, nullptr, nullptr );      
+      pAllocSet->m_pTargetLayer = m_pMapLayer;
+
+      pAllocSet->SetTargetParams( targetBasis, targetSource, targetValues, nullptr, nullptr );      
       
       if ( description != nullptr )
          pAllocSet->m_description = description;
@@ -2537,6 +2539,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
          LPTSTR targetBasis  = nullptr;
          LPTSTR targetDomain = nullptr;
          LPTSTR targetQuery  = nullptr;
+         LPCTSTR targetLayer = nullptr;  // not implemented
          LPTSTR constraint   = nullptr;
          LPCTSTR scoreCol    = nullptr;
          LPCTSTR seq   = nullptr;
@@ -2567,6 +2570,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                             { "target_domain",    TYPE_STRING,   &targetDomain, false, 0 },
                             { "target_basis",     TYPE_STRING,   &targetBasis,  false, 0 },
                             { "target_query",     TYPE_STRING,   &targetQuery,  false, 0 },
+                            { "target_layer",     TYPE_STRING,   &targetLayer,  false, 0 },
                             { "constraint",       TYPE_STRING,   &constraint,   false, 0 },
                             { "score_col",        TYPE_STRING,   &scoreCol,     false, CC_AUTOADD | TYPE_FLOAT },
                             { "sequence",         TYPE_STRING,   &seq,          false, 0 },
@@ -2610,7 +2614,23 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
             if ( targetSource == nullptr )
                targetSource = targetType;
            
-            pAlloc->SetTargetParams( m_pMapLayer, targetBasis, targetSource, targetValues, targetDomain, targetQuery );
+            if (targetLayer != nullptr)
+               {
+               // LEFT OFF HERE
+               Map* pMap = this->m_pMapLayer->GetMapPtr();
+               MapLayer* pTargetLayer = pMap->GetLayer(targetLayer);
+               if (pTargetLayer == nullptr)
+                  {
+                  CString msg;
+                  msg.Format("Missing target layer %s", targetLayer);
+                  Report::ErrorMsg(msg);
+                  }
+               pAlloc->m_pTargetLayer = pTargetLayer;
+               }
+            else
+               pAlloc->m_pTargetLayer = m_pMapLayer;
+
+            pAlloc->SetTargetParams( targetBasis, targetSource, targetValues, targetDomain, targetQuery );
 
             // score column (optional)
             if ( scoreCol != nullptr )

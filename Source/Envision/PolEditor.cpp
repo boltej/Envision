@@ -186,7 +186,7 @@ int PolEditor::ReloadPolicies( bool promptForNewPolicy )
       // load policies combo
       for ( int i=0; i < count; i++ )
          {
-         Policy *pPolicy = m_policyArray[ i ];
+         EnvPolicy *pPolicy = m_policyArray[ i ];
          m_policies.AddString( m_policyArray[ i ]->m_name );
          }
 
@@ -274,13 +274,13 @@ void PolEditor::OnSelchangePolicies()
       }
    }
 
-Policy *PolEditor::FindPolicy( LPCTSTR name )
+EnvPolicy *PolEditor::FindPolicy( LPCTSTR name )
    {
    int len = lstrlen( name );
 
    for ( INT_PTR i=0; i < m_policyArray.GetSize(); i++ )
       {
-      Policy *pPolicy = m_policyArray[ i ];
+      EnvPolicy *pPolicy = m_policyArray[ i ];
 
       if ( pPolicy->m_name.Compare( name ) == 0 && pPolicy->m_name.GetLength() == len )
          return pPolicy;
@@ -441,7 +441,7 @@ void PolEditor::OnDelete()
       {
       // delete both copies of this policy
       int index;
-      Policy *pPolicy = gpPolicyManager->FindPolicy( m_pPolicy->m_name, &index );
+      EnvPolicy *pPolicy = gpPolicyManager->FindPolicy( m_pPolicy->m_name, &index );
       if ( pPolicy != NULL )
          gpPolicyManager->DeletePolicy( index );  // this also adds the policy to the deleted policy pool
 
@@ -493,9 +493,9 @@ void PolEditor::OnCopy()
 
    if ( goAhead )
       {
-      Policy *pPolicy = NULL;
+      EnvPolicy *pPolicy = NULL;
 
-      pPolicy = new Policy( *m_pPolicy );   // make a copy of the current Policy
+      pPolicy = new EnvPolicy( *m_pPolicy );   // make a copy of the current EnvPolicy
 
       pPolicy->m_name += "_copy";
 
@@ -597,7 +597,7 @@ void PolEditor::OnAddnew()
 bool PolEditor::AddNew()
    {
    NewPolicyDlg dlg;
-   Policy *pPolicy = NULL;
+   EnvPolicy *pPolicy = NULL;
 
    if ( dlg.DoModal() == IDOK )
       {
@@ -613,7 +613,7 @@ bool PolEditor::AddNew()
             }
          }
 
-      pPolicy = new Policy( gpPolicyManager );
+      pPolicy = new EnvPolicy( gpPolicyManager );
          
       int metagoalCount = gpModel->GetMetagoalCount();
       for ( int j=0; j < metagoalCount; j++ )  
@@ -753,8 +753,8 @@ bool PolEditor::SavePolicies()
 
       for ( int i=0; i < (int) m_policyArray.GetSize(); i++ )
          {
-         Policy *pPolicy = m_policyArray[ i ];
-         gpPolicyManager->AddPolicy( new Policy( *pPolicy ) );
+         EnvPolicy *pPolicy = m_policyArray[ i ];
+         gpPolicyManager->AddPolicy( new EnvPolicy( *pPolicy ) );
          }
 
       // add any global constraints

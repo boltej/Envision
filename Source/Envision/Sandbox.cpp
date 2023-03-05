@@ -27,7 +27,7 @@ Copywrite 2012 - Oregon State University
 #include "mainFrm.h"
 #include <Scenario.h>
 #include <Actor.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <DeltaArray.h>
 #include "Evaluatorlearning.h"
 
@@ -246,7 +246,7 @@ void Sandbox::PopModels()
 ///      }
    }
 
-void Sandbox::CalculateGoalScores( Policy *pPolicy,  bool *useMetagoalArray /*=NULL*/ )
+void Sandbox::CalculateGoalScores( EnvPolicy *pPolicy,  bool *useMetagoalArray /*=NULL*/ )
    {
    // this is the high-level entry point for running the sandbox to calculate goal score
    // for the specified policy and metagoals
@@ -387,7 +387,7 @@ void Sandbox::CalculateGoalScores( Policy *pPolicy,  bool *useMetagoalArray /*=N
 
    //--------------------------------------
    // SLIGHTLY DIFFERENT USE CASE FROM ABOVE--LEARN MODEL BEHAVIOR VIA emStats
-   void Sandbox::CalculateGoalScores(  CArray<Policy *>  & schedPolicy, Policy *pPolicy, EvaluatorLearningStats * emStats,  bool * useModelArray)
+   void Sandbox::CalculateGoalScores(  CArray<EnvPolicy *>  & schedPolicy, EnvPolicy *pPolicy, EvaluatorLearningStats * emStats,  bool * useModelArray)
       {
       ASSERT(useModelArray != NULL);
       int i, g, idx;
@@ -419,7 +419,7 @@ void Sandbox::CalculateGoalScores( Policy *pPolicy,  bool *useMetagoalArray /*=N
       gpPolicyManager->ClearPolicySchedule();
       for ( i=0; i < schedPolicy.GetCount(); ++i )
          {
-         Policy * pPolicy = schedPolicy.GetAt(i);
+         EnvPolicy * pPolicy = schedPolicy.GetAt(i);
          gpPolicyManager->AddPolicySchedule(pPolicy->m_startDate, pPolicy);
          }
 

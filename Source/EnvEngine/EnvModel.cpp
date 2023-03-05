@@ -20,7 +20,7 @@ Copywrite 2012 - Oregon State University
 #include "stdafx.h"
 #include "EnvModel.h"
 
-#include "Policy.h"
+#include "EnvPolicy.h"
 #include "DataManager.h"
 #include "EnvConstants.h"
 #include "EnvException.h"
@@ -1732,7 +1732,7 @@ void EnvModel::ApplyMandatoryPolicies()
 
       for (int i = 0; i < mandatoryCount; i++)
          {
-         Policy *pPolicy = policyScoreArray[i].pPolicy;
+         EnvPolicy *pPolicy = policyScoreArray[i].pPolicy;
 
          float rn = (float)m_randUnif.RandValue(0, 1);
 
@@ -1943,7 +1943,7 @@ void EnvModel::RunActorLoop()
 
                   if ( index >= 0 )
                      {
-                     Policy *pPolicy = tmpPolicyScoreArray[ index ].pPolicy;
+                     EnvPolicy *pPolicy = tmpPolicyScoreArray[ index ].pPolicy;
                      float   score   = tmpPolicyScoreArray[ index ].score;
 
                 //     #pragma omp critical
@@ -1992,11 +1992,11 @@ int EnvModel::CollectRelevantPolicies( int cell, int year, POLICY_TYPE policyTyp
    int policyCount = m_pPolicyManager->GetPolicyCount();
    int relevantPolicyCount = 0;
 
-   //   Policy::SetParserVars( m_pIDULayer, cell );
+   //   EnvPolicy::SetParserVars( m_pIDULayer, cell );
 
    for ( int i=0; i < policyCount; i++ )
       {
-      Policy *pPolicy = m_pPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = m_pPolicyManager->GetPolicy( i );
 
       // check various constraints
       if ( pPolicy->m_use == false )
@@ -2028,7 +2028,7 @@ int EnvModel::CollectRelevantPolicies( int cell, int year, POLICY_TYPE policyTyp
    int mandatoryPolicyCount = 0; 
    for ( int i=0; i < relevantPolicyCount; i++ )
       {
-      Policy *pPolicy = policyScoreArray[i].pPolicy;
+      EnvPolicy *pPolicy = policyScoreArray[i].pPolicy;
       if ( pPolicy->m_mandatory )
          policyScoreArray[ mandatoryPolicyCount++ ].pPolicy = pPolicy;
       }
@@ -2045,7 +2045,7 @@ int EnvModel::CollectRelevantPolicies( int cell, int year, POLICY_TYPE policyTyp
 // determines is the policy is applicable to the site
 //--------------------------------------------------------------------------------------
 
-bool EnvModel::DoesPolicyApply( Policy *pPolicy, int cell )
+bool EnvModel::DoesPolicyApply( EnvPolicy *pPolicy, int cell )
    {
    // site characteristics
    if ( pPolicy->m_pSiteAttrQuery == NULL )
@@ -2182,7 +2182,7 @@ int EnvModel::ScoreRelevantPolicies( Actor *pActor, int cell, PolicyScoreArray &
    if ( utilityWt > 0 && m_colUtility >= 0 )
       m_pIDULayer->GetData(cell, m_colUtility, policyID );
 
-   //Policy::SetParserVars( m_pIDULayer, cell );
+   //EnvPolicy::SetParserVars( m_pIDULayer, cell );
    int metagoalCount = GetMetagoalCount();
    float *polObjScores = NULL;
    if ( metagoalCount > 0 )
@@ -2190,7 +2190,7 @@ int EnvModel::ScoreRelevantPolicies( Actor *pActor, int cell, PolicyScoreArray &
 
    for ( int i=0; i < relevantPolicyCount; i++ )
       {
-      Policy *pPolicy = policyScoreArray[ i ].pPolicy;
+      EnvPolicy *pPolicy = policyScoreArray[ i ].pPolicy;
       bool  mandatory = pPolicy->m_mandatory;
 
       float cf = 1.0f;
@@ -2348,7 +2348,7 @@ float EnvModel::GetAltruismScore( int cell, float *polObjScores )
    return (float) altruismScore;
    }
 
-////////float EnvModel::GetAltruismScore( Policy *pPolicy )
+////////float EnvModel::GetAltruismScore( EnvPolicy *pPolicy )
 ////////   {
 ////////   // return a float in (0,1) that represents the distance in goal space
 ////////   // between scarcity and the policies the efficacies
@@ -2395,7 +2395,7 @@ float EnvModel::GetAltruismScore( int cell, float *polObjScores )
 ////////   }
 
 
-float EnvModel::GetSocialNetworkScore( Actor *pActor, Policy *pPolicy )
+float EnvModel::GetSocialNetworkScore( Actor *pActor, EnvPolicy *pPolicy )
    {
    // Returns a value in [0,1] representing this actor's social network scoring of this policy.
    // Basic idea: Assumes a social network has been defined.  If not, return 0.
@@ -2625,7 +2625,7 @@ int EnvModel::SelectPolicyOutcome( MultiOutcomeArray &multiOutcomeArray )
 // if the policy does something (other than subdivide), recode the policy outcome as well
 //----------------------------------------------------------------------------------------
 
-void EnvModel::ApplyPolicy( Policy *pPolicy, int idu, float score )
+void EnvModel::ApplyPolicy( EnvPolicy *pPolicy, int idu, float score )
    {
    // get a desired outcome out of the range of possible outcomes prescribed by the policy
    int outcome = SelectPolicyOutcome( pPolicy->m_multiOutcomeArray );
@@ -3208,7 +3208,7 @@ void EnvModel::InitRun()
 
       // make copies of original policies
       for ( i=0; i < m_pPolicyManager->GetPolicyCount(); i++ )
-         m_resetInfo.policyArray.Add( new Policy( *m_pPolicyManager->GetPolicy( i ) ) );
+         m_resetInfo.policyArray.Add( new EnvPolicy( *m_pPolicyManager->GetPolicy( i ) ) );
 
       // make copies of original actors.  Note that any "new" actors added during the
       // run are not used here.
@@ -3490,8 +3490,8 @@ bool EnvModel::Reset()
       ASSERT( m_resetInfo.policyArray.GetSize() == m_pPolicyManager->GetPolicyCount() );
       for ( int i=0; i < m_resetInfo.policyArray.GetSize(); i++ )
          {
-         Policy *pPolicy = m_pPolicyManager->GetPolicy( i );
-         Policy *pResetPolicy = m_resetInfo.policyArray[ i ];
+         EnvPolicy *pPolicy = m_pPolicyManager->GetPolicy( i );
+         EnvPolicy *pResetPolicy = m_resetInfo.policyArray[ i ];
          //*pPolicy = *m_resetInfo.policyArray[ i ];   // change jpb 2/19/08 - don't copy whole thing, just reset relevant members
          pPolicy->m_appliedCount = pResetPolicy->m_appliedCount;
          pPolicy->m_cumAppliedCount = pResetPolicy->m_cumAppliedCount;
@@ -5752,7 +5752,7 @@ int EnvModel::RunSensitivityAnalysis()
    // load all existing policies from policy manager
    for ( int i=0; i < m_pPolicyManager->GetPolicyCount(); i++ )
       {
-      Policy *pPolicy = m_pPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = m_pPolicyManager->GetPolicy( i );
       if ( pPolicy->m_useInSensitivity )
          {
          saPolicyCount++;

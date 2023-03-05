@@ -33,7 +33,7 @@ Copywrite 2012 - Oregon State University
 #include "EnvDoc.h"
 #include <EnvModel.h>
 #include "mainfrm.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "MapListWnd.h"
 #include "PPPolicyResults.h"
 #include "DeltaViewer.h"
@@ -262,7 +262,7 @@ int MapProc( Map *pMap, NOTIFY_TYPE type, int a0, LONG_PTR a1, LONG_PTR extra )
                         int i = atoi( value );
                         if ( i >= 0 )
                            {
-                           Policy *pPolicy = gpPolicyManager->GetPolicyFromID( i );
+                           EnvPolicy *pPolicy = gpPolicyManager->GetPolicyFromID( i );
 
                            msg += pPolicy->m_name;
 
@@ -617,7 +617,7 @@ void SetupBins( Map *pMap, int layerIndex, int nID /*=-1*/, bool force /*= false
          int count = gpPolicyManager->GetPolicyCount();
          for ( int i=0; i < count; i++ )
             {
-            Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+            EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
             bool add = false;
             if ( pPolicy->m_use )
                {

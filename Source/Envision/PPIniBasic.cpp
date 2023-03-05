@@ -30,7 +30,7 @@ Copywrite 2012 - Oregon State University
 #include <Actor.h>
 #include "ActorDlg.h"
 
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "PolEditor.h"
 #include "ScenarioEditor.h"
 #include "LulcEditor.h"

@@ -2832,7 +2832,6 @@ bool SNIPModel::LoadPostBuildSettings(json& settings)
    }
 
 
-
 int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
    {
    int profileCount = m_actorProfiles.GetRowCount();
@@ -2992,6 +2991,138 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
    //delete[]_traits;
    return 0;
    }
+
+/*
+
+   
+   int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
+      {
+      int profileCount = m_actorProfiles.GetRowCount();
+
+      // basic idea:  We want to assign each candidate IDU (actor) to a specific actor profile
+      // based on ??? and build a network actor->landscape actor edge in SNIP to 
+      // represent the onnection
+      int colIDUProfileID = -1;
+
+      if (this->m_pSNLayer->m_pSNIP)
+         this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUProfileID, "ProfileID", TYPE_INT, CC_MUST_EXIST);
+      else
+         ASSERT(0);      /// ????????
+
+      int newLACount = 0;
+      int unconnectedLACount = 0;
+      int newEdgeCount = 0;
+      std::unordered_set<SNNode*> newEngagers;
+      const float membershipThreshold = 0.5f;
+
+      // go through IDU's bulding network nodes/links for IDU's that pass the mapping query
+      for (MapLayer::Iterator idu = pIDULayer->Begin(); idu != pIDULayer->End(); idu++)
+         {
+         int profileID = -1;
+         pIDULayer->GetData(idu, colIDUProfileID, profileID);  // one-based
+
+         // is there a profile for this IDU
+         if (profileID != 0)
+            {
+            ASSERT(profileID > 0);
+            int profileIndex = profileID - 1;
+
+            // roll the dice to see if this idu/profile should be connected to the SNIP network
+            double rn = m_randShuffle.RandValue(0, 1);  // randomly select based on mapping fraction
+            if (rn < m_mappingFrac)
+               {
+               SNNode* pNode = nullptr; // for this IDU
+
+               // iterate though the list of traits, comparing to the trait strength in the matched actor profile.
+               // if the trait matches the actor profile, that signals that we want to creating a landscape actor
+               // and connect it to an engager actor matching the trait in the SNIP network.
+               // Note that this implies that one landscape actor can be connected to many engager network nodes.
+            
+                           // we want to add a node to our network for this landscape actor
+                           CString nname;
+                           nname.Format("LA_%i", (int)idu);
+                           pNode = BuildNode(NT_LANDSCAPE_ACTOR, nname, _traits);
+                           ASSERT(pNode != nullptr);
+                           pNode->m_idu = (int)idu;
+                           newLACount++;
+                           }
+
+                        // find an engager that has this trait
+                        vector<SNNode*> nodes;
+                        int ncount = this->FindNodesFromTrait(trait, NT_ENGAGER, 0.2f, nodes);
+
+                        if (ncount > 0)
+                           {
+                           int ri = (int)m_randShuffle.RandValue(0, ncount);
+                           SNNode* pEngagerNode = nodes[ri];   // this is the source node, our LA node is the target
+
+                           // do we already have a connection to this engager?
+                           bool found = false;
+                           for (int j = 0; j < (int)pNode->m_inEdges.size(); j++)
+                              {
+                              if (pNode->m_inEdges[j]->m_pFromNode == pEngagerNode)
+                                 {
+                                 found = true;
+                                 break;
+                                 }
+                              }
+
+                           if (!found)
+                              {
+                              int transTime = 1; // ???
+                              float trust = 0.9f;
+                              SNEdge* pEdge = BuildEdge(pEngagerNode, pNode, transTime, trust, _traits);
+                              newEdgeCount++;
+                              ASSERT(pEdge->Source()->m_nodeType == NT_ENGAGER);
+                              newEngagers.insert(pEdge->Source());
+                              if (this->m_pSNLayer->m_colEngager >= 0)
+                                 pIDULayer->SetData(idu, this->m_pSNLayer->m_colEngager, (LPCTSTR)pEngagerNode->m_name);
+                              }
+                           }
+                        else
+                           {
+                           //CString msg;
+                           //msg.Format("  Unable to find engager with trait [%s] to connect to landscape actor %i", trait.c_str(), (int) idu);
+                           //Report::LogWarning(msg);
+                           //nMissingEngagers++;
+                           }
+                        }
+                     }
+                  else
+                     {
+                     if (missingTraits.find(trait) != missingTraits.end())
+                        {
+                        CString msg;
+                        msg.Format(" Unable to locate trait '%s' in the actor profiles when assigning landscape actors to SNIP Network.   This trait will be ignored", trait.c_str());
+                        Report::LogWarning(msg);
+                        missingTraits.insert(trait);
+                        }
+                     }  // end of: else (link>0 == false)
+                  }  // end of:  for each trait
+
+               // if no engagers found, remove LA node from network
+               if (pNode && pNode->m_inEdges.size() == 0)
+                  {
+                  newLACount--;
+                  unconnectedLACount++;
+                  this->m_pSNLayer->RemoveNode(pNode);
+                  pIDULayer->SetData(idu, colIDUProfileID, -(abs(profileID)));  // flag profile as unused
+                  }
+               }  // end of: if ( rn < mappingFrac
+            else
+               pIDULayer->SetData(idu, colIDUProfileID, -(abs(profileID)));  // flag profile as unused
+            }  // end of: if ( ok && result ) - passed query
+         }  // end of: for each IDU
+
+      CString msg;
+      msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i engagers. %i Landscape Actors were not connectable to any engagers", newLACount, newEdgeCount, (int)newEngagers.size(), unconnectedLACount);
+      Report::LogInfo(msg);
+
+      //delete[]_traits;
+      return 0;
+      }
+
+*/
 
 int SNIPModel::PopulateActorProfiles(MapLayer* pIDULayer)
    {

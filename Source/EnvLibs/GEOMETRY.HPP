@@ -32,7 +32,6 @@ float LIBSAPI DistancePtToPt( const REAL, const REAL, const REAL, const REAL );
 float LIBSAPI DistancePolyLineInRect( COORD2d vertexArray[], int numverts, REAL xMin0, REAL yMin0, REAL xMax0, REAL yMax0 );
 //REAL LIBSAPI DistancePolyLineInRect( COORD3d vertexArray[], int numverts, REAL xMin0, REAL yMin0, REAL xMax0, REAL yMax0 );
 
-
 //---------------------- Point-Line methods --------------//
 
 float  LIBSAPI DistancePtToLine( REAL x, REAL y, REAL x0, REAL y0, REAL x1, REAL y1 );
@@ -51,6 +50,9 @@ bool LIBSAPI DistancePtToLineSegment(REAL x, REAL y, REAL x0, REAL y0, REAL x1, 
 // GetInterectionPt() returns true if intersection found witing the bounds of the segments, false otherwise
 bool LIBSAPI GetIntersectionPt( const COORD3d &thisVertex0, const COORD3d &thisVertex1, const COORD3d &otherVertex0, const COORD3d &otherVertex1, COORD3d &intersection );
 bool LIBSAPI GetIntersectionPt( const COORD2d &thisVertex0, const COORD2d &thisVertex1, const COORD2d &otherVertex0, const COORD2d &otherVertex1, COORD2d &intersection );
+bool LIBSAPI GetIntersectionPtBoost(const COORD2d& thisVertex0, const COORD2d& thisVertex1, const COORD2d& otherVertex0, const COORD2d& otherVertex1, COORD2d& intersection);
+
+
 
 // rect methods
 // Note: these methods assume x, y's are ordered

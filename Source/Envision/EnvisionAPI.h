@@ -21,7 +21,7 @@ Copywrite 2012 - Oregon State University
 
 #include <EnvEngine.h>
 #include <EnvContext.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <Scenario.h>
 #include <EnvConstants.h>
 

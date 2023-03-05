@@ -29,7 +29,7 @@ Copywrite 2012 - Oregon State University
 #include <PathManager.h>
 #include <EnvConstants.h>
 #include <EnvModel.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <Scenario.h>
 
 

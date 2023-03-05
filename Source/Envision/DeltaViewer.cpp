@@ -25,7 +25,7 @@ Copywrite 2012 - Oregon State University
 //#include "Envsion.h"
 #include ".\deltaviewer.h"
 #include "Envdoc.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <EnvModel.h>
 #include <deltaArray.h>
 #include <DataManager.h>
@@ -548,7 +548,7 @@ void DeltaViewer::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
             int policyID;
             delta.newValue.GetAsInt( policyID );
 
-            Policy *pPolicy = gpPolicyManager->GetPolicyFromID( policyID );
+            EnvPolicy *pPolicy = gpPolicyManager->GetPolicyFromID( policyID );
             text.Format( "%s (%i)", (LPCTSTR) pPolicy->m_name, policyID );
             }
 
@@ -598,7 +598,7 @@ void DeltaViewer::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
            delta.oldValue.GetAsInt( value );
            if ( value >= 0 )
                {
-               Policy *pOldPolicy = gpPolicyManager->GetPolicy( value );
+               EnvPolicy *pOldPolicy = gpPolicyManager->GetPolicy( value );
                text.Format( "%s (%i)", (LPCTSTR) pOldPolicy->m_name, value );
                }
             else
@@ -651,7 +651,7 @@ void DeltaViewer::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
             delta.newValue.GetAsInt( value );
             if ( value >= 0 )
                {
-               Policy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
+               EnvPolicy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
                char policy[ 128];
                sprintf_s( policy, 128, "%s (%i)", (LPCTSTR) pNewPolicy->m_name, value );
                text = policy;
@@ -711,7 +711,7 @@ void DeltaViewer::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
             delta.newValue.GetAsInt( value );
             if ( value >= 0 )
                {
-               Policy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
+               EnvPolicy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
                text = (LPSTR)(LPCTSTR)pNewPolicy->m_siteAttrStr;
                }
             else
@@ -730,7 +730,7 @@ void DeltaViewer::OnGetDispInfo(NMHDR* pNMHDR, LRESULT* pResult)
             delta.newValue.GetAsInt( value );
             if ( value >= 0 )
                {
-               Policy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
+               EnvPolicy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
                text = (LPSTR)(LPCTSTR)pNewPolicy->m_outcomeStr;
                }
             else

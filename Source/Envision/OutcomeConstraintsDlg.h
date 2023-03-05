@@ -19,7 +19,7 @@ Copywrite 2012 - Oregon State University
 */
 #pragma once
 
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 
 // OutcomeConstraintsDlg dialog
@@ -29,7 +29,7 @@ class OutcomeConstraintsDlg : public CDialogEx
 	DECLARE_DYNAMIC(OutcomeConstraintsDlg)
 
 public:
-	OutcomeConstraintsDlg(CWnd* pParent, MultiOutcomeInfo *pOutcome, Policy *pPolicy );   // standard constructor
+	OutcomeConstraintsDlg(CWnd* pParent, MultiOutcomeInfo *pOutcome, EnvPolicy *pPolicy );   // standard constructor
 	virtual ~OutcomeConstraintsDlg();
 
 // Dialog Data
@@ -39,7 +39,7 @@ protected:
    bool m_isDirtyGlobal;
    bool m_isDirtyOutcome;
 
-   Policy *m_pPolicy;
+   EnvPolicy *m_pPolicy;
    MultiOutcomeInfo *m_pOutcome;   // ptr to OUR COPY of an outcome in the current policy
    PtrArray< GlobalConstraint > m_constraintArray;   // local copies of global constraitns stored in policy manager
    

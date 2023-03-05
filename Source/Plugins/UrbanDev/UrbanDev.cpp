@@ -222,6 +222,8 @@ bool UrbanDev::InitUGAs(EnvContext* pContext)
    {
    MapLayer* pLayer = (MapLayer*) pContext->pMapLayer;
 
+
+
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
       int uga = -1;
@@ -318,13 +320,20 @@ bool UrbanDev::InitRun( EnvContext *pContext, bool useInitialSeed )
       }
 
    // reset UgUGA metrics
-   if ( this->m_expandUGAs )
-      {
-      m_pCurrentUgScenario = this->UgFindScenarioFromID( m_currUgScenarioID );
+   m_pCurrentUgScenario = this->UgFindScenarioFromID(m_currUgScenarioID);
 
-      for ( int i=0; i < this->m_ugaArray.GetSize(); i++ )
+   for ( int i=0; i < this->m_ugaArray.GetSize(); i++ )
+      {
+      UGA* pUGA = this->m_ugaArray[i];
+
+      pUGA->m_expandCriteria.resize(m_pCurrentUgScenario->m_uxExpandArray.GetSize());
+      std::fill(pUGA->m_expandCriteria.begin(), pUGA->m_expandCriteria.end(), -1);
+
+      pUGA->m_upzoneCriteria.resize(m_pCurrentUgScenario->m_uxUpzoneArray.GetSize());
+      std::fill(pUGA->m_upzoneCriteria.begin(), pUGA->m_upzoneCriteria.end(), -1);
+
+      if (this->m_expandUGAs)
          {
-         UGA* pUGA = this->m_ugaArray[i];
          pUGA->m_commExpArea = 0;
          pUGA->m_resExpArea = 0;
          pUGA->m_totalExpArea = 0;
@@ -1483,8 +1492,6 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             return false;
             }
 
-
-
          // have scenario, start adding UgExpandWhen element
          TiXmlElement *pXmlExpand = pXmlUgScn->FirstChildElement( _T("expand_when" ) );
          while ( pXmlExpand != NULL )
@@ -1769,31 +1776,96 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
       {
       UGA* pUGA = this->m_ugaArray[i];
 
+      // reset arrays to n/a
+      std::fill(pUGA->m_expandCriteria.begin(), pUGA->m_expandCriteria.end(), -1);
+      std::fill(pUGA->m_upzoneCriteria.begin(), pUGA->m_upzoneCriteria.end(), -1);
+
+      // if any of the expansion criteria are met for any type of expand, then do the first matching one
+      bool didExpand = false;
+      CString expandCriteria;
+      expandCriteria.Format("  ");
+
       for (int j = 0; j < m_pCurrentUgScenario->m_uxExpandArray.GetSize(); j++)
          {
          UgExpandWhen* pExpand = m_pCurrentUgScenario->m_uxExpandArray[j];
 
          // are the criteria for this expand event met for this UGA?
          bool doExpand = true;
-         CString msg("expand!");
-         if (pExpand->m_maxPop >= 0 && pUGA->m_currentPopulation > pExpand->m_maxPop)
-            { doExpand = false; msg = "max pop criteria not met"; }
-         else if (pExpand->m_minPop >= 0 && pUGA->m_currentPopulation < pExpand->m_minPop)
-            { doExpand = false; msg = "min pop criteria not met"; }
-         else if (pExpand->m_type.Compare(pUGA->m_type) != 0)
-            { doExpand = false; msg = "wrong UGA type"; }
-         else if (pUGA->m_pctAvailCap > pExpand->m_trigger)
-            { doExpand = false; msg = "capacity trigger not met"; }
-         else if (pExpand->m_startAfter >= 0 && pUGA->m_currentEvent < pExpand->m_startAfter)
-            { doExpand = false;  msg = "not enough events have passed"; }
-         else if (pExpand->m_stopAfter >= 0 && pUGA->m_currentEvent >= pExpand->m_stopAfter)
-            { doExpand = false; msg = "too many events have passed"; }
+
+         if (pExpand->m_maxPop >= 0) {
+            if (pUGA->m_currentPopulation > pExpand->m_maxPop) {
+               doExpand = false; pUGA->m_expandCriteria[j] = 0; //expandCriteria += "Max pop criteria not met; ";
+               }
+            else
+               pUGA->m_expandCriteria[j] = 1;  //               msg = ""; }
+            }
+
+         if (pExpand->m_minPop >= 0) {
+            if (pUGA->m_currentPopulation < pExpand->m_minPop) {
+               doExpand = false;  pUGA->m_expandCriteria[j] = 0; //expandCriteria +=  "Min pop criteria not met; ";
+               }
+            else
+               pUGA->m_expandCriteria[j] = 1;
+            }
+
+         if (pExpand->m_type.Compare(pUGA->m_type) != 0) {
+            doExpand = false; pUGA->m_expandCriteria[j] = 0; //expandCriteria += "Wrong UGA type; ";
+            }
+         else
+            pUGA->m_expandCriteria[j] = 1;
+
+         if (pUGA->m_pctAvailCap > pExpand->m_trigger) {
+            doExpand = false; pUGA->m_expandCriteria[j] = 0;  //expandCriteria +=  "Capacity trigger not met; "; 
+            }
+         else
+            pUGA->m_expandCriteria[j] = 1;
+
+         if (pExpand->m_startAfter >= 0) {
+            if (pUGA->m_currentEvent < pExpand->m_startAfter) {
+               doExpand = false; pUGA->m_expandCriteria[j] = 0;  //expandCriteria +=  "Not enough events have passed; "; 
+               }
+            else
+               pUGA->m_expandCriteria[j] = 1;
+            }
+
+         if (pExpand->m_stopAfter >= 0) {
+            if (pUGA->m_currentEvent >= pExpand->m_stopAfter) {
+               doExpand = false; pUGA->m_expandCriteria[j] = 0;  //expandCriteria += "Too many events have passed; "; 
+               }
+            else
+               pUGA->m_expandCriteria[j] = 1;
+            }
 
          if (doExpand)
+            {
             UgExpandUGA(pUGA, pExpand, pContext);
+            didExpand = true;
+            break;
+            }
+         else
+            {
+            int status = pUGA->m_expandCriteria[j];
+            if (status != -1)
+               {
+               expandCriteria += pExpand->m_name;
+               expandCriteria += status == 0 ? ":not met, " : ": met, ";
+               }
+            }
+         }  // end of: for (each Expansion definition)
+
+      if (didExpand == false)
+         {
+         CString msg;
+         msg.Format("%s Expand Criteria Not met (details: %s)", (LPCTSTR)pUGA->m_name, (LPCTSTR)expandCriteria);
+         //Report::Log(msg);
+         //TRACE((LPCTSTR)msg);
          }
 
       // Upzones
+      CString upzoneCriteria;
+      upzoneCriteria.Format("  ");
+      bool didUpzone = false;
+
       for (int j = 0; j < m_pCurrentUgScenario->m_uxUpzoneArray.GetSize(); j++)
          {
          UgUpzoneWhen* pUpzone = m_pCurrentUgScenario->m_uxUpzoneArray[j];
@@ -1801,32 +1873,82 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
          // are the criteria for this Upzone event met for this UGA?
          // Note:  Each conditional below is a DISQUALIFYING condition
          bool doUpzone = true;
-         CString msg("Upzone!");
 
          // are we above any maxPop associated with this UpZoneWhen?
-         if (pUpzone->m_maxPop >= 0 && pUGA->m_currentPopulation > pUpzone->m_maxPop)
-            { doUpzone = false; msg = "max pop criteria not met"; }
+         if (pUpzone->m_maxPop >= 0) {
+            if (pUGA->m_currentPopulation > pUpzone->m_maxPop) {
+               doUpzone = false; pUGA->m_upzoneCriteria[j] = 0; // msg = "max pop criteria not met";
+               }
+            else
+               pUGA->m_upzoneCriteria[j] = 1;
+            }
+
          // are we below any maxPop associated with this UpZoneWhen?
-         else if (pUpzone->m_minPop >= 0 && pUGA->m_currentPopulation < pUpzone->m_minPop)
-            { doUpzone = false; msg = "min pop criteria not met"; }
+         if (pUpzone->m_minPop >= 0) {
+            if (pUGA->m_currentPopulation < pUpzone->m_minPop) {
+               doUpzone = false; pUGA->m_upzoneCriteria[j] = 0; //  msg = "min pop criteria not met";
+               }
+            else
+               pUGA->m_upzoneCriteria[j] = 1;
+            }
+
          // is this UGA type not associated with this UpZoneWhen?
-         else if (pUpzone->m_type.Compare(pUGA->m_type) != 0)
-            { doUpzone = false; msg = "wrong UGA type";}
+         if (pUpzone->m_type.Compare(pUGA->m_type) != 0) {
+            doUpzone = false; pUGA->m_upzoneCriteria[j] = 0; //  msg = "wrong UGA type";
+            }
+         else
+            pUGA->m_upzoneCriteria[j] = 1;
+
          // are we below the available capacity need to trigger thie UpZoneWhen?
-         else if (pUGA->m_pctAvailCap > pUpzone->m_trigger)
-            { doUpzone = false; msg = "capacity trigger not met"; }
+         if (pUGA->m_pctAvailCap > pUpzone->m_trigger) {
+            doUpzone = false; pUGA->m_upzoneCriteria[j] = 0; //  msg = "capacity trigger not met"; 
+            }
+         else
+            pUGA->m_upzoneCriteria[j] = 1;
+
          // if specified, have enough events gone by?
-         else if (pUpzone->m_startAfter >= 0 && pUGA->m_currentEvent < pUpzone->m_startAfter)
-            { doUpzone = false;  msg = "not enough events have passed"; }
-         else if (pUpzone->m_stopAfter >= 0 && pUGA->m_currentEvent >= pUpzone->m_stopAfter)
-            {doUpzone = false; msg = "too may events have passed";}
+         if (pUpzone->m_startAfter >= 0) {
+            if (pUGA->m_currentEvent < pUpzone->m_startAfter) {
+               doUpzone = false; pUGA->m_upzoneCriteria[j] = 0; //   msg = "not enough events have passed";
+               }
+            else
+               pUGA->m_upzoneCriteria[j] = 1;
+            }
+
+         if (pUpzone->m_stopAfter >= 0) {
+            if (pUGA->m_currentEvent >= pUpzone->m_stopAfter) {
+               doUpzone = false; pUGA->m_upzoneCriteria[j] = 0; //  msg = "too may events have passed";
+               }
+            else
+               pUGA->m_upzoneCriteria[j] = 1;
+            }
 
          if (doUpzone)
+            {
             UgUpzoneUGA(pUGA, pUpzone, pContext);
+            didUpzone = true;
+            break;
+            }
+         else
+            {
+            int status = pUGA->m_upzoneCriteria[j];
+            if (status != -1)
+               {
+               upzoneCriteria += pUpzone->m_name;
+               upzoneCriteria += status == 0 ? ":not met, " : ": met, ";
+               }
+            }
          }
 
+      if (didUpzone == false)
+         {
+         CString msg;
+         msg.Format("%s Upzone Criteria Not met (details: %s)", (LPCTSTR)pUGA->m_name, (LPCTSTR)upzoneCriteria);
+         //Report::Log(msg);
+         //TRACE((LPCTSTR)msg);
+         }
       }
-   return true;
+      return true;
    }
 
 
@@ -1988,19 +2110,20 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
    float totalExpAreaAc = (resExpArea + commExpArea) * ACRE_PER_M2;
    float totalAreaAc = (resArea + commArea) * ACRE_PER_M2;
    startingArea *= ACRE_PER_M2;
-
+      
    if (totalExpAreaAc == 0)
       {
       CString msg;
-      msg.Format("UGA Expansion Event for %s Failed!  Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event=%i",
-         pUGA->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1);
+      msg.Format("%s Expansion Event Failed! Trigger: %s, Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event:%i (max=%i,min=%i), Current Capacity (frac): %.2f",
+         pUGA->m_name, (LPCTSTR)pExpand->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1,
+         pUGA->m_pctAvailCap);
       Report::LogWarning(msg);
       }
    else
       {
       CString msg;
-      msg.Format("UGA Expansion Event for %s:  Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event=%i",
-         pUGA->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1);
+      msg.Format("%s Expansion Event:  Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event:%i, Current Capacity (frac): %.2f",
+         pUGA->m_name, (LPCTSTR)pExpand->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1, pUGA->m_pctAvailCap);
       Report::Log(msg);
       pUGA->m_currentEvent++;
       }
@@ -2177,36 +2300,30 @@ bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContex
          }  // end of: if ( upzone )
 
       pUGA->m_iduToUpzonedMap[idu] = 0;   // reset map indicate IDU was upzoned this cycle
-
       }  // end of: for each IDU in this UGA or prioryt expansion area
-
 
    CString msg;
    if (addedPop == 0)
       {
-      msg.Format("Upzone Event for %s Failed!  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
-         (LPCTSTR)pUGA->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
+      msg.Format("%s Upzone Event Failed! Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+         (LPCTSTR)pUGA->m_name, (LPCTSTR)pUpzone->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
       Report::LogWarning(msg);
       }
    else
       {
       if (pUpzone->m_rural)
-         msg.Format("Rural Upzone Event for %s:  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
-            (LPCTSTR)pUGA->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
+         msg.Format("%s Upzone Event (rural): Trigger: %s,  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+            (LPCTSTR)pUGA->m_name, (LPCTSTR) pUpzone->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
       else
-         msg.Format("UGA Upzone Event for %s:  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
-            (LPCTSTR)pUGA->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
+         msg.Format("%s Upzone Event: Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+            (LPCTSTR)pUGA->m_name, (LPCTSTR)pUpzone->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
 
       Report::Log(msg);
-
-      //if ( addedPop > 0 )
       pUGA->m_currentEvent++;
       }
 
    return true;
    }
-
-
 
 
 float UrbanDev::UgUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )

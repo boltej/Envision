@@ -23,7 +23,7 @@ Copywrite 2012 - Oregon State University
 #include "stdafx.h"
 #include ".\resultswnd.h"
 #include "resource.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <EnvModel.h> 
 #include "ActiveWnd.h"
 #include "EnvView.h"

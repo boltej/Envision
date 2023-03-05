@@ -103,12 +103,12 @@ Copywrite 2012 - Oregon State University
 #include <afxcoll.h>
 #include <afxdisp.h>
 #endif
-#include "Policy.h"
+#include "EnvPolicy.h"
 
 // Globals
 extern CString pogBuffer;
 extern int pogIndex;
-extern Policy *poPolicy;
+extern EnvPolicy *poPolicy;
 extern MultiOutcomeArray *pogpMultiOutcomeArray;
 extern CStringArray pogStringArray;
 

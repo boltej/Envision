@@ -25,7 +25,7 @@ Copywrite 2012 - Oregon State University
 #include "EnvDoc.h"
 #include <Scenario.h>
 #include <Actor.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <map.h>
 #include <maplayer.h>
 #include "SaveProjectDlg.h"

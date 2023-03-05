@@ -20,7 +20,7 @@ Copywrite 2012 - Oregon State University
 #pragma once
 #include "afxwin.h"
 #include "resource.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 
 // SiteAttrDlg dialog
@@ -30,14 +30,14 @@ class SiteAttrDlg : public CDialog
 	DECLARE_DYNAMIC(SiteAttrDlg)
 
 public:
-	SiteAttrDlg(Policy *pPolicy, CWnd* pParent = NULL);   // standard constructor
+	SiteAttrDlg(EnvPolicy *pPolicy, CWnd* pParent = NULL);   // standard constructor
 	virtual ~SiteAttrDlg();
 
 // Dialog Data
 	enum { IDD = IDD_SITEATTR };
 
 protected:
-   Policy *m_pPolicy;
+   EnvPolicy *m_pPolicy;
 
    void LoadFieldValues();
 

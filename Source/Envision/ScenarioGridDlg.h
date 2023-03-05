@@ -27,7 +27,7 @@ Copywrite 2012 - Oregon State University
 
 
 class ScenarioGridDlg;
-class Policy;
+class EnvPolicy;
 
 class ScenarioGrid : public CUGCtrl
 {
@@ -70,7 +70,7 @@ public:
 	//hints
 	virtual int OnHint(int col,long row,int section,CString *string);
 
-   int AddPolicy( Policy* );
+   int AddPolicy( EnvPolicy* );
    virtual void OnDClicked(int col,long row,RECT *rect,POINT *point,BOOL processed);
 };
 

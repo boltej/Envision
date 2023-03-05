@@ -448,16 +448,16 @@ void EvaluatorLearning::adUbiOmniHoc(CWnd * pWndParent)
          ASSERT(0);
          break;
       }
-   Policy * pPolicy = NULL;
+   EnvPolicy * pPolicy = NULL;
    int polID = -1;
    set<Scenario*>    & scenarioSet  =       emlDlg.m_scenarioSet;
    set<int>             & modelSet  =       emlDlg.m_idxModelInfo;
-   map< int, Policy * > & policySet =       emlDlg.m_policySet;
-   pair< map<int,Policy*>::iterator, bool > polPr;
-   map< int, Policy * >::iterator           polIt;
+   map< int, EnvPolicy * > & policySet =       emlDlg.m_policySet;
+   pair< map<int,EnvPolicy*>::iterator, bool > polPr;
+   map< int, EnvPolicy * >::iterator           polIt;
    EnvEvaluator * mi = NULL;
 
-   CArray<Policy *>  scenSchedPol;  
+   CArray<EnvPolicy *>  scenSchedPol;  
 
    CWaitCursor c;
 

@@ -689,7 +689,7 @@ void GetPoliciesHandler(const shared_ptr< Session > pSession)
 
          for (int i = 0; i < count; i++)
             {
-            Policy *pPolicy = pEnvModel->m_pPolicyManager->GetPolicy(i);
+            EnvPolicy *pPolicy = pEnvModel->m_pPolicyManager->GetPolicy(i);
 
             POLICY_INFO *pInfo = pScenario->GetPolicyInfoFromID(pPolicy->m_id);
 

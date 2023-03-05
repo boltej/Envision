@@ -25,7 +25,7 @@ Copywrite 2012 - Oregon State University
 
 #include "Delta.h"
 #include "Actor.h"
-#include "Policy.h"
+#include "EnvPolicy.h"
 #include "EnvContext.h"
 #include "Scenario.h"
 #include "EnvExtension.h"
@@ -54,7 +54,7 @@ class DataManager;
 class DeltaArray;
 //class SocialNetwork;
 class Actor;
-class Policy;
+class EnvPolicy;
 
 
 enum EM_NOTIFYTYPE { EMNT_IDUCHANGE, EMNT_INIT, EMNT_INITRUN, EMNT_STARTSTEP, EMNT_ENDSTEP, EMNT_RUNAP, EMNT_ACTORLOOP, EMNT_RUNEVAL, EMNT_RUNVIZ, EMNT_ENDRUN, EMNT_UPDATEUI, 
@@ -121,7 +121,7 @@ struct METAGOAL
 
 struct POLICY_SCORE 
    { 
-   Policy *pPolicy;
+   EnvPolicy *pPolicy;
    float   score;   //0-1 value indicating how effective a particulalr policy was for a particular site.
    float   cf;      // CFM:  What is this for???
 
@@ -301,7 +301,7 @@ class Probe
       PROBE_TYPE m_type;
 
    public:
-      Policy    *m_pPolicy;           // valid for PT_POLICY, otherwise NULL
+      EnvPolicy    *m_pPolicy;           // valid for PT_POLICY, otherwise NULL
       int        m_idu;               // valid for PT_IDU, otherwise -1 (not currently implmemented)
 
    public:
@@ -313,7 +313,7 @@ class Probe
       //int m_noOutcomeCount;
    
    public:
-      Probe( Policy *pPolicy ) : m_type( PT_POLICY ), m_pPolicy ( pPolicy ), m_idu( -1 ) { Reset(); }
+      Probe( EnvPolicy *pPolicy ) : m_type( PT_POLICY ), m_pPolicy ( pPolicy ), m_idu( -1 ) { Reset(); }
 
       LPCTSTR GetName( void ) { if ( m_pPolicy != NULL ) return m_pPolicy->m_name; return _T( "Probe" ); }
 
@@ -521,13 +521,13 @@ class ENVAPI EnvModel
 /*
    protected:
       PtrArray< Probe > m_probeArray;
-      CMap< Policy*, Policy*, Probe*, Probe* > m_probeMap;
+      CMap< EnvPolicy*, EnvPolicy*, Probe*, Probe* > m_probeMap;
 
    public:
       int    AddProbe( Probe *pProbe ) { int index = (int) m_probeArray.Add( pProbe ); m_probeMap.SetAt( pProbe->m_pPolicy, pProbe ); return index; }
       int    GetProbeCount( void ) { return (int) m_probeArray.GetSize(); }
       Probe *GetProbe( int i ) { return m_probeArray[ i ]; }
-      Probe *FindProbe( Policy *pPolicy ) { Probe *pProbe = NULL; m_probeMap.Lookup( pPolicy, pProbe ); return pProbe; } // for ( INT_PTR i=0; i < m_probeArray.GetSize(); i++ ) if ( m_probeArray[ i ]->m_pPolicy == pPolicy ) return m_probeArray[ i ]; return NULL; }
+      Probe *FindProbe( EnvPolicy *pPolicy ) { Probe *pProbe = NULL; m_probeMap.Lookup( pPolicy, pProbe ); return pProbe; } // for ( INT_PTR i=0; i < m_probeArray.GetSize(); i++ ) if ( m_probeArray[ i ]->m_pPolicy == pPolicy ) return m_probeArray[ i ]; return NULL; }
 */
       void   ResetPolicyStats( bool initRun ) { for ( int i=0; i < (int) m_pPolicyManager->GetPolicyCount(); i++ ) m_pPolicyManager->GetPolicy(i)->ResetStats( initRun ); }
 
@@ -587,14 +587,14 @@ class ENVAPI EnvModel
       void  ApplyMandatoryPolicies();
       void  CheckPolicyOutcomes();
       int   CollectRelevantPolicies( int cell, int year, POLICY_TYPE pType, PolicyScoreArray &policyScoreArray );
-      bool  DoesPolicyApply( Policy *pPolicy, int cell );
+      bool  DoesPolicyApply( EnvPolicy *pPolicy, int cell );
       int   ScoreRelevantPolicies( Actor *pActor, int cell, PolicyScoreArray &policyScoreArray, int relevantPolicyCount );
       int   SelectPolicyToApply( int cell, PolicyScoreArray &policyScoreArray, int relevantPolicyCount );
-      void  ApplyPolicy( Policy *pPolicy, int cell, float score );
+      void  ApplyPolicy( EnvPolicy *pPolicy, int cell, float score );
       
       float GetActorScore( Actor *pActor, int cell, float &cf, float *polObjScores ); // gets score in [0,1]
       float GetAltruismScore( int cell, float *polObjScores ); // gets score in [0,1]
-      float GetSocialNetworkScore( Actor *pActor, Policy *pPolicy );   // gets score in [0,1]
+      float GetSocialNetworkScore( Actor *pActor, EnvPolicy *pPolicy );   // gets score in [0,1]
       //float GetUtilityScore( int cell );
 
       void  AddOutcomeStatus( int cell, OUTCOME_DIRECTIVE_TYPE type, int col, int targetYear, VData outcomeData );

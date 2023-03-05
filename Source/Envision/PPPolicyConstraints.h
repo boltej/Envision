@@ -21,7 +21,7 @@ Copywrite 2012 - Oregon State University
 
 #include <TabPageSSL.h>
 #include "resource.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "afxwin.h"
 
 
@@ -37,14 +37,14 @@ friend class PolEditor;
 DECLARE_DYNAMIC(PPPolicyConstraints)
 
 public:
-	PPPolicyConstraints( PolEditor*, Policy *&pPolicy );
+	PPPolicyConstraints( PolEditor*, EnvPolicy *&pPolicy );
 	virtual ~PPPolicyConstraints();
 
 // Dialog Data
 	enum { IDD = IDD_POLICYCONSTRAINTS };
 
 protected:
-   Policy    *&m_pPolicy;
+   EnvPolicy    *&m_pPolicy;
    PolEditor  *m_pParent;
    
    int m_policyConstraintIndex;   // current policy constraint

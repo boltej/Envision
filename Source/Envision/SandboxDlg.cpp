@@ -30,7 +30,7 @@ extern EnvModel *gpModel;
 // SandboxDlg dialog
 
 IMPLEMENT_DYNAMIC(SandboxDlg, CDialog)
-SandboxDlg::SandboxDlg( Policy *pPolicy, CWnd* pParent /*=NULL*/ )
+SandboxDlg::SandboxDlg( EnvPolicy *pPolicy, CWnd* pParent /*=NULL*/ )
 :  CDialog(SandboxDlg::IDD, pParent),
    m_pPolicy( pPolicy ),
    m_pSandbox( NULL ),

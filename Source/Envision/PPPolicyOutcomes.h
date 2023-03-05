@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 #include "afxwin.h"
 #include "resource.h"
 
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 #include <TabPageSSL.h>
 
@@ -36,7 +36,7 @@ class PPPolicyOutcomes : public CTabPageSSL
 	DECLARE_DYNAMIC(PPPolicyOutcomes)
 
 public:
-	PPPolicyOutcomes( PolEditor*, Policy *&pPolicy );
+	PPPolicyOutcomes( PolEditor*, EnvPolicy *&pPolicy );
 	virtual ~PPPolicyOutcomes();
 
 // Dialog Data
@@ -44,7 +44,7 @@ public:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
    
 protected:
-   Policy *&m_pPolicy;
+   EnvPolicy *&m_pPolicy;
    PolEditor *m_pParent;
 
    CListBox m_outcomeList;

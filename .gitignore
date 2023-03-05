@@ -8,3 +8,4 @@ Release/
 *.tlog
 *.pch
 Source/enc_temp_folder/
+Source/EnvLibs/boost/

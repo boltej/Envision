@@ -21,7 +21,7 @@ Copywrite 2012 - Oregon State University
 #include "EnvisionAPI.h"
 #include <EnvModel.h>
 #include <Maplayer.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <Scenario.h>
 #include <Actor.h>
 #include "MapPanel.h"
@@ -58,8 +58,8 @@ int ChangeIDUActor( EnvContext *pContext, int idu, int groupID, bool randomize )
 // policy related methods
 int     GetPolicyCount()          { return gpPolicyManager->GetPolicyCount(); }
 int     GetUsedPolicyCount()      { return gpPolicyManager->GetUsedPolicyCount(); }
-Policy *GetPolicy( int i )        { return gpPolicyManager->GetPolicy( i ); }
-Policy *GetPolicyFromID( int id ) { return gpPolicyManager->GetPolicyFromID( id ); }
+EnvPolicy *GetPolicy( int i )        { return gpPolicyManager->GetPolicy( i ); }
+EnvPolicy *GetPolicyFromID( int id ) { return gpPolicyManager->GetPolicyFromID( id ); }
 
 
 // Scenario related methods

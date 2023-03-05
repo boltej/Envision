@@ -148,18 +148,18 @@ class LIBSAPI CostItem
 
       CString m_name;
       CString m_budgetItemName;    // name of the associated global constraint
-      CI_BASIS  m_basis;       // see enum
+      CI_BASIS  m_basis = CIB_UNKNOWN;       // see enum
 
       // totals for this CostItem, reset each year
-      float m_totalCosts;
-      float m_totalInitialCosts;
-      float m_totalMaintenanceCosts;
-      float m_totalCumulativeCosts;
+      float m_totalCosts =0;
+      float m_totalInitialCosts = 0;
+      float m_totalMaintenanceCosts = 0;
+      float m_totalCumulativeCosts = 0;
 
    protected:
-      float m_initialCost;       // init cost (NOTE: assumed constant for now)
-      float m_maintenanceCost;   // maintenance cost
-      int  m_duration;
+      float m_initialCost = 0;       // init cost (NOTE: assumed constant for now)
+      float m_maintenanceCost = 0;   // maintenance cost
+      int  m_duration = 0;
 
       bool  GetCost(int idu, MapExpr* pMapExpr, float costToUse, int colCost, float& cost);
       float AdjustCostToBasis(float cost, float area);
@@ -169,21 +169,21 @@ class LIBSAPI CostItem
       CString m_maintenanceCostExpr;   // expression used for computing value
       CString m_durationExpr;
 
-      MapExpr* m_pMainCostMapExpr;     // NULL if not defined
-      MapExpr* m_pInitCostMapExpr;     // NULL if not defined
-      MapExpr* m_pDurationMapExpr;     // NULL if not defined
+      MapExpr* m_pMainCostMapExpr = nullptr;     // NULL if not defined
+      MapExpr* m_pInitCostMapExpr = nullptr;     // NULL if not defined
+      MapExpr* m_pDurationMapExpr = nullptr;     // NULL if not defined
 
-      BudgetItem* m_pBudgetItem;    // associated Budget Item
+      BudgetItem* m_pBudgetItem = nullptr;    // associated Budget Item
 
    public:
       // cost identification through table lookups
       CString   m_lookupStr;
-      VDataObj* m_pLookupTable;                  // associated data object for cost information (NULL if not defined)
-      BLTIndex* m_pLookupTableIndex;
+      VDataObj* m_pLookupTable = nullptr;                  // associated data object for cost information (NULL if not defined)
+      BLTIndex* m_pLookupTableIndex = nullptr;
 
    protected:
-      int   m_colMaintenanceCost;
-      int   m_colInitialCost;
+      int   m_colMaintenanceCost = -1;
+      int   m_colInitialCost = -1;
 
    public:
       LPCTSTR GetBasisString(CI_BASIS type);

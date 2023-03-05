@@ -24,7 +24,7 @@ Copywrite 2012 - Oregon State University
 #include "Envision.h"
 #include "MultiSandboxDlg.h"
 #include <EnvModel.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 #include <fmatrix.hpp>
 
@@ -85,7 +85,7 @@ BOOL MultiSandboxDlg::OnInitDialog()
    count = gpPolicyManager->GetPolicyCount();
    for ( int i=0; i < count; i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
       m_policies.AddString( pPolicy->m_name );
       m_policies.SetCheck( i, 1 );
       }
@@ -117,7 +117,7 @@ void MultiSandboxDlg::OnOK() // apply
    // remember old scores
    for ( int i=0; i < policyCount; i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
       for ( int j=0; j < metagoalCount; j++ )
          oldScoreArray.Set(i, j, pPolicy->GetGoalScore( j ) );
       }
@@ -126,7 +126,7 @@ void MultiSandboxDlg::OnOK() // apply
       {
       if ( m_policies.GetCheck( i ) )
          {
-         Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+         EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
          CString title;
          title.Format( "Evaluating Policy %s (%i of %i)", (LPCTSTR) pPolicy->m_name, i+1, policyCount );
          SetWindowText( title );
@@ -172,7 +172,7 @@ void MultiSandboxDlg::OnOK() // apply
          {
          for ( int i=0; i < policyCount; i++ )
             {
-            Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+            EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
             //for ( int j=0; j < metagoalCount; j++ )
             //   pPolicy->SetGoalScore( j, oldScoreArray.Get(i,j) );
             }

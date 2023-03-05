@@ -39,8 +39,8 @@ class Sandbox : protected EnvModel
       int   GetYearsToRun(){ return m_yearsToRun; }
       float GetPercentCoverage(){ return m_percentCoverage; }
 
-      void CalculateGoalScores( Policy *pPolicy, bool *useMetagoalsArray ); // NULL says update all policy metagoals; else just where true
-      void CalculateGoalScores( CArray<Policy *>  & schedPolicy, Policy *pPolicy, EvaluatorLearningStats * emStats, bool *useMetagoalsArray ); // NULL says update all policy metagoals; else just where true
+      void CalculateGoalScores( EnvPolicy *pPolicy, bool *useMetagoalsArray ); // NULL says update all policy metagoals; else just where true
+      void CalculateGoalScores( CArray<EnvPolicy *>  & schedPolicy, EnvPolicy *pPolicy, EvaluatorLearningStats * emStats, bool *useMetagoalsArray ); // NULL says update all policy metagoals; else just where true
 
    private:
       // Used Base Methods
@@ -48,7 +48,7 @@ class Sandbox : protected EnvModel
       UINT_PTR ApplyDeltaArray( MapLayer *pLayer ){ return EnvModel::ApplyDeltaArray( pLayer ); }
       UINT_PTR UnApplyDeltaArray( MapLayer *pLayer ){ return EnvModel::UnApplyDeltaArray(pLayer); }
       int   SelectPolicyOutcome( MultiOutcomeArray &m ){ return EnvModel::SelectPolicyOutcome( m ); }
-      int   DoesPolicyApply( Policy *pPolicy, int cell ){ return EnvModel::DoesPolicyApply( pPolicy, cell ); }
+      int   DoesPolicyApply( EnvPolicy *pPolicy, int cell ){ return EnvModel::DoesPolicyApply( pPolicy, cell ); }
            
       float GetLandscapeMetric( int i ){ return EnvModel::GetLandscapeMetric( i ); }
 

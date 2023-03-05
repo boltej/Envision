@@ -27,7 +27,7 @@ Copywrite 2012 - Oregon State University
 
 #include "EnvDoc.h"
 #include <LULCTREE.H>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <Scenario.h>
 
 #include <DirPlaceholder.h>

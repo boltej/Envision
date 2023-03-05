@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 #include <EnvExtension.h>
 #include <Maplayer.h>
 #include <MapExprEngine.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <randgen\Randunif.hpp>
 
 using namespace std;

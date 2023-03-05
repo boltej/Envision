@@ -38,7 +38,7 @@ const int margin  = 3;
 #undef NOMINMAX
 //===============================
 #ifdef __INI_TEST__             //
-CArray<Policy> g_TestPolicies;  //
+CArray<EnvPolicy> g_TestPolicies;  //
 EnvModel model;                 //
 EnvModel * gpModel = &model;               //
 #endif                          //
@@ -57,11 +57,11 @@ BOOL EvaluatorLearnDlg::OnInitDialog()
 {
    CDialog::OnInitDialog();
 
-   Policy * pPolicy = NULL;
+   EnvPolicy * pPolicy = NULL;
    int polID = -1;
    int lbi;
    int i;
-   pair< map<int,Policy*>::iterator, bool > polPr;
+   pair< map<int,EnvPolicy*>::iterator, bool > polPr;
 
 #ifndef __INI_TEST__
    
@@ -150,7 +150,7 @@ BOOL EvaluatorLearnDlg::OnInitDialog()
          pPolicy = info.pPolicy;
          polID  = pPolicy->m_id;
 
-         polPr = m_policySet.insert(pair<int,Policy*>(polID, pPolicy)); 
+         polPr = m_policySet.insert(pair<int,EnvPolicy*>(polID, pPolicy)); 
          }
       }
 #endif
@@ -163,11 +163,11 @@ BOOL EvaluatorLearnDlg::OnInitDialog()
       lbi = this->m_scenarioListBox.AddString("LB02");      //
       VERIFY (LB_ERR != m_scenarioListBox.SetSel(lbi, 1));  //
       //                                                    //
-      g_TestPolicies.Add(Policy("P00", 0));                 //
-      g_TestPolicies.Add(Policy("P01", 1));                 //
-      g_TestPolicies.Add(Policy("P02", 2));                 //
+      g_TestPolicies.Add(EnvPolicy("P00", 0));                 //
+      g_TestPolicies.Add(EnvPolicy("P01", 1));                 //
+      g_TestPolicies.Add(EnvPolicy("P02", 2));                 //
       for( i=0; i< g_TestPolicies.GetCount(); ++i)          //////
-         polPr = m_policySet.insert(pair<int,Policy*>(g_TestPolicies.GetAt(i).m_id, &g_TestPolicies.GetAt(i))); //
+         polPr = m_policySet.insert(pair<int,EnvPolicy*>(g_TestPolicies.GetAt(i).m_id, &g_TestPolicies.GetAt(i))); //
       #endif                                                /////
    //-------------------------------------------------------
 
@@ -182,7 +182,7 @@ BOOL EvaluatorLearnDlg::OnInitDialog()
 void EvaluatorLearnDlg::UpdatePolicyListControl()
    {
    int j;
-   map< int, Policy * >::iterator polIt;
+   map< int, EnvPolicy * >::iterator polIt;
    UINT mask =  LVIF_STATE | LVIF_TEXT | LVIF_PARAM; // 
    UINT state = LVIS_SELECTED ;
    UINT stateMask = LVIS_SELECTED ;
@@ -225,7 +225,7 @@ void EvaluatorLearnDlg::OnOK()
       {
       if ( ! (LVIS_SELECTED & m_policyListCtrl.GetItemState(k, LVIS_SELECTED)) )
          {
-         Policy * pPolicy = reinterpret_cast<Policy*>(m_policyListCtrl.GetItemData(k));
+         EnvPolicy * pPolicy = reinterpret_cast<EnvPolicy*>(m_policyListCtrl.GetItemData(k));
          int polID = pPolicy->m_id;
          m_policySet.erase(polID);
          }
@@ -275,7 +275,7 @@ void EvaluatorLearnDlg::OnLbnSelchangeLbIddEvaluatorLearnDlg()
    // TODO: Add your control notification handler code here
    // Get the indexes of all the selected items.
    // Redo the spanning set of policies.
-   pair< map<int,Policy*>::iterator, bool > polPr;
+   pair< map<int,EnvPolicy*>::iterator, bool > polPr;
    CArray<int,int> aryListBoxSel;
    int nCount = m_scenarioListBox.GetCount();
    aryListBoxSel.SetSize(nCount);
@@ -292,7 +292,7 @@ void EvaluatorLearnDlg::OnLbnSelchangeLbIddEvaluatorLearnDlg()
       for (int j = 0; j < polCount; ++j)
          {
          int polID = -1;
-         Policy *pPolicy = NULL;
+         EnvPolicy *pPolicy = NULL;
          POLICY_INFO &info = pScenario->GetPolicyInfo(j);
 
          if ( info.inUse == false ) 
@@ -301,11 +301,11 @@ void EvaluatorLearnDlg::OnLbnSelchangeLbIddEvaluatorLearnDlg()
          pPolicy = info.pPolicy;
          polID  = pPolicy->m_id;
 
-         polPr = m_policySet.insert(pair<int,Policy*>(polID, pPolicy)); 
+         polPr = m_policySet.insert(pair<int,EnvPolicy*>(polID, pPolicy)); 
          }
       #endif
       #ifdef __INI_TEST__
-         polPr = m_policySet.insert(pair<int,Policy*>(g_TestPolicies[aryListBoxSel[i]].m_id, &g_TestPolicies[aryListBoxSel[i]]));          
+         polPr = m_policySet.insert(pair<int,EnvPolicy*>(g_TestPolicies[aryListBoxSel[i]].m_id, &g_TestPolicies[aryListBoxSel[i]]));          
       #endif
       }
    

@@ -74,7 +74,7 @@ protected:
    PPPolicyObjScores m_scores;
    PPPolicyScenarios m_scenarios;
 
-   Policy *FindPolicy( LPCTSTR name );
+   EnvPolicy *FindPolicy( LPCTSTR name );
  
 public:
    virtual BOOL OnInitDialog();
@@ -99,7 +99,7 @@ public:
    PolicyArray m_policyArray;
    PtrArray< GlobalConstraint > m_constraintArray;   // local copies of global constraitns stored in policy manager
    
-   Policy*  m_pPolicy;
+   EnvPolicy*  m_pPolicy;
    int      m_currentIndex;
    bool     m_isEditable;
 

@@ -131,7 +131,7 @@ void CLogPane::AddLogLine(LPCTSTR msg, LOG_TYPES type, COLORREF color)
    CString __msg;
    SYSTEMTIME tm;
    ::GetSystemTime(&tm);
-   __msg.Format(_T("%i/%i/%i %i:%i:%i: %s"), (int)tm.wMonth, (int)tm.wDay, (int)tm.wYear, (int)tm.wHour, (int)tm.wMinute, (int)tm.wSecond, (LPCTSTR)_msg);
+   __msg.Format(_T("%i/%i/%i %i:%i: %s"), (int)tm.wMonth, (int)tm.wDay, (int)tm.wYear, (int)tm.wHour, (int)tm.wMinute, /*(int)tm.wSecond,*/ (LPCTSTR)_msg);
    Log(__msg);
    }
 

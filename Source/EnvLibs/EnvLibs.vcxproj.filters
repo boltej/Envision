@@ -31,6 +31,12 @@
     <Filter Include="Source Files\Eigen">
       <UniqueIdentifier>{b0a28ceb-e26a-487b-bf0c-81b174e4a875}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\boost">
+      <UniqueIdentifier>{a600fc03-7cb2-4bd4-af81-368839fe2295}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\boost\geometry">
+      <UniqueIdentifier>{de2878c5-4b85-4303-811b-1293043cff81}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="AlgLib\AlgLib.h">
@@ -353,6 +359,9 @@
     </ClInclude>
     <ClInclude Include="ColorRamps.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="boost\geometry\geometry.hpp">
+      <Filter>Header Files\boost\geometry</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

@@ -35,7 +35,7 @@ extern PolicyManager *gpPolicyManager;
 
 IMPLEMENT_DYNAMIC(PPPolicyConstraints, CPropertyPage)
 
-PPPolicyConstraints::PPPolicyConstraints( PolEditor *pPolEditor, Policy *&pPolicy )
+PPPolicyConstraints::PPPolicyConstraints( PolEditor *pPolEditor, EnvPolicy *&pPolicy )
 : CTabPageSSL(PPPolicyConstraints::IDD)
 , m_pPolicy( pPolicy )
 , m_pParent( pPolEditor )

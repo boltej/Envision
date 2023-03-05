@@ -186,6 +186,7 @@
     <ClInclude Include="BFILE.HPP" />
     <ClInclude Include="BIN.H" />
     <ClInclude Include="BitArray.h" />
+    <ClInclude Include="boost\geometry\geometry.hpp" />
     <ClInclude Include="Budget.h" />
     <ClInclude Include="CacheManager.h" />
     <ClInclude Include="ColorRamps.h" />

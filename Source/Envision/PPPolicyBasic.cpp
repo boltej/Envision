@@ -30,7 +30,7 @@ Copywrite 2012 - Oregon State University
 // PPPolicyBasic dialog
 IMPLEMENT_DYNAMIC(PPPolicyBasic, CTabPageSSL)
 
-PPPolicyBasic::PPPolicyBasic( PolEditor *pParent, Policy *&pPolicy )
+PPPolicyBasic::PPPolicyBasic( PolEditor *pParent, EnvPolicy *&pPolicy )
 : CTabPageSSL()
   , m_narrative(_T(""))
   , m_persistenceMin(0)

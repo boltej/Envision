@@ -22,7 +22,7 @@ class EnvModel;
 class DELTA;
 class DeltaArray;
 class EnvContext;
-class Policy;
+class EnvPolicy;
 class Scenario;
 class EnvEvaluator;
 class EnvModelProcess;
@@ -87,8 +87,8 @@ extern "C" {
    // PolicyManager methods
    ENVAPI int     PASCAL EnvGetPolicyCount(EnvModel*);
    ENVAPI int     PASCAL EnvGetUsedPolicyCount(EnvModel*);
-   ENVAPI Policy* PASCAL EnvGetPolicy(EnvModel*, int i);
-   ENVAPI Policy* PASCAL EnvGetPolicyFromID(EnvModel*, int id);
+   ENVAPI EnvPolicy* PASCAL EnvGetPolicy(EnvModel*, int i);
+   ENVAPI EnvPolicy* PASCAL EnvGetPolicyFromID(EnvModel*, int id);
 
 
    // ScenarioManager methods

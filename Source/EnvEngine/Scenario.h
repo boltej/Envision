@@ -19,7 +19,7 @@ Copywrite 2012 - Oregon State University
 */
 #pragma once
 
-#include "Policy.h"
+#include "EnvPolicy.h"
 #include <randgen/Rand.hpp>
 #include <Typedefs.h>
 #ifndef NO_MFC
@@ -53,7 +53,7 @@ struct SCENARIO_VAR
 {
 public:
    CString name;
-   VTYPE vtype;      // address?  Policy ptr?
+   VTYPE vtype;      // address?  EnvPolicy ptr?
    void *pVar;       // pointer to the variable to be used      
    TYPE  type;       // type of that variable
    MODEL_DISTR distType;
@@ -154,11 +154,11 @@ struct POLICY_INFO
    CString policyName;
    int     policyID;
    bool    inUse;
-   Policy *pPolicy;
+   EnvPolicy *pPolicy;
 
    POLICY_INFO() : policyName( "" ), policyID( -1 ), inUse( false ) {}
 
-   POLICY_INFO( Policy *_pPolicy, bool use ) : policyName( _pPolicy->m_name ),
+   POLICY_INFO( EnvPolicy *_pPolicy, bool use ) : policyName( _pPolicy->m_name ),
       policyID( _pPolicy->m_id ), inUse( use ), pPolicy( _pPolicy ) { }
 
    POLICY_INFO( const POLICY_INFO &pi ) : policyName( pi.policyName ), policyID( pi.policyID ), inUse( pi.inUse ), pPolicy( pi.pPolicy ) { }
@@ -176,7 +176,7 @@ public:
          Add( pi.GetAt( i ) );      
       }
 
-   int AddPolicyInfo( Policy *pPolicy, bool use )
+   int AddPolicyInfo( EnvPolicy *pPolicy, bool use )
       {
       POLICY_INFO pi(pPolicy, use);  return (int)CArray<POLICY_INFO, POLICY_INFO&>::Add(pi);
       }
@@ -224,11 +224,11 @@ public:
    bool IsDefault() { return m_isDefault; }
 
    int GetPolicyCount( bool inUseOnly=false );
-   int AddPolicyInfo( Policy *pPolicy, bool inUse ) { return m_policyInfoArray.AddPolicyInfo( pPolicy, inUse ); }
+   int AddPolicyInfo( EnvPolicy *pPolicy, bool inUse ) { return m_policyInfoArray.AddPolicyInfo( pPolicy, inUse ); }
    POLICY_INFO &GetPolicyInfo( int i ) { return m_policyInfoArray[ i ]; }
    POLICY_INFO *GetPolicyInfo( LPCTSTR name );
    POLICY_INFO *GetPolicyInfoFromID( int id );
-   void RemovePolicyInfo( Policy *pPolicy );
+   void RemovePolicyInfo( EnvPolicy *pPolicy );
 
 protected:
    ScenarioVarArray m_scenarioVarArray;    // contains the variables use on this scenarion
@@ -268,8 +268,8 @@ public:
    int SaveXml( LPCTSTR filename );
    int SaveXml( FILE *fp, bool includeHdr, bool useFileRef );
 
-   void AddPolicyToScenarios( Policy *pPolicy, bool inUse );
-   void RemovePolicyFromScenarios( Policy *pPolicy );
+   void AddPolicyToScenarios( EnvPolicy *pPolicy, bool inUse );
+   void RemovePolicyFromScenarios( EnvPolicy *pPolicy );
 
    static int CopyScenarioArray( CArray< Scenario*, Scenario* > &toScenarioArray, CArray< Scenario*, Scenario* > &fromScenarioArray );
 

@@ -72,8 +72,8 @@ using std::auto_ptr;
 //   };                                                        //
 //class Policy {                                                //
 //public:                                                        //
-//   Policy() : m_name("nul"), m_id(-1) {}                       //
-//   Policy(LPCTSTR name, int id) : m_name(name), m_id(id) {}   //
+//   EnvPolicy() : m_name("nul"), m_id(-1) {}                       //
+//   EnvPolicy(LPCTSTR name, int id) : m_name(name), m_id(id) {}   //
 //   int m_id;                                                //
 //   CString m_name;                                        //
 //   };                                                   //

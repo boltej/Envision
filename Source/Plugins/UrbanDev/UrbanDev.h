@@ -106,6 +106,9 @@ struct UGA  // new
 
    CMap<int, int, UINT, UINT> m_iduToUpzonedMap;   // actual IDU index to count of upzones
 
+   std::vector<int> m_expandCriteria;   // -1=n/a, 0=not met, 1=met
+   std::vector<int> m_upzoneCriteria;   // -1=n/a, 0=not met, 1=met
+
    bool m_use;
    bool m_computeStartPop;
 

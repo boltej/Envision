@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 
 #include "stdafx.h"
 #include "PPPolicyResults.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <EnvModel.h>
 #include "envdoc.h"
 #include <DataManager.h>
@@ -147,7 +147,7 @@ void PPPolicyResults::Load( void )
             {
             int policyID;
             delta.newValue.GetAsInt( policyID );
-            Policy *pPolicy = gpPolicyManager->GetPolicyFromID( policyID );
+            EnvPolicy *pPolicy = gpPolicyManager->GetPolicyFromID( policyID );
             sprintf_s( text, 128, "%s (ID:%i)", (LPCTSTR) pPolicy->m_name, pPolicy->m_id );
             item.pszText = text;
             }
@@ -181,7 +181,7 @@ void PPPolicyResults::Load( void )
             delta.oldValue.GetAsInt( value );
             if ( value >= 0 )
                {
-               Policy *pOldPolicy = gpPolicyManager->GetPolicyFromID( value );
+               EnvPolicy *pOldPolicy = gpPolicyManager->GetPolicyFromID( value );
                sprintf_s( text, 128, "%s (ID:%i)", (LPCTSTR) pOldPolicy->m_name, pOldPolicy->m_id );
                item.pszText = text;
                }
@@ -212,7 +212,7 @@ void PPPolicyResults::Load( void )
             delta.newValue.GetAsInt( value );
             if ( value >= 0 )
                {
-               Policy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
+               EnvPolicy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
                sprintf_s( text, 128, "%s (ID:%i)", (LPCTSTR) pNewPolicy->m_name, pNewPolicy->m_id );
                item.pszText = text;
                }
@@ -244,7 +244,7 @@ void PPPolicyResults::Load( void )
             delta.newValue.GetAsInt( value );
             if ( value >= 0 )
                {
-               Policy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
+               EnvPolicy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
                item.pszText = (LPSTR)(LPCTSTR)pNewPolicy->m_siteAttrStr;
                }
             else
@@ -263,7 +263,7 @@ void PPPolicyResults::Load( void )
             delta.newValue.GetAsInt( value );
             if ( value >= 0 )
                {
-               Policy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
+               EnvPolicy *pNewPolicy = gpPolicyManager->GetPolicyFromID( value );
                item.pszText = (LPTSTR)(LPCTSTR)pNewPolicy->m_outcomeStr;
                }
             else

@@ -40,7 +40,7 @@ Copywrite 2012 - Oregon State University
 #include "GoalSpaceWnd.h"
 #include "PolicyAppPlot.h"
 #include "TrajectorySpaceWnd.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "MapPanel.h"
 
 #include <scatterwnd.h>
@@ -254,7 +254,7 @@ int ResultsPanel::AddDynamicGraphNodes( ResultNode *pGraphNode )
 
       for ( int i=0; i < policyCount; i++ )
          {
-         Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+         EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
 
          if ( pPolicy->m_use )   // currently in use?
             {
@@ -1126,7 +1126,7 @@ void ResultsPanel::AddGraphWnd( ResultNode *pNode )
 
          pScatter->SetXCol( pDataObj, 0 );
          int policyIndex = (int) extra - 1;
-         Policy *pPolicy = gpPolicyManager->GetPolicy( policyIndex );
+         EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( policyIndex );
 
          for( int i=0; i < 6; i++ )
             {

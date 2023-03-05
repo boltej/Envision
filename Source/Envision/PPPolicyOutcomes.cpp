@@ -23,7 +23,7 @@ Copywrite 2012 - Oregon State University
 
 #include ".\pppolicyoutcomes.h"
 
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "PolEditor.h"
 #include "outcomeEditor.h"
 #include <EnvModel.h>
@@ -35,7 +35,7 @@ extern EnvModel      *gpModel;
 
 IMPLEMENT_DYNAMIC(PPPolicyOutcomes, CTabPageSSL)
 
-PPPolicyOutcomes::PPPolicyOutcomes( PolEditor *pParent, Policy *&pPolicy )
+PPPolicyOutcomes::PPPolicyOutcomes( PolEditor *pParent, EnvPolicy *&pPolicy )
 	: CTabPageSSL()
    , m_pPolicy( pPolicy )
    , m_pParent( pParent )

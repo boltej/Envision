@@ -147,7 +147,7 @@ void PolicyAppPlot::RefreshPlot()
       m_pPlot->ShowMarker( i, true );
       if ( targetMetagoal >= 0 )  // targetResult = -1 if no filter
          {
-         Policy *pPolicy = gpPolicyManager->GetPolicy(i);
+         EnvPolicy *pPolicy = gpPolicyManager->GetPolicy(i);
          float score = pPolicy->GetGoalScore( targetMetagoal );
          if ( score < (float)tolerance )
             {

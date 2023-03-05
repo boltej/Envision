@@ -1208,7 +1208,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             }
          else
             {
-            Policy *pPolicy = m_pPolicyManager->GetPolicyFromID( id );
+            EnvPolicy *pPolicy = m_pPolicyManager->GetPolicyFromID( id );
 
             if ( pPolicy == NULL )
                {

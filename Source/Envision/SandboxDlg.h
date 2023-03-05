@@ -19,7 +19,7 @@ Copywrite 2012 - Oregon State University
 */
 #pragma once
 
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "Sandbox.h"
 #include "resource.h"
 #include "afxwin.h"
@@ -31,14 +31,14 @@ class SandboxDlg : public CDialog
 	DECLARE_DYNAMIC(SandboxDlg)
 
 public:
-	SandboxDlg( Policy *pPolicy, CWnd* pParent = NULL );   // standard constructor
+	SandboxDlg( EnvPolicy *pPolicy, CWnd* pParent = NULL );   // standard constructor
 	virtual ~SandboxDlg();
 
 // Dialog Data
 	enum { IDD = IDD_SANDBOXDLG };
 
 protected:
-   Policy  *m_pPolicy;      // policy whose efficacies are to be calculated
+   EnvPolicy  *m_pPolicy;      // policy whose efficacies are to be calculated
    Sandbox *m_pSandbox;
    int      m_yearsToRun;
    int      m_percentCoverage;

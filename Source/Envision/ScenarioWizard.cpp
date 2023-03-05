@@ -31,7 +31,7 @@ Copywrite 2012 - Oregon State University
 #include "EnvView.h"
 #include "EnvDoc.h"
 #include <EnvModel.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include "MainFrm.h"
 
 #include <Maplayer.h>

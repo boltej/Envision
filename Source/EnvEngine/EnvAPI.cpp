@@ -29,7 +29,7 @@ Copywrite 2012 - Oregon State University
 #include "EnvLoader.h"
 #include "EnvConstants.h"
 #include "Actor.h"
-#include "Policy.h"
+#include "EnvPolicy.h"
 #include "Scenario.h"
 #include "DataManager.h"
 #include <iostream>
@@ -276,8 +276,8 @@ int EnvChangeIDUActor(EnvContext *pContext, int idu, int groupID, bool randomize
 // policy related methods
 int     EnvGetPolicyCount(EnvModel *pModel) { return pModel->m_pPolicyManager->GetPolicyCount(); }
 int     EnvGetUsedPolicyCount(EnvModel *pModel) { return pModel->m_pPolicyManager->GetUsedPolicyCount(); }
-Policy *EnvGetPolicy(EnvModel *pModel, int i) { return pModel->m_pPolicyManager->GetPolicy(i); }
-Policy *EnvGetPolicyFromID(EnvModel *pModel, int id) { return pModel->m_pPolicyManager->GetPolicyFromID(id); }
+EnvPolicy *EnvGetPolicy(EnvModel *pModel, int i) { return pModel->m_pPolicyManager->GetPolicy(i); }
+EnvPolicy *EnvGetPolicyFromID(EnvModel *pModel, int id) { return pModel->m_pPolicyManager->GetPolicyFromID(id); }
 
 
 // Scenario related methods

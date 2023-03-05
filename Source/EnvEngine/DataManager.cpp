@@ -26,7 +26,7 @@ Copywrite 2012 - Oregon State University
 #include "DataManager.h"
 //#include "envdoc.h"
 #include "EnvConstants.h"
-#include "Policy.h"
+#include "EnvPolicy.h"
 #include "Actor.h"
 #include "DeltaArray.h"
 #include "ColumnTrace.h"
@@ -413,7 +413,7 @@ bool DataManager::CreateDataObjects()
    // initialize columns
    for ( int j=0; j < policyCount; j++ )
       {
-      Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
+      EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
 
       if ( pPolicy->m_use ) 
          value = 0;
@@ -469,7 +469,7 @@ bool DataManager::CreateDataObjects()
    col = 1;
    for ( int i=0; i < policyCount; i++ )
       {
-      Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( i );
 
       CString label = pPolicy->m_name;
       label += ": Rejected Count (Policy Constraint)";
@@ -809,7 +809,7 @@ bool DataManager::CollectData( int yearOfRun )
 
       for ( int j=0; j < m_pEnvModel->m_pPolicyManager->GetPolicyCount(); j++ )
          {
-         Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
+         EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
          if ( pPolicy->m_use )
             {
             float potentialAreaPct = 100 * pPolicy->m_potentialArea  / this->m_pEnvModel->m_pIDULayer->GetTotalArea();
@@ -863,7 +863,7 @@ bool DataManager::CollectData( int yearOfRun )
       int col = 1;
       for ( int i=0; i < policyCount; i++ )
          {
-         Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( i );
+         EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( i );
 
          pPolicyStatsData->Set( col++, row, pPolicy->m_rejectedPolicyConstraint );
          pPolicyStatsData->Set( col++, row, pPolicy->m_rejectedNoCostInfo );
@@ -1595,7 +1595,7 @@ void DataManager::CalculateAppliedPolicyScores( FDataObj **ppData, int fromYearC
             // get the policy and evaluate it's effectiveness at this value
             int polID = -1;
             bool ok = delta.newValue.GetAsInt( polID );
-            Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( polID );
+            EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( polID );
             ASSERT( pPolicy != NULL );
 
             for ( int j=0; j < metagoalCount; j++ )
@@ -1686,7 +1686,7 @@ void DataManager::CalculateAppliedPolicyCounts( FDataObj **ppData, int fromYearC
             ASSERT( ok );
 
             // get the policy and evaluate it's effectiveness at this value
-            Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( policyID );
+            EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( policyID );
             ASSERT( pPolicy != NULL );
 
             for ( int j=0; j < metagoalCount; j++ )
@@ -1924,7 +1924,7 @@ IDataObj *DataManager::CalculatePolicyApps( int run /*= -1*/ )
    pData->SetLabel( 0, "Time (years)" );
    for ( int i=0; i < policyCount; i++ )
       {
-      Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy(i);
+      EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy(i);
       pData->SetLabel( i+1, pPolicy->m_name );
       }
 
@@ -2036,7 +2036,7 @@ FDataObj *DataManager::CalculatePolicyEffectivenessTrendDynamic( int modelIndexX
             int policyIndex = m_pEnvModel->m_pPolicyManager->GetPolicyIndexFromID( policyID );
             ASSERT( 0 <= policyIndex && policyIndex < policyCount );
 
-            Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( policyIndex );
+            EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( policyIndex );
             ASSERT( pPolicy != NULL );
 
             float effectivenessX = pPolicy->GetGoalScore( metagoalIndexX );
@@ -2145,7 +2145,7 @@ FDataObj *DataManager::CalculatePolicyEffectivenessTrendStatic( int run /*= -1*/
             int policyIndex = m_pEnvModel->m_pPolicyManager->GetPolicyIndexFromID( policyID );
             ASSERT( 0 <= policyIndex && policyIndex < policyCount );
 
-            Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( policyIndex );
+            EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( policyIndex );
             ASSERT( pPolicy != NULL );
 
             for ( int i=0; i < goalCount; i++ )
@@ -2368,7 +2368,7 @@ VDataObj *DataManager::CalculatePolicySummary( int run /*= -1*/ )
       if ( pScenario->GetPolicyInfo( i ).inUse == false )
          continue;
 
-      Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( i );
 
       // set total potential area for this policy (Note: potentialAreaDataObj = 3cols X policyCount rows)
       VDataObj *pPotentialAreaData = (VDataObj*) this->GetDataObj( DT_POLICY_SUMMARY, run );
@@ -2484,7 +2484,7 @@ VDataObj *DataManager::CalculatePolicyByActorArea( int run /* = -1 */ )
    
    for ( int j=0; j < policies; j++ )
       {
-      Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
+      EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
       pData->Set( 0, j, pPolicy->m_name );
       }
 
@@ -2558,7 +2558,7 @@ VDataObj *DataManager::CalculatePolicyByActorCount( int run /* = -1 */ )
    
    for ( int j=0; j < policies; j++ )
       {
-      Policy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
+      EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy( j );
       pData->Set( 0, j, pPolicy->m_name );
       }
 

@@ -23,7 +23,7 @@ Copywrite 2012 - Oregon State University
 #include "stdafx.h"
 #include "OutcomeEditor.h"
 #include <EnvModel.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 #include "AddResultDlg.h"
 #include "OutcomeConstraintsDlg.h"
@@ -35,7 +35,7 @@ extern MapLayer *gpCellLayer;
 
 IMPLEMENT_DYNAMIC(OutcomeEditor, CDialog)
 
-OutcomeEditor::OutcomeEditor( Policy *pPolicy, CWnd* pParent /*=NULL*/)
+OutcomeEditor::OutcomeEditor( EnvPolicy *pPolicy, CWnd* pParent /*=NULL*/)
 	: CDialog(OutcomeEditor::IDD, pParent)
    , m_pPolicy( pPolicy )
    , m_outcome(_T(""))
@@ -126,7 +126,7 @@ void OutcomeEditor::LoadResults()
       }
    
    MultiOutcomeArray moa;
-   bool ok = Policy::ParseOutcomes( m_pPolicy, m_outcome, moa );
+   bool ok = EnvPolicy::ParseOutcomes( m_pPolicy, m_outcome, moa );
    int count = 0;
    m_probability = -1;
 
@@ -249,7 +249,7 @@ void OutcomeEditor::LoadResult()
       return;
 
    MultiOutcomeArray moa;
-   bool ok = Policy::ParseOutcomes( m_pPolicy, result, moa );
+   bool ok = EnvPolicy::ParseOutcomes( m_pPolicy, result, moa );
 
    if ( !ok )
       {
@@ -444,7 +444,7 @@ void OutcomeEditor::OnBnClickedOk()
    m_editOutcome.GetWindowText( m_outcome );
 
    MultiOutcomeArray moa;
-   bool ok = Policy::ParseOutcomes( m_pPolicy, m_outcome, moa );
+   bool ok = EnvPolicy::ParseOutcomes( m_pPolicy, m_outcome, moa );
 
    if ( ! ok )
       Report::ErrorMsg( "Syntax error encountered parsing outcome string.  Please correct before saving.", MB_OK );

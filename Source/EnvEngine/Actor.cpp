@@ -26,7 +26,7 @@ Copywrite 2012 - Oregon State University
 
 #include "Actor.h"
 #include "EnvModel.h"
-#include "Policy.h"
+#include "EnvPolicy.h"
 #include "EnvException.h"
 
 #include <Maplayer.h>

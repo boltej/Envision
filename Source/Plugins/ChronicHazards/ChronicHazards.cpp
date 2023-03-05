@@ -69,7 +69,9 @@ const float G = 9.81f;                  // gravity m/sec*sec
 const float MHW = 2.1f;                  // NAVD88 mean high water meters 
 const float MLLW = -0.46f;               // NAVD88 mean lower low water meters (t Westport)
 const float EXLW_MLLW = 1.1f;            // NAVD88 Extreme low water below MLLW meters 
-
+const float MAX_BACKSHORE_SLOPE = 0.1f;
+const float MAX_DUNE_SLOPE = 0.4f;
+const float MIN_BACKSHORE_WIDTH = 0.1f;  // m
 float PolicyInfo::m_budgetAllocFrac = 0.5f;
 
 
@@ -444,6 +446,14 @@ bool ChronicHazards::InitErosionModel(EnvContext* pEnvContext)
    CheckCol(m_pDuneLayer, m_colDLEbruun, "E_BRUUN", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLEbruun, VData(0.0f), true);
 
+   // K&D 2-yr average erosion extent
+   CheckCol(m_pDuneLayer, m_colDLAvgKD, "AVGKD", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLAvgKD, VData(0.0f), true);
+
+   CheckCol(m_pDuneLayer, m_colDLXAvgKD, "X_AVGKD", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLXAvgKD, VData(0.0f), true);
+
+
    ////////// 1/0 field if IDU was annually flooded or eroded
    ////////CheckCol(m_pIDULayer, m_colIDUEroded, "ERODED", TYPE_INT, CC_AUTOADD);
 
@@ -815,24 +825,41 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    for (int i = 0; i < m_pDuneLayer->GetRowCount(); i++)
       m_pDuneLayer->SetData(i, m_colDLDuneIndex, i);
 
-   // populate dune heel location based on dune width, initial dune toe location 
+   // populate MHW, dune heel location based on dune width, initial dune toe location, if needed 
    for (int i = 0; i < m_pDuneLayer->GetRowCount(); i++)
       {
-      float duneToeEasting = 0, duneWidth = 0, duneToeElev=0;
-      m_pDuneLayer->GetData(i, m_colDLEastingToe, duneToeEasting);
-      m_pDuneLayer->GetData(i, m_colDLDuneWidth, duneWidth);
+      // make sure  MHW position seaward of dune toe
+      double eastingMHW = 0, eastingDuneToe = 0, duneToeElev = 0, backslope = 0, duneCrestElev = 0, eastingDuneCrest = 0;
+      m_pDuneLayer->GetData(i, m_colDLEastingMHW, eastingMHW);
+      m_pDuneLayer->GetData(i, m_colDLEastingToe, eastingDuneToe);
+      //m_pDuneLayer->GetData(i, m_colDLEastingHeel, eastingDuneHeel);
       m_pDuneLayer->GetData(i, m_colDLDuneToe, duneToeElev);
-      float duneHeelEasting = duneToeEasting + duneWidth;
+      m_pDuneLayer->GetData(i, m_colDLBackSlope, backslope);
+      m_pDuneLayer->GetData(i, m_colDLDuneCrest, duneCrestElev);
+      m_pDuneLayer->GetData(i, m_colDLEastingCrest, eastingDuneCrest);
+      if (backslope > 998)
+         backslope = 0.05f;
 
-      m_pDuneLayer->SetData(i, m_colDLEastingHeel, duneHeelEasting);
-      m_pDuneLayer->SetData(i, m_colDLDuneHeel, duneToeElev);
+      // position MHW seaward of dune toe if needed
+      if (eastingMHW > eastingDuneToe)
+         {
+         float dy = float(duneToeElev - MHW);
+         //ASSERT(dy > 0);  note: negative dy implies negative backshore slope
+
+         double dx = fabs(dy/MAX_BACKSHORE_SLOPE);
+         m_pDuneLayer->SetData(i, m_colDLEastingMHW, eastingDuneToe - dx);
+         }
+
+      // set heel postion based on dune crest position, back slope
+      double duneHeelElev = MHW;
+      double dx = (duneCrestElev-MHW)/backslope;
+      double eastingDuneHeel = eastingDuneCrest + dx;
+      m_pDuneLayer->SetData(i, m_colDLEastingHeel, eastingDuneHeel);
+      m_pDuneLayer->SetData(i, m_colDLDuneHeel, duneHeelElev);  // assume heel elevation same as toe elevation
+
+      double duneWidth =  eastingDuneHeel-eastingMHW;
+      m_pDuneLayer->SetData(i, m_colDLDuneWidth, duneWidth);
       }
-
-   ////////// short term shoreline change rate
-   //////////  CheckCol(m_pDuneLayer, m_colEPR, "EPR", TYPE_FLOAT, CC_AUTOADD);
-
-   ///////// Shoreline locations to tally specific metrics or set differnt actions
-   ///////CheckCol(m_pDuneLayer, m_colDLLittCell, "LOC", TYPE_INT, CC_AUTOADD);
 
    // These attributes need values to be determined
    CheckCol(m_pDuneLayer, m_colDLShorelineAngle, "SHOREANGLE", TYPE_FLOAT, CC_MUST_EXIST);
@@ -843,20 +870,6 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    //   CheckCol(m_pDuneLayer, m_colEastingMHW, "EASTINGMHW", TYPE_DOUBLE, CC_AUTOADD);
    CheckCol(m_pDuneLayer, m_colDLLongitudeToe, "LONGITUDE", TYPE_DOUBLE, CC_AUTOADD);
    CheckCol(m_pDuneLayer, m_colDLLatitudeToe, "LATITUDE", TYPE_DOUBLE, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colOrigBeachType, "ORBCHTYPE", TYPE_INT, CC_AUTOADD);
-   ////////
-   ////////CheckCol(m_pDuneLayer, m_colPrevSlope, "PREVTANB", TYPE_DOUBLE, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colPrevDuneCr, "PREVDUNECR", TYPE_DOUBLE, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colPrevRow, "PREVROW", TYPE_INT, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colPrevCol, "PREVCOL", TYPE_INT, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colDLEastingCrestProfile, "PEASTINGCR", TYPE_DOUBLE, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLEastingCrestProfile, VData(0.0), true);
-   ////////
-   ////////// These attributes are filled in on the fly from the Lookup tables to connect up the various layers
-   ////////
-   ////////// Index to lookup 
-   ////////CheckCol(m_pDuneLayer, m_colTranIndex, "TRANINDX", TYPE_INT, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colProfileIndex, "PROFINDX", TYPE_INT, CC_AUTOADD);
 
    // Bruun Rule Slope (measured MHW - depth at 25m contour)
    CheckCol(m_pDuneLayer, m_colDLShoreface, "SHOREFACE", TYPE_FLOAT, CC_AUTOADD);
@@ -919,27 +932,6 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    CheckCol(m_pDuneLayer, m_colDLYrAvgLowSWL, "AVGLWSWLYR", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLYrAvgLowSWL, VData(0.0f), true);
 
-
-
-   ////////
-   ////////CheckCol(m_pDuneLayer, m_colWb, "WB", TYPE_FLOAT, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colHb, "HB", TYPE_FLOAT, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colTS, "TS", TYPE_DOUBLE, CC_AUTOADD);
-   ////////CheckCol(m_pDuneLayer, m_colAlpha, "ALPHA", TYPE_DOUBLE, CC_AUTOADD);
-   ////////
-   ////////
-   // Erosion attributes
-
-   // Annual K&D erosion extent
-   CheckCol(m_pDuneLayer, m_colDLKD, "EROSION", TYPE_DOUBLE, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLKD, VData(0.0f), true);
-
-   // K&D 2-yr average erosion extent
-   CheckCol(m_pDuneLayer, m_colDLAvgKD, "AVGKD", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLAvgKD, VData(0.0f), true);
-
-   CheckCol(m_pDuneLayer, m_colDLXAvgKD, "X_AVGKD", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLXAvgKD, VData(0.0f), true);
 
    // 0=Not Flooded, value=Yearly Maximum TWL
    CheckCol(m_pDuneLayer, m_colDLFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
@@ -1702,40 +1694,31 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
 
          R_SCR_hist = SCRmodel(point);
 
-         // Basic idea for determien beach/dune change for (potentially erodable) beach types:
-         // 1) determine shift in x positions based on erosions rates (done above)
-         // 2) for erodable beach types, 
-         //    a) shift the MHW easting by dx.
-         //    b) if resulting backshore slope exceed slope threshold, then
-         //        adjust the dune to easting until tanb = max slope
-         // 3) for non-erodible beach types:
-         //    a) shift the MWH easting by the minimum of dx or that needed
-         //       to achieve a backshore slope = max slope, leaving dune to easting
-         //       unchanged
 
-         // 1) determine shift in x positions based on erosions rates (done above)
+         // determine shift in x positions based on erosions rates (done above)
          double dx = (R_SCR_hist + R_bruun) + R_inf_KD;
 
          m_pDuneLayer->SetData(point, m_colDLEkd, R_inf_KD);
          m_pDuneLayer->SetData(point, m_colDLEhist, R_SCR_hist);
          m_pDuneLayer->SetData(point, m_colDLEbruun, R_bruun);
-         m_pDuneLayer->SetData(point, m_colDLErosion, dx);
 
          // If shoreline is eroding, dune toe line moves landward
-         // 1) For hardened beach types, dune toe is fixed.  Don't let dune toe move, and don't let beach slope exceed 0.1f
-         // 2) for erodable beach types (no riprap)
-         //     a) shift the MHW easting by dx.
+         // 1) For hardened beach types, dune toe is fixed.  Don't let dune toe move, and don't let beach slope 
+         //    exceed MAX_BACKSHORE_SLOPE by adjusting dune toe seaward
+         // 2) for erodable beach types (e.g. no riprap)
+         //     a) shift the MHW easting by dx (dx=positive means eroding inland).
          //     b) if resulting backshore slope exceed slope threshold, then
-         //        1) move MHW east by dx
-         //        2) Case 1. if projection of max slope right from new MHW intersects toe-crest line segment,
-         //                   then move the dune toe to the intersection point.
-         //           Case 2. if Case 1 fail, and the projection of max slope right from new MHW intersects crest-heel line segment,
-         //                   then move the dune toe horizontally until it intersect the project line, and move the crest 
-         //                   to the intersection of the line of projection and the crest-heel line;
-         //           Case 3: if case 1 and 2 fail, ASSERT(0)
+         //         Case 1a.  dune toe is above and landward of MHW:
+         //                   - move the dune toe down vertically to the intersection of the projection line
+         //         Case 1b. dune to is above and seaward of MHW (undercut):
+         //                   - move dune tow slightly to the landward side of the MHW on a slope=maxBeachSlope
+         //         Case 1c.  dune toe is below and landward of MHW:
+         //                   - move the dune toe up vertically to the intersection of the projection line
+         //         Case 1d. dune to is below and seaward of MHW (overcut):
+         //                   - move dune tow slightly to the landward side of the MHW on a slope=maxBeachSlope
 
          ASSERT(dx >= 0);  // dx MUST be positive (or zero)
-         if (dx > 0 ) // && (beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int)BchT_SANDY_WOODY_DEBRIS_BACKED))
+         if (dx > 0 )      // && (beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int)BchT_SANDY_WOODY_DEBRIS_BACKED))
             {
             // a) shift the MHW easting by dx.
             REAL eastingMHW = 0;
@@ -1744,20 +1727,32 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
 
             // b) if resulting backshore slope exceed slope threshold, then
             //    adjust the dune toe easting until tanb = max slope
-            REAL duneToeElev = 0.0f, duneToeEasting = 0.0f;
-            m_pDuneLayer->GetData(point, m_colDLDuneToe, duneToeElev);
-            m_pDuneLayer->GetData(point, m_colDLEastingToe, duneToeEasting);
+            REAL duneToeElev = 0.0f, duneToeEasting = 0.0f, duneCrestElev = 0.0f, duneCrestEasting = 0.0f, duneHeelElev = 0.0f, duneHeelEasting = 0.0f;
+            m_pDuneLayer->GetData(point, m_colDLDuneToe,      duneToeElev);
+            m_pDuneLayer->GetData(point, m_colDLEastingToe,   duneToeEasting);
+            m_pDuneLayer->GetData(point, m_colDLDuneCrest,    duneCrestElev);
+            m_pDuneLayer->GetData(point, m_colDLEastingCrest, duneCrestEasting);
+            m_pDuneLayer->GetData(point, m_colDLDuneHeel,     duneHeelElev);
+            m_pDuneLayer->GetData(point, m_colDLEastingHeel,  duneHeelEasting);
 
+            bool isUndercut = false;
+            if (duneToeEasting <= eastingMHW)  // did the erosion undercut the toe?
+               isUndercut = true;
+            
             REAL backshoreSlope = (duneToeElev - MHW) / (duneToeEasting - eastingMHW);      // MHW?  This is a constant, shouldn't it vary by year from SLR
-            ASSERT(backshoreSlope >= 0);
-            if (backshoreSlope > 0.1f)  // should this be constant?
+
+            //if (backshoreSlope < 0)
+            //   backshoreSlope = -backshoreSlope;
+            //ASSERT(backshoreSlope >= 0) || backshoreSlope < 0;
+            if (fabs(backshoreSlope) > MAX_BACKSHORE_SLOPE || isUndercut)
                {
-               if (IsHardened(beachType))
+               bool hardened = IsHardened(beachType);
+               if (hardened)
                   {
                   // For Hard Protection Structures, change the beachwidth and slope to reflect the new shoreline position
                   // beach is assumed to narrow at the rate of the total chronic erosion, reflected through 
                   // dynamic beach slopes further narrow when maintaining and constructing BPS at a 1:2 slope
-                  
+
                   //?? Need to account for negative shoreline change rate 
                   //?? shorelineChangeRate > 0.0f ? SCRate = shorelineChangeRate : SCRate;
                   //?? Negative shoreline change rate indicates eroding shoreline
@@ -1765,69 +1760,84 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
 
                   // set MHW easting to projection of dune toe at max slope
                   REAL _dy = duneToeElev - MHW;
-                  dx = 0.1f * _dy;
-                  eastingMHW = duneToeEasting - dx;
+                  REAL _dx = MAX_BACKSHORE_SLOPE * _dy;
+                  eastingMHW = duneToeEasting - _dx;
+                  dx -= _dx;  // didn't erode full amount
                   }
                else    // erodible dune types
                   {
-                  // max slope exceeded, move dune toe, crest if necessary
-                  // check Case 1. if projection of max slope right from new MHW intersects toe - crest line segment,
-                  //                   then move the dune toe to the intersection point.
-                  REAL duneCrestElev = 0, duneCrestEasting = 0, duneHeelElev = 0, duneHeelEasting = 0;
-                  m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrestElev);
-                  m_pDuneLayer->GetData(point, m_colDLEastingCrest, duneCrestEasting);
-                  m_pDuneLayer->GetData(point, m_colDLDuneHeel, duneHeelElev);
-                  m_pDuneLayer->GetData(point, m_colDLEastingHeel, duneHeelEasting);
-
-                  COORD2d ptMHW(eastingMHW, MHW);
-                  COORD2d ptDuneToe(duneToeEasting, duneToeElev);
-                  COORD2d ptDuneCrest(duneToeEasting, duneToeElev);
-                  COORD2d ptDuneHeel(duneHeelEasting, duneHeelElev);
-
-                  // project line from newMHW to "back" of dune
-                  REAL _dx = eastingMHW - duneHeelEasting;
-                  REAL _dy = 0.1f * _dx;
-                  COORD2d ptProjection(duneHeelEasting, MHW + _dy);
-
-                  COORD2d intersection;
-                  if (GetIntersectionPt(ptMHW, ptProjection, ptDuneToe, ptDuneCrest, intersection))      // case 1
+                  // Case 1a. dune toe above and landward of MHW (not undercut):
+                  //   - move the dune toe down vertically to the intersection of the projection line
+                  if (duneToeElev > MHW)
                      {
-                     // move toe only (not crest) to intersection point
-                     duneToeEasting = intersection.x;
-                     duneToeElev = intersection.y;
-                     m_pDuneLayer->SetData(point, m_colDLEastingToe, duneToeEasting);
-                     m_pDuneLayer->SetData(point, m_colDLDuneToe, duneToeElev);
+                     if (duneToeEasting > eastingMHW)
+                        {
+                        // dy/dx = m ==> dy = m*dx ==>  dx = dy/m
+                        duneToeElev = MHW + MAX_BACKSHORE_SLOPE * dx;
+                        //duneToEasting doens't change
+                        }
+                     else  // case 1b:   dune to is above and seaward of MHW (undercut):
+                           // - move dune toe slightly to the landward side of the MHW on a slope=maxBeachSlope
+                        {
+                        duneToeEasting = eastingMHW + MIN_BACKSHORE_WIDTH;
+                        duneToeElev = MHW + MAX_BACKSHORE_SLOPE * MIN_BACKSHORE_WIDTH;
+                        }
                      }
-                  else if (GetIntersectionPt(ptMHW, ptProjection, ptDuneCrest, ptDuneHeel, intersection))  // case 2
+                  else   // dune toe is below MHW 
                      {
-                     // move the dune crest point down the back slope to the intersection point
-                     duneCrestEasting = intersection.x;
-                     duneCrestElev = intersection.y;
+                     // Case 1c. dune toe below and landward of MHW (not undercut):
+                     //   - move the dune toe up vertically to the intersection of the projection line
+                     if (duneToeEasting > eastingMHW)
+                        {
+                        // dy/dx = m ==> dy = m*dx ==>  dx = dy/m
+                        duneToeElev = MHW - MAX_BACKSHORE_SLOPE * dx;
+                        //duneToEasting doens't change
+                        }
+                     else  // case 1d: dune toe is below and seaward of MHW (overhung):
+                           // - move dune toe slightly to the landward side of the MHW on a slope=maxBeachSlope
+                        {
+                        duneToeEasting = eastingMHW + MIN_BACKSHORE_WIDTH;
+                        duneToeElev = MHW - MAX_BACKSHORE_SLOPE * MIN_BACKSHORE_WIDTH;
+                        }
+                     }
+                  }  // end of: else (erodible dune type)
 
-                     // we also need to move the dune point toe
-                     bool found = GetIntersectionPt(ptMHW, ptProjection, ptDuneToe, COORD2d(duneHeelEasting, duneToeElev), intersection);
-                     ASSERT(found);
-                     duneToeEasting = intersection.x;
-                     duneToeElev = intersection.y;
-                     m_pDuneLayer->SetData(point, m_colDLEastingToe, duneToeEasting);
-                     m_pDuneLayer->SetData(point, m_colDLDuneToe, duneToeElev);
+               m_pDuneLayer->SetData(point, m_colDLEastingToe, duneToeEasting);
+               m_pDuneLayer->SetData(point, m_colDLDuneToe, duneToeElev);
+
+               // next, check dune toe/crest slope - if it exceed max slope, adjust
+               REAL duneForeSlope = (duneCrestElev - duneToeElev) / (duneCrestEasting - duneToeEasting);
+               if (duneForeSlope > MAX_DUNE_SLOPE)
+                  {
+                  COORD2d ptDuneToe(duneToeEasting, duneToeElev);
+                  COORD2d ptDuneCrest(duneCrestEasting, duneCrestElev);
+                  COORD2d ptDuneHeel(duneHeelEasting, duneHeelElev);
+                  COORD2d ptDuneToeProj(duneHeelEasting, duneToeElev + (duneHeelEasting - duneToeEasting) * MAX_DUNE_SLOPE);
+                  COORD2d ptIntersection;
+                  bool found = GetIntersectionPt(ptDuneToe, ptDuneToeProj, ptDuneCrest, ptDuneHeel, ptIntersection);
+                  if (found)
+                     {
+                     duneCrestEasting = ptIntersection.x;
+                     duneCrestElev = ptIntersection.y;
                      m_pDuneLayer->SetData(point, m_colDLEastingCrest, duneCrestEasting);
                      m_pDuneLayer->SetData(point, m_colDLDuneCrest, duneCrestElev);
                      }
-                  else  // case 3
-                     ASSERT(0);  // shouldn't ever get here
-                  }
-               }
+                  else
+                     ASSERT(0);
+                  }  // end of (adjust dune crest due to high slopes
+           
+            }
 
             // MHW, dune toe, dune crest postion updated, set new beach width, slope
-            REAL beachWidth = duneToeEasting - eastingMHW;  // check signs
-            REAL beachSlope = (duneToeElev-MHW) / beachWidth;
+            REAL beachWidth = duneToeEasting - eastingMHW;  // should always be positiive
             ASSERT(beachWidth >= 0);
-            ASSERT(beachSlope <= 0.1f);
-            ASSERT(beachSlope >= 0);
+            backshoreSlope = (duneToeElev-MHW) / beachWidth;
+            //ASSERT(beachSlope <= MAX_BACKSHORE_SLOPE);
+            //ASSERT(beachSlope >= 0);
 
+            m_pDuneLayer->SetData(point, m_colDLErosion, dx);
             m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachWidth);
-            m_pDuneLayer->SetData(point, m_colDLTranSlope,  beachSlope);
+            m_pDuneLayer->SetData(point, m_colDLTranSlope,  backshoreSlope);
             m_pDuneLayer->SetData(point, m_colDLEastingMHW, eastingMHW);
 
             // Set new position of the Dune toe point in shape geometry
@@ -1945,10 +1955,10 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
       /////// m_pDuneLayer->SetData(point, m_colDLWb, Wb);
       /////// m_pDuneLayer->SetData(point, m_colDLTS, TS);
       /////// m_pDuneLayer->SetData(point, m_colDLHb, Hb);
-      m_pDuneLayer->SetData(point, m_colDLKD, R_inf_KD);
+      //m_pDuneLayer->SetData(point, m_colDLKD, R_inf_KD);
       /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
-      m_pDuneLayer->SetData(point, m_colDLShorelineChange, R_SCR_hist);
-      m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+      //m_pDuneLayer->SetData(point, m_colDLShorelineChange, R_SCR_hist);
+      //m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
       //m_pDuneLayer->m_readOnly = true;
 
       } // end erosion calculation

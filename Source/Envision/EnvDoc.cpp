@@ -41,7 +41,7 @@ Copywrite 2012 - Oregon State University
 #include "InputPanel.h"
 #include "MapPanel.h"
 #include "maplistwnd.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <DataManager.h>
 #include "WizRun.h"
 #include <EnvException.h>
@@ -2766,7 +2766,7 @@ int CEnvDoc::SavePolicyRecordsWeb()
    CArray<int> goalIDArray;  // holds the GoalID in DB for models in m_model order
    ModelNumberToDbGoalIDWeb( goalIDArray );
 
-   Policy *pPolicy = NULL;
+   EnvPolicy *pPolicy = NULL;
    bool result;
    int count = 0;
 
@@ -2972,7 +2972,7 @@ void CEnvDoc::OnExportPoliciesashtmldocument()
    // links to each policy entry (table of contents)
    for ( int i=0; i < count; i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
       file << "<a href='#" << pPolicy->m_name << "' >" <<  pPolicy->m_name << "</a><br/>";
       }
 
@@ -2983,7 +2983,7 @@ void CEnvDoc::OnExportPoliciesashtmldocument()
 
    for ( int i=0; i < count; i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
  
       // make sure policy compiled
       if ( pPolicy->m_pSiteAttrQuery == NULL )
@@ -3679,7 +3679,7 @@ void CEnvDoc::OnDataGenerateFieldDocumentation()
       int policyCount = gpPolicyManager->GetPolicyCount();
       for (int i = 0; i < policyCount; i++)
          {
-         Policy* pPolicy = gpPolicyManager->GetPolicy(i);
+         EnvPolicy* pPolicy = gpPolicyManager->GetPolicy(i);
          if (pPolicy->m_siteAttrStr.Find((LPCTSTR)pFDI->field) >= 0)
             {
             pFDI->usedBy.Add("Policies");
@@ -3689,7 +3689,7 @@ void CEnvDoc::OnDataGenerateFieldDocumentation()
 
       for (int i = 0; i < policyCount; i++)
          {
-         Policy* pPolicy = gpPolicyManager->GetPolicy(i);
+         EnvPolicy* pPolicy = gpPolicyManager->GetPolicy(i);
          if (pPolicy->m_outcomeStr.Find((LPCTSTR)pFDI->field) >= 0)
             {
             pFDI->popBy.Add("Policies");

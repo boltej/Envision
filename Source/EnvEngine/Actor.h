@@ -44,7 +44,7 @@ class EnvModel;
 class MapLayer;
 class Actor;
 class ActorManager;
-class Policy;
+class EnvPolicy;
 
 typedef void (*ACTOR_NOTIFYPROC)( Actor*, int, long );
 
@@ -139,7 +139,7 @@ public:
 
 public:
    // history of policies applied by this actor
-   CArray< Policy*, Policy* > m_policyHistoryArray;
+   CArray< EnvPolicy*, EnvPolicy* > m_policyHistoryArray;
 
    int GetDecisionFrequency() { return m_pGroup->m_decisionFrequency; } // how often this actor makes a decision on a particular parcel (years)
    int GetID() { return m_pGroup->m_id; }

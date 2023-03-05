@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 
 #include "stdafx.h"
 #include "Envision.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include ".\pprunpolicies.h"
 #include "EnvDoc.h"
 
@@ -78,7 +78,7 @@ void PPRunPolicies::LoadPolicies()
    int count = gpPolicyManager->GetPolicyCount();
    for ( int i=0; i < count; i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
       
       // only show if its an shared policy or one of my policies
       if ( ShowPolicy( pPolicy ) )
@@ -108,7 +108,7 @@ int PPRunPolicies::SetPoliciesToUse( void )
 
    for ( int i=0; i < count; i++ )
       {
-      Policy *pPolicy = (Policy*) m_policies.GetItemData( i );
+      EnvPolicy *pPolicy = (EnvPolicy*) m_policies.GetItemData( i );
       if ( m_policies.GetCheck( i ) )
          {
          pPolicy->m_use = true;
@@ -138,7 +138,7 @@ void PPRunPolicies::OnBnClickedSelectnone()
    }
 
 
-bool PPRunPolicies::ShowPolicy( Policy *pPolicy )
+bool PPRunPolicies::ShowPolicy( EnvPolicy *pPolicy )
    {
    bool showMyPolicies     = IsDlgButtonChecked( IDC_SHOWMYPOLICIES ) ? true : false;
    bool showSharedPolicies = IsDlgButtonChecked( IDC_SHOWSHAREDPOLICIES ) ? true : false;

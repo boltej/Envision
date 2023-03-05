@@ -29,6 +29,26 @@ Copywrite 2012 - Oregon State University
 #include "GEOMETRY.HPP"
 #include <math.h>
 
+#include <boost/geometry/geometry.hpp>
+#include <boost/geometry/geometries/point_xy.hpp>
+#include <boost/geometry/geometries/register/point.hpp>
+#include <boost/geometry/geometries/segment.hpp>
+
+
+struct BPoint
+   {
+   REAL x = 0;
+   REAL y = 0;
+
+   BPoint(REAL _x, REAL _y) : x(_x), y(_y) {}
+   BPoint(void) = default;
+   };
+
+namespace bg = boost::geometry;
+BOOST_GEOMETRY_REGISTER_POINT_2D(BPoint, REAL, bg::cs::cartesian, x, y)
+
+
+
 // helper functions
 bool _CheckSide( COORD2d &p0, COORD2d &p1, COORD2d &s0, COORD2d &s1,  bool isP0InRect, bool isP1InRect, COORD2d &start, COORD2d &end, bool &startPopulated, bool &endPopulated );
 
@@ -618,6 +638,26 @@ bool _CheckSide( COORD2d &p0, COORD2d &p1, COORD2d &s0, COORD2d &s1,  bool isP0I
       }
 
    return startPopulated && endPopulated;
+   }
+
+
+bool GetIntersectionPtBoost(const COORD2d& thisVertex0, const COORD2d& thisVertex1, const COORD2d& otherVertex0, const COORD2d& otherVertex1, COORD2d& intersection)
+   {
+   using segment_t = bg::model::segment<BPoint>;
+   using points_t = bg::model::multi_point<BPoint>;
+
+   std::vector<BPoint> out;
+   segment_t s0(BPoint(thisVertex0.x, thisVertex0.y), BPoint(thisVertex1.x, thisVertex1.y));
+   segment_t s1(BPoint(otherVertex0.x, otherVertex0.y), BPoint(otherVertex1.x, otherVertex1.y));
+   
+   bg::intersection( s0, s1, out);
+
+   if (out.size() == 0)
+      return false;
+
+   intersection.x = out[0].x;
+   intersection.y = out[0].y;
+   return true;
    }
 
 

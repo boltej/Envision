@@ -23,7 +23,7 @@ Copywrite 2012 - Oregon State University
 #include "stdafx.h"
 #include "ScenarioEditor.h"
 #include <Scenario.h>
-#include <Policy.h>
+#include <EnvPolicy.h>
 #include <EnvModel.h>
 #include "EnvDoc.h"
 
@@ -201,7 +201,7 @@ void ScenarioEditor::LoadScenario()
    // set policy uses
    for ( int i=0; i < gpPolicyManager->GetPolicyCount(); i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
       
       POLICY_INFO *pInfo = m_pScenario->GetPolicyInfo( pPolicy->m_name );
       if ( pInfo == NULL )

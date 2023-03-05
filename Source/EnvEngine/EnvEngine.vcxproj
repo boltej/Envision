@@ -219,8 +219,8 @@
     <ClCompile Include="EnvExtension.cpp" />
     <ClCompile Include="EnvLoader.cpp" />
     <ClCompile Include="EnvModel.cpp" />
+    <ClCompile Include="EnvPolicy.cpp" />
     <ClCompile Include="EnvProcessScheduler.cpp" />
-    <ClCompile Include="Policy.cpp" />
     <ClCompile Include="PolicyOutcomeLexer.cpp" />
     <ClCompile Include="PolicyOutcomeParser.cpp" />
     <ClCompile Include="Scenario.cpp" />
@@ -244,8 +244,8 @@
     <ClInclude Include="EnvExtension.h" />
     <ClInclude Include="EnvLoader.h" />
     <ClInclude Include="EnvModel.h" />
+    <ClInclude Include="EnvPolicy.h" />
     <ClInclude Include="EnvProcessScheduler.h" />
-    <ClInclude Include="Policy.h" />
     <ClInclude Include="PolicyOutcomeParser.hpp" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="Scenario.h" />

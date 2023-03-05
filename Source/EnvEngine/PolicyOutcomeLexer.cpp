@@ -19,14 +19,14 @@ Copywrite 2012 - Oregon State University
 */
 #include "stdafx.h"
 
-#include "Policy.h"
+#include "EnvPolicy.h"
 #include "PolicyOutcomeParser.hpp"
 
 
 // Globals
 CString pogBuffer;
 int pogIndex = -1;
-Policy *poPolicy = NULL;
+EnvPolicy *poPolicy = NULL;
 MultiOutcomeArray *pogpMultiOutcomeArray = NULL;
 CStringArray pogStringArray;
 CString poPolicyName;  // for reporting errors - should be set before calling poparse()

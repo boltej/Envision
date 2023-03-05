@@ -26,7 +26,7 @@ Copywrite 2012 - Oregon State University
 #include "Envision.h"
 #include <EnvModel.h>
 #include ".\policycolordlg.h"
-#include <Policy.h>
+#include <EnvPolicy.h>
 
 
 extern PolicyManager *gpPolicyManager;
@@ -81,7 +81,7 @@ void PolicyColorDlg::OnBnClickedOk()
 
    for ( int i=0; i < gpPolicyManager->GetPolicyCount(); i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
 
       for ( int j=0; j < count; j++ )
          {
@@ -97,7 +97,7 @@ void PolicyColorDlg::OnBnClickedOk()
 
    for ( int i=0; i < gpPolicyManager->GetPolicyCount(); i++ )
       {
-      Policy *pPolicy = gpPolicyManager->GetPolicy( i );
+      EnvPolicy *pPolicy = gpPolicyManager->GetPolicy( i );
 
       int _red = 0, _green = 0, _blue = 0;
 

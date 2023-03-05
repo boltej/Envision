@@ -22,7 +22,7 @@ Copywrite 2012 - Oregon State University
 #include "resource.h"
 #include "afxwin.h"
 
-class Policy;
+class EnvPolicy;
 
 
 // OutcomeEditor dialog
@@ -32,13 +32,13 @@ class OutcomeEditor : public CDialog
 	DECLARE_DYNAMIC(OutcomeEditor)
 
 public:
-	OutcomeEditor(Policy *pPolicy, CWnd* pParent = NULL);   // standard constructor
+	OutcomeEditor(EnvPolicy *pPolicy, CWnd* pParent = NULL);   // standard constructor
 	virtual ~OutcomeEditor();
 
 // Dialog Data
 	enum { IDD = IDD_OUTCOMEEDITOR };
 
-   Policy   *m_pPolicy;
+   EnvPolicy   *m_pPolicy;
 
    bool      m_isDirty;
 
