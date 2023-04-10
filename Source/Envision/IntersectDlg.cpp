@@ -261,7 +261,7 @@ void IntersectDlg::OnBnClickedBrowse()
    CString filename( dlg.GetFileTitle() );
    CWaitCursor c;
    EnvLoader loader;
-   int layer = loader.LoadLayer( pMap, filename, path, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, false, true );
+   int layer = loader.LoadLayer( pMap, filename, path, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, false, true, 1 );
 
    if ( layer >= 0 )
       {

@@ -402,8 +402,9 @@ class Evaluator : public ModelBase, public EnvEvaluator
       EVAL_TYPE   m_evalType;
       EVAL_METHOD m_evalMethod;
 
-      float m_lowerBound;
-      float m_upperBound;
+      bool m_autoBounds = false;
+      float m_lowerBound=0;
+      float m_upperBound=0;
 
       float m_score;
       float m_rawScore;

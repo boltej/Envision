@@ -225,6 +225,12 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                   float value = (float)pFD->m_pMapExpr->GetValue();
                   ASSERT(std::isnan(value) == false);
 
+                  if (pFD->m_minLimit != LONG_MAX && value < pFD->m_minLimit)
+                     value = pFD->m_minLimit;
+                     
+                  if (pFD->m_maxLimit != LONG_MIN && value > pFD->m_maxLimit)
+                     value = pFD->m_maxLimit;
+
                   if (ok)
                      {
                      if (pFD->IsGroupBy())
@@ -453,6 +459,8 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "field",        TYPE_CSTRING,  &pFD->m_field,        true,  CC_AUTOADD | TYPE_FLOAT },
                          { "query",        TYPE_CSTRING,  &pFD->m_queryStr,    false, 0 },
                          { "value",        TYPE_CSTRING,  &pFD->m_mapExprStr,  true,  0 },
+                         { "max_limit",    TYPE_FLOAT,    &pFD->m_maxLimit,    false, 0 },
+                         { "min_limit",    TYPE_FLOAT,    &pFD->m_minLimit,    false, 0 },
                          { "use_delta",    TYPE_BOOL,     &pFD->m_useDelta,    false, 0 },
                          { "initialize",   TYPE_BOOL,     &pFD->m_initColData, false, 0 },
                          { "groupby",      TYPE_CSTRING,  &pFD->m_groupBy,     false, 0 },
@@ -473,7 +481,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                if (op == nullptr)
                   {
                   CString msg;
-                  msg.Format("  Warning - Field Definition using groupby should specify operation - AREAWTMEAN() assumed!");
+                  msg.Format("Warning - Field Definition using groupby should specify operation - AREAWTMEAN() assumed!");
                   Report::WarningMsg(msg);
                   pFD->m_operator = FCOP_AREAWTMEAN;
                   }

@@ -3913,14 +3913,29 @@ bool DataManager::ExportRunMap( LPCTSTR path, int run /*=-1*/ )    // assume pat
    scname.Replace( '>', '_');
    scname.Replace( '|', '_');
 
-   CString filename;
-   filename.Format( _T("%sMap_Year%i_%s_Run%i.shp" ), path, m_pEnvModel->m_currentYear, (LPCTSTR) scname, scrun + m_pEnvModel->m_startRunNumber );
 
-   CString msg( "Exporting map: " );
-   msg += filename;
-   Report::StatusMsg( msg );
+   Map* pMap = m_pEnvModel->m_pIDULayer->GetMapPtr();
 
-   m_pEnvModel->m_pIDULayer->SaveShapeFile( filename );
+   for (int i = 0; i < pMap->GetLayerCount(); i++)
+      {
+      MapLayer* pMapLayer = pMap->GetLayer(i);
+
+      if (pMapLayer->m_output)
+         {
+         CString layerName = pMapLayer->m_name;
+         layerName.Replace(' ', '_');
+
+         CString filename;
+         filename.Format(_T("%s%s_Year%i_%s_Run%i.shp"), path, (LPCTSTR)layerName, m_pEnvModel->m_currentYear, (LPCTSTR)scname, scrun + m_pEnvModel->m_startRunNumber);
+
+         CString msg("Exporting map: ");
+         msg += filename;
+         Report::StatusMsg(msg);
+
+         pMapLayer->SaveShapeFile(filename);
+         //m_pEnvModel->m_pIDULayer->SaveShapeFile(filename);
+         }
+      }
    return true;
    }
 

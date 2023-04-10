@@ -40,7 +40,7 @@ class ENVAPI EnvLoader
       ~EnvLoader();
 
       int LoadProject(LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MAPPROC mapFn=NULL);
-      int LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, int red, int green, int blue, int extraCols, int records, LPCTSTR initField, LPCTSTR overlayFields, bool loadFieldInfo, bool expandLegend );
+      int LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, int red, int green, int blue, int extraCols, int records, LPCTSTR initField, LPCTSTR overlayFields, bool loadFieldInfo, bool expandLegend, int output );
       
       //int LoadFieldInfoXml( MapLayer *pLayer, LPCTSTR _filename );
 
@@ -68,7 +68,7 @@ class ENVAPI EnvLoader
       void InitVisualizers( void );
 
       // Note: valid 'types' are -1=detect from extension, 0=shape, 1=integer grid, 2=float grid
-      MapLayer *AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, int records, bool loadFieldInfo, bool expandLegend );
+      MapLayer *AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, int records, bool loadFieldInfo, bool expandLegend, int output );
 
       int AddGDALPath(LPCTSTR envPath);
    };

@@ -116,8 +116,8 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
    if ( pInfo == NULL || m_colStratifyField < 0 )
       {
       CString msg;
-      msg.Format( "Reporter:  Field Information for field '%s' specified in 'stratify_by' attribute could not be found in the IDU coverage",
-                  (LPCTSTR) m_stratifyField );
+      msg.Format( "Field Information for field '%s' specified in 'stratify_by' attribute could not be found in the %s coverage",
+                  (LPCTSTR) m_stratifyField,(LPCTSTR) pLayer->m_name );
       Report::ErrorMsg( msg );
       return -1;
       }
@@ -129,7 +129,7 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
       if ( p == NULL )
          {
          CString msg;
-         msg.Format( "Reporter: Syntax error reading '%s': invalid value list specified for field '%s'", 
+         msg.Format( "Syntax error reading '%s': invalid value list specified for field '%s'", 
             stratifyBy, (LPCTSTR) m_stratifyField );
          Report::ErrorMsg( msg );         
          }
@@ -141,7 +141,7 @@ int Stratifiable::ParseFieldSpec( LPCTSTR stratifyBy, MapLayer *pLayer )
          if ( end == NULL )
             {
             CString msg;
-            msg.Format( "Reporter: Syntax error reading '%s': missing list terminator", stratifyBy );
+            msg.Format( "Syntax error reading '%s': missing list terminator", stratifyBy );
             Report::ErrorMsg( msg );
             return -2;
             }
@@ -1207,15 +1207,16 @@ int Reporter::LoadXmlOutputs( TiXmlElement *pXmlParent, OutputGroup *pGroup,  Ma
             {
             MapExprEngine *pEngine = FindMapExprEngine( pOutput->m_pMapLayer );
             if ( pEngine == NULL )
+               {
                m_mapExprEngineArray.Add(pOutput->m_pMapLayer->GetMapExprEngine());  // pEngine = new MapExprEngine(pOutput->m_pMapLayer, pQueryEngine) );
 
-            if (pOutput->m_pMapLayer->GetType() == LT_LINE)
-               m_colAreaArray.Add(pOutput->m_pMapLayer->GetFieldCol("LENGTH"));
-            else if (pOutput->m_pMapLayer->GetType() == LT_POINT)
-               m_colAreaArray.Add(-1);
-            else
-               m_colAreaArray.Add( pOutput->m_pMapLayer->GetFieldCol( "AREA"));
-            //   }
+               if (pOutput->m_pMapLayer->GetType() == LT_LINE)
+                  m_colAreaArray.Add(pOutput->m_pMapLayer->GetFieldCol("LENGTH"));
+               else if (pOutput->m_pMapLayer->GetType() == LT_POINT)
+                  m_colAreaArray.Add(-1);
+               else
+                  m_colAreaArray.Add( pOutput->m_pMapLayer->GetFieldCol( "AREA"));
+               }
 
             //pOutput->m_pQueryEngine = pOutput->m_pMapLayer->GetQueryEngine();
             pOutput->m_pMapExprEngine = pOutput->m_pMapLayer->GetMapExprEngine();

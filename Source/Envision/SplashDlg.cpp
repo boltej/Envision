@@ -291,7 +291,7 @@ bool SplashDlg::CreateNewProject()
 
       // create default envx file (with default policy file )
       EnvLoader loader;
-      loader.LoadLayer( gpMapPanel->m_pMap, _T("IDU"), newIniDlg.m_step2.m_pathLayer, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, true, true );
+      loader.LoadLayer( gpMapPanel->m_pMap, _T("IDU"), newIniDlg.m_step2.m_pathLayer, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, true, true, 1 );
 
       // ini file
       CString iniFile( newIniDlg.m_step1.m_pathIni );

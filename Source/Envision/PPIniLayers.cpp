@@ -247,7 +247,7 @@ void PPIniLayers::OnBnClickedAddlayer()
 
       CWaitCursor c;
       EnvLoader loader;
-      loader.LoadLayer( gpMapPanel->m_pMap, path, path, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, true, true );
+      loader.LoadLayer( gpMapPanel->m_pMap, path, path, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, true, true, 0 );
 
       gpMapPanel->m_mapFrame.RefreshList();
       LoadLayer();

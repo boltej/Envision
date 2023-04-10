@@ -203,7 +203,7 @@ void MergeDlg::OnBnClickedBrowse()
       {
       CWaitCursor c;
       EnvLoader loader;
-      int layer = loader.LoadLayer( gpMapPanel->m_pMap, _T("SpatialJoinLayer"), filename, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, false, true );
+      int layer = loader.LoadLayer( gpMapPanel->m_pMap, _T("SpatialJoinLayer"), filename, AMLT_SHAPE, 0,0,0, 0, -1, NULL, NULL, false, true,0 );
 
       if ( layer >= 0 )
          {

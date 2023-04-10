@@ -366,7 +366,7 @@ bool UrbanDev::Run( EnvContext *pContext )
          {
          int nDUs = 0;
          pLayer->GetData(i, this->m_colNDU, nDUs);
-         m_prevNDUs[i] = m_nDUs[i] = nDUs;      // remember previous values
+         m_prevNDUs[i] = m_nDUs[i] = nDUs;      // remember previous values in dedicated arrays
 
          if (pContext->yearOfRun == 0)
             m_startNDUs[i] = nDUs;
@@ -715,13 +715,13 @@ void UrbanDev::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
 
    // report results
    CString msg;
-   msg.Format( "  DU Deficits (PopDens-derived - actual DUs) - Year %i", pContext->currentYear );
+   msg.Format( "DU Deficits (PopDens-derived - actual DUs) - Year %i", pContext->currentYear );
    Report::Log( msg );
    for ( int i=0; i < m_duAreaArray.GetSize(); i++ )
       {
       DUArea *pDUArea = m_duAreaArray[ i ]; 
       pDUArea->m_duDeficit = nduDeficits[ i ];
-      msg.Format( "  %s - DU deficit=%i", (LPCTSTR) pDUArea->m_name, (int) nduDeficits[ i ] );
+      msg.Format( "%s - DU deficit=%i", (LPCTSTR) pDUArea->m_name, (int) nduDeficits[ i ] );
       Report::Log( msg );
       }
 
@@ -802,7 +802,7 @@ void UrbanDev::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
          deficit += nduDeficits[ j ];
 
       CString msg;
-      msg.Format( "  DU deficits remaining after Year %i allocations = %i.  IDU Counts %i of %i examined", pContext->currentYear, (int) deficit, allocatedIduCount, i );
+      msg.Format( "DU deficits remaining after Year %i allocations = %i.  IDU Counts %i of %i examined", pContext->currentYear, (int) deficit, allocatedIduCount, i );
       Report::Log( msg );
 
       for ( int i=0; i < m_duAreaArray.GetSize(); i++ )
@@ -811,7 +811,7 @@ void UrbanDev::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
 
          int newPop = int( pDUArea->m_population - pDUArea->m_lastPopulation );
          CString msg;
-         msg.Format( "  %s - New Pop: %i starting DU deficit: %i, ending DU deficit=%i", 
+         msg.Format( "%s - New Pop: %i starting DU deficit: %i, ending DU deficit=%i", 
             (LPCTSTR) pDUArea->m_name, newPop, (int) pDUArea->m_duDeficit, (int) nduDeficits[ i ] );
          Report::Log( msg );
          }
@@ -825,7 +825,7 @@ void UrbanDev::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
       //pDUArea->m_newDUs = 0; 
       }
 
-   // write results to delta array
+   // write results back to IDUs
    int totalDUs = 0, totalStartDUs=0, totalNewDUs=0;
    for ( MapLayer::Iterator idu=pLayer->Begin(); idu < pLayer->End(); idu++ )
       {
@@ -1325,7 +1325,7 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
 
    if ( pXmlDUs != NULL )
       {
-      LPTSTR duCol=LPTSTR("N_DU"), newDUCol= LPTSTR("New_DU"), initFrom= LPTSTR("none");
+      LPTSTR duCol=LPTSTR("N_DU"), newDUCol= LPTSTR("NEW_DU"), initFrom= LPTSTR("none");
 
       XML_ATTR dwellingAttrs[] = {
             // attr         type         address      isReq  checkCol
@@ -1338,7 +1338,7 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
       if ( ! ok )
          {
          CString msg; 
-         msg.Format( _T("Misformed root element reading <dwellings> attributes in input file %s"), filename );
+         msg.Format( _T("Misformed root element reading <dwellings> attributes in input file %s"), (LPCTSTR) filename );
          Report::ErrorMsg( msg );
          return false;
          }
@@ -1433,10 +1433,10 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             { "pop_cap_col",    TYPE_STRING, &popCapCol,     true,   CC_MUST_EXIST },
             { "near_dist_col",  TYPE_STRING, &distCol,       true,   CC_MUST_EXIST },
             { "near_uga_col",   TYPE_STRING, &nearUgaCol,    true,   CC_MUST_EXIST },
-            { "priority_col",   TYPE_STRING, &priorityCol,   true,   CC_AUTOADD | TYPE_LONG },
-            { "event_col",      TYPE_STRING, &eventCol,      true,   CC_AUTOADD | TYPE_LONG },
-            { "impervious_col", TYPE_STRING, &imperviousCol, true,   CC_AUTOADD | TYPE_FLOAT },
-            { "uga_pop_col",    TYPE_STRING, &ugaPopCol,     true,   CC_AUTOADD | TYPE_FLOAT },
+            { "priority_col",   TYPE_STRING, &priorityCol,   false,  CC_AUTOADD | TYPE_LONG },
+            { "event_col",      TYPE_STRING, &eventCol,      false,  CC_AUTOADD | TYPE_LONG },
+            { "impervious_col", TYPE_STRING, &imperviousCol, false,  CC_AUTOADD | TYPE_FLOAT },
+            { "uga_pop_col",    TYPE_STRING, &ugaPopCol,     false,  CC_AUTOADD | TYPE_FLOAT },
             { NULL,             TYPE_NULL,   NULL,           false,   0 } };
          
       ok = TiXmlGetAttributes( pXmlUGAExpansions, uxAttrs, filename, pLayer );
@@ -1455,8 +1455,19 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
       this->m_colUgEvent        = pLayer->GetFieldCol( eventCol );
       this->m_colUgNearUga      = pLayer->GetFieldCol(nearUgaCol);
       this->m_colUgNearDist     = pLayer->GetFieldCol(distCol);
-      this->m_colImpervious     = pLayer->GetFieldCol(imperviousCol);
-      this->m_colUgaPop         = pLayer->GetFieldCol(ugaPopCol);
+
+      // optional fields
+      if ( priorityCol)
+         this->m_colUgPriority = pLayer->GetFieldCol(priorityCol);
+   
+      if ( eventCol)
+         this->m_colUgEvent = pLayer->GetFieldCol(eventCol);
+   
+      if ( imperviousCol)
+         this->m_colImpervious = pLayer->GetFieldCol(imperviousCol);
+      
+      if ( ugaPopCol)
+         this->m_colUgaPop = pLayer->GetFieldCol(ugaPopCol);
 
       m_expandUGAs = true;
 
@@ -2031,10 +2042,13 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
             UpdateIDU(pContext, expandArray[j], m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
             UpdateIDU(pContext, expandArray[j], m_colUgEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
             UpdateIDU(pContext, expandArray[j], m_colZone, m_pCurrentUgScenario->m_zoneRes, ADD_DELTA);
-
-            float impFrac = GetImperviousFromZone(m_pCurrentUgScenario->m_zoneRes);
-            impFrac *= m_pCurrentUgScenario->m_imperviousFactor;
-            UpdateIDU(pContext, expandArray[j], m_colImpervious, impFrac, ADD_DELTA);
+            
+            if (m_colImpervious >= 0)
+               {
+               float impFrac = GetImperviousFromZone(m_pCurrentUgScenario->m_zoneRes);
+               impFrac *= m_pCurrentUgScenario->m_imperviousFactor;
+               UpdateIDU(pContext, expandArray[j], m_colImpervious, impFrac, ADD_DELTA);
+               }
 
             // have we annexed enough area? then stop
             if (resArea >= resExpArea)
@@ -2122,8 +2136,8 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
    else
       {
       CString msg;
-      msg.Format("%s Expansion Event:  Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event:%i, Current Capacity (frac): %.2f",
-         pUGA->m_name, (LPCTSTR)pExpand->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1, pUGA->m_pctAvailCap);
+      msg.Format("%s Expansion Event: Trigger: %s, Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event:%i, Current Capacity (frac): %.2f",
+         (LPCTSTR) pUGA->m_name, (LPCTSTR)pExpand->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1, pUGA->m_pctAvailCap);
       Report::Log(msg);
       pUGA->m_currentEvent++;
       }
@@ -2418,8 +2432,11 @@ float UrbanDev::UgUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
       pUGA->m_avgAllowedDensity += allowedDens * area;   //#
 
       float impervious = 0;
-      pLayer->GetData(idu, m_colImpervious, impervious);
-      pUGA->m_impervious += impervious * area;
+      if (m_colImpervious >= 0)
+         {
+         pLayer->GetData(idu, m_colImpervious, impervious);
+         pUGA->m_impervious += impervious * area;
+         }
       }
 
    // normalize as needed
@@ -2769,6 +2786,10 @@ float UrbanDev::GetImperviousFromZone(int zone)
 
 void UrbanDev::UgUpdateImperiousFromZone( EnvContext *pContext)
    {
+   
+   if (m_colImpervious < 0)
+      return;
+
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
@@ -2783,6 +2804,9 @@ void UrbanDev::UgUpdateImperiousFromZone( EnvContext *pContext)
 
 void UrbanDev::UpdateUGAPops(EnvContext* pContext)
    {
+   if (m_colUgaPop < 0)
+      return;
+
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    bool readOnly = pLayer->m_readOnly;

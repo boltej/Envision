@@ -361,6 +361,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          int labelSize = 0;
          int linesize = 0;
          int expandLegend = 0;
+         int output = 0;
          LPCTSTR color = _T("140,140,140");    // lt gray
          LPCTSTR labelColor = _T("255,255,255");     // white
          LPCTSTR labelFont="Arial";
@@ -383,6 +384,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             { _T("type"),            TYPE_INT,      &type,             false,   0 },
             { _T("records"),         TYPE_INT,      &records,          false,  0 },
             { _T("includeData"),     TYPE_INT,      &data,             false,  0 },  // deprecated. ignored
+            { _T("output"),          TYPE_INT,      &output,           false,  0 },
             { _T("expandLegend"),    TYPE_INT,      &expandLegend,     false,  0 },
 
             { NULL,                  TYPE_NULL,     NULL,              false,  0 } };
@@ -406,7 +408,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          if ( fieldInfoFile != NULL && fieldInfoFile[ 0 ] != '\0' )
             loadFieldInfo = false;
          
-         int layerIndex = LoadLayer( m_pMap, name, path, (AML_TYPE) type, red, green, blue, 0, records, initField, overlayFields, loadFieldInfo, expandLegend ? true : false );
+         int layerIndex = LoadLayer( m_pMap, name, path, (AML_TYPE) type, red, green, blue, 0, records, initField, overlayFields, loadFieldInfo, expandLegend ? true : false, output );
          if ( layerIndex < 0 )
             {
             CString msg;
@@ -422,6 +424,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          if ( layerIndex == 0 )
             {
             m_pIDULayer = m_pMap->GetLayer( 0 );
+            m_pIDULayer->m_output = 1;    // always include IDUs in outputs
 
             m_pEnvModel->SetIDULayer( m_pIDULayer ); // creates query engine for IDU layer
             m_pQueryEngine = m_pEnvModel->m_pQueryEngine;
@@ -1381,7 +1384,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
 
 
-int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type,  int red, int green, int blue, int extraCols, int records, LPCTSTR initField, LPCTSTR overlayFields, bool loadFieldInfo, bool expandLegend )
+int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type,  int red, int green, int blue, int extraCols, int records, LPCTSTR initField, LPCTSTR overlayFields, bool loadFieldInfo, bool expandLegend, int output )
    {
    m_pMap = pMap;
    ASSERT ( m_pMap != NULL );
@@ -1391,7 +1394,7 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
    // note: name will point to a name of the coverage, this is not the same as the path or filename
    //       path will be the fully or partially qualified path/filename
    // note: ExtraCols will be set to not save by default
-   MapLayer *pLayer = AddMapLayer( path, type, extraCols, records, loadFieldInfo, expandLegend );
+   MapLayer *pLayer = AddMapLayer( path, type, extraCols, records, loadFieldInfo, expandLegend, output );
 
    if ( pLayer != NULL )      // map successfully added?
       {
@@ -1481,7 +1484,7 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
    }
 
 
-MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, int records, bool loadFieldInfo, bool expandLegend )
+MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, int records, bool loadFieldInfo, bool expandLegend, int output )
    {
    // add the layer to the map
    ASSERT( m_pMap != NULL );
@@ -1549,6 +1552,7 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
    if ( pLayer != NULL )
       {
       pLayer->m_expandLegend = expandLegend;
+      pLayer->m_output = output;
 
       CString msg;
       msg.Format( "Loaded layer %s: %i (%i) columns, %i rows", (PCTSTR) path, pLayer->GetColCount(), pLayer->m_pData->GetColCount(), pLayer->GetRowCount() );
@@ -1583,6 +1587,7 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
          }
 #endif
       }  // end of: if ( pLayer == NULL )
+
 
    m_pMap->m_name = path;
 

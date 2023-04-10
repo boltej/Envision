@@ -454,6 +454,8 @@ class SNLayer
 
       SNNode* FindNode(LPCTSTR name);
       SNNode* GetNode(int i) { return m_nodes[i]; }
+      int GetNodes(SNIP_NODETYPE, vector<SNNode*>&);
+
       //SNNode *GetInputNode( void )     { return m_pInputNode; }  
       int GetNodeCount(void) { return (int)m_nodes.size(); }
       int GetNodeCount(SNIP_NODETYPE type) { int count = 0; for (int i = 0; i < GetNodeCount(); i++) if (m_nodes[i]->m_nodeType == type) count++; return count; }
@@ -496,7 +498,9 @@ class SNIPModel
 
    protected:
       bool m_use = true;
-      int m_colAdapt = -1;
+      int m_colIDUAdapt = -1;
+      int m_colIDUProfileID = -1;
+
       json m_networkJSON; // / networkInfo = null;   // dictionary with description, traits, etc read from JSON file
 
       std::string m_name;
@@ -546,6 +550,8 @@ class SNIPModel
 
       vector<string> m_traitsLabels;
       map<string, int> m_traitsMap;
+
+      std::map<int, int> m_profileLookupMap;  // key= profile ID, value=index in csv file
 
       // network generation parameters
       static RandUniform m_randShuffle;
@@ -629,6 +635,7 @@ class SNIPModel
       int GetNodeCount() { return m_pSNLayer->GetNodeCount(); }
       SNEdge* GetEdge(int i) { return m_pSNLayer->GetEdge(i); }
       SNNode* GetNode(int i) { return m_pSNLayer->GetNode(i); }
+
 
       // stats
       int GetMaxDegree(bool);

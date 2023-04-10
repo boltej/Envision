@@ -30,6 +30,7 @@ Copywrite 2012 - Oregon State University
 #include <PathManager.h>
 #include <randgen\randunif.hpp>
 
+#include <limits.h>
 #include <omp.h>
 
 
@@ -1301,6 +1302,14 @@ bool Evaluator::Run( EnvContext *pEnvContext)
    m_pCollection->UpdateGlobalExtentVariables( pEnvContext, 1, useAddDelta ); // this evaluates all global-extent variables, including model-scope variables
 
    // scale to (-3, +3)
+   if (m_autoBounds)
+      {
+
+
+
+      }
+
+
    float range = m_upperBound - m_lowerBound;
    m_score = ((( m_rawScore - m_lowerBound ) / range) * 6) - 3;
          
@@ -1476,6 +1485,11 @@ bool Evaluator::RunMap( EnvContext *pEnvContext, bool useAddDelta )
 bool Evaluator::RunDelta( EnvContext *pEnvContext )
    {
    ASSERT( m_useDelta == true );
+
+   float lb = LONG_MAX;
+   float up = LONG_MIN;
+   float mean = 0;
+   float stddev = 0;
 
    m_rawScore = 0;
 
@@ -2384,6 +2398,7 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
    //
    Evaluator* pEval = new Evaluator(this);
    LPCTSTR constraints=nullptr, evalType=nullptr, method=nullptr, type=nullptr;
+   LPCTSTR lb = nullptr, ub = nullptr;
 
    XML_ATTR attrs[] = {
       // attr                     type          address                     isReq  checkCol
@@ -2392,8 +2407,10 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
       { _T("value"),             TYPE_CSTRING,  &pEval->m_valueExpr,       true,    0 },
       { _T("use_delta"),         TYPE_CSTRING,  &pEval->m_deltaStr,        false,   0 },
       { _T("eval_type"),         TYPE_STRING,   &evalType,                 true,    0 },
-      { _T("lower_bound"),       TYPE_FLOAT,    &pEval->m_lowerBound,      true,    0 },
-      { _T("upper_bound"),       TYPE_FLOAT,    &pEval->m_upperBound,      true,    0 },
+      //{ _T("lower_bound"),       TYPE_FLOAT,    &pEval->m_lowerBound,      true,    0 },
+      //{ _T("upper_bound"),       TYPE_FLOAT,    &pEval->m_upperBound,      true,    0 },
+      { _T("lower_bound"),       TYPE_STRING,   &lb,                        true,    0 },
+      { _T("upper_bound"),       TYPE_STRING,   &ub,                        true,    0 },
       { _T("method"),            TYPE_STRING,   &method,                   true,    0 },
       { _T("constraints"),       TYPE_STRING,   &constraints,              false,   0 },
       { _T("type"),              TYPE_STRING,   &type,                     false,   0 },
@@ -2421,7 +2438,15 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
       return false;
       }
 
-         
+   if (lb == nullptr || lb[0] == 'a' || ub == nullptr || ub[0] == 'a')
+      pEval->m_autoBounds=true;
+   else
+      {
+      pEval->m_autoBounds = false;
+      pEval->m_lowerBound = atof(lb);
+      pEval->m_upperBound = atof(ub);
+      }
+
    EVAL_METHOD _evalMethod = EM_AREAWTMEAN;
    if (method != nullptr)
       {

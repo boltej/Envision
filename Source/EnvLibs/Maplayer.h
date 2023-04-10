@@ -531,6 +531,7 @@ class  LIBSAPI  MapLayer
       bool   m_3D;
       int    m_recordsLoaded; // -1 for all, count for something less than all...
       bool   m_readOnly;
+      int    m_output=0;        // where this map is exported in results
 
    protected:
       // Bin managment

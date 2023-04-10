@@ -404,14 +404,14 @@ protected:
    PtrArray< ZoneInfo > m_resZoneArray;
    PtrArray< ZoneInfo > m_commZoneArray;
 
-   int m_colPopCap;
-   int m_colUgNearDist;
-   int m_colUgNearUga;
-   int m_colUgPriority;   // input (optional) - if defined, indicates priority of expansions (0=high)
-   int m_colUgEvent;      // output, tags locations for each DUArea expansion event
-   int m_colPopDensInit;      // initial population density
-   int m_colImpervious;
-   int m_colUgaPop;
+   int m_colPopCap=-1;
+   int m_colUgNearDist = -1;
+   int m_colUgNearUga = -1;
+   int m_colUgPriority = -1;   // input (optional) - if defined, indicates priority of expansions (0=high)
+   int m_colUgEvent = -1;      // output, tags locations for each DUArea expansion event
+   int m_colPopDensInit = -1;      // initial population density
+   int m_colImpervious = -1;
+   int m_colUgaPop = -1;
 
    // methods
    int UgAddExpandWhen( UgScenario *pScenario, UgExpandWhen *pExpandWhen);
@@ -434,10 +434,10 @@ protected:
    //-- general --------------------------------------
    void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &m_randShuffle ); }
 
-   int m_colUga;
-   int m_colZone;
-   int m_colPopDens;
-   int m_colArea;
+   int m_colUga = -1;
+   int m_colZone = -1;
+   int m_colPopDens = -1;
+   int m_colArea = -1;
 
    // data collection
    FDataObj* m_pUgData;
