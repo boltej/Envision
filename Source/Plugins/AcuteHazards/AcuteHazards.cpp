@@ -242,7 +242,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    // Repeat for TSUNAMI
    //---------------------
 
-   msg = "Acute Hazards: reading building damage parameter file ";
+   msg = "Acute Hazards: reading tsunami damage parameter file ";
    msg += this->m_tsunamiInputPath;
    this->m_tsunamiData.ReadAscii(this->m_tsunamiInputPath, ',', 0);
 

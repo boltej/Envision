@@ -527,14 +527,14 @@ bool QNode::Solve( void )
                   wantedArea += (double)area;   // then add to wanted area
                }
 
-            /*
+            
             if ( totalArea <= 0.0f )
                m_value = 0.0;
             else
-               m_value = wantedArea/totalArea;*/
-            m_value = false;
-            if ( totalArea > 0.0f && wantedArea/totalArea >= areaConstraint )
-               m_value = true;
+               m_value = wantedArea/totalArea;
+            //m_value = false;
+            //if ( totalArea > 0.0f && wantedArea/totalArea >= areaConstraint )
+            //   m_value = true;
             
             _gpQueryEngine->SetCurrentRecord( currentRecord );
 

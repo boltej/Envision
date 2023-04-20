@@ -148,7 +148,7 @@ PolyGridMapper::PolyGridMapper(MapLayer *pPolyMapLayer, MapLayer *pGridMapLayer,
 		for (int row = 0; row < m_numGridRows; row++)
 			{
 			CString msg;
-			msg.Format("PolyGridMapper Build: %i%%", 100 * row / m_numGridRows);
+			msg.Format("PolyGridMapper Build for %s (%ix%i): %i%%", fName, m_numGridRows, this->m_numGridCols, (100 * row / m_numGridRows));
 			Report::StatusMsg(msg);
 
 #pragma omp parallel for
@@ -237,7 +237,6 @@ PolyGridMapper::PolyGridMapper(MapLayer *pPolyMapLayer, MapLayer *pGridMapLayer,
 
 		// Build the final Compressed Sparse Matrix from the individual vectors
 		BuildCSM(arrayOfGridCellPtrs);
-
 
 		// The grid lookup table is complete, now create the poly lookup table
 		Report::StatusMsg("Finishing up...");

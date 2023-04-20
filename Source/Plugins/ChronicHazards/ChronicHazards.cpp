@@ -2072,14 +2072,13 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
 
    // load grid
    Map* pMap = m_pDuneLayer->GetMapPtr();
-   CString grdFile("Tillamook_Max_Flooding_Depths1.asc");
 
    Report::StatusMsg("Loading flooded depth grid");
    if (m_pFloodedGrid != nullptr)
       m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
 
+   CString grdFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
    m_pFloodedGrid = pMap->AddGridLayer(grdFile, DO_TYPE::DOT_FLOAT);
-
 
    CalculateFloodImpacts(pEnvContext);
 
