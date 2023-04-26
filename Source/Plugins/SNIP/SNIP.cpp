@@ -209,6 +209,97 @@ bool SNLayer::Init()
    return true;
    }
 
+int SNLayer::GetNodes(SNIP_NODETYPE nodeType, vector<SNNode*> &nodes)
+   {
+   nodes.resize(0);
+
+   for (auto node : this->m_nodes)
+      {
+      if (node->m_nodeType == nodeType)
+         nodes.push_back(node);
+      }
+   return (int) nodes.size();
+   }
+
+
+
+SNNode* SNLayer::FindNode(LPCTSTR name)
+   {
+   //int nodeCount = this->GetNodeCount();
+   //for (int i = 0; i < nodeCount; i++)
+   //   {
+   //   if (this->GetNode(i)->m_name.CompareNoCase(name) == 0)
+   //      return this->GetNode(i);
+   //   }
+   map< string, SNNode* >::iterator itr;
+
+   SNNode* node1 = nullptr;
+   int count = 0;
+   for (itr = m_nodeMap.begin(); itr != m_nodeMap.end(); ++itr) {
+      count++;
+      if (itr->first == "Landscape Signal")
+         node1 = itr->second;
+      }
+
+   try {
+      SNNode* node = m_nodeMap.at(name);
+      return node;
+      }
+   catch(exception e) {
+      CString msg;
+      msg.Format("Exception encountered finding node %s", name);
+      Report::LogError(msg);
+      }
+   return nullptr;
+   }
+
+
+bool SNLayer::RemoveNode(SNNode* pNode)
+   {
+   // remove from node array
+   //m_nodes.Remove(pNode);  // also deletes node
+   delete pNode;
+   std::erase(m_nodes, pNode);
+
+   // remove from nodeMap
+   for (std::map<std::string, SNNode*>::iterator it = m_nodeMap.begin(); it != m_nodeMap.end();)
+      {
+      if ((it->second) == pNode)
+         {
+         it = m_nodeMap.erase(it);
+         break;
+         }
+      else
+         it++;
+      }
+   // remove any edges that point from/to this node.
+   for (int i = 0; i < (int)m_edges.size(); i++)
+      {
+      SNEdge* pEdge = m_edges[i];
+      if (pEdge->m_pFromNode == pNode)
+         {
+         //m_edges.Remove(pEdge);
+         std::erase(m_edges, pEdge);
+         for ( int j=0; j < (int) pEdge->m_pFromNode->m_outEdges.size(); j++)
+            if (pEdge->m_pFromNode->m_outEdges[j] == pEdge)
+               {
+               std::erase(pEdge->m_pFromNode->m_outEdges, pEdge);
+               break;
+               }   
+                  
+         for (int j = 0; j < (int)pEdge->m_pToNode->m_inEdges.size(); j++)
+            if (pEdge->m_pToNode->m_inEdges[j] == pEdge)
+               {
+               std::erase(pEdge->m_pToNode->m_inEdges, pEdge); // .RemoveAt(j);
+               break;
+               }
+
+         i--;
+         }
+      }
+
+   return true;
+   }
 
 
 bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
@@ -704,7 +795,6 @@ void SNLayer::_AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sour
    }
 
 
-
 int SNLayer::CheckNetwork()
    {
    int nIslandNodes = 0;
@@ -1114,100 +1204,6 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
 
    return pEdge;
    }
-
-
-int SNLayer::GetNodes(SNIP_NODETYPE nodeType, vector<SNNode*> &nodes)
-   {
-   nodes.resize(0);
-
-   for (auto node : this->m_nodes)
-      {
-      if (node->m_nodeType == nodeType)
-         nodes.push_back(node);
-      }
-   return (int) nodes.size();
-   }
-
-
-
-SNNode* SNLayer::FindNode(LPCTSTR name)
-   {
-   //int nodeCount = this->GetNodeCount();
-   //for (int i = 0; i < nodeCount; i++)
-   //   {
-   //   if (this->GetNode(i)->m_name.CompareNoCase(name) == 0)
-   //      return this->GetNode(i);
-   //   }
-   map< string, SNNode* >::iterator itr;
-
-   SNNode* node1 = nullptr;
-   int count = 0;
-   for (itr = m_nodeMap.begin(); itr != m_nodeMap.end(); ++itr) {
-      count++;
-      if (itr->first == "Landscape Signal")
-         node1 = itr->second;
-      }
-
-   try {
-      SNNode* node = m_nodeMap.at(name);
-      return node;
-      }
-   catch(exception e) {
-      CString msg;
-      msg.Format("Exception encountered finding node %s", name);
-      Report::LogError(msg);
-      }
-   return nullptr;
-   }
-
-
-bool SNLayer::RemoveNode(SNNode* pNode)
-   {
-   // remove from node array
-   //m_nodes.Remove(pNode);  // also deletes node
-   delete pNode;
-   std::erase(m_nodes, pNode);
-
-   // remove from nodeMap
-   for (std::map<std::string, SNNode*>::iterator it = m_nodeMap.begin(); it != m_nodeMap.end();)
-      {
-      if ((it->second) == pNode)
-         {
-         it = m_nodeMap.erase(it);
-         break;
-         }
-      else
-         it++;
-      }
-   // remove any edges that point from/to this node.
-   for (int i = 0; i < (int)m_edges.size(); i++)
-      {
-      SNEdge* pEdge = m_edges[i];
-      if (pEdge->m_pFromNode == pNode)
-         {
-         //m_edges.Remove(pEdge);
-         std::erase(m_edges, pEdge);
-         for ( int j=0; j < (int) pEdge->m_pFromNode->m_outEdges.size(); j++)
-            if (pEdge->m_pFromNode->m_outEdges[j] == pEdge)
-               {
-               std::erase(pEdge->m_pFromNode->m_outEdges, pEdge);
-               break;
-               }   
-                  
-         for (int j = 0; j < (int)pEdge->m_pToNode->m_inEdges.size(); j++)
-            if (pEdge->m_pToNode->m_inEdges[j] == pEdge)
-               {
-               std::erase(pEdge->m_pToNode->m_inEdges, pEdge); // .RemoveAt(j);
-               break;
-               }
-
-         i--;
-         }
-      }
-
-   return true;
-   }
-
 
 
 int SNIPModel::FindNodesFromTrait(string &trait, SNIP_NODETYPE ntype, float threshold, vector<SNNode*>& nodes)

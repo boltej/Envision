@@ -29,23 +29,23 @@ Copywrite 2012 - Oregon State University
 #include "GEOMETRY.HPP"
 #include <math.h>
 
-#include <boost/geometry/geometry.hpp>
-#include <boost/geometry/geometries/point_xy.hpp>
-#include <boost/geometry/geometries/register/point.hpp>
-#include <boost/geometry/geometries/segment.hpp>
+//#include <boost/geometry/geometry.hpp>
+//#include <boost/geometry/geometries/point_xy.hpp>
+//#include <boost/geometry/geometries/register/point.hpp>
+//#include <boost/geometry/geometries/segment.hpp>
 
 
-struct BPoint
-   {
-   REAL x = 0;
-   REAL y = 0;
-
-   BPoint(REAL _x, REAL _y) : x(_x), y(_y) {}
-   BPoint(void) = default;
-   };
-
-namespace bg = boost::geometry;
-BOOST_GEOMETRY_REGISTER_POINT_2D(BPoint, REAL, bg::cs::cartesian, x, y)
+//struct BPoint
+//   {
+//   REAL x = 0;
+//   REAL y = 0;
+//
+//   BPoint(REAL _x, REAL _y) : x(_x), y(_y) {}
+//   BPoint(void) = default;
+//   };
+//
+//namespace bg = boost::geometry;
+//BOOST_GEOMETRY_REGISTER_POINT_2D(BPoint, REAL, bg::cs::cartesian, x, y)
 
 
 
@@ -641,6 +641,7 @@ bool _CheckSide( COORD2d &p0, COORD2d &p1, COORD2d &s0, COORD2d &s1,  bool isP0I
    }
 
 
+/*
 bool GetIntersectionPtBoost(const COORD2d& thisVertex0, const COORD2d& thisVertex1, const COORD2d& otherVertex0, const COORD2d& otherVertex1, COORD2d& intersection)
    {
    using segment_t = bg::model::segment<BPoint>;
@@ -659,7 +660,7 @@ bool GetIntersectionPtBoost(const COORD2d& thisVertex0, const COORD2d& thisVerte
    intersection.y = out[0].y;
    return true;
    }
-
+   */
 
 bool GetIntersectionPt( const COORD2d &thisVertex0, const COORD2d &thisVertex1, const COORD2d &otherVertex0, const COORD2d &otherVertex1, COORD2d &intersection)
 	{	

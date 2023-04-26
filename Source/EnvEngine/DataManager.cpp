@@ -2624,8 +2624,8 @@ FDataObj *DataManager::CalculateTrendsWeightedByLulcA( int trendCol, double scal
    int years     = endYear - startYear;
 
    // get the LULC_A nodes
-   LulcNodeArray *pNodeArray = &(this->m_pEnvModel->m_lulcTree.GetRootNode()->m_childNodeArray);
-   int lulcCount = (int) pNodeArray->GetCount();
+   std::vector<LulcNode*> *pNodeArray = &(this->m_pEnvModel->m_lulcTree.GetRootNode()->m_childNodeArray);
+   int lulcCount = (int) pNodeArray->size();
 
    // allocate a data object
    int cols = lulcCount+1; // +1 for year, +1 for totals acroos LULC classes (if specified)
@@ -2642,7 +2642,7 @@ FDataObj *DataManager::CalculateTrendsWeightedByLulcA( int trendCol, double scal
 
    for ( i=0; i < lulcCount; i++ )
       {
-      LulcNode *pNode = pNodeArray->GetAt( i );
+      LulcNode *pNode = pNodeArray->at( i );
       CString label;
       label.Format("%s (%i)", (PCTSTR) pNode->m_name, pNode->m_id );
       pData->SetLabel( i+1, label );
@@ -2655,7 +2655,7 @@ FDataObj *DataManager::CalculateTrendsWeightedByLulcA( int trendCol, double scal
    CMap< int, int, int, int > lulcAMap;
    for ( int i=0; i < lulcCount; i++ )
       {
-      LulcNode *pNode = pNodeArray->GetAt( i );
+      LulcNode *pNode = pNodeArray->at( i );
       lulcAMap.SetAt( pNode->m_id, i );
       }
 
@@ -2798,8 +2798,8 @@ VDataObj *DataManager::CalculateEvalScoresByLulcA( int year, int run /*=-1*/ )
 
 
    // get the LULC_A nodes
-   LulcNodeArray *pNodeArray = &(this->m_pEnvModel->m_lulcTree.GetRootNode()->m_childNodeArray);
-   int lulcCount = (int) pNodeArray->GetCount();
+   std::vector<LulcNode*> *pNodeArray = &(this->m_pEnvModel->m_lulcTree.GetRootNode()->m_childNodeArray);
+   int lulcCount = (int) pNodeArray->size();
 
    // allocate a data object
    int cols = lulcCount+1; // +1 for Eval model labels
@@ -2829,7 +2829,7 @@ VDataObj *DataManager::CalculateEvalScoresByLulcA( int year, int run /*=-1*/ )
    pData->SetLabel( 0, "Evaluative Model" );
    for ( int i=0; i < lulcCount; i++ )
       {
-      LulcNode *pNode = pNodeArray->GetAt( i );
+      LulcNode *pNode = pNodeArray->at( i );
       CString label;
       label.Format("%s (%i)", (PCTSTR) pNode->m_name, pNode->m_id );
       pData->SetLabel( i+1, label );
@@ -2853,7 +2853,7 @@ VDataObj *DataManager::CalculateEvalScoresByLulcA( int year, int run /*=-1*/ )
    CMap< int, int, int, int > lulcAMap;
    for ( int i=0; i < lulcCount; i++ )
       {
-      LulcNode *pNode = pNodeArray->GetAt( i );
+      LulcNode *pNode = pNodeArray->at( i );
       lulcAMap.SetAt( pNode->m_id, i+1 );
       }
 

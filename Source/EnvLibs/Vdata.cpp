@@ -64,7 +64,7 @@ VData::VData( void *pVar, TYPE _type, bool storeAsPtr )
          this->AllocateString( (LPCTSTR) pVar );
          break;
 
-      case TYPE_NULL:      val.vPtr    = NULL;  break;
+      case TYPE_NULL:      val.vPtr    = nullptr;  break;
       case TYPE_CHAR:      val.vChar   = *((TCHAR*)  pVar); break;
       case TYPE_BOOL:      val.vBool   = *((bool*)  pVar); break;
       case TYPE_UINT:      val.vUInt   = *((UINT*)  pVar); break;
@@ -99,7 +99,7 @@ VData::VData( void *pVar, TYPE _type, bool storeAsPtr )
 
 void VData::SetAsDString( LPCTSTR value )
    {
-   if ( TYPE_DSTRING == type && val.vString != NULL ) 
+   if ( TYPE_DSTRING == type && val.vString != nullptr ) 
       delete [] val.vString;  // delete this' previously alloc'd memory 
     
    type = TYPE_DSTRING; 
@@ -109,7 +109,7 @@ void VData::SetAsDString( LPCTSTR value )
  
 VData& VData::operator = (LPCTSTR v) 
    { 
-   if (TYPE_DSTRING==type && val.vString != NULL )
+   if (TYPE_DSTRING==type && val.vString != nullptr )
          delete [] val.vString;  // delete this' previously alloc'd memory 
 
    type = TYPE_STRING; 
@@ -119,11 +119,7 @@ VData& VData::operator = (LPCTSTR v)
 
 VData& VData::operator = (const VData &v )
    {
-   if ( type == TYPE_DSTRING && val.vString != NULL )
-         delete [] val.vString;  //delete this' previously alloc'd memory 
-
-   type = v.type;
-   if ( type == TYPE_DSTRING )
+   if ( v.type == TYPE_DSTRING )
       AllocateString( v.val.vString );
    else
       val = v.val;
@@ -432,7 +428,7 @@ VData &VData::operator /= ( int v )
 
 VData::~VData( void )
    {
-   if ( type == TYPE_DSTRING && val.vString != NULL )
+   if ( type == TYPE_DSTRING && val.vString != nullptr )
       delete [] val.vString;
    }
 
@@ -441,10 +437,15 @@ LPCTSTR VData::AllocateString( LPCTSTR str )
    {
    // The programmer must ensure that no memory leaks--
    // If this is a reallocation; then the previous allocation
-   // must already be deleted !!!     
+   // must already be deleted !!!
+    if (type == TYPE_DSTRING && val.vString != nullptr )
+    {
+        delete[] val.vString;
+            val.vString = nullptr;
+    }
    type = TYPE_DSTRING;
-   if ( str == NULL )
-      val.vString = NULL;
+   if ( str == nullptr )
+      val.vString = nullptr;
    else
       {   
       val.vString = new TCHAR[ lstrlen( str )+1 ];
@@ -582,7 +583,7 @@ bool VData::GetAsInt( int &value ) const
       case TYPE_STRING:
       case TYPE_DSTRING:
          {
-         if ( val.vString == NULL )
+         if ( val.vString == nullptr )
             {
             value = 0;
             return true;
@@ -591,7 +592,7 @@ bool VData::GetAsInt( int &value ) const
          TCHAR *end;
          value = (int) strtol( val.vString, &end, 10 );
 
-         if ( *end == NULL || *end == ' ' )
+         if ( *end == 0 || *end == ' ' )
             return true;
          else
             return false;
@@ -684,7 +685,7 @@ bool VData::GetAsUInt( UINT &value ) const
       case TYPE_STRING:
       case TYPE_DSTRING:
          {
-         if ( val.vString == NULL )
+         if ( val.vString == nullptr )
             {
             value = 0;
             return true;
@@ -693,7 +694,7 @@ bool VData::GetAsUInt( UINT &value ) const
          TCHAR *end;
          value = (int) strtol( val.vString, &end, 10 );
 
-         if ( *end == NULL || *end == ' ' )
+         if ( *end == 0 || *end == ' ' )
             return true;
          else
             return false;
@@ -786,7 +787,7 @@ bool VData::GetAsDouble( double &value ) const
       case TYPE_STRING:
       case TYPE_DSTRING:
          {
-         if ( val.vString == NULL )
+         if ( val.vString == nullptr )
             {
             value = 0.0;
             return true;
@@ -795,7 +796,7 @@ bool VData::GetAsDouble( double &value ) const
          TCHAR *end;
          value = strtod( val.vString, &end );
 
-         if ( *end == NULL || *end == ' ' )
+         if ( *end == 0 || *end == ' ' )
             return true;
          else
             return false;
@@ -888,7 +889,7 @@ bool VData::GetAsFloat( float &value )const
       case TYPE_STRING:
       case TYPE_DSTRING:
          {
-         if ( val.vString == NULL )
+         if ( val.vString == nullptr )
             {
             value = 0.0f;
             return true;
@@ -897,7 +898,7 @@ bool VData::GetAsFloat( float &value )const
          TCHAR *end;
          value = (float) strtod( val.vString, &end );
 
-         if ( *end == NULL || *end == ' ' )
+         if ( *end == 0 || *end == ' ' )
             return true;
          else
             return false;
@@ -981,7 +982,7 @@ bool VData::GetAsChar( TCHAR &value ) const
 
       case TYPE_STRING:
       case TYPE_DSTRING:
-         if ( val.vString == NULL )
+         if ( val.vString == nullptr )
             value = 0;
          else
             value = val.vString[ 0 ];
@@ -997,7 +998,7 @@ bool VData::GetAsChar( TCHAR &value ) const
 bool VData::GetAsString( CString &value ) const 
    {
    LPCTSTR valStr = GetAsString();
-   if ( valStr == NULL )
+   if ( valStr == nullptr )
       {
       value.Empty();
       return false;
@@ -1021,7 +1022,7 @@ LPCTSTR VData::GetAsString() const
 
       case TYPE_CHAR:
          buffer[ 0 ] = val.vChar;
-         buffer[ 1 ] = NULL;
+         buffer[ 1 ] = 0;
          return buffer;
 
       case TYPE_BOOL:
@@ -1106,12 +1107,12 @@ LPCTSTR VData::GetAsString() const
          lstrcpy( buffer, "DataObj" );
          return buffer;
 
-      case TYPE_STRING:     // NULL-terminated string, statically allocated
-      case TYPE_DSTRING:    // NULL-terminated string, dynamically allocated (new'ed)
+      case TYPE_STRING:     // nullptr-terminated string, statically allocated
+      case TYPE_DSTRING:    // nullptr-terminated string, dynamically allocated (new'ed)
             return (LPCTSTR) val.vString;
       }
 
-   return NULL;
+   return nullptr;
    }
 
 bool VData::ConvertToVariant( COleVariant &var )
@@ -1172,7 +1173,7 @@ bool VData::ConvertToVariant( COleVariant &var )
          //lstrcpy( buffer, "PTR" );
          //return buffer;
 
-      case TYPE_STRING:     // NULL-terminated string, statically allocated
+      case TYPE_STRING:     // nullptr-terminated string, statically allocated
       case TYPE_DSTRING:
          //var.vt = VT_I4; // VT_BYREF|VT_UI1;  // 9/20/07 jpb
          //var.pbVal = (unsigned TCHAR*) val.vString;
@@ -1239,7 +1240,7 @@ bool VData::ConvertFromVariant( COleVariant &var )
 
       case VT_BSTR:
          {
-         if ( type == TYPE_DSTRING && val.vString != NULL )
+         if ( type == TYPE_DSTRING && val.vString != nullptr )
             delete [] val.vString;
 
          type = TYPE_DSTRING;
@@ -1347,7 +1348,7 @@ bool VData::Compare( const VData &v ) const
    switch( type )
       {
       case TYPE_NULL:
-         return type == v.type;     // NULL match if both are TYPE_NULL
+         return type == v.type;     // nullptr match if both are TYPE_NULL
 
       case TYPE_CHAR:               // types have to match
          if ( type != v.type )
@@ -1454,9 +1455,9 @@ bool VData::Compare( const VData &v ) const
             return false;
          else
             {
-            if ( val.vString != NULL && v.val.vString != NULL )
+            if ( val.vString != nullptr && v.val.vString != nullptr )
                return lstrcmp( val.vString, v.val.vString ) == 0;
-            else if ( val.vString == NULL && v.val.vString == NULL )
+            else if ( val.vString == nullptr && v.val.vString == nullptr )
                return true;
             else
                return false;
@@ -1542,11 +1543,11 @@ bool VDataLess::operator()(const VData & v1, const VData & v2)  const
    case TYPE_STRING:   
    case TYPE_DSTRING:
       {
-         if ( v1.val.vString != NULL && v2.val.vString != NULL )
+         if ( v1.val.vString != nullptr && v2.val.vString != nullptr )
             return lstrcmp( v1.val.vString, v2.val.vString ) < 0;
-         else if ( v1.val.vString == NULL && v2.val.vString != NULL )
+         else if ( v1.val.vString == nullptr && v2.val.vString != nullptr )
             return true;
-         else if ( v1.val.vString != NULL && v2.val.vString == NULL )
+         else if ( v1.val.vString != nullptr && v2.val.vString == nullptr )
             return false;
          return false;
       }
@@ -1562,7 +1563,7 @@ int WideToChar( LPCTSTR wc, TCHAR** c )
    // count the characters in the wide string
    int count = 0;
    TCHAR *p = (TCHAR*) wc;
-   while ( *p != NULL )
+   while ( *p != 0 )
       {
       p += 2;
       count++;
@@ -1570,7 +1571,7 @@ int WideToChar( LPCTSTR wc, TCHAR** c )
 
    if ( count == 0 )
       {
-      *c = NULL;
+      *c = nullptr;
       return 0;
       }
 
@@ -1584,15 +1585,18 @@ int WideToChar( LPCTSTR wc, TCHAR** c )
       p++;
       }
 
-   *p = NULL;
+   *p = 0;
    return count;
    }
 
 
 TYPE VData::Parse( LPCTSTR str )
    {
-   if ( str == NULL || lstrlen( str ) == 0 )
-      return ( type = TYPE_NULL );
+   if (str == nullptr || lstrlen(str) == 0)
+      {
+      type = TYPE_NULL;
+      return type;
+      };
 
    bool alpha  = false;
    bool number = false;
@@ -1611,11 +1615,11 @@ TYPE VData::Parse( LPCTSTR str )
    else if ( isdigit( *p ) || *p == '+' || *p == '-' )
       {
       number = true;
-      dot = _tcschr( p, '.' ) != NULL ? true : false;
+      dot = _tcschr( p, '.' ) != nullptr ? true : false;
       }
 
-   if ( TYPE_DSTRING == type && val.vString != NULL )
-      delete [] val.vString;
+   //if ( TYPE_DSTRING == type && val.vString != nullptr )
+   //   delete [] val.vString;
 
    if ( alpha ) 
       AllocateString( str );
@@ -1646,7 +1650,7 @@ bool VData::ChangeType( TYPE newType )
       return true;
 
    // if dynamic string, remember ptr for deallocating
-   TCHAR *dstr = NULL;
+   TCHAR *dstr = nullptr;
    if ( type == TYPE_DSTRING )
       dstr = val.vString;
 

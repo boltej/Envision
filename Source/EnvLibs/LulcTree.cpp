@@ -41,8 +41,8 @@ static char THIS_FILE[]=__FILE__;
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 LulcTree::LulcTree( void )
-: m_pRootNode( NULL )
-, m_pCurrentNode( NULL )
+: m_pRootNode( nullptr )
+, m_pCurrentNode( nullptr )
 , m_loadStatus( -1 )
 , m_includeInSave( true )
    {
@@ -64,7 +64,7 @@ void LulcTree::Copy( LulcTree &tree )
    m_importPath = tree.m_importPath;
    m_loadStatus = tree.m_loadStatus;
    m_includeInSave = tree.m_includeInSave;
-   m_lulcInfoArray.DeepCopy( tree.m_lulcInfoArray );
+   //m_lulcInfoArray.DeepCopy( tree.m_lulcInfoArray );
 
    m_fieldNames.Copy( tree.m_fieldNames );
    }
@@ -72,12 +72,12 @@ void LulcTree::Copy( LulcTree &tree )
 
 void LulcTree::CopyNode( LulcNode *pNode, LulcNode *pSourceNode )
    {
-   for ( int i=0; i < pSourceNode->m_childNodeArray.GetSize(); i++ )
+   for ( int i=0; i < pSourceNode->m_childNodeArray.size(); i++ )
       {
-      LulcNode *pChildNode = pSourceNode->m_childNodeArray.GetAt( i );
+      LulcNode *pChildNode = pSourceNode->m_childNodeArray[i];
       LulcNode *pNewNode = new LulcNode( *pChildNode );
       pNewNode->m_pParentNode = pNode;
-      pNode->m_childNodeArray.Add( pNewNode );
+      pNode->m_childNodeArray.push_back( pNewNode );
 
       CopyNode( pNewNode, pChildNode );
       }
@@ -86,7 +86,7 @@ void LulcTree::CopyNode( LulcNode *pNode, LulcNode *pSourceNode )
 
 void LulcTree::CreateRootNode()
    {
-   ASSERT( m_pRootNode == NULL );
+   ASSERT( m_pRootNode == nullptr );
    m_pRootNode = new LulcNode;
    m_pRootNode->m_name = _T("Land Use/Land Cover classes");
    }
@@ -94,19 +94,18 @@ void LulcTree::CreateRootNode()
 
 void LulcTree::RemoveAll( void )
    {
-   if ( m_pRootNode != NULL )
+   if ( m_pRootNode != nullptr )
       RemoveBranch( m_pRootNode );
 
-   m_pRootNode = NULL;
+   m_pRootNode = nullptr;
    }
 
 
 void LulcTree::RemoveBranch( LulcNode *pNode )
    {
-   for ( int i=0; i < pNode->m_childNodeArray.GetSize(); i++ )
+   for ( int i=0; i < pNode->m_childNodeArray.size(); i++ )
       RemoveBranch( pNode->m_childNodeArray[ i ] );   // branches of the tree
 
-   //delete pNode->pCost;
    delete pNode;
    }
 
@@ -115,22 +114,22 @@ LulcNode *LulcTree::GetNextSibling( LulcNode *pNode )
    {
    LulcNode *pParent = pNode->m_pParentNode;
 
-   if ( pParent == NULL )
-      return NULL;  // no parent, no siblings
+   if ( pParent == nullptr )
+      return nullptr;  // no parent, no siblings
 
-   for ( int i=0; i < pParent->m_childNodeArray.GetSize(); i++ )
+   for ( int i=0; i < pParent->m_childNodeArray.size(); i++ )
       {
       if ( pNode == pParent->m_childNodeArray[ i ] )     // found self
          {
-         if ( i == pParent->m_childNodeArray.GetSize()-1 )  // if this one is the last child node,
-            return NULL;    // then no more siblings 
+         if ( i == pParent->m_childNodeArray.size()-1 )  // if this one is the last child node,
+            return nullptr;    // then no more siblings 
          else
             return pParent->m_childNodeArray[ i+1 ];   // return next root node
          }
       }  // end of:  for ( i < m_rootNodeArray )
 
    ASSERT( 0 );
-   return NULL;
+   return nullptr;
    }
 
 
@@ -138,53 +137,53 @@ LulcNode *LulcTree::GetNextSibling( LulcNode *pNode )
 LulcNode *LulcTree::GetNextNode( LulcNode *pNode )
    {
    // if a child node exists, use first one
-   if ( pNode->m_childNodeArray.GetSize() > 0 )
+   if ( pNode->m_childNodeArray.size() > 0 )
       return pNode->m_childNodeArray[ 0 ];
 
    // no children, are there more siblings?
    LulcNode *pSibling = GetNextSibling( pNode );
 
-   if ( pSibling != NULL )    // if a next sibling exists, return it;
+   if ( pSibling != nullptr )    // if a next sibling exists, return it;
       return pSibling;
 
    // no sibling exists, see is a parent sibling exists.
    LulcNode *pParent = pNode->m_pParentNode;
-   if ( pParent == NULL )
-      return NULL;
+   if ( pParent == nullptr )
+      return nullptr;
 
    pSibling = GetNextSibling( pParent );
-   if ( pSibling != NULL )
+   if ( pSibling != nullptr )
       return pSibling;
    
    // no parent sibling exists, try grandparent sibling
    pParent = pParent->m_pParentNode;
-   if ( pParent == NULL )
-      return NULL;
+   if ( pParent == nullptr )
+      return nullptr;
 
    pSibling = GetNextSibling( pParent );
-   if ( pSibling != NULL )
+   if ( pSibling != nullptr )
       return pSibling;
    
    // no grandparent sibling exists, try great grandparent sibling
    pParent = pParent->m_pParentNode;
-   if ( pParent == NULL )
-      return NULL;
+   if ( pParent == nullptr )
+      return nullptr;
 
    pSibling = GetNextSibling( pParent );
-   if ( pSibling != NULL )
+   if ( pSibling != nullptr )
       return pSibling;
    
    // no grandparent sibling exists, try great grandparent sibling
    pParent = pParent->m_pParentNode;
-   if ( pParent == NULL )
-      return NULL;
+   if ( pParent == nullptr )
+      return nullptr;
 
    pSibling = GetNextSibling( pParent );
-   if ( pSibling != NULL )
+   if ( pSibling != nullptr )
       return pSibling;
 
    // give up!!!
-   return NULL;
+   return nullptr;
    }
 
 
@@ -199,7 +198,7 @@ int LulcTree::GetNodeCount( int level )
    int count = 0;
    LulcNode *pNode = GetRootNode();
 
-   while ( pNode != NULL )
+   while ( pNode != nullptr )
       {
       if ( level == pNode->GetNodeLevel() )
          count++;
@@ -216,7 +215,7 @@ LulcNode *LulcTree::FindNodeFromIndex( int level, int index )
    int count = 0;
    LulcNode *pNode = GetRootNode();
 
-   while ( pNode != NULL )
+   while ( pNode != nullptr )
       {
       if ( level == pNode->GetNodeLevel() )
          {
@@ -229,7 +228,7 @@ LulcNode *LulcTree::FindNodeFromIndex( int level, int index )
       pNode = GetNextNode( pNode );
       }
 
-   return NULL;
+   return nullptr;
    }
 
 
@@ -237,17 +236,17 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
    {
    // look for extension.  If XML, switch to XML reader
    const char *ext = strrchr( filename, '.' );
-   if ( ext != NULL && _strnicmp( ext+1, "xml", 3 ) == 0 )
+   if ( ext != nullptr && _strnicmp( ext+1, "xml", 3 ) == 0 )
       {
       return LoadXml( filename, false, true );
       }
 
    RemoveAll();
    
-   FILE *fp = NULL;
+   FILE *fp = nullptr;
    //fopen_s( &fp, filename, "rt" );
    int retVal = PathManager::FileOpen( filename, &fp, "rt" );
-   if ( retVal <= 0 || fp == NULL )
+   if ( retVal <= 0 || fp == nullptr )
       {
       CString msg;
       msg.Format( "Unable to open LULC file %s", filename );
@@ -259,7 +258,7 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
    char buffer[ 256 ];
    int  currentLevel = 0;
 
-   if ( m_pRootNode == NULL )
+   if ( m_pRootNode == nullptr )
       CreateRootNode();
 
    LulcNode *pLastNode = m_pRootNode;
@@ -278,28 +277,28 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
          continue;
 
       LulcNode *pNode = new LulcNode;
-      LULC_INFO *pInfo = new LULC_INFO;
-      pNode->m_pData = (void*) pInfo;
-      pNode->m_pParentNode = NULL;
-
-      m_lulcInfoArray.Add( pInfo ); // store the info locally
+      //LULC_INFO *pInfo = new LULC_INFO;
+      //pNode->m_pLulcInfo = pInfo;
+      pNode->m_pParentNode = nullptr;
+      pNode->m_data = 0;
+      //m_lulcInfoArray.push_back( pInfo ); // store the info locally
 
       int id = -1;
       //float landValue, soilValue, income, rentalRate, employment;
       int red, green, blue;
       char name[ 64 ];
-      name[0]=NULL;
+      name[0] = 0;
 
       // read the name section
       char *p = buffer;
       int commaCount = 0;
       int newLevel = 0;
 
-      while ( *p != NULL )
+      while ( *p != 0 )
       {
          if ( isalpha(*p) )   // then read name
          {
-            if ( name[0] != NULL )
+            if ( name[0] != 0 )
             {
                CString msg( "Error parsing LULC information at: " );
                msg += buffer;
@@ -315,7 +314,7 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
                offSet++;
                p++;
             }
-            name[offSet]=NULL;
+            name[offSet]=0;
          }
          if ( *p == ',' )
             commaCount++;
@@ -349,7 +348,7 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
 
       if ( newLevel == 0 ) // a root of the tree?
          {
-         m_pRootNode->m_childNodeArray.Add( pNode );
+         m_pRootNode->m_childNodeArray.push_back( pNode );
          pNode->m_pParentNode = m_pRootNode;
          }
       else
@@ -357,14 +356,14 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
          switch ( change ) 
             {
             case 1:     // going one level deeper, add node to last node
-               pLastNode->m_childNodeArray.Add( pNode );
+               pLastNode->m_childNodeArray.push_back( pNode );
                pNode->m_pParentNode = pLastNode;
                break;
 
             case 0:     // same as current level, add node to last nodes parent node array
                {
                LulcNode *pParentNode = pLastNode->m_pParentNode;
-               pParentNode->m_childNodeArray.Add( pNode );
+               pParentNode->m_childNodeArray.push_back( pNode );
                pNode->m_pParentNode = pParentNode;
                }
                break;
@@ -373,7 +372,7 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
                {
                LulcNode *pParentNode = pLastNode->m_pParentNode;
                pParentNode = pParentNode->m_pParentNode;      // get grandparent
-               pParentNode->m_childNodeArray.Add( pNode );
+               pParentNode->m_childNodeArray.push_back( pNode );
                pNode->m_pParentNode = pParentNode;
                }
                break;
@@ -394,7 +393,7 @@ int LulcTree::LoadLulcInfo( LPCTSTR filename )
 
    m_path = filename;
 
-   return (int) m_pRootNode->m_childNodeArray.GetSize();
+   return (int) m_pRootNode->m_childNodeArray.size();
    }
 
 
@@ -403,7 +402,7 @@ int LulcTree::LoadXml( LPCTSTR _filename, bool isImporting, bool appendToExistin
    if ( appendToExisting == false )
       RemoveAll();
 
-   if ( m_pRootNode == NULL )
+   if ( m_pRootNode == nullptr )
       CreateRootNode();
 
    CString filename;
@@ -456,25 +455,25 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
    {
    m_loadStatus = 0;
 
-   if ( pLulcTree == NULL )
+   if ( pLulcTree == nullptr )
       return -1;
 
    // file specified?.
    LPCTSTR file = pLulcTree->ToElement()->Attribute( _T("file") );
    
-   if ( file != NULL && file[0] != NULL )
+   if ( file != nullptr && file[0] != 0 )
       return LoadXml( file, true, appendToExisting );
 
    bool loadSuccess = true;
 
    // set up the root node
-   if ( m_pRootNode == NULL )
+   if ( m_pRootNode == nullptr )
       CreateRootNode();
 
    LulcNode *pLastNode = m_pRootNode;
    
    // iterate through 
-   TiXmlNode *pXmlClassNode = NULL;
+   TiXmlNode *pXmlClassNode = nullptr;
    while( pXmlClassNode = pLulcTree->IterateChildren( pXmlClassNode ) )
       {
       if ( pXmlClassNode->Type() != TiXmlNode::ELEMENT )
@@ -487,7 +486,7 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
       LPCTSTR sLevel = pXmlClassElement->Attribute( "level" );
       LPCTSTR col  = pXmlClassElement->Attribute( _T("fieldname") );
 
-      if ( name == NULL || sLevel == NULL )
+      if ( name == nullptr || sLevel == nullptr )
          {
          CString msg( "Misformed <classification> element reading" );
          msg += m_path;
@@ -497,7 +496,7 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
          continue;
          }
 
-      if ( col == NULL )
+      if ( col == nullptr )
          col = name;
 
       int level = atoi( sLevel );
@@ -508,7 +507,7 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
       //seenIDArray.RemoveAll();
 
       // we are in a classification section now.  Iterate through the children to get the lulc classes for this level
-      TiXmlNode *pXmlLulcNode = NULL;
+      TiXmlNode *pXmlLulcNode = nullptr;
       while( pXmlLulcNode = pXmlClassNode->IterateChildren( pXmlLulcNode ) )
          {
          if ( pXmlLulcNode->Type() != TiXmlNode::ELEMENT )
@@ -520,7 +519,7 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
          const char *sID       = pXmlLulcElement->Attribute( "id" );
          const char *sParentID = pXmlLulcElement->Attribute( "parentID" );
          
-         if ( name == NULL || sID == NULL || (level > 1 && sParentID == NULL) )
+         if ( name == nullptr || sID == nullptr || (level > 1 && sParentID == nullptr) )
             {
             CString msg( "Misformed <lulc> element reading" );
             msg += m_path;
@@ -532,15 +531,15 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
          
          // have lulc element, add corresponding LulcNode
          LulcNode *pNode = new LulcNode;
-         LULC_INFO *pInfo = new LULC_INFO;
-         pNode->m_pData = (void*) pInfo;
-         pNode->m_pParentNode = NULL;
+         //LULC_INFO *pInfo = new LULC_INFO;
+         //pNode->m_pLulcInfo= pInfo;
+         pNode->m_pParentNode = nullptr;
          pNode->m_name = name;
          pNode->m_id = atoi( sID );
 
          // make sure this 'id' hasn't been used before
          LulcNode *pExistingNode = FindNode( level, pNode->m_id );
-         if ( pExistingNode != NULL )
+         if ( pExistingNode != nullptr )
             {
             CString msg;
             msg.Format(  "LulcTree: Duplicate 'id' attribute (%i) found for %s class %s was already used for class %s. This should be resolved before proceeeding!",
@@ -552,31 +551,31 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
          if ( level == 1 )
             {
             pNode->m_pParentNode = m_pRootNode;
-            m_pRootNode->m_childNodeArray.Add( pNode );
+            m_pRootNode->m_childNodeArray.push_back( pNode );
             }
          else
             {
             int parentID = atoi( sParentID );
 
             LulcNode *pParentNode = FindNode( level-1, parentID );
-            if ( pParentNode == NULL )
+            if ( pParentNode == nullptr )
                {
 #ifndef NO_MFC
                CString msg;
                msg.Format(  "Missing parent class for <lulc> level %i element %s:  Parent=%i", level, (LPCTSTR) name, parentID );
-               AfxMessageBox( msg );
+               Report::LogError( msg );
 #endif
                loadSuccess = false;
                delete pNode;
-               delete pInfo;
+               //delete pInfo;
                continue;
                }
 
             pNode->m_pParentNode = pParentNode;
-            pParentNode->m_childNodeArray.Add( pNode );
+            pParentNode->m_childNodeArray.push_back( pNode );
             }
 
-         m_lulcInfoArray.Add( pInfo ); // store the info locally
+         //m_lulcInfoArray.push_back( pInfo ); // store the info locally
          }
       }
 
@@ -586,7 +585,7 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
 /*
    LulcNode *pNode = GetRootNode();
 
-   while ( pNode != NULL )
+   while ( pNode != nullptr )
       {
       int level = pNode->GetNodeLevel();
 
@@ -601,7 +600,7 @@ int LulcTree::LoadXml( TiXmlNode *pLulcTree, bool appendToExisting )
       pNode = GetNextNode( pNode );
       }  */
 
-   return (int) m_pRootNode->m_childNodeArray.GetSize();
+   return (int) m_pRootNode->m_childNodeArray.size();
    }
 
 
@@ -613,7 +612,7 @@ int LulcTree::SaveXml( LPCTSTR filename )
    // open the file and write contents
    FILE *fp;
    fopen_s( &fp, filename, "wt" );
-   if ( fp == NULL )
+   if ( fp == nullptr )
       {
 #ifndef NO_MFC
 	//not sure if this does anything; may just be called to clear error stack
@@ -691,28 +690,27 @@ int LulcTree::SaveXml( FILE *fp, bool includeHdr, bool useFileRef /*=true*/ )
    return 1;
    }
 
-
-bool LulcTree::GetLulcInfo( int level, int landUse, LULC_INFO &info )
-   {
-   LulcNode *pNode = FindNode( level, landUse );
-
-   if ( pNode != NULL )
-      {
-      LULC_INFO *pInfo = (LULC_INFO*) pNode->m_pData;
-      info = *pInfo;
-      return true;
-      }
-
-   else
-      return false;
-   }
+//
+//bool LulcTree::GetLulcInfo( int level, int landUse, LULC_INFO &info )
+//   {
+//   LulcNode *pNode = FindNode( level, landUse );
+//
+//   if ( pNode != nullptr )
+//      {
+//      info.status = pNode->m_pLulcInfo->status);
+//      return true;
+//      }
+//
+//   else
+//      return false;
+//   }
 
 
 int LulcTree::GetMaxLULC_C() /*const*/
 {
    int mx=-1;
    LulcNode * nd = GetRootNode();
-   while (NULL != nd) {
+   while (nullptr != nd) {
       if (3 == nd->GetNodeLevel()) // How do we *really* know this is LULC_C?   
          mx = (nd->m_id > mx) ? nd->m_id : mx;
       nd = GetNextNode();

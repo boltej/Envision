@@ -1356,7 +1356,7 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    LulcNode* pNode = pContext->pLulcTree->FindNode(1, ANNUAL_CROP);
    ASSERT(pNode != NULL);
 
-   for (int i = 0; i < pNode->m_childNodeArray.GetSize(); i++)
+   for (int i = 0; i < pNode->m_childNodeArray.size(); i++)
       {
       LulcNode* pLulcBNode = pNode->m_childNodeArray[i];
       int lulcB = pLulcBNode->m_id;
@@ -1368,7 +1368,7 @@ void FarmModel::SetupOutputVars(EnvContext* pContext)
    pNode = pContext->pLulcTree->FindNode(1, PERENNIAL_CROP);
    ASSERT(pNode != NULL);
 
-   for (int i = 0; i < pNode->m_childNodeArray.GetSize(); i++)
+   for (int i = 0; i < pNode->m_childNodeArray.size(); i++)
       {
       LulcNode* pLulcBNode = pNode->m_childNodeArray[i];
       int lulcB = pLulcBNode->m_id;

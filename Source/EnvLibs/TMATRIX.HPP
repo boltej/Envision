@@ -12,10 +12,14 @@
 
 #pragma once
 #include "libs.h"
-
+//#include "Eigen\Dense"
 #include "Report.h"
 
 #include <stdlib.h>
+//using Eigen::Matrix;
+//typedef Matrix<VData, Eigen::Dynamic, Eigen::Dynamic>  MatrixXv;
+
+
 
 class LIBSAPI _Matrix
    {

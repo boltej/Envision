@@ -303,16 +303,9 @@ void VegClassLCPLookup::AddValues(
 	short BulkDensity,
 	short FModelPlus)
 {
-	__int64
-		key;
+	__int64 key;
 
-	LookupValues *values = new LookupValues(
-		FuelModel,
-		CanopyCover,
-		StandHeight,
-		BaseHeight,
-		BulkDensity,
-		FModelPlus);
+	LookupValues *values = new LookupValues(FuelModel,CanopyCover,StandHeight,BaseHeight,BulkDensity,FModelPlus);
 
 	// Key combines VegClass and Variant
 	//key = (unsigned long)VegClass * 100000 + (unsigned long)Region * 1000 + (unsigned long)Pvt * 10 + (unsigned long)Variant;
@@ -333,11 +326,11 @@ VegClassLCPLookup::~VegClassLCPLookup()
 
 	for (iter = m_MapVegClassLCPs.begin(); iter != m_MapVegClassLCPs.end(); iter++)
 	{
-		delete iter->second;
-		// m_MapVegClassLCPs.erase(iter);
+		if ( iter->second != nullptr)
+			delete iter->second;
 	}
 
-	m_MapVegClassLCPs.erase(m_MapVegClassLCPs.begin(), m_MapVegClassLCPs.end());
+	m_MapVegClassLCPs.clear();
 } // short VegClassLCPLookup::~LCPLookup();
 
 
