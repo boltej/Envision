@@ -185,8 +185,10 @@ int RTreeIndex::WithinDistance(int idu, float distance, std::vector<IDU_DIST> &r
    std::sort(RTreeIndex::m_searchResults.begin(), 
              RTreeIndex::m_searchResults.end(),
              CompareDist);
-
-   results = RTreeIndex::m_searchResults;
+   
+   for (int i = 0; i < RTreeIndex::m_searchResults.size(); i++)
+       results.push_back(RTreeIndex::m_searchResults[i]);
+   //results = RTreeIndex::m_searchResults;
    return (int) results.size();
    }
 

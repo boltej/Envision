@@ -33,13 +33,7 @@ Rand::Rand( UINT _multiplierType, const char *_name )
    : seed( 0 ),
      initialSeed( 0 ),
      multiplier( 0 ),
-     observations( 0 ),
-     name( NULL ),
-     distName( NULL ),
-     parameterA( NULL ),
-     parameterB( NULL ),
-     parameterC( NULL ),
-     header( NULL )
+     observations( 0 )
    {
    SetName( _name );
    SetDistName( "-" );
@@ -56,13 +50,7 @@ Rand::Rand( UINT _multiplier, long _seed, const char *_name )
    : seed( 0 ),
      initialSeed( 0 ),   
      multiplier( 0 ), 
-     observations( 0 ),
-     name( NULL ),
-     distName( NULL ),
-     parameterA( NULL ),
-     parameterB( NULL ),
-     parameterC( NULL ),
-     header( NULL )
+     observations( 0 )
    {
    SetName( _name );
    SetDistName( "-" );
@@ -75,125 +63,66 @@ Rand::Rand( UINT _multiplier, long _seed, const char *_name )
    }
 
 
-Rand::~Rand( void ) 
+
+const char* Rand::GetHeader( void )
    {
-   if ( name )
-      delete [] name;
-
-   if ( distName )
-      delete [] distName;
-
-   if ( parameterA )
-      delete [] parameterA;
-
-   if ( parameterB )
-      delete [] parameterB;
-
-   if ( parameterC )
-      delete [] parameterC;
-
-   if ( header )
-      delete [] header;
-   }
-
-
-const char* const Rand::GetHeader( void )
-   {
-   if ( header )
-      return header;
+   if ( header.empty() == false )
+      return (const char* const) header.c_str();
       
    //-- make the header string from the distName and parameter? strings
 
-   UINT strlength = lstrlen( distName );
-   strlength += lstrlen( parameterA );
-   strlength += lstrlen( parameterB );
-   strlength += lstrlen( parameterC );
+   UINT strlength = distName.size();
+   strlength += parameterA.size();
+   strlength += parameterB.size();
+   strlength += parameterC.size();
 
-   header = new char[ strlength + 1 + 4 ];   // 4= 2 commas & 2 parenthesis
-   lstrcpy( header, distName );
-   lstrcat( header, "(" );
-   lstrcat( header, parameterA );
-   lstrcat( header, "," );
-   lstrcat( header, parameterB );
-   lstrcat( header, "," );
-   lstrcat( header, parameterC );
-   lstrcat( header, ")" );
+   header = distName + "(" + parameterA +  "," + parameterB + "," + parameterC + ")";
 
-   return header;
+   return header.c_str();
    }
 
 
 void Rand::SetName( const char  *_name )
    {
-   if ( name )
-      delete [] name;
-      
-   if ( _name )
-      {
-      name = new char[ strlen( _name ) + 1 ];
-      lstrcpy( name, _name );
-      }
-   else
-      name = NULL;
+    if (_name)
+        name = _name;
+    else
+        name.resize(0);
    }
 
 void Rand::SetDistName( const char  *_distName )
    {
-   if ( distName )
-      delete [] distName;
-      
-   if ( _distName )
-      {
-      distName = new char[ strlen( _distName ) + 1 ];
-      lstrcpy( distName, _distName );
-      }
-   else
-      distName = NULL;
+    if (_distName)
+        distName = _distName;
+    else
+        distName.resize(0);
    }
 
 
 void Rand::SetParameterA_Name( const char  *_parameterA )
    {
-   if ( parameterA )
-      delete  [] parameterA;
-      
-   if ( _parameterA )
-      {
-      parameterA = new char[ strlen( _parameterA ) + 1 ];
-      lstrcpy( parameterA, _parameterA );
-      }
-   else
-      parameterA = NULL;
+    if (_parameterA)
+        parameterA = _parameterA;
+    else
+        parameterA.resize(0);
    }
 
 
 void Rand::SetParameterB_Name( const char  *_parameterB )
    {
-   if ( parameterB )
-      delete [] parameterB;
-      
-   if ( _parameterB )
-      {
-      parameterB = new char[ strlen( _parameterB ) + 1 ];
-      lstrcpy( parameterB, _parameterB );
-      }
-   else
-      parameterB = NULL;
+    if (_parameterB)
+        parameterB = _parameterB;
+    else
+        parameterB.resize(0);
    }
 
 
 void Rand::SetParameterC_Name( const char  *_parameterC )
    {
-   if ( parameterC )
-      delete [] parameterC;
-      
-   if ( _parameterC )
-      {
-      parameterC = new char[ strlen( _parameterC ) + 1 ];
-      lstrcpy( parameterC, _parameterC );
-      }
-   else
-      parameterC = NULL;
+    if (_parameterC)
+        parameterC = _parameterC;
+    else
+        parameterC.resize(0);
    }
 
 

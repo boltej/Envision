@@ -5078,7 +5078,7 @@ void EnvModel::POP(const DELTA & delta)
          return;
          }
 
-      int nodeCount = (int) pNode->m_childNodeArray.GetSize();
+      int nodeCount = (int) pNode->m_childNodeArray.size();
       if ( nodeCount > 0 )
          {
          int offset = (int) m_randUnif.RandValue( 0, nodeCount-0.00001 );
@@ -5114,7 +5114,7 @@ void EnvModel::POP(const DELTA & delta)
          }
 
       // get lulcB value (if level exists)
-      int nodeCount = (int) pNode->m_childNodeArray.GetSize();
+      int nodeCount = (int) pNode->m_childNodeArray.size();
       if ( nodeCount > 0 )
          {
          int offset = (int) m_randUnif.RandValue( 0, nodeCount-0.00001 );
@@ -5125,7 +5125,7 @@ void EnvModel::POP(const DELTA & delta)
          AddDelta( cell, m_colLulcB, year, lulcB, DT_POP );
 
          // get lulcC value
-         nodeCount = (int) pNode->m_childNodeArray.GetSize();
+         nodeCount = (int) pNode->m_childNodeArray.size();
          if( nodeCount > 0 )
             {
             offset = (int) m_randUnif.RandValue( 0, nodeCount-0.00001 );

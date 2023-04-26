@@ -102,18 +102,18 @@ BOOL LulcEditor::OnInitDialog()
    // EXCEPTION: OCX Property Pages should return FALSE
    }
 
-void LulcEditor::AddToCtrl( LulcNodeArray *pChildArray,  HTREEITEM hParent  )
+void LulcEditor::AddToCtrl( std::vector<LulcNode*> *pChildArray,  HTREEITEM hParent  )
    {
-   for ( int i=0; i<pChildArray->GetCount(); i++ )
+   for ( int i=0; i<pChildArray->size(); i++ )
       {
-      LulcNode *pNode = pChildArray->GetAt( i );
+      LulcNode *pNode = pChildArray->at( i );
 
       // insert the node
       HTREEITEM hNode = m_treeCtrl.InsertItem( pNode->m_name, hParent);
       m_treeCtrl.SetItemData( hNode, (DWORD_PTR) pNode );
 
       // insert all the nodes children
-      LulcNodeArray *pChildArray = &pNode->m_childNodeArray;
+      std::vector<LulcNode*> *pChildArray = &pNode->m_childNodeArray;
       AddToCtrl( pChildArray, hNode );
       }
    }

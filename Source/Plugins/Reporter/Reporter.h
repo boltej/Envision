@@ -226,7 +226,7 @@ public:
    OutputGroup( void );
    ~OutputGroup( void );
    
-   FDataObj *m_pData;            // this is the outputVar that is exposed to Envision.  It collects output
+   FDataObj *m_pData = nullptr;            // this is the outputVar that is exposed to Envision.  It collects output
                                  // on all outputs defined in this group
 
    // note:  OutputGroups never hold summarize data, that is always defined 

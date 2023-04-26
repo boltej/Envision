@@ -31,52 +31,55 @@ Copywrite 2012 - Oregon State University
 #include <afxtempl.h>
 #endif
 
+#include <vector>
+
+
 class TiXmlNode;
 
 
-enum LU_STATUS { LUS_BUILT=0, LUS_NEAR_RIPARIAN=1, LUS_FAR_RIPARIAN=2, LUS_OTHER=3, LUS_IGNORED=4 };
+//struct  LIBSAPI LULC_INFO
+//   {
+//   LU_STATUS status;
+//
+//   LULC_INFO( void ) : status( LUS_IGNORED ) { }
+//   LULC_INFO( LULC_INFO &info ) : status( info.status ) { }
+//   };
 
-struct  LIBSAPI LULC_INFO
-   {
-   LU_STATUS status;
-
-   LULC_INFO( void ) : status( LUS_IGNORED ) { }
-   LULC_INFO( LULC_INFO &info ) : status( info.status ) { }
-   };
-
-class  LIBSAPI LulcInfoArray : public CArray< LULC_INFO*, LULC_INFO* >
-   {
-   public:
-      ~LulcInfoArray( void ) { for  ( int i=0; i < GetSize(); i++ ) delete GetAt( i );  RemoveAll(); }
-
-      void DeepCopy( LulcInfoArray &a ) { for ( int i=0; i < a.GetSize(); i++ ) Add( new LULC_INFO( *(a.GetAt( i )) ) ); }
-   };
-
-class LulcNode;
-class LIBSAPI LulcNodeArray : public CArray< LulcNode*, LulcNode* >
-   { };
-
+//class  LIBSAPI LulcInfoArray : public CArray< LULC_INFO*, LULC_INFO* >
+//   {
+//   public:
+//      ~LulcInfoArray( void ) { for  ( int i=0; i < GetSize(); i++ ) delete GetAt( i );  RemoveAll(); }
+//
+//      void DeepCopy( LulcInfoArray &a ) { for ( int i=0; i < a.GetSize(); i++ ) Add( new LULC_INFO( *(a.GetAt( i )) ) ); }
+//   };
+//
+//class LulcNode;
+//class LIBSAPI LulcNodeArray : public CArray< LulcNode*, LulcNode* >
+//   { };
+//
 
 class LIBSAPI LulcNode
    {
    public:
       // constructor
-      LulcNode( void ) : m_pParentNode( NULL ), m_id( -1 ), m_pData( NULL ), m_name( _T("") ), m_isExpanded( false )  { }
-      LulcNode( LulcNode &node ) : m_id( node.m_id ), m_name( node.m_name ), m_isExpanded( node.m_isExpanded ), m_pData( node.m_pData ), m_pParentNode( NULL ) { }
+      LulcNode( void ) : m_pParentNode( nullptr ), m_id( -1 ), m_data(0), m_name(), m_isExpanded( false )  { }
+      LulcNode(LulcNode& node) : m_id(node.m_id), m_name(node.m_name), m_isExpanded(node.m_isExpanded), m_data(node.m_data), m_pParentNode(nullptr) {}
+
+      ~LulcNode() {} // if (m_pLulcInfo != nullptr) delete m_pLulcInfo;
 
       // methods
       int GetNodeLevel( void )  // return 0 for root node, 1 for first level, 2 for second, etc...
-         { if ( m_pParentNode == NULL ) return 0; else return m_pParentNode->GetNodeLevel() + 1; }
+         { if ( m_pParentNode == nullptr ) return 0; else return m_pParentNode->GetNodeLevel() + 1; }
 
    public:
       int      m_id;        // id for this node
       CString  m_name;      // associated land use name
       bool     m_isExpanded;    //  for display purposes only
-
-      void *m_pData; // pointer to application-specific data
+      //LULC_INFO* m_pLulcInfo = nullptr;
+      INT_PTR   m_data; // application-specific data
 
       LulcNode     *m_pParentNode;     // pointer to parent
-      LulcNodeArray m_childNodeArray;  // pointer to children
+      std::vector<LulcNode*> m_childNodeArray;  // pointer to children
    };
 
 
@@ -84,7 +87,7 @@ class LIBSAPI LulcTree
    {
    public:
       LulcTree( void );
-      LulcTree( LulcTree &tree ) : m_pRootNode( NULL ), m_pCurrentNode( NULL ) { Copy( tree ); }
+      LulcTree( LulcTree &tree ) : m_pRootNode( nullptr ), m_pCurrentNode( nullptr ) { Copy( tree ); }
      ~LulcTree( void ) { RemoveAll(); }
 
       void Copy( LulcTree &tree );
@@ -92,7 +95,7 @@ class LIBSAPI LulcTree
       void RemoveBranch( LulcNode *pRoot );
 
       LulcNode *GetRootNode( void ) { return m_pCurrentNode = m_pRootNode; }
-      LulcNode *GetNextNode( void );   // for iterating through the tree.  returns NULL when done iterating 
+      LulcNode *GetNextNode( void );   // for iterating through the tree.  returns nullptr when done iterating 
 
       LulcNode *FindNode( int level, int id );  // starts at root
  
@@ -103,7 +106,7 @@ class LIBSAPI LulcTree
 
    protected:
       LulcNode      *m_pCurrentNode;
-      LulcInfoArray  m_lulcInfoArray;
+      //std::vector<LULC_INFO*> m_lulcInfoArray;
       CStringArray   m_classNames;    // doesn't include root
       CStringArray   m_fieldNames;    // doesn't include root
 
@@ -123,7 +126,7 @@ class LIBSAPI LulcTree
       LulcNode *m_pRootNode;           // root of the tree
       
       int       LoadLulcInfo( LPCTSTR filename );  // returns number of nodes in the first level
-      bool      GetLulcInfo( int level, int landUse, LULC_INFO &info );
+      //bool      GetLulcInfo( int level, int landUse, LULC_INFO &info );
 
       int       LoadXml( LPCTSTR filename, bool isImporting, bool appendToExisting );       // returns number of nodes in the first level
       int       LoadXml( TiXmlNode *pLulcTree, bool appendToExisting );
@@ -180,15 +183,15 @@ LulcNode *LulcTree::FindNode( LulcNode *pNode, int level, int id )
       return pNode;
 
    // no match - do any children match?
-   for ( INT_PTR i=0; i < pNode->m_childNodeArray.GetSize(); i++ )
+   for ( UINT_PTR i=0; i < (UINT_PTR) pNode->m_childNodeArray.size(); i++ )
       {
       LulcNode *pChild = pNode->m_childNodeArray[ i ];
       LulcNode *pFound = FindNode( pChild, level, id );
 
-      if ( pFound != NULL )
+      if ( pFound != nullptr )
          return pFound;
       }
 
-   return NULL;
+   return nullptr;
    }
 

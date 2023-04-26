@@ -1447,7 +1447,7 @@ float GeoSpatialDataObj::Get(double xcoord, double ycoord, int &twoDindexvalue, 
    if (!ok)
       {
       CString msg;
-      msg.Format(_T("  GeoSpatialDataObj: Error getting climate info for location (%.1f, %.1f); 2DIndex=%i, setDValue=%i", xcoord, ycoord, twoDindexvalue, set3Dvalue));
+      msg.Format("GeoSpatialDataObj: Error getting climate info for location (%.1f, %.1f); 2DIndex=%i, setDValue=%i", xcoord, ycoord, twoDindexvalue, set3Dvalue);
       Report::LogError(msg);
       return -9999.0f;
       }

@@ -49,7 +49,7 @@ protected:
    bool      m_expanded;
    CRect     m_windowRect;
 
-   void AddToCtrl( LulcNodeArray *pChildArray,  HTREEITEM hParent );
+   void AddToCtrl( std::vector<LulcNode*> *pChildArray,  HTREEITEM hParent );
 	HTREEITEM FindItem( HTREEITEM hItem, int level, int id );
 	bool TestNode( LulcNode *pNode, int level, int id ){ return pNode->m_id == id && pNode->GetNodeLevel() == level;}
 	void WriteParentsAbove( HTREEITEM hItem );

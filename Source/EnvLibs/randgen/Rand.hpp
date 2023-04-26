@@ -100,6 +100,9 @@ References: Simulation for Decision Making by Arne Thesen and
 
 #include "libs.h"
 
+#include <string>
+
+
 //------------------------- Typedefs ------------------------------//
 
 typedef unsigned int  UINT;
@@ -125,12 +128,12 @@ class  LIBSAPI  Rand
       long initialSeed;                // initial RNG seed
       long multiplier;                 // RNG multiplier
       long observations;               // # of times this generator was used
-      char *name;                      // statistic name
-      char *distName;                  // generator name
-      char *parameterA;                // parameter a stored as a string
-      char *parameterB;                // parameter b " "
-      char *parameterC;                // parameter c " "
-      char *header;                    // eg. "Uniform(0.0,1.0)"
+      std::string name;                      // statistic name
+      std::string distName;                  // generator name
+      std::string parameterA;                // parameter a stored as a string
+      std::string parameterB;                // parameter b " "
+      std::string parameterC;                // parameter c " "
+      std::string header;                    // eg. "Uniform(0.0,1.0)"
 
       void SetDefaultSeed( void );
       long GetDefaultSeed( void );
@@ -160,7 +163,7 @@ class  LIBSAPI  Rand
    public:
 
       //-- destructor --//
-      virtual ~Rand( void );
+      virtual ~Rand(void) {};
 
       //-- pure virtual, child must return random number --//
       virtual double RandValue( void ) = 0;
@@ -169,13 +172,12 @@ class  LIBSAPI  Rand
       void ReInitializeStats( void ) { observations = 0; }
 
       //-- Get: output information --//
-      const char* const GetName( void ) { return (const char* const) name; }
-      const char* const GetDistName( void ) 
-            { return (const char* const) distName; }
-      const char* const GetA( void ) { return (const char* const) parameterA; }
-      const char* const GetB( void ) { return (const char* const) parameterB; }
-      const char* const GetC( void ) { return (const char* const) parameterC; }
-      const char* const GetHeader( void );
+      const char* GetName( void ) { return name.c_str(); }
+      const char* GetDistName( void ) { return  distName.c_str(); }
+      const char* GetA( void ) { return parameterA.c_str(); }
+      const char* GetB( void ) { return parameterB.c_str(); }
+      const char* GetC( void ) { return parameterC.c_str(); }
+      const char* GetHeader( void );
 
       void SetName           ( const char *_name );
       void SetDistName       ( const char *_name );
