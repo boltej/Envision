@@ -217,6 +217,9 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    Report::Log(msg);
    int rows = this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
 
+   ///////
+   this->m_earthquakeData.WriteAscii("/Envision/studyAreas/OrCoast/Hazus/output/EQ_M90_building_damage_test.csv");
+
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
    int idus = pIDULayer->GetRowCount();
    ASSERT(rows == idus);
@@ -227,8 +230,8 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    eqColInfos.Add(new HazDataColInfo{ "rep_time", -1 });
    eqColInfos.Add(new HazDataColInfo{ "rep_cost",  -1 });
    eqColInfos.Add(new HazDataColInfo{ "habitable", -1 });
-   eqColInfos.Add(new HazDataColInfo{ "Cas_Ftly",  -1 });
-   eqColInfos.Add(new HazDataColInfo{ "Cas_Injy",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "ls_ftly",  -1 });
+   eqColInfos.Add(new HazDataColInfo{ "ls_injy",  -1 });
 
    // find the CSV column associated with each statistic type
    for (int i = 0; i < eqColInfos.GetSize(); i++)
@@ -252,8 +255,8 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    tsuColInfos.Add(new HazDataColInfo{ "rep_time",  -1 });
    tsuColInfos.Add(new HazDataColInfo{ "rep_cost",  -1 });
    tsuColInfos.Add(new HazDataColInfo{ "habitable", -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "Cas_Ftly",  -1 });
-   tsuColInfos.Add(new HazDataColInfo{ "Cas_Injy",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "ls_ftly",  -1 });
+   tsuColInfos.Add(new HazDataColInfo{ "ls_injy",  -1 });
 
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev1",  -1 });  // casuality severitys
    //tsuColInfos.Add(new HazDataColInfo{ "CasSev2",  -1 });
@@ -279,8 +282,8 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    for (int idu = 0; idu < idus; idu++)
       {
       // we'll start with damage state
-      int damageIndexEq = (int) m_earthquakeData.Get(eqColInfos[HMI_DS]->col, idu);
-      int damageIndexTsu = (int) m_tsunamiData.Get(tsuColInfos[HMI_DS]->col, idu);
+      int damageIndexEq = m_earthquakeData.GetAsInt(eqColInfos[HMI_DS]->col, idu);
+      int damageIndexTsu = m_tsunamiData.GetAsInt(tsuColInfos[HMI_DS]->col, idu);
 
       damageIndexTsu--;  // TEMPORARY
       int damageIndex = max(damageIndexEq, damageIndexTsu);
@@ -297,9 +300,9 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
          {
          float timeToRepair=0;
          if (damageIndexEq > damageIndexTsu)
-            timeToRepair = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME]->col, idu);
+            timeToRepair = m_earthquakeData.GetAsFloat(eqColInfos[HMI_REP_TIME]->col, idu);
          else
-            timeToRepair = m_tsunamiData.Get(eqColInfos[HMI_REP_TIME]->col, idu);
+            timeToRepair = m_tsunamiData.GetAsFloat(eqColInfos[HMI_REP_TIME]->col, idu);
 
          int yearsToRepair = int(timeToRepair / 365);
          //yearsToRepair++;    // round up
@@ -310,7 +313,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
          m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgStatus, 1, ADD_DELTA);
 
          // repair costs
-         float repCost = m_earthquakeData.Get(eqColInfos[HMI_REP_COST]->col, idu);
+         float repCost = m_earthquakeData.GetAsFloat(eqColInfos[HMI_REP_COST]->col, idu);
 
          //ASSERT(repCost > 0);
          if (repCost > 0)
@@ -326,7 +329,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
          
          // habitable
          float randVal = (float) m_pAHModel->m_randUniform.RandValue();   // 0-1
-         float pHab = m_earthquakeData.Get(eqColInfos[HMI_HABITABLE]->col, idu);
+         float pHab = m_earthquakeData.GetAsFloat(eqColInfos[HMI_HABITABLE]->col, idu);
 
          int habitable = (randVal >= pHab) ? 0 : 1;    
          m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduHabitable, habitable, ADD_DELTA);
@@ -344,8 +347,8 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       //m_pAHModel->m_numCasSev4 += casSev4;
       //
       //m_pAHModel->m_numCasTotal += casTotal;
-      float injuries = m_earthquakeData.Get(eqColInfos[HMI_CASFTLY]->col, idu);  // people
-      float fatalities= m_earthquakeData.Get(eqColInfos[HMI_CASINJY]->col, idu);
+      float injuries = m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASFTLY]->col, idu);  // people
+      float fatalities= m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASINJY]->col, idu);
       m_pAHModel->m_numInjuries += injuries;
       m_pAHModel->m_numFatalities += fatalities;
       m_pAHModel->m_numCasualities += (injuries + fatalities);
@@ -674,6 +677,7 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
       {
       if (m_events[i]->m_use && m_events[i]->m_status == AHS_POST_EVENT)
          {
+         Report::Log_i("Processing prior year event (%i)", m_events[i]->m_year);
          Update(pEnvContext);
          break;
          }
@@ -685,7 +689,10 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
       AHEvent* pEvent = m_events[i];
 
       if (pEvent->m_use && pEvent->m_year == currentYear)
+         {
+         Report::Log_i("Processing current year event (%i)", m_events[i]->m_year);
          pEvent->Run(pEnvContext);
+         }
       }
      
    return TRUE;

@@ -24,7 +24,7 @@ EnvModel:Run()
 
 #include <EnvExtension.h>
 #include <PtrArray.h>
-#include <FDATAOBJ.H>
+#include <VDataObj.h>
 #include <randgen/Randln.hpp>    // lognormal
 #include <randgen/RandNorm.hpp>  // normal
 #include <randgen/RandUnif.hpp>  // normal
@@ -66,8 +66,8 @@ class AHEvent
 
       AH_STATUS m_status;
 
-      FDataObj m_earthquakeData;  // results table
-      FDataObj m_tsunamiData;  // results table
+      VDataObj m_earthquakeData;  // results table
+      VDataObj m_tsunamiData;  // results table
 
       AHEvent() 
          : m_year(-1)
