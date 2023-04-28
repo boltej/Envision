@@ -327,8 +327,8 @@ bool FieldCalculator::CollectData(int year)
    data.push_back((float)year);
    for (int i = 0; i < fieldCount; i++)
       {
-      data.push_back((float)m_fields[i]->m_totalArea);
       data.push_back((float)m_fields[i]->m_count);
+      data.push_back((float)m_fields[i]->m_totalArea);
       }
 
    m_pOutputData->AppendRow(data.data(), (int) data.size());

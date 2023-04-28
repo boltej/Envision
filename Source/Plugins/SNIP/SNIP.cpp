@@ -897,22 +897,29 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "minNodeReactivity");
    m_pOutputData->SetLabel(col++, "meanNodeReactivity");
    m_pOutputData->SetLabel(col++, "maxNodeReactivity");
+   m_pOutputData->SetLabel(col++, "stdNodeReactivity");
 
    m_pOutputData->SetLabel(col++, "minLAReactivity");
    m_pOutputData->SetLabel(col++, "meanLAReactivity");
    m_pOutputData->SetLabel(col++, "maxLAReactivity");
+   m_pOutputData->SetLabel(col++, "stdLAReactivity");
 
    m_pOutputData->SetLabel(col++, "minNodeInfluence");
    m_pOutputData->SetLabel(col++, "meanNodeInfluence");
    m_pOutputData->SetLabel(col++, "maxNodeInfluence"); //17
+   m_pOutputData->SetLabel(col++, "stdNodeInfluence"); //17
 
    m_pOutputData->SetLabel(col++, "edgeCount");
    m_pOutputData->SetLabel(col++, "minEdgeTransEff");
    m_pOutputData->SetLabel(col++, "meanEdgeTransEff");
    m_pOutputData->SetLabel(col++, "maxEdgeTransEff");
+   m_pOutputData->SetLabel(col++, "stdEdgeTransEff");
+
    m_pOutputData->SetLabel(col++, "minEdgeInfluence");
    m_pOutputData->SetLabel(col++, "meanEdgeInfluence");
    m_pOutputData->SetLabel(col++, "maxEdgeInfluence");
+   m_pOutputData->SetLabel(col++, "stdEdgeInfluence");
+
    m_pOutputData->SetLabel(col++, "edgeDensity");
 
    m_pOutputData->SetLabel(col++, "totalEdgeSignalStrength");
@@ -2284,7 +2291,8 @@ void SNIPModel::UpdateNetworkStats()
    int inputSignalCount = 0;
    //let _this = this;
 
-   // get node info
+   //---- Node reactivity ----//
+   int networkNodeCount = 0;
    for (int i = 0; i < this->GetNodeCount(); i++)
       {
       SNNode* pNode = this->GetNode(i);
@@ -2301,6 +2309,8 @@ void SNIPModel::UpdateNetworkStats()
             this->m_netStats.maxNodeReactivity = nodeReactivity;
          // mean reactivity
          this->m_netStats.meanNodeReactivity += nodeReactivity;
+         
+         networkNodeCount++;
          }
       else
          inputSignalCount += 1;
@@ -2318,14 +2328,7 @@ void SNIPModel::UpdateNetworkStats()
          }
       }
 
-   // netStats.networkNodeCount = netStats.nodeCount - (landscapeActorCount + inputSignalCount)
-
-   this->m_netStats.meanNodeReactivity /= nodeCount;
-
-   if (landscapeActorCount > 0)
-      this->m_netStats.meanLANodeReactivity /= landscapeActorCount;
-
-   //this->m_cy.nodes(ANY_ACTOR).forEach(function(node) {
+   //---- Node influence ----//
    for (int i = 0; i < this->GetNodeCount(); i++)
       {
       SNNode* pNode = this->GetNode(i);
@@ -2344,7 +2347,7 @@ void SNIPModel::UpdateNetworkStats()
 
    this->m_netStats.meanNodeInfluence /= nodeCount;
 
-   //this->m_cy.nodes(INPUT_SIGNAL).forEach(function(node) {
+   //---- input signal influence -----//
    for (int i = 0; i < this->GetNodeCount(); i++)
       {
       SNNode* pNode = this->GetNode(i);
@@ -2352,8 +2355,35 @@ void SNIPModel::UpdateNetworkStats()
          this->m_netStats.landscapeSignalInfluence += pNode->m_influence;
       }
 
-   // next, do edges
-   //this->m_cy.edges(NETWORK_EDGE).forEach(function(edge) {
+   //---- std dev's ----//
+   float ssNodeReactivity = 0;
+   float ssLANodeReactivity = 0;
+   float ssNodeInfluence = 0;
+
+   for (int i = 0; i < this->GetNodeCount(); i++)
+      {
+      SNNode* pNode = this->GetNode(i);
+      ASSERT(isnan(pNode->m_reactivity) == false);
+
+      if (pNode->IsInputSignal() == false)
+         {
+         ssNodeReactivity += (pNode->m_reactivity - this->m_netStats.meanNodeReactivity) * (pNode->m_reactivity - this->m_netStats.meanNodeReactivity);
+         
+         if( pNode->IsLandscapeActor() )
+            ssLANodeReactivity += (pNode->m_reactivity - this->m_netStats.meanLANodeReactivity) * (pNode->m_reactivity - this->m_netStats.meanLANodeReactivity);
+         }
+
+      ssNodeInfluence += (pNode->m_influence - this->m_netStats.meanNodeInfluence) * (pNode->m_influence - this->m_netStats.meanNodeInfluence);
+
+      }
+
+   this->m_netStats.stddevNodeReactivity = (float)sqrt(ssNodeReactivity / networkNodeCount);
+   this->m_netStats.stddevLANodeReactivity = (float)sqrt(ssNodeReactivity / landscapeActorCount);
+   this->m_netStats.stddevNodeInfluence = (float)sqrt(ssNodeReactivity / this->m_netStats.nodeCount);
+
+   ////////////// next, do edges ////////////////////
+
+   //-- edge traneff, influence --//
    for (int i = 0; i < this->GetEdgeCount(); i++)
       {
       SNEdge* pEdge = this->GetEdge(i);
@@ -2388,6 +2418,22 @@ void SNIPModel::UpdateNetworkStats()
 
    this->m_netStats.meanEdgeTransEff /= edgeCount;
    this->m_netStats.meanEdgeInfluence /= edgeCount;
+
+   //-- edge std deviations --// 
+   float ssEdgeTransEff = 0;
+   float ssEdgeInfluence = 0;
+   for (int i = 0; i < this->GetEdgeCount(); i++)
+      {
+      SNEdge* pEdge = this->GetEdge(i);
+      if (pEdge->m_edgeType == ET_NETWORK)
+         {
+         ssEdgeTransEff = (pEdge->m_transEff - this->m_netStats.meanEdgeTransEff) * (pEdge->m_transEff - this->m_netStats.meanEdgeTransEff);
+         ssEdgeInfluence = (pEdge->m_influence- this->m_netStats.meanEdgeInfluence) * (pEdge->m_influence - this->m_netStats.meanEdgeInfluence);
+         }
+      }
+   this->m_netStats.stddevEdgeTransEff = (float)sqrt(ssEdgeTransEff / edgeCount);
+   this->m_netStats.stddevEdgeInfluence = (float)sqrt(ssEdgeInfluence/ edgeCount);
+
 
    // LAReactivity.reduce((a, b) => (a + b)) / LAReactivity.length
    // traditional SA stats
@@ -2543,23 +2589,28 @@ bool SNIPModel::CollectData(EnvContext* pEnvContext)
    data.Add(m_netStats.minNodeReactivity);
    data.Add(m_netStats.meanNodeReactivity);
    data.Add(m_netStats.maxNodeReactivity);
+   data.Add(m_netStats.stddevNodeReactivity);
 
    data.Add(m_netStats.minLANodeReactivity);
    data.Add(m_netStats.meanLANodeReactivity);
    data.Add(m_netStats.maxLANodeReactivity);
+   data.Add(m_netStats.stddevLANodeReactivity);
 
    data.Add(m_netStats.minNodeInfluence);
    data.Add(m_netStats.meanNodeInfluence);
-   data.Add(m_netStats.maxNodeInfluence);  //17
+   data.Add(m_netStats.maxNodeInfluence);
+   data.Add(m_netStats.stddevNodeInfluence);
 
    data.Add((float)this->GetEdgeCount());
    data.Add(m_netStats.minEdgeTransEff);
    data.Add(m_netStats.meanEdgeTransEff);
    data.Add(m_netStats.maxEdgeTransEff);
-   
+   data.Add(m_netStats.stddevEdgeTransEff);
+
    data.Add(m_netStats.minEdgeInfluence);
    data.Add(m_netStats.meanEdgeInfluence);
    data.Add(m_netStats.maxEdgeInfluence);
+   data.Add(m_netStats.stddevEdgeInfluence);
    data.Add(m_netStats.edgeDensity);
 
    data.Add(m_netStats.totalEdgeSignalStrength);

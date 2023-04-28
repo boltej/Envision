@@ -5661,6 +5661,13 @@ int MapLayer::LoadDataDBF(LPCTSTR databaseName, int extraCols /* =0 */, int reco
 
       m_pMap->Notify(NT_LOADRECORD, count, 0);
       m_pData->AppendRow(varArray, cols + extraCols);
+
+      ////
+      VData test;
+      m_pData->Get(2, 0, test);
+      ////
+
+
       //((VDataObj*) m_pData)->AppendRow( array );
       count++;
       }

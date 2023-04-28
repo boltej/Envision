@@ -145,21 +145,28 @@ struct NetStats {
    float minNodeReactivity=-99.0f;
    float meanNodeReactivity = -99.0f;
    float maxNodeReactivity = -99.0f;
+   float stddevNodeReactivity = -99.0f;
 
    float minLANodeReactivity = -99.0f;
    float meanLANodeReactivity = -99.0f;
    float maxLANodeReactivity = -99.0f;
+   float stddevLANodeReactivity = -99.0f;
 
    float minNodeInfluence = -99.0f;
    float meanNodeInfluence = -99.0f;
    float maxNodeInfluence = -99.0f;
-   
+   float stddevNodeInfluence = -99.0f;
+
    float minEdgeTransEff = -99.0f;
    float meanEdgeTransEff = -99.0f;
    float maxEdgeTransEff = -99.0f;
+   float stddevEdgeTransEff = -99.0f;
+
    float minEdgeInfluence = -99.0f;
    float meanEdgeInfluence = -99.0f;
    float maxEdgeInfluence = -99.0f;
+   float stddevEdgeInfluence = -99.0f;
+
    float edgeDensity = -99.0f;
    float totalEdgeSignalStrength = -99.0f;
 

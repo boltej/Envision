@@ -122,8 +122,11 @@ VData& VData::operator = (const VData &v )
    if ( v.type == TYPE_DSTRING )
       AllocateString( v.val.vString );
    else
-      val = v.val;
-      
+      {
+      this->val = v.val;
+      this->type = v.type;
+      }
+
    return *this;
    }
 

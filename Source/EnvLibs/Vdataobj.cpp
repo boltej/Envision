@@ -126,7 +126,7 @@ VData & VDataObj::Get( int col, int row )
 //      return v;  // not a good idea!
 //#endif
       }
-         
+
    return matrix.Get( row, col ); 
    }
 

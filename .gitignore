@@ -9,3 +9,8 @@ Release/
 *.pch
 Source/enc_temp_folder/
 Source/EnvLibs/boost/
+*.dll
+*.dll
+*.dll
+Source/SetupMSIX/Envision/AcuteHazards.dll
+Source/SetupMSIX/Envision/ChronicHazards.dll

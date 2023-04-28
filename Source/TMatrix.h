@@ -48,6 +48,7 @@ public:
 
 protected:
     std::vector<T> data;
+    //std::vector<T*> data;
     //T** matrix;         // pointer to an array of pointers to arrays
 
 public:

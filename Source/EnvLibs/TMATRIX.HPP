@@ -50,12 +50,12 @@ template <class T>
 class LIBSAPI TMatrix : public _Matrix
    {
    protected:
-      T **matrix;         // pointer to an array of pointers to arrays
+      T **matrix = nullptr;         // pointer to an array of pointers to arrays
 
    public:
       //-- constructor------------------------------------------------------------------- 
       TMatrix( UINT _numRows, UINT _numCols) : _Matrix( _numRows, _numCols ),
-         matrix( NULL )
+         matrix( nullptr )
          {
          if ( numRows <= 0 )
             return;
@@ -73,9 +73,8 @@ class LIBSAPI TMatrix : public _Matrix
             matrix[ i ] = new T [ numCols ];
          }
 
-
       //-- constructor------------------------------------------------------------------- 
-      TMatrix( UINT _numRows, UINT _numCols, T initialValue )  : _Matrix( _numRows, _numCols ), matrix( NULL )
+      TMatrix( UINT _numRows, UINT _numCols, T initialValue )  : _Matrix( _numRows, _numCols ), matrix( nullptr )
          {
          if ( numRows <= 0 )
             return;
@@ -100,18 +99,18 @@ class LIBSAPI TMatrix : public _Matrix
       //-- constructor------------------------------------------------------------------- 
       TMatrix( void )
          : _Matrix(),
-         matrix( NULL )
+         matrix( nullptr )
       { }
 
       //-- conversion constructor------------------------------------------------------------------- 
       // <> Assumes the arg 'data' is row-by-row
       TMatrix (const T * data, UINT nrows, UINT ncols) : _Matrix()
          { 
-         ASSERT( NULL != data );
+         ASSERT( nullptr != data );
 
          Resize(numRows, numCols);
 
-         if ( data == NULL )
+         if ( data == nullptr )
             return;
 
          for(unsigned int r=0; r<numRows; ++r)
@@ -121,7 +120,7 @@ class LIBSAPI TMatrix : public _Matrix
          }
 
       //-- copy constructor -------------------------------------------------------------
-      TMatrix( TMatrix &tm ) : matrix( NULL )
+      TMatrix( TMatrix &tm ) : matrix( nullptr )
          {
          //-- set the number of columns, rows 
          Resize( tm.numRows, tm.numCols );
@@ -138,33 +137,41 @@ class LIBSAPI TMatrix : public _Matrix
       //----------------------------------------------------------------------------------
       void Clear ( void )
          {
-         if ( matrix == NULL )
+         if ( matrix == nullptr )
             return;
 
-         for ( UINT i=0; i < numRows; i++ )
-            {
-            if ( matrix[ i ] == NULL )
-               {
-               Report::ErrorMsg( "TMatrix::Clear() - Pointer error" );
-               break;
-               }
-            delete [] matrix[ i ];
-            }
-
-         delete [] matrix;
+         _Clear(matrix, allocRows);
          
-         matrix = NULL;
+         matrix = nullptr;
 
          numRows = 0;
          numCols = 0;
          allocRows = 0; 
          }
 
+      void _Clear(T** _matrix, UINT _allocRows )
+         {
+         if (_matrix == nullptr)
+            return;
+
+         for (UINT i = 0; i < _allocRows; i++)
+            {
+            if (_matrix[i] == nullptr)
+               {
+               Report::ErrorMsg("TMatrix::Clear() - Pointer error");
+               break;
+               }
+            delete[] matrix[i];
+            }
+
+         delete[] matrix;
+         }
+
 
       
       bool SetMatrix( T value )
          {
-         if ( matrix == NULL )
+         if ( matrix == nullptr )
             return false;
 
          for(unsigned int r=0; r < numRows; ++r )
@@ -178,7 +185,7 @@ class LIBSAPI TMatrix : public _Matrix
 
       bool ResetMatrix( void )
          {
-         if ( matrix == NULL )
+         if ( matrix == nullptr )
             return false;
 
          for (unsigned int r=0; r < numRows; ++r )
@@ -199,6 +206,7 @@ class LIBSAPI TMatrix : public _Matrix
          T ** oldMatrix  = matrix;
          UINT oldNumRows = numRows;
          UINT oldNumCols = numCols;
+         UINT oldAllocRows = allocRows;
 
          numRows = _numRows;
 
@@ -217,42 +225,49 @@ class LIBSAPI TMatrix : public _Matrix
 
          numCols = _numCols;
 
-         matrix    = new T*[ numRows ];
-         allocRows = numRows;
-
-         if ( ! matrix )
+         if (numRows == 0)
             {
-            Report::ErrorMsg( "TMatrix::Resize() - Insufficient Memory" );
-            return FALSE;
+            if (matrix != nullptr)
+               this->Clear();
+            
+            matrix = nullptr;
+            allocRows = 0;
+            }
+         else
+            {
+            matrix = new T * [numRows];
+            allocRows = numRows;
+
+            if (!matrix)
+               {
+               Report::ErrorMsg("TMatrix::Resize() - Insufficient Memory");
+               return FALSE;
+               }
+
+            UINT i = 0;
+            UINT j = 0;
+
+            for (i = 0; i < numRows; i++)
+               {
+               matrix[i] = new T[numCols];
+               memset(matrix[i], 0, sizeof(T) * numCols);
+               }
             }
 
-         UINT i = 0;
-         UINT j = 0;
-
-         for ( i=0; i < numRows; i++ )
-            {
-            matrix[ i ] = new T [ numCols ];
-            memset( matrix[ i ], 0, sizeof( T )*numCols );
-            }
-
-
-         if ( oldMatrix )
+         if ( oldMatrix != nullptr)
             {
             //-- copy original matrix into the new one
             UINT copyRows = min( numRows, oldNumRows );
             UINT copyCols = min( numCols, oldNumCols );
 
-            for ( i=0; i < copyRows; i++ )
+            for ( UINT i=0; i < copyRows; i++ )
                {
-               for ( j=0; j < copyCols; j++ )
+               for (UINT j=0; j < copyCols; j++ )
                   Set( i, j, oldMatrix[ i ][ j ] );
                }
 
             //-- clean up old matrix allocations
-            for ( i=0; i < oldNumRows; i++ )
-               delete [] oldMatrix[ i ];
-
-            delete [] oldMatrix;
+            _Clear(oldMatrix, oldAllocRows);
             }
 
          return TRUE;
@@ -274,7 +289,7 @@ class LIBSAPI TMatrix : public _Matrix
             matrix = new T*[ allocRows ];
 
             //-- copy previous row ptrs (if any)
-            if ( oldMatrix != NULL )
+            if ( oldMatrix != nullptr )
                {
                memcpy( matrix, oldMatrix, numRows * sizeof( T* ) );
                delete [] oldMatrix;
@@ -282,13 +297,13 @@ class LIBSAPI TMatrix : public _Matrix
 
             //-- NULL out unused ptrs
             for ( UINT i=numRows; i < allocRows; i++ )
-               matrix[ i ] = NULL;
+               matrix[ i ] = nullptr;
             }
 
          //-- reallocation done (if necessary), now allocate row
          matrix[ numRows ] = new T[ numCols ];
 
-         if ( matrix[ numRows ] == NULL )
+         if ( matrix[ numRows ] == nullptr )
             {
             Report::ErrorMsg( "TMatrix::AppendRow() - Insufficient memory" );
             return 0;
@@ -362,7 +377,7 @@ class LIBSAPI TMatrix : public _Matrix
          Resize( numRows, numCols+count );  // add one more column
 
          // copy new data to col
-         if ( data != NULL )
+         if ( data != nullptr )
             {
             for ( int j=0; j < count; j++ )
                for ( int i=0; (UINT) i < numRows; i++ )
@@ -418,10 +433,7 @@ class LIBSAPI TMatrix : public _Matrix
                }
 
             //-- clean up old matrix allocations
-            for ( i=0; i < numRows; i++ )
-               delete [] oldMatrix[ i ];
-
-            delete [] oldMatrix;
+            _Clear(oldMatrix, allocRows);
             }
 
          return insertBefore;
