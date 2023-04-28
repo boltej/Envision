@@ -49,7 +49,7 @@ extern "C" EnvExtension * Factory(EnvContext*)
 
 bool FieldDef::Init()
    {
-   m_pFieldCalculator->CheckCol(m_pFieldCalculator->m_pMapLayer, this->m_col, this->m_field, TYPE_FLOAT, CC_AUTOADD);
+   m_pFieldCalculator->CheckCol(m_pFieldCalculator->m_pMapLayer, this->m_col, this->m_field, this->m_type, CC_AUTOADD | this->m_type);
 
    LPTSTR query = nullptr;
    if (m_queryStr.IsEmpty() == false)
@@ -453,14 +453,16 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       {
       FieldDef* pFD = new FieldDef(this);
       LPTSTR op = nullptr;
+      LPTSTR type = nullptr;
 
       XML_ATTR attrs[] = { // attr          type           address             isReq checkCol
                          { "name",         TYPE_CSTRING,  &pFD->m_name,       false, 0 },
-                         { "field",        TYPE_CSTRING,  &pFD->m_field,        true,  CC_AUTOADD | TYPE_FLOAT },
+                         { "field",        TYPE_CSTRING,  &pFD->m_field,        true, 0 },
                          { "query",        TYPE_CSTRING,  &pFD->m_queryStr,    false, 0 },
                          { "value",        TYPE_CSTRING,  &pFD->m_mapExprStr,  true,  0 },
                          { "max_limit",    TYPE_FLOAT,    &pFD->m_maxLimit,    false, 0 },
                          { "min_limit",    TYPE_FLOAT,    &pFD->m_minLimit,    false, 0 },
+                         { "type",         TYPE_STRING,   &type,               false, 0 },
                          { "use_delta",    TYPE_BOOL,     &pFD->m_useDelta,    false, 0 },
                          { "initialize",   TYPE_BOOL,     &pFD->m_initColData, false, 0 },
                          { "groupby",      TYPE_CSTRING,  &pFD->m_groupBy,     false, 0 },
@@ -472,12 +474,21 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          delete pFD;
       else
          {
+         if (type != nullptr)
+            {
+            switch (type[0])
+               {
+               case 'i':
+               case 'I':
+                  pFD->m_type = TYPE_INT;  break;
+               }
+            }
+
          if (pFD->m_modelID == this->m_id || pFD->m_modelID == -99)
             {
-
             if (pFD->m_groupBy.IsEmpty() == false)
                {
-               this->CheckCol(m_pMapLayer, pFD->m_colGroupBy, pFD->m_groupBy, TYPE_LONG, CC_AUTOADD | TYPE_FLOAT);
+               this->CheckCol(m_pMapLayer, pFD->m_colGroupBy, pFD->m_groupBy, TYPE_LONG, CC_AUTOADD);
                if (op == nullptr)
                   {
                   CString msg;
@@ -496,6 +507,8 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                   pFD->m_operator = _op;
                   }
                }
+
+                  
 
             pFD->Init();
             m_fields.Add(pFD);

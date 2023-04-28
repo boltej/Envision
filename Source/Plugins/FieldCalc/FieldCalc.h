@@ -80,10 +80,10 @@ class FieldDef
       MapExpr*  m_pMapExpr=nullptr;
       int       m_col=-1;           // column associated with this variable (-1 if no col)
       float     m_value=0;
-      float     m_maxLimit = LONG_MIN;
-      float     m_minLimit = LONG_MAX;
+      float     m_maxLimit = (float) LONG_MIN;
+      float     m_minLimit = (float) LONG_MAX;
       int       m_modelID = -99;    // should match .envx entry if needed
-
+      TYPE      m_type = TYPE_FLOAT;
       // groupby info
       CString   m_groupBy;   // field to aggregate by, if aggregration desired; otherwise empty
       int       m_colGroupBy = -1;   // corresponding column

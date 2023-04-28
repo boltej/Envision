@@ -156,18 +156,15 @@ class LIBSAPI TMatrix : public _Matrix
 
          for (UINT i = 0; i < _allocRows; i++)
             {
-            if (_matrix[i] == nullptr)
+            if (_matrix[i] != nullptr)
                {
-               Report::ErrorMsg("TMatrix::Clear() - Pointer error");
-               break;
+               delete [] _matrix[i];
+               _matrix[i] = nullptr;
                }
-            delete[] matrix[i];
             }
 
-         delete[] matrix;
+         delete [] _matrix;
          }
-
-
       
       bool SetMatrix( T value )
          {
@@ -227,8 +224,8 @@ class LIBSAPI TMatrix : public _Matrix
 
          if (numRows == 0)
             {
-            if (matrix != nullptr)
-               this->Clear();
+            //if (matrix != nullptr)
+            //   this->Clear();
             
             matrix = nullptr;
             allocRows = 0;
@@ -244,29 +241,33 @@ class LIBSAPI TMatrix : public _Matrix
                return FALSE;
                }
 
-            UINT i = 0;
-            UINT j = 0;
-
-            for (i = 0; i < numRows; i++)
+            // for each row, allocate columns and initially
+            // zero everything out in the new row (we'll copy data below)
+            for (UINT i = 0; i < numRows; i++)
                {
                matrix[i] = new T[numCols];
                memset(matrix[i], 0, sizeof(T) * numCols);
                }
             }
 
+         // if there is "old" data, copy to the new rows
          if ( oldMatrix != nullptr)
             {
             //-- copy original matrix into the new one
             UINT copyRows = min( numRows, oldNumRows );
             UINT copyCols = min( numCols, oldNumCols );
 
-            for ( UINT i=0; i < copyRows; i++ )
+            // only copy the prior data.  Anything else should already be zeroed out
+            for (UINT i = 0; i < copyRows; i++)
                {
-               for (UINT j=0; j < copyCols; j++ )
-                  Set( i, j, oldMatrix[ i ][ j ] );
+               for (UINT j = 0; j < copyCols; j++)
+                  {
+                  T data = oldMatrix[i][j];
+                  Set(i, j, oldMatrix[i][j]);
+                  }
                }
 
-            //-- clean up old matrix allocations
+            //-- remove the old matrix allocations
             _Clear(oldMatrix, oldAllocRows);
             }
 
