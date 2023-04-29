@@ -42,18 +42,21 @@ VData::VData( LPCTSTR v, bool alloc )
    {
    if ( alloc == true ) 
       {
-      type = TYPE_DSTRING;
+      this->type = TYPE_DSTRING;
+      this->val.vString = nullptr;
       AllocateString( v );
       }
    else
       {
-      type = TYPE_STRING;
-      val.vString = (TCHAR*) v;
+      this->type = TYPE_STRING;
+      this->val.vString = (TCHAR*) v;
       }
    }
 
 VData::VData( void *pVar, TYPE _type, bool storeAsPtr )
    {
+   this->val.vString = nullptr;
+
    type = GetTypeFromPtrType( _type );  // no change for non-ptr types
    if ( storeAsPtr )
       type = GetPtrTypeFromType( _type );
