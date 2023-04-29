@@ -883,7 +883,7 @@ bool SNIPModel::Init()
    {
    int col = 0;
 
-   m_pOutputData = new FDataObj(45, 0);
+   m_pOutputData = new FDataObj(50, 0);
    m_pOutputData->SetName(this->m_pSNLayer->m_name.c_str());
    m_pOutputData->SetLabel(col++, "Time");
    m_pOutputData->SetLabel(col++, "cycles");
@@ -919,7 +919,6 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "meanEdgeInfluence");
    m_pOutputData->SetLabel(col++, "maxEdgeInfluence");
    m_pOutputData->SetLabel(col++, "stdEdgeInfluence");
-
    m_pOutputData->SetLabel(col++, "edgeDensity");
 
    m_pOutputData->SetLabel(col++, "totalEdgeSignalStrength");
