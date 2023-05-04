@@ -2286,12 +2286,11 @@ void SNIPModel::UpdateNetworkStats()
    this->m_netStats.maxNodeInfluence = -99;
    this->m_netStats.maxNodeReactivity = -99;
 
-   int landscapeActorCount = 0;
-   int inputSignalCount = 0;
-   //let _this = this;
-
    //---- Node reactivity ----//
    int networkNodeCount = 0;
+   int landscapeActorCount = 0;
+   int inputSignalCount = 0;
+
    for (int i = 0; i < this->GetNodeCount(); i++)
       {
       SNNode* pNode = this->GetNode(i);
@@ -2323,9 +2322,13 @@ void SNIPModel::UpdateNetworkStats()
          
          if (pNode->m_reactivity > this->m_netStats.maxLANodeReactivity)
             this->m_netStats.maxLANodeReactivity = pNode->m_reactivity;
+
          landscapeActorCount += 1;
          }
       }
+
+   this->m_netStats.meanNodeReactivity /= nodeCount;
+   this->m_netStats.meanLANodeReactivity /= landscapeActorCount;
 
    //---- Node influence ----//
    for (int i = 0; i < this->GetNodeCount(); i++)
@@ -2353,6 +2356,7 @@ void SNIPModel::UpdateNetworkStats()
       if (pNode->IsInputSignal())
          this->m_netStats.landscapeSignalInfluence += pNode->m_influence;
       }
+   this->m_netStats.landscapeSignalInfluence /= inputSignalCount;
 
    //---- std dev's ----//
    float ssNodeReactivity = 0;
@@ -2378,7 +2382,7 @@ void SNIPModel::UpdateNetworkStats()
 
    this->m_netStats.stddevNodeReactivity = (float)sqrt(ssNodeReactivity / networkNodeCount);
    this->m_netStats.stddevLANodeReactivity = (float)sqrt(ssNodeReactivity / landscapeActorCount);
-   this->m_netStats.stddevNodeInfluence = (float)sqrt(ssNodeReactivity / this->m_netStats.nodeCount);
+   this->m_netStats.stddevNodeInfluence = (float)sqrt(ssNodeReactivity / networkNodeCount);
 
    ////////////// next, do edges ////////////////////
 

@@ -2036,7 +2036,7 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
       description += a;
       }
 
-   AddInputVar( _T("Allocation Scenario"), pTarget->m_activeAllocSetID, description );
+   AddInputVar( _T("Allocation Set"), pTarget->m_activeAllocSetID, description );
    AddInputVar( _T("Growth Rate"), pTarget->m_rate, _T("Growth Rate (decimal percent/year)" ) );
 
    for (int i = 0; i < this->m_tableArray.GetSize(); i++)
