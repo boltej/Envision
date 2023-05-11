@@ -53,18 +53,18 @@ enum BUOY_OBSERVATION_DATA {
    };
 
 
-enum CH_FLAGS
-   {
-   CH_NONE = 0,
-   CH_MODEL_TWL = 1,
-   CH_MODEL_FLOODING = 2,
-   CH_MODEL_EROSION = 4,
-   CH_MODEL_BAYFLOODING = 8,
-   CH_MODEL_BUILDINGS = 16,
-   CH_MODEL_INFRASTRUCTURE = 32,
-   CH_MODEL_POLICY = 64,
-   CH_ALL = 0x1111111
-   };
+//enum CH_FLAGS
+//   {
+//   CH_NONE = 0,
+//   CH_MODEL_TWL = 1,
+//   CH_MODEL_FLOODING = 2,
+//   CH_MODEL_EROSION = 4,
+//   CH_MODEL_BAYFLOODING = 8,
+//   CH_MODEL_BUILDINGS = 16,
+//   CH_MODEL_INFRASTRUCTURE = 32,
+//   CH_MODEL_POLICY = 64,
+//   CH_ALL = 0x1111111
+//   };
 
 
 enum BEACHTYPE
@@ -291,7 +291,13 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //  bool LoadPolyGridLookup(MapLayer *pGridLayer, MapLayer *pPolyLayer, CString filename, PolyGridLookups *&pLookupLayer);
 
    protected:
-      int m_runFlags;
+      //int m_runFlags;
+      int m_runTWL = 1;
+      int m_runFlooding = 1;
+      int m_runErosion = 1;
+      int m_runBuildings = 1;
+      int m_runInfrastructure = 0;
+      int m_runPolicy = 1;
       Map* m_pMap;									            // ptr to Map required to create grids
 
       // input layers used by submodels

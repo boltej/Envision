@@ -166,6 +166,21 @@ bool FieldCalculator::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
 bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
    {
+   // anything to run?
+   bool run = false;
+   for (int i = 0; i < (int)this->m_fields.GetSize(); i++)
+      {
+      FieldDef* pFD = m_fields[i];
+      if (pFD->m_modelID == pEnvContext->id && pFD->m_initialize != -1)
+         {
+         run = true;
+         break;
+         }
+      }
+
+   if (run == false)
+      return true;
+
    int iduCount = this->m_pMapLayer->GetPolygonCount();
 
    // shuffle IDU array to randomly look through IDUs when allocating sequences
@@ -179,7 +194,7 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
       {
       FieldDef* pFD = m_fields[i];
       pFD->m_count = 0;
-      pFD->m_totalArea = 0;
+      pFD->m_appliedArea = 0;
 
       if (pFD->IsGroupBy())
          {
@@ -212,7 +227,9 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             FieldDef* pFD = m_fields[i];
 
             // if we are in initialization, only initialize field if called for in the input file
-            if (init && pFD->m_initColData == false)
+            if (init && pFD->m_initialize == 0)  // (1/-1 inits the field)
+               continue;
+            if (!init && pFD->m_initialize < 0)
                continue;
 
             bool result = false;
@@ -256,7 +273,7 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                         this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
 
                      pFD->m_count++;
-                     pFD->m_totalArea += area;
+                     pFD->m_appliedArea += area;
                      }
                   }
                }
@@ -264,14 +281,14 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
          }
       }
 
-   int colA2rxn = this->m_pMapLayer->GetFieldCol("A2rxn");
-   int colSocCap = this->m_pMapLayer->GetFieldCol("SocialCap");
-
    // do any necessary cleanup
    for (int i = 0; i < fieldCount; i++)
       {
       FieldDef* pFD = m_fields[i];
-      if (init && pFD->m_initColData == false)
+      
+      if (init && pFD->m_initialize == 0)  // (1/-1 inits the field)
+         continue;
+      if (!init && pFD->m_initialize < 0)
          continue;
 
       // write groupbys to each qualifying IDU (non-groupbys handled during _Run())
@@ -310,6 +327,10 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                }
             }
          }
+      
+      CString msg;
+      msg.Format("FieldDef %s: Count=%i, Applied Area=%.1f ha", (LPCTSTR) pFD->m_name, pFD->m_count, pFD->m_appliedArea*HA_PER_M2);
+      Report::LogInfo(msg);
       }
 
    CollectData(pEnvContext->currentYear);
@@ -328,7 +349,7 @@ bool FieldCalculator::CollectData(int year)
    for (int i = 0; i < fieldCount; i++)
       {
       data.push_back((float)m_fields[i]->m_count);
-      data.push_back((float)m_fields[i]->m_totalArea);
+      data.push_back((float)m_fields[i]->m_appliedArea);
       }
 
    m_pOutputData->AppendRow(data.data(), (int) data.size());
@@ -464,7 +485,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "min_limit",    TYPE_FLOAT,    &pFD->m_minLimit,    false, 0 },
                          { "type",         TYPE_STRING,   &type,               false, 0 },
                          { "use_delta",    TYPE_BOOL,     &pFD->m_useDelta,    false, 0 },
-                         { "initialize",   TYPE_BOOL,     &pFD->m_initColData, false, 0 },
+                         { "initialize",   TYPE_INT,      &pFD->m_initialize, false, 0 },
                          { "groupby",      TYPE_CSTRING,  &pFD->m_groupBy,     false, 0 },
                          { "op",           TYPE_STRING,   &op,                 false, 0 },
                          { "model_id",     TYPE_INT,      &pFD->m_modelID,     false, 0 },

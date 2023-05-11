@@ -715,14 +715,14 @@ void UrbanDev::AllocateNewDUs( EnvContext *pContext, MapLayer *pLayer )
 
    // report results
    CString msg;
-   msg.Format( "DU Deficits (PopDens-derived - actual DUs) - Year %i", pContext->currentYear );
-   Report::Log( msg );
+   //msg.Format( "DU Deficits (PopDens-derived - actual DUs) - Year %i", pContext->currentYear );
+   //Report::Log( msg );
    for ( int i=0; i < m_duAreaArray.GetSize(); i++ )
       {
       DUArea *pDUArea = m_duAreaArray[ i ]; 
       pDUArea->m_duDeficit = nduDeficits[ i ];
-      msg.Format( "%s - DU deficit=%i", (LPCTSTR) pDUArea->m_name, (int) nduDeficits[ i ] );
-      Report::Log( msg );
+      //msg.Format( "%s - DU deficit=%i", (LPCTSTR) pDUArea->m_name, (int) nduDeficits[ i ] );
+      //Report::Log( msg );
       }
 
    // Next, need to sort the duInfo by fractional DUs, largest first.  This determines
@@ -1787,6 +1787,10 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
       {
       UGA* pUGA = this->m_ugaArray[i];
 
+      CString msg;
+      msg.Format("UGA %s: Available Capacity=%.2f", (LPCTSTR)pUGA->m_name, pUGA->m_pctAvailCap);
+      Report::LogInfo(msg);
+
       // reset arrays to n/a
       std::fill(pUGA->m_expandCriteria.begin(), pUGA->m_expandCriteria.end(), -1);
       std::fill(pUGA->m_upzoneCriteria.begin(), pUGA->m_upzoneCriteria.end(), -1);
@@ -1966,8 +1970,17 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
 void UrbanDev::UgGetDemandAreas(UgScenario* pScenario, UGA* pUGA, float& resExpArea, float& commExpArea)
    {
    float expPop = pScenario->m_planHorizon * pScenario->m_estGrowthRate * pUGA->m_currentPopulation;    // assume 20 year land supply
-   resExpArea = expPop / (pScenario->m_newResDensity * pScenario->m_ppdu * ACRE_PER_M2);   // m2
+   resExpArea = expPop / (pScenario->m_newResDensity * pScenario->m_ppdu * ACRE_PER_M2);   // #/m2
    commExpArea = resExpArea / pScenario->m_resCommRatio;         // add in commercial area
+   }
+
+
+float UrbanDev::UgGetResDemand(UgScenario* pScenario, UGA* pUGA ) //, float& resExpDemand, float& commExpDemand)
+   {
+   float expPop = pScenario->m_planHorizon * pScenario->m_estGrowthRate * pUGA->m_currentPopulation;    // assume 20 year land supply
+   return expPop;
+   //resExpArea = expPop / (pScenario->m_newResDensity * pScenario->m_ppdu * ACRE_PER_M2);   // #/m2
+   //commExpArea = resExpArea / pScenario->m_resCommRatio;         // add in commercial area
    }
 
 
@@ -1980,17 +1993,22 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
 
    float startingArea = pUGA->m_currentArea;
 
-   float resExpArea = 0, commExpArea = 0;
-   UgGetDemandAreas(m_pCurrentUgScenario, pUGA, resExpArea, commExpArea);
+   //float resExpArea = 0, commExpArea = 0;
+   //UgGetDemandAreas(m_pCurrentUgScenario, pUGA, resExpArea, commExpArea);
+   float resExpDemand = UgGetResDemand(m_pCurrentUgScenario, pUGA);
+
    //UgScenario* pScenario = m_pCurrentUgScenario;
 
    float resArea = 0;
+   float resDemand = 0;
+
    for (int i = pUGA->m_nextResPriority; i < pUGA->m_priorityListRes.GetSize(); i++)
       {
       pUGA->m_nextResPriority++;
 
       // have we annexed enough area? then stop
-      if (resArea >= resExpArea)
+      //if (resArea >= resExpArea)
+      if (resDemand >= resExpDemand)
          break;  // all done
 
       // get the next IDU on the priority list
@@ -2015,12 +2033,17 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
       //      were included in the patch, negative values indicate they were considered but where not included in the patch
       //------------------------------------------------------------------------------------------------------------------------------------
-      // the max expansion area is the lesser of the size of the needed land area and 100ha
-      float maxExpandArea = std::fminf(1000000.0f, resExpArea);
+      // the max expansion area is the lesser of the size of the needed land area and 2000ha (100ha)
+      //float maxExpandArea = std::fminf(20000000.0f, resExpArea);
       // target area
+      //// hard coded for now
+      int colPopAvail = pContext->pMapLayer->GetFieldCol("POP_AVAIL");
+      ASSERT(colPopAvail >= 0);
+      ////
+
       CArray< int, int > expandArray;
-      float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, m_pCurrentUgScenario->m_pResQuery, m_colArea,
-         maxExpandArea, expandArray);
+      //float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, m_pCurrentUgScenario->m_pResQuery, m_colArea, maxExpandArea, expandArray);
+      float expand = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, m_pCurrentUgScenario->m_pResQuery, colPopAvail, resDemand, expandArray); // # of people
 
       // add in kernal IDU area to accumlating total
       float area = 0;
@@ -2028,6 +2051,10 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       resArea += area;
       pUGA->m_resExpArea += area;
       pUGA->m_totalExpArea += area;
+
+      float availCap = 0;
+      pIDULayer->GetData(pPriority->idu, colPopAvail, availCap);
+      resDemand += availCap;
 
       // annex all expanded polygons
       for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
@@ -2039,10 +2066,16 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
             pUGA->m_resExpArea += area;
             pUGA->m_totalExpArea += area;
 
+            availCap = 0;
+            pIDULayer->GetData(expandArray[j], colPopAvail, availCap);
+            resDemand += availCap;
+
             UpdateIDU(pContext, expandArray[j], m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
             UpdateIDU(pContext, expandArray[j], m_colUgEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
             UpdateIDU(pContext, expandArray[j], m_colZone, m_pCurrentUgScenario->m_zoneRes, ADD_DELTA);
-            
+            ///
+            //UpdateIDU(pContext, expandArray[j], m_colPopCap, m_pCurrentUgScenario->m_zoneRes, ADD_DELTA);
+            ///
             if (m_colImpervious >= 0)
                {
                float impFrac = GetImperviousFromZone(m_pCurrentUgScenario->m_zoneRes);
@@ -2051,12 +2084,14 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
                }
 
             // have we annexed enough area? then stop
-            if (resArea >= resExpArea)
+            //if (resArea >= resExpArea)
+            if ( resDemand >= resExpDemand)
                break;  // all done
             }
          }
       }
 
+   float commExpArea = resArea / m_pCurrentUgScenario->m_resCommRatio;
    float commArea = 0;
    for (int i = pUGA->m_nextCommPriority; i < pUGA->m_priorityListComm.GetSize(); i++)
       {
@@ -2088,8 +2123,8 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
       //      were included in the patch, negative values indicate they were considered but where not included in the patch
       //------------------------------------------------------------------------------------------------------------------------------------
-      // the max expansion area is the lesser of the size of the needed land area and 100ha
-      float maxExpandArea = std::fminf(1000000.0f, commExpArea);
+      // the max expansion area is the lesser of the size of the needed land area and 1000ha
+      float maxExpandArea = std::fminf(10000000.0f, commExpArea);
       // target area
       CArray< int, int > expandArray;
       float expandArea = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, m_pCurrentUgScenario->m_pCommQuery, m_colArea,
@@ -2100,7 +2135,7 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       pIDULayer->GetData(pPriority->idu, m_colArea, area);
       commArea += area;
       pUGA->m_commExpArea += area;
-      pUGA->m_totalExpArea += area;
+      pUGA->m_totalExpArea += area; 
 
       // annex all expanded polygons
       for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
@@ -2121,23 +2156,27 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
          }
       }
 
-   float totalExpAreaAc = (resExpArea + commExpArea) * ACRE_PER_M2;
+   //float totalExpAreaAc = (resArea + commExpArea) * ACRE_PER_M2;
    float totalAreaAc = (resArea + commArea) * ACRE_PER_M2;
    startingArea *= ACRE_PER_M2;
-      
-   if (totalExpAreaAc == 0)
+   resArea *= ACRE_PER_M2;
+   commArea *= ACRE_PER_M2;
+   //resExpArea *= ACRE_PER_M2;
+
+   if (totalAreaAc == 0)
       {
       CString msg;
-      msg.Format("%s Expansion Event Failed! Trigger: %s, Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event:%i (max=%i,min=%i), Current Capacity (frac): %.2f",
-         pUGA->m_name, (LPCTSTR)pExpand->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1,
-         pUGA->m_pctAvailCap);
+      msg.Format("%s Expansion Event Failed! Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Area Added: %.0f acres (%.0f Residential, %.0f Commercial), Event:%i, Current Capacity (frac): %.2f",
+         pUGA->m_name, (LPCTSTR)pExpand->m_name, resExpDemand, resDemand, resDemand * 100 / resExpDemand, totalAreaAc, resArea, commArea, pUGA->m_currentEvent + 1, pUGA->m_pctAvailCap);
       Report::LogWarning(msg);
       }
    else
       {
+      //UgUpdateUGAStats(pContext, false);  // better way?
+
       CString msg;
-      msg.Format("%s Expansion Event: Trigger: %s, Demand: %.0f acres, Achieved %.0f acres (%.0f percent, from %.0f to %.0f acres), Event:%i, Current Capacity (frac): %.2f",
-         (LPCTSTR) pUGA->m_name, (LPCTSTR)pExpand->m_name, totalExpAreaAc, totalAreaAc, totalAreaAc * 100 / totalExpAreaAc, startingArea, startingArea + totalAreaAc, pUGA->m_currentEvent + 1, pUGA->m_pctAvailCap);
+      msg.Format("%s Expansion Event: Trigger: %s, Demand: %.0f people, Achieved %.0f (%.0f percent), Area Added: %.0f acres (%.0f Residential, %.0f Commercial), Event:%i, Starting Capacity: %.2f",
+         (LPCTSTR) pUGA->m_name, (LPCTSTR)pExpand->m_name, resExpDemand, resDemand, resDemand*100/resExpDemand, totalAreaAc, resArea, commArea, pUGA->m_currentEvent + 1, pUGA->m_pctAvailCap);
       Report::Log(msg);
       pUGA->m_currentEvent++;
       }
@@ -2355,7 +2394,7 @@ float UrbanDev::UgUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
    for ( INT_PTR i=0; i < ugaCount; i++ )
       {
       UGA *pUGA = this->m_ugaArray[ i ];
-      
+
       curPopArray[ i ] = pUGA->m_currentPopulation;
 
       pUGA->m_currentArea = 0;             // m2
@@ -2459,8 +2498,8 @@ float UrbanDev::UgUpdateUGAStats( EnvContext *pContext, bool outputStartInfo )
       if ( outputStartInfo && pContext->yearOfRun == 0 )
          {
          CString msg;
-         msg.Format( "  Starting Population for %s: %i",
-                  (LPCTSTR) pUGA->m_name, (int) pUGA->m_startPopulation );
+         msg.Format("  Starting Population for %s: %i, Initial Avail Capacity: %.2f percent", 
+                  (LPCTSTR) pUGA->m_name, (int) pUGA->m_startPopulation, pUGA->m_pctAvailCap * 100 );
          Report::Log( msg );
          }
 

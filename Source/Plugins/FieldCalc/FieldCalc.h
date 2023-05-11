@@ -75,7 +75,7 @@ class FieldDef
       CString   m_queryStr;
       CString   m_mapExprStr;
       bool      m_useDelta = false;      //
-      bool      m_initColData=false;
+      int       m_initialize=0;
       Query*    m_pQuery=nullptr;
       MapExpr*  m_pMapExpr=nullptr;
       int       m_col=-1;           // column associated with this variable (-1 if no col)
@@ -95,7 +95,7 @@ class FieldDef
 
       // miscellaneous trackers
       int m_count = 0;
-      float m_totalArea = 0;
+      float m_appliedArea = 0;
 
    public:
       // methods                               

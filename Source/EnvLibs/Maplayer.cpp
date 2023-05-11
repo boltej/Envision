@@ -8728,7 +8728,7 @@ int MapLayer::GetUniqueValues(int col, std::vector<int>& valueArray, int maxCoun
          }
       }
 
-   return valueArray.size();
+   return (int)  valueArray.size();
    }
 
 
@@ -13065,7 +13065,7 @@ float MapLayer::AddExpandPoly(int idu, CArray< int, int > &expandArray, int colV
 //      were included in the patch, negative values indicate they were considered but where not included in the patch
 //------------------------------------------------------------------------------------------------------------------------------------
 
-float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int colArea, float maxExpandArea, /* bool *visited,*/ CArray< int, int >& expandArray)
+float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int colExpand, float maxExpand, /* bool *visited,*/ CArray< int, int >& expandArray)
    {
    // basic idea - expand in concentric circles aroud the idu (subject to constraints)
    // until necessary area is found.  We do this keeping track of candidate expansion IDUs
@@ -13089,10 +13089,10 @@ float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int
                                   // to the nucleus as well as the neighbors.  However, the nucleus
                                   // idu is NOT included in the "areaSoFar" calculation, and so does not
                                   // contribute to the area count to the max expansion area
-   float areaSoFar = 0;
+   float expandSoFar = 0;
 
    // We collect all the idus that are next to the idus already processed that we haven't seen already
-   while (poolSize > 0 && (colArea < 0 || maxExpandArea < 0 || areaSoFar < maxExpandArea))
+   while (poolSize > 0 && (colExpand < 0 || maxExpand < 0 || expandSoFar < maxExpand))
       {
       INT_PTR countSoFar = expandArray.GetSize();
 
@@ -13113,13 +13113,13 @@ float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int
             for (int i = 0; i < count; i++)
                {
                // should we add the neighbor to the expanded IDU list?infind any additional expansion IDUs in the neighbors.
-               float area = AddExpandPolyFromQuery(_neighbors[i], expandArray, pPatchQuery, colArea, addToPool, areaSoFar, maxExpandArea);
+               float expand = AddExpandPolyFromQuery(_neighbors[i], expandArray, pPatchQuery, colExpand, addToPool, expandSoFar, maxExpand);
 
                if (addToPool)  // add to the expansion array AND it is an expandable IDU?
                   {
                   poolSize++;
-                  areaSoFar += area;
-                  ASSERT(maxExpandArea < 0 || areaSoFar <= maxExpandArea);
+                  expandSoFar += expand;
+                  ASSERT(maxExpand < 0 || expandSoFar <= maxExpand);
                   // have we reached the max area?
                   //if ( colArea >= 0 &&  maxExpandArea > 0 && area >= maxExpandArea )
                   //   goto finished;
@@ -13136,12 +13136,12 @@ float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int
 
    //finished:
       // at this point, the expansion area has been determined (it's stored in the expandArrays) 
-   return areaSoFar;  // note: areaSoFar only includes expansion area
+   return expandSoFar;  // note: areaSoFar only includes expansion area
    }
 
 
 // returns area of the idu if colArea >= 0.  Adds the given IDU to the expandArray if it hasn't been seen yet, otherwise just sets addToPool to false.
-float MapLayer::AddExpandPolyFromQuery(int idu, CArray< int, int >& expandArray, Query *pQuery, int colArea, bool& addToPool, float areaSoFar, float maxArea)
+float MapLayer::AddExpandPolyFromQuery(int idu, CArray< int, int >& expandArray, Query *pQuery, int colExpand, bool& addToPool, float expandSoFar, float maxExpand)
    {
    //int selectedIDU = this->GetSelection(selectedIndex);
 
@@ -13177,12 +13177,12 @@ float MapLayer::AddExpandPolyFromQuery(int idu, CArray< int, int >& expandArray,
    //      addToPool = false;
    //   }
 
-   float area = 0;
-   if (colArea >= 0)
+   float expand = 0;
+   if (colExpand >= 0)
       {
       // would this IDU cause the area limit to be exceeded?
-      GetData(idu, colArea, area);
-      if (addToPool && (maxArea > 0) && ((areaSoFar + area) > maxArea))
+      GetData(idu, colExpand, expand);
+      if (addToPool && (maxExpand > 0) && ((expandSoFar + expand) > maxExpand))
          addToPool = false;
       }
 
@@ -13191,7 +13191,7 @@ float MapLayer::AddExpandPolyFromQuery(int idu, CArray< int, int >& expandArray,
    else
       expandArray.Add(-(idu + 1)); // Note: what gets added to the expansion array is -(index+1)
 
-   return area;
+   return expand;
    }
 
 

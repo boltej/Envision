@@ -799,6 +799,8 @@ bool Target::Run( EnvContext *pEnvContext )
       m_totalAllocated = 0;    // this is the total population allocated across IDUs (#'s, not density)
       m_curTotalActualValue = 0;   // reset this, will be accumulating through loop below
 
+      float totalTarget = 0;
+      float totalCap = 0;
       float newAllocated = 0;  // temp
       //int countIDUs = 0;
 
@@ -818,9 +820,13 @@ bool Target::Run( EnvContext *pEnvContext )
          float newValue = existingValue;   // new value for IDU, non-density
          float iduAvailCapacity = m_availCapacityArray[ idu ];  // amount of target that can be added to the idu
 
+         float capacity = 0;
+         pLayer->GetData(idu, this->m_colTargetCapacity, capacity);
+         totalCap += capacity;
+
          if ( iduAvailCapacity > 0 )   // any available capacity?
             {
-            // apply preference score if defined
+            // apply preference score if defined (must be 0 to inf)
             if ( m_preferenceArray.size() > 0 )
                iduAvailCapacity *= m_preferenceArray[ idu ];
 
@@ -840,6 +846,8 @@ bool Target::Run( EnvContext *pEnvContext )
 
                if ( m_colDensXarea >= 0 )
                   m_pProcess->AddDelta( pEnvContext, idu, m_colDensXarea, newValue );
+
+               totalTarget += newValue;
 
                if (m_colTargetBin >= 0)
                   {
@@ -874,9 +882,9 @@ bool Target::Run( EnvContext *pEnvContext )
          }  // end of: for each IDU
 
       CString msg;
-      msg.Format( "%s - Year %i, Target: %i, Actual: %i, Desired Allocation: %i, Actual Allocation: %i, Pct Achieved: %4.1f\n", 
-         (LPCTSTR)m_name, pEnvContext->yearOfRun, (int) m_curTotalTargetValue, (int) m_curTotalActualValue,
-         (int) newGrowth, (int) m_totalAllocated, newGrowth*100/m_totalAllocated );
+      msg.Format("%s - Year %i, Target: %i, Actual: %i, Desired Allocation: %i, Actual Allocation: %i, Pct Achieved: %4.1f, Capacity: %.0f, Available Fraction: %.2f\n",
+         (LPCTSTR)m_name, pEnvContext->yearOfRun, (int)m_curTotalTargetValue, (int)m_curTotalActualValue,
+         (int)newGrowth, (int)m_totalAllocated, newGrowth * 100 / m_totalAllocated, totalCap, (totalCap-totalTarget)/ totalCap );
       Report::LogInfo( msg );
       //TRACE( (LPCTSTR) msg );
 
@@ -1236,22 +1244,22 @@ bool TargetProcess::LoadXml(LPCTSTR _filename, EnvContext *pEnvContext)
    }
 
 
-bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext ) 
+bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
    {
-  /* start interating through the document
-   * general structure is of the form:
-   *
-   * <?xml version="1.0" encoding="utf-8"?>
-   *
-   * <target_process>
-   *  <target method="rate" value="0.02", col="POPDENS" multiplier="1.0" query="">
-   *     <scenario id="1" name='base scenario'  description="description">
-   *        <allocation name='' query="" value="" multiplier=''/>
-   *         . . .
-   *        <allocation name='' query="" value="" mulitplier='' />
-   *     </scenario>
-   *  </target>
-   */
+   /* start interating through the document
+    * general structure is of the form:
+    *
+    * <?xml version="1.0" encoding="utf-8"?>
+    *
+    * <target_process>
+    *  <target method="rate" value="0.02", col="POPDENS" multiplier="1.0" query="">
+    *     <scenario id="1" name='base scenario'  description="description">
+    *        <allocation name='' query="" value="" multiplier=''/>
+    *         . . .
+    *        <allocation name='' query="" value="" mulitplier='' />
+    *     </scenario>
+    *  </target>
+    */
 
    m_targetArray.RemoveAll();
    m_initialized = false;
@@ -1264,6 +1272,35 @@ bool TargetProcess::LoadXml( TiXmlElement *pXmlRoot, EnvContext *pEnvContext )
    int tableCount = 0;
 
    int modelID = 0;
+
+   // checkCols
+   LPCTSTR checkCols = pXmlRoot->Attribute("check_cols");
+   if ( checkCols != nullptr)
+      {
+      CStringArray tokens;
+      int count = ::Tokenize(checkCols, _T(",;"), tokens);
+
+      int col = 0;
+      for (int i = 0; i < count; i++)
+         {
+         CStringArray token;
+         int _count = ::Tokenize(tokens[i], _T(":"), token);
+
+         TYPE type = TYPE_INT;
+         if (_count == 2)
+            {
+            switch (_tolower(token[1][0]))
+               {
+               case 'f':   type = TYPE_FLOAT;   break;
+               case 'd':   type = TYPE_DOUBLE;  break;
+               case 's':   type = TYPE_STRING;  break;
+               case 'l':   type = TYPE_LONG;    break;
+               }
+            }
+         this->CheckCol(pEnvContext->pMapLayer, col, token[0], type, CC_AUTOADD);
+         }
+      }
+
 
    // take care of any globally-defined constant expressions
    const TiXmlElement *pXmlGlobalConst = pXmlRoot->FirstChildElement(_T("const"));

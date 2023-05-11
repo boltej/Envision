@@ -154,19 +154,19 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    // associates SWAN transects and cross-shore profiles to shoreline pts
    InitTWLModel(pEnvContext);
 
-   if (m_runFlags & CH_MODEL_FLOODING)
+   if (m_runFlooding )
       InitFloodingModel(pEnvContext);
 
-   if (m_runFlags & CH_MODEL_EROSION)
+   if (m_runErosion)
       InitErosionModel(pEnvContext);
 
-   if (m_runFlags & CH_MODEL_BUILDINGS)
+   if (m_runBuildings)
       InitBldgModel(pEnvContext);
 
-   if (m_runFlags & CH_MODEL_INFRASTRUCTURE)
+   if (m_runInfrastructure)
       InitInfrastructureModel(pEnvContext);
 
-   if (m_runFlags & CH_MODEL_POLICY)
+   if (m_runPolicy)
       InitPolicyInfo(pEnvContext);
 
    // define input (scenario) variables
@@ -180,6 +180,12 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    AddInputVar(_T("Construct SPS"), m_runConstructSPSPolicy, "0=Off, 1=On");
    AddInputVar(_T("Maintain SPS"), m_runMaintainSPSPolicy, "0=Off, 1=On");
    AddInputVar(_T("Nourish SPS"), m_runNourishSPSPolicy, "0=Off, 1=On");
+
+   AddInputVar(_T("Run Flooding Model"), m_runFlooding, "0=Off, 1=On");
+   AddInputVar(_T("Run Erosion Model"), m_runErosion, "0=Off, 1=On");
+   AddInputVar(_T("Run Buildings Model"), m_runBuildings, "0=Off, 1=On");
+   AddInputVar(_T("Run Infrastructure Model"), m_runInfrastructure, "0=Off, 1=On");
+   AddInputVar(_T("Run Policy Model"), m_runPolicy, "0=Off, 1=On");
 
    //AddInputVar(_T("Construct on Safest Site"), m_runConstructSafestPolicy, "0=Off, 1=On");
    AddInputVar(_T("Remove Bldg From Hazard Zone"), m_runRemoveBldgFromHazardZonePolicy, "0=Off, 1=On");
@@ -9394,12 +9400,12 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
    int twl = 0, flooding = 0, erosion = 0, buildings = 0, infra = 0, policy = 0;
    XML_ATTR attrs[] = {
       // attr                  type          address              isReq  
-      { "run_twl",               TYPE_INT,   &twl,                 true, 0 },
-      { "run_flooding",          TYPE_INT,   &flooding,            true, 0 },
-      { "run_erosion",           TYPE_INT,   &erosion,             true, 0 },
-      { "run_buildings",         TYPE_INT,   &buildings,           true, 0 },
-      { "run_infrastructure",    TYPE_INT,   &infra,               true, 0 },
-      { "run_policy",            TYPE_INT,   &policy,              true, 0 },
+      { "run_twl",               TYPE_INT,   &m_runTWL,                 true, 0 },
+      { "run_flooding",          TYPE_INT,   &m_runFlooding,            true, 0 },
+      { "run_erosion",           TYPE_INT,   &m_runErosion,             true, 0 },
+      { "run_buildings",         TYPE_INT,   &m_runBuildings,           true, 0 },
+      { "run_infrastructure",    TYPE_INT,   &m_runInfra,               true, 0 },
+      { "run_policy",            TYPE_INT,   &m_runPolicy,              true, 0 },
       { "export_map_interval",   TYPE_INT,   &m_exportMapInterval, true, 0 },
       { nullptr,                 TYPE_NULL,  nullptr,              false,   0 } };
 
@@ -9411,19 +9417,16 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       return false;
       }
 
-   m_runFlags = 0;
-   if (twl > 0)
-      m_runFlags += CH_MODEL_TWL;
-   if (flooding > 0)
-      m_runFlags += CH_MODEL_FLOODING;
-   if (erosion > 0)
-      m_runFlags += CH_MODEL_EROSION;
-   if (buildings > 0)
-      m_runFlags += CH_MODEL_BUILDINGS;
-   if (infra > 0)
-      m_runFlags += CH_MODEL_INFRASTRUCTURE;
-   if (policy > 0)
-      m_runFlags += CH_MODEL_POLICY;
+   //m_runFlags = 0;
+   //m_runTwl = twl;
+   //m_runFlooding = CH_MODEL_FLOODING;
+   //m_runFlags = CH_MODEL_EROSION;
+   //if (buildings > 0)
+   //   m_runFlags += CH_MODEL_BUILDINGS;
+   //if (infra > 0)
+   //   m_runFlags += CH_MODEL_INFRASTRUCTURE;
+   //if (policy > 0)
+   //   m_runFlags += CH_MODEL_POLICY;
 
 
    // envx file directory, slash-terminated

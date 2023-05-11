@@ -421,6 +421,7 @@ protected:
    bool UgExpandUGA(UGA* pUGA, UgExpandWhen *pExpand, EnvContext* pContext);
    bool UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContext);
 
+   float UgGetResDemand(UgScenario* pScenario, UGA* pUGA);// , float& resExpDemand, float& commExpDemand);
    void UgGetDemandAreas(UgScenario* pScenario, UGA* pUGA, float& resExpArea, float& commExpArea);
    void UgUpdateImperiousFromZone(EnvContext* pContext);
 
