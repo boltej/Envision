@@ -99,6 +99,9 @@ FieldCalculator::FieldCalculator()
 
 FieldCalculator::~FieldCalculator()
    {
+   if (m_pRandUnif != nullptr)
+      delete m_pRandUnif;
+
    if (m_pOutputData != nullptr)
       delete m_pOutputData;
 
@@ -185,7 +188,7 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
 
    // shuffle IDU array to randomly look through IDUs when allocating sequences
    // if called for
-   if (m_shuffleIDUs)
+   if (m_shuffleIDUs && m_pRandUnif != nullptr)
       ::ShuffleArray< UINT >(m_iduArray.GetData(), iduCount, m_pRandUnif);
    
    // reset field def application counters
@@ -414,7 +417,8 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
    if (shuffleIDUs)
       {
       m_shuffleIDUs = true;
-      m_pRandUnif = new RandUniform(0.0, (double)this->m_pMapLayer->GetRecordCount(), 0);
+      if ( m_pRandUnif == nullptr)
+         m_pRandUnif = new RandUniform(0.0, (double)this->m_pMapLayer->GetRecordCount(), 0);
       }
    else
       m_shuffleIDUs = false;

@@ -4600,12 +4600,12 @@ INT_PTR EnvModel::UnApplyDeltaArray( MapLayer *pLayer, DeltaArray *pDeltaArray, 
       {
       DELTA &delta = pDeltaArray->GetAt( i );
 
-      if (delta.oldValue == delta.newValue)
-         {
-         CString trace;
-         trace.Format( _T("Redundant delta found: col=%s, cell=%i, value=%s\n"), pLayer->GetFieldLabel( delta.col ), delta.cell, delta.newValue.GetAsString() );
-         TRACE( trace );
-         }
+      //if (delta.oldValue == delta.newValue)
+      //   {
+      //   CString trace;
+      //   trace.Format( _T("Redundant delta found: col=%s, cell=%i, value=%s\n"), pLayer->GetFieldLabel( delta.col ), delta.cell, delta.newValue.GetAsString() );
+      //   TRACE( trace );
+      //   }
 
       // Normal Delta
       if ( delta.col >= 0 && delta.cell >= 0 )

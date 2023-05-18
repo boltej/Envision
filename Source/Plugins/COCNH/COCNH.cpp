@@ -2840,6 +2840,7 @@ bool COCNHProcess::CalcTreatmentCost(EnvContext *pContext, bool useAddDelta)
       else
          aspect = 0;
       
+      // total $ for the IDU.  Note that these are the costs if treatment is actually done, not that it has been done
       treatmentCostsPBYN = area*conversArea*exp(6.29f - (0.349f*log(area * conversArea)) + 0.296f*wui + pileHand + fm + 0.506f*teSpp);
       UpdateIDU(pContext, idu, m_colCostsPrescribedFireHand, treatmentCostsPBYN, useAddDelta ? ADD_DELTA : SET_DATA );
 

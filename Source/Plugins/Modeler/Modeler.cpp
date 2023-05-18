@@ -1842,9 +1842,6 @@ bool ModelCollection::UpdateVariables( EnvContext *pEnvContext, int idu, bool us
    // updates  variables for this model collection.  if 'idu' < 0, updates global extent variables, otherwise updates IDU extent variables
    ASSERT ( idu >= 0 );
 
-   VData value;
-   float fValue;
-
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
    int colCount = pIDULayer->GetFieldCount();
@@ -1852,6 +1849,9 @@ bool ModelCollection::UpdateVariables( EnvContext *pEnvContext, int idu, bool us
    // (NOTE: THIS SHOULD ONLY HAPPEN DURING THE FIRST INVOCATION OF A MODEL IN A GIVEN TIMESTEP...
    for ( int j=0; j < colCount; j++ )
       {
+      VData value(0);
+      float fValue = 0;
+
       bool okay = pIDULayer->GetData( idu, j, value );
 
       if ( okay && value.GetAsFloat( fValue ) )

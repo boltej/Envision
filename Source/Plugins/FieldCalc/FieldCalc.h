@@ -74,16 +74,17 @@ class FieldDef
       FieldCalculator* m_pFieldCalculator = nullptr;
       CString   m_queryStr;
       CString   m_mapExprStr;
-      bool      m_useDelta = false;      //
+      bool      m_useDelta = false;    //
       int       m_initialize=0;
-      Query*    m_pQuery=nullptr;
-      MapExpr*  m_pMapExpr=nullptr;
-      int       m_col=-1;           // column associated with this variable (-1 if no col)
+      Query*    m_pQuery=nullptr;      // memory managed ??
+      MapExpr*  m_pMapExpr=nullptr;    // memory managed ??
+      int       m_col=-1;              // column associated with this variable (-1 if no col)
       float     m_value=0;
       float     m_maxLimit = (float) LONG_MIN;
       float     m_minLimit = (float) LONG_MAX;
-      int       m_modelID = -99;    // should match .envx entry if needed
+      int       m_modelID = -99;       // should match .envx entry if needed
       TYPE      m_type = TYPE_FLOAT;
+
       // groupby info
       CString   m_groupBy;   // field to aggregate by, if aggregration desired; otherwise empty
       int       m_colGroupBy = -1;   // corresponding column
@@ -129,16 +130,16 @@ class _EXPORT FieldCalculator : public  EnvModelProcess
    protected:
       int m_colArea;
 
-      CUIntArray m_iduArray;    // used for shuffling IDUs
+      CUIntArray m_iduArray;                 // used for shuffling IDUs
       bool m_shuffleIDUs;
-      RandUniform* m_pRandUnif;
+      RandUniform* m_pRandUnif = nullptr;    // memory managed by "this" object
 
       PtrArray<Constant> m_constants;  // only added to the first instance
       PtrArray<FieldDef> m_fields;
 
       //std::vector<unique_ptr<FieldDef>> m_fields;
 
-      FDataObj* m_pOutputData = nullptr;
+      FDataObj* m_pOutputData = nullptr;      // memory managed by "this" object
 
       bool _Run(EnvContext* pEnvContext, bool init);
 

@@ -232,7 +232,7 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("% Beach Accessibility", m_avgAccess, "");
    //   this->AddOutputVar("Number of Buildings Eroded", m_noBldgsEroded, "");
 
-   if (m_runFlags && CH_MODEL_FLOODING)
+   if (m_runFlooding ) //ags && CH_MODEL_FLOODING)
       {
       this->AddOutputVar("Flooded Area (sq meter)", m_floodedArea, "");
       this->AddOutputVar("Flooded Area (sq miles)", m_floodedAreaSqMiles, "");
@@ -241,17 +241,17 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       this->AddOutputVar("Flooded Railroad (miles)", m_floodedRailroadMiles, "");
       }
 
-   if (m_runFlags && CH_MODEL_EROSION)
+   if (m_runErosion) //Flags && CH_MODEL_EROSION)
       {
       this->AddOutputVar("Eroded Road (m)", m_erodedRoad, "");
       this->AddOutputVar("Eroded Road (miles)", m_erodedRoadMiles, "");
       }
 
-   if (m_runFlags && CH_MODEL_BUILDINGS)
+   if (m_runBuildings) //Flags && CH_MODEL_BUILDINGS)
       {
       }
 
-   if (m_runFlags && CH_MODEL_INFRASTRUCTURE)
+   if (m_runInfrastructure ) // Flags && CH_MODEL_INFRASTRUCTURE)
       {
       this->AddOutputVar("Number of BPS Construction Projects", m_noConstructedBPS, "");
       this->AddOutputVar("BPS Construction Cost ($)", m_constructCostBPS, "");
@@ -280,7 +280,7 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       this->AddOutputVar("Percent of SPS Constructed (miles)", m_percentRestoredShorelineMiles, "");
       }
 
-   if (m_runFlags && CH_MODEL_POLICY)
+   if (m_runPolicy) //Flags && CH_MODEL_POLICY)
       {
       // Flooded and Eroded Buildings counted in Reporter
       /*  this->AddOutputVar("Flooded Buildings", m_floodedBldgCount, "");
@@ -306,7 +306,7 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
 bool ChronicHazards::InitTWLModel(EnvContext* pEnvContext)
    {
-   if ((m_runFlags & CH_MODEL_TWL) == 0)
+   if (m_runTWL == 0)  //Flags & CH_MODEL_TWL) == 0)
       return false;
 
    Map* pMap = pEnvContext->pMapLayer->GetMapPtr();
@@ -338,7 +338,7 @@ bool ChronicHazards::InitTWLModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::InitFloodingModel(EnvContext* pEnvContext)
    {
-   if ((m_runFlags & CH_MODEL_FLOODING) == 0)
+   if (m_runFlooding == 0)
       return false;
 
    using namespace matlab::engine;
@@ -437,7 +437,7 @@ bool ChronicHazards::InitFloodingModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::InitErosionModel(EnvContext* pEnvContext)
    {
-   if ((m_runFlags & CH_MODEL_EROSION) == 0)
+   if (m_runErosion == 0)
       return false;
 
    CheckCol(m_pDuneLayer, m_colDLErosion, "EROSION", TYPE_FLOAT, CC_AUTOADD);
@@ -557,7 +557,7 @@ bool ChronicHazards::InitErosionModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
    {
-   if ((m_runFlags & CH_MODEL_BUILDINGS) == 0)
+   if (m_runBuildings== 0)
       return false;
 
    CString ppmDir = PathManager::GetPath(PM_IDU_DIR);
@@ -644,7 +644,7 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
    {
-   if ((m_runFlags & CH_MODEL_INFRASTRUCTURE) == 0)
+   if (m_runInfrastructure)
       return false;
 
    CString msg;
@@ -793,7 +793,7 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
       }
 
    //FindClosestDunePtToBldg(pEnvContext);
-   if (m_runFlags & CH_MODEL_FLOODING || m_runFlags & CH_MODEL_EROSION)
+   if (m_runFlooding || m_runErosion)
       {
       //FindProtectedBldgs();  only need to run this once to populate file (must save)
       }
@@ -1482,7 +1482,7 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    //////   ReadDailyBayData(fullPath);
 
    // initialize policyInfo for this run (Note - m_isActive is already set by the scenario variable)
-   if (m_runFlags & CH_MODEL_POLICY)
+   if (m_runPolicy)
       {
       int costCount = 0;
       for (int i = 0; i < PI_COUNT; i++)
@@ -1527,7 +1527,7 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
       }
 
    // reset the cumulative flood map
-   // if (m_runFlags & CH_MODEL_FLOODING)
+   // if (m_runFlooding)
    //   m_pCumFloodedGrid->SetAllData(0, false);
 
    //// Read in the Bay coverage if running Bay Flooding Model
@@ -1586,7 +1586,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    float percentArmored = 0;
    INT_PTR ptrArrayIndex = 0;
 
-   if (m_runFlags & CH_MODEL_EROSION)
+   if (m_runErosion)
       RunErosionModel(pEnvContext);
    /******************** Run Scenario Policy to construct on safest site before tallying statistics  ********************/
 
@@ -1601,10 +1601,10 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    //if (m_runEelgrassModel > 0)
    //   RunEelgrassModel(pEnvContext);
 
-   if (m_runFlags & CH_MODEL_FLOODING)
+   if (m_runFlooding)
       RunFloodingModel(pEnvContext);
 
-   if (m_runFlags & CH_MODEL_BUILDINGS)
+   if (m_runBuildings)
       {
       Report::Log_i("Running building submodel for year% i", pEnvContext->currentYear);
       ComputeBuildingStatistics();
@@ -1612,7 +1612,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
 
    // Use generated Grid Maps to Calculate Statistics 
    // statistics to output or statistics which in turn trigger policies 
-   if (m_runFlags & CH_MODEL_INFRASTRUCTURE)
+   if (m_runInfrastructure)
       {
       Report::Log_i("Running infrastructure submodel for year% i", pEnvContext->currentYear);
       ComputeInfraStatistics();
@@ -1626,7 +1626,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
 
 
    // Run Scenario dependent policies
-   if (m_runFlags & CH_MODEL_POLICY)
+   if (m_runPolicy)
       RunPolicyManagement(pEnvContext);
 
    TallyCostStatistics(pEnvContext->currentYear);
@@ -2174,7 +2174,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
    double floodedArea = 0.0f; // grid cells that are flooded multiplied by the number of grid cells
 
    // road stats first
-   if (m_runFlags & CH_MODEL_INFRASTRUCTURE && m_pRoadLayer != nullptr)
+   if (m_runInfrastructure && m_pRoadLayer != nullptr)
       {
       /************************   Calculate Flooded Road Statistics ************************/
       int numRows = m_pFloodedGrid->GetRowCount();
@@ -2241,7 +2241,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
                }
             delete[] indices;
             }
-         }  // end of: if (m_runFlags & CH_MODEL_INFRASTRUCTURE && m_pRoadLayer != nullptr)
+         }  // end of: if (m_runInfrastructure && m_pRoadLayer != nullptr)
 
        // meters to miles
       m_floodedRoadMiles = m_floodedRoad * MI_PER_M;
@@ -2249,7 +2249,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
       }
 
    // road metrics complete.  next, infrastructure
-   if (m_runFlags & CH_MODEL_INFRASTRUCTURE && m_pInfraLayer != nullptr)
+   if (m_runInfrastructure && m_pInfraLayer != nullptr)
       {
       /************************   Calculate Flooded Infrastructure Statistics ************************/
       int numRows = m_pFloodedGrid->GetRowCount();
@@ -2295,7 +2295,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
                }
             }
          }
-      } // end of:  if (m_runFlags & CH_MODEL_INFRASTRUCTURE && m_pInfraLayer != nullptr)
+      } // end of:  if (m_runInfrastructure && m_pInfraLayer != nullptr)
 
     // road metrics complete.  next, infrastructure
    if (m_pDuneLayer != nullptr)
@@ -4476,7 +4476,7 @@ void ChronicHazards::ComputeBuildingStatistics()
 
 void ChronicHazards::TallyCostStatistics(int currentYear)
    {
-   if (m_runFlags & CH_MODEL_POLICY)
+   if (m_runPolicy)
       {
       int cols = 1 + ((PI_COUNT + 1) * 7);
       ASSERT(cols == m_policyCostData.GetColCount());
@@ -4713,7 +4713,7 @@ void ChronicHazards::ComputeIDUStatistics()
 
 void ChronicHazards::TallyRoadStatistics()
    {
-   if (m_runFlags & CH_MODEL_INFRASTRUCTURE)
+   if (m_runInfrastructure)
       {
       if (m_pRoadLayer != nullptr)
          {
@@ -9400,12 +9400,12 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
    int twl = 0, flooding = 0, erosion = 0, buildings = 0, infra = 0, policy = 0;
    XML_ATTR attrs[] = {
       // attr                  type          address              isReq  
-      { "run_twl",               TYPE_INT,   &m_runTWL,                 true, 0 },
-      { "run_flooding",          TYPE_INT,   &m_runFlooding,            true, 0 },
-      { "run_erosion",           TYPE_INT,   &m_runErosion,             true, 0 },
-      { "run_buildings",         TYPE_INT,   &m_runBuildings,           true, 0 },
-      { "run_infrastructure",    TYPE_INT,   &m_runInfra,               true, 0 },
-      { "run_policy",            TYPE_INT,   &m_runPolicy,              true, 0 },
+      { "run_twl",               TYPE_INT,   &m_runTWL,            true, 0 },
+      { "run_flooding",          TYPE_INT,   &m_runFlooding,       true, 0 },
+      { "run_erosion",           TYPE_INT,   &m_runErosion,        true, 0 },
+      { "run_buildings",         TYPE_INT,   &m_runBuildings,      true, 0 },
+      { "run_infrastructure",    TYPE_INT,   &m_runInfrastructure, true, 0 },
+      { "run_policy",            TYPE_INT,   &m_runPolicy,         true, 0 },
       { "export_map_interval",   TYPE_INT,   &m_exportMapInterval, true, 0 },
       { nullptr,                 TYPE_NULL,  nullptr,              false,   0 } };
 
@@ -9641,7 +9641,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       return false;
 
    /*
-   if (m_runFlags & CH_MODEL_FLOODING)
+   if (m_runFlooding)
       {
       // flooded areas
       TiXmlElement* pXmlFloodAreas = pXmlRoot->FirstChildElement("flood_areas");

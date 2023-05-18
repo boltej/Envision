@@ -302,6 +302,143 @@ bool SNLayer::RemoveNode(SNNode* pNode)
    }
 
 
+bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
+   {
+
+   SNIPModel* pSNIPModel = this->m_pSNIPModel;
+
+   // declare output file stream :
+   ofstream out;
+   out.open(path);
+
+   out << "{\n  \"network\": { \n";
+   out << "    \"name\": \"" << pSNIPModel->m_name << "\",\n";
+   out << "    \"description\": \"" << pSNIPModel->m_description << "\",\n";
+
+   out << "        \"traits\": [";
+   int nTraits = pSNIPModel->m_traitsLabels.size();
+   for (int i = 0; i < nTraits; i++)
+      {
+      if (i == (nTraits - 1))  // no comma
+         out << "\"" << pSNIPModel->m_traitsLabels[i] << "\"";
+      else
+         out << "\"" << pSNIPModel->m_traitsLabels[i] << "\",";
+      }
+   out << "],\n";
+
+
+   out << "    \"settings\": {\n";
+   out << "      \"autogenerate_landscape_signals\": {\n";
+   out << "        \"fraction\": " << pSNIPModel->m_autogenFraction << ",\n";
+   out << "        \"bias\": \"" << pSNIPModel->m_autogenBias << "\"\n    },\n";
+   out << "      \"autogenerate_transit_times\": {\n";
+   out << "        \"max_transit_time\": " << pSNIPModel->m_autogenTransTimeMax << ",\n";
+   out << "        \"bias\": \"" << pSNIPModel->m_autogenTransTimeBias << "\"\n    },\n";
+   out << "      \"input\": {\n";
+   out << "        \"type\": " << pSNIPModel->m_inputType << ",\n";  // WRONG
+   out << "        \"value\": \"" << pSNIPModel->m_pInputNode->m_reactivity << "\"\n    },\n";
+
+   out << "    \"infSubmodel\": " << "\"trust\",\n";
+   out << "    \"infSubmodelWt\" : "                 << pSNIPModel->m_infSubmodelWt << ",\n";
+   out << "    \"agg_input_sigma\" : "               << pSNIPModel->m_aggInputSigma << ",\n";
+   out << "    \"trans_eff_max\" : "                 << pSNIPModel->m_transEffMax << ",\n";
+   out << "    \"reactivity_max\" : "                << pSNIPModel->m_nodeReactivityMax << ",\n";
+   out << "    \"reactivity_threshold\" : "          << pSNIPModel->m_activationThreshold << ",\n";
+   out << "    \"reactivity_steepness_factor_B\" : " << pSNIPModel->m_activationSteepFactB << ",\n";
+   out << "    \"node_size\" : \"reactivity\",\n";
+   out << "    \"node_color\" : \"TheTrait\",\n";
+   out << "    \"node_label\" : \"reactivity\",\n";
+   out << "    \"edge_size\" : \"influence\",\n";
+   out << "    \"edge_color\" : \"transEff\",\n";
+   out << "    \"edge_label\" : \"transEff\",\n";
+   out << "    \"show_tips\" : true,\n";
+   out << "    \"show_landscape_signal_edges\" : true,\n";
+   out << "    \"layout\" : \"preset\",\n"; 
+   out << "    \"zoom\" : 1.262,\n"; 
+   
+   out << "    \"center\" : { \n";
+   out << "        \"x\" : -176.178, \n";
+   out << "        \"y\" : -79.18881535874661 \n     },\n";
+   out << "    \"simulation_period\" : 10\n";
+   out << "    },\n"; // close settings
+
+   out << "    \"nodes\": [\n";
+   int nNodes = (int) this->m_nodes.size();
+
+   for (int j=0; j < nNodes; j++ )
+      {
+      auto node = m_nodes[j];
+
+      LPCTSTR type = nullptr;
+      switch (node->m_nodeType)
+         {
+         case SNIP_NODETYPE::NT_ASSESSOR: type = "assessor";   break;
+         case SNIP_NODETYPE::NT_ENGAGER:  type = "engager";   break;
+         case SNIP_NODETYPE::NT_INPUT_SIGNAL: type = "input";   break;
+         case SNIP_NODETYPE::NT_LANDSCAPE_ACTOR: type = "landscape";   break;
+         case SNIP_NODETYPE::NT_NETWORK_ACTOR: type = "network";   break;
+         case SNIP_NODETYPE::NT_UNKNOWN:
+         default:
+            type = "unknown";   break;
+         }
+      out << "     {\n";
+      out << "        \"name\" : \"" << node->m_name << "\",\n";
+      out << "        \"type\" : \"" << type << "\",\n";
+
+      out << "        \"traits\": [";
+      nTraits = (int) node->m_traits.size();
+      for (int i = 0; i < nTraits; i++)
+         {
+         auto trait = node->m_traits[i];
+         if (i == (nTraits - 1))  // no comma
+            out << trait;
+         else
+            out << trait << ",";
+         }
+      out << "],\n";
+
+      out << "        \"reactivity\": " << node->m_reactivity << ",\n";
+      out << "        \"influence\": " << node->m_influence<< ",\n";
+
+
+      out << "        \"x\": " << 0 << ",\n";
+      if (j == (nNodes-1) )
+         out << "        \"y\": " << 0 << "\n     }\n";
+      else
+         out << "        \"y\": " << 0 << "\n     },\n";
+      }
+   out << "    ],\n";
+
+   // edges
+   out << "    \"edges\": [\n";
+   int nEdges = (int) this->m_edges.size();
+
+   for (int j = 0; j < nEdges; j++)
+      {
+      auto edge = m_edges[j];
+
+      out << "      {\n";
+      out << "        \"from\" : \""   << edge->m_pFromNode->m_name << "\",\n";
+      out << "        \"to\" : \""     << edge->m_pToNode->m_name << "\",\n";
+      out << "        \"trust\" : "    << edge->m_trust << ",\n";
+      out << "        \"influence\": " << edge->m_influence << "\n";
+      if (j == (nEdges - 1))
+         out << "      }\n";
+      else
+         out << "      },\n";
+      }
+   
+   out << "    ]\n";
+   out << "  }\n";
+   out << "}\n";
+
+   out.close();
+
+   return true;
+   }
+
+
+
 bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
    {
    // declare output file stream :
@@ -3429,7 +3566,7 @@ int SNIPModel::PopulateActorAttitudes(MapLayer* pIDULayer)
          int profileIndex = this->m_profileLookupMap[profileID]; // abs(profileID) - 1;
          // -2.5 to 2.5
          a2rxn = m_actorProfiles.GetAsFloat(colA2rxn, profileIndex);
-         a2rxn /= 2.5;  // -1 to 1
+         a2rxn /= 3.0;  // -1 to 1
          }
 
       pIDULayer->SetData(idu, colIDUA2rxn, a2rxn);
@@ -4080,8 +4217,10 @@ bool SNIP::Run(EnvContext* pEnvContext)
 
          CString path;
          path.Format("%sSNIP_%s_Year%i_%s_Run%i.gexf", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR) pScenario->m_name, pEnvContext->run);
-
          pLayer->ExportNetworkGEXF(path);
+
+         path.Format("%sSNIP_%s_Year%i_%s_Run%i.json", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR)pScenario->m_name, pEnvContext->run);
+         pLayer->ExportNetworkJSON(path);
          }
       }
 

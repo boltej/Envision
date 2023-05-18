@@ -486,6 +486,7 @@ class SNLayer
       //  bool NodeEdgeCount( SNNode *pNode, int nodeEdgeType );
 
       bool ExportNetworkGraphML(LPCTSTR path);
+      bool ExportNetworkJSON(LPCTSTR path, LPCTSTR data=nullptr);
       bool ExportNetworkGEXF(LPCTSTR path, LPCTSTR date=nullptr);
       int  CheckNetwork();
 
@@ -564,7 +565,7 @@ class SNIPModel
       static RandUniform m_randShuffle;
       RandUniform* m_pRandGenerator = nullptr;
       float m_autogenFraction = 0;
-      CString autogenBias = "degree";
+      CString m_autogenBias = "degree";
       int m_autogenTransTimeMax = 0;
       string m_autogenTransTimeBias = "none";
       float m_closeToZero = 0.001f;  // edge weights below this value are considered zero
