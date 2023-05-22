@@ -547,6 +547,7 @@ class SNIPModel
       float m_transEffAlpha = 0;
       float m_transEffBetaTraits0 = 1.0f;
       float m_infSubmodelWt = 0.5f;
+      float m_laTrustDecay = 0.1f;   // decay factor per year
       SNIP_INFMODEL_TYPE m_infSubmodel = SNIP_INFMODEL_TYPE::IM_TRUST;
 
       // runtime variables

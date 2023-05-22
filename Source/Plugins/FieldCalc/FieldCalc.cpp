@@ -326,7 +326,10 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                float value = pFD->m_groupByValues[index];
 
                ASSERT(std::isnan(value) == false);
-               this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+               if (init)
+                  this->UpdateIDU(pEnvContext, idu, pFD->m_col, value,SET_DATA);
+               else
+                  this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
                }
             }
          }

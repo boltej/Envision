@@ -2447,6 +2447,9 @@ bool ModelCollection::LoadEvaluator( TiXmlNode *pXmlNode, MapLayer *pLayer, LPCT
       pEval->m_upperBound = atof(ub);
       }
 
+   if (pEval->m_fieldName.IsEmpty() == false)
+      pLayer->CheckCol(pEval->m_col, pEval->m_fieldName, TYPE_FLOAT, CC_AUTOADD);
+   
    EVAL_METHOD _evalMethod = EM_AREAWTMEAN;
    if (method != nullptr)
       {

@@ -342,7 +342,7 @@ class ModelBase       // base class for EvalModels, AutoProcesses - just some ba
 
       CString m_modelName;
       CString m_fieldName;    // empty if not used
-      int     m_col;
+      int     m_col=-1;
       CString m_query;
       CString m_valueExpr;
 
@@ -350,16 +350,16 @@ class ModelBase       // base class for EvalModels, AutoProcesses - just some ba
 
       //CString m_expression;
       //CString m_queryStr;     // query defining area of application (empty=global)
-      int     m_constraints;
+      int     m_constraints=0;
 
-      bool    m_useDelta;
+      bool    m_useDelta=true;
       CString m_deltaStr;
       bool ParseUseDelta(LPCTSTR deltaStr);
       CArray< USE_DELTA, USE_DELTA& > m_useDeltas;
 
       //MTParser *m_pParser;
       //Query    *m_pQuery;
-      bool     m_isRaster;
+      bool     m_isRaster=false;
       //Raster  *m_pRaster;     // nullptr for idu-based models, nonNULL for raster-based models
 
       ModelCollection* m_pCollection;     // collection this belongs to

@@ -2091,6 +2091,9 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
          }
       }
 
+   // update IDUs before check commercial criteria
+   pContext->pEnvModel->ApplyDeltaArray((MapLayer*)pContext->pMapLayer);
+
    float commExpArea = resArea / m_pCurrentUgScenario->m_resCommRatio;
    float commArea = 0;
    for (int i = pUGA->m_nextCommPriority; i < pUGA->m_priorityListComm.GetSize(); i++)

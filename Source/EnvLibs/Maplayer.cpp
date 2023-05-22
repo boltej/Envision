@@ -4365,40 +4365,40 @@ int MapLayer::SaveShapeFile(LPCTSTR filename, bool selectedPolysOnly, int saveDe
       //       nodata   = not defunct
       //       parentID = this is a child polygon with the given parent ID
       //       -1       = defunct parent
-      int colParentID = this->GetFieldCol("ParentID");
+      //int colParentID = this->GetFieldCol("ParentID");
+      //
+      //if (colParentID < 0)  // missing? then add it
+      //   {
+      //   int width, decimals;
+      //   GetTypeParams(TYPE_INT, width, decimals);
+      //   colParentID = this->m_pDbTable->AddField("ParentID", TYPE_INT, width, decimals, true);
+      //   }
 
-      if (colParentID < 0)  // missing? then add it
-         {
-         int width, decimals;
-         GetTypeParams(TYPE_INT, width, decimals);
-         colParentID = this->m_pDbTable->AddField("ParentID", TYPE_INT, width, decimals, true);
-         }
+      //m_pDbTable->GetFieldInfo(colParentID).save = true;
+      //ASSERT(colParentID >= 0);
 
-      m_pDbTable->GetFieldInfo(colParentID).save = true;
 
-      ASSERT(colParentID >= 0);
-
-      bool readOnly = m_readOnly;
-      m_readOnly = false;
-
-      this->SetColNoData(colParentID);
-
-      for (int i = 0; i < this->m_pPolyArray->GetSize(); i++)
-         {
-         Poly *pPoly = this->GetPolygon(i);
-
-         // is it a defunct parent?
-         if (this->IsDefunct(i))
-            SetData(i, colParentID, -1);
-
-         // is it a child
-         else if (pPoly->GetParentCount() > 0)
-            SetData(i, colParentID, pPoly->GetParent(0));
-
-         // otherwise, let nodata value stand
-         }
-
-      m_readOnly = readOnly;
+      //bool readOnly = m_readOnly;
+      //m_readOnly = false;
+      //
+      //this->SetColNoData(colParentID);
+      //
+      //for (int i = 0; i < this->m_pPolyArray->GetSize(); i++)
+      //   {
+      //   Poly *pPoly = this->GetPolygon(i);
+      //
+      //   // is it a defunct parent?
+      //   if (this->IsDefunct(i))
+      //      SetData(i, colParentID, -1);
+      //
+      //   // is it a child
+      //   else if (pPoly->GetParentCount() > 0)
+      //      SetData(i, colParentID, pPoly->GetParent(0));
+      //
+      //   // otherwise, let nodata value stand
+      //   }
+      //
+      //m_readOnly = readOnly;
       }
 
    FILE *fp;

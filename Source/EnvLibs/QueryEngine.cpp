@@ -395,7 +395,7 @@ bool QNode::Solve( void )
             MapLayer *pMapLayer = _gpQueryEngine->GetMapLayer();
             ASSERT( pMapLayer );
 
-            ///// make sure a spatial index exists
+            ///// make sure a spatial index exists (no longer relevant)
             /////if ( pMapLayer->GetSpatialIndex() == NULL )
             /////   pMapLayer->CreateSpatialIndex( NULL, 10000, 500, SIM_NEAREST );
 
@@ -476,11 +476,12 @@ bool QNode::Solve( void )
             MapLayer *pMapLayer = _gpQueryEngine->GetMapLayer();
             ASSERT( pMapLayer );
 
-            if ( distance > pMapLayer->GetSpatialIndexMaxDistance() )
-               {
-               CString msg( "QueryEngine: WithIn(.) distance is larger than the Spatial Index was built for; Query may be inaccurate" );
-               Report::WarningMsg( msg );
-               }
+            // obsolete with intro of rtree index
+            ///if ( distance > pMapLayer->GetSpatialIndexMaxDistance() )
+            ///   {
+            ///   CString msg( "QueryEngine: WithIn(.) distance is larger than the Spatial Index was built for; Query may be inaccurate" );
+            ///   Report::WarningMsg( msg );
+            ///   }
 
             int currentRecord = _gpQueryEngine->m_currentRecord;
             Poly *pPoly = pMapLayer->GetPolygon( currentRecord );

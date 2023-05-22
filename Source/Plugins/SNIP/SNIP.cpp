@@ -316,7 +316,7 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
    out << "    \"description\": \"" << pSNIPModel->m_description << "\",\n";
 
    out << "        \"traits\": [";
-   int nTraits = pSNIPModel->m_traitsLabels.size();
+   int nTraits = (int) pSNIPModel->m_traitsLabels.size();
    for (int i = 0; i < nTraits; i++)
       {
       if (i == (nTraits - 1))  // no comma
@@ -1079,9 +1079,11 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "normNLA_TransEff");
    m_pOutputData->SetLabel(col++, "normEdgeSignalStrength");
 
-   if ( this->m_pSNLayer->m_pSNIP != nullptr)
+   if (this->m_pSNLayer->m_pSNIP != nullptr)
+      {
       this->m_pSNLayer->m_pSNIP->AddOutputVar(this->m_pSNLayer->m_name.c_str(), m_pOutputData, "");
-
+      this->m_pSNLayer->m_pSNIP->AddInputVar("LA Trust Decay Factor", this->m_laTrustDecay, "");
+      }
    return true;
    }
 
@@ -4173,25 +4175,35 @@ bool SNIP::Run(EnvContext* pEnvContext)
       SNLayer* pLayer = GetLayer(i);
 
       // update network if needed
-      if (pLayer->m_pSNIPModel->m_colIDUAdapt > 0)
          {
          // for each landscape actor node, modify incoming edges trust values
          // based on IDU informtion
-         float adapt = 0;
          for (int j = 0; j < pLayer->GetNodeCount(); j++)
             {
             SNNode* pNode = pLayer->GetNode(j);
             if (pNode->m_idu >= 0 && pNode->IsLandscapeActor())
                {
-               // get adaptive factor from map
-               pIDULayer->GetData(pNode->m_idu, pLayer->m_pSNIPModel->m_colIDUAdapt, adapt);
-               ASSERT(std::isnan(adapt) == false);
+               float adapt = 0;
+               if (pLayer->m_pSNIPModel->m_colIDUAdapt > 0)
+                  {
+                  // get adaptive factor from map
+                  pIDULayer->GetData(pNode->m_idu, pLayer->m_pSNIPModel->m_colIDUAdapt, adapt);
+                  ASSERT(std::isnan(adapt) == false);
 
-               if (std::isnan(adapt))
-                  adapt = 0;
-               // apply to each edge
+                  if (std::isnan(adapt))
+                     adapt = 0;
+                  }
+
+               // apply to each Engager <--> LA edge 
                for (int k = 0; k < pNode->m_inEdges.size(); k++)
+                  {
+                  // apply decay factor
+                  pNode->m_inEdges[k]->m_trust *= (1.0f - pLayer->m_pSNIPModel->m_laTrustDecay);
+
+                  // add adaption factor
                   pNode->m_inEdges[k]->m_trust *= (1.0f + adapt);
+
+                  }
                }
             }
          }
