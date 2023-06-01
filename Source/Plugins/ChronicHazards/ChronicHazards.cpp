@@ -60,6 +60,8 @@ Copywrite 2012 - Oregon State University
 #include <MatlabDataArray.hpp>
 //#include <MatlabEngine.hpp>
 
+#include <fstream>
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -644,7 +646,7 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
    {
-   if (m_runInfrastructure)
+   if (m_runInfrastructure == 0)
       return false;
 
    CString msg;
@@ -710,7 +712,7 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
       {
       CheckCol(m_pRoadLayer, m_colRoadFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
       m_pRoadLayer->SetColData(m_colRoadFlooded, VData(0), true);
-      //CheckCol(m_pRoadLayer, m_colRoadType, "TYPE", TYPE_INT, CC_MUST_EXIST);
+      CheckCol(m_pRoadLayer, m_colRoadType, "TYPE", TYPE_INT, CC_MUST_EXIST);
       //CheckCol(m_pRoadLayer, m_colRoadLength, "LENGTH", TYPE_DOUBLE, CC_MUST_EXIST);
       }
    //
@@ -932,10 +934,10 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    CheckCol(m_pDuneLayer, m_colDLYrMaxSWL, "MAXSWL", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLYrMaxSWL, VData(0.0), true);
 
-   CheckCol(m_pDuneLayer, m_colDLYrAvgSWL, "AVG_SWL_YR", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(m_pDuneLayer, m_colDLYrAvgSWL, "AVG_SWL", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLYrAvgSWL, VData(0.0f), true);
 
-   CheckCol(m_pDuneLayer, m_colDLYrAvgLowSWL, "AVGLWSWLYR", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(m_pDuneLayer, m_colDLYrAvgLowSWL, "AVGLWSWL", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLYrAvgLowSWL, VData(0.0f), true);
 
 
@@ -1637,8 +1639,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    m_pMap->ChangeDrawOrder(m_pDuneLayer, DO_BOTTOM);
    m_pDuneLayer->m_readOnly = true;
 
-   if (m_exportMapInterval > 0 && ((pEnvContext->yearOfRun % m_exportMapInterval == 0) || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
-      ExportMapLayers(pEnvContext, pEnvContext->currentYear);
+   ExportMapLayers(pEnvContext, pEnvContext->currentYear);
 
    return true;
    } // end Run(EnvContext *pEnvContext)
@@ -1668,6 +1669,7 @@ bool ChronicHazards::RunTWLModel(EnvContext* pEnvContext)
       m_pDuneLayer->SetData(point, m_colDLYrMaxSwash, 0);
       }
 
+  
    CalculateTWLandImpactDaysAtShorePoints(pEnvContext);
    return true;
    }
@@ -1829,7 +1831,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
                      m_pDuneLayer->SetData(point, m_colDLDuneCrest, duneCrestElev);
                      }
                   else
-                     ASSERT(0);
+                     ; // ASSERT(0);
                   }  // end of (adjust dune crest due to high slopes
            
             }
@@ -2076,6 +2078,9 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    matlab::engine::String output_ = output.get()->str();
    Report::Log(matlab::engine::convertUTF16StringToUTF8String(output_).c_str());
 
+
+
+
    // load grid
    Map* pMap = m_pDuneLayer->GetMapPtr();
 
@@ -2114,7 +2119,6 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
 
    CString ppmDir = PathManager::GetPath(PM_IDU_DIR);
    ppmDir += "PolyGridMaps\\";
-
 
    // make sure mappings exist between:
    // 1) roads/flooded grid
@@ -2188,13 +2192,13 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
          for (int col = 0; col < numCols; col++)
             {
             // get the number of polygons that intersect this cell
-            int polyCount = m_pIduFloodedGridLkUp->GetPolyCntForGridPt(row, col);
+            int polyCount = m_pRoadFloodedGridLkUp->GetPolyCntForGridPt(row, col);
 
             /*if (polyCount > 0)
             {*/
             // next, we want to iterate through the intersecting polygons to determine which are flooded
             int* indices = new int[polyCount];
-            int count = m_pIduFloodedGridLkUp->GetPolyNdxsForGridPt(row, col, indices);
+            int count = m_pRoadFloodedGridLkUp->GetPolyNdxsForGridPt(row, col, indices);
 
             /*if (count > 0)
             {*/
@@ -2207,17 +2211,17 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
             REAL xMax0 = xCenter + (m_elevCellWidth / 2.0);
             REAL yMax0 = yCenter + (m_elevCellHeight / 2.0);
 
-            // for each road in the grid cell...
+            // for each road in the grid cell...  NEED TO FIX -Wrong PolyGridLookup referenced
             for (int i = 0; i < polyCount; i++)
                {
                int roadType = -1;
                Poly* pPoly = m_pRoadLayer->GetPolygon(indices[i]);
                m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
-
+            
                float flooded = 0.0f;
                m_pFloodedGrid->GetData(row, col, flooded);
                bool isFlooded = (flooded > 0.0f) ? true : false;
-
+            
                if (isFlooded) // && flooded != noDataValue)
                   {
                   //if (roadType != 6)
@@ -2236,7 +2240,6 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
                   lengthOfRoad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), ll.x, ll.y, ur.x, ur.y);
                   m_floodedRoad += float(lengthOfRoad);
                   m_pRoadLayer->SetData(indices[i], m_colRoadFlooded, 1);
-
                   }
                }
             delete[] indices;
@@ -3175,18 +3178,22 @@ bool ChronicHazards::ResetAnnualVariables()
    m_pDuneLayer->SetColData(m_colDLIDDCrestFall, VData(0), true);
 
    // Reset annual attributes for Building, Infrastructure and Roads
-   ////////////////m_pBldgLayer->SetColData(m_colBldgFlooded, VData(0), true);
-   ////////////////
-   ////////////////m_pInfraLayer->SetColData(m_colInfraFlooded, VData(0), true);
-   //////////////////   m_pInfraLayer->SetColData(m_colInfraEroded, VData(0), true);
+   if ( m_pBldgLayer != nullptr )
+      m_pBldgLayer->SetColData(m_colBldgFlooded, VData(0), true);
+   
+   if (m_pInfraLayer != nullptr)
+      {
+      m_pInfraLayer->SetColData(m_colInfraFlooded, VData(0), true);
+      m_pInfraLayer->SetColData(m_colInfraEroded, VData(0), true);
+      }
    ////////////////m_pRoadLayer->SetColData(m_colRoadFlooded, VData(0), true);
    ////////////////
    ////////////////// Initialize or Reset annual statistics for the whole coastline/study area
    ////////////////
    ////////////////// Reset annual County Wide variables to zero
    ////////////////
-   ////////////////m_meanTWL = 0.0f;
-   ////////////////m_floodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
+   m_meanTWL = 0.0f;
+   m_floodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
    ////////////////                              //m_maxTWL = 0.0f;
    ////////////////
    ////////////////                              // Hard Protection Metrics
@@ -4981,7 +4988,9 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
 
    CString outDir = PathManager::GetPath(PM_OUTPUT_DIR);
 
-   if (m_pDuneLayer != nullptr)
+   if (m_pDuneLayer != nullptr 
+      && (m_exportDuneMapInterval > 0 && (pEnvContext->yearOfRun % m_exportDuneMapInterval == 0)
+         || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
       {
       // Dune line layer naming
       CString duneFilename;
@@ -4993,16 +5002,31 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       m_pDuneLayer->SaveShapeFile(duneFilename, false, 0, 1);
       }
 
-   if (m_pErodedGrid != nullptr)
+   if (m_runFlooding
+      && (m_exportFloodMapInterval > 0 && (pEnvContext->yearOfRun % m_exportFloodMapInterval == 0)
+         || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
       {
-      CString erodedFilename;
-      erodedFilename.Format("%sEroded_Year%i_%s_Run%i.asc", outDir, outputYear, scenario, run);
+      CString fldFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
+      CString outFile;
+      outFile.Format("%sFloodDepths_%i_%s.asc", (LPCTSTR) PathManager::GetPath(PM_OUTPUT_DIR),pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
 
-      CString msg("Exporting map layer: ");
-      msg += erodedFilename;
-      Report::Log(msg);
-      m_pErodedGrid->SaveGridFile(erodedFilename);
+      // copy the file to the standard output locations
+      std::ifstream  src(fldFile, std::ios::binary);
+      std::ofstream  dst(outFile, std::ios::binary);
+
+      dst << src.rdbuf();
       }
+
+   //if (m_pErodedGrid != nullptr)
+   //   {
+   //   CString erodedFilename;
+   //   erodedFilename.Format("%sEroded_Year%i_%s_Run%i.asc", outDir, outputYear, scenario, run);
+   //
+   //   CString msg("Exporting map layer: ");
+   //   msg += erodedFilename;
+   //   Report::Log(msg);
+   //   m_pErodedGrid->SaveGridFile(erodedFilename);
+   //   }
 
    //      CString duneCSVFile = duneFilename + ".csv";
    //      duneCSVFilePath.Append(csvFolder);
@@ -9406,7 +9430,8 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       { "run_buildings",         TYPE_INT,   &m_runBuildings,      true, 0 },
       { "run_infrastructure",    TYPE_INT,   &m_runInfrastructure, true, 0 },
       { "run_policy",            TYPE_INT,   &m_runPolicy,         true, 0 },
-      { "export_map_interval",   TYPE_INT,   &m_exportMapInterval, true, 0 },
+      { "export_flood_map_interval", TYPE_INT,   &m_exportFloodMapInterval, true, 0 },
+      { "export_dune_map_interval",  TYPE_INT,   &m_exportDuneMapInterval, true, 0 },
       { nullptr,                 TYPE_NULL,  nullptr,              false,   0 } };
 
    if (TiXmlGetAttributes(pXmlRoot, attrs, filename) == false)
@@ -10673,7 +10698,7 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
 
 
 
-      // Determines Yearly Maximum TWL based upon daily TWL calculations at each Dune point
+// Determines Yearly Maximum TWL based upon daily TWL calculations at each Dune point
 void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvContext)
    {
    if (m_pDuneLayer != nullptr)
@@ -10712,6 +10737,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
       float meanPeakPeriod = 0;
       float meanPeakDirection = 0;
       float meanPeakWaterLevel = 0;
+
+      this->m_meanTWL = 0;
 
       // for this day, iterate though Dune toe points, calculating TWL and associated variables as we go.
       //#pragma omp parallel for
@@ -11255,7 +11282,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                }
             }
 
-         // get current Maximum TWL from coverage
+         // get current Maximum TWL for the current dune point from coverage
          float yearlyMaxTWL = 0.0f;
          m_pDuneLayer->GetData(dunePt, m_colDLYrMaxTWL, yearlyMaxTWL);
 
@@ -11276,6 +11303,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
          float yearlyMaxSWL = 0.0f;
          m_pDuneLayer->GetData(dunePt, m_colDLYrMaxSWL, yearlyMaxSWL);
+
+         this->m_meanTWL += dailyTWL;
 
          // set variables when Maximum yearly TWL
          if (swl > yearlyMaxSWL)
@@ -11343,11 +11372,12 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          prevDuneCrest = duneCrest;*/
 
          }  // end of: for each dune point in dune line
-
-
       } // end of: for each doy
 
-    // fix up map classifications
+      this->m_meanTWL /= (365 * m_pDuneLayer->GetRowCount());
+
+      
+      // fix up map classifications
     //m_pDuneLayer->ClassifyData();
     //m_pBayTraceLayer->ClassifyData();
 

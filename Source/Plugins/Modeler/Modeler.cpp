@@ -1278,13 +1278,15 @@ bool CompileExpression( ModelBase *pModel, ModelCollection *pCollection, MParser
 
 
 
-bool Evaluator::Init(EnvContext*, LPCTSTR)
+bool Evaluator::Init(EnvContext *pEnvContext, LPCTSTR)
    {
+   RunMap(pEnvContext,false);
    return true;
    }
 
-bool Evaluator::InitRun(EnvContext*)
+bool Evaluator::InitRun(EnvContext *pEnvContext )
    {
+   RunMap(pEnvContext, false);
    return true;
    }
 
@@ -1304,11 +1306,7 @@ bool Evaluator::Run( EnvContext *pEnvContext)
    // scale to (-3, +3)
    if (m_autoBounds)
       {
-
-
-
       }
-
 
    float range = m_upperBound - m_lowerBound;
    m_score = ((( m_rawScore - m_lowerBound ) / range) * 6) - 3;

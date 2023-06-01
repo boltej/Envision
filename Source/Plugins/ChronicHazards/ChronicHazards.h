@@ -515,7 +515,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_avgAccess = 0;
 
       //   xml input file variables 
-      int m_exportMapInterval = -1;
+      int m_exportFloodMapInterval = -1;
+      int m_exportDuneMapInterval = -1;
       ///// int m_runEelgrassModel = 0;				// Run Eelgrass Model: 0=Off; 1=On
       ///// int m_runSpatialBayTWL = 0;             // Run Spatially varying TWLs in Bay: 0=Off; 1=On
       int m_writeDailyBouyData = 0;
