@@ -2355,17 +2355,16 @@ float SNIPModel::GetInputLevel(int cycle)
          return this->m_netInputs[cycle];
 
       case I_ENVISION_SIGNAL:
+         {
          float score = 1;  ///TEMPORARY !!!!!
-
          if (this->m_pEvaluator != nullptr)
-            {
             score = this->m_pEvaluator->m_score;  // -3 - +3?
-            // do any necessary scaling
-            score += 3;    // 0-6 
-            score /= 6;    // 0-1
-            }
-         return score;
 
+         score += 3;    // 0-6 
+         score /= 6;    // 0-1
+         
+         return score;
+         }
          ////case I_TRACKOUTPUT: 
          ////   { // track output
          ////    //let lagPeriod = parseInt($("#lagPeriod").val());
@@ -4329,13 +4328,10 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          if (pEvaluator == nullptr)
             {
             CString msg;
-            msg.Format("Unable to find signal source %s.  This must be fixed to run SNIP...", landscapeSignal);
+            msg.Format("Unable to find signal source %s.  A value of 1 is assumed...", landscapeSignal);
             Report::WarningMsg(msg);
             }
-         else
-            {
-            pLayer->m_pSNIPModel->m_pEvaluator = pEvaluator;
-            }
+         pLayer->m_pSNIPModel->m_pEvaluator = pEvaluator;
 
          CheckCol(pIDULayer, pLayer->m_colReactivity, reactivityCol, TYPE_FLOAT, CC_AUTOADD);
 
