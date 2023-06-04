@@ -712,7 +712,7 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
       {
       CheckCol(m_pRoadLayer, m_colRoadFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
       m_pRoadLayer->SetColData(m_colRoadFlooded, VData(0), true);
-      CheckCol(m_pRoadLayer, m_colRoadType, "TYPE", TYPE_INT, CC_MUST_EXIST);
+      CheckCol(m_pRoadLayer, m_colRoadType, "RoadType", TYPE_INT, CC_MUST_EXIST);
       //CheckCol(m_pRoadLayer, m_colRoadLength, "LENGTH", TYPE_DOUBLE, CC_MUST_EXIST);
       }
    //

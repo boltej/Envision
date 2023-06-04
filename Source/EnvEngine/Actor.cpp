@@ -213,7 +213,7 @@ int ActorManager::CreateActors( void )
       case AIM_IDU_GROUPS:
          CreateActorsFromIduGroups();
          CopyActorValuesToCells();
-         break;
+         break;   
 
       case AIM_QUERY:
          CreateActorsFromQuery();

@@ -421,8 +421,8 @@ class Evaluator : public ModelBase, public EnvEvaluator
       bool Init(EnvContext*, LPCTSTR);
       bool InitRun(EnvContext*);
       bool Run(EnvContext*);
-      //virtual BOOL Run(EnvContext*, bool useAddDelta);
-
+      
+      
    protected:
       bool RunMap(EnvContext*, bool useAddDelta);
       bool RunDelta(EnvContext*);
