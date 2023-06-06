@@ -817,7 +817,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //c
       //// Road coverage columns
       int m_colRoadFlooded = -1;
-      int m_colRoadType = -1;
+      //int m_colRoadType = -1;
       //int m_colRoadLength = -1;
       //
       //// Buildings coverage columns		

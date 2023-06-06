@@ -62,6 +62,9 @@ bool Risk::Run(EnvContext* pEnvContext)
    pEnvContext->score *= 6;   // [0,6]
    pEnvContext->score -= 3;   // [-3,3]
 
+   this->m_rawScore = pEnvContext->rawScore;
+   this->m_score = pEnvContext->score;
+
    return true;
    }
 
