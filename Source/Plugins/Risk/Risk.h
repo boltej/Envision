@@ -30,8 +30,11 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colArea = -1;
       int m_colHazard = -1;
       int m_colImpact = -1;
-
       int m_colRisk = -1;
+
+      float m_upperBound = 1;
+      float m_lowerBound = 0;
+
 
       bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);
       //void ToPercentiles(float values[], float ranks[], int n);

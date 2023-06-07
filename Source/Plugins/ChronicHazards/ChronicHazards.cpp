@@ -712,7 +712,7 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
       {
       CheckCol(m_pRoadLayer, m_colRoadFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
       m_pRoadLayer->SetColData(m_colRoadFlooded, VData(0), true);
-      CheckCol(m_pRoadLayer, m_colRoadType, "RoadType", TYPE_INT, CC_MUST_EXIST);
+      //CheckCol(m_pRoadLayer, m_colRoadType, "RoadType", TYPE_INT, CC_MUST_EXIST);
       //CheckCol(m_pRoadLayer, m_colRoadLength, "LENGTH", TYPE_DOUBLE, CC_MUST_EXIST);
       }
    //
@@ -2216,7 +2216,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
                {
                int roadType = -1;
                Poly* pPoly = m_pRoadLayer->GetPolygon(indices[i]);
-               m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
+               //m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
             
                float flooded = 0.0f;
                m_pFloodedGrid->GetData(row, col, flooded);
@@ -4763,43 +4763,42 @@ void ChronicHazards::TallyRoadStatistics()
                      REAL xMax0 = xCenter + (m_elevCellWidth / 2.0);
                      REAL yMax0 = yCenter + (m_elevCellHeight / 2.0);
 
-                     /////int roadType = -1;
-                     /////Poly* pPoly = m_pRoadLayer->GetPolygon(indices[i]);
-                     /////m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
-                     /////
-                     /////float flooded = 0.0f;
-                     /////m_pFloodedGrid->GetData(row, col, flooded);
-                     /////bool isFlooded = (flooded > 0.0f) ? true : false;
-                     /////
-                     /////if (isFlooded && flooded != noDataValue)
-                     /////   {
-                     /////
-                     /////   if (roadType != 6)
-                     /////      {
-                     /////      if (roadType == 7)
-                     /////         {
-                     /////         double lengthOfRailroad = 0.0;
-                     /////         lengthOfRailroad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), xMin0, yMin0, xMax0, yMax0);
-                     /////         m_floodedRailroadMiles += float(lengthOfRailroad);
-                     /////         m_pRoadLayer->SetData(indices[i], m_colRoadFlooded, 1);
-                     /////
-                     /////         }
-                     /////      else if (roadType != 5)
-                     /////         {
-                     /////         double lengthOfRoad = 0.0;
-                     /////         lengthOfRoad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), ll.x, ll.y, ur.x, ur.y);
-                     /////         /*if (lengthOfRoad > 0 && m_debugOn)
-                     /////         {
-                     /////         CString thisMsg;
-                     /////         thisMsg.Format("Grid Cell: row=%i,  col==%i, xMin0=%7.3f,yMin0=%7.3f,xMax0=%7.3f,yMax0=%7.3f,",row,col,xMin0,yMin0,xMax0,yMax0);
-                     /////         Report::Log(thisMsg);
-                     /////         }*/
-                     /////         m_floodedRoad += float(lengthOfRoad);
-                     /////         m_pRoadLayer->SetData(indices[i], m_colRoadFlooded, 1);
-                     /////
-                     /////         }
-                     /////      }
-                     /////   }
+                     int roadType = -1;
+                     Poly* pPoly = m_pRoadLayer->GetPolygon(indices[i]);
+                     //m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
+                     
+                     float flooded = 0.0f;
+                     m_pFloodedGrid->GetData(row, col, flooded);
+                     bool isFlooded = (flooded > 0.0f) ? true : false;
+                     
+                     if (isFlooded && flooded != noDataValue)
+                        {                     
+                        //if (roadType != 6)
+                        //   {
+                        //   if (roadType == 7)
+                        //      {
+                        //      double lengthOfRailroad = 0.0;
+                        //      lengthOfRailroad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), xMin0, yMin0, xMax0, yMax0);
+                        //      m_floodedRailroadMiles += float(lengthOfRailroad);
+                        //      m_pRoadLayer->SetData(indices[i], m_colRoadFlooded, 1);
+                        //
+                        //      }
+                        //   else if (roadType != 5)
+                        //      {
+                              double lengthOfRoad = 0.0;
+                              lengthOfRoad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), ll.x, ll.y, ur.x, ur.y);
+                              /*if (lengthOfRoad > 0 && m_debugOn)
+                              {
+                              CString thisMsg;
+                              thisMsg.Format("Grid Cell: row=%i,  col==%i, xMin0=%7.3f,yMin0=%7.3f,xMax0=%7.3f,yMax0=%7.3f,",row,col,xMin0,yMin0,xMax0,yMax0);
+                              Report::Log(thisMsg);
+                              }*/
+                              m_floodedRoad += float(lengthOfRoad);
+                              m_pRoadLayer->SetData(indices[i], m_colRoadFlooded, 1);
+                     
+                        //      }
+                        //   }
+                        }
                      }
                   delete[] indices;
                   }
@@ -4850,7 +4849,7 @@ void ChronicHazards::TallyRoadStatistics()
                            {
                            int roadType = -1;
                            Poly* pPoly = m_pRoadLayer->GetPolygon(indices[i]);
-                           m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
+                           //m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
 
                            /*   if (roadType == 7)
                            {
@@ -4878,6 +4877,11 @@ void ChronicHazards::TallyRoadStatistics()
 
 void ChronicHazards::ComputeInfraStatistics()
    {
+   if (m_pInfraLayer == nullptr)
+      {
+      Report::LogWarning("Missing Infrastructure Grid - Infrastructure Stats wil not be reported!");
+      return;
+      }
 
    /************************   Calculate Eroded Infrastructure Statistics ************************/
 
@@ -5427,6 +5431,11 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
 
 
    // Find closest building to dune pt
+   if (m_pInfraLayer == nullptr)
+      {
+      Report::LogWarning("Missing Infrastructure Grid - Infrastructure Stats will not be reported!");
+      return false;
+      }
 
    for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
       {
@@ -9091,6 +9100,12 @@ void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext* pEnvContext)
 
 void ChronicHazards::RaiseInfrastructure(EnvContext* pEnvContext)
    {
+   if (m_pInfraLayer == nullptr)
+      {
+      Report::LogWarning("Infrastructure layer not loaded, Raising infrastructure will be disabled...");
+      return;
+      }
+
    if (pEnvContext->currentYear >= (pEnvContext->startYear + m_windowLengthFloodHzrd - 1))
       {
       bool runRaiseInfrastructurePolicy = (m_runRaiseInfrastructurePolicy == 1) ? true : false;
@@ -9314,6 +9329,12 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
 
 void ChronicHazards::RemoveInfraFromHazardZone(EnvContext* pEnvContext)
    {
+   if (m_pInfraLayer == nullptr)
+      {
+      Report::LogWarning("Missing Infrastructure Grid - Infrastructure Stats wil not be reported!");
+      return;
+      }
+
    // Relocate existing homes/buildings from hazard zone (100-yr flood plain)
    for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
       {

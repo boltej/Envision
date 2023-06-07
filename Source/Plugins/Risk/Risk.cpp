@@ -6,20 +6,20 @@
 
 #include <Maplayer.h>
 #include <QueryEngine.h>
+#include <Report.h>
 #include <tixml.h>
 
 
 bool Risk::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
    bool ok = LoadXml(pEnvContext, initStr);
+
+   ASSERT(this->m_colHazard >= 0);
+   ASSERT( this->m_colImpact >= 0);
+   ASSERT( this->m_colArea >= 0);
+   ASSERT( this->m_colRisk >= 0);
    
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-
-   this->CheckCol(pIDULayer, this->m_colArea, "AREA", TYPE_FLOAT, CC_MUST_EXIST);
-   this->CheckCol(pIDULayer, this->m_colHazard, "PFLAMELEN", TYPE_FLOAT, CC_MUST_EXIST);
-   this->CheckCol(pIDULayer, this->m_colImpact, "PopDens", TYPE_FLOAT, CC_MUST_EXIST);
-
-   this->CheckCol(pIDULayer, this->m_colRisk, "FireRisk", TYPE_FLOAT, CC_AUTOADD);
 
    return ok;
    }
@@ -49,22 +49,22 @@ bool Risk::Run(EnvContext* pEnvContext)
       this->UpdateIDU(pEnvContext, idu, this->m_colRisk, risk, ADD_DELTA);
 
       totalRisk += risk * area;
-      area += area;
+      totalArea += area;
       }
 
    totalRisk /= totalArea;
 
-   float lowerBound = 0.000015f;
-   float upperBound = 0.000035f;
-
    pEnvContext->rawScore = totalRisk;
-   pEnvContext->score = (totalRisk - lowerBound) / (upperBound / lowerBound);  // 0-1
+   pEnvContext->score = (totalRisk - m_lowerBound) / (m_upperBound - m_lowerBound);  // 0-1
    pEnvContext->score *= 6;   // [0,6]
    pEnvContext->score -= 3;   // [-3,3]
 
    this->m_rawScore = pEnvContext->rawScore;
    this->m_score = pEnvContext->score;
 
+   CString msg;
+   msg.Format("Evaluator %s: Raw Score=%f, Scaled Score=%f", (LPCTSTR)this->m_name, this->m_rawScore, this->m_score);
+   Report::LogInfo(msg);
    return true;
    }
 
@@ -91,8 +91,7 @@ void Risk::ToPercentiles(float values[], float pctiles[], int n)
 
 bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    {
-
-/*   TiXmlDocument doc;
+   TiXmlDocument doc;
    bool ok = doc.LoadFile(filename);
 
    if (!ok)
@@ -104,76 +103,29 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    MapLayer* pMapLayer = (MapLayer*)pEnvContext->pMapLayer;
 
    // start interating through the nodes
-   TiXmlElement* pXmlRoot = doc.RootElement();  // <acute_hazards>
-   CString codePath;
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <risk>
 
-   TiXmlElement* pXmlHazard = pXmlRoot->FirstChildElement("hazard");
-   while (pXmlHazard != NULL)
+
+   CString hazardField, impactField, riskField;
+   XML_ATTR attrs[] = {
+      // attr                type            address  isReq checkCol
+      { "lower_bound",       TYPE_FLOAT,     &this->m_lowerBound,   true,  0 },
+      { "upper_bound",       TYPE_FLOAT,     &this->m_upperBound,   true,  0 },
+      { "hazard_col",        TYPE_CSTRING,   &hazardField, false, CC_MUST_EXIST },
+      { "impact_col",        TYPE_CSTRING,   &impactField, false, CC_MUST_EXIST },
+      { "risk_col",          TYPE_CSTRING,   &riskField, false, CC_AUTOADD },
+      { NULL,                TYPE_NULL,      NULL,            false, 0 }
+      };
+
+   ok = TiXmlGetAttributes(pXmlRoot, attrs, filename, pMapLayer);
+   if (ok)
       {
-      CString name, hazField, acmPctileField, hazPctileField, viField, query;
-      XML_ATTR attrs[] = {
-         // attr                type            address  isReq checkCol
-         { "name",              TYPE_CSTRING,   &name,           true,  0 },
-         { "hazard_col",        TYPE_CSTRING,   &hazField,       true,  CC_MUST_EXIST },
-         { "acm_pctile_col",    TYPE_CSTRING,   &acmPctileField, false, CC_AUTOADD },
-         { "hazard_pctile_col", TYPE_CSTRING,   &hazPctileField, false, CC_AUTOADD },
-         { "vi_col",            TYPE_CSTRING,   &viField,        true,  CC_MUST_EXIST },
-         { "query",             TYPE_CSTRING,   &query,          true,  0 },
-         { NULL,                TYPE_NULL,      NULL,            false, 0 }
-         };
-      
-      ok = TiXmlGetAttributes(pXmlHazard, attrs, filename, pMapLayer);
-      if (ok)
-         {
-         Hazard* pHazard = new Hazard;
-         this->m_hazardArray.Add(pHazard);
-
-         pHazard->m_name = name;
-         pHazard->m_hazardField = hazField;  
-         pHazard->m_acmPctileField = acmPctileField;
-         pHazard->m_hazPctileField = hazPctileField;
-         pHazard->m_vulnIndexField = viField;
-         pHazard->m_query = query;
-
-         pHazard->m_pQuery = pEnvContext->pQueryEngine->ParseQuery(query, 0, pHazard->m_name);
-
-         CheckCol(pEnvContext->pMapLayer, pHazard->m_colHazard, hazField, TYPE_FLOAT, CC_MUST_EXIST);
-
-         if ( ! acmPctileField.IsEmpty() )
-            CheckCol(pEnvContext->pMapLayer, pHazard->m_colAcmPctile, acmPctileField, TYPE_FLOAT, CC_MUST_EXIST);
-
-         if (! hazPctileField.IsEmpty())
-            CheckCol(pMapLayer, pHazard->m_colHazPctile, hazPctileField, TYPE_FLOAT, CC_MUST_EXIST);
-
-         CheckCol(pMapLayer, pHazard->m_colVulnIndex, viField, TYPE_FLOAT, CC_MUST_EXIST);
-
-         TiXmlElement* pXmlAC = pXmlHazard->FirstChildElement("adapt_cap_metric");
-         while (pXmlAC != NULL)
-            {
-            CString name, field;
-            XML_ATTR attrs[] = {
-               // attr     type            address     isReq checkCol
-               { "name",   TYPE_CSTRING,   &name,      false,  0 },
-               { "col",    TYPE_CSTRING,   &field,     true,  CC_MUST_EXIST },
-               { NULL,     TYPE_NULL,      NULL,       false, 0 }
-               };
-
-            ok = TiXmlGetAttributes(pXmlAC, attrs, filename, pMapLayer);
-            if (ok)
-               {
-               pHazard->m_adaptCapFields.Add(field);
-               int col = -1;
-               CheckCol(pMapLayer, col, field, TYPE_FLOAT, CC_MUST_EXIST);
-               }
-
-            pXmlAC = pXmlAC->NextSiblingElement("adapt_cap_metric");
-            }
-         }
-
-      pXmlHazard = pXmlHazard->NextSiblingElement("hazard");
+      this->CheckCol(pMapLayer, this->m_colHazard, hazardField, TYPE_FLOAT, 0);
+      this->CheckCol(pMapLayer, this->m_colImpact, impactField, TYPE_FLOAT, 0);
+      this->CheckCol(pMapLayer, this->m_colRisk, riskField, TYPE_FLOAT, 0);
+      this->CheckCol(pMapLayer, this->m_colArea, "AREA", TYPE_FLOAT, 0);
       }
-      */
-   
+
    return true;
    }
 
