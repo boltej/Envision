@@ -35,6 +35,8 @@ class _EXPORT Risk : public  EnvEvaluator
       float m_upperBound = 1;
       float m_lowerBound = 0;
 
+      CString m_queryStr;
+      Query* pQuery = nullptr;
 
       bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);
       //void ToPercentiles(float values[], float ranks[], int n);

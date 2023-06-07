@@ -111,9 +111,10 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       // attr                type            address  isReq checkCol
       { "lower_bound",       TYPE_FLOAT,     &this->m_lowerBound,   true,  0 },
       { "upper_bound",       TYPE_FLOAT,     &this->m_upperBound,   true,  0 },
-      { "hazard_col",        TYPE_CSTRING,   &hazardField, false, CC_MUST_EXIST },
-      { "impact_col",        TYPE_CSTRING,   &impactField, false, CC_MUST_EXIST },
-      { "risk_col",          TYPE_CSTRING,   &riskField, false, CC_AUTOADD },
+      { "hazard_col",        TYPE_CSTRING,   &hazardField, true, CC_MUST_EXIST },
+      { "impact_col",        TYPE_CSTRING,   &impactField, true, CC_MUST_EXIST },
+      { "risk_col",          TYPE_CSTRING,   &riskField, true, CC_AUTOADD },
+      { "query",             TYPE_CSTRING,   &this->m_queryStr, true, 0 },
       { NULL,                TYPE_NULL,      NULL,            false, 0 }
       };
 
