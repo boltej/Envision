@@ -7,7 +7,7 @@
 #include <randgen/Randunif.hpp>
 #include <misc.h>
 #include <FDATAOBJ.H>
-
+#include <EnvModel.h>
 
 // the one and only
 //FieldCalculator* theMainModel = nullptr;
@@ -50,6 +50,9 @@ extern "C" EnvExtension * Factory(EnvContext*)
 bool FieldDef::Init()
    {
    m_pFieldCalculator->CheckCol(m_pFieldCalculator->m_pMapLayer, this->m_col, this->m_field, this->m_type, CC_AUTOADD | this->m_type);
+
+   //if (this->m_field.IsEmpty() == false)
+   //   m_pFieldCalculator->CheckCol(m_pFieldCalculator->m_pMapLayer, this->m_colVariance, this->m_varianceField, TYPE_FLOAT, CC_AUTOADD | this->m_type);
 
    LPTSTR query = nullptr;
    if (m_queryStr.IsEmpty() == false)
@@ -137,13 +140,17 @@ bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    int fieldCount = (int)m_fields.GetSize();
  
-   m_pOutputData = new FDataObj(1+2*fieldCount, 0);
+   m_pOutputData = new FDataObj(1+4*fieldCount, 0);
    m_pOutputData->SetName((LPCTSTR) this->m_name);
    m_pOutputData->SetLabel(0, "Year");
    int j = 1;
    for (int i = 0; i < fieldCount; i++)
       {
-      CString label = m_fields[i]->m_name + ".count";
+      CString label = m_fields[i]->m_name + ".value";
+      m_pOutputData->SetLabel(j++, label);
+      label = m_fields[i]->m_name + ".stddev";
+      m_pOutputData->SetLabel(j++, label);
+      label = m_fields[i]->m_name + ".count";
       m_pOutputData->SetLabel(j++, label);
       label = m_fields[i]->m_name + ".area";
       m_pOutputData->SetLabel(j++, label);
@@ -190,14 +197,21 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
    // if called for
    if (m_shuffleIDUs && m_pRandUnif != nullptr)
       ::ShuffleArray< UINT >(m_iduArray.GetData(), iduCount, m_pRandUnif);
-   
+
    // reset field def application counters
    int fieldCount = (int)m_fields.GetSize();
    for (int i = 0; i < fieldCount; i++)
       {
       FieldDef* pFD = m_fields[i];
+
+      if (pFD->m_modelID != pEnvContext->id)
+         continue;
+
       pFD->m_count = 0;
+      pFD->m_value = 0;  // global value (sum)
       pFD->m_appliedArea = 0;
+      pFD->m_variance = 0;
+      pFD->m_meanssq = 0;
 
       if (pFD->IsGroupBy())
          {
@@ -229,6 +243,9 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             {
             FieldDef* pFD = m_fields[i];
 
+            if (pFD->m_modelID != pEnvContext->id)
+               continue;
+
             // if we are in initialization, only initialize field if called for in the input file
             if (init && pFD->m_initialize == 0)  // (1/-1 inits the field)
                continue;
@@ -242,17 +259,17 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                if (pFD->m_pMapExpr != nullptr)   // is the map expr for the field definition
                   {
                   bool ok = m_pMapExprEngine->EvaluateExpr(pFD->m_pMapExpr, true);
-                  float value = (float)pFD->m_pMapExpr->GetValue();
-                  ASSERT(std::isnan(value) == false);
-
-                  if (pFD->m_minLimit != LONG_MAX && value < pFD->m_minLimit)
-                     value = pFD->m_minLimit;
-                     
-                  if (pFD->m_maxLimit != LONG_MIN && value > pFD->m_maxLimit)
-                     value = pFD->m_maxLimit;
-
                   if (ok)
                      {
+                     float value = (float)pFD->m_pMapExpr->GetValue();
+                     ASSERT(std::isnan(value) == false);
+
+                     if (pFD->m_minLimit != LONG_MAX && value < pFD->m_minLimit)
+                        value = pFD->m_minLimit;
+
+                     if (pFD->m_maxLimit != LONG_MIN && value > pFD->m_maxLimit)
+                        value = pFD->m_maxLimit;
+
                      if (pFD->IsGroupBy())
                         {
                         int groupAttr;
@@ -273,7 +290,21 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                         pFD->m_groupByAreas[index] += area;
                         }
                      else
+                        {
+                        switch (pFD->m_operator)
+                           {
+                           case FCOP_AREAWTMEAN:
+                              pFD->m_value += value * area;
+                              break;
+
+                           default:
+                              //case FCOP_SUM:
+                              //case FCOP_MEAN:
+                              pFD->m_value += value;
+                              break;
+                           }
                         this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+                        }
 
                      pFD->m_count++;
                      pFD->m_appliedArea += area;
@@ -281,63 +312,119 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                   }
                }
             }
-         }
-      }
+         }  // end of: for (m < iduCount)
 
-   // do any necessary cleanup
-   for (int i = 0; i < fieldCount; i++)
-      {
-      FieldDef* pFD = m_fields[i];
-      
-      if (init && pFD->m_initialize == 0)  // (1/-1 inits the field)
-         continue;
-      if (!init && pFD->m_initialize < 0)
-         continue;
-
-      // write groupbys to each qualifying IDU (non-groupbys handled during _Run())
-      if (pFD->IsGroupBy())
+       // fix up area wted means
+      for (int i = 0; i < fieldCount; i++)
          {
-         // fix up area wted means
+         FieldDef* pFD = m_fields[i];
+
+         if (pFD->m_modelID != pEnvContext->id)
+            continue;
+
          if (pFD->m_operator == FC_OP::FCOP_AREAWTMEAN)
             {
-            int attrCount = (int)pFD->m_groupByValues.size();
-            for (int j = 0; j < attrCount; j++)
+            if (pFD->m_appliedArea != 0)
+               pFD->m_value /= pFD->m_appliedArea;
+            else
+               pFD->m_value = 0;
+            }
+         else
+            pFD->m_value /= pFD->m_count;  // average value
+
+         // write groupbys to each qualifying IDU (non-groupbys handled during _Run())
+         if (pFD->IsGroupBy())
+            {
+            // fix up area wted means
+            if (pFD->m_operator == FC_OP::FCOP_AREAWTMEAN)
                {
-               if (pFD->m_groupByAreas[j] != 0)
-                  pFD->m_groupByValues[j] /= pFD->m_groupByAreas[j];
-               else
-                  pFD->m_groupByValues[j] = 0;
+               int attrCount = (int)pFD->m_groupByValues.size();
+               for (int j = 0; j < attrCount; j++)
+                  {
+                  if (pFD->m_groupByAreas[j] != 0)
+                     pFD->m_groupByValues[j] /= pFD->m_groupByAreas[j];
+                  else
+                     pFD->m_groupByValues[j] = 0;
+                  }
+               }
+
+            // write results to IDUs in each group
+            for (int m = 0; m < iduCount; m++)
+               {
+               UINT idu = m;
+               if (m_shuffleIDUs)
+                  idu = m_iduArray[m];         // a random grab (if shuffled)
+
+               bool result = false;
+               if (pFD->m_pQuery == nullptr || (pFD->m_pQuery->Run(idu, result) && result == true))
+                  {
+                  int groupAttr;
+                  this->m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
+                  int index = pFD->m_groupByIndexMap[groupAttr];
+                  float value = pFD->m_groupByValues[index];
+
+                  ASSERT(std::isnan(value) == false);
+                  if (init)
+                     this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, SET_DATA);
+                  else
+                     this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+                  }
                }
             }
 
-         // write results to IDUs in each group
-         for (int m = 0; m < iduCount; m++)
-            {
-            UINT idu = m;
-            if ( m_shuffleIDUs)
-               idu = m_iduArray[m];         // a random grab (if shuffled)
+         // all done...
+         CString msg;
+         msg.Format("FieldDef %s: Count=%i, Applied Area=%.1f ha", (LPCTSTR)pFD->m_name, pFD->m_count, pFD->m_appliedArea * HA_PER_M2);
+         Report::LogInfo(msg);
+         }
 
-            bool result=false;
+      // apply delta array
+      pEnvContext->pEnvModel->ApplyDeltaArray((MapLayer*)pEnvContext->pMapLayer);
+
+      // compute variances over IDUs
+      for (int idu = 0; idu < iduCount; idu++)
+         {
+         this->m_pQueryEngine->SetCurrentRecord(idu);
+         this->m_pMapExprEngine->SetCurrentRecord(idu);
+
+         for (int i = 0; i < fieldCount; i++)
+            {
+            FieldDef* pFD = m_fields[i];
+
+            if (pFD->m_modelID != pEnvContext->id)
+               continue;
+
+            // if we are in initialization, only initialize field if called for in the input file
+            if (init && pFD->m_initialize == 0)  // (1/-1 inits the field)
+               continue;
+            if (!init && pFD->m_initialize < 0)
+               continue;
+
+            bool result = false;
+            float sum = 0;
             if (pFD->m_pQuery == nullptr || (pFD->m_pQuery->Run(idu, result) && result == true))
                {
-               int groupAttr;
-               this->m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
-               int index = pFD->m_groupByIndexMap[groupAttr];
-               float value = pFD->m_groupByValues[index];
+               float value = 0;
+               this->m_pMapLayer->GetData(idu, pFD->m_col, value);
 
-               ASSERT(std::isnan(value) == false);
-               if (init)
-                  this->UpdateIDU(pEnvContext, idu, pFD->m_col, value,SET_DATA);
-               else
-                  this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+               float mean = pFD->m_value;
+               pFD->m_meanssq += (value - mean) * (value - mean);
                }
             }
+         }  // end of: for each idu
+
+      for (int i = 0; i < fieldCount; i++)
+         {
+         FieldDef* pFD = m_fields[i];
+         if (pFD->m_modelID != pEnvContext->id)
+            continue;
+
+         pFD->m_variance = (1.0f / (pFD->m_count - 1.0f)) * pFD->m_meanssq;
+         CString msg;
+         msg.Format("%s: mean=%.3f, variance=%.5f", (LPCTSTR) pFD->m_name, pFD->m_value, pFD->m_variance);
+         Report::LogInfo(msg);
          }
-      
-      CString msg;
-      msg.Format("FieldDef %s: Count=%i, Applied Area=%.1f ha", (LPCTSTR) pFD->m_name, pFD->m_count, pFD->m_appliedArea*HA_PER_M2);
-      Report::LogInfo(msg);
-      }
+      }  // end of: if ( fieldCount < 0 )
 
    CollectData(pEnvContext->currentYear);
 
@@ -354,12 +441,13 @@ bool FieldCalculator::CollectData(int year)
    data.push_back((float)year);
    for (int i = 0; i < fieldCount; i++)
       {
+      data.push_back((float)m_fields[i]->m_value);
+      data.push_back((float)m_fields[i]->m_variance);
       data.push_back((float)m_fields[i]->m_count);
       data.push_back((float)m_fields[i]->m_appliedArea);
       }
 
    m_pOutputData->AppendRow(data.data(), (int) data.size());
-
    return true;
    }
 
@@ -483,20 +571,20 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       LPTSTR op = nullptr;
       LPTSTR type = nullptr;
 
-      XML_ATTR attrs[] = { // attr          type           address             isReq checkCol
-                         { "name",         TYPE_CSTRING,  &pFD->m_name,       false, 0 },
-                         { "field",        TYPE_CSTRING,  &pFD->m_field,        true, 0 },
-                         { "query",        TYPE_CSTRING,  &pFD->m_queryStr,    false, 0 },
-                         { "value",        TYPE_CSTRING,  &pFD->m_mapExprStr,  true,  0 },
-                         { "max_limit",    TYPE_FLOAT,    &pFD->m_maxLimit,    false, 0 },
-                         { "min_limit",    TYPE_FLOAT,    &pFD->m_minLimit,    false, 0 },
-                         { "type",         TYPE_STRING,   &type,               false, 0 },
-                         { "use_delta",    TYPE_BOOL,     &pFD->m_useDelta,    false, 0 },
-                         { "initialize",   TYPE_INT,      &pFD->m_initialize, false, 0 },
-                         { "groupby",      TYPE_CSTRING,  &pFD->m_groupBy,     false, 0 },
-                         { "op",           TYPE_STRING,   &op,                 false, 0 },
-                         { "model_id",     TYPE_INT,      &pFD->m_modelID,     false, 0 },
-                         { nullptr,           TYPE_NULL,     nullptr,                false, 0 } };
+      XML_ATTR attrs[] = { // attr           type           address             isReq checkCol
+                         { "name",           TYPE_CSTRING,  &pFD->m_name,           false, 0 },
+                         { "field",          TYPE_CSTRING,  &pFD->m_field,          true, 0 },
+                         { "query",          TYPE_CSTRING,  &pFD->m_queryStr,       false, 0 },
+                         { "value",          TYPE_CSTRING,  &pFD->m_mapExprStr,     true,  0 },
+                         { "max_limit",      TYPE_FLOAT,    &pFD->m_maxLimit,       false, 0 },
+                         { "min_limit",      TYPE_FLOAT,    &pFD->m_minLimit,       false, 0 },
+                         { "type",           TYPE_STRING,   &type,                  false, 0 },
+                         { "use_delta",      TYPE_BOOL,     &pFD->m_useDelta,       false, 0 },
+                         { "initialize",     TYPE_INT,      &pFD->m_initialize,     false, 0 },
+                         { "groupby",        TYPE_CSTRING,  &pFD->m_groupBy,        false, 0 },
+                         { "op",             TYPE_STRING,   &op,                    false, 0 },
+                         { "model_id",       TYPE_INT,      &pFD->m_modelID,        false, 0 },
+                         { nullptr,          TYPE_NULL,     nullptr,             false, 0 } };
 
       if (TiXmlGetAttributes(pXmlFieldDef, attrs, path, this->m_pMapLayer) == false)
          delete pFD;
@@ -534,9 +622,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
                   pFD->m_operator = _op;
                   }
-               }
-
-                  
+               }                  
 
             pFD->Init();
             m_fields.Add(pFD);

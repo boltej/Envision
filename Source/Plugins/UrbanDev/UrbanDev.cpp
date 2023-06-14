@@ -1800,6 +1800,7 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
       CString expandCriteria;
       expandCriteria.Format("  ");
 
+      // iterate through each urban expansion criteria definition
       for (int j = 0; j < m_pCurrentUgScenario->m_uxExpandArray.GetSize(); j++)
          {
          UgExpandWhen* pExpand = m_pCurrentUgScenario->m_uxExpandArray[j];
@@ -2014,7 +2015,7 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       // get the next IDU on the priority list
       UGA_PRIORITY* pPriority = pUGA->m_priorityListRes[i];
 
-      int uga;
+      int uga=-1;
       pIDULayer->GetData(pPriority->idu, m_colUga, uga);
 
       // has this idu already been annexed?  Then skip it

@@ -2331,7 +2331,7 @@ bool COCNHProcess::UpdateTimeSinceFire(EnvContext *pContext)
       // Note: this check happens at the beginning of a time step, but before DISTURBances
       // are flipped to negative values
       if ((disturb >= SURFACE_FIRE && disturb <= STAND_REPLACING_FIRE))
-         //         || ( disturb >= PRESCRIBED_SURFACE_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE ) )
+         //         || ( disturb >= PRESCRIBED_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE ) )
          TSF = 1;
 
       else if (oldTSF >= 0)
@@ -2359,7 +2359,7 @@ bool COCNHProcess::UpdateTimeSincePrescribedFire(EnvContext *pContext)
 
       int TSPF = oldTSPF;
 
-      if (disturb >= PRESCRIBED_SURFACE_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE)
+      if (disturb >= PRESCRIBED_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE)
          TSPF = 1;
 
       else if (oldTSPF >= 0)
@@ -3187,7 +3187,7 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
          ////   if ( ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE )  || ( tsf >= 0 && tsf <= 5 ) )
          ////      fLong++;
          ////
-         ////   if ( (dstrb >= PRESCRIBED_SURFACE_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE )  || ( tspf >= 0 && tspf <= 5 ) )
+         ////   if ( (dstrb >= PRESCRIBED_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE )  || ( tspf >= 0 && tspf <= 5 ) )
          ////      fPSFLong++;
          ////   }
 
@@ -3710,7 +3710,7 @@ int COCNHProcessPost2::UpdatePlanAreas( EnvContext *pContext )
          int disturb = -1;
          pLayer->GetData( idu, m_colDisturb, disturb );
 
-        if ( disturb == PRESCRIBED_SURFACE_FIRE )
+        if ( disturb == PRESCRIBED_SURFACE_FIRE )  // a federal prescried fire
             {
             PLAN_AREA_INFO *pInfo = NULL;
             BOOL found = m_planAreaFireMap.Lookup( planArea, pInfo );

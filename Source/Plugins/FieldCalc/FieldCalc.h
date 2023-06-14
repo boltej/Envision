@@ -69,6 +69,7 @@ class FieldDef
    public:
       CString   m_name;
       CString   m_field;
+      CString   m_varianceField;
 
    protected:
       FieldCalculator* m_pFieldCalculator = nullptr;
@@ -79,7 +80,9 @@ class FieldDef
       Query*    m_pQuery=nullptr;      // memory managed ??
       MapExpr*  m_pMapExpr=nullptr;    // memory managed ??
       int       m_col=-1;              // column associated with this variable (-1 if no col)
+      //int       m_colVariance = -1;
       float     m_value=0;
+      float     m_variance = 0;
       float     m_maxLimit = (float) LONG_MIN;
       float     m_minLimit = (float) LONG_MAX;
       int       m_modelID = -99;       // should match .envx entry if needed
@@ -97,7 +100,7 @@ class FieldDef
       // miscellaneous trackers
       int m_count = 0;
       float m_appliedArea = 0;
-
+      float m_meanssq = 0;
    public:
       // methods                               
       FieldDef(FieldCalculator* pFC) { m_pFieldCalculator = pFC; }

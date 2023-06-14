@@ -4340,6 +4340,7 @@ void ChronicHazards::ComputeBuildingStatistics()
          }
       } // end FloodedGrid
 
+      // building erosion statistics
    /*
       if (m_pBldgLayer != nullptr)
         {
@@ -4360,9 +4361,11 @@ void ChronicHazards::ComputeBuildingStatistics()
           //m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
           CArray<int,int> idus;
           m_pIduBuildingLkUp->GetPolysFromPointIndex(bldgIndex, idus);
-          // has building previously eroded by chronic erosion
+
+          // has building previously eroded by chronic erosion?
           m_pBldgLayer->GetData(bldgIndex, m_colBldgEroded, erodedBldg);
-          // reset event eroded buildings
+          
+          // it has, so reset event eroded buildings
           if (erodedBldg > 0)
             m_pBldgLayer->SetData(bldgIndex, m_colBldgEroded, 0);
 
@@ -5061,6 +5064,29 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
   //   msg.Replace(duneCSVFilePath, bldgShapeFilePath);
   //   Report::Log(msg);
   //   }
+   if (m_pBldgLayer != nullptr
+         && (m_exportBldgMapInterval > 0 && (pEnvContext->yearOfRun % m_exportBldgMapInterval == 0)
+         || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
+      {
+      // Dune line layer naming
+      CString bldgFilename;
+      bldgFilename.Format("%sBldgs_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
+      
+      CString msg("Exporting map layer: ");
+      msg += bldgFilename;
+      Report::Log(msg);
+      m_pBldgLayer->SaveShapeFile(bldgFilename, false, 0, 1);
+
+      //CString bldgFilename;
+      //bldgFilename.Format("%sBldgs_Year%i_%s_Run%i.csv", outDir, outputYear, scenario, run);
+      //
+      //CString msg("Exporting map layer (as csv): ");
+      //msg += bldgFilename;
+      //Report::Log(msg);
+      //bool ok = m_pBldgLayer->SaveDataAscii(bldgFilename, false, false); // true);
+      }
+
+
 
   //CString bldgCSVFile = bldgFilename + ".csv";
   //bldgCSVFilePath.Append(csvFolder);
@@ -9444,15 +9470,16 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
 
    int twl = 0, flooding = 0, erosion = 0, buildings = 0, infra = 0, policy = 0;
    XML_ATTR attrs[] = {
-      // attr                  type          address              isReq  
-      { "run_twl",               TYPE_INT,   &m_runTWL,            true, 0 },
-      { "run_flooding",          TYPE_INT,   &m_runFlooding,       true, 0 },
-      { "run_erosion",           TYPE_INT,   &m_runErosion,        true, 0 },
-      { "run_buildings",         TYPE_INT,   &m_runBuildings,      true, 0 },
-      { "run_infrastructure",    TYPE_INT,   &m_runInfrastructure, true, 0 },
-      { "run_policy",            TYPE_INT,   &m_runPolicy,         true, 0 },
+      // attr                        type          address              isReq  
+      { "run_twl",                   TYPE_INT,   &m_runTWL,            true, 0 },
+      { "run_flooding",              TYPE_INT,   &m_runFlooding,       true, 0 },
+      { "run_erosion",               TYPE_INT,   &m_runErosion,        true, 0 },
+      { "run_buildings",             TYPE_INT,   &m_runBuildings,      true, 0 },
+      { "run_infrastructure",        TYPE_INT,   &m_runInfrastructure, true, 0 },
+      { "run_policy",                TYPE_INT,   &m_runPolicy,         true, 0 },
       { "export_flood_map_interval", TYPE_INT,   &m_exportFloodMapInterval, true, 0 },
       { "export_dune_map_interval",  TYPE_INT,   &m_exportDuneMapInterval, true, 0 },
+      { "export_bldg_map_interval",  TYPE_INT,   &m_exportBldgMapInterval, true, 0 },
       { nullptr,                 TYPE_NULL,  nullptr,              false,   0 } };
 
    if (TiXmlGetAttributes(pXmlRoot, attrs, filename) == false)
@@ -10880,6 +10907,9 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          float DWL2 = stockdonTWL - duneToe;   /// ???? Check with Peter
 
          // significant wave height at structure toe calculated using a breaker index of 0.78
+         if (DWL2 < 0)
+            DWL2 = 0;
+
          float Hmo = DWL2 * 0.78f;
 
          // If the depth limited breaker height is larger than the offshore conditions, then the latter will be used.
@@ -11173,8 +11203,11 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             double L = (G * (Tm * Tm)) / (2.0 * PI);
 
             //breaker parameter
+            
             // Irribarren number based on 2ND slope estimate - Eqn D.4.5-8
-            double Ibarren_local = slope_TAW_local / (sqrt(Hmo / L));
+            double Ibarren_local = 0;
+            if ( Hmo > 0 )
+               Ibarren_local = slope_TAW_local / (sqrt(Hmo / L));
 
             ////Berm factor always equal to 1
             float gammaBerm = 1.0f;
@@ -11214,6 +11247,9 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                runup_TAW_local = Hmo * 1.75f * gammaRough * gammaBeta * gammaBerm * Ibarren_local;
             else if (limit >= 1.8f)
                runup_TAW_local = Hmo * gammaRough * gammaBeta * (4.3f - (1.6f / sqrt(Ibarren_local)));
+
+            if (runup_TAW_local == 0)
+               runup_TAW_local = stockdonTWL;
 
             // COMBINE RUNUP VALUES TO CALCULATE COMBINED TWL //
 
