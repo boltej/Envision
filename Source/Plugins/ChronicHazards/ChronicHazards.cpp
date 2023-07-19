@@ -2092,7 +2092,9 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    m_pFloodedGrid = pMap->AddGridLayer(grdFile, DO_TYPE::DOT_FLOAT);
 
    CalculateFloodImpacts(pEnvContext);
-
+   CString renamegrdFile;
+   renamegrdFile.Format(m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths_%i.asc", (pEnvContext->yearOfRun + pEnvContext->startYear));
+   rename(grdFile, renamegrdFile);
 
    // update timings
    clock_t finish = clock();
