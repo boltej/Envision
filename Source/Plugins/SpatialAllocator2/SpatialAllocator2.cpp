@@ -2900,7 +2900,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                   Report::LogWarning(msg);
                   }
 
-               CostItem* pCostItem = new CostItem;  // note - name matches allocation name)
+               CostItem* pCostItem = new CostItem(pMapLayer);  // note - name matches allocation name)
                pCostItem->Init(m_pBudget, budgetItem, name, _basis, initialCostExpr, maintenanceCostExpr, durationExpr, lookup);
                pAlloc->m_pCostItem = pCostItem;
                }  // end of: if ( budgetItem != nullptr )
@@ -3757,7 +3757,7 @@ void SpatialAllocator::ReportOutcomes(EnvContext *pContext)
          for (int j = 0; j < pBudgetItem->GetCostItemCount(); j++)
             {
             CostItem* pCostItem = pBudgetItem->GetCostItem(j);
-            log.Format("    %s - costs: $%.0f", pCostItem->m_name, pCostItem->m_totalCosts / 1000000);
+            log.Format("    %s - costs: $%.0fM", pCostItem->m_name, pCostItem->m_totalCosts / 1000000);
             Report::LogInfo(log);
             }
          }

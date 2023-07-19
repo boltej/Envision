@@ -181,8 +181,14 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
    for (int i = 0; i < (int)this->m_fields.GetSize(); i++)
       {
       FieldDef* pFD = m_fields[i];
-      if (pFD->m_modelID == pEnvContext->id && pFD->m_initialize != -1)
+      if (pFD->m_modelID == pEnvContext->id)
          {
+         // if we are in initialization, only initialize field if called for in the input file
+         if (init && pFD->m_initialize != 0)  // (1/-1 inits the field)
+            run = true;
+         if (!init && pFD->m_initialize >= 0)
+            run = true;
+
          run = true;
          break;
          }
@@ -421,7 +427,7 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
 
          pFD->m_variance = (1.0f / (pFD->m_count - 1.0f)) * pFD->m_meanssq;
          CString msg;
-         msg.Format("%s: mean=%.3f, variance=%.5f", (LPCTSTR) pFD->m_name, pFD->m_value, pFD->m_variance);
+         msg.Format("%s: mean=%f, variance=%f", (LPCTSTR) pFD->m_name, pFD->m_value, pFD->m_variance);
          Report::LogInfo(msg);
          }
       }  // end of: if ( fieldCount < 0 )

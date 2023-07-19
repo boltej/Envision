@@ -1082,7 +1082,9 @@ bool SNIPModel::Init()
    if (this->m_pSNLayer->m_pSNIP != nullptr)
       {
       this->m_pSNLayer->m_pSNIP->AddOutputVar(this->m_pSNLayer->m_name.c_str(), m_pOutputData, "");
+      
       this->m_pSNLayer->m_pSNIP->AddInputVar("LA Trust Decay Factor", this->m_laTrustDecay, "");
+      this->m_pSNLayer->m_pSNIP->AddInputVar("Landscape Signal", this->m_laTrustDecay, "");
       }
    return true;
    }
@@ -2356,13 +2358,18 @@ float SNIPModel::GetInputLevel(int cycle)
 
       case I_ENVISION_SIGNAL:
          {
-         float score = 1;  ///TEMPORARY !!!!!
+         float score = 0;   // [0,1]
          if (this->m_pEvaluator != nullptr)
+            {
             score = this->m_pEvaluator->m_score;  // -3 - +3?
+            score += 3;    // 0-6 
+            score /= 6;    // 0-1
+            }
+         else
+            {
+            score = this->m_k;
+            }
 
-         score += 3;    // 0-6 
-         score /= 6;    // 0-1
-         
          return score;
          }
          ////case I_TRACKOUTPUT: 
@@ -4324,14 +4331,22 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          if (path != nullptr)
             ok = pLayer->m_pSNIPModel->LoadSnipNetwork(path, false);  // ignore landscape actor nodes
 
-         EnvEvaluator *pEvaluator = ::EnvFindEvaluatorInfo(pEnvContext->pEnvModel, landscapeSignal);
-         if (pEvaluator == nullptr)
+         if (isdigit(landscapeSignal[0]) || landscapeSignal[0] == '-')
             {
-            CString msg;
-            msg.Format("Unable to find signal source %s.  A value of 1 is assumed...", landscapeSignal);
-            Report::WarningMsg(msg);
+            pLayer->m_pSNIPModel->m_k = (float) atof(landscapeSignal);
+            pLayer->m_pSNIPModel->m_pEvaluator = nullptr;
             }
-         pLayer->m_pSNIPModel->m_pEvaluator = pEvaluator;
+         else
+            {
+            EnvEvaluator* pEvaluator = ::EnvFindEvaluatorInfo(pEnvContext->pEnvModel, landscapeSignal);
+            if (pEvaluator == nullptr)
+               {
+               CString msg;
+               msg.Format("Unable to find signal source %s.  A value of 1 is assumed...", landscapeSignal);
+               Report::WarningMsg(msg);
+               }
+            pLayer->m_pSNIPModel->m_pEvaluator = pEvaluator;
+            }
 
          CheckCol(pIDULayer, pLayer->m_colReactivity, reactivityCol, TYPE_FLOAT, CC_AUTOADD);
 

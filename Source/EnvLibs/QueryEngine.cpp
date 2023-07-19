@@ -452,10 +452,10 @@ bool QNode::Solve( void )
 
          case WITHINAREA:
             {
-            // Arg List should be a QNode ( the query ) and a VData of type double ( the distance ), and an area constraint/
+            // Arg List should be a QNode ( the query ) and a VData of type double ( the distance )
             //
             QArgList *pArgList = (QArgList*) m_extra;
-            ASSERT( pArgList->GetCount() == 3 );
+            ASSERT( pArgList->GetCount() == 2 );  //3
 
             QArgument &arg1 = pArgList->GetAt(0);
             QNode *pNode = (QNode*)arg1.m_pNode;
@@ -467,21 +467,14 @@ bool QNode::Solve( void )
             ASSERT( ok );
             ASSERT( distance > 0 );
 
-            QArgument &arg3 = pArgList->GetAt(2);
-            double areaConstraint;
-            ok = arg3.GetAsDouble( areaConstraint );
-            ASSERT( ok );
-            ASSERT( areaConstraint > 0 );
+            //QArgument &arg3 = pArgList->GetAt(2);
+            //double areaConstraint;
+            //ok = arg3.GetAsDouble( areaConstraint );
+            //ASSERT( ok );
+            //ASSERT( areaConstraint > 0 );
 
             MapLayer *pMapLayer = _gpQueryEngine->GetMapLayer();
             ASSERT( pMapLayer );
-
-            // obsolete with intro of rtree index
-            ///if ( distance > pMapLayer->GetSpatialIndexMaxDistance() )
-            ///   {
-            ///   CString msg( "QueryEngine: WithIn(.) distance is larger than the Spatial Index was built for; Query may be inaccurate" );
-            ///   Report::WarningMsg( msg );
-            ///   }
 
             int currentRecord = _gpQueryEngine->m_currentRecord;
             Poly *pPoly = pMapLayer->GetPolygon( currentRecord );
@@ -501,8 +494,8 @@ bool QNode::Solve( void )
                } 
             while ( n <= count );
 
-            bool value;
-            double  wantedArea = 0.0;
+            bool passed=false;
+            double  queryArea = 0.0;
             double  totalArea  = 0.0;
             float   area;
             Poly   *pNeighbor;
@@ -517,22 +510,24 @@ bool QNode::Solve( void )
                   return false;
                   }
                
-               ok = pNode->GetValueAsBool( value );
+               ok = pNode->GetValueAsBool( passed );
                ASSERT( ok );
 
                pNeighbor = pMapLayer->GetPolygon( neighbors[i] );
-               area = pNeighbor->GetAreaInCircle( center, distance );
+               //pMapLayer->GetData(neighbors[i], colArea, area);
+
+               area = pNeighbor->GetArea();
+               //area = pNeighbor->GetAreaInCircle(center, distance);  // is this really needed?
                totalArea += (double)area;
 
-               if ( value )   // was query satisfied?
-                  wantedArea += (double)area;   // then add to wanted area
+               if (passed)   // was query satisfied?
+                  queryArea += (double)area;   // then add to wanted area
                }
-
             
-            if ( totalArea <= 0.0f )
+            if (totalArea <= 0.0f)
                m_value = 0.0;
             else
-               m_value = wantedArea/totalArea;
+               m_value = queryArea / totalArea;
             //m_value = false;
             //if ( totalArea > 0.0f && wantedArea/totalArea >= areaConstraint )
             //   m_value = true;
@@ -544,6 +539,94 @@ bool QNode::Solve( void )
 
             return true;
             }
+
+         /*
+         case WITHINAREAFRAC:
+         {
+         // Arg List should be a QNode ( the query ) and a VData of type double ( the distance )
+         //
+         QArgList* pArgList = (QArgList*)m_extra;
+         ASSERT(pArgList->GetCount() == 2);  //3
+
+         QArgument& arg1 = pArgList->GetAt(0);
+         QNode* pNode = (QNode*)arg1.m_pNode;
+         ASSERT(pNode);
+
+         QArgument& arg2 = pArgList->GetAt(1);
+         float distance;
+         bool ok = arg2.GetAsFloat(distance);
+         ASSERT(ok);
+         ASSERT(distance > 0);
+
+         //QArgument &arg3 = pArgList->GetAt(2);
+         //double areaConstraint;
+         //ok = arg3.GetAsDouble( areaConstraint );
+         //ASSERT( ok );
+         //ASSERT( areaConstraint > 0 );
+
+         MapLayer* pMapLayer = _gpQueryEngine->GetMapLayer();
+         ASSERT(pMapLayer);
+
+         int currentRecord = _gpQueryEngine->m_currentRecord;
+         Poly* pPoly = pMapLayer->GetPolygon(currentRecord);
+         Vertex center = pPoly->GetCentroid();
+
+         int* neighbors = NULL;
+         int count = 0;
+         int n = 0;
+
+         do
+            {
+            if (n > 0)
+               delete[] neighbors;
+            n += 100;
+            neighbors = new int[n];
+            count = pMapLayer->GetNearbyPolysFromIndex(pPoly, neighbors, NULL, n, distance);
+            } while (n <= count);
+
+            bool value;
+            double  wantedArea = 0.0;
+            double  totalArea = 0.0;
+            float   area;
+            Poly* pNeighbor;
+
+            for (int i = 0; i < count; i++)
+               {
+               _gpQueryEngine->SetCurrentRecord(neighbors[i]);
+
+               if (pNode->Solve() == false)
+                  {
+                  delete[] neighbors;
+                  return false;
+                  }
+
+               ok = pNode->GetValueAsBool(value);
+               ASSERT(ok);
+
+               pNeighbor = pMapLayer->GetPolygon(neighbors[i]);
+               area = pNeighbor->GetAreaInCircle(center, distance);  // is this really needed?
+               totalArea += (double)area;
+
+               if (value)   // was query satisfied?
+                  wantedArea += (double)area;   // then add to wanted area
+               }
+
+
+            if (totalArea <= 0.0f)
+               m_value = 0.0;
+            else
+               m_value = wantedArea / totalArea;
+            //m_value = false;
+            //if ( totalArea > 0.0f && wantedArea/totalArea >= areaConstraint )
+            //   m_value = true;
+
+            _gpQueryEngine->SetCurrentRecord(currentRecord);
+
+            if (neighbors != NULL)
+               delete[] neighbors;
+
+            return true;
+         } */
 
          //case CHANGED:
          //   return true;

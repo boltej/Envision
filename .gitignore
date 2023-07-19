@@ -14,3 +14,5 @@ Source/EnvLibs/boost/
 *.dll
 Source/SetupMSIX/Envision/AcuteHazards.dll
 Source/SetupMSIX/Envision/ChronicHazards.dll
+*.pdb
+*.dll

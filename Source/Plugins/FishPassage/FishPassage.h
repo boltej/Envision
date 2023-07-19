@@ -41,7 +41,7 @@ class _EXPORT FishPassage : public  EnvModelProcess
    public:
       MapLayer* m_pIDULayer = nullptr;
       MapLayer* m_pFPLayer = nullptr;
-      MapLayer* m_pStreamLayer = nullptr;
+      //MapLayer* m_pStreamLayer = nullptr;
 
    protected:
       static bool m_initialized;
@@ -50,25 +50,45 @@ class _EXPORT FishPassage : public  EnvModelProcess
       std::string m_fpLayerName;
       
       int m_colIDU_FPIndex= -1;
-      int m_colIDU_FPLinGain = -1;
+      int m_colIDU_FPLinealGain = -1;
+      int m_colIDU_FPAreaGain = -1;
       int m_colIDU_FPPriority= -1;
       int m_colIDU_Conserve = -1;
 
       int m_colFP_IDUIndex = -1;
-      int m_colFP_FishUseCode = -1;
-      int m_colFP_LinealGain = -1;
-      int m_colFP_PriorityIndex = -1;
-      int m_colFP_OwnerTypeCode = -1;
-      int m_colFP_FPBarrierStatusCode = -1;
+      int m_colFP_StreamOrder = -1;
+      int m_colFP_UpArea = -1;
+      int m_colFP_AreaGain = -1;
+      int m_colFP_LengthGain = -1;
+      int m_colFP_Conserve = -1;
+      int m_colFP_Removed = -1;
+      int m_colFP_Priority = -1;
+      int m_colFP_Significant = -1;
+      int m_colFP_BarrierStatusCode = -1;
+      int m_colFP_BarrierType = -1;
+
+      //int m_colFP_FishUseCode = -1;
+      //int m_colFP_LinealGain = -1;
+      //int m_colFP_OwnerTypeCode = -1;
+
+
+
+
+      int m_nElgibleBarriers = 0;
+      float m_areaElgibleBarriers = 0;
+      float m_lengthElgibleBarriers = 0;
 
       // output variables
       float m_milesFPBarriersRemoved = 0;
+      float m_miles2FPBarriersRemoved = 0;
       int m_countFPBarriersRemoved = 0;
-      float m_fracFPBarriersRemovedMi = 0;
-      float m_fracFPBarriersRemovedCount = 0;
-      float m_milesFPBarriersInit = 0;
-      int m_countFPBarriersInit = 0;
 
+      float m_fracFPBarriersRemovedMi = 0;
+      float m_fracFPBarriersRemovedMi2 = 0;
+      float m_fracFPBarriersRemovedCount = 0;
+      
+      //float m_milesFPBarriersInit = 0;
+      //int m_countFPBarriersInit = 0;
 
       FDataObj* m_pOutputData;
 

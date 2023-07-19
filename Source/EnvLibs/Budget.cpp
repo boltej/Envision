@@ -179,7 +179,7 @@ void BudgetItem::Reset(bool includeCumulative)
       bool ok = Budget::m_pMapExprEngine->EvaluateExpr(m_pMapExpr, false);
 
       if (ok)
-         m_limit = m_pMapExpr->GetValue();
+         m_limit = (float) m_pMapExpr->GetValue();
       else
          m_limit = 0;
       }
@@ -284,7 +284,8 @@ bool BudgetItem::ApplyCostItem(CostItem* pCostItem, int idu, float area, bool us
    }
 
 
-CostItem::CostItem()
+CostItem::CostItem(MapLayer* pMapLayer)
+   : m_pMapLayer(pMapLayer)
    //: m_initialCost(0)
    //, m_maintenanceCost(0)
    //, m_duration(0)
@@ -293,7 +294,9 @@ CostItem::CostItem()
    //, m_pLookupTableIndex(NULL)
    //, m_colMaintenanceCost(-1)
    //, m_colInitialCost(-1)
-   {}
+   {
+   ASSERT(m_pMapLayer != nullptr);
+   }
 
 
 bool CostItem::Init(Budget* pBudget, LPCTSTR biName, LPCTSTR ciName, CI_BASIS basis, LPCTSTR initCostExpr, LPCTSTR maintenanceCostExpr, LPCTSTR durationExpr, LPCTSTR lookup /*= NULL*/)
@@ -547,7 +550,8 @@ bool CostItem::ParseCost(VDataObj* pLookupTable, LPCTSTR costExpr, float& cost, 
          {
          CString varName(m_name);
          varName.Replace(' ', '_');
-         pMapExpr = Budget::m_pMapExprEngine->AddExpr((PCTSTR)varName, costExpr);
+         //pMapExpr = Budget::m_pMapExprEngine->AddExpr((PCTSTR)varName, costExpr);
+         pMapExpr = m_pMapLayer->GetMapExprEngine()->AddExpr((PCTSTR)varName, costExpr);
          bool ok = pMapExpr->Compile();
 
          if (!ok)

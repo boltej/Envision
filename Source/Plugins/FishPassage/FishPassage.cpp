@@ -7,13 +7,13 @@
 #include <randgen/Randunif.hpp>
 #include <misc.h>
 #include <FDATAOBJ.H>
-
+#include <PathManager.h>
+#include <EnvConstants.h>
 #include <format>
 
 FishPassage* theModel = nullptr;
 
-
-
+const float gMaxLengthGain = 100000.0f;    //  units?
 
 // *************************************************
 
@@ -27,8 +27,8 @@ FishPassage::FishPassage()
 
 FishPassage::~FishPassage()
    {
-   if (m_pOutputData != nullptr)
-      delete m_pOutputData;
+   //if (m_pOutputData != nullptr)
+   //   delete m_pOutputData;
    }
 
 
@@ -42,63 +42,142 @@ bool FishPassage::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    // see https://geodataservices.wdfw.wa.gov/arcgis/rest/services/ApplicationServices/FP_Sites/MapServer/layers
    // for metadata
+
+   // IDU columns
    CheckCol(m_pIDULayer, m_colIDU_FPIndex, "FP_INDEX", TYPE_INT, CC_MUST_EXIST);
-   CheckCol(m_pIDULayer, m_colIDU_FPLinGain, "FP_LinGain", TYPE_INT, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colIDU_FPPriority, "FP_Priority", TYPE_INT, CC_AUTOADD);
+   CheckCol(m_pIDULayer, m_colIDU_FPLinealGain, "FP_LIN_GN", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(m_pIDULayer, m_colIDU_FPAreaGain, "FP_AREA_GN", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(m_pIDULayer, m_colIDU_FPPriority, "FP_Priorit", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(m_pIDULayer, m_colIDU_Conserve, "Conserve", TYPE_INT, CC_MUST_EXIST);
 
-   CheckCol(m_pFPLayer, m_colFP_FishUseCode, "FishUseCod", TYPE_INT, CC_MUST_EXIST);
-   CheckCol(m_pFPLayer, m_colFP_LinealGain, "LinealGain", TYPE_INT, CC_MUST_EXIST);
-   CheckCol(m_pFPLayer, m_colFP_PriorityIndex, "PriorityIn", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pFPLayer, m_colFP_OwnerTypeCode, "OwnerTypeC", TYPE_INT, CC_MUST_EXIST);
-   CheckCol(m_pFPLayer, m_colFP_FPBarrierStatusCode, "FishPassag", TYPE_INT, CC_MUST_EXIST);
+   // Fish Passage layer columns
+   //CheckCol(m_pFPLayer, m_colFP_FishUseCode, "FishUseCod", TYPE_INT, CC_MUST_EXIST);
+   //CheckCol(m_pFPLayer, m_colFP_LinealGain, "LinealGain", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(m_pFPLayer, m_colFP_Priority, "R_PRIORITY", TYPE_FLOAT, CC_MUST_EXIST);
+   //CheckCol(m_pFPLayer, m_colFP_OwnerTypeCode, "OwnerTypeC", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(m_pFPLayer, m_colFP_BarrierStatusCode, "FishPass_1", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(m_pFPLayer, m_colFP_BarrierType, "FishPassag", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(m_pFPLayer, m_colFP_Significant, "Significan", TYPE_INT, CC_MUST_EXIST);
   
-   CheckCol(m_pFPLayer, m_colFP_IDUIndex, "IDUIndex", TYPE_INT, CC_AUTOADD);
-   m_pFPLayer->SetColData(m_colFP_IDUIndex, VData(-1), true);
+   CheckCol(m_pFPLayer, m_colFP_IDUIndex, "IDU_Index", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(m_pFPLayer, m_colFP_StreamOrder, "StrOrder", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(m_pFPLayer, m_colFP_UpArea, "UpStrArea", TYPE_FLOAT, CC_MUST_EXIST);
+   //CheckCol(m_pFPLayer, m_colFP_AreaGain, "AreaGain", TYPE_FLOAT, CC_MUST_EXIST);  // check units
+   //CheckCol(m_pFPLayer, m_colFP_LengthGain, "LengthGain", TYPE_FLOAT, CC_MUST_EXIST);
+  
+   // WRONG!!!!  See above, need to fix data generation algorthm for area, lengths
+   CheckCol(m_pFPLayer, m_colFP_AreaGain, "AreaSqKM", TYPE_FLOAT, CC_MUST_EXIST);  // check units
+   CheckCol(m_pFPLayer, m_colFP_LengthGain, "LengthKM", TYPE_FLOAT, CC_MUST_EXIST);
 
-   // copy lineal gain, priority values from FP layer to IDUs and update IDUIndex
-   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu != m_pIDULayer->End(); idu++)
+   
+   CheckCol(m_pFPLayer, m_colFP_Conserve, "Conserve", TYPE_INT, CC_AUTOADD);
+   CheckCol(m_pFPLayer, m_colFP_Removed, "Removed", TYPE_INT, CC_AUTOADD);
+
+   m_pFPLayer->SetColData(m_colFP_Conserve, VData(0), true);
+
+   int maxOrder = 0;
+   float maxArea = 0;
+   float maxAreaGain = 0;
+   float maxLengthGain = 0;
+
+   // get scaling factors
+   for (MapLayer::Iterator fpPt = m_pFPLayer->Begin(); fpPt != m_pFPLayer->End(); fpPt++)
       {
-      int fpIndex = -1;
-      m_pIDULayer->GetData(idu, m_colIDU_FPIndex, fpIndex);
+      int statusCode = 0, type = 0;
+      float lengthGain = 0;
+      m_pFPLayer->GetData(fpPt, m_colFP_BarrierStatusCode, statusCode);
+      m_pFPLayer->GetData(fpPt, m_colFP_BarrierType, type);
+      m_pFPLayer->GetData(fpPt, m_colFP_LengthGain, lengthGain);
 
-      if (fpIndex >= 0) // does this IDU contain a FP Barrier point?
+      if (statusCode == 10 && type != 5 && lengthGain < gMaxLengthGain)  // is it a barrier?, 
          {
-         int linGain = 0;
-         m_pFPLayer->GetData(fpIndex, m_colFP_LinealGain, linGain);
-         m_pIDULayer->SetData(idu, m_colIDU_FPLinGain, linGain);
+         int streamOrder = 0;
+         float upArea = 0;
+         float areaGain = 0;
 
-         float priority = 0;
-         m_pFPLayer->GetData(fpIndex, m_colFP_PriorityIndex, priority);
-         m_pIDULayer->SetData(idu, m_colIDU_FPPriority, priority);
+         m_pFPLayer->GetData(fpPt, m_colFP_StreamOrder, streamOrder);
+         m_pFPLayer->GetData(fpPt, m_colFP_UpArea, upArea);
+         m_pFPLayer->GetData(fpPt, m_colFP_AreaGain, areaGain);
+         m_pFPLayer->GetData(fpPt, m_colFP_LengthGain, lengthGain);
 
-         // set FP Layer idu index while we are at it
-         m_pFPLayer->SetData(fpIndex, m_colFP_IDUIndex, (int)idu);
+         if (streamOrder > maxOrder)
+            maxOrder = streamOrder;
 
-         if (linGain > 0)
-            {
-            m_milesFPBarriersInit += linGain * MI_PER_M;
-            m_countFPBarriersInit += 1;
-            }
+         if (upArea > maxArea)
+            maxArea = upArea;
+
+         if (areaGain > maxAreaGain)
+            maxAreaGain = areaGain;
+
+         if (lengthGain > maxLengthGain)
+            maxLengthGain = lengthGain;
          }
-      else
-         m_pIDULayer->SetData(idu, m_colIDU_FPLinGain, 0);
       }
 
-   // for each fish passage restriction, locate in IDU.
-   int cols = 2;
+   // iterate through fish passage points, 
+   for (MapLayer::Iterator fpPt = m_pFPLayer->Begin(); fpPt != m_pFPLayer->End(); fpPt++)
+      {
+      int statusCode=0, type=0;
+      float lengthGain = 0;
+      m_pFPLayer->GetData(fpPt, m_colFP_BarrierStatusCode, statusCode);
+      m_pFPLayer->GetData(fpPt, m_colFP_BarrierType, type);
+      m_pFPLayer->GetData(fpPt, m_colFP_LengthGain, lengthGain);
 
-   m_pOutputData = new FDataObj(cols, 0);
-   m_pOutputData->SetLabel(0, "Year");
+      int iduIndex = -1;
+      m_pFPLayer->GetData(fpPt, m_colFP_IDUIndex, iduIndex);
+
+      if (statusCode == 10 && type != 5 && lengthGain < gMaxLengthGain)  // is it a barrier?  and not a natural barrier?
+         {
+         this->m_nElgibleBarriers++;
+
+         if (iduIndex >= 0) // does this FPpt contain an IDU Barrier point?
+            {
+            int streamOrder = 0;
+            float upArea = 0;
+            float areaGain = 0;
+            int significant = 0;
+            
+            m_pFPLayer->GetData(fpPt, m_colFP_StreamOrder, streamOrder);
+            m_pFPLayer->GetData(fpPt, m_colFP_UpArea, upArea);
+            m_pFPLayer->GetData(fpPt, m_colFP_AreaGain, areaGain);
+            m_pFPLayer->GetData(fpPt, m_colFP_Significant, significant);
+
+            this->m_lengthElgibleBarriers += lengthGain;
+            this->m_areaElgibleBarriers += areaGain;
+
+            if (significant == 10)
+               significant = 1;
+            else
+               significant = 0;
+
+            float priority = 0.2f * ((float(streamOrder)/ maxOrder)) 
+                           + 0.2f * (upArea / maxArea)
+                           + 0.2f * (areaGain / maxAreaGain)
+                           + 0.2f * (lengthGain / maxLengthGain)
+                           + 0.2f * significant;
+
+            m_pFPLayer->SetData(fpPt, m_colFP_Priority, priority);
+            m_pIDULayer->SetData(iduIndex, m_colIDU_FPPriority, priority);
+            }
+         }// end  of: if ( statusCode == 10 and type != 5)
+      else
+         {
+         m_pFPLayer->SetData(fpPt, m_colFP_Priority, 0);
+         m_pIDULayer->SetData(iduIndex, m_colIDU_FPPriority, 0);
+         }
+      }
 
    AddOutputVar("FP Linear Gain (mi)", m_milesFPBarriersRemoved, "");
+   AddOutputVar("FP Area Gain (mi2)", m_miles2FPBarriersRemoved, "");
    AddOutputVar("FP Removed Count", m_countFPBarriersRemoved, "");
 
    AddOutputVar("FP Linear Gain Fraction", m_fracFPBarriersRemovedMi, "");
+   AddOutputVar("FP Area Gain Fraction", m_fracFPBarriersRemovedMi2, "");
    AddOutputVar("FP Removed Fraction", m_fracFPBarriersRemovedCount, "");
 
-   int m_countFPBarriersRemoved = 0;
-   float m_fracFPBarriersRemovedMi = 0;
-   float m_fracFPBarriersRemovedCount = 0;
+   this->m_countFPBarriersRemoved = 0;
+   this->m_fracFPBarriersRemovedMi = 0;
+   this->m_fracFPBarriersRemovedCount = 0;
 
    return true;
    }
@@ -107,12 +186,15 @@ bool FishPassage::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
 bool FishPassage::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    {
-   m_milesFPBarriersRemoved = 0;
-   m_countFPBarriersRemoved = 0;
-   m_fracFPBarriersRemovedMi = 0;
-   m_fracFPBarriersRemovedCount = 0;
+   this->m_milesFPBarriersRemoved = 0;
+   this->m_miles2FPBarriersRemoved = 0;
+   this->m_countFPBarriersRemoved = 0;
+   
+   this->m_fracFPBarriersRemovedMi = 0;
+   this->m_fracFPBarriersRemovedMi2 = 0;
+   this->m_fracFPBarriersRemovedCount = 0;
 
-   m_pOutputData->ClearRows();
+   //m_pOutputData->ClearRows();
    return true;
    }
 
@@ -121,84 +203,75 @@ bool FishPassage::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 // runs after fish passage is allocated
 bool FishPassage::Run(EnvContext* pEnvContext)
    {   
+   m_milesFPBarriersRemoved = 0;
+   m_miles2FPBarriersRemoved = 0;
+   m_countFPBarriersRemoved = 0;
+
+   m_fracFPBarriersRemovedMi = 0;
+   m_fracFPBarriersRemovedMi2 = 0;
+   m_fracFPBarriersRemovedCount = 0; 
+   
+   
    if (m_pFPLayer == nullptr)
       return false;
 
-   DeltaArray* deltaArray = pEnvContext->pDeltaArray;
-
-   // basic idea - after allocator has allocated Fish Passage Barrier Removal (CONSERVE=30)
-   // we look through the delta array for any where that occured in the last timestep.
-   // when found, we: 
-   //   1) check to see if we've overwrote a prior conservation action, and if so, restore the original tag,
-   //   2) set the FP_PRIORITY IDU field to -30 (to prevent further allocations)
-   //   3) Update the FP coverage FISHPASSAG (fish passage barrier status code) to a value of 30
-
-   if (deltaArray != NULL)
+   for (MapLayer::Iterator fpPt = m_pFPLayer->Begin(); fpPt != m_pFPLayer->End(); fpPt++)
       {
-      INT_PTR size = deltaArray->GetSize();
-      if (size > 0)
+      int statusCode = 0, type = 0;
+      float lengthGain = 0;
+
+      m_pFPLayer->GetData(fpPt, m_colFP_BarrierStatusCode, statusCode);
+      m_pFPLayer->GetData(fpPt, m_colFP_BarrierType, type);
+      m_pFPLayer->GetData(fpPt, m_colFP_LengthGain, lengthGain);
+
+      //if (statusCode == 10 && type != 5)  // is it a barrier?
+      if (lengthGain < gMaxLengthGain)
          {
-         for (INT_PTR i = pEnvContext->firstUnseenDelta; i < size; i++)
+         int conserve = 0;
+         m_pFPLayer->GetData(fpPt, m_colFP_Conserve, conserve);
+
+         if (conserve == 30)
             {
-            DELTA& delta = ::EnvGetDelta(deltaArray, i);
-            if (delta.col == m_colIDU_Conserve)
-               {
-               int newConserve = delta.newValue.GetInt();
-               int oldConserve = delta.oldValue.GetInt();
+            float areaGain = 0;
+            m_pFPLayer->GetData(fpPt, m_colFP_AreaGain, areaGain);
 
-               if (newConserve == 30) // fish passage
-                  {
-                  if (oldConserve > 0)
-                     UpdateIDU(pEnvContext, delta.cell, m_colIDU_Conserve, oldConserve, ADD_DELTA);
+            m_milesFPBarriersRemoved += lengthGain;
+            m_miles2FPBarriersRemoved += areaGain;
+            m_countFPBarriersRemoved += 1;
 
-                  UpdateIDU(pEnvContext, delta.cell, m_colIDU_FPPriority, -30.0f);
+            int iduIndex = 0;
+            m_pFPLayer->GetData(fpPt, m_colFP_IDUIndex, iduIndex);
 
-                  int fpIndex = -1;
-                  m_pIDULayer->GetData(delta.cell, m_colIDU_FPIndex, fpIndex);
-                  ASSERT(fpIndex >= 0);
-                  m_pFPLayer->SetData(fpIndex, m_colFP_FPBarrierStatusCode, 30);
+            m_pFPLayer->SetData(fpPt, m_colFP_Removed, 1);
 
-                  float linealGain = 0;
-                  m_pFPLayer->GetData(fpIndex, m_colFP_LinealGain, linealGain);
-
-                  if (linealGain > 0)
-                     {
-                     m_milesFPBarriersRemoved += linealGain * MI_PER_M;
-                     m_countFPBarriersRemoved += 1;
-
-                     m_fracFPBarriersRemovedCount = float(m_countFPBarriersRemoved) / m_countFPBarriersInit;
-                     m_fracFPBarriersRemovedMi = m_milesFPBarriersRemoved / m_milesFPBarriersInit;
-                     }
-                  }
-               }
+            this->UpdateIDU(pEnvContext, iduIndex, m_colIDU_FPLinealGain, lengthGain);
+            this->UpdateIDU(pEnvContext, iduIndex, m_colIDU_FPAreaGain, areaGain);
+            this->UpdateIDU(pEnvContext, iduIndex, m_colIDU_Conserve, 30);
             }
          }
       }
 
+   m_fracFPBarriersRemovedMi = m_milesFPBarriersRemoved/ m_lengthElgibleBarriers;  // km
+   m_fracFPBarriersRemovedMi2 = m_miles2FPBarriersRemoved / m_areaElgibleBarriers; // km2
+   m_fracFPBarriersRemovedCount = float(m_countFPBarriersRemoved) / m_nElgibleBarriers;
 
+   // convert to mi, m2
+   m_milesFPBarriersRemoved *= MI_PER_KM;
+   m_miles2FPBarriersRemoved *= MI2_PER_KM2;
 
+   //CollectData(pEnvContext->currentYear);
+   CString outDir = PathManager::GetPath(PM_OUTPUT_DIR);
+   CString filename;
+   filename.Format("%sFishPassage/FP_NHD_V4_%i.shp", outDir, pEnvContext->currentYear);
 
+   CString msg("Exporting map layer: ");
+   msg += filename;
+   Report::Log(msg);
+   m_pFPLayer->SaveShapeFile(filename, false, 0, 1);
 
-
-
-
-   // go through IDU's building network nodes/links for IDU's that pass the mapping query
-   //for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu != m_pIDULayer->End(); idu++)
-   //for (MapLayer::Iterator i = m_pFPLayer->Begin(); i != m_pFPLayer->End(); i++)
-   //   {
-   //   int iduIndex = -1;
-   //   m_pFPLayer->GetData(i, m_colFP_IDUIndex, iduIndex);
-   //
-   //   if (iduIndex >= 0)
-   //      {
-   //      // was this IDU tagged for restoration/conservation?
-   //      int conserver = 0;
-   //
-   //      }
-   //   }
-
-   
-   CollectData(pEnvContext->currentYear);
+   msg.Format("Barriers Removed- Count:%i, Length Stream Opened: %.0fmi, Area Opened: %.0fmi2",
+      m_countFPBarriersRemoved, m_milesFPBarriersRemoved, m_miles2FPBarriersRemoved);
+   Report::Log(msg);
 
    return true;
    }
@@ -206,6 +279,10 @@ bool FishPassage::Run(EnvContext* pEnvContext)
 
 bool FishPassage::CollectData(int year) 
    {
+
+
+
+
    /*
    int fieldCount = (int) m_fields.GetSize();
    int fc = GetActiveFieldCount( theModel->m_id);
@@ -281,16 +358,6 @@ bool FishPassage::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       Report::ErrorMsg(msg.c_str());
       return false;
       }
-
-
-   
-   //this->m_pStreamLayer = pEnvContext->pMapLayer->GetMapPtr()->GetLayer(streamLayer);
-   //if (this->m_pFPLayer == NULL)
-   //   {
-   //   std::string msg = std::format("Unable to find stream map layer {}", fpLayer);
-   //   Report::ErrorMsg(msg.c_str());
-   //   return false;
-   //   }
 
    return true;
    }

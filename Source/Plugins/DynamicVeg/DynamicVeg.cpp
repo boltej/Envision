@@ -656,50 +656,62 @@ bool DynamicVeg::DisturbanceTransition(EnvContext *pEnvContext, int idu)
          break;
 
       case PRESCRIBED_SURFACE_FIRE:
+      case PRESCRIBED_SURFACE_FIRE_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case PRESCRIBED_LOW_SEVERITY_FIRE:
+      case PRESCRIBED_LOW_SEVERITY_FIRE_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case PRESCRIBED_HIGH_SEVERITY_FIRE:
+      case PRESCRIBED_HIGH_SEVERITY_FIRE_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case PRESCRIBED_STAND_REPLACING_FIRE:
+      case PRESCRIBED_STAND_REPLACING_FIRE_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case MECHANICAL_THINNING:
+      case MECHANICAL_THINNING_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case MOWING_GRINDING:
+      case MOWING_GRINDING_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case SALVAGE_HARVEST:
+      case SALVAGE_HARVEST_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case SUPRESSION:
+      case SUPRESSION_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case EVEN_AGED_TREATMENT:
+      case EVEN_AGED_TREATMENT_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case THIN_FROM_BELOW:
+      case THIN_FROM_BELOW_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case PARTIAL_HARVEST_LIGHT:
+      case PARTIAL_HARVEST_LIGHT_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 
       case PARTIAL_HARVEST_HIGH:
+      case PARTIAL_HARVEST_HIGH_2:
          ProbabilityTransition(pEnvContext, idu);
          break;
 

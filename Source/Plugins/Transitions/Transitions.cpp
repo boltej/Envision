@@ -372,6 +372,50 @@ bool Transitions::LoadXml(EnvContext* pEnvContext, LPCTSTR _filename)
       pXmlTrans = pXmlTrans->NextSiblingElement("transition");
       }
 
+   // transition_groups
+   /*
+   TiXmlElement* pXmlTrans = pXmlRoot->FirstChildElement("transition_groups");  // transitions
+   while (pXmlTrans != NULL)
+      {
+      LPTSTR name = NULL, field = NULL, query = NULL;
+
+      XML_ATTR attrs[] = {
+         // attr              type        address       isReq checkCol
+         { "name",            TYPE_STRING, &name,       true,    0 },
+         { "col",             TYPE_STRING, &field,      true,    0 },
+         { "query",           TYPE_STRING, &query,      false,   0 },
+         { NULL,              TYPE_NULL,    NULL,       false,   0 } };
+
+      ok = TiXmlGetAttributes(pXmlTrans, attrs, filename, NULL);
+
+      if (!ok)
+         return false;
+
+      this->m_name = name;
+
+      MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
+      int col = pLayer->GetFieldCol(field);
+
+      if (col < 0)
+         {
+         CString msg;
+         msg.Format("Unable to find field %s when processing transition %s", field, name);
+         Report::LogError(msg);
+         }
+      else
+         {
+         TransCol* pCol = new TransCol(field, col);
+         this->m_transColArray.Add(pCol);
+
+         if (query != NULL)
+            {
+            pCol->m_queryStr = query;
+            pCol->m_pQuery = m_pQueryEngine->ParseQuery(query, 0, name);
+            }
+         }
+
+      pXmlTrans = pXmlTrans->NextSiblingElement("transition");
+      } */
    return true;
    }
 

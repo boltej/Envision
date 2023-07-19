@@ -106,7 +106,7 @@ enum CI_BASIS { CIB_UNKNOWN = 0, CIB_UNIT_AREA, CIB_ABSOLUTE };
 class LIBSAPI CostItem
    {
    public:
-      CostItem();  // default constructor
+      CostItem(MapLayer *);  // default constructor
       
       CostItem(CostItem& pc) { *this = pc; }
 
@@ -130,6 +130,7 @@ class LIBSAPI CostItem
          m_colMaintenanceCost = pc.m_colMaintenanceCost;
          m_colInitialCost = pc.m_colInitialCost;
 
+         m_pMapLayer = pc.m_pMapLayer;
          m_pMainCostMapExpr = pc.m_pMainCostMapExpr;    // NULL if not defined
          m_pInitCostMapExpr = pc.m_pInitCostMapExpr;    // NULL if not defined
          m_pDurationMapExpr = pc.m_pDurationMapExpr;    // NULL if not defined
@@ -169,6 +170,7 @@ class LIBSAPI CostItem
       CString m_maintenanceCostExpr;   // expression used for computing value
       CString m_durationExpr;
 
+      MapLayer* m_pMapLayer = nullptr;           // associated map layer
       MapExpr* m_pMainCostMapExpr = nullptr;     // NULL if not defined
       MapExpr* m_pInitCostMapExpr = nullptr;     // NULL if not defined
       MapExpr* m_pDurationMapExpr = nullptr;     // NULL if not defined
@@ -178,7 +180,7 @@ class LIBSAPI CostItem
    public:
       // cost identification through table lookups
       CString   m_lookupStr;
-      VDataObj* m_pLookupTable = nullptr;                  // associated data object for cost information (NULL if not defined)
+      VDataObj* m_pLookupTable = nullptr;    // associated data object for cost information (NULL if not defined)
       BLTIndex* m_pLookupTableIndex = nullptr;
 
    protected:
@@ -205,8 +207,10 @@ class LIBSAPI BudgetItem
 
       BudgetItem& operator = (BudgetItem& gc)
          {
-         /*m_pSA = gc.m_pSA;*/ m_name = gc.m_name; m_type = gc.m_type;
-         m_limit = gc.m_limit; m_costs = gc.m_costs;
+         m_name = gc.m_name;
+         m_type = gc.m_type;
+         m_limit = gc.m_limit; 
+         m_costs = gc.m_costs;
          m_expression = gc.m_expression;
          m_pMapExpr = gc.m_pMapExpr;
          m_costItems.DeepCopy(gc.m_costItems);
@@ -248,7 +252,7 @@ class LIBSAPI BudgetItem
 
       MapExpr* m_pMapExpr;       // associated MapExpr to calculate limit (NULL if not an evaluated expression)
 
-      PtrArray<CostItem> m_costItems;     // associate cost items
+      PtrArray<CostItem> m_costItems;     // associated cost items
    };
 
 
@@ -264,7 +268,7 @@ class LIBSAPI Budget
       static MapExprEngine* m_pMapExprEngine;    // memory managed elswhere
 
    public:
-      Budget(LPCTSTR name, MapExprEngine* pMapExprEngine) : m_name(name) 
+      Budget(LPCTSTR name, MapExprEngine* pMapExprEngine) : m_name(name)
          { m_pMapExprEngine = pMapExprEngine; }
 
       // manage budget items

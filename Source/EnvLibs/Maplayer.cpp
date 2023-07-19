@@ -9555,6 +9555,7 @@ void* _ex[2048];
 int MapLayer::GetNearbyPolysFromIndex(Poly *pPoly, int *neighbors, float *distances, int maxCount, float maxDistance,
    SI_METHOD /*method=SIM_NEAREST*/, MapLayer* /*pToLayer =NULL*/, void** ex /*= NULL*/) 
    {
+   // use RTtree if available
    if (m_pRTreeIndex != nullptr && m_pRTreeIndex->IsBuilt())
       {
       std::vector<IDU_DIST> results;
@@ -13067,6 +13068,9 @@ float MapLayer::AddExpandPoly(int idu, CArray< int, int > &expandArray, int colV
 
 float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int colExpand, float maxExpand, /* bool *visited,*/ CArray< int, int >& expandArray)
    {
+   if (maxExpand <= 0)
+      return 0;
+
    // basic idea - expand in concentric circles aroud the idu (subject to constraints)
    // until necessary area is found.  We do this keeping track of candidate expansion IDUs
    // in m_expansionArray, starting with the "nucleus" IDU and iteratively expanding outward.
@@ -13120,6 +13124,7 @@ float MapLayer::GetExpandPolysFromQuery(int startingIDU, Query *pPatchQuery, int
                   poolSize++;
                   expandSoFar += expand;
                   ASSERT(maxExpand < 0 || expandSoFar <= maxExpand);
+                  maxExpand -= expand;
                   // have we reached the max area?
                   //if ( colArea >= 0 &&  maxExpandArea > 0 && area >= maxExpandArea )
                   //   goto finished;
@@ -13181,7 +13186,10 @@ float MapLayer::AddExpandPolyFromQuery(int idu, CArray< int, int >& expandArray,
    if (colExpand >= 0)
       {
       // would this IDU cause the area limit to be exceeded?
+      // note: if this is negative, it indicates a deficit of demand that we will have to make up elsewhere
       GetData(idu, colExpand, expand);
+      if (expand < 0)
+         expand = 0;
       if (addToPool && (maxExpand > 0) && ((expandSoFar + expand) > maxExpand))
          addToPool = false;
       }

@@ -29,6 +29,32 @@ public:
 
 
 
+class Transition {
+public:
+   std::string m_name;
+
+   Query* m_pFromQuery = nullptr;
+   Query* m_pToQuery = nullptr;
+   std::vector<int> m_fromIDUs; // vector of IDU indices for IDU tha initial satify "from" query
+
+   float m_area = 0;
+   };
+
+
+class TransGroup {
+
+public:
+   PtrArray<Transition> m_transArray;
+
+   FDataObj* m_pTransData = nullptr;
+   //CMap<VData, VData&, int, int> transMap; //     key = attrValue, value = index
+
+   TransGroup(LPCTSTR field, int col) {} //: m_field(field), m_col(col), m_pTransData(NULL), m_pQuery(NULL) {}
+
+   ~TransGroup() { if (m_pTransData != nullptr) delete m_pTransData; }
+   };
+
+
 class _EXPORT Transitions : public  EnvModelProcess
    {
    public:

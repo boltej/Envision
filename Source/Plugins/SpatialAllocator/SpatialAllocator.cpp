@@ -1553,7 +1553,15 @@ void SpatialAllocator::ScoreIduAllocations( EnvContext *pContext, bool useAddDel
 
       m_pQueryEngine->SetCurrentRecord( idu );
       m_pMapExprEngine->SetCurrentRecord( idu );
-      
+
+      if (m % 10000 == 0)
+         {
+         CString msg;
+         msg.Format("Evaluating IDU %i of %i", m, iduCount);
+         Report::StatusMsg(msg);
+         ::YieldMsg();
+         }
+
       for( int i=0; i < (int) m_allocationSetArray.GetSize(); i++ )
          {
          AllocationSet *pAllocSet = m_allocationSetArray[ i ];
@@ -2616,7 +2624,6 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
            
             if (targetLayer != nullptr)
                {
-               // LEFT OFF HERE
                Map* pMap = this->m_pMapLayer->GetMapPtr();
                MapLayer* pTargetLayer = pMap->GetLayer(targetLayer);
                if (pTargetLayer == nullptr)
@@ -2703,7 +2710,7 @@ bool SpatialAllocator::LoadXml( EnvContext *pContext, LPCTSTR filename, PtrArray
                   Report::LogWarning(msg);
                   }
 
-               CostItem* pCostItem = new CostItem;  // note - name matches allocation name)
+               CostItem* pCostItem = new CostItem(pAlloc->m_pTargetLayer);  // note - name matches allocation name)
                pCostItem->Init(m_pBudget, budgetItem, name, _basis, initialCostExpr, maintenanceCostExpr, durationExpr, lookup);
                pAlloc->m_pCostItem = pCostItem;
                }  // end of: if ( budgetItem != nullptr )

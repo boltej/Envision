@@ -218,7 +218,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    int rows = this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
 
    ///////
-   this->m_earthquakeData.WriteAscii("/Envision/studyAreas/OrCoast/Hazus/output/EQ_M90_building_damage_test.csv");
+   ///this->m_earthquakeData.WriteAscii("/Envision/studyAreas/OrCoast/Hazus/output/EQ_M90_building_damage_test.csv");
 
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
    int idus = pIDULayer->GetRowCount();
@@ -347,8 +347,13 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       //m_pAHModel->m_numCasSev4 += casSev4;
       //
       //m_pAHModel->m_numCasTotal += casTotal;
-      float injuries = m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASFTLY]->col, idu);  // people
-      float fatalities= m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASINJY]->col, idu);
+      float injuriesEQ = m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASFTLY]->col, idu);  // people
+      float fatalitiesEQ= m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASINJY]->col, idu);
+      float injuriesTSU = m_tsunamiData.GetAsFloat(tsuColInfos[HMI_CASFTLY]->col, idu);  // people
+      float fatalitiesTSU = m_tsunamiData.GetAsFloat(tsuColInfos[HMI_CASINJY]->col, idu);
+      float injuries = injuriesEQ + injuriesTSU;
+      float fatalities= fatalitiesEQ + fatalitiesTSU;
+
       m_pAHModel->m_numInjuries += injuries;
       m_pAHModel->m_numFatalities += fatalities;
       m_pAHModel->m_numCasualities += (injuries + fatalities);

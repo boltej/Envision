@@ -53,6 +53,8 @@ const float FT_PER_M    =         3.281f    ;
 const float M_PER_FT    =         0.3048f   ;
 const float FT_PER_MILE =      5280.0;
 const float MI_PER_M    = 0.000621371f;   // Miles per Meter
+const float MI_PER_KM   = 0.621371f;      // Miles per Kilometer
+const float KM_PER_MI   = 1.609f;         // Kilometer per mile
 
 
 //-- area --------------------------------------------------------
@@ -65,7 +67,10 @@ const float M2_PER_ACRE =   4046.8564224f ;    // m2/acre
 const float ACRE_PER_M2 =   0.000247105f  ;    // acre/m2
 const float M2_PER_MI2  = 2589988.11f     ;    // m2/sq mi
 const float MI2_PER_M2  = 3.8610216e-07f  ;    // sq mi/m2
+const float MI2_PER_KM2 = 3.8610216e-01f  ;    // sq mi/km2
 const float FT2_PER_MI2 = 27878400        ;    // ft2 / sq mi
+const float KM2_PER_MI2 = 2.5899881f      ;   // sq mi/km2
+
 
 //-- volume ------------------------------------------------------
 const float ML_PER_L    =      1000.0f    ;    // ml per L

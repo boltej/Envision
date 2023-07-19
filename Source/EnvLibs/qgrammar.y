@@ -61,7 +61,7 @@ int   yylex( void );
 %token <pStr>   STRING
 %token <pExternal> EXTERNAL 
 %token <ivalue> FIELD
-%token <ivalue> INDEX NEXTTO NEXTTOAREA WITHIN WITHINAREA EXPAND MOVAVG CHANGED TIME DELTA USERFN2
+%token <ivalue> INDEX NEXTTO NEXTTOAREA WITHIN WITHINAREA WITHINAREAFRAC EXPAND MOVAVG CHANGED TIME DELTA USERFN2
 %token <ivalue> EQ LT LE GT GE NE CAND COR CONTAINS 
 %token <ivalue> AND OR NOT
 %token <pMapLayer> MAPLAYER
@@ -203,8 +203,8 @@ function:
 |  NEXTTOAREA '(' queryExpr ')'                        { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3 ); }
 |  WITHIN     '(' queryExpr ',' DOUBLE ')'             { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5 ); }
 |  WITHIN     '(' queryExpr ',' INTEGER ')'            { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5 ); }
-|  WITHINAREA '(' queryExpr ',' INTEGER ',' DOUBLE ')' { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5, $7 ); }
-|  WITHINAREA '(' queryExpr ',' DOUBLE  ',' DOUBLE ')' { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5, $7 ); }
+|  WITHINAREA '(' queryExpr ',' INTEGER ')'            { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5 ); }
+|  WITHINAREA '(' queryExpr ',' DOUBLE  ')'            { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5); }
 |  EXPAND     '(' queryExpr ',' DOUBLE  ',' DOUBLE ')' { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5, $7 ); }
 |  MOVAVG     '(' queryExpr ',' INTEGER ')'            { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5 ); }
 |  CHANGED    '(' FIELD ')'                            { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3 ); }
@@ -213,6 +213,15 @@ function:
 |  USERFN2    '(' INTEGER ',' INTEGER ')'              { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5 ); }
 ;
 %%
+
+/*
+|  WITHINAREAFRAC '(' queryExpr ',' INTEGER ',' DOUBLE ')'  { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5, $7 ); }
+|  WITHINAREAFRAC '(' queryExpr ',' DOUBLE  ',' DOUBLE ')'  { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5, $7 ); }
+|  WITHINAREAFRAC '(' queryExpr ',' INTEGER ',' INTEGER ')' { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5, (double) $7 ); }
+|  WITHINAREAFRAC '(' queryExpr ',' DOUBLE  ',' INTEGER ')' { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5, (double) $7 ); }
+*/
+
+
 
 struct KEYWORD { int type; const char *keyword; int ivalue; };
 
@@ -671,6 +680,13 @@ int QIsFunction( char **p )
       return NEXTTO;
       }
       
+  if ( _strnicmp( "WithinAreaFrac", *p, 10 ) == 0 )
+      {
+      *p += 14;
+      return WITHINAREAFRAC;
+      }
+
+
    if ( _strnicmp( "WithinArea", *p, 10 ) == 0 )
       {
       *p += 10;

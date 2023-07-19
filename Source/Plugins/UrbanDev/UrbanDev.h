@@ -272,6 +272,7 @@ public:
    float m_resCommRatio;   // ratio of residential area to comm/ind area in urban expansion areas (required)
    float m_ppdu;           // people per dwelling unit 
    float m_imperviousFactor;  // factor scaling new impervious development
+   float m_maxExpandFraction = 0.1f;
 
    CString m_resQuery;
    CString m_commQuery;
@@ -405,6 +406,7 @@ protected:
    PtrArray< ZoneInfo > m_commZoneArray;
 
    int m_colPopCap=-1;
+   int m_colUrbanPopAvail = -1;
    int m_colUgNearDist = -1;
    int m_colUgNearUga = -1;
    int m_colUgPriority = -1;   // input (optional) - if defined, indicates priority of expansions (0=high)

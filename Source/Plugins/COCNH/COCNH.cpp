@@ -2255,11 +2255,15 @@ bool COCNHProcess::UpdateTimeSinceThinning(EnvContext *pContext)
 
       switch (disturb)
          {
-         case THINNING:                   // 2
-         case MECHANICAL_THINNING:        // 50
-         case THIN_FROM_BELOW:            // 55
-         case PARTIAL_HARVEST_LIGHT:      // 56
-         case PARTIAL_HARVEST_HIGH:       // 57
+         case THINNING:               
+         case MECHANICAL_THINNING:    
+         case THIN_FROM_BELOW:
+         case PARTIAL_HARVEST_LIGHT:
+         case PARTIAL_HARVEST_HIGH:   
+         case MECHANICAL_THINNING_2:  
+         case THIN_FROM_BELOW_2:      
+         case PARTIAL_HARVEST_LIGHT_2:
+         case PARTIAL_HARVEST_HIGH_2: 
             TSTH = 1;
             break;
 
@@ -2331,7 +2335,7 @@ bool COCNHProcess::UpdateTimeSinceFire(EnvContext *pContext)
       // Note: this check happens at the beginning of a time step, but before DISTURBances
       // are flipped to negative values
       if ((disturb >= SURFACE_FIRE && disturb <= STAND_REPLACING_FIRE))
-         //         || ( disturb >= PRESCRIBED_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE ) )
+         //         || ( disturb >= PRESCRIBED_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE_2 ) )
          TSF = 1;
 
       else if (oldTSF >= 0)
@@ -2359,7 +2363,7 @@ bool COCNHProcess::UpdateTimeSincePrescribedFire(EnvContext *pContext)
 
       int TSPF = oldTSPF;
 
-      if (disturb >= PRESCRIBED_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE)
+      if (disturb >= PRESCRIBED_FIRE && disturb <= PRESCRIBED_STAND_REPLACING_FIRE_2)
          TSPF = 1;
 
       else if (oldTSPF >= 0)
@@ -3633,7 +3637,7 @@ int COCNHProcessPost2::UpdatePlanAreas( EnvContext *pContext )
          int disturb = -1;
          pLayer->GetData( idu, m_colDisturb, disturb );
 
-         if ( disturb == THIN_FROM_BELOW || disturb == PARTIAL_HARVEST || disturb == HARVEST )
+         if (disturb == THIN_FROM_BELOW || disturb == THIN_FROM_BELOW_2 || disturb == PARTIAL_HARVEST || disturb == HARVEST )
             {
             PLAN_AREA_INFO *pInfo = NULL;
             BOOL found = m_planAreaMap.Lookup( planArea, pInfo );
@@ -3710,7 +3714,7 @@ int COCNHProcessPost2::UpdatePlanAreas( EnvContext *pContext )
          int disturb = -1;
          pLayer->GetData( idu, m_colDisturb, disturb );
 
-        if ( disturb == PRESCRIBED_SURFACE_FIRE )  // a federal prescried fire
+        if ( disturb == PRESCRIBED_SURFACE_FIRE_2 )  // a federal prescried fire
             {
             PLAN_AREA_INFO *pInfo = NULL;
             BOOL found = m_planAreaFireMap.Lookup( planArea, pInfo );
@@ -3876,14 +3880,18 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
       pLayer->GetData(idu, m_colArea, iduAreaM2);
       float iduAreaHa = iduAreaM2 * HA_PER_M2;
 
-      if (disturb == HARVEST                // 1
-         || disturb == THINNING               // 2
-         || disturb == PARTIAL_HARVEST        // 3
-         || disturb == SELECTION_HARVEST      // 6
-         || disturb == SALVAGE_HARVEST        // 52
-         || disturb == THIN_FROM_BELOW        // 55
-         || disturb == PARTIAL_HARVEST_LIGHT  // 56
-         || disturb == PARTIAL_HARVEST_HIGH) // 57
+      if (disturb == HARVEST                
+         || disturb == THINNING
+         || disturb == PARTIAL_HARVEST
+         || disturb == SELECTION_HARVEST
+         || disturb == SALVAGE_HARVEST
+         || disturb == SALVAGE_HARVEST_2
+         || disturb == THIN_FROM_BELOW
+         || disturb == THIN_FROM_BELOW_2   
+         || disturb == PARTIAL_HARVEST_LIGHT
+         || disturb == PARTIAL_HARVEST_LIGHT_2 
+         || disturb == PARTIAL_HARVEST_HIGH   
+         || disturb == PARTIAL_HARVEST_HIGH_2) 
          {
          // harvest - we need to look at Previous VEGCLASS
          int priorVeg = 0;
@@ -3922,7 +3930,7 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
          pLayer->GetData(idu, m_colLVolGe50,   liveVolumeGe50);
          pLayer->GetData(idu, m_colOwner,    owner);            
 
-         if ( disturb == SALVAGE_HARVEST )
+         if ( disturb == SALVAGE_HARVEST || disturb == SALVAGE_HARVEST_2 )
             {
             float pfSawVol = 0.0f;
             float availableSawTimberVol52 = 0.0f;
@@ -3981,10 +3989,12 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
                   timberHarvVol = sawTimberHarvVol + ( m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable3 );// m3
                   break;
                case THIN_FROM_BELOW:
+               case THIN_FROM_BELOW_2:
                   sawTimberHarvVol = availableTFB;// m3
                   timberHarvVol = sawTimberHarvVol + ( m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable55 );// m3
                    break;
                case PARTIAL_HARVEST_HIGH: 
+               case PARTIAL_HARVEST_HIGH_2:
                   sawTimberHarvVol = availablePHH;// m3
                   timberHarvVol = sawTimberHarvVol + ( m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable57 );// m3
                   break;

@@ -60,28 +60,38 @@ typedef union  {
 #define NEXTTOAREA 265
 #define WITHIN 266
 #define WITHINAREA 267
-#define EXPAND 268
-#define MOVAVG 269
-#define CHANGED 270
-#define TIME 271
-#define DELTA 272
-#define USERFN2 273
-#define EQ 274
-#define LT 275
-#define LE 276
-#define GT 277
-#define GE 278
-#define NE 279
-#define CAND 280
-#define COR 281
-#define CONTAINS 282
-#define AND 283
-#define OR 284
-#define NOT 285
-#define MAPLAYER 286
-#define CAN 287
+#define WITHINAREAFRAC 268
+#define EXPAND 269
+#define MOVAVG 270
+#define CHANGED 271
+#define TIME 272
+#define DELTA 273
+#define USERFN2 274
+#define EQ 275
+#define LT 276
+#define LE 277
+#define GT 278
+#define GE 279
+#define NE 280
+#define CAND 281
+#define COR 282
+#define CONTAINS 283
+#define AND 284
+#define OR 285
+#define NOT 286
+#define MAPLAYER 287
+#define CAN 288
 YYSTYPE yylval, yyval;
 #define YYERRCODE 256
+
+
+/*
+|  WITHINAREAFRAC '(' queryExpr ',' INTEGER ',' DOUBLE ')'  { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5, $7 ); }
+|  WITHINAREAFRAC '(' queryExpr ',' DOUBLE  ',' DOUBLE ')'  { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5, $7 ); }
+|  WITHINAREAFRAC '(' queryExpr ',' INTEGER ',' INTEGER ')' { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, (double) $5, (double) $7 ); }
+|  WITHINAREAFRAC '(' queryExpr ',' DOUBLE  ',' INTEGER ')' { $$ = _gpQueryEngine->AddFunctionArgs( $1, $3, $5, (double) $7 ); }
+*/
+
 
 
 struct KEYWORD { int type; const char *keyword; int ivalue; };
@@ -541,6 +551,13 @@ int QIsFunction( char **p )
       return NEXTTO;
       }
       
+  //if ( _strnicmp( "WithinAreaFrac", *p, 14 ) == 0 )
+  //    {
+  //    *p += 14;
+  //    return WITHINAREAFRAC;
+  //    }
+
+
    if ( _strnicmp( "WithinArea", *p, 10 ) == 0 )
       {
       *p += 10;
@@ -650,8 +667,8 @@ char *QParseString( char **p )
 
 void QCompilerError( LPCSTR errorStr, LPSTR buffer )
    {
-   char _buffer[ 1024 ];
-   strncpy_s( _buffer, 1024, buffer, 1024);
+   char _buffer[ 512 ];
+   strncpy_s( _buffer, 512, buffer, 512);
    _buffer[511] = '\0';
 
    CString msg;
@@ -709,26 +726,26 @@ const int yyexca[] = {
 };
 
 #define YYNPROD 55
-#define YYLAST 300
+#define YYLAST 302
 
 const int yyact[] = {
        5,      94,      99,      93,      28,      29,      72,      14,
-      81,      73,     102,      14,     103,     101,     120,     100,
-     119,     118,     104,     107,     105,      84,     109,       6,
-     108,      87,      86,      88,      38,      32,      65,      15,
-      63,      36,      34,      15,      35,      48,      37,       7,
-      38,      49,     114,     113,     112,      36,      34,     123,
-      35,      92,      37,      91,      90,      97,      89,     122,
-      62,      64,      66,      67,      68,      69,      70,     121,
-     117,     115,      38,     111,     110,       2,     116,      36,
-      34,      30,      35,      31,      37,      95,      82,      74,
-      60,      59,      58,      83,      57,      56,      38,      55,
-      71,      85,      63,      36,      34,      38,      35,      54,
-      37,      61,      36,      34,      96,      35,      38,      37,
-      53,       1,      52,      36,      34,      51,      35,      50,
-      37,      -1,      -1,      13,      33,       4,      27,       0,
-     106,      75,      76,      77,      78,      79,      80,       0,
-      98,       0,       0,       0,       0,       0,       0,       0,
+      81,      73,     102,      14,     103,     101,     118,     100,
+     104,     107,     105,      84,     109,     108,      87,      86,
+       6,      88,      48,       7,      49,      38,      32,      65,
+      15,      63,      36,      34,      15,      35,     114,      37,
+      97,      38,     119,     117,     115,      60,      36,      34,
+     113,      35,      92,      37,      91,      90,     112,      89,
+     111,      62,      64,      66,      67,      68,      69,      70,
+      38,     110,      95,      82,     116,      36,      34,       2,
+      35,      74,      37,      30,      71,      31,      59,      58,
+      57,      38,      56,      55,      83,      63,      36,      34,
+      38,      35,      85,      37,      54,      36,      34,      96,
+      35,      38,      37,      61,       1,      53,      36,      34,
+      52,      35,      51,      37,      50,      -1,      -1,      13,
+      33,       4,      27,       0,      98,       0,       0,       0,
+       0,     106,       0,      75,      76,      77,      78,      79,
+      80,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
@@ -740,40 +757,39 @@ const int yyact[] = {
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       9,      12,      10,      11,       8,      14,      16,
-      17,      18,      19,      20,      21,      22,      23,      24,
-      25,      26,       0,       0,       0,       0,       0,       0,
-      28,      29,      28,      29,       0,       3,      15,       9,
-      12,      10,      11,       8,      14,      16,      17,      18,
-      19,      20,      21,      22,      23,      24,      25,      26,
-       0,      39,      40,      41,      42,      43,      44,      45,
-      46,      47,       0,       0,      15,      39,      40,      41,
-      42,      43,      44,      45,      46,      47,       0,       0,
-      28,      29,      28,      29,       0,       0,      28,      29,
-      28,      29,      28,      29,
+      17,      18,      19,      20,       0,      21,      22,      23,
+      24,      25,      26,       0,       0,       0,       0,       0,
+       0,      28,      29,      28,      29,       0,       3,      15,
+       9,      12,      10,      11,       8,      14,      16,      17,
+      18,      19,      20,       0,      21,      22,      23,      24,
+      25,      26,       0,      39,      40,      41,      42,      43,
+      44,      45,      46,      47,       0,       0,      15,      39,
+      40,      41,      42,      43,      44,      45,      46,      47,
+       0,       0,      28,      29,      28,      29,       0,       0,
+      28,      29,      28,      29,      28,      29,
 };
 
 const int yypact[] = {
-   -4096,     -40,    -279,     -40,   -4096,     -40,       3,   -4096,
-   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,     -54,      -5,
-      71,      69,      66,      64,      55,      47,      45,      44,
-      42,      41,      40,     -40,   -4096,   -4096,   -4096,      15,
-      -9,     -10,     -10,     -10,     -10,     -10,     -10,   -4096,
+   -4096,     -40,    -280,     -40,   -4096,     -40,       4,   -4096,
+   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,     -65,     -18,
+      68,      66,      64,      61,      52,      43,      42,      40,
+      39,      38,       5,     -40,   -4096,   -4096,   -4096,      16,
+      -8,      -9,      -9,      -9,      -9,      -9,      -9,   -4096,
    -4096,   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,   -4096,
-    -251,    -253,      38,     -40,     -40,     -40,     -40,     -40,
-     -40,    -254,      37,     -10,    -236,    -279,   -4096,   -4096,
-      65,     -10,   -4096,   -4096,   -4096,   -4096,   -4096,     -67,
-     -68,     -64,   -4096,      13,      11,       7,       5,     -41,
-     -43,      36,   -4096,      56,       9,      49,   -4096,   -4096,
-    -255,   -4096,   -4096,    -244,    -247,    -241,    -237,   -4096,
-     -10,    -238,     -69,     -71,      27,      26,       0,      -1,
-      -2,      24,      29,      23,   -4096,   -4096,   -4096,   -4096,
-    -242,    -243,    -245,   -4096,   -4096,   -4096,      22,      14,
-       6,   -4096,   -4096,   -4096,
+    -251,    -253,      32,     -40,     -40,     -40,     -40,     -40,
+     -40,    -254,      26,      -9,    -238,    -280,   -4096,   -4096,
+      60,      -9,   -4096,   -4096,   -4096,   -4096,   -4096,     -70,
+     -71,     -66,   -4096,      14,      12,       8,       6,     -41,
+     -43,      25,   -4096,      51,      -4,      44,   -4096,   -4096,
+    -255,   -4096,   -4096,    -244,    -247,    -243,    -239,   -4096,
+      -9,    -240,     -72,     -73,      24,      15,      13,       7,
+      -6,       3,      27,       2,   -4096,   -4096,   -4096,   -4096,
+   -4096,   -4096,    -245,   -4096,   -4096,   -4096,       1,   -4096,
 };
 
 const int yypgo[] = {
-       0,      69,     118,     117,     116,      23,     115,      39,
-     114,     113,     105,
+       0,      71,     114,     113,     112,      24,     111,      27,
+     110,     109,     100,
 };
 
 const int yyr1[] = {
@@ -792,17 +808,17 @@ const int yyr2[] = {
        1,       1,       1,       1,       3,       3,       3,       3,
        3,       1,       1,       1,       1,       1,       1,       1,
        3,       1,       4,       4,       6,       6,       3,       1,
-       1,       1,       3,       4,       4,       6,       6,       8,
-       8,       8,       6,       4,       3,       6,       6,
+       1,       1,       3,       4,       4,       6,       6,       6,
+       6,       8,       6,       4,       3,       6,       6,
 };
 
 const int yychk[] = {
-   -4096,     -10,      -1,     285,      -3,      40,      -5,      -7,
-     261,     257,     259,     260,     258,      -6,     262,     286,
-     263,     264,     265,     266,     267,     268,     269,     270,
-     271,     272,     273,      -2,     283,     284,      -1,      -1,
-      -5,      -4,      43,      45,      42,      47,      37,     274,
-     275,     276,     277,     278,     279,     280,     281,     282,
+   -4096,     -10,      -1,     286,      -3,      40,      -5,      -7,
+     261,     257,     259,     260,     258,      -6,     262,     287,
+     263,     264,     265,     266,     267,     269,     270,     271,
+     272,     273,     274,      -2,     284,     285,      -1,      -1,
+      -5,      -4,      43,      45,      42,      47,      37,     275,
+     276,     277,     278,     279,     280,     281,     282,     283,
       91,      46,      40,      40,      40,      40,      40,      40,
       40,      40,      40,      40,      40,      -1,      41,      41,
       -5,      40,      -5,      -5,      -5,      -5,      -5,      -7,
@@ -811,8 +827,7 @@ const int yychk[] = {
       91,      41,      41,      44,      44,      44,      44,      41,
       44,      44,      -7,     257,     259,     257,     257,     259,
      259,     257,      -5,     257,      93,      93,      41,      41,
-      44,      44,      44,      41,      41,      41,     259,     259,
-     259,      41,      41,      41,
+      41,      41,      44,      41,      41,      41,     259,      41,
 };
 
 const int yydef[] = {
@@ -830,8 +845,7 @@ const int yydef[] = {
        0,      43,      44,       0,       0,       0,       0,      51,
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,      36,      37,      45,      46,
-       0,       0,       0,      50,      53,      54,       0,       0,
-       0,      47,      48,      49,
+      47,      48,       0,      50,      53,      54,       0,      49,
 };
 
 /*****************************************************************/
@@ -1071,8 +1085,8 @@ int tmptoken;
       case 44:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
       case 45:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue ); } break;
       case 46:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
-      case 47:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, (double) yypvt[-3].ivalue, yypvt[-1].dvalue ); } break;
-      case 48:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, yypvt[-3].dvalue, yypvt[-1].dvalue ); } break;
+      case 47:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
+      case 48:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue); } break;
       case 49:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, yypvt[-3].dvalue, yypvt[-1].dvalue ); } break;
       case 50:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
       case 51:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;

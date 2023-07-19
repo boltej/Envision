@@ -5001,7 +5001,7 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       {
       // Dune line layer naming
       CString duneFilename;
-      duneFilename.Format("%sDunes_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
+      duneFilename.Format("%sDunes/Dunes_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
 
       CString msg("Exporting map layer: ");
       msg += duneFilename;
@@ -5015,7 +5015,7 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       {
       CString fldFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
       CString outFile;
-      outFile.Format("%sFloodDepths_%i_%s.asc", (LPCTSTR) PathManager::GetPath(PM_OUTPUT_DIR),pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+      outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR) PathManager::GetPath(PM_OUTPUT_DIR),pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
 
       // copy the file to the standard output locations
       std::ifstream  src(fldFile, std::ios::binary);
@@ -5070,7 +5070,7 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       {
       // Dune line layer naming
       CString bldgFilename;
-      bldgFilename.Format("%sBldgs_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
+      bldgFilename.Format("%sBuildings/Bldgs_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
       
       CString msg("Exporting map layer: ");
       msg += bldgFilename;

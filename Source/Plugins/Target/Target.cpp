@@ -612,13 +612,11 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
          float modifiedAvailCapacity = availCapacity;   // for this idu
          if ( availCapacity > 0 )
             {
-            // apply preferences.  the sum of the preferences is stored in this Target's
-            // m_preference array
+            // apply preferences.  the sum of the preferences is stored in this Target's m_preference array
             for ( int p=0; p < pAllocationSet->m_preferences.GetSize(); p++ )
                {
                PREFERENCE *pPref = pAllocationSet->m_preferences.GetAt( p );
                ASSERT( pPref != NULL );
-               //ASSERT(this->m_preferenceArray != NULL);
                ASSERT(this->m_preferenceArray.size() > 0);
 
                if ( pPref->pQuery != NULL )
@@ -628,7 +626,8 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
 
                   if ( ok && result == true )
                      {
-                     this->m_preferenceArray[ idu ] *= pPref->value;
+                     float oldPref = this->m_preferenceArray[idu];
+                     this->m_preferenceArray[idu] = oldPref * pPref->value;
                      modifiedAvailCapacity *= pPref->value;
 
                      // evaluate expression
@@ -637,7 +636,7 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
                   }
                }  // end of: for (preferenceCount)
 
-            m_totalModifiedAvailCapacity += modifiedAvailCapacity;
+             m_totalModifiedAvailCapacity += modifiedAvailCapacity;
             }  // end of : if( availCapacity > 0 )
          }  // end of: iterating through IDU's for a target specification and query allocation
 
@@ -648,24 +647,26 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    // populate map with pctAvailCapacity, preference factor if needed
    if ( m_colPctAvailCapacity >= 0 || m_colPrefs >= 0 )
       {
-      for ( MapLayer::Iterator i=pLayer->Begin(iteratorType); i < pLayer->End(iteratorType); i++ )
+      for ( MapLayer::Iterator _idu=pLayer->Begin(iteratorType); _idu < pLayer->End(iteratorType); _idu++ )
          {
+         int idu = (int)_idu;
+
          float pctAvailCapacity = 0;
          
          if ( m_colPctAvailCapacity >= 0 )
             {
-            if ( (m_availCapacityArray[ i ] > LONG_MIN) && (m_capacityArray[ i ] > 0.0f ) )
+            if ( (m_availCapacityArray[idu] > LONG_MIN) && (m_capacityArray[idu] > 0.0f ) )
                {
-               pctAvailCapacity = m_availCapacityArray[ i ] / m_capacityArray[ i ];
+               pctAvailCapacity = m_availCapacityArray[idu] / m_capacityArray[idu];
 
                if( pctAvailCapacity < -1.0f )
                   pctAvailCapacity = -1.0;
 
                float curPctAvailCapacity;
-               pLayer->GetData( i, m_colPctAvailCapacity, curPctAvailCapacity );
+               pLayer->GetData(idu, m_colPctAvailCapacity, curPctAvailCapacity );
 
                if ( curPctAvailCapacity != pctAvailCapacity )
-                  m_pProcess->UpdateIDU( pEnvContext, i, m_colPctAvailCapacity, pctAvailCapacity, useAddDelta ? ADD_DELTA : SET_DATA );
+                  m_pProcess->UpdateIDU( pEnvContext, idu, m_colPctAvailCapacity, pctAvailCapacity, useAddDelta ? ADD_DELTA : SET_DATA );
                }
             }
 
@@ -673,23 +674,23 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
             {
             float capDens = 0;
             float targetDens = 0;
-            pLayer->GetData( i, m_colCapDensity, capDens );
-            pLayer->GetData( i, m_colTarget, targetDens );
+            pLayer->GetData(idu, m_colCapDensity, capDens );
+            pLayer->GetData(idu, m_colTarget, targetDens );
 
             float availDens = 0;
-            pLayer->GetData( i, m_colAvailDens, availDens );
+            pLayer->GetData(idu, m_colAvailDens, availDens );
 
             if ( capDens-targetDens != availDens )
-               m_pProcess->UpdateIDU( pEnvContext, i, m_colAvailDens, (capDens-targetDens), useAddDelta ? ADD_DELTA : SET_DATA );
+               m_pProcess->UpdateIDU( pEnvContext, idu, m_colAvailDens, (capDens-targetDens), useAddDelta ? ADD_DELTA : SET_DATA );
             }
 
          if ( m_colPrefs >= 0 )
             {
             float curPref;
-            pLayer->GetData( i, m_colPrefs, curPref );
+            pLayer->GetData(idu, m_colPrefs, curPref );
 
-            if ( curPref != m_preferenceArray[ i ] )
-               m_pProcess->UpdateIDU( pEnvContext, i, m_colPrefs, m_preferenceArray[i], useAddDelta ? ADD_DELTA : SET_DATA );
+            if ( curPref != m_preferenceArray[idu] )
+               m_pProcess->UpdateIDU( pEnvContext, idu, m_colPrefs, m_preferenceArray[idu], useAddDelta ? ADD_DELTA : SET_DATA );
             }
          }  // end of MapLayer iterator
       }  // end of: if ( m_colPctAvailCapacity >= 0 && m_colPrefs >= 0 )
