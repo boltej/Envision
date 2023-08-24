@@ -1413,7 +1413,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          standRepSmoke = (float)m_fuelModelLookupTable.GetColData(luRow, lutColSrSmoke);
       
          // column name: SMOKE_SF
-         if ( disturb == 20 )
+         if ( disturb == SURFACE_FIRE )
             {
             if ( surfaceSmoke >= (int) 0 )
                {
@@ -1436,7 +1436,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
             }
 
          // column name: MXSMOKE
-         if ( disturb == 21 )
+         if ( disturb == LOW_SEVERITY_FIRE )
             {
             if ( mixSevSmoke >= (int) 0 )
                {
@@ -1458,7 +1458,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
             }
 
          // column name: SRSMOKE
-         if ( disturb == 23 )
+         if ( disturb == STAND_REPLACING_FIRE )
             {
             if ( standRepSmoke >= (int) 0 )
                {
@@ -1502,6 +1502,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          UpdateIDU(pContext, idu, m_colFireReg, fireRegime, useAddDelta ? ADD_DELTA : SET_DATA );
          
          // Note: FUELMODEL and FIRE_REGIM also need to be written to the IDUs, since they are read later in this process
+         // Further Note: No longer true
          //bool readOnly = pLayer->m_readOnly;
          //
          //pLayer->SetData( idu, m_colFuelModel, lcpFuelModel );
@@ -1779,26 +1780,67 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
       if ( transType == 3 && seenFireBefore == 0 )
          {
          //  set the fire flag 
-         if ( disturb > 20 && disturb <=23 )
+         if ( disturb > SURFACE_FIRE && disturb <= STAND_REPLACING_FIRE)
             m_accountedForFireThisStep[idu] = 1;
 
          seenFireBefore = m_accountedForFireThisStep[idu];
          
-         float percentOfLivePassedOn = 1.0;
+         float percentOfLivePassedOn = 1.0f;
 
          //what is passed on 
-         if (disturb == 3)   percentOfLivePassedOn = m_percentOfLivePassedOn3;  
-         if (disturb == 20)  percentOfLivePassedOn = m_percentOfLivePassedOn20; 
-         if (disturb == 21)  percentOfLivePassedOn = m_percentOfLivePassedOn21; 
-         if (disturb == 23)  percentOfLivePassedOn = m_percentOfLivePassedOn23; // 0.1
-         if (disturb == 29)  percentOfLivePassedOn = m_percentOfLivePassedOn29; 
-         if (disturb == 31)  percentOfLivePassedOn = m_percentOfLivePassedOn31; 
-         if (disturb == 32)  percentOfLivePassedOn = m_percentOfLivePassedOn32; 
-         if (disturb == 51)  percentOfLivePassedOn = m_percentOfLivePassedOn51; 
-         if (disturb == 52)  percentOfLivePassedOn = m_percentOfLivePassedOn52; 
-         if (disturb == 55)  percentOfLivePassedOn = m_percentOfLivePassedOn55; 
-         if (disturb == 56)  percentOfLivePassedOn = m_percentOfLivePassedOn56; 
-         if (disturb == 57)  percentOfLivePassedOn = m_percentOfLivePassedOn57; 
+         switch (disturb)
+            {
+            case PARTIAL_HARVEST:  percentOfLivePassedOn = m_percentOfLivePassedOn3;      break;
+            case SURFACE_FIRE:  percentOfLivePassedOn = m_percentOfLivePassedOn20;         break;
+            case LOW_SEVERITY_FIRE:  percentOfLivePassedOn = m_percentOfLivePassedOn21;    break;
+            case STAND_REPLACING_FIRE:  percentOfLivePassedOn = m_percentOfLivePassedOn23; break;
+
+            case PRESCRIBED_FIRE:
+            case PRESCRIBED_FIRE_UNDERBURNING:
+            case PRESCRIBED_SURFACE_FIRE:
+            case PRESCRIBED_LOW_SEVERITY_FIRE:
+            case PRESCRIBED_FIRE_2:
+            case PRESCRIBED_FIRE_UNDERBURNING_2:
+            case PRESCRIBED_SURFACE_FIRE_2:
+            case PRESCRIBED_LOW_SEVERITY_FIRE_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn29;
+               break;
+
+            case PRESCRIBED_HIGH_SEVERITY_FIRE:
+            case PRESCRIBED_HIGH_SEVERITY_FIRE_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn31;
+               break;
+
+            case PRESCRIBED_STAND_REPLACING_FIRE:
+            case PRESCRIBED_STAND_REPLACING_FIRE_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn32;
+               break;
+
+            case MOWING_GRINDING:
+            case MOWING_GRINDING_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn51;
+               break;
+
+            case SALVAGE_HARVEST:
+            case SALVAGE_HARVEST_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn52;
+               break;
+
+            case THIN_FROM_BELOW:
+            case THIN_FROM_BELOW_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn55;
+               break;
+
+            case PARTIAL_HARVEST_LIGHT:
+            case PARTIAL_HARVEST_LIGHT_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn56;
+               break;
+
+            case PARTIAL_HARVEST_HIGH:
+            case PARTIAL_HARVEST_HIGH_2:
+               percentOfLivePassedOn = m_percentOfLivePassedOn57;
+               break;
+            }
          
          sawTimberVol = ( liveVolumeGe3 - liveVolume_3_25 ) * percentOfLivePassedOn; 
          basalArea *= percentOfLivePassedOn;
@@ -1818,7 +1860,7 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
          liveVolumeGe3 =  liveVolume_3_25 + sawTimberVol ;
 
          //if clear cut, 100% taken, resulting volumes can't be zero, so go back to the table and volumes for this VEGCLASS
-         if ( disturb == 1 )
+         if ( disturb == HARVEST )
             {
             if (found && luRow >= 0)
                {
@@ -1999,14 +2041,14 @@ bool COCNHProcess::InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta
       int vegClass = -999;
       int pvt = -999;
       int region = -999;
-      int disturb = 0;
+      //int disturb = 0;
       float iduAreaM2 = 0.0;
 
       pLayer->GetData(idu, m_colArea, iduAreaM2);
       pLayer->GetData(idu, m_colVegClass, vegClass);
       pLayer->GetData(idu, m_colPVT, pvt);
       pLayer->GetData(idu, m_colRegion, region);
-      pLayer->GetData(idu, m_colDisturb, disturb);
+      //pLayer->GetData(idu, m_colDisturb, disturb);
 
       float iduAreaHa = iduAreaM2 * HA_PER_M2;
 
@@ -2164,7 +2206,7 @@ bool COCNHProcess::UpdateTimeSinceTreatment(EnvContext *pContext)
 
       int TST = oldTST;
 
-      if ((disturb >= 50 && disturb < 70) || disturb == 2)
+      if ((disturb >= MECHANICAL_THINNING && disturb < MECHANICAL_TREATMENT_2) || disturb == THINNING)
          TST = 1;
       else if (oldTST >= 0)    // -1 means never treated
          TST++;
@@ -2298,8 +2340,11 @@ bool COCNHProcess::UpdateTimeSincePartialHarvest(EnvContext *pContext)
       switch (disturb)
          {
          case PARTIAL_HARVEST:
+         //case PARTIAL_HARVEST_2:
          case PARTIAL_HARVEST_LIGHT:
+         case PARTIAL_HARVEST_LIGHT_2:
          case PARTIAL_HARVEST_HIGH:
+         case PARTIAL_HARVEST_HIGH_2:
             TSPH = 1;
             break;
 

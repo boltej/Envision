@@ -154,7 +154,7 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       { "risk_col",          TYPE_CSTRING,   &riskField, true, CC_AUTOADD },
       { "query",             TYPE_CSTRING,   &this->m_queryStr, true, 0 },
       { "loss_table",        TYPE_CSTRING,   &this->m_lossTableFile, false, 0 },
-      { "firewise_factor",   TYPE_CSTRING,   &this->m_firewiseFactor, false, 0 },
+      { "firewise_factor",   TYPE_FLOAT,     &this->m_firewiseFactor, false, 0 },
       { NULL,                TYPE_NULL,      NULL,              false, 0 }
       };
 

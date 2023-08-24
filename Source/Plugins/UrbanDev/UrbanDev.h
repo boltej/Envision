@@ -89,6 +89,7 @@ struct UGA  // new
    float m_newPopulation;           // people
    float m_popIncr;                 // people
    float m_capacity;                // people
+   float m_availCapacity;           // people
    float m_pctAvailCap;             // decimal percent
    float m_avgAllowedDensity;       // du/ac
    float m_avgActualDensity;        // du/ac
@@ -272,7 +273,7 @@ public:
    float m_resCommRatio;   // ratio of residential area to comm/ind area in urban expansion areas (required)
    float m_ppdu;           // people per dwelling unit 
    float m_imperviousFactor;  // factor scaling new impervious development
-   float m_maxExpandFraction = 0.1f;
+   float m_maxExpandFraction = 0.5f;
 
    CString m_resQuery;
    CString m_commQuery;
@@ -361,7 +362,11 @@ protected:
    CMap< int, int, UGA*, UGA* > m_idToUGAMap;   // maps unique DUArea identifiers to the corresponding DUArea ptr
    
    int AddUGA(UGA* pUGA);
-   UGA* FindUGAFromID(int id) {UGA* pUGA = NULL;  BOOL ok = m_idToUGAMap.Lookup(id, pUGA);  if (ok) return pUGA; else return NULL; }
+   UGA* FindUGAFromID(int id) {
+      UGA* pUGA = NULL;  
+      BOOL ok = m_idToUGAMap.Lookup(id, pUGA);  
+      if (ok) return pUGA; 
+      else return NULL; }
    UGA* FindUGAFromName(LPCTSTR name);
 
 
@@ -401,11 +406,14 @@ protected:
    UgScenario* m_pCurrentUgScenario;
    PtrArray< UgScenario > m_uxScenarioArray;
 
+   Query* m_pRuralQuery = nullptr;
+
    PtrArray< ZoneInfo > m_ruralResZoneArray;
    PtrArray< ZoneInfo > m_resZoneArray;
    PtrArray< ZoneInfo > m_commZoneArray;
 
    int m_colPopCap=-1;
+   int m_colAvailCap = -1;
    int m_colUrbanPopAvail = -1;
    int m_colUgNearDist = -1;
    int m_colUgNearUga = -1;

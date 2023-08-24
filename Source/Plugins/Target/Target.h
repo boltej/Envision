@@ -186,7 +186,7 @@ struct PREFERENCE
    //PARSER_VAR *parserVars;  // array of parser variable
 
    PREFERENCE(LPCTSTR _name, Target* _pTarget, LPCTSTR query, float _value) : name(_name),
-      pTarget(_pTarget), queryStr(query), pQuery(NULL), value(_value), currentValue(0), target(-1) {}
+      pTarget(_pTarget), queryStr(query), pQuery(nullptr), value(_value), currentValue(0), target(-1) {}
 
    // the following are for estimating parameters (value)
    float currentValue;  // this has units of #
@@ -218,10 +218,10 @@ struct ALLOCATION
    float   currentCapacity;  // total capacity for accomodating new values of the target variable (absolute numbers - not density)
    float   currentArea;      // area satisfying query
 
-   //ALLOCATION() : pTarget(NULL), pQuery( NULL ), parser(), multiplier( 1.0f ), parserVars( NULL ), currentValue(0), currentCapacity(0) { }
+   //ALLOCATION() : pTarget(nullptr), pQuery( nullptr ), parser(), multiplier( 1.0f ), parserVars( nullptr ), currentValue(0), currentCapacity(0) { }
    
    ALLOCATION( LPCTSTR _name, Target *_pTarget, LPCTSTR query, LPCTSTR expr, float _multiplier ) : name( _name ), 
-      pTarget(_pTarget), queryStr( query ), expression( expr ), pQuery( NULL ), parserVars( NULL ), multiplier( _multiplier ),
+      pTarget(_pTarget), queryStr( query ), expression( expr ), pQuery( nullptr ), parserVars( nullptr ), multiplier( _multiplier ),
       currentValue(0), currentCapacity(0), currentArea(0)
       { }
 
@@ -285,7 +285,7 @@ class TargetReport
       float  m_count;      // output variable - count of allocation satisfying query
       float  m_fraction;   // output variable - decimal fraction of allocation satisfying query
       TargetReport( LPCTSTR name, Target *_pTarget, LPCTSTR query ) 
-         :  m_name( name ), m_pTarget( _pTarget), m_query( query ), m_pQuery( NULL ), m_count( 0 ), m_fraction(0) { }
+         :  m_name( name ), m_pTarget( _pTarget), m_query( query ), m_pQuery( nullptr ), m_count( 0 ), m_fraction(0) { }
       ~TargetReport();
    };
 
@@ -318,6 +318,7 @@ public:
    CString m_description;
    CString m_initStr;
    CString m_queryStr;
+   CString m_initMask;
    int     m_modelID;
 
    float   m_startTotalActualValue;      // total target value at beginning of Run() (non-density)
@@ -355,6 +356,7 @@ public:
    int    m_colTargetBin;
    int    m_colPctAvailCapacity;
    int    m_colPrefs;
+   int    m_colInitMask = -1;
 
    bool   m_estimateParams;
 
@@ -364,7 +366,8 @@ public:
 
    QueryEngine *m_pQueryEngine;   // memory managed in EnvModel
    //MTParser    *m_pParser;
-   Query *m_pQuery;
+   Query* m_pQuery = nullptr;
+   Query* m_pInitMaskQuery = nullptr;
 
    int m_inVarStartIndex;    // always one input 
    int m_outVarStartIndex;   // variable number of outputs
@@ -381,7 +384,7 @@ public:
    bool EndRun ( EnvContext *pEnvContext );
 
    AllocationSet *GetActiveAllocationSet() { return GetAllocationSetFromID( m_activeAllocSetID ); }
-   AllocationSet *GetAllocationSetFromID( int id, int *index=NULL );
+   AllocationSet *GetAllocationSetFromID( int id, int *index=nullptr );
    void LoadTableValues();
 
 public:
@@ -488,7 +491,7 @@ public:
          if (m_tableArray[i]->m_name.CompareNoCase(name) == 0)
             return m_tableArray[i];
          }
-      return NULL;
+      return nullptr;
       }
 };
 
@@ -498,7 +501,7 @@ class TargetProcessCollection
 public:
    PtrArray< TargetProcess > m_targetProcessArray;
    
-   TargetProcess *GetTargetProcessFromID( int id, int *index=NULL );
+   TargetProcess *GetTargetProcessFromID( int id, int *index=nullptr );
 
    bool Init   ( EnvContext*, LPCTSTR initStr /*xml input file*/ );
    bool InitRun( EnvContext*, bool );

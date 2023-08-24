@@ -3888,9 +3888,9 @@ int MapLayer::LoadGridBIL(LPCTSTR filename)
    //   YDIM 400
    //-------------------------------------------------
    char byteOrder = 'I';
-   int   nCols, nRows, nBits = 8, nBands = 1, bandRowBytes = -1, skipBytes = 0;
+   int  nCols=0, nRows=0, nBits = 8, nBands = 1, bandRowBytes = -1, skipBytes = 0;
 
-   double ulxMap, ulyMap, xDim, yDim;
+   double ulxMap=0, ulyMap=0, xDim=0, yDim=0;
    while (fgets(buffer, 128, fp) != NULL)
       {
       TCHAR *param = strchr(buffer, ' ');
@@ -3928,7 +3928,7 @@ int MapLayer::LoadGridBIL(LPCTSTR filename)
       {
       float _bandRowBytes = (nCols*nBits) / 8.0f;
       bandRowBytes = (nCols*nBits) / 8;
-      if (_bandRowBytes - bandRowBytes > 0.001)
+      if (_bandRowBytes - bandRowBytes > 0.001f)
          bandRowBytes++;
       }
 

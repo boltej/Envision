@@ -1,6 +1,6 @@
-MainPackage=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.5.0_x64.msix
-SymbolPackage=D:\Envision\Source\SetupMSIX\obj\x64\Release\Symbols\SetupMSIX_9.0.5.0_x64.appxsym
-ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.5.0_scale-100.msix
-ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.5.0_scale-125.msix
-ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.5.0_scale-150.msix
-ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.5.0_scale-400.msix
+MainPackage=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.8.0_x64.msix
+SymbolPackage=D:\Envision\Source\SetupMSIX\obj\x64\Release\Symbols\SetupMSIX_9.0.8.0_x64.appxsym
+ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.8.0_scale-100.msix
+ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.8.0_scale-125.msix
+ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.8.0_scale-150.msix
+ResourcePack=D:\Envision\Source\SetupMSIX\bin\x64\Release\SetupMSIX_9.0.8.0_scale-400.msix

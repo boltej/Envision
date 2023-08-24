@@ -39,7 +39,7 @@ Copywrite 2012 - Oregon State University
 enum MODEL_ID {
 	SUCCESSION_TRANSITIONS=0,
 	DISTURBANCE_TRANSITIONS = 1,
-	TIME_IN_AGECLASS = 2,
+	UPDATE_VEG_INFO = 2,
 	};
 
 //#include <afx.h> //CString
@@ -469,7 +469,7 @@ class DynamicVeg : public EnvModelProcess
       
    protected:
 
-		void RunTimeInAgeClass(EnvContext* pEnvContext);
+		void RunUpdateVegInfo(EnvContext* pEnvContext);
 		void RunTransitions(EnvContext* pEnvContext);
 
       bool LoadProbCSV( CString probfilename, EnvContext *pEnvContext);
@@ -490,7 +490,7 @@ class DynamicVeg : public EnvModelProcess
 
 	  bool PvtSiteindex2DeltaArr(EnvContext *pEnvContext, int idu, int mc1row, int mc1col, int year);
 
-	  bool TimeInAgeClass(EnvContext *pEnvContext,int idu,bool probabilistic_flag,bool deterministic_flag); //not actual stand age, age within an age class, Also sets TSD
+	  bool UpdateIDUVegInfo(EnvContext *pEnvContext,int idu,bool probabilistic_flag,bool deterministic_flag); //not actual stand age, age within an age class, Also sets TSD
 
    protected:
      // mc1_output stuff

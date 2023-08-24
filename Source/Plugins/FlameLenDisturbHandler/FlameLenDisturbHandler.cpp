@@ -320,11 +320,11 @@ bool FlameLenDisturbHandler::Run( EnvContext *pEnvContext )
 			FIRE_STATE *pFS = m_fireSeverityArray[ index ];
 
 			// check fire states - first is NONE
-			if ( pFS->none > 0 && flameLen <= pFS->none );
+			if ( pFS->none > 0 && flameLen <= pFS->none )
+            ;
 
 			else if ( pFS->groundFire > 0 && flameLen <= pFS->groundFire )
 			   {
-				
 				disturb = SURFACE_FIRE;
 
 			   m_surfaceFireAreaHa    += area / 10000;  // assume coverage is in meters!!!
@@ -334,7 +334,6 @@ bool FlameLenDisturbHandler::Run( EnvContext *pEnvContext )
 			   }
 			else if ( pFS->mixedSeverityFire1 > 0 && flameLen <= pFS->mixedSeverityFire1 )
 			   {
-			
 				disturb = LOW_SEVERITY_FIRE;
 
 			   m_lowSeverityFireAreaHa    += area / 10000;  // assume coverage is in meters!!!
@@ -342,8 +341,7 @@ bool FlameLenDisturbHandler::Run( EnvContext *pEnvContext )
 			   m_lowSeverityFireAreaCumHa += area / 10000;
 			   }
 			else if ( pFS->mixedSeverityFire2 > 0 && flameLen <= pFS->mixedSeverityFire2 )
-			   {
-				
+			   {				
 				disturb = HIGH_SEVERITY_FIRE;
 
 			   m_highSeverityFireAreaHa    += area / 10000;  // assume coverage is in meters!!!
@@ -352,7 +350,6 @@ bool FlameLenDisturbHandler::Run( EnvContext *pEnvContext )
 			   }
 			else if ( pFS->severeFire > 0 && flameLen <= pFS->severeFire )
 			   {
-				
 				disturb = STAND_REPLACING_FIRE;
 
 			   m_standReplacingFireAreaHa    += area / 10000;  // assume coverage is in meters!!!

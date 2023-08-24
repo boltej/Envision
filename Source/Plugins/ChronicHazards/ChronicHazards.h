@@ -419,6 +419,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_simulationCount = 0;
 
       // flooding variables
+      int m_usePriorGrids = 0;
       float m_floodedArea = 0;
       float m_floodedAreaSqMiles = 0;
       float m_floodedRailroadMiles = 0;
@@ -946,6 +947,11 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       void TallyDuneStatistics(int currentYear);
       void TallyRoadStatistics();  // obsolete
       void ComputeInfraStatistics();
+
+      bool UpdateDuneErosionStats(int dunePt, float);
+
+
+
 
 
       // Helper Functions

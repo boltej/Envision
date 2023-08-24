@@ -3491,12 +3491,12 @@ void SpatialAllocator::ReportOutcomes(EnvContext *pContext)
             LPCTSTR limit = GetLimitStr(pAlloc->m_limit);
 
             if (isTargetDefined)
-               msg.Format("  Allocation [%s]: Realized: %.0f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i, limit=%s",
-                  (LPCTSTR)pAlloc->m_name, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar * 100 / pAllocSet->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
+               msg.Format("  Allocation [%s] (%i): Realized: %.0f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i, limit=%s",
+                  (LPCTSTR)pAlloc->m_name, pContext->currentYear, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar * 100 / pAllocSet->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
                   pAlloc->m_minScore, pAlloc->m_maxScore, pAlloc->m_scoreCount, pAlloc->m_usedCount, pAlloc->m_scoreBasis, pAlloc->m_expandArea, pAlloc->m_expandBasis, pAlloc->m_currentIduScoreIndex, limit);
             else
-               msg.Format("  Allocation [%s]: Target: %.0f,  Realized: %.1f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i, limit=%s",
-                  (LPCTSTR)pAlloc->m_name, pAlloc->m_currentTarget, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar * 100 / pAlloc->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
+               msg.Format("  Allocation [%s] (%i): Target: %.0f,  Realized: %.1f,  %% Realized: %.1f,  Constraint Area: %.0f,  Min Score: %.0f,  Max Score: %.0f,  Count: %i (%i used), Score Basis: %.0f, Expand Area: %.0f, Expand Basis: %.0f, currentIndex=%i, limit=%s",
+                  (LPCTSTR)pAlloc->m_name, pContext->currentYear, pAlloc->m_currentTarget, pAlloc->m_allocationSoFar, pAlloc->m_allocationSoFar * 100 / pAlloc->m_currentTarget, pAlloc->m_constraintAreaSatisfied,
                   pAlloc->m_minScore, pAlloc->m_maxScore, pAlloc->m_scoreCount, pAlloc->m_usedCount, pAlloc->m_scoreBasis, pAlloc->m_expandArea, pAlloc->m_expandBasis, pAlloc->m_currentIduScoreIndex, limit);
 
             pAlloc->m_status = msg;

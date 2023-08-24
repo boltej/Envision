@@ -482,10 +482,22 @@ int Scenario::SetScenarioVars( int runFlag )
          }
       }
 
+
+
+
    // model variables
+   for (int i = 0; i < m_scenarioVarArray.GetSize(); i++)
+      {
+      SCENARIO_VAR& vi = m_scenarioVarArray[i];    // scenario-specific model variable info
+      TRACE("%s ScenarioVar %s=%s (%i)\n", this->m_name, vi.name, vi.paramLocation.GetAsString(), vi.inUse);
+      }
+      
+      
    for ( int i=0; i < m_scenarioVarArray.GetSize(); i++ )
       {
       SCENARIO_VAR &vi = m_scenarioVarArray[ i ];    // scenario-specific model variable info
+
+      TRACE("ScenarioVar %s=%s", vi.name, vi.paramLocation.GetAsString());
 
       switch( vi.vtype )
          {

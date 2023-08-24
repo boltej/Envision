@@ -1084,7 +1084,7 @@ bool SNIPModel::Init()
       this->m_pSNLayer->m_pSNIP->AddOutputVar(this->m_pSNLayer->m_name.c_str(), m_pOutputData, "");
       
       this->m_pSNLayer->m_pSNIP->AddInputVar("LA Trust Decay Factor", this->m_laTrustDecay, "");
-      this->m_pSNLayer->m_pSNIP->AddInputVar("Landscape Signal", this->m_laTrustDecay, "");
+      //this->m_pSNLayer->m_pSNIP->AddInputVar("Landscape Signal", this->m_laTrustDecay, "");
       }
    return true;
    }
@@ -4203,12 +4203,15 @@ bool SNIP::Run(EnvContext* pEnvContext)
                // apply to each Engager <--> LA edge 
                for (int k = 0; k < pNode->m_inEdges.size(); k++)
                   {
+                  float trust = pNode->m_inEdges[k]->m_trust;
+
                   // apply decay factor
-                  pNode->m_inEdges[k]->m_trust *= (1.0f - pLayer->m_pSNIPModel->m_laTrustDecay);
+                  trust *= (1.0f - pLayer->m_pSNIPModel->m_laTrustDecay);
 
                   // add adaption factor
-                  pNode->m_inEdges[k]->m_trust *= (1.0f + adapt);
+                  trust += (1 - (trust /pLayer->m_pSNIPModel->m_transEffMax)) * adapt;
 
+                  pNode->m_inEdges[k]->m_trust = trust;
                   }
                }
             }
@@ -4303,7 +4306,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       {
       LPTSTR name = nullptr, path = nullptr, profiles = nullptr, profileQuery=nullptr, reactivityCol=nullptr, adaptCol=nullptr, engagerCol=nullptr, landscapeSignal=nullptr;
       int exportNetwork = 0, verifyNetwork = 0,  popProfileID = 0;
-      float m_mappingFrac = 0;
+      float m_mappingFrac = 0, laTrustDecay=0;
       XML_ATTR attrs[] = { // attr             type        address           isReq checkCol
                          { "name",               TYPE_STRING,  &name,            true,  0 },
                          { "path",               TYPE_STRING,  &path,            true,  0 },
@@ -4317,6 +4320,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "mapping_fraction",   TYPE_FLOAT,   &m_mappingFrac,   true,  0 },
                          { "export_network",     TYPE_INT,     &exportNetwork,   false,  0 },
                          { "verify_network",     TYPE_INT,     &verifyNetwork,   false,  0 },
+                         { "la_trust_decay",     TYPE_FLOAT,   &laTrustDecay,  false,  0 },
                          { nullptr,              TYPE_NULL,    nullptr,          false, 0 } };
 
       bool ok = TiXmlGetAttributes(pXmlLayer, attrs, filename);
@@ -4379,6 +4383,8 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
             pLayer->m_pSNIPModel->PopulateActorProfiles( pIDULayer);  // build profile map, set profileIDs in IDUs
             pLayer->m_pSNIPModel->PopulateActorAttitudes(pIDULayer);
             }
+
+         pLayer->m_pSNIPModel->m_laTrustDecay = laTrustDecay;
 
          pLayer->m_pSNIPModel->ConnectToIDUs(pIDULayer);
          

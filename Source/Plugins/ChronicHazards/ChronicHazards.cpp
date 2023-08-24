@@ -1631,7 +1631,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    if (m_runPolicy)
       RunPolicyManagement(pEnvContext);
 
-   TallyCostStatistics(pEnvContext->currentYear);
+   //TallyCostStatistics(pEnvContext->currentYear);
    TallyDuneStatistics(pEnvContext->currentYear);
    TallyRoadStatistics();
 
@@ -1685,11 +1685,11 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
       {
       int _beachType = 0;
       m_pDuneLayer->GetData(point, m_colDLBeachType, _beachType);
-      BEACHTYPE beachType = (BEACHTYPE) _beachType;
+      BEACHTYPE beachType = (BEACHTYPE)_beachType;
 
-      double R_inf_KD = 0;
-      double R_bruun = 0;
-      double R_SCR_hist = 0;
+      double R_inf_KD = 0;    // Keibel and Dean change rate (within year only)
+      double R_bruun = 0;     // Bruun rule change rate
+      double R_SCR_hist = 0;  // historic shoreline change rate
 
       // Do NOT calculate erosion for beachtypes of Undefined (0), Bay (10) , River (11) , Rocky Headland (12) ,& JETTY (14)
       if ((beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int)BchT_SANDY_WOODY_DEBRIS_BACKED) || beachType == BchT_SANDY_BURIED_RIPRAP_BACKED)
@@ -1702,9 +1702,8 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
 
          R_SCR_hist = SCRmodel(point);
 
-
          // determine shift in x positions based on erosions rates (done above)
-         double dx = (R_SCR_hist + R_bruun) + R_inf_KD;
+         double dx = (R_SCR_hist + R_bruun + R_inf_KD);  //  NOTE: Kreibel and Dean assumed to only operate within year, so it not included in dune translation at end of year
 
          m_pDuneLayer->SetData(point, m_colDLEkd, R_inf_KD);
          m_pDuneLayer->SetData(point, m_colDLEhist, R_SCR_hist);
@@ -1726,7 +1725,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          //                   - move dune tow slightly to the landward side of the MHW on a slope=maxBeachSlope
 
          ASSERT(dx >= 0);  // dx MUST be positive (or zero)
-         if (dx > 0 )      // && (beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int)BchT_SANDY_WOODY_DEBRIS_BACKED))
+         if (dx > 0)   // did any erosion occur?  if so, update resulting dune geometry 
             {
             // a) shift the MHW easting by dx.
             REAL eastingMHW = 0;
@@ -1736,17 +1735,17 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             // b) if resulting backshore slope exceed slope threshold, then
             //    adjust the dune toe easting until tanb = max slope
             REAL duneToeElev = 0.0f, duneToeEasting = 0.0f, duneCrestElev = 0.0f, duneCrestEasting = 0.0f, duneHeelElev = 0.0f, duneHeelEasting = 0.0f;
-            m_pDuneLayer->GetData(point, m_colDLDuneToe,      duneToeElev);
-            m_pDuneLayer->GetData(point, m_colDLEastingToe,   duneToeEasting);
-            m_pDuneLayer->GetData(point, m_colDLDuneCrest,    duneCrestElev);
+            m_pDuneLayer->GetData(point, m_colDLDuneToe, duneToeElev);
+            m_pDuneLayer->GetData(point, m_colDLEastingToe, duneToeEasting);
+            m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrestElev);
             m_pDuneLayer->GetData(point, m_colDLEastingCrest, duneCrestEasting);
-            m_pDuneLayer->GetData(point, m_colDLDuneHeel,     duneHeelElev);
-            m_pDuneLayer->GetData(point, m_colDLEastingHeel,  duneHeelEasting);
+            m_pDuneLayer->GetData(point, m_colDLDuneHeel, duneHeelElev);
+            m_pDuneLayer->GetData(point, m_colDLEastingHeel, duneHeelEasting);
 
             bool isUndercut = false;
             if (duneToeEasting <= eastingMHW)  // did the erosion undercut the toe?
                isUndercut = true;
-            
+
             REAL backshoreSlope = (duneToeElev - MHW) / (duneToeEasting - eastingMHW);      // MHW?  This is a constant, shouldn't it vary by year from SLR
 
             //if (backshoreSlope < 0)
@@ -1758,7 +1757,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
                if (hardened)
                   {
                   // For Hard Protection Structures, change the beachwidth and slope to reflect the new shoreline position
-                  // beach is assumed to narrow at the rate of the total chronic erosion, reflected through 
+                  // beach is assumed to narrow at the rate of the total chronic erosi8ion, reflected through 
                   // dynamic beach slopes further narrow when maintaining and constructing BPS at a 1:2 slope
 
                   //?? Need to account for negative shoreline change rate 
@@ -1833,25 +1832,30 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
                   else
                      ; // ASSERT(0);
                   }  // end of (adjust dune crest due to high slopes
-           
-            }
+
+               }
 
             // MHW, dune toe, dune crest postion updated, set new beach width, slope
             REAL beachWidth = duneToeEasting - eastingMHW;  // should always be positiive
             ASSERT(beachWidth >= 0);
-            backshoreSlope = (duneToeElev-MHW) / beachWidth;
+            backshoreSlope = (duneToeElev - MHW) / beachWidth;
             //ASSERT(beachSlope <= MAX_BACKSHORE_SLOPE);
             //ASSERT(beachSlope >= 0);
 
             m_pDuneLayer->SetData(point, m_colDLErosion, dx);
             m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachWidth);
-            m_pDuneLayer->SetData(point, m_colDLTranSlope,  backshoreSlope);
+            m_pDuneLayer->SetData(point, m_colDLTranSlope, backshoreSlope);
             m_pDuneLayer->SetData(point, m_colDLEastingMHW, eastingMHW);
 
             // Set new position of the Dune toe point in shape geometry
             Poly* pPoly = m_pDuneLayer->GetPolygon(point);
             pPoly->Translate(float(dx), 0);
-            }
+
+
+            // update Moving Windows for IDPY, avg/max twl, kd;   beachAccess (An,Sp,Su,Fa/Wi)
+            UpdateDuneErosionStats(point, R_inf_KD);
+
+            }  // end of: dx > 0
          }
       ///// MOVE TO PolicyManagement!!!  ???
       /////else if (beachType == BchT_RIPRAP_BACKED)
@@ -1861,118 +1865,17 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
       /////   m_maintCostBPS += BPSCost * m_costs.BPSMaint;
       /////   }
 
-      //float Ero = (float)R_inf_KD;
-
-      // Accumulated annually 
-      int IDDToeCount = 0;
-      int IDDToeCountWinter = 0;
-      int IDDToeCountSpring = 0;
-      int IDDToeCountSummer = 0;
-      int IDDToeCountFall = 0;
-
-      int IDDCrestCount = 0;
-      int IDDCrestCountWinter = 0;
-      int IDDCrestCountSpring = 0;
-      int IDDCrestCountSummer = 0;
-      int IDDCrestCountFall = 0;
-
-      // Impact days per year on dune toe (note that this is calcualted by the TWL Model)
-      m_pDuneLayer->GetData(point, m_colDLIDDToe, IDDToeCount);
-      m_pDuneLayer->GetData(point, m_colDLIDDToeWinter, IDDToeCountWinter);
-      m_pDuneLayer->GetData(point, m_colDLIDDToeSpring, IDDToeCountSpring);
-      m_pDuneLayer->GetData(point, m_colDLIDDToeSummer, IDDToeCountSummer);
-      m_pDuneLayer->GetData(point, m_colDLIDDToeFall, IDDToeCountFall);
-
-      // Impact days per year on dune crest
-      m_pDuneLayer->GetData(point, m_colDLIDDCrest, IDDCrestCount);
-      m_pDuneLayer->GetData(point, m_colDLIDDCrestWinter, IDDCrestCountWinter);
-      m_pDuneLayer->GetData(point, m_colDLIDDCrestSpring, IDDCrestCountSpring);
-      m_pDuneLayer->GetData(point, m_colDLIDDCrestSummer, IDDCrestCountSummer);
-      m_pDuneLayer->GetData(point, m_colDLIDDCrestFall, IDDCrestCountFall);
-
-      float duneToe = 0;
-      float yrMaxTWL = 0;
-      float beachwidth = 0;
-
-      MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(point);
-      ipdyMovingWindow->AddValue((float)(IDDToeCount + IDDCrestCount));
-
-      // for debugging
-      ///// if (m_debug)
-      /////    {
-      /////    int totalIDPY = 0;
-      /////    m_pDuneLayer->GetData(point, m_colNumIDPY, totalIDPY);
-      /////    totalIDPY += (IDDToeCount + IDDCrestCount);
-      /////    m_pDuneLayer->SetData(point, m_colNumIDPY, totalIDPY);
-      /////    }
+      //float Ero = (float)R_inf_KD;      
 
 
-      // Retrieve the average imapact days per year within the designated window
-      float movingAvgIDPY = ipdyMovingWindow->GetAvgValue();
-      m_pDuneLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
+
+} // end erosion calculation
 
 
-      MovingWindow* twlMovingWindow = m_TWLArray.GetAt(point);
-      twlMovingWindow->AddValue(yrMaxTWL);
-      // Retrieve the maxmum TWL within the designated window
-      float movingMaxTWL = twlMovingWindow->GetMaxValue();
-      m_pDuneLayer->SetData(point, m_colDLMvMaxTWL, movingMaxTWL);
-
-      // Retrieve the average TWL within the designated window
-      float movingAvgTWL = twlMovingWindow->GetAvgValue();
-      m_pDuneLayer->SetData(point, m_colDLMvAvgTWL, movingAvgTWL);
-
-      MovingWindow* eroKDMovingWindow = m_eroKDArray.GetAt(point);
-      eroKDMovingWindow->AddValue((float)R_inf_KD);
-
-      //ptrArrayIndex++;
 
 
-      // MOVE TO POLICY MANAGEMENT???
-      float avgIDPY_dtoe = IDDToeCount / 365.0f;
-      float avgIDPY_dcrest = IDDCrestCount / 365.0f;
-
-      float beachAccess = (1 - avgIDPY_dtoe - avgIDPY_dcrest) * 100;
-      float beachAccessWinter = (1 - (IDDToeCountWinter / 89.0f) - (IDDCrestCountWinter / 89.0f)) * 100;
-      float beachAccessSpring = (1 - (IDDToeCountSpring / 93.0f) - (IDDCrestCountSpring / 93.0f)) * 100;
-      float beachAccessSummer = (1 - (IDDToeCountSummer / 94.0f) - (IDDCrestCountSummer / 94.0f)) * 100;
-      float beachAccessFall = (1 - (IDDToeCountFall / 89.0f) - (IDDCrestCountFall / 89.0f)) * 100;
-
-      float reltwl = yrMaxTWL - duneToe;
-      //   float sumEro = Ero;
-      float sumduneT = avgIDPY_dtoe;
-      float sumduneC = avgIDPY_dcrest;
-      //     float sumTWL = twlav;
-      float sumrelTWL = reltwl;
-
-      if (beachAccess > m_accessThresh)
-         m_avgAccess += 1;
-
-      //m_hardenedShoreline = (percentArmored / float(shorelineLength)) * 100;
-      m_pDuneLayer->m_readOnly = false;
-
-      //         m_pDuneLayer->SetData(point, m_colAvgDuneT, avgduneTArray[ duneIndex ]);
-      //         m_pDuneLayer->SetData(point, m_colAvgDuneC, avgduneCArray[ duneIndex ]);
-      //         m_pDuneLayer->SetData(point, m_colAvgEro, avgEroArray[ duneIndex ]);
-      //         m_pDuneLayer->SetData(point, m_colCPolicyL, 0);
-      m_pDuneLayer->SetData(point, m_colDLBchAccess, beachAccess);
-      m_pDuneLayer->SetData(point, m_colDLBchAccessWinter, beachAccessWinter);
-      m_pDuneLayer->SetData(point, m_colDLBchAccessSpring, beachAccessSpring);
-      m_pDuneLayer->SetData(point, m_colDLBchAccessSummer, beachAccessSummer);
-      m_pDuneLayer->SetData(point, m_colDLBchAccessFall, beachAccessFall);
-      /////// m_pDuneLayer->SetData(point, m_colDLWb, Wb);
-      /////// m_pDuneLayer->SetData(point, m_colDLTS, TS);
-      /////// m_pDuneLayer->SetData(point, m_colDLHb, Hb);
-      //m_pDuneLayer->SetData(point, m_colDLKD, R_inf_KD);
-      /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
-      //m_pDuneLayer->SetData(point, m_colDLShorelineChange, R_SCR_hist);
-      //m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
-      //m_pDuneLayer->m_readOnly = true;
-
-      } // end erosion calculation
    return true;
    } // end dune line points
-
 
     // Add this when needed
       //int erodedCount = 0;
@@ -2039,47 +1942,48 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    twlFile.Format("%sTWL_%i.csv", outDir, pEnvContext->yearOfRun);
    twlData.WriteAscii(twlFile, ',');
 
-   // Get ready to call SFINCS Model
-   // Create MATLAB data array factory
-   matlab::data::ArrayFactory factory;
-   // Pass vector containing 3 scalar args in vector    
-   std::vector<matlab::data::Array> args({
-      factory.createCharArray((LPCTSTR)twlFile),// TWL_dir
-      //factory.createScalar<double>(5), // TWL
-      factory.createScalar<int>(0), // Advection
-      factory.createScalar<int>(100), // Cellsize
-      factory.createCharArray((LPCTSTR)m_sfincsHome),// sfincs home dir
-      });
+   if (this->m_usePriorGrids == 0)
+      {
 
-   // Create string buffer for standard output
-   typedef std::basic_stringbuf<char16_t> StringBuf;
-   std::shared_ptr<StringBuf> output = std::make_shared<StringBuf>();
+      // Get ready to call SFINCS Model
+      // Create MATLAB data array factory
+      matlab::data::ArrayFactory factory;
+      // Pass vector containing 3 scalar args in vector    
+      std::vector<matlab::data::Array> args({
+         factory.createCharArray((LPCTSTR)twlFile),// TWL_dir
+         //factory.createScalar<double>(5), // TWL
+         factory.createScalar<int>(0), // Advection
+         factory.createScalar<int>(100), // Cellsize
+         factory.createCharArray((LPCTSTR)m_sfincsHome),// sfincs home dir
+         });
 
-   // Call MATLAB function and return result
-   try {
-      matlab::data::TypedArray<int> result = m_matlabPtr->feval(u"SFINCS_ENVISION", args, output);
+      // Create string buffer for standard output
+      typedef std::basic_stringbuf<char16_t> StringBuf;
+      std::shared_ptr<StringBuf> output = std::make_shared<StringBuf>();
+
+      // Call MATLAB function and return result
+      try {
+         matlab::data::TypedArray<int> result = m_matlabPtr->feval(u"SFINCS_ENVISION", args, output);
+         }
+      catch (const std::exception& ex) {
+         Report::LogError(ex.what());
+
+         //ex.stackTrace[0].fileName
+         //ex.stackTrace[0].lineNumber
+         // std::cout<<ex.what();
+         }
+      catch (const std::string& ex) {
+         Report::LogError(ex.c_str()); //std::cout << ex;
+         }
+      catch (...) {
+         //std::exception_ptr p = std::current_exception();
+         Report::LogError("Unspecified exception when running flood model");
+         }
+
+      // Display MATLAB output in C++
+      matlab::engine::String output_ = output.get()->str();
+      Report::Log(matlab::engine::convertUTF16StringToUTF8String(output_).c_str());
       }
-   catch (const std::exception& ex) {
-      Report::LogError(ex.what());
-
-      //ex.stackTrace[0].fileName
-      //ex.stackTrace[0].lineNumber
-      // std::cout<<ex.what();
-      }
-   catch (const std::string& ex) {
-      Report::LogError(ex.c_str()); //std::cout << ex;
-      }
-   catch (...) {
-      //std::exception_ptr p = std::current_exception();
-      Report::LogError("Unspecified exception when running flood model");
-      }
-
-   // Display MATLAB output in C++
-   matlab::engine::String output_ = output.get()->str();
-   Report::Log(matlab::engine::convertUTF16StringToUTF8String(output_).c_str());
-
-
-
 
    // load grid
    Map* pMap = m_pDuneLayer->GetMapPtr();
@@ -2088,13 +1992,29 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    if (m_pFloodedGrid != nullptr)
       m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
 
-   CString grdFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
-   m_pFloodedGrid = pMap->AddGridLayer(grdFile, DO_TYPE::DOT_FLOAT);
+   // add the new grid
+   CString gridFile;
+   if (this->m_usePriorGrids)
+      {
+      gridFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR)PathManager::GetPath(PM_OUTPUT_DIR),
+         pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+      }
+   else
+      {
+      gridFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
+      }
+
+   this->m_pFloodedGrid = pMap->AddGridLayer(gridFile, DO_TYPE::DOT_FLOAT);
+
+   //CString outFile;
+   //outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR)PathManager::GetPath(PM_OUTPUT_DIR),
+   //   pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+   //
+   //CString renamegrdFile;
+   //renamegrdFile.Format(m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths_%i.asc", (pEnvContext->yearOfRun + pEnvContext->startYear));
+   //rename(grdFile, renamegrdFile);
 
    CalculateFloodImpacts(pEnvContext);
-   CString renamegrdFile;
-   renamegrdFile.Format(m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths_%i.asc", (pEnvContext->yearOfRun + pEnvContext->startYear));
-   rename(grdFile, renamegrdFile);
 
    // update timings
    clock_t finish = clock();
@@ -2179,8 +2099,8 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
    // Count of area of grid cells in flooded grid that are flooded to determine area flooded
    double floodedArea = 0.0f; // grid cells that are flooded multiplied by the number of grid cells
 
-   // road stats first
-   if (m_runInfrastructure && m_pRoadLayer != nullptr)
+   // flooded road stats first
+   if (this->m_runFlooding && m_pRoadLayer != nullptr)
       {
       /************************   Calculate Flooded Road Statistics ************************/
       int numRows = m_pFloodedGrid->GetRowCount();
@@ -2246,7 +2166,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
                }
             delete[] indices;
             }
-         }  // end of: if (m_runInfrastructure && m_pRoadLayer != nullptr)
+         }  // end of: if (m_runFloodModel && m_pRoadLayer != nullptr)
 
        // meters to miles
       m_floodedRoadMiles = m_floodedRoad * MI_PER_M;
@@ -4243,8 +4163,6 @@ void ChronicHazards::ComputeBuildingStatistics()
    //    it has experienced flooding and set the building's flood frequency value
    // 3) for erosions, 
 
-
-
    // determine how many new buildings were added
    int numNewBldgs = m_pBldgLayer->GetRowCount() - m_numBldgs;
    m_numBldgs += numNewBldgs;
@@ -4359,6 +4277,7 @@ void ChronicHazards::ComputeBuildingStatistics()
           int duCount = 0;
           m_pBldgLayer->GetData(bldgIndex, m_colBldgNDU, duCount);
           bool isDeveloped = (duCount > 0) ? true : false;
+
           // need to get all bldg from column before
           //m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
           CArray<int,int> idus;
@@ -4367,9 +4286,19 @@ void ChronicHazards::ComputeBuildingStatistics()
           // has building previously eroded by chronic erosion?
           m_pBldgLayer->GetData(bldgIndex, m_colBldgEroded, erodedBldg);
           
-          // it has, so reset event eroded buildings
+          // it has, so reset event eroded buildings //??????
           if (erodedBldg > 0)
             m_pBldgLayer->SetData(bldgIndex, m_colBldgEroded, 0);
+
+         //
+
+
+
+
+
+
+
+
 
    //         // within grid ?
    //         if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
@@ -4623,6 +4552,126 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
    m_percentRestoredShorelineMiles = m_percentRestoredShoreline * MI_PER_M;
 
    }
+
+
+
+// updates: 
+// 1) Moving Windows for IDPY, avg/max twl, kd, 
+// 2) beachAccess (An,Sp,Su,Fa/Wi).
+bool ChronicHazards::UpdateDuneErosionStats(int point, float R_inf_KD) 
+   {
+   // dune 
+   // Accumulated annually 
+   int IDDToeCount = 0;
+   int IDDToeCountWinter = 0;
+   int IDDToeCountSpring = 0;
+   int IDDToeCountSummer = 0;
+   int IDDToeCountFall = 0;
+   
+   int IDDCrestCount = 0;
+   int IDDCrestCountWinter = 0;
+   int IDDCrestCountSpring = 0;
+   int IDDCrestCountSummer = 0;
+   int IDDCrestCountFall = 0;
+   
+   // get Impact days per year on dune toe (note that this is calcualted by the TWL Model)
+   m_pDuneLayer->GetData(point, m_colDLIDDToe, IDDToeCount);
+   m_pDuneLayer->GetData(point, m_colDLIDDToeWinter, IDDToeCountWinter);
+   m_pDuneLayer->GetData(point, m_colDLIDDToeSpring, IDDToeCountSpring);
+   m_pDuneLayer->GetData(point, m_colDLIDDToeSummer, IDDToeCountSummer);
+   m_pDuneLayer->GetData(point, m_colDLIDDToeFall, IDDToeCountFall);
+   
+   // Impact days per year on dune crest
+   m_pDuneLayer->GetData(point, m_colDLIDDCrest, IDDCrestCount);
+   m_pDuneLayer->GetData(point, m_colDLIDDCrestWinter, IDDCrestCountWinter);
+   m_pDuneLayer->GetData(point, m_colDLIDDCrestSpring, IDDCrestCountSpring);
+   m_pDuneLayer->GetData(point, m_colDLIDDCrestSummer, IDDCrestCountSummer);
+   m_pDuneLayer->GetData(point, m_colDLIDDCrestFall, IDDCrestCountFall);
+   
+   float duneToe = 0;
+   float yrMaxTWL = 0;
+   float beachwidth = 0;
+   
+   MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(point);
+   ipdyMovingWindow->AddValue((float)(IDDToeCount + IDDCrestCount));
+   
+   // for debugging
+   ///// if (m_debug)
+   /////    {
+   /////    int totalIDPY = 0;
+   /////    m_pDuneLayer->GetData(point, m_colNumIDPY, totalIDPY);
+   /////    totalIDPY += (IDDToeCount + IDDCrestCount);
+   /////    m_pDuneLayer->SetData(point, m_colNumIDPY, totalIDPY);
+   /////    }
+   
+   
+   // Retrieve the average imapact days per year within the designated window
+   float movingAvgIDPY = ipdyMovingWindow->GetAvgValue();
+   m_pDuneLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
+   
+   
+   MovingWindow* twlMovingWindow = m_TWLArray.GetAt(point);
+   twlMovingWindow->AddValue(yrMaxTWL);
+   // Retrieve the maxmum TWL within the designated window
+   float movingMaxTWL = twlMovingWindow->GetMaxValue();
+   m_pDuneLayer->SetData(point, m_colDLMvMaxTWL, movingMaxTWL);
+   
+   // Retrieve the average TWL within the designated window
+   float movingAvgTWL = twlMovingWindow->GetAvgValue();
+   m_pDuneLayer->SetData(point, m_colDLMvAvgTWL, movingAvgTWL);
+   
+   MovingWindow* eroKDMovingWindow = m_eroKDArray.GetAt(point);
+   eroKDMovingWindow->AddValue((float)R_inf_KD);
+   
+   //ptrArrayIndex++;
+   
+   
+   // MOVE TO POLICY MANAGEMENT???
+   float avgIDPY_dtoe = IDDToeCount / 365.0f;
+   float avgIDPY_dcrest = IDDCrestCount / 365.0f;
+   
+   float beachAccess = (1 - avgIDPY_dtoe - avgIDPY_dcrest) * 100;
+   float beachAccessWinter = (1 - (IDDToeCountWinter / 89.0f) - (IDDCrestCountWinter / 89.0f)) * 100;
+   float beachAccessSpring = (1 - (IDDToeCountSpring / 93.0f) - (IDDCrestCountSpring / 93.0f)) * 100;
+   float beachAccessSummer = (1 - (IDDToeCountSummer / 94.0f) - (IDDCrestCountSummer / 94.0f)) * 100;
+   float beachAccessFall = (1 - (IDDToeCountFall / 89.0f) - (IDDCrestCountFall / 89.0f)) * 100;
+   
+   float reltwl = yrMaxTWL - duneToe;
+   //   float sumEro = Ero;
+   float sumduneT = avgIDPY_dtoe;
+   float sumduneC = avgIDPY_dcrest;
+   //     float sumTWL = twlav;
+   float sumrelTWL = reltwl;
+   
+   if (beachAccess > m_accessThresh)
+   m_avgAccess += 1;
+   
+   //m_hardenedShoreline = (percentArmored / float(shorelineLength)) * 100;
+   m_pDuneLayer->m_readOnly = false;
+   
+   //         m_pDuneLayer->SetData(point, m_colAvgDuneT, avgduneTArray[ duneIndex ]);
+   //         m_pDuneLayer->SetData(point, m_colAvgDuneC, avgduneCArray[ duneIndex ]);
+   //         m_pDuneLayer->SetData(point, m_colAvgEro, avgEroArray[ duneIndex ]);
+   //         m_pDuneLayer->SetData(point, m_colCPolicyL, 0);
+   m_pDuneLayer->SetData(point, m_colDLBchAccess, beachAccess);
+   m_pDuneLayer->SetData(point, m_colDLBchAccessWinter, beachAccessWinter);
+   m_pDuneLayer->SetData(point, m_colDLBchAccessSpring, beachAccessSpring);
+   m_pDuneLayer->SetData(point, m_colDLBchAccessSummer, beachAccessSummer);
+   m_pDuneLayer->SetData(point, m_colDLBchAccessFall, beachAccessFall);
+   /////// m_pDuneLayer->SetData(point, m_colDLWb, Wb);
+   /////// m_pDuneLayer->SetData(point, m_colDLTS, TS);
+   /////// m_pDuneLayer->SetData(point, m_colDLHb, Hb);
+   //m_pDuneLayer->SetData(point, m_colDLKD, R_inf_KD);
+   /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
+   //m_pDuneLayer->SetData(point, m_colDLShorelineChange, R_SCR_hist);
+   //m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+   //m_pDuneLayer->m_readOnly = true;
+
+   return true;
+   } // end erosion calculation
+
+
+
 
 void ChronicHazards::ComputeFloodedIDUStatistics()
    {
@@ -5017,12 +5066,12 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       {
       CString fldFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
       CString outFile;
-      outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR) PathManager::GetPath(PM_OUTPUT_DIR),pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+      outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR) PathManager::GetPath(PM_OUTPUT_DIR),
+         pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
 
       // copy the file to the standard output locations
       std::ifstream  src(fldFile, std::ios::binary);
       std::ofstream  dst(outFile, std::ios::binary);
-
       dst << src.rdbuf();
       }
 
@@ -9591,12 +9640,11 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
    if (pXmlFlooding != nullptr)
       {
       LPTSTR sfincsHome = nullptr, floodDir = nullptr;
-
+      int usePriorGrids = 0;
       XML_ATTR floodAttrs[] = {
-         // attr             type          address         isReq  
-         //{ "use",            TYPE_BOOL,    &use,          true,    0 },
-         { "sfincs_home",    TYPE_STRING,  &sfincsHome,   true,    0 },
-         //{ "flood_dir",      TYPE_STRING,  &floodDir,     true,    0 },
+         // attr             type          address          isReq  
+         { "sfincs_home",     TYPE_STRING,  &sfincsHome,    true,    0 },
+         { "use_prior_grids", TYPE_INT,     &usePriorGrids, false,   0 },
          { nullptr,          TYPE_NULL,    nullptr,       false,   0 } };
 
       if (TiXmlGetAttributes(pXmlFlooding, floodAttrs, filename) == false)
@@ -9608,6 +9656,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
          }
 
       this->m_sfincsHome = sfincsHome;
+      this->m_usePriorGrids = usePriorGrids;
       this->m_floodDir = floodDir;
       //if (use)
       //   m_runFlags += CH_MODEL_FLOODING;

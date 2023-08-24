@@ -3259,6 +3259,13 @@ void EnvModel::InitRun()
       m_envContext.targetPolyArray = m_targetPolyArray;
       m_envContext.targetPolyCount = m_targetPolyArray == NULL ? 0 : m_pIDULayer->GetPolygonCount();
 
+
+      ASSERT(m_pScenario != NULL);
+      m_envContext.pScenario = m_pScenario;
+      m_pScenario->SetScenarioVars(1);
+
+
+
       // add a new result collection to results panel      
       //gpResultsPanel->AddRun( m_currentRun );
       Notify( EMNT_INITRUN, m_currentRun, m_endYear-m_startYear );
@@ -5629,7 +5636,7 @@ int EnvModel::ChangeIDUActor( EnvContext *pContext, int idu, int groupID, bool r
    pNewActor->AddPoly( idu );
 
    if ( pContext != NULL )
-      this->AddDelta( idu, m_colActor, pContext->currentYear, VData( groupID ), pContext->handle );
+      this->AddDelta( idu, m_colActor, pContext->currentYear, VData( groupID ), (int) pContext->handle );
    else
       m_pIDULayer->SetData( idu, m_colActor, groupID );
    

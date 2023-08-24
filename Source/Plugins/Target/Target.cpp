@@ -62,27 +62,27 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext*)
 ALLOCATION::~ALLOCATION()
    {
    /*if ( pParser ) delete pParser;*/
-   if ( pQuery != NULL && pTarget->m_pQueryEngine != NULL )
+   if ( pQuery != nullptr && pTarget->m_pQueryEngine != nullptr )
       pTarget->m_pQueryEngine->RemoveQuery( pQuery );
 
-   if ( parserVars != NULL )
+   if ( parserVars != nullptr )
       delete parserVars; 
    }
 
 PREFERENCE::~PREFERENCE()
    {
    /*if ( pParser ) delete pParser;*/
-   //if ( pQuery != NULL && pTarget->m_pQueryEngine != NULL )
+   //if ( pQuery != nullptr && pTarget->m_pQueryEngine != nullptr )
    //   pTarget->m_pQueryEngine->RemoveQuery( pQuery );
 
-   //if ( parserVars != NULL )
+   //if ( parserVars != nullptr )
    //   delete parserVars; 
    }
 
 
 TargetReport::~TargetReport()
    {
-    if ( m_pQuery != NULL && m_pTarget->m_pQueryEngine != NULL )
+    if ( m_pQuery != nullptr && m_pTarget->m_pQueryEngine != nullptr )
        m_pTarget->m_pQueryEngine->RemoveQuery(m_pQuery );
 
   } 
@@ -91,7 +91,7 @@ TargetReport::~TargetReport()
 ALLOCATION *AllocationSet::AddAllocation( LPCTSTR name, Target *pTarget, LPCTSTR query, LPCTSTR expr, float multiplier )
    {
    ALLOCATION *pAllocation = new ALLOCATION( name, pTarget, query, expr, multiplier );
-   ASSERT( pAllocation != NULL );
+   ASSERT( pAllocation != nullptr );
 
    CArray::Add( pAllocation );
 
@@ -104,7 +104,7 @@ PREFERENCE *AllocationSet::AddPreference( LPCTSTR name, Target *pTarget, LPCTSTR
    PREFERENCE *pPref = m_preferences.Add( name, pTarget, query, value );
 
    // process query
-   if ( query != NULL )
+   if ( query != nullptr )
       {
       CString source( "Allocation Preference '" );
       source += name;
@@ -121,7 +121,7 @@ PREFERENCE *AllocationSet::AddPreference( LPCTSTR name, Target *pTarget, LPCTSTR
          CString msg( "Unable to compile allocation query: " );
          msg += query;
          Report::LogWarning( msg );
-         pPref->pQuery = NULL;
+         pPref->pQuery = nullptr;
          }
       }
 
@@ -149,7 +149,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
          CString msg( "Unable to compile allocation query: " );
          msg += queryStr;
          Report::LogWarning( msg );
-         pQuery = NULL;
+         pQuery = nullptr;
          }
       }
 
@@ -172,7 +172,7 @@ bool ALLOCATION::Compile( Target *pTarget, const MapLayer *pLayer )
    // compile this formula
    try 
       {
-      ASSERT( parserVars == NULL ); 
+      ASSERT( parserVars == nullptr ); 
 
       parser.enableAutoVarDefinition( true );
       parser.compile( expression );
@@ -241,7 +241,7 @@ Target::Target( TargetProcess *pProcess, int id, LPCTSTR name )
 , m_rate( 0.05 )
 , m_method( TM_UNDEFINED )
 , m_areaUnits( -1 )
-, m_pTargetData( NULL )
+, m_pTargetData( nullptr )
 , m_targetData_year0( 0 )
 , m_colArea( -1 )
 , m_colTarget( -1 )
@@ -255,8 +255,8 @@ Target::Target( TargetProcess *pProcess, int id, LPCTSTR name )
 , m_colPctAvailCapacity( -1 )
 , m_colPrefs( -1 )
 , m_activeAllocSetID( -1 )
-, m_pQueryEngine(NULL)
-, m_pQuery( NULL )
+, m_pQueryEngine(nullptr)
+, m_pQuery( nullptr )
 , m_inVarStartIndex( -1 )
 , m_outVarStartIndex( -1 )
 , m_outVarCount( 0 )
@@ -272,7 +272,7 @@ Target::~Target()
 
    m_constArray.RemoveAll();
 
-   if ( m_pTargetData != NULL )
+   if ( m_pTargetData != nullptr )
       delete m_pTargetData;
    }
 
@@ -286,7 +286,7 @@ bool Target::Init( EnvContext *pEnvContext )
 
    // calculates total value for capacities, populated IDUs 
 
-   if (this->m_pQuery != NULL)
+   if (this->m_pQuery != nullptr)
       m_pQueryEngine->SelectQuery(this->m_pQuery, true);
 
    PopulateCapacity( pEnvContext, false );
@@ -295,12 +295,12 @@ bool Target::Init( EnvContext *pEnvContext )
    for ( int i=0; i < m_reportArray.GetSize(); i++ )
       {
       TargetReport *pReport = m_reportArray[ i ];
-      ASSERT( pReport != NULL );
+      ASSERT( pReport != nullptr );
       pReport->m_count = 0;
       pReport->m_fraction = 0;
       }
 
-   if ( this->m_pQuery != NULL )
+   if ( this->m_pQuery != nullptr )
       ((MapLayer*) pEnvContext->pMapLayer)->ClearSelection();
 
    // generate initial report
@@ -366,30 +366,51 @@ bool Target::InitRun( EnvContext *pEnvContext )
    m_startTotalActualValue = m_lastTotalActualValue = m_curTotalActualValue;   
 
    // updates targetCapacity, availableCapacity, pctAvailCapacity and IDU-level values
-   if (this->m_pQuery != NULL)
+   if (this->m_pQuery != nullptr)
       m_pQueryEngine->SelectQuery(this->m_pQuery, true);
 
    PopulateCapacity( pEnvContext, false );
+
+   // take care of init_mask if defined
+   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
+   if (this->m_colInitMask >= 0 && this->m_pInitMaskQuery != nullptr)
+      {
+      int count = 0;
+      for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+         {
+         bool result = false;
+         bool ok = this->m_pInitMaskQuery->Run(idu, result);
+
+         if (ok && result)
+            {
+            pLayer->SetData(idu, this->m_colInitMask, 1);
+            count++;
+            }
+         }
+      PopulateCapacity(pEnvContext, false);
+
+      Report::Log_i("Initial Mask excluded %i IDUs", count);
+      }
 
    // initialize TargetReport variables
    for ( int i=0; i < m_reportArray.GetSize(); i++ )
       {
       TargetReport *pReport = m_reportArray[ i ];
-      ASSERT( pReport != NULL );
+      ASSERT( pReport != nullptr );
       pReport->m_count = 0;
       pReport->m_fraction = 0;
       }
 
-   if ( m_pQuery == NULL )
+   if ( m_pQuery == nullptr )
       ((MapLayer*) pEnvContext->pMapLayer)->ClearSelection();
 
-
    AllocationSet* pAllocationSet = GetActiveAllocationSet();
-   ASSERT(pAllocationSet != NULL);
+   ASSERT(pAllocationSet != nullptr);
 
    CString msg;
-   msg.Format( _T("%s (%i) - Starting: %g, Capacity: %g, Available: %g, Over Capacity: %g\n"),
-      (LPCTSTR) m_name, pAllocationSet->m_id, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, m_totalOverCapacity );
+   msg.Format( _T("%s (%i) - Starting: %g, Capacity: %g, Available: %g, Over Capacity: %g, Available Capacity Fraction: %g\n"),
+      (LPCTSTR) m_name, pAllocationSet->m_id, m_startTotalActualValue, m_totalCapacity, m_totalAvailCapacity, 
+      m_totalOverCapacity, m_totalAvailCapacity/m_totalCapacity);
    Report::LogInfo( msg );
 
    return true;
@@ -432,7 +453,7 @@ TargetReport *Target::AddReport( LPCTSTR name, LPCTSTR query )
       CString msg( "Unable to compile report query: " );
       msg += query;
       Report::LogWarning( msg );
-      pReport->m_pQuery = NULL;
+      pReport->m_pQuery = nullptr;
       }
 
    return pReport;
@@ -452,26 +473,11 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    const MapLayer *pLayer = pEnvContext->pMapLayer;
    int colCount = pLayer->GetColCount();
 
+   // initialize as needed...
    m_totalCapacity = 0;
    m_totalAvailCapacity = 0;
    m_totalModifiedAvailCapacity = 0;
    m_totalOverCapacity = 0;   
-
-   //for ( MapLayer::Iterator _idu=pLayer->Begin(MapLayer::ACTIVE); _idu < pLayer->End(MapLayer::ACTIVE); _idu++ )
-   //   {
-   //   int idu = (int)_idu;
-   //
-   //   //ASSERT( m_capacityArray != NULL );
-   //   //ASSERT( m_availCapacityArray != NULL );
-   //   ASSERT( m_capacityArray.size() > 0  );
-   //   ASSERT( m_availCapacityArray.size() > 0 );
-   //
-   //   m_capacityArray[ idu ] = LONG_MIN;     // set everything to small values to ensure they are overwritten
-   //   m_availCapacityArray[ idu ] = LONG_MIN;
-   //
-   //   if ( m_preferenceArray.size() > 0 )      // this is the preference value (multiplier) for each IDU 
-   //      m_preferenceArray[ idu ] = 1.0f;
-   //   }
 
    std::fill(m_capacityArray.begin(), m_capacityArray.end(), (float)LONG_MIN - 1);
    std::fill(m_availCapacityArray.begin(), m_availCapacityArray.end(), (float)LONG_MIN - 1);
@@ -488,23 +494,35 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    int redundantIDUs = 0;
 
    AllocationSet *pAllocationSet = GetActiveAllocationSet();
-   ASSERT( pAllocationSet != NULL );
+   ASSERT( pAllocationSet != nullptr );
 
    MapLayer::ML_RECORD_SET iteratorType = MapLayer::ACTIVE;
-   if (this->m_pQuery != NULL)
+   if (this->m_pQuery != nullptr)
       iteratorType = MapLayer::SELECTION;
    
    for ( int i=0; i < (int) pAllocationSet->GetCount(); i++ )
       {
       ALLOCATION *pAlloc = pAllocationSet->GetAt( i );
-      ASSERT( pAlloc != NULL );
+      ASSERT( pAlloc != nullptr );
       pAlloc->ResetCurrent(); 
 
       int queryCount = 0;
+
+      int colUR = pLayer->GetFieldCol("URB_RESERV");
+
       for ( MapLayer::Iterator _idu=pLayer->Begin(iteratorType); _idu < pLayer->End(iteratorType); _idu++ )
          {
          int idu = (int)_idu;
-         if ( pAlloc->pQuery != NULL )
+
+         /////////////
+         int ur = 0;
+         pLayer->GetData(idu, colUR, ur);
+
+
+
+
+
+         if ( pAlloc->pQuery != nullptr )
             {
             bool result = false;
             bool ok = pAlloc->pQuery->Run( idu, result );
@@ -583,29 +601,29 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
 
          pAlloc->currentValue += targetDensity*area;
 
-         float delta = capacity - ( targetDensity * area );   // capacity (current) - current # = available #
-         float availCapacity = delta;      // numbers, not density
+         float availCapacity = capacity - ( targetDensity * area );   // capacity (current) - current # = available #, numbers, not density
 
-         if ( availCapacity < 0 ) // over capacity?
-            m_totalOverCapacity += -delta;
+         if (availCapacity < 0) // over capacity?
+            {
+            m_totalOverCapacity += -availCapacity;
+            availCapacity = 0;
+            }
 
          if ( m_colAvailCapacity >= 0 )  // really, these are deltas...
             {
             // get existing capacity
-            float existingDelta;
-            pLayer->GetData( idu, m_colAvailCapacity, existingDelta );
+            float existingAvailCapacity;
+            pLayer->GetData( idu, m_colAvailCapacity, existingAvailCapacity);
 
-            if ( existingDelta != delta )
-               m_pProcess->UpdateIDU( pEnvContext, idu, m_colAvailCapacity, delta, useAddDelta ? ADD_DELTA : SET_DATA );  // non-density units (can be negative if overallocated)
+            if ( existingAvailCapacity != availCapacity)
+               m_pProcess->UpdateIDU( pEnvContext, idu, m_colAvailCapacity, availCapacity, useAddDelta ? ADD_DELTA : SET_DATA );  // non-density units (can be negative if overallocated)
             }
 
          m_capacityArray[ idu ] = capacity;
-         m_availCapacityArray[ idu ] = availCapacity > 0 ? availCapacity : 0;
+         m_availCapacityArray[ idu ] = availCapacity;  // only consider postive available capacities
 
          m_totalCapacity += capacity;
-
-         if ( availCapacity > 0 )   // available capacity only real if positive
-            m_totalAvailCapacity += availCapacity;
+         m_totalAvailCapacity += availCapacity;
 
          // calculate any preferences to find modified total available capacity
          // calculate any allocation_set preferences
@@ -616,10 +634,10 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
             for ( int p=0; p < pAllocationSet->m_preferences.GetSize(); p++ )
                {
                PREFERENCE *pPref = pAllocationSet->m_preferences.GetAt( p );
-               ASSERT( pPref != NULL );
+               ASSERT( pPref != nullptr );
                ASSERT(this->m_preferenceArray.size() > 0);
 
-               if ( pPref->pQuery != NULL )
+               if ( pPref->pQuery != nullptr )
                   {
                   bool result;
                   bool ok = pPref->pQuery->Run( idu, result );
@@ -650,24 +668,24 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
       for ( MapLayer::Iterator _idu=pLayer->Begin(iteratorType); _idu < pLayer->End(iteratorType); _idu++ )
          {
          int idu = (int)_idu;
-
-         float pctAvailCapacity = 0;
-         
          if ( m_colPctAvailCapacity >= 0 )
             {
-            if ( (m_availCapacityArray[idu] > LONG_MIN) && (m_capacityArray[idu] > 0.0f ) )
+            float pctAvailCapacity = 0;
+
+            // only compute capacities if greater than 0 
+            if ((m_availCapacityArray[idu] > LONG_MIN) && (m_capacityArray[idu] > 0.0f))
                {
                pctAvailCapacity = m_availCapacityArray[idu] / m_capacityArray[idu];
 
-               if( pctAvailCapacity < -1.0f )
-                  pctAvailCapacity = -1.0;
-
-               float curPctAvailCapacity;
-               pLayer->GetData(idu, m_colPctAvailCapacity, curPctAvailCapacity );
-
-               if ( curPctAvailCapacity != pctAvailCapacity )
-                  m_pProcess->UpdateIDU( pEnvContext, idu, m_colPctAvailCapacity, pctAvailCapacity, useAddDelta ? ADD_DELTA : SET_DATA );
+               if (pctAvailCapacity < 0)
+                  pctAvailCapacity = 0;
                }
+
+            float curPctAvailCapacity;
+            pLayer->GetData(idu, m_colPctAvailCapacity, curPctAvailCapacity );
+
+            if ( curPctAvailCapacity != pctAvailCapacity )
+               m_pProcess->UpdateIDU( pEnvContext, idu, m_colPctAvailCapacity, pctAvailCapacity, useAddDelta ? ADD_DELTA : SET_DATA );
             }
 
          if ( m_colAvailDens >= 0 && m_colCapDensity >= 0 )
@@ -677,11 +695,15 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
             pLayer->GetData(idu, m_colCapDensity, capDens );
             pLayer->GetData(idu, m_colTarget, targetDens );
 
-            float availDens = 0;
-            pLayer->GetData(idu, m_colAvailDens, availDens );
+            float oldAvailDens = 0;
+            pLayer->GetData(idu, m_colAvailDens, oldAvailDens );
+            
+            float availDens = capDens - targetDens;
+            if (availDens < 0)
+               availDens = 0;
 
-            if ( capDens-targetDens != availDens )
-               m_pProcess->UpdateIDU( pEnvContext, idu, m_colAvailDens, (capDens-targetDens), useAddDelta ? ADD_DELTA : SET_DATA );
+            if ( availDens != oldAvailDens )
+               m_pProcess->UpdateIDU( pEnvContext, idu, m_colAvailDens, availDens, useAddDelta ? ADD_DELTA : SET_DATA );
             }
 
          if ( m_colPrefs >= 0 )
@@ -705,7 +727,7 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    //   m_totalOverCapacity
    m_totalPercentAvailable = (m_totalAvailCapacity/m_totalCapacity)*100;
 
-   //if (this->m_pQuery != NULL)
+   //if (this->m_pQuery != nullptr)
    //   ((MapLayer*)pLayer)->ClearSelection();
 
    return;
@@ -724,7 +746,7 @@ void Target::LoadTableValues()
       }
 
    TTable* pTable = this->m_pProcess->GetTTable(ti[0]);
-   if (pTable == NULL)
+   if (pTable == nullptr)
       {
       CString msg("Target: Couldn't find table ");
       msg += ti[0];      
@@ -734,12 +756,18 @@ void Target::LoadTableValues()
 
    this->m_pTargetData->ClearRows();
 
+   //Report::Log_s("Loading target from Table (%s): ", (LPCTSTR) this->m_name);
    float pair[2]={0,0};
    for (int i = 0; i < pTable->GetYearCount(); i++)
       {
       pair[0] = (float)pTable->GetYear(i);
       pair[1] = pTable->Lookup(ti[1], pTable->GetYear(i));
       this->m_pTargetData->AppendRow(pair, 2);
+
+      //CString msg;
+      //msg.Format("(%i,%i) ", (int)pair[0], (int)pair[1]);
+      //
+      //Report::LogInfo(msg, RA_APPEND);
       }
    }
 
@@ -761,7 +789,7 @@ bool Target::Run( EnvContext *pEnvContext )
    const MapLayer *pLayer = pEnvContext->pMapLayer;
 
    MapLayer::ML_RECORD_SET iteratorType = MapLayer::ACTIVE;
-   if (this->m_pQuery != NULL)
+   if (this->m_pQuery != nullptr)
       {
       iteratorType = MapLayer::SELECTION;
       m_pQueryEngine->SelectQuery(this->m_pQuery, true);
@@ -771,15 +799,15 @@ bool Target::Run( EnvContext *pEnvContext )
       {
       PopulateCapacity( pEnvContext, true );   // generate basic allocation information, sets selection set in IDUs if target    query defiend
 
+      m_curTotalTargetValue = GetCurrentTargetValue(pEnvContext, -1);
+
       if ( m_totalAvailCapacity <= 0 )
          {
          CString msg;
-         msg.Format( _T("%s capacity exceeded in year %i - no new %s will be allocated!!!"), (LPCTSTR) m_name, pEnvContext->currentYear, (LPCTSTR) m_name );
+         msg.Format( _T("%s: target of %i cannnot be accomodated by available capacity in year %i - no new population will be allocated!!!"), 
+            (LPCTSTR) m_name, (int) m_curTotalTargetValue, pEnvContext->currentYear);
          Report::LogError( msg);
 
-         msg.Format(_T("  "));
-
-         //TRACE( msg );
          return true;
          }
 
@@ -787,7 +815,10 @@ bool Target::Run( EnvContext *pEnvContext )
       // Note: relative available capacity is the IDU delta/total growth capacity
       
       // get the current estimate of the target
-      m_curTotalTargetValue = GetCurrentTargetValue( pEnvContext,-1 );
+      //m_curTotalTargetValue = GetCurrentTargetValue( pEnvContext,-1 );
+      //CString _msg;
+      //_msg.Format("Target: %s is ")
+      //Report::Log_i("Taget for ")
 
       // new growth to be allocated is the difernece between what is there vs what is desired
       float newGrowth = m_curTotalTargetValue - m_lastTotalActualValue;   // this is new growth needed to achieve the projection
@@ -797,9 +828,10 @@ bool Target::Run( EnvContext *pEnvContext )
       std::fill(m_allocatedArray.begin(), m_allocatedArray.end(), 0.0f);
 
       // iterate through map, computing new densities to sum up the actual values
-      m_totalAllocated = 0;    // this is the total population allocated across IDUs (#'s, not density)
-      m_curTotalActualValue = 0;   // reset this, will be accumulating through loop below
-
+      this->m_totalAllocated = 0;        // this is the total population allocated across IDUs (#'s, not density)
+      this->m_curTotalActualValue = 0;   // reset this, will be accumulating through loop below
+      this->m_totalAvailCapacity = 0;
+      
       float totalTarget = 0;
       float totalCap = 0;
       float newAllocated = 0;  // temp
@@ -818,7 +850,7 @@ bool Target::Run( EnvContext *pEnvContext )
          // m_curTotalActualValue += existingValue;  // based on existing density
          //countIDUs++;  // why???
 
-         float newValue = existingValue;   // new value for IDU, non-density
+         float newValue = existingValue;   // new value for IDU, non-density, start with existing, update below if new growth
          float iduAvailCapacity = m_availCapacityArray[ idu ];  // amount of target that can be added to the idu
 
          float capacity = 0;
@@ -843,10 +875,22 @@ bool Target::Run( EnvContext *pEnvContext )
                newValue = existingValue + iduAlloc;   // updated non-density value for IDU
                float newDensity = newValue / area;          // updated density for IDU
 
-               m_pProcess->AddDelta( pEnvContext, idu, m_colTarget, newDensity );
+               m_pProcess->UpdateIDU(pEnvContext, idu, m_colTarget, newDensity, ADD_DELTA);
 
                if ( m_colDensXarea >= 0 )
-                  m_pProcess->AddDelta( pEnvContext, idu, m_colDensXarea, newValue );
+                  m_pProcess->UpdateIDU(pEnvContext, idu, m_colDensXarea, newValue, ADD_DELTA);
+
+               // update available capacities
+               if (m_colAvailCapacity >= 0)
+                  {
+                  float availCap = capacity - newValue;
+                  m_pProcess->UpdateIDU(pEnvContext, idu, m_colAvailCapacity, availCap, ADD_DELTA);
+                  }
+               if (m_colPctAvailCapacity >= 0)
+                  {
+                  float pctAvailCap = (capacity - newValue) / capacity;
+                  m_pProcess->UpdateIDU(pEnvContext, idu, m_colPctAvailCapacity, pctAvailCap, ADD_DELTA);
+                  }
 
                totalTarget += newValue;
 
@@ -870,24 +914,28 @@ bool Target::Run( EnvContext *pEnvContext )
                   else
                      bin = 7;
 
-                  m_pProcess->AddDelta(pEnvContext, idu, m_colTargetBin, bin);
+                  m_pProcess->UpdateIDU(pEnvContext, idu, m_colTargetBin, bin, ADD_DELTA);
                   }
                
                // remember the total newly allocated and idu-level newly allocated
                m_totalAllocated += iduAlloc;    // total new IDU allocation
                m_allocatedArray[ idu ] = iduAlloc; // absolute (non-density)
+               m_availCapacityArray[idu] = (capacity - newValue);  // absolute (non-density)
                } // end of: if ( iduAlloc > 0.0f)
+
+            float avail = capacity - newValue;
+            if (avail > 0)
+               m_totalAvailCapacity += avail;
             } // end of: if ( iduAvailCapacity > 0 )
 
          m_curTotalActualValue += newValue;
          }  // end of: for each IDU
 
       CString msg;
-      msg.Format("%s - Year %i, Target: %i, Actual: %i, Desired Allocation: %i, Actual Allocation: %i, Pct Achieved: %4.1f, Capacity: %.0f, Available Fraction: %.2f\n",
+      msg.Format("%s - Year %i, Target: %i, Actual: %i, Desired Allocation: %i, Actual Allocation: %i, Pct Achieved: %4.1f, Capacity: %.0f, Available Capacity Fraction: %.2f (%.2f)",
          (LPCTSTR)m_name, pEnvContext->yearOfRun, (int)m_curTotalTargetValue, (int)m_curTotalActualValue,
-         (int)newGrowth, (int)m_totalAllocated, newGrowth * 100 / m_totalAllocated, totalCap, (totalCap-totalTarget)/ totalCap );
-      Report::LogInfo( msg );
-      //TRACE( (LPCTSTR) msg );
+         (int)newGrowth, (int)m_totalAllocated, newGrowth * 100 / m_totalAllocated, totalCap, m_totalAvailCapacity / m_totalCapacity, (totalCap - totalTarget) / totalCap );
+      Report::LogInfo(msg);
 
 //      msg.Format( "%s - NewGrowth: %i, NewAllocated: %i, CurActTot:%i, LastActTot:%i, Curr-Last Act: %i \n", 
 //         (LPCTSTR)m_name, (int) newGrowth, (int) newAllocated,
@@ -910,11 +958,16 @@ bool Target::Run( EnvContext *pEnvContext )
       Report::LogError(_T("Unknown exception thrown in Target.dll") );
       }
 
+
+
+   pEnvContext->pEnvModel->ApplyDeltaArray((MapLayer*)pLayer);
+
+
    // update report variables
    for ( int i=0; i < m_reportArray.GetSize(); i++ )
       {
       TargetReport *pReport = m_reportArray[ i ];
-      ASSERT( pReport != NULL );
+      ASSERT( pReport != nullptr );
 
       pReport->m_count = 0;
       pReport->m_fraction = 0;
@@ -923,7 +976,7 @@ bool Target::Run( EnvContext *pEnvContext )
       if ( m_totalAllocated > 0 )
          {
          // run query
-         ASSERT( pReport->m_pQuery != NULL );
+         ASSERT( pReport->m_pQuery != nullptr );
 
          // iterate through map, computing report values
          for ( MapLayer::Iterator idu=pLayer->Begin( iteratorType ); idu < pLayer->End( iteratorType ); idu++ )
@@ -956,11 +1009,10 @@ bool Target::Run( EnvContext *pEnvContext )
       totalAllocVal += pAlloc->currentValue;
       }
 
-   if (this->m_pQuery != NULL)
+   if (this->m_pQuery != nullptr)
       ((MapLayer*)pLayer)->ClearSelection();
     
    //TRACE("ALLOCATION Total: Capacity=%.1f, Existing=%.1f\n", totalAllocCap, totalAllocVal);
-   
    return true;
    }
 
@@ -981,12 +1033,12 @@ float Target::GetCurrentTargetValue( EnvContext *pEnvContext, int idu )
 
       case TM_TIMESERIES:
       case TM_TABLE:
-         ASSERT( m_pTargetData != NULL );
+         ASSERT( m_pTargetData != nullptr );
          actualProjTarget =  m_pTargetData->IGet((float) pEnvContext->currentYear, 0, 1, IM_LINEAR);
          break;
 
       case TM_TIMESERIES_CONSTANT_RATE:
-         ASSERT( m_pTargetData != NULL );
+         ASSERT( m_pTargetData != nullptr );
          actualProjTarget =  m_pTargetData->IGet((float) pEnvContext->currentYear, 0, 1, IM_CONSTANT_RATE);
          break;
 
@@ -1005,7 +1057,7 @@ float Target::GetCurrentActualValue( EnvContext *pEnvContext )
    ASSERT( m_colArea >= 0 );
 
    MapLayer::ML_RECORD_SET iteratorType = MapLayer::ACTIVE;
-   if ( this->m_pQuery != NULL )
+   if ( this->m_pQuery != nullptr )
       {
       iteratorType = MapLayer::SELECTION;
       m_pQueryEngine->SelectQuery( this->m_pQuery, true );
@@ -1052,7 +1104,7 @@ bool Target::EndRun( EnvContext *pEnvContext )
       // targets, with the prefernece factors adjusted as needed
       
       AllocationSet *pAllocationSet = GetActiveAllocationSet();
-      ASSERT( pAllocationSet != NULL );
+      ASSERT( pAllocationSet != nullptr );
       if ( pAllocationSet->m_preferences.GetSize() == 0 )
          return true;
 
@@ -1060,7 +1112,7 @@ bool Target::EndRun( EnvContext *pEnvContext )
       for ( int i=0; i < (int) pAllocationSet->m_preferences.GetSize(); i++ )
          {
          PREFERENCE *pPref = pAllocationSet->m_preferences[ i ];
-         ASSERT( pPref != NULL );
+         ASSERT( pPref != nullptr );
          pPref->currentValue = 0;
          }            
 
@@ -1081,7 +1133,7 @@ bool Target::EndRun( EnvContext *pEnvContext )
             {
             PREFERENCE *pPref = pAllocationSet->m_preferences[ i ];
             
-            if ( pPref->pQuery != NULL )
+            if ( pPref->pQuery != nullptr )
                {
                bool result;
                bool ok = pPref->pQuery->Run( idu, result );
@@ -1119,7 +1171,7 @@ bool Target::EndRun( EnvContext *pEnvContext )
    }
 
 
-AllocationSet *Target::GetAllocationSetFromID( int id, int *index /*=NULL*/ )
+AllocationSet *Target::GetAllocationSetFromID( int id, int *index /*=nullptr*/ )
    {
    for ( int i=0; i < m_allocationSetArray.GetSize(); i++ )
       {
@@ -1127,27 +1179,27 @@ AllocationSet *Target::GetAllocationSetFromID( int id, int *index /*=NULL*/ )
 
       if ( pAllocationSet->m_id == id )
          {
-         if ( index != NULL )
+         if ( index != nullptr )
             *index = i;
 
          return pAllocationSet;
          }
       }
 
-   if ( index != NULL )
+   if ( index != nullptr )
       *index = -1;
 
-   return NULL;
+   return nullptr;
    }
 
 
 bool Target::SetQuery( LPCTSTR query )
    {
    // take care of compiling spatial query
-   ASSERT( m_pQueryEngine != NULL );
+   ASSERT( m_pQueryEngine != nullptr );
 
    // the target has a query - compile it...
-   if ( query != NULL && query[0] != ' ' )
+   if ( query != nullptr && query[0] != ' ' )
       {
       CString source( "Target '" );
       source += m_name;
@@ -1305,12 +1357,12 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
    // take care of any globally-defined constant expressions
    const TiXmlElement *pXmlGlobalConst = pXmlRoot->FirstChildElement(_T("const"));
-   while (pXmlGlobalConst != NULL)
+   while (pXmlGlobalConst != nullptr)
       {
       LPCTSTR name = pXmlGlobalConst->Attribute(_T("name"));
       LPCTSTR value = pXmlGlobalConst->Attribute(_T("value"));
 
-      if (name == NULL || value == NULL)
+      if (name == nullptr || value == nullptr)
          {
          CString msg(_T("Error in <const> specification (Global)"));
          msg += _T("); a required attribute (name/value) is missing");
@@ -1325,12 +1377,12 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
       }
 
    TiXmlElement* pXmlTable = pXmlRoot->FirstChildElement(_T("table"));
-   while (pXmlTable != NULL)
+   while (pXmlTable != nullptr)
       {
       LPCTSTR name = pXmlTable->Attribute(_T("name"));
       LPCTSTR years = pXmlTable->Attribute(_T("years"));
 
-      if (name == NULL || years== NULL)
+      if (name == nullptr || years== nullptr)
          {
          CString msg(_T("Error in <table> specification (Global)"));
          msg += _T("); a required attribute (name/years) is missing");
@@ -1355,7 +1407,7 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
       // get individual records
       TiXmlElement* pXmlRecord = pXmlTable->FirstChildElement(_T("record"));
-      while (pXmlRecord != NULL)
+      while (pXmlRecord != nullptr)
          {
          LPCTSTR name = pXmlRecord->Attribute(_T("name"));
          LPCTSTR value= pXmlRecord->Attribute(_T("value"));
@@ -1379,25 +1431,26 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
 
    TiXmlElement *pXmlTarget = pXmlRoot->FirstChildElement( _T("target") );
-   while( pXmlTarget != NULL )
+   while( pXmlTarget != nullptr )
       {
-      LPTSTR name = NULL;  //
-      LPTSTR descr = NULL; //
-      LPTSTR queryStr = NULL; //
+      LPTSTR name = nullptr;  //
+      LPTSTR descr = nullptr; //
+      LPTSTR queryStr = nullptr; //
       bool estParams = false;
-      LPTSTR method = NULL;
-      LPTSTR value  = NULL;
-      LPTSTR colTarget = NULL;
-      LPTSTR colTargetCapacity = NULL;
-      LPTSTR colAvailCapacity = NULL;
-      LPTSTR colPctAvailCapacity = NULL;
-      LPTSTR colCapDensity = NULL;
-      LPTSTR colDensXarea = NULL;
-      LPTSTR colTargetBin = NULL;
-      LPTSTR colAvailDens = NULL;
-      LPTSTR colArea = NULL;
-      LPTSTR colPrefs = NULL;
-      LPTSTR targetBins = NULL;
+      LPTSTR method = nullptr;
+      LPTSTR value  = nullptr;
+      LPTSTR colTarget = nullptr;
+      LPTSTR colTargetCapacity = nullptr;
+      LPTSTR colAvailCapacity = nullptr;
+      LPTSTR colPctAvailCapacity = nullptr;
+      LPTSTR colCapDensity = nullptr;
+      LPTSTR colDensXarea = nullptr;
+      LPTSTR colTargetBin = nullptr;
+      LPTSTR colAvailDens = nullptr;
+      LPTSTR colArea = nullptr;
+      LPTSTR colPrefs = nullptr;
+      LPTSTR targetBins = nullptr;
+      LPTSTR initMask = nullptr;
       XML_ATTR attrs[] = {
          // attr            type           address                         isReq checkCol
             { "name",         TYPE_STRING,  &name,                      false,  0 },
@@ -1415,9 +1468,10 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
             { "bins",         TYPE_STRING,   &targetBins,                  false, 0 },
             { "areaCol",      TYPE_STRING,   &colArea,                     false, 0 },
             { "prefsCol",     TYPE_STRING,   &colPrefs,                    false, 0 },
-            { "query",        TYPE_STRING,  &queryStr,         false, 0 },
+            { "query",        TYPE_STRING,   &queryStr,                    false, 0 },
+            { "init_mask",    TYPE_STRING,   &initMask,                    false, 0 },
             { "estimate_params", TYPE_BOOL,  &estParams,   false, 0 },
-            { NULL,            TYPE_NULL,     NULL,                false, 0 } };
+            { nullptr,        TYPE_NULL,     nullptr,                false, 0 } };
 
       MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
@@ -1433,19 +1487,19 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
          }
 
       Target* pTarget = new Target(this, modelID++, "Target");
-      if (pTarget == NULL)
+      if (pTarget == nullptr)
          {
          Report::ErrorMsg("Target: Unable to create Target instance ");
          return false;
          }
 
-      if ( name != NULL )
+      if ( name != nullptr )
          pTarget->m_name = name;
-      if ( descr != NULL)
+      if ( descr != nullptr)
          pTarget->m_description = descr;
-      if ( queryStr != NULL )
+      if ( queryStr != nullptr )
          pTarget->m_queryStr = queryStr;
-      if ( estParams != NULL )
+      if ( estParams == true)
          pTarget->m_estimateParams = estParams;
 
       pTarget->m_pQueryEngine = pEnvContext->pQueryEngine;
@@ -1514,6 +1568,26 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
          pTarget->m_method = TM_UNDEFINED;
          }
 
+      if (initMask != nullptr)
+         {
+         CStringArray tokens;
+         int count = ::Tokenize(initMask, ":", tokens);
+
+         pLayer->CheckCol(pTarget->m_colInitMask, tokens[0], TYPE_INT, CC_AUTOADD);
+
+         if (pTarget->m_colInitMask < 0)
+            {
+            CString msg;
+            msg.Format("Missing Init Mask Column: %s", initMask);
+            Report::WarningMsg(msg);
+            }
+         else
+            {
+            pTarget->m_initMask = tokens[1];
+            pTarget->m_pInitMaskQuery = pTarget->m_pQueryEngine->ParseQuery(tokens[1], 0, "Target Init Mask");
+            }
+         }
+
       switch (pTarget->m_method)
          {
          case TM_RATE_LINEAR:
@@ -1526,22 +1600,22 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
             {
             pTarget->m_targetValues = value;
 
-            ASSERT(pTarget->m_pTargetData == NULL);
+            ASSERT(pTarget->m_pTargetData == nullptr);
             pTarget->m_pTargetData = new FDataObj(2, 0, U_YEARS);
 
             TCHAR* targetValues = new TCHAR[lstrlen(value) + 2];
             lstrcpy(targetValues, value);
 
-            TCHAR* nextToken = NULL;
+            TCHAR* nextToken = nullptr;
             LPTSTR token = _tcstok_s(targetValues, _T(",() ;\r\n"), &nextToken);
 
             float pair[2] = {0,0};
-            while (token != NULL)
+            while (token != nullptr)
                {
                pair[0] = (float)atof(token);
-               token = _tcstok_s(NULL, _T(",() ;\r\n"), &nextToken);
+               token = _tcstok_s(nullptr, _T(",() ;\r\n"), &nextToken);
                pair[1] = (float)atof(token);
-               token = _tcstok_s(NULL, _T(",() ;\r\n"), &nextToken);
+               token = _tcstok_s(nullptr, _T(",() ;\r\n"), &nextToken);
 
                pTarget->m_pTargetData->AppendRow(pair, 2);
                }
@@ -1559,7 +1633,7 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
             pTarget->m_targetValues = value;
 
             // allocate 2 col dataobj, year and populate from record
-            ASSERT(pTarget->m_pTargetData == NULL);
+            ASSERT(pTarget->m_pTargetData == nullptr);
             pTarget->m_pTargetData = new FDataObj(2, 0, U_YEARS);
 
             pTarget->LoadTableValues();
@@ -1577,11 +1651,11 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
       // get any reports
       const TiXmlElement *pXmlReport = pXmlTarget->FirstChildElement( _T("report") );
-      while( pXmlReport != NULL )
+      while( pXmlReport != nullptr )
          {
          LPCTSTR name  = pXmlReport->Attribute( _T("name") );
          LPCTSTR query = pXmlReport->Attribute( _T("query") );
-         if ( name == NULL || query == NULL )
+         if ( name == nullptr || query == nullptr )
                {
                CString msg( _T("Error in <report> specification (" ) );
                msg += pTarget->m_name;
@@ -1598,11 +1672,11 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
       // get any outputs (same as reports)
       pXmlReport = pXmlTarget->FirstChildElement( _T("output") );
-      while( pXmlReport != NULL )
+      while( pXmlReport != nullptr )
          {
          LPCTSTR name  = pXmlReport->Attribute( _T("name") );
          LPCTSTR query = pXmlReport->Attribute( _T("query") );
-         if ( name == NULL || query == NULL )
+         if ( name == nullptr || query == nullptr )
                {
                CString msg( _T("Error in <output> specification (" ) );
                msg += pTarget->m_name;
@@ -1619,12 +1693,12 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
       // take care of any constant expressions
       const TiXmlElement *pXmlConst = pXmlTarget->FirstChildElement( _T("const") );
-      while( pXmlConst != NULL )
+      while( pXmlConst != nullptr )
          {
          LPCTSTR name  = pXmlConst->Attribute( _T("name") );
          LPCTSTR value = pXmlConst->Attribute( _T("value") );
 
-         if ( name == NULL || value == NULL )
+         if ( name == nullptr || value == nullptr )
             {
             CString msg( _T("Error in <const> specification (" ) );
             msg += pTarget->m_name;
@@ -1641,17 +1715,17 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
       // start iterating through children <allocation_set> elements
       const TiXmlElement *pXmlAllocationSet = pXmlTarget->FirstChildElement( _T("allocation_set") );
-      if ( pXmlAllocationSet == NULL )
+      if ( pXmlAllocationSet == nullptr )
          Report::ErrorMsg( _T("Error finding <allocation_set> section reading target input file" ) );
 
-      while (pXmlAllocationSet != NULL)
+      while (pXmlAllocationSet != nullptr)
          {
          LPCTSTR id = pXmlAllocationSet->Attribute(_T("id"));
          LPCTSTR name = pXmlAllocationSet->Attribute(_T("name"));
          LPCTSTR description = pXmlAllocationSet->Attribute(_T("description"));
          LPCTSTR ref = pXmlAllocationSet->Attribute(_T("ref"));
 
-         //if (name == NULL || id == NULL)
+         //if (name == nullptr || id == nullptr)
          //   {
          //   CString msg(_T("Error in <allocation_set> specification ("));
          //   msg += pTarget->m_name;
@@ -1660,10 +1734,10 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
          //   continue;
          //   }
 
-         AllocationSet* pAllocationSet = NULL;
+         AllocationSet* pAllocationSet = nullptr;
          // is a reference to another allocation defined?
          // then just set a reference to it
-         if (ref != NULL)
+         if (ref != nullptr)
             {
             CStringArray tokens;
             int count = ::Tokenize(ref, ".", tokens);
@@ -1715,14 +1789,14 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
             // iterate through individual allocations for this set
             const TiXmlElement* pXmlAllocation = pXmlAllocationSet->FirstChildElement(_T("capacity"));
 
-            while (pXmlAllocation != NULL)
+            while (pXmlAllocation != nullptr)
                {
                LPCTSTR _name = pXmlAllocation->Attribute(_T("name"));
                LPCTSTR _query = pXmlAllocation->Attribute(_T("query"));
                LPCTSTR _value = pXmlAllocation->Attribute(_T("value"));
                LPCTSTR _multiplier = pXmlAllocation->Attribute(_T("multiplier"));
 
-               if (_name == NULL || _value == NULL) //_query == NULL || _value == NULL  )
+               if (_name == nullptr || _value == nullptr) //_query == nullptr || _value == nullptr  )
                   {
                   CString msg(_T("Error in <capacity> specification ("));
                   msg += _name;
@@ -1733,11 +1807,11 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
                // take care of multiplier if defined
                float multiplier = 1.0f;
-               if (_multiplier != NULL)
+               if (_multiplier != nullptr)
                   multiplier = (float)atof(_multiplier);
 
                ALLOCATION* pAllocation = pAllocationSet->AddAllocation(_name, pTarget, _query, _value, multiplier);
-               ASSERT(pAllocation != NULL);
+               ASSERT(pAllocation != nullptr);
                pAllocation->Compile(pTarget, pLayer);
 
                allocationCount++;
@@ -1750,14 +1824,14 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
             // iterate through individual allocations for this set
             pXmlAllocation = pXmlAllocationSet->FirstChildElement(_T("allocation"));
 
-            while (pXmlAllocation != NULL)
+            while (pXmlAllocation != nullptr)
                {
                LPCTSTR _name = pXmlAllocation->Attribute(_T("name"));
                LPCTSTR _query = pXmlAllocation->Attribute(_T("query"));
                LPCTSTR _value = pXmlAllocation->Attribute(_T("value"));
                LPCTSTR _multiplier = pXmlAllocation->Attribute(_T("multiplier"));
 
-               if (_name == NULL || _value == NULL) //_query == NULL || _value == NULL  )
+               if (_name == nullptr || _value == nullptr) //_query == nullptr || _value == nullptr  )
                   {
                   CString msg(_T("Error in <allocation> specification ("));
                   msg += _name;
@@ -1768,11 +1842,11 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
                // take care of multiplier if defined
                float multiplier = 1.0f;
-               if (_multiplier != NULL)
+               if (_multiplier != nullptr)
                   multiplier = (float)atof(_multiplier);
 
                ALLOCATION* pAllocation = pAllocationSet->AddAllocation(_name, pTarget, _query, _value, multiplier);
-               ASSERT(pAllocation != NULL);
+               ASSERT(pAllocation != nullptr);
                pAllocation->Compile(pTarget, pLayer);
 
                allocationCount++;
@@ -1783,14 +1857,14 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
             // iterate through preferences for this set
             const TiXmlElement* pXmlPreference = pXmlAllocationSet->FirstChildElement(_T("bias"));
 
-            while (pXmlPreference != NULL)
+            while (pXmlPreference != nullptr)
                {
                LPCTSTR _name = pXmlPreference->Attribute(_T("name"));
                LPCTSTR _query = pXmlPreference->Attribute(_T("query"));
                LPCTSTR _value = pXmlPreference->Attribute(_T("value"));
                LPCTSTR _target = pXmlPreference->Attribute(_T("target"));
 
-               if (_name == NULL || _value == NULL || _query == NULL)
+               if (_name == nullptr || _value == nullptr || _query == nullptr)
                   {
                   CString msg(_T("Error in <preference> specification ("));
                   msg += _name;
@@ -1801,10 +1875,10 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
 
                float value = float(atof(_value));
                PREFERENCE* pModifier = pAllocationSet->AddPreference(_name, pTarget, _query, value);
-               ASSERT(pModifier != NULL);
+               ASSERT(pModifier != nullptr);
                modifierCount++;
 
-               if (_target != NULL)
+               if (_target != nullptr)
                   pModifier->target = (float)atof(_target);
 
                pXmlPreference = pXmlPreference->NextSiblingElement(_T("bias"));
@@ -1832,27 +1906,27 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
          std::fill(pTarget->m_preferenceArray.begin(), pTarget->m_preferenceArray.end(), 0.0f);
          }
             
-      ///if ( Target::m_capacityArray == NULL )
+      ///if ( Target::m_capacityArray == nullptr )
       ///   {
       ///   Target::m_capacityArray = new float[ recordCount ];
       ///   memset( Target::m_capacityArray, 0, recordCount  * sizeof( float ) );
       ///   }
       ///
-      ///if ( Target::m_availCapacityArray == NULL )
+      ///if ( Target::m_availCapacityArray == nullptr )
       ///   {
       ///   Target::m_availCapacityArray = new float[ recordCount  ];
       ///   memset( Target::m_availCapacityArray, 0, recordCount  * sizeof( float ) );
       ///   }
       ///
-      ///if ( Target::m_allocatedArray == NULL )
+      ///if ( Target::m_allocatedArray == nullptr )
       ///   {
       ///   Target::m_allocatedArray = new float[ recordCount ];
       ///   memset( Target::m_allocatedArray, 0, recordCount  * sizeof( float ) );
       ///   }
       ///
-      ///ASSERT( Target::m_capacityArray != NULL && Target::m_availCapacityArray != NULL && Target::m_allocatedArray != NULL );
+      ///ASSERT( Target::m_capacityArray != nullptr && Target::m_availCapacityArray != nullptr && Target::m_allocatedArray != nullptr );
       ///
-      ///if ( modifierCount > 0 && Target::m_preferenceArray == NULL )
+      ///if ( modifierCount > 0 && Target::m_preferenceArray == nullptr )
       ///   {
       ///   Target::m_preferenceArray = new float[ recordCount ];
       ///   memset( Target::m_preferenceArray, 0, recordCount  * sizeof( float ) );
@@ -1875,7 +1949,7 @@ bool TargetProcess::SaveXml( LPCTSTR filename, MapLayer *pLayer )
    // open the file and write contents
    FILE *fp;
    fopen_s( &fp, filename, "wt" );
-   if ( fp == NULL )
+   if ( fp == nullptr )
       {
       LONG s_err = GetLastError();
       CString msg = "Failure to open " + CString(filename) + " for writing.  ";
@@ -1923,7 +1997,7 @@ bool TargetProcess::SaveXml( LPCTSTR filename, MapLayer *pLayer )
       {
       Target *pTarget = m_targetArray[ i ];
 
-      TCHAR *pMethod = NULL;
+      TCHAR *pMethod = nullptr;
       switch ( pTarget->m_method )
          {
          case TM_RATE_LINEAR:
@@ -2057,7 +2131,7 @@ bool TargetProcess::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input 
    for ( int i=0; i < pTarget->m_allocationSetArray.GetSize(); i++ )
       {
       AllocationSet *pSet = pTarget->m_allocationSetArray[ i ];
-      ASSERT( pSet != NULL );
+      ASSERT( pSet != nullptr );
 
       CString a;
       a.Format( "%i - %s", pSet->m_id, (LPCTSTR) pSet->m_name );
@@ -2150,6 +2224,10 @@ bool TargetProcess::InitRun( EnvContext *pEnvContext, bool )
    for ( int i=0; i < this->m_targetArray.GetSize(); i++ )
       {
       Target *pTarget = m_targetArray[ i ];
+
+      if (i != 0) // sync up all allocation set IDs
+         pTarget->m_activeAllocSetID = m_targetArray[0]->m_activeAllocSetID;
+
       bool ok = pTarget->InitRun( pEnvContext );
       if ( ! ok )
          success = false;
@@ -2264,7 +2342,7 @@ TargetProcess *TargetProcessCollection::GetTargetProcessFromID( int id, int  *in
    {
    if ( m_targetProcessArray.GetSize() == 1 )
       {
-      if ( index != NULL )
+      if ( index != nullptr )
          *index = 0;
    
       return m_targetProcessArray.GetAt( 0 );
@@ -2276,17 +2354,17 @@ TargetProcess *TargetProcessCollection::GetTargetProcessFromID( int id, int  *in
 
       if ( pProcess->m_id == id )
          {
-         if ( index != NULL )
+         if ( index != nullptr )
             *index = i;
 
          return pProcess;
          }
       }
 
-   if ( index != NULL )
+   if ( index != nullptr )
       *index = -1;
 
-   return NULL;
+   return nullptr;
    }
 
 
@@ -2297,10 +2375,10 @@ bool TargetProcessCollection::Init( EnvContext *pContext, LPCTSTR initStr /*xml 
    if ( this->m_targetProcessArray.GetSize() == 0 )
       {
       //// store variables from IDU layer that mtparser needs
-      //ASSERT( Target::m_fieldVarsArray == NULL );
+      //ASSERT( Target::m_fieldVarsArray == nullptr );
       //
       //// allocate variables to store individual IDU info
-      //if ( Target::m_fieldVarsArray == NULL )
+      //if ( Target::m_fieldVarsArray == nullptr )
       //   {
       //   int colCount = pContext->pMapLayer->GetColCount();
       //   Target::m_fieldVarsArray = new double[ colCount ];
@@ -2309,7 +2387,7 @@ bool TargetProcessCollection::Init( EnvContext *pContext, LPCTSTR initStr /*xml 
       //   }
       //
       //// make a query engine
-      //ASSERT( Target::m_pQueryEngine == NULL );
+      //ASSERT( Target::m_pQueryEngine == nullptr );
       //Target::m_pQueryEngine = pContext->pQueryEngine;
       }
 
