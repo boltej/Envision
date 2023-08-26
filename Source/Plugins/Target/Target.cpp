@@ -508,19 +508,9 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
 
       int queryCount = 0;
 
-      int colUR = pLayer->GetFieldCol("URB_RESERV");
-
       for ( MapLayer::Iterator _idu=pLayer->Begin(iteratorType); _idu < pLayer->End(iteratorType); _idu++ )
          {
          int idu = (int)_idu;
-
-         /////////////
-         int ur = 0;
-         pLayer->GetData(idu, colUR, ur);
-
-
-
-
 
          if ( pAlloc->pQuery != nullptr )
             {
