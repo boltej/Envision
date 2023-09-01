@@ -27,7 +27,6 @@ Copywrite 2012 - Oregon State University
 #include <misc.h>
 #include <FDATAOBJ.H>
 
-#include <randgen\Randunif.hpp>
 
 #include <MapExprEngine.h>
 
@@ -250,6 +249,21 @@ class UgUpzoneWhen : public UgTrigger
    };
 
 
+struct ZONE {
+   int zone=-1;
+   float probability = 1;
+   //CString constraint;
+   Query* pConstraintQuery = nullptr;
+
+   ZONE() {}
+   ZONE(int _zone, float _prob) : zone(_zone), probability(_prob) {}
+   ZONE(int _zone, float _prob, /*LPCTSTR _constraint,*/ Query* pQuery) : zone(_zone), probability(_prob), /* constraint(_constraint),*/ pConstraintQuery(pQuery) {}
+   //ZONE(ZONE &z) : zone(z.zone), probability(z.probability), /*constraint(z.constraint), */ pConstraintQuery(z.pConstraintQuery) {}
+   ZONE& operator = (ZONE& z) { zone = z.zone; probability = z.probability; /*constraint = z.constraint;*/ pConstraintQuery = z.pConstraintQuery; return *this; }
+   };
+
+
+
 class UgScenario
 {
 public:
@@ -278,7 +292,8 @@ public:
    CString m_resQuery;
    CString m_commQuery;
 
-   int  m_zoneRes;
+   //int  m_zoneRes;
+   std::vector<ZONE> m_resZones;
    int  m_zoneComm;
 
    Query* m_pResQuery;
@@ -286,6 +301,8 @@ public:
 
    PtrArray< UgExpandWhen > m_uxExpandArray;
    PtrArray< UgUpzoneWhen > m_uxUpzoneArray;
+
+   int GetResZone(ZONE &);
    };
 
 
@@ -443,7 +460,7 @@ protected:
    bool  UgIsCommercial(int zone);
 
    //-- general --------------------------------------
-   void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &m_randShuffle ); }
+   void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &randUnif ); }
 
    int m_colUga = -1;
    int m_colZone = -1;
@@ -465,7 +482,7 @@ protected:
    PtrArray< DUArea > m_duAreaArray;
 
    CUIntArray m_polyIndexArray;
-   RandUniform m_randShuffle;    // used for shuffling arrays
+   //RandUniform m_randShuffle;    // used for shuffling arrays
    CUIntArray m_nDUs;
    CUIntArray m_prevNDUs;
    CUIntArray m_startNDUs;

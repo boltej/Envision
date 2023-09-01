@@ -32,12 +32,14 @@ class _EXPORT Risk : public  EnvEvaluator
 
    protected:
       int m_colArea = -1;
-      int m_colHazard = -1;
-      int m_colImpact = -1;
+      int m_colFlameLen = -1;
+      int m_colPFlameLen = -1;
+      //int m_colPopDens = -1;
       int m_colRisk = -1;
+      int m_colDamage = -1;
+      int m_colDamageFrac = -1;
 
       int m_colLulc = -1;
-      int m_colPFlameLen = -1;
       int m_colNDU = -1;
       int m_colFirewise = -1;
 
@@ -53,6 +55,9 @@ class _EXPORT Risk : public  EnvEvaluator
       VDataObj *m_pLossTable = nullptr;
       CMap<int, int, int, int> m_lulcMap; // key=lulc, value=index
       bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);
+
+      void GetLoss(MapLayer*, float flameLen, int lulc, int firewise, int nDU, float& loss, float& lossFrac);
+         
       //void ToPercentiles(float values[], float ranks[], int n);
 
    };

@@ -194,7 +194,7 @@ bool FuelModelLookup::Init(LPCTSTR filename)
       while (!IsPrime(hashSize))
          hashSize++;
 
-      InitHashTable(hashSize);
+      //InitHashTable(hashSize); ONLY NEEDED FOR CMap version
 
       // iterate through .csv file entries (rows)
       for (int i = 0; i < rows; i++)
@@ -206,10 +206,11 @@ bool FuelModelLookup::Init(LPCTSTR filename)
          int variant = m_inputTable.GetAsInt(m_lutColVariant, i);
          int region = m_inputTable.GetAsInt(m_lutColRegion, i);
 
-         FUELMODELKEY _key((__int32)vegClass, (__int16)variant, (__int8)pvt, (__int8)region);
-         __int64 key = _key.GetKey();
+         FUELMODELKEY key((__int32)vegClass, (__int16)variant, (__int8)pvt, (__int8)region);
+         //__int64 key = _key.GetKey();
 
-         SetAt(key, i);
+         //SetAt(key, i);
+         (*this)[key] = i;
          }
 
       m_isInitialized = true;
@@ -1377,10 +1378,13 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
       pLayer->GetData(idu, m_colVariant, variant);
       pLayer->GetData(idu, m_colRegion, region);
       pLayer->GetData(idu, m_colDisturb, disturb);
-      
+
       FUELMODELKEY key(vegClass, (__int16)variant, (__int8)pvt, (__int8)region);
       int luRow = -1;
-      BOOL found = m_fuelModelLookupTable.Lookup(key.GetKey(), luRow);
+      //BOOL found = m_fuelModelLookupTable.Lookup(key.GetKey(), luRow);
+      try { luRow = m_fuelModelLookupTable.at(key); }
+      catch (...) {}
+      
       // does this fuel model match the pvt, vegclass and variant?
 
       int lcpFuelModel = 0;
@@ -1389,7 +1393,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
       float mixSevSmoke = 0.f;
       float standRepSmoke = 0.f;
 
-      if (found && luRow >= 0)
+      if (/*found &&*/ luRow >= 0)
          {
          foundCount++;
 
@@ -3049,10 +3053,10 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
 
    // neighbor idu vectors
    int neighborsFireShort[expPolyDistShort];
-   int neighborsFireMedium[expPolyDistMedium];
-   int neighborsFireLong[expPolyDistLong];
-   int neighborsPreFireLong[expPolyDistPreFireLong];
-   int neighborsFire500m[expPolyDist500m];
+   //int neighborsFireMedium[expPolyDistMedium];
+   //int neighborsFireLong[expPolyDistLong];
+   //int neighborsPreFireLong[expPolyDistPreFireLong];
+   //int neighborsFire500m[expPolyDist500m];
 
    // counters for calculating averages
    int countFireShort = 0;

@@ -24,6 +24,7 @@ Copywrite 2012 - Oregon State University
 #include <VData.h>
 #include <afxtempl.h>
 #include <PtrArray.h>
+#include <Query.h>
 
 #define _EXPORT __declspec( dllexport )
 
@@ -78,10 +79,11 @@ public:
    enum METHOD { USE_DELTA=0, USE_MAP=1 };
    CString m_sourceCol;
    CString m_targetCol;
-   int m_colSource;
-   int m_colTarget;
-   int m_init;
-   bool m_inUse;
+   int m_colSource= -1;
+   int m_colTarget= -1;
+   int m_init = 0;
+   bool m_inUse = true;
+   Query* m_pQuery = nullptr;
 
    METHOD m_method;
 
@@ -106,7 +108,7 @@ public:
    SyncProcess( int id ) : m_processID( id ) { }
    ~SyncProcess() { }
 
-   bool LoadXml( LPCTSTR filename, MapLayer *pLayer );
+   bool LoadXml( EnvContext*,  LPCTSTR filename, MapLayer *pLayer );
    bool Run    ( EnvContext *pContext );   
 
 public:

@@ -1637,6 +1637,25 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
 
    //  m_pMap->ChangeDrawOrder(m_pDuneLayer, DO_BOTTOM);
    m_pMap->ChangeDrawOrder(m_pDuneLayer, DO_BOTTOM);
+
+   // translate dunes for recovery from KD erosion
+   //if (m_runErosion)
+   //   {
+   //   float R_inf_KD=0;
+   //   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
+   //      {
+   //      m_pDuneLayer->GetData(point, m_colDLEkd, R_inf_KD);
+   //
+   //      m_pDuneLayer->SetData(point, m_colDLEastingMHW, eastingMHW);
+   //
+   //      // Set new position of the Dune toe point in shape geometry
+   //      Poly* pPoly = m_pDuneLayer->GetPolygon(point);
+   //      pPoly->Translate(float(dx), 0);
+   //      }
+   //   }
+
+
+
    m_pDuneLayer->m_readOnly = true;
 
    ExportMapLayers(pEnvContext, pEnvContext->currentYear);
@@ -1668,8 +1687,7 @@ bool ChronicHazards::RunTWLModel(EnvContext* pEnvContext)
       m_pDuneLayer->SetData(point, m_colDLYrMaxIncSwash, 0);
       m_pDuneLayer->SetData(point, m_colDLYrMaxSwash, 0);
       }
-
-  
+     
    CalculateTWLandImpactDaysAtShorePoints(pEnvContext);
    return true;
    }
@@ -1697,13 +1715,13 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          if (beachType == BchT_SANDY_DUNE_BACKED || beachType == BchT_MIXED_SEDIMENT_DUNE_BACKED)
             R_inf_KD = KDmodel(point);
 
-         if ((beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int)BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED) || beachType == BchT_SANDY_BURIED_RIPRAP_BACKED || beachType == BchT_SANDY_WOODY_DEBRIS_BACKED)
+         if ((beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int) BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED) || beachType == BchT_SANDY_BURIED_RIPRAP_BACKED || beachType == BchT_SANDY_WOODY_DEBRIS_BACKED)
             R_bruun = Bruunmodel(point, pEnvContext->yearOfRun);
 
          R_SCR_hist = SCRmodel(point);
 
          // determine shift in x positions based on erosions rates (done above)
-         double dx = (R_SCR_hist + R_bruun + R_inf_KD);  //  NOTE: Kreibel and Dean assumed to only operate within year, so it not included in dune translation at end of year
+         double dx = R_SCR_hist + R_bruun; // +R_inf_KD;  //  NOTE: Kreibel and Dean assumed to only operate within year, so it not included in dune translation at end of year
 
          m_pDuneLayer->SetData(point, m_colDLEkd, R_inf_KD);
          m_pDuneLayer->SetData(point, m_colDLEhist, R_SCR_hist);
@@ -1852,7 +1870,8 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             pPoly->Translate(float(dx), 0);
 
 
-            // update Moving Windows for IDPY, avg/max twl, kd;   beachAccess (An,Sp,Su,Fa/Wi)
+            // update Moving Windows for IDPY, avg/max twl, kd;  beachAccess (An,Sp,Su,Fa/Wi)
+            // This assumes impact days have already been calculated by TWL model
             UpdateDuneErosionStats(point, R_inf_KD);
 
             }  // end of: dx > 0
@@ -4041,6 +4060,8 @@ bool ChronicHazards::ResetAnnualBudget()
    ///////   }
    ///////
 
+
+// NOT CURRENTLY USED
 float ChronicHazards::GenerateErosionMap(int& erodedCount)
    {
    ASSERT(m_pErodedGrid != nullptr);
@@ -5708,6 +5729,9 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
 
    return true;
    } // bool CalculateExcessErosion
+
+
+
 
 bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& minToePoint, MapLayer::Iterator& minDistPoint, MapLayer::Iterator& maxTWLPoint)
    {

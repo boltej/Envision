@@ -80,7 +80,7 @@ void MapElement::ApplyOutcome( EnvContext *pContext, int idu, int colTarget )
                pLayer->SetData(idu, colTarget, pSyncOutcome->targetValue);
             else
                pContext->ptrAddDelta( pContext->pEnvModel, idu, colTarget,
-                                   pContext->currentYear, pSyncOutcome->targetValue, pContext->handle );
+                                   pContext->currentYear, pSyncOutcome->targetValue, (int) pContext->handle );
             }
          }
       }
@@ -181,9 +181,8 @@ int SyncMap::AddMapElement( MapElement *pMap )
    }
 
 
-
 // this method reads an xml input file
-bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
+bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer *pLayer )
    {
    // start parsing input file
    TiXmlDocument doc;
@@ -227,16 +226,17 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
    while ( pXmlSyncMap != NULL )
       {
       SyncMap *pSyncMap = new SyncMap;
-      CString method;
+      CString method, query;
       int init = 0;
 
       XML_ATTR smAttrs[] =
          { // attr          type           address                   isReq   checkCol
-               { "name", TYPE_CSTRING, &( pSyncMap->m_name ), true, 0 },
+               { "name",       TYPE_CSTRING, &( pSyncMap->m_name ), true, 0 },
                { "source_col", TYPE_CSTRING, &( pSyncMap->m_sourceCol ), true, 0 },
                { "target_col", TYPE_CSTRING, &( pSyncMap->m_targetCol ), true, 0 },
-               { "method", TYPE_CSTRING, &method, false, 0 },
-               { "init",   TYPE_INT, &init, false, 0 },
+               { "method",     TYPE_CSTRING, &method, false, 0 },
+               { "query",      TYPE_CSTRING, &query, false, 0 },
+               { "init",       TYPE_INT,     &init, false, 0 },
                { NULL, TYPE_NULL, NULL, false, 0 } };
 
       if ( TiXmlGetAttributes( pXmlSyncMap, smAttrs, filename, pLayer ) == false )
@@ -275,6 +275,12 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
          pSyncMap->m_method = SyncMap::METHOD::USE_MAP;
       else
          pSyncMap->m_method = SyncMap::METHOD::USE_DELTA;
+
+      if (query.GetLength() > 0)
+         {
+         QueryEngine* pQE = pEnvContext->pQueryEngine;
+         pSyncMap->m_pQuery = pQE->ParseQuery(query, 0, "SyncMap");
+         }
 
       this->m_syncMapArray.Add( pSyncMap );
  
@@ -441,11 +447,25 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
                   DELTA &delta = ::EnvGetDelta( deltaArray, i );
                   if ( delta.col == colSource )   // does the delta column match this SyncMap?
                      {
-                     // matches, get corresponding MapElement
-                     MapElement *pMapElement = pSyncMap->FindMapElement( delta.newValue );
+                     // if there is an associated query, does it pass the query?
+                     bool pass = true;
+                     if (pSyncMap->m_pQuery != nullptr)
+                        {
+                        bool result = false;
+                        bool ok = pSyncMap->m_pQuery->Run(delta.cell, result);
 
-                     if ( pMapElement != NULL )   // not found?  
-                        pMapElement->ApplyOutcome( pContext, delta.cell, colTarget );
+                        if (!ok || !result)
+                           pass = false;
+                        }
+
+                     if (pass)
+                        {
+                        // matches, get corresponding MapElement
+                        MapElement* pMapElement = pSyncMap->FindMapElement(delta.newValue);
+
+                        if (pMapElement != NULL)   // not found?  
+                           pMapElement->ApplyOutcome(pContext, delta.cell, colTarget);
+                        }
                      }  // end of  if ( delta.col = colSource )
                   }  // end of: deltaArray loop
                break;
@@ -453,16 +473,29 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
             case SyncMap::METHOD::USE_MAP:
                {
-               for ( MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++ )
+            for (MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++)
+               {
+               bool pass = true;
+               if (pSyncMap->m_pQuery != nullptr)
+                  {
+                  bool result = false;
+                  bool ok = pSyncMap->m_pQuery->Run(idu, result);
+
+                  if (!ok || !result)
+                     pass = false;
+                  }
+
+               if (pass)
                   {
                   VData srcValue;
-                  pLayer->GetData( idu, colSource, srcValue );
+                  pLayer->GetData(idu, colSource, srcValue);
 
-                  MapElement *pMapElement = pSyncMap->FindMapElement( srcValue );
+                  MapElement* pMapElement = pSyncMap->FindMapElement(srcValue);
 
-                  if ( pMapElement != NULL )   // not found?  
-                     pMapElement->ApplyOutcome( pContext, idu, colTarget );
+                  if (pMapElement != NULL)   // not found?  
+                     pMapElement->ApplyOutcome(pContext, idu, colTarget);
                   }
+               }
 
                break;
                }
@@ -491,7 +524,7 @@ bool SyncProcess::LoadXml( LPCTSTR filename, MapLayer *pLayer )
 
       // load XML input file specified in initStr
       MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
-      bool ok = pProcess->LoadXml( initStr, pLayer );
+      bool ok = pProcess->LoadXml( pEnvContext, initStr, pLayer );
 
       if ( !ok )
          return FALSE;

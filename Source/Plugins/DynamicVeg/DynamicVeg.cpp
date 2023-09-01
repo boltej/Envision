@@ -663,19 +663,10 @@ bool DynamicVeg::DisturbanceTransition(EnvContext *pEnvContext, int idu)
       case PRESCRIBED_FIRE_UNDERBURNING_2:
       case PRESCRIBED_SURFACE_FIRE:
       case PRESCRIBED_SURFACE_FIRE_2:
-         ProbabilityTransition(pEnvContext, idu);
-         break;
-
       case PRESCRIBED_LOW_SEVERITY_FIRE:
       case PRESCRIBED_LOW_SEVERITY_FIRE_2:
-         ProbabilityTransition(pEnvContext, idu);
-         break;
-
       case PRESCRIBED_HIGH_SEVERITY_FIRE:
       case PRESCRIBED_HIGH_SEVERITY_FIRE_2:
-         ProbabilityTransition(pEnvContext, idu);
-         break;
-
       case PRESCRIBED_STAND_REPLACING_FIRE:
       case PRESCRIBED_STAND_REPLACING_FIRE_2:
          ProbabilityTransition(pEnvContext, idu);

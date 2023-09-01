@@ -37,6 +37,8 @@ using namespace std;
 #define _EXPORT __declspec( dllexport )
 
 
+
+
 struct VEGKEY
    {
    __int32 veg;
@@ -68,6 +70,9 @@ enum VEGCOLINDEX
 	TPH_GE_50,
    VEGMAPCOLS
    };
+
+
+
 
 class VegLookup : public CMap< __int64, __int64, int, int >
    {
@@ -124,7 +129,7 @@ struct FUELMODELKEY
 
    FUELMODELKEY(__int32 _veg, __int16 _variant, __int8 _pvt, __int8 _region) : veg(_veg), variant(_variant), pvt(_pvt), region(_region) { }
 
-   __int64 GetKey(void) { __int64 key = MAKE< __int64 >(veg, (MAKE< __int32 >(variant, MAKE< __int16 >(pvt, region)))); return key; }
+   //__int64 GetKey(void) { __int64 key = MAKE< __int64 >(veg, (MAKE< __int32 >(variant, MAKE< __int16 >(pvt, region)))); return key; }
    };
 
 
@@ -141,7 +146,32 @@ struct FUELMODELKEY
 //   };
 
 
-class FuelModelLookup : public CMap< __int64, __int64, int, int >
+
+// Comparitive class for looking up values in probability "map" container
+struct FuelModelLookupComp {
+   bool operator() (const FUELMODELKEY &lhs, const FUELMODELKEY &rhs) const
+      {
+      if (lhs.veg == rhs.veg)
+         {
+         if (lhs.variant == rhs.variant || lhs.variant == -99 || rhs.variant == -99)
+            {
+            if (lhs.pvt == rhs.pvt || lhs.pvt == -99 || rhs.pvt == -99)
+               return lhs.region < rhs.region;
+            else
+               return lhs.pvt < rhs.pvt;
+            }
+         else
+            return lhs.variant < rhs.variant;
+         }       
+      else
+         return lhs.veg < rhs.veg;
+      }
+   };
+
+
+
+//class FuelModelLookup : public CMap< __int64, __int64, int, int >
+class FuelModelLookup : public std::map< FUELMODELKEY, int, FuelModelLookupComp >
    {
    public:
       FuelModelLookup(void)

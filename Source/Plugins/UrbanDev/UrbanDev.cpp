@@ -22,6 +22,12 @@ Copywrite 2012 - Oregon State University
 
 #include "stdafx.h"
 
+#include <randgen\Randunif.hpp>
+RandUniform randUnif;    // used for shuffling arrays
+
+
+
+
 #include "UrbanDev.h"
 #include <Maplayer.h>
 #include <Map.h>
@@ -41,6 +47,38 @@ int CompareNDU(const void *elem0, const void *elem1 );
 //float GetPeoplePerDU( int );
 
 struct NDU_SORT { float fracNDU; int idu; int duAreaIndex; /*int prevNDU; int newDU;*/ };
+
+
+int UgScenario::GetResZone(ZONE& zone)
+   {
+   int zones = (int) m_resZones.size();
+   
+   ASSERT(zones > 0);
+   if (zones == 1)
+      {
+      zone = m_resZones[0];
+      return 0;
+      }
+
+   float rn = (float)randUnif.RandValue(0, 1);
+   float rnSoFar = 0;
+   
+   for (int i = 0; i < zones; i++)
+      {
+      rnSoFar += m_resZones[i].probability;
+   
+      if (rnSoFar >= rn) {
+         zone = m_resZones[i];
+         return i;
+         }
+      }
+   
+   // shouldn't ever get here
+   ASSERT(true);
+   return -1;
+   }
+
+
 
 
 UrbanDev::UrbanDev() 
@@ -1515,6 +1553,7 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
       while ( pXmlUgScn != NULL )
          {
          UgScenario *pUgScn = new UgScenario;
+         LPTSTR resZones = nullptr;
    
          XML_ATTR uxScnAttrs[] = {
             // attr                      type           address                      isReq  checkCol
@@ -1525,8 +1564,8 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             { "new_res_density",       TYPE_FLOAT,     &(pUgScn->m_newResDensity),   true,    0 },
             { "res_comm_ratio",        TYPE_FLOAT,     &(pUgScn->m_resCommRatio),    true,    0 },
             { "res_constraint",        TYPE_CSTRING,   &(pUgScn->m_resQuery),        true,    0 },
-            { "comm_constraint",       TYPE_CSTRING,   &(pUgScn->m_commQuery),       true,    0 },
-            { "res_zone",              TYPE_INT,       &(pUgScn->m_zoneRes),         false,   0 },
+            { "comm_constraint",       TYPE_CSTRING,   &(pUgScn->m_commQuery),       false,   0 },
+            { "res_zone",              TYPE_STRING,    &resZones,                    false,   0 },
             { "comm_zone",             TYPE_INT,       &(pUgScn->m_zoneComm),        false,   0 },
             { "ppdu",                  TYPE_FLOAT,     &(pUgScn->m_ppdu),            false,   0 },
             { "max_expand_frac",       TYPE_FLOAT,     &(pUgScn->m_maxExpandFraction), false,   0 },
@@ -1542,6 +1581,61 @@ bool UrbanDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             delete pUgScn;
             return false;
             }
+
+         if (resZones != nullptr)
+            {
+            CStringArray tokens;
+            ::Tokenize(resZones, ",;", tokens);
+
+            for (int j = 0; j < tokens.GetSize(); j++)
+               {
+               CStringArray _tokens;
+               ::Tokenize(tokens[j], ":", _tokens);
+               int zone = atoi(_tokens[0]);
+               float prob = 1.0f;
+               if (_tokens.GetSize() > 1)
+                  prob = float(atof(_tokens[1]) / 100.0);
+               pUgScn->m_resZones.push_back(ZONE(zone, prob));
+               }
+            }
+
+         // add any tag-defined res_zones
+         TiXmlElement* pXmlResZone = pXmlUgScn->FirstChildElement(_T("res_zone"));
+         while (pXmlResZone != NULL)
+            {
+            ZONE zone;
+            LPTSTR constraint = nullptr;
+            XML_ATTR zoneAttrs[] = {
+               // attr                 type           address                 isReq  checkCol
+               { "id",               TYPE_INT,       &(zone.zone),             true,   0 },
+               { "probability",      TYPE_FLOAT,     &(zone.probability),      false,   0 },
+               { "constraint",       TYPE_STRING,    &constraint,              false,   0 },
+               { NULL,               TYPE_NULL,      NULL,                     false,   0 } };
+
+            ok = TiXmlGetAttributes(pXmlResZone, zoneAttrs, filename);
+            if (!ok)
+               {
+               CString msg;
+               msg.Format(_T("  Misformed element reading <res_zone> attributes in input file %s"), filename);
+               Report::ErrorMsg(msg);
+               return false;
+               }
+
+            zone.probability /= 100;
+
+            // compile where query
+            if (constraint != nullptr)
+               {
+               ASSERT(m_pQueryEngine != NULL);
+               zone.pConstraintQuery = m_pQueryEngine->ParseQuery(constraint, 0, "res_zone");
+               }
+
+            pUgScn->m_resZones.push_back(zone);
+
+            Report::Log_i("Added res_zone %i", zone.zone);
+
+            pXmlResZone = pXmlResZone->NextSiblingElement("res_zone");
+            }  // end of: while ( pXmlUga != NULL )
 
          // have scenario, start adding UgExpandWhen element
          TiXmlElement *pXmlExpand = pXmlUgScn->FirstChildElement( _T("expand_when" ) );
@@ -2043,6 +2137,19 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       // has this idu already been annexed?  Then skip it
       if (uga > 0)
          continue;
+      ZONE resZone;
+      int zindex = m_pCurrentUgScenario->GetResZone(resZone);
+      if (zindex < 0 || resZone.zone < 0)
+         continue;
+
+      // does this IDU pass the rezZone query?
+      if (resZone.pConstraintQuery!= nullptr)
+         {
+         bool result = false;
+         bool ok = resZone.pConstraintQuery->Run(pPriority->idu, result);
+         if (result == false || ok == false)
+            continue;   // move down the list
+         }
 
       // expand to nearby IDUs
       // Inputs:
@@ -2124,13 +2231,13 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
 
             UpdateIDU(pContext, expandArray[j], m_colUga, pUGA->m_id, ADD_DELTA);                  // add to UGA
             UpdateIDU(pContext, expandArray[j], m_colUgEvent, pUGA->m_currentEvent, ADD_DELTA);    // indicate expansion event
-            UpdateIDU(pContext, expandArray[j], m_colZone, m_pCurrentUgScenario->m_zoneRes, ADD_DELTA);
+            UpdateIDU(pContext, expandArray[j], m_colZone, resZone.zone, ADD_DELTA);
             ///
             //UpdateIDU(pContext, expandArray[j], m_colPopCap, m_pCurrentUgScenario->m_zoneRes, ADD_DELTA);
             ///
             if (m_colImpervious >= 0)
                {
-               float impFrac = GetImperviousFromZone(m_pCurrentUgScenario->m_zoneRes);
+               float impFrac = GetImperviousFromZone(resZone.zone);
                impFrac *= m_pCurrentUgScenario->m_imperviousFactor;
                UpdateIDU(pContext, expandArray[j], m_colImpervious, impFrac, ADD_DELTA);
                }

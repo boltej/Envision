@@ -22,6 +22,10 @@ bool Risk::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
+
+   //this->AddOutputVar()
+
+
    return ok;
    }
 
@@ -41,54 +45,34 @@ bool Risk::Run(EnvContext* pEnvContext)
    
    for (MapLayer::Iterator idu = pIDULayer->Begin(); idu < pIDULayer->End(); idu++)
       {
-      //float hazard, impact, area;
-      //pIDULayer->GetData(idu, this->m_colHazard, hazard);
-      //pIDULayer->GetData(idu, this->m_colImpact, impact);
-      //pIDULayer->GetData(idu, this->m_colArea, area);
-      //
-      //float risk = hazard * impact;
-      //this->UpdateIDU(pEnvContext, idu, this->m_colRisk, risk, ADD_DELTA);
-      float loss = 0;
-      
-      float pFlameLen = 0;
-      pIDULayer->GetData(idu, this->m_colPFlameLen, pFlameLen);
-
       int nDU = 0;
       pIDULayer->GetData(idu, this->m_colNDU, nDU);
 
-      if (pFlameLen > 0.01 && nDU > 0)
+      if (nDU > 0)
          {
+         float pFlameLen = 0;
+         pIDULayer->GetData(idu, this->m_colPFlameLen, pFlameLen);
+
          int lulc = 0;
          pIDULayer->GetData(idu, this->m_colLulc, lulc);
-
-         int col = -1;
-         if (pFlameLen < 2)
-            col = 2;
-         else if (pFlameLen < 4)
-            col = 3;
-         else if (pFlameLen < 6)
-            col = 4;
-         else if (pFlameLen < 8)
-            col = 5;
-         else if (pFlameLen < 12)
-            col = 6;
-         else
-            col = 7;
-
-         int row = this->m_lulcMap[lulc];
-         float lossFrac = this->m_pLossTable->GetAsFloat(col, row);
-         loss = lossFrac * nDU;
 
          int firewise = 0;
          pIDULayer->GetData(idu, m_colFirewise, firewise);
 
-         if (firewise > 0)
-            loss *= this->m_firewiseFactor;
-         }
+         float loss = 0, lossFrac = 0;
+         GetLoss(pIDULayer, pFlameLen, lulc, firewise, nDU, loss, lossFrac);
+         this->UpdateIDU(pEnvContext, idu, this->m_colRisk, loss, ADD_DELTA);
+         totalLoss += loss;
 
-      this->UpdateIDU(pEnvContext, idu, this->m_colRisk, loss, ADD_DELTA);
-      totalLoss += loss;
-      //totalArea += area;
+
+         float flameLen = 0;
+         pIDULayer->GetData(idu, this->m_colFlameLen, flameLen);
+         GetLoss(pIDULayer, flameLen, lulc, firewise, nDU, loss, lossFrac);
+         this->UpdateIDU(pEnvContext, idu, this->m_colDamageFrac, lossFrac, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colDamage, loss, ADD_DELTA);
+
+         //totalArea += area;
+         }
       }
 
    //totalRisk /= totalArea;
@@ -128,6 +112,40 @@ void Risk::ToPercentiles(float values[], float pctiles[], int n)
    }
 */
 
+
+
+void Risk::GetLoss(MapLayer* pIDULayer, float flameLen, int lulc, int firewise, int nDU, float& loss, float& lossFrac)
+   {
+   loss = 0; lossFrac = 0;
+
+   if (flameLen > 0.01 && nDU > 0)
+      {
+      int col = -1;
+      if (flameLen < 2)
+         col = 2;
+      else if (flameLen < 4)
+         col = 3;
+      else if (flameLen < 6)
+         col = 4;
+      else if (flameLen < 8)
+         col = 5;
+      else if (flameLen < 12)
+         col = 6;
+      else
+         col = 7;
+
+      int row = this->m_lulcMap[lulc];
+      lossFrac = this->m_pLossTable->GetAsFloat(col, row);
+      if (firewise > 0)
+         lossFrac *= this->m_firewiseFactor;
+
+      loss = lossFrac * nDU;
+      }
+
+   return;
+   }
+
+
 bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    {
    TiXmlDocument doc;
@@ -144,14 +162,17 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    // start interating through the nodes
    TiXmlElement* pXmlRoot = doc.RootElement();  // <risk>
 
-   CString hazardField, impactField, riskField, lookupTable;
+   CString popDensField, flamelenField, pflamelenField, damageField, damageFracField, riskField, lookupTable;
    XML_ATTR attrs[] = {
       // attr                type            address  isReq checkCol
       { "lower_bound",       TYPE_FLOAT,     &this->m_lowerBound,   true,  0 },
       { "upper_bound",       TYPE_FLOAT,     &this->m_upperBound,   true,  0 },
-      { "hazard_col",        TYPE_CSTRING,   &hazardField, true, CC_MUST_EXIST },
-      { "impact_col",        TYPE_CSTRING,   &impactField, true, CC_MUST_EXIST },
-      { "risk_col",          TYPE_CSTRING,   &riskField, true, CC_AUTOADD },
+      //{ "popDens_col",       TYPE_CSTRING,   &popDensField,   true, CC_MUST_EXIST },
+      { "flamelen_col",      TYPE_CSTRING,   &flamelenField,  true, CC_MUST_EXIST },
+      { "pflamelen_col",     TYPE_CSTRING,   &pflamelenField, true, CC_MUST_EXIST },
+      { "risk_col",          TYPE_CSTRING,   &riskField,      true, CC_AUTOADD | TYPE_FLOAT },
+      { "damage_col",        TYPE_CSTRING,   &damageField,    true, CC_AUTOADD | TYPE_FLOAT },
+      { "damage_frac_col",   TYPE_CSTRING,   &damageFracField,true, CC_AUTOADD | TYPE_FLOAT },
       { "query",             TYPE_CSTRING,   &this->m_queryStr, true, 0 },
       { "loss_table",        TYPE_CSTRING,   &this->m_lossTableFile, false, 0 },
       { "firewise_factor",   TYPE_FLOAT,     &this->m_firewiseFactor, false, 0 },
@@ -161,13 +182,15 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    ok = TiXmlGetAttributes(pXmlRoot, attrs, filename, pMapLayer);
    if (ok)
       {
-      this->CheckCol(pMapLayer, this->m_colHazard, hazardField, TYPE_FLOAT, 0);
-      this->CheckCol(pMapLayer, this->m_colImpact, impactField, TYPE_FLOAT, 0);
+      this->CheckCol(pMapLayer, this->m_colFlameLen, flamelenField, TYPE_FLOAT, 0);
+      this->CheckCol(pMapLayer, this->m_colPFlameLen, pflamelenField, TYPE_FLOAT, 0);
       this->CheckCol(pMapLayer, this->m_colRisk, riskField, TYPE_FLOAT, 0);
-      this->CheckCol(pMapLayer, this->m_colArea, "AREA", TYPE_FLOAT, 0);
+      this->CheckCol(pMapLayer, this->m_colDamage, damageField, TYPE_FLOAT, 0);
+      this->CheckCol(pMapLayer, this->m_colDamageFrac, damageFracField, TYPE_FLOAT, 0);
+      //this->CheckCol(pMapLayer, this->m_colPopDens, popDensField, TYPE_FLOAT, 0);
 
+      this->CheckCol(pMapLayer, this->m_colArea, "AREA", TYPE_FLOAT, 0);
       this->CheckCol(pMapLayer, this->m_colLulc, "LULC_B", TYPE_INT, 0);
-      this->CheckCol(pMapLayer, this->m_colPFlameLen, "PFLAMELEN", TYPE_FLOAT, 0);
       this->CheckCol(pMapLayer, this->m_colNDU, "N_DU", TYPE_INT, 0);
       this->CheckCol(pMapLayer, this->m_colFirewise, "FIREWISE", TYPE_INT, 0);
 

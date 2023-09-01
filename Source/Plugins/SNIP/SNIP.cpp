@@ -3127,6 +3127,11 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
                   if (pLANode != nullptr)
                      {
                      int transTime = 1; // ???
+                     
+                     // scale trait (trust) before storing
+                     traitTrustLevel *= m_initTrustMultiplier;
+                     traitTrustLevel *= this->m_transEffMax;
+
                      SNEdge* pEdge = BuildEdge(pEngager, pLANode, transTime, traitTrustLevel, _traits);
                      newEdgeCount++;
                      ASSERT(pEdge->Source()->m_nodeType == NT_ENGAGER);
@@ -4306,7 +4311,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       {
       LPTSTR name = nullptr, path = nullptr, profiles = nullptr, profileQuery=nullptr, reactivityCol=nullptr, adaptCol=nullptr, engagerCol=nullptr, landscapeSignal=nullptr;
       int exportNetwork = 0, verifyNetwork = 0,  popProfileID = 0;
-      float m_mappingFrac = 0, laTrustDecay=0;
+      float m_mappingFrac = 0, laTrustDecay=0, initTrustMultiplier=1;
       XML_ATTR attrs[] = { // attr             type        address           isReq checkCol
                          { "name",               TYPE_STRING,  &name,            true,  0 },
                          { "path",               TYPE_STRING,  &path,            true,  0 },
@@ -4321,6 +4326,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "export_network",     TYPE_INT,     &exportNetwork,   false,  0 },
                          { "verify_network",     TYPE_INT,     &verifyNetwork,   false,  0 },
                          { "la_trust_decay",     TYPE_FLOAT,   &laTrustDecay,  false,  0 },
+                         { "init_trust_multiplier", TYPE_FLOAT,&initTrustMultiplier,  false,  0 },
                          { nullptr,              TYPE_NULL,    nullptr,          false, 0 } };
 
       bool ok = TiXmlGetAttributes(pXmlLayer, attrs, filename);
@@ -4331,6 +4337,10 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          SNLayer* pLayer = this->AddLayer();
          if (name != nullptr)
             pLayer->m_name = name;
+
+         pLayer->m_pSNIPModel->m_initTrustMultiplier = initTrustMultiplier;
+
+
 
          if (path != nullptr)
             ok = pLayer->m_pSNIPModel->LoadSnipNetwork(path, false);  // ignore landscape actor nodes
