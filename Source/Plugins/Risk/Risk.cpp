@@ -121,18 +121,26 @@ void Risk::GetLoss(MapLayer* pIDULayer, float flameLen, int lulc, int firewise, 
    if (flameLen > 0.01 && nDU > 0)
       {
       int col = -1;
-      if (flameLen < 2)
+      if (flameLen < 0.7)
          col = 2;
-      else if (flameLen < 4)
+      else if (flameLen < 1.25)
          col = 3;
-      else if (flameLen < 6)
+      else if (flameLen < 2)
          col = 4;
-      else if (flameLen < 8)
+      else if (flameLen < 4)
          col = 5;
-      else if (flameLen < 12)
+      else if (flameLen < 5)
          col = 6;
-      else
+      else if (flameLen < 6)
          col = 7;
+      else if (flameLen < 7)
+         col = 8;
+      else if (flameLen < 8)
+         col = 9;
+      else if (flameLen < 12)
+         col = 10;
+      else
+         col = 11;
 
       int row = this->m_lulcMap[lulc];
       lossFrac = this->m_pLossTable->GetAsFloat(col, row);
