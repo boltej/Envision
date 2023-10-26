@@ -1548,7 +1548,7 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
 bool ChronicHazards::Run(EnvContext* pEnvContext)
    {
-   //const float tolerance = 1.0f;    // tolerance value
+       //const float tolerance = 1.0f;    // tolerance value
    //MaxYearlyTWL(pEnvContext);
 
    int numDunePts = 0;
@@ -5082,19 +5082,28 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       }
 
    if (m_runFlooding
-      && (m_exportFloodMapInterval > 0 && (pEnvContext->yearOfRun % m_exportFloodMapInterval == 0)
-         || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
-      {
-      CString fldFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
-      CString outFile;
-      outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR) PathManager::GetPath(PM_OUTPUT_DIR),
-         pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+       && (m_exportFloodMapInterval > 0 && (pEnvContext->yearOfRun % m_exportFloodMapInterval == 0)
+           || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
+   {
+       CString fldFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
+       CString outFile;
+       outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR)PathManager::GetPath(PM_OUTPUT_DIR),
+           pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
 
-      // copy the file to the standard output locations
-      std::ifstream  src(fldFile, std::ios::binary);
-      std::ofstream  dst(outFile, std::ios::binary);
-      dst << src.rdbuf();
-      }
+       // copy the file to the standard output locations
+       std::ifstream  src(fldFile, std::ios::binary);
+       std::ofstream  dst(outFile, std::ios::binary);
+       dst << src.rdbuf();
+   }
+   if (m_runFlooding) {
+       // We need to delete the original file so than SFINCS can write again.
+       CString fldFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
+       remove(fldFile);
+       CString msg("SFINCS file ");
+       msg += fldFile;
+       msg += " removed.";
+       Report::Log(msg);
+   }
 
    //if (m_pErodedGrid != nullptr)
    //   {
