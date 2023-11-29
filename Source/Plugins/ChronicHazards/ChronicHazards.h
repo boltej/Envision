@@ -17,13 +17,11 @@
 
 #include <PolyGridMapper.h>
 #include <PolyPtMapper.h>
-#include <AlgLib\AlgLib.h>
+#include <AlgLib/AlgLib.h>
+#include <randgen/Randunif.hpp>
 
 #include <MatlabEngine.hpp>
 
-//#define N 1854
-
-const int NN = 8;  //???
 const int HOURLY_DATA_IN_A_DAY = 24;
 const float TANB1_005 = 0.05f;
 const int MAX_DAYS_FOR_FLOODING = 5;
@@ -90,22 +88,22 @@ bool IsHardened(BEACHTYPE beachType)
    {
    switch (beachType)
       {
-      case BchT_SANDY_BURIED_RIPRAP_BACKED: 
+      case BchT_SANDY_BURIED_RIPRAP_BACKED:
       case BchT_SANDY_RIPRAP_BACKED:
       case BchT_SANDY_SEAWALL_BACKED:
          return true;
       }
 
-      return false;
+   return false;
    }
 
 
 enum FLOODHAZARDZONE
    {
    FHZ_OPENWATER = -1,
-   FHZ_ONEHUNDREDYR = 1,			// Flood Zones : A, AE, AH, AH, AO, VE, FW
-   FHZ_FIVEHUNDREDYR = 2,			// Flood Zones: X, X500, X PROTECTED BY LEVEE
-   FHZ_UNSTUDIED = 3				   //
+   FHZ_ONEHUNDREDYR = 1,         // Flood Zones : A, AE, AH, AH, AO, VE, FW
+   FHZ_FIVEHUNDREDYR = 2,         // Flood Zones: X, X500, X PROTECTED BY LEVEE
+   FHZ_UNSTUDIED = 3               //
    };
 
 enum TRANSECTDAILYDATA
@@ -171,9 +169,9 @@ class PolicyInfo
       bool m_hasBudget;
       float m_startingBudget;     // budget at the beginning of the year (set in Run()) ($)
       float m_availableBudget;    // currently available budget (updated during Run()) ($)
-      float m_spentBudget;		// annual expenditure
+      float m_spentBudget;      // annual expenditure
       float m_unmetDemand;        // current unmet demand (for this year, updated during Run()) ($)
-      float m_allocFrac;	        // portion of budget from SpentBudget fraction
+      float m_allocFrac;           // portion of budget from SpentBudget fraction
       bool m_usingMinBudget;
 
       MovingWindow m_movAvgBudgetSpent;
@@ -219,7 +217,7 @@ enum POLICY_ID
    {
    PI_CONSTRUCT_BPS = 0,
    PI_MAINTAIN_BPS,
-   PI_NOURISH_BY_TYPE,
+   PI_NOURISH_BPS,
    PI_CONSTRUCT_SPS,
    PI_MAINTAIN_SPS,
    PI_NOURISH_SPS,
@@ -252,8 +250,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       ////  CString m_polyGridFName;
       //PolyGridLookups   *m_pPolyGridLkUp;          // store Poly-Grid lookup info for mapping grids to IDUs
       //FAGrid            *m_pGridMapLayer;
-      //MapLayer *m_pPolyMapLayer;								// MapLayer object, to hold values of IDU.shp.
-      //Map *m_pMap;												// Object to handle map pointer required to create grids.
+      //MapLayer *m_pPolyMapLayer;                        // MapLayer object, to hold values of IDU.shp.
+      //Map *m_pMap;                                    // Object to handle map pointer required to create grids.
       ////   bool LoadPolyGridLookup(MapLayer *pIDULayer);
       //bool LoadPolyGridLookup(EnvContext *pEnvContext);
    protected:
@@ -298,10 +296,13 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_runBuildings = 1;
       int m_runInfrastructure = 0;
       int m_runPolicy = 1;
-      Map* m_pMap;									            // ptr to Map required to create grids
+      Map* m_pMap;                                       // ptr to Map required to create grids
+
+      CUIntArray m_shuffleArray;
+      RandUniform* m_pRandUniform = nullptr;
 
       // input layers used by submodels
-      MapLayer* m_pIDULayer = nullptr;							// ptr to IDU Layer
+      MapLayer* m_pIDULayer = nullptr;                     // ptr to IDU Layer
       MapLayer* m_pRoadLayer = nullptr;                  // ptr to Road Layer
       MapLayer* m_pBldgLayer = nullptr;                  // ptr to Building Layer
       MapLayer* m_pInfraLayer = nullptr;                 // ptr to Infrastructure Building Layer
@@ -322,15 +323,15 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //MapLayer* m_pEelgrassGrid = nullptr;                  // ptr to Eel Grass Grid
 
 
-      //PolyGridMapper *m_pPolygonGridLkUp = nullptr;		      // provides mapping between IDU layer and DEM grid
-      PolyGridMapper* m_pRoadErodedGridLkUp = nullptr;			// provides mapping between roads layer and eroded grid
-      PolyGridMapper* m_pIduFloodedGridLkUp = nullptr;		   // provides mapping between IDU layer and flooded grid
-      PolyGridMapper* m_pRoadFloodedGridLkUp = nullptr;			// provides mapping between roads layer and flooded grid
-      //PolyPointMapper* m_pBldgFloodedGridLkUp = nullptr;		// provides mapping between bldg layer and flooded grid
-      //PolyPointMapper* m_pInfraFloodedGridLkUp = nullptr;		// provides mapping between bldg layer and flooded grid
+      //PolyGridMapper *m_pPolygonGridLkUp = nullptr;            // provides mapping between IDU layer and DEM grid
+      PolyGridMapper* m_pRoadErodedGridLkUp = nullptr;         // provides mapping between roads layer and eroded grid
+      PolyGridMapper* m_pIduFloodedGridLkUp = nullptr;         // provides mapping between IDU layer and flooded grid
+      PolyGridMapper* m_pRoadFloodedGridLkUp = nullptr;         // provides mapping between roads layer and flooded grid
+      //PolyPointMapper* m_pBldgFloodedGridLkUp = nullptr;      // provides mapping between bldg layer and flooded grid
+      //PolyPointMapper* m_pInfraFloodedGridLkUp = nullptr;      // provides mapping between bldg layer and flooded grid
       PolyGridMapper* m_pIduErodedGridLkUp = nullptr;
-      PolyPointMapper* m_pIduBuildingLkUp = nullptr;			// provides mapping between IDU layer, building (point) layer
-      PolyPointMapper* m_pIduInfraLkUp = nullptr;	// provides mapping between IDU layer, infrastructure (point) layer
+      PolyPointMapper* m_pIduBuildingLkUp = nullptr;         // provides mapping between IDU layer, building (point) layer
+      PolyPointMapper* m_pIduInfraLkUp = nullptr;   // provides mapping between IDU layer, infrastructure (point) layer
 
 
 
@@ -342,7 +343,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //PtrArray<BatesFlood> m_batesFloodArray;
 
       PtrArray< LookupTable > m_swanLookupTableArray;
-      //	  PtrArray< DDataObj > m_SurfZoneDataArray;
+      //     PtrArray< DDataObj > m_SurfZoneDataArray;
       PtrArray< DDataObj > m_BathyDataArray;
       //PtrArray< FDataObj > m_RBFDailyDataArray;
       PtrArray< FDataObj > m_dailyRBFOutputArray;
@@ -409,7 +410,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
 
       // TWL variables
-      int m_climateScenarioID = 0;						// 0=BaseSLR = 0; 1=LowSLR = 0; 2=MedSLR = 0; 3=HighSLR
+      int m_climateScenarioID = 0;                  // 0=BaseSLR = 0; 1=LowSLR = 0; 2=MedSLR = 0; 3=HighSLR
       float m_meanTWL = 0;
       int m_windowLengthTWL = 0;
       int m_numTransects = 0;
@@ -426,12 +427,12 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_floodedRoad = 0;
       float m_floodedRoadMiles = 0;
       int m_windowLengthFloodHzrd = 5;
-      REAL m_elevCellWidth = -1;							   // cell Width (m) in DEM, Flooded, Eroded grid
-      REAL m_elevCellHeight = -1;							   // cell Height (m) in DEM, Flooded, Eroded grid
+      REAL m_elevCellWidth = -1;                        // cell Width (m) in DEM, Flooded, Eroded grid
+      REAL m_elevCellHeight = -1;                        // cell Height (m) in DEM, Flooded, Eroded grid
       float m_ManningCoeff = 0.25f;
       int m_runBatesFlood = 0;
       float m_batesFloodDuration = 6;
-      ///// int m_runBayFloodModel = 0;				// Run Bay Flooding Model: 0=Off; 1=On
+      ///// int m_runBayFloodModel = 0;            // Run Bay Flooding Model: 0=Off; 1=On
 
 
       // erosion variables
@@ -464,17 +465,17 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       ////// int m_numDunePts = 0;
 
       // Policy scenario xml variables 
-      int m_runConstructBPSPolicy = 0;					// 0=Off = 0; 1=On
-      ////// int m_runConstructSafestPolicy = 0;					// 0=Off = 0; 1=On
-      int m_runConstructSPSPolicy = 0;					// 0=Off = 0; 1=On
-      int m_runMaintainBPSPolicy = 0;						// 0=Off = 0; 1=On
-      int m_runMaintainSPSPolicy = 0;						// 0=Off = 0; 1=On
-      int m_runNourishByTypePolicy = 0;					// 0=Off = 0; 1=On
-      int m_runNourishSPSPolicy = 0;						// 0=Off = 0; 1=On
-      int m_runRaiseInfrastructurePolicy = 0;				// 0=Off = 0; 1=On
-      int m_runRelocateSafestPolicy = 0;					// 0=Off = 0; 1=On	
-      int m_runRemoveBldgFromHazardZonePolicy = 0;			// 0=Off = 0; 1=On
-      int m_runRemoveInfraFromHazardZonePolicy;			// 0=Off = 0; 1=On
+      int m_runConstructBPSPolicy = 0;               // 0=Off = 0; 1=On
+      ////// int m_runConstructSafestPolicy = 0;               // 0=Off = 0; 1=On
+      int m_runConstructSPSPolicy = 0;               // 0=Off = 0; 1=On
+      int m_runMaintainBPSPolicy = 0;                  // 0=Off = 0; 1=On
+      int m_runMaintainSPSPolicy = 0;                  // 0=Off = 0; 1=On
+      int m_runNourishBPSPolicy = 0;                  // 0=Off = 0; 1=On
+      int m_runNourishSPSPolicy = 0;                  // 0=Off = 0; 1=On
+      int m_runRaiseInfrastructurePolicy = 0;            // 0=Off = 0; 1=On
+      int m_runRelocateSafestPolicy = 0;               // 0=Off = 0; 1=On   
+      int m_runRemoveBldgFromHazardZonePolicy = 0;         // 0=Off = 0; 1=On
+      int m_runRemoveInfraFromHazardZonePolicy;         // 0=Off = 0; 1=On
       float m_totalBudget = 0;
       float m_accessThresh = 90.0f;
 
@@ -519,7 +520,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_exportFloodMapInterval = -1;
       int m_exportDuneMapInterval = -1;
       int m_exportBldgMapInterval = -1;
-      ///// int m_runEelgrassModel = 0;				// Run Eelgrass Model: 0=Off; 1=On
+      ///// int m_runEelgrassModel = 0;            // Run Eelgrass Model: 0=Off; 1=On
       ///// int m_runSpatialBayTWL = 0;             // Run Spatially varying TWLs in Bay: 0=Off; 1=On
       int m_writeDailyBouyData = 0;
 
@@ -555,18 +556,18 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_raiseRelocateSafestSiteRatio = 0.4f;
 
       // Grid properties
-      //int m_numRows = -1;								   // Number of rows in DEM, Flooded, Eroded grid
-      //int m_numCols = -1;								   // Number of columns in DEM, Flooded, Eroded grid
+      //int m_numRows = -1;                           // Number of rows in DEM, Flooded, Eroded grid
+      //int m_numCols = -1;                           // Number of columns in DEM, Flooded, Eroded grid
       //
-      //int m_numBayRows = -1;							   // Number of rows in Bay Bathy, Eelgrass grid
-      //int m_numBayCols = -1;							   // Number of columns in Bay Bathy, Eelgrass grid	
-      //REAL m_bayCellWidth = 0;						   // cell Width (m) in Bay Bathy, Eelgrass grid
-      //REAL m_bayCellHeight = 0;						   // cell Height (m) in Bay Bathy, Eelgrass grid
+      //int m_numBayRows = -1;                        // Number of rows in Bay Bathy, Eelgrass grid
+      //int m_numBayCols = -1;                        // Number of columns in Bay Bathy, Eelgrass grid   
+      //REAL m_bayCellWidth = 0;                     // cell Width (m) in Bay Bathy, Eelgrass grid
+      //REAL m_bayCellHeight = 0;                     // cell Height (m) in Bay Bathy, Eelgrass grid
       //
-      //int m_numTidalRows = -1;							   // Number of rows in Tidal Bathy grid
-      //int m_numTidalCols = -1;							   // Number of columns in Tidal Bathy grid	
-      //REAL m_tidalCellWidth = 0;						   // cell Width (m) in Tidal Bathy grid
-      //REAL m_tidalCellHeight = 0;						   // cell Height (m) in Tidal Bathy grid
+      //int m_numTidalRows = -1;                        // Number of rows in Tidal Bathy grid
+      //int m_numTidalCols = -1;                        // Number of columns in Tidal Bathy grid   
+      //REAL m_tidalCellWidth = 0;                     // cell Width (m) in Tidal Bathy grid
+      //REAL m_tidalCellHeight = 0;                     // cell Height (m) in Tidal Bathy grid
       //
       //                                          // Bates Flooding Model
       float m_floodTimestep = 0.1f;
@@ -713,7 +714,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLEastingHeel = -1;
       int  m_colDLEastingMHW = -1;
       int m_colDLErosion = -1;      // erosion rates
-      int m_colDLEkd = -1; 
+      int m_colDLEkd = -1;
       int m_colDLEhist = -1;
       int m_colDLEbruun = -1;
 
@@ -822,7 +823,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int m_colRoadType = -1;
       //int m_colRoadLength = -1;
       //
-      //// Buildings coverage columns		
+      //// Buildings coverage columns      
       //
       //// Infrastructure coverage columns
       int m_colInfraBFE = -1;
@@ -841,11 +842,11 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       CString m_transectLayer;
       CString m_bathyLookupFile;
       CString m_bathyMask;
-      //	CString m_surfZoneFiles;
+      //   CString m_surfZoneFiles;
       CString m_climateScenarioStr;
 
-      //	CString  msg;									// String for error handling. 
-      //	CString failureID;								// String for error handling.
+      //   CString  msg;                           // String for error handling. 
+      //   CString failureID;                        // String for error handling.
 
       static TWLDATAFILE m_datafile;
       static COSTS m_costs;
@@ -930,12 +931,12 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //};
 
       ///*double m_screen[ 8 ][ 8 ] = { { 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0 },{ 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0 },
-      //	{ 1.2, 0, 0, 1.5, 1.0, 0, 1.8, 1.9 },
-      //	{ 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 0 },
-      //	{ 1.0, 1.0, 1.0, 2.0, 1.3, 0, 1.0, 0 },
-      //	{ 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 0 },
-      //	{ 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0 },
-      //	{ 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0 },
+      //   { 1.2, 0, 0, 1.5, 1.0, 0, 1.8, 1.9 },
+      //   { 1.0, 2.0, 2.0, 2.0, 2.0, 2.0, 1.0, 0 },
+      //   { 1.0, 1.0, 1.0, 2.0, 1.3, 0, 1.0, 0 },
+      //   { 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 2.0, 0 },
+      //   { 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 1.0, 1.0 },
+      //   { 1.0, 1.0, 1.0, 1.0, 1.0, 2.0, 2.0, 1.0 },
       //};*/
 
       //float m_flood[ 8 ][ 8 ] = { 0 };
@@ -1005,8 +1006,6 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, bool isBPS);
 
       bool CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& maxPoint);
-      bool CalculateExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& maxPoint);
-
       void MaintainBPS(int currentYear);
       void MaintainBPS2(int currentYear);
       void RemoveBPS(EnvContext* pEnvContext);
@@ -1047,5 +1046,4 @@ class _EXPORT ChronicHazards : public EnvModelProcess
          };
 
    };
-
 
