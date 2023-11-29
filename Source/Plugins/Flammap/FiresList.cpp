@@ -26,41 +26,41 @@ Copywrite 2012 - Oregon State University
 
 #include "FlamMapAP.h"
 
-extern  FlamMapAP *gpFlamMapAP;
- 
+extern  FlamMapAP* gpFlamMapAP;
+
 
 FiresList::FiresList(void)
-{
+   {
    m_maxYear = 0;
    m_headerString = "";
-}
+   }
 
 
 FiresList::~FiresList(void)
-{
+   {
    firesList.clear();
-}
+   }
 
-void FiresList::Init(const char *_initFName) 
+void FiresList::Init(const char* _initFName)
    {
    CString initFName;
-   if ( PathManager::FindPath( _initFName, initFName ) < 0 )    // search envision paths
+   if (PathManager::FindPath(_initFName, initFName) < 0)    // search envision paths
       {
       CString msg;
-      msg.Format( "Unable to locate firelist file '%s' on path", _initFName );
-      Report::ErrorMsg( msg );
+      msg.Format("Unable to locate firelist file '%s' on path", _initFName);
+      Report::ErrorMsg(msg);
       return;
       }
-   
+
    VDataObj data(U_UNDEFINED);
-   int records = data.ReadAscii( initFName );  // autodetect delimiter
+   int records = data.ReadAscii(initFName);  // autodetect delimiter
    CString tRecord;
-   if ( records < 0 )
+   if (records < 0)
       {
-      CString msg( _T("Init(): Failed to open file ") );
+      CString msg(_T("Init(): Failed to open file "));
       msg += _initFName;
       Report::ErrorMsg(msg);
-      gpFlamMapAP->m_runStatus = 0;
+      gpFlamMapAP->m_runStatus = -1;
       return;
       }
 
@@ -69,36 +69,36 @@ void FiresList::Init(const char *_initFName)
    //char *p = _tcsrchr( fmsBase, '\\');
    //p++;
    //*p = 0;
-   TCHAR fmsBase[ MAX_PATH ];
-   lstrcpy( fmsBase, gpFlamMapAP->m_fmsPath );   // this will be termainted with a '\'
+   TCHAR fmsBase[MAX_PATH];
+   lstrcpy(fmsBase, gpFlamMapAP->m_fmsPath);   // this will be termainted with a '\'
 
-   int colYr            = -1;
-   int colProb          = -1;
-   int colJulian        = -1;
-   int colBurnPer       = -1;
-   int colWindSpeed     = -1;
-   int colAzimuth       = -1;
-   int colFMfile        = -1;
-   int colERC           = -1;
+   int colYr = -1;
+   int colProb = -1;
+   int colJulian = -1;
+   int colBurnPer = -1;
+   int colWindSpeed = -1;
+   int colAzimuth = -1;
+   int colFMfile = -1;
+   int colERC = -1;
    int colOriginal_Size = -1;
-   int colCause         = -1;
-   int colIgnitionX     = -1;
+   int colCause = -1;
+   int colIgnitionX = -1;
    int colIgnitionY = -1;
    int colFireID = -1;
    int fireNum = 1;
-   if ( DoesColExist( initFName, data, colYr            , "Yr"           ) == false )   return;
-   if ( DoesColExist( initFName, data, colProb          , "Prob"         ) == false )   return;
-   if ( DoesColExist( initFName, data, colJulian        , "Julian"       ) == false )   return;
-   if ( DoesColExist( initFName, data, colBurnPer       , "BurnPer"      ) == false )   return;
-   if ( DoesColExist( initFName, data, colWindSpeed     , "WindSpeed"    ) == false )   return;
-   if ( DoesColExist( initFName, data, colAzimuth       , "Azimuth"      ) == false )   return;
+   if (DoesColExist(initFName, data, colYr, "Yr") == false)   return;
+   if (DoesColExist(initFName, data, colProb, "Prob") == false)   return;
+   if (DoesColExist(initFName, data, colJulian, "Julian") == false)   return;
+   if (DoesColExist(initFName, data, colBurnPer, "BurnPer") == false)   return;
+   if (DoesColExist(initFName, data, colWindSpeed, "WindSpeed") == false)   return;
+   if (DoesColExist(initFName, data, colAzimuth, "Azimuth") == false)   return;
    if (DoesColExist(initFName, data, colFMfile, "FMfile") == false)   return;
    if (DoesColExist(initFName, data, colIgnitionX, "IGNITIONX") == false)   return;
    if (DoesColExist(initFName, data, colIgnitionY, "IGNITIONY") == false)   return;
    DoesColExist(initFName, data, colERC, "ERC"); // these two are optional
-   if ( DoesColExist( initFName, data, colOriginal_Size , "Original_Size") == false )
+   if (DoesColExist(initFName, data, colOriginal_Size, "Original_Size") == false)
       {
-      DoesColExist( initFName, data, colOriginal_Size , "Size");
+      DoesColExist(initFName, data, colOriginal_Size, "Size");
       }
    //DoesColExist(initFName, data, colFireID, "fireID");
    colFireID = data.GetCol("fireID");
@@ -107,19 +107,19 @@ void FiresList::Init(const char *_initFName)
    //if ( DoesColExist( initFName, data, colIgnitionY     , "IgnitionY"    ) == false )   return;
    m_headerString = "";
    for (int tc = 0; tc < data.GetColCount(); tc++)
-   {
-	   if (tc > 0)
-		   m_headerString += ",";
-	   m_headerString += data.GetLabel(tc);
-   }
-   FILE * echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
-   fprintf(echoFiresList, "%s, EnvFire_ID\n", (LPCTSTR) m_headerString);
+      {
+      if (tc > 0)
+         m_headerString += ",";
+      m_headerString += data.GetLabel(tc);
+      }
+   FILE* echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
+   fprintf(echoFiresList, "%s, EnvFire_ID\n", (LPCTSTR)m_headerString);
    fclose(echoFiresList);
 
-   for ( int row=0; row < data.GetRowCount(); row++ )
+   for (int row = 0; row < data.GetRowCount(); row++)
       {
-      float monteCarloProb = (float) gpFlamMapAP->m_pFiresRand->RandValue(0, 1);
- 
+      float monteCarloProb = (float)gpFlamMapAP->m_pFiresRand->RandValue(0, 1);
+
       int     yr;
       int     julDate;
       int     burnPeriod;
@@ -127,68 +127,68 @@ void FiresList::Init(const char *_initFName)
       int     windAzmth;
       CString fmsName;     // filename only
       float   burnProb;
-	   int     erc = 0;
-	   float   origSizeHA =0;
-	   float igX, igY;
-	   CString fireID = "";
-      data.Get( colYr           , row,  yr );
-      data.Get( colProb         , row,  burnProb );
-      data.Get( colJulian       , row,  julDate );
-      data.Get( colBurnPer      , row,  burnPeriod );
-      data.Get( colWindSpeed    , row,  windSpd );
-      data.Get( colAzimuth      , row,  windAzmth );
-      data.Get( colFMfile       , row,  fmsName ); // just the filename, no path
-	  data.Get(colERC, row, erc);
-	  data.Get(colIgnitionX, row, igX);
-	  data.Get(colIgnitionY, row, igY);
+      int     erc = 0;
+      float   origSizeHA = 0;
+      float igX, igY;
+      CString fireID = "";
+      data.Get(colYr, row, yr);
+      data.Get(colProb, row, burnProb);
+      data.Get(colJulian, row, julDate);
+      data.Get(colBurnPer, row, burnPeriod);
+      data.Get(colWindSpeed, row, windSpd);
+      data.Get(colAzimuth, row, windAzmth);
+      data.Get(colFMfile, row, fmsName); // just the filename, no path
+      data.Get(colERC, row, erc);
+      data.Get(colIgnitionX, row, igX);
+      data.Get(colIgnitionY, row, igY);
 
-      if ( colOriginal_Size > 0 )
-         data.Get( colOriginal_Size, row,  origSizeHA );
+      if (colOriginal_Size > 0)
+         data.Get(colOriginal_Size, row, origSizeHA);
       //data.Get( colCause        , row,  cause );  //?  These are currently ignored
       //data.Get( colIgnitionX    , row,  ignitX );
       //data.Get( colIgnitionY    , row,  ignitY );
-	  if (colFireID >= 0)
-		  data.Get(colFireID, row, fireID);
-	  else
-		  fireID.Format("%d", fireNum);
+      if (colFireID >= 0)
+         data.Get(colFireID, row, fireID);
+      else
+         fireID.Format("%d", fireNum);
       Fire tmpFire;
-      CString fmsFull( fmsBase );
+      CString fmsFull(fmsBase);
       fmsFull += fmsName;
 
       CString fmsFullPath;
-      int retVal = PathManager::FindPath( fmsFull, fmsFullPath );
+      int retVal = PathManager::FindPath(fmsFull, fmsFullPath);
 
-      if ( retVal < 0 )
+      if (retVal < 0)
          {
          CString msg;
-         msg.Format( "Unable to find fuel moisture file '%s' when searching paths", (LPCTSTR) fmsFull );
-         Report::ErrorMsg( msg );
+         msg.Format("Unable to find fuel moisture file '%s' when searching paths", (LPCTSTR)fmsFull);
+         Report::ErrorMsg(msg);
          }
 
-	   if (yr <= 0 || burnProb <= 0.0 || julDate <= 0 || burnPeriod <= 0 || fmsName.GetLength() <= 0)
-		  continue;
-	   tRecord = "";
-	   for (int tc = 0; tc < data.GetColCount(); tc++)
-	   {
-		   if (tc > 0)
-			   tRecord += ",";
-		   tRecord += data.GetAsString(tc, row);
-	   }
+      if (yr <= 0 || burnProb <= 0.0 || julDate <= 0 || burnPeriod <= 0 || fmsName.GetLength() <= 0)
+         continue;
+      tRecord = "";
+      for (int tc = 0; tc < data.GetColCount(); tc++)
+         {
+         if (tc > 0)
+            tRecord += ",";
+         tRecord += data.GetAsString(tc, row);
+         }
       // init Fire info.  Note: years are 1-based in input file, make them zero-based here.
-	   tmpFire.Init(yr - 1, burnProb, julDate, burnPeriod, windSpd, windAzmth, monteCarloProb, fmsFullPath, fmsName, erc, origSizeHA, igX, igY, fireID, tRecord, gpFlamMapAP->m_envisionFireID++);
+      tmpFire.Init(yr - 1, burnProb, julDate, burnPeriod, windSpd, windAzmth, monteCarloProb, fmsFullPath, fmsName, erc, origSizeHA, igX, igY, fireID, tRecord, gpFlamMapAP->m_envisionFireID++);
 
-      if(tmpFire.GetBurnPeriod() > 0) 
+      if (tmpFire.GetBurnPeriod() > 0)
          firesList.push_back(tmpFire);    // add the fire
 
-      if(tmpFire.GetYr() > m_maxYear)
+      if (tmpFire.GetYr() > m_maxYear)
          m_maxYear = tmpFire.GetYr();
-	  fireNum++;
+      fireNum++;
       } // for(int i=0;i<recordsTtl;i++)
 
 
    CString msg;
-   msg.Format( "Loaded %i fires from firelist file '%s'", data.GetRowCount(), initFName );
-   Report::Log( msg );
+   msg.Format("Loaded %i fires from firelist file '%s'", data.GetRowCount(), initFName);
+   Report::Log(msg);
    /// OLD CODE BELOW
    //int tmp = (int) Fires.size();
 
@@ -233,27 +233,27 @@ void FiresList::Init(const char *_initFName)
    //
    //fclose(inFile);
 
-} //
+   } //
 
 
 int FiresList::AdjustYear(int year, double pRatio)
- {
+   {
    bool runFire;
    int numRunFires = 0;
    FireList::iterator i;
 
-   for(i = firesList.begin(); i != firesList.end(); ++i)
+   for (i = firesList.begin(); i != firesList.end(); ++i)
       {
       Fire fire = *i;   // jpb = added this operator method
 
-      if( fire.GetYr() == year && fire.GetBurnPeriod() > 0 )
+      if (fire.GetYr() == year && fire.GetBurnPeriod() > 0)
          {
          double monteCarloProb = gpFlamMapAP->m_pFiresRand->RandValue(0, 1);
          runFire = fire.GetBurnProb() * pRatio >= monteCarloProb ? true : false;
 
          fire.SetDoRun(runFire);
-         
-         if(runFire)
+
+         if (runFire)
             numRunFires++;
          }
       }
@@ -262,14 +262,14 @@ int FiresList::AdjustYear(int year, double pRatio)
    }
 
 
-bool FiresList::DoesColExist( LPCTSTR filename, VDataObj &data, int &col, LPCTSTR field )
+bool FiresList::DoesColExist(LPCTSTR filename, VDataObj& data, int& col, LPCTSTR field)
    {
-   col = data.GetCol( field );
+   col = data.GetCol(field);
 
-   if ( col < 0 )
+   if (col < 0)
       {
       CString msg;
-      msg.Format( "FiresList: Input file '%s' is missing a required field '%s'", filename, field );
+      msg.Format("FiresList: Input file '%s' is missing a required field '%s'", filename, field);
       return false;
       }
 

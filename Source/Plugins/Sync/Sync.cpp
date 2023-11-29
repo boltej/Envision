@@ -36,17 +36,17 @@ Copywrite 2012 - Oregon State University
 
 
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new SyncProcessCollection; }
+extern "C" _EXPORT EnvExtension * Factory(EnvContext*) { return (EnvExtension*) new SyncProcessCollection; }
 
 
-RandUniform rn( 0.0, 1.0, 1 );
+RandUniform rn(0.0, 1.0, 1);
 
 
-MapElement::MapElement(MapElement &me)
+MapElement::MapElement(MapElement& me)
    {
-   m_isRange= me.m_isRange;
+   m_isRange = me.m_isRange;
 
-   m_sourceValue=me.m_sourceValue;    // for single-valued elements
+   m_sourceValue = me.m_sourceValue;    // for single-valued elements
    m_srcMinValue = me.m_srcMinValue;    // next two are for elements defined with ranges
    m_srcMaxValue = me.m_srcMaxValue;
 
@@ -54,40 +54,40 @@ MapElement::MapElement(MapElement &me)
    }
 
 
-void MapElement::ApplyOutcome( EnvContext *pContext, int idu, int colTarget )
+void MapElement::ApplyOutcome(EnvContext* pContext, int idu, int colTarget)
    {
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
-   float randVal = (float) rn.RandValue();
+   float randVal = (float)rn.RandValue();
    float value = 0;
    int   j = 0;
-   for ( ; j < (int) m_syncOutcomeArray.GetSize(); j++ )
+   for (; j < (int)m_syncOutcomeArray.GetSize(); j++)
       {
-      value += m_syncOutcomeArray.GetAt( j )->probability;
+      value += m_syncOutcomeArray.GetAt(j)->probability;
 
-      if ( value >= randVal )
+      if (value >= randVal)
          {
-         SYNC_OUTCOME *pSyncOutcome = m_syncOutcomeArray.GetAt( j );
+         SYNC_OUTCOME* pSyncOutcome = m_syncOutcomeArray.GetAt(j);
 
          // check for redundancy
          VData oldValue;
-         pContext->pMapLayer->GetData( idu, colTarget, oldValue );
+         pContext->pMapLayer->GetData(idu, colTarget, oldValue);
 
          // during init
-         if ( oldValue != pSyncOutcome->targetValue )
-            {            
-            if (pContext->run < 0)
+         if (oldValue != pSyncOutcome->targetValue)
+            {
+            if (pContext->runID < 0)
                pLayer->SetData(idu, colTarget, pSyncOutcome->targetValue);
             else
-               pContext->ptrAddDelta( pContext->pEnvModel, idu, colTarget,
-                                   pContext->currentYear, pSyncOutcome->targetValue, (int) pContext->handle );
+               pContext->ptrAddDelta(pContext->pEnvModel, idu, colTarget,
+                  pContext->currentYear, pSyncOutcome->targetValue, (int)pContext->handle);
             }
          }
       }
    }
 
 
-SyncMap::SyncMap(SyncMap &sm)
+SyncMap::SyncMap(SyncMap& sm)
    {
    m_name = sm.m_name;
 
@@ -95,7 +95,7 @@ SyncMap::SyncMap(SyncMap &sm)
    m_targetCol = sm.m_targetCol;
    m_colSource = sm.m_colSource;
    m_colTarget = sm.m_colTarget;
-   m_inUse  = sm.m_inUse;
+   m_inUse = sm.m_inUse;
    m_method = sm.m_method;
 
    // copy ptrs and objects
@@ -113,34 +113,34 @@ SyncMap::~SyncMap()
    }
 
 
-MapElement *SyncMap::FindMapElement( VData &vData )
+MapElement* SyncMap::FindMapElement(VData& vData)
    {
-   if ( vData.IsNull() )
+   if (vData.IsNull())
       return NULL;
 
-   int count = (int) m_mapElementArray.GetSize();
-   MapElement *pMapElement = NULL;
+   int count = (int)m_mapElementArray.GetSize();
+   MapElement* pMapElement = NULL;
 
-   for ( int i = 0; i < count; i++ )
+   for (int i = 0; i < count; i++)
       {
       pMapElement = m_mapElementArray[i];
 
-      if ( pMapElement->m_isRange )
+      if (pMapElement->m_isRange)
          {
          float minVal, maxVal, value;
-         bool okMin = pMapElement->m_srcMinValue.GetAsFloat( minVal );
-         bool okMax = pMapElement->m_srcMaxValue.GetAsFloat( maxVal );
-         bool okVal = vData.GetAsFloat( value );
+         bool okMin = pMapElement->m_srcMinValue.GetAsFloat(minVal);
+         bool okMax = pMapElement->m_srcMaxValue.GetAsFloat(maxVal);
+         bool okVal = vData.GetAsFloat(value);
 
-         if ( minVal <= value && value <= maxVal )
+         if (minVal <= value && value <= maxVal)
             return pMapElement;
          }
       else  // it is not a range
          {
          LONG key = vData.val.vUInt; //MAKELONG( vData.type, (short) vData.val.vUInt );
-         BOOL found = m_valueMap.Lookup( key, pMapElement );
+         BOOL found = m_valueMap.Lookup(key, pMapElement);
 
-         if ( found )
+         if (found)
             return pMapElement;
 
          // is it a wildcard?
@@ -170,11 +170,11 @@ MapElement *SyncMap::FindMapElement( VData &vData )
    }
 
 
-int SyncMap::AddMapElement( MapElement *pMap )
+int SyncMap::AddMapElement(MapElement* pMap)
    {
-   int index = (int) m_mapElementArray.Add( pMap );
+   int index = (int)m_mapElementArray.Add(pMap);
 
-   VData &v = pMap->m_sourceValue;
+   VData& v = pMap->m_sourceValue;
    LONG key = v.val.vUInt;   //MAKELONG( v.type, (short) v.val.vUInt );
    m_valueMap[key] = pMap;
    return index;
@@ -182,19 +182,19 @@ int SyncMap::AddMapElement( MapElement *pMap )
 
 
 // this method reads an xml input file
-bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer *pLayer )
+bool SyncProcess::LoadXml(EnvContext* pEnvContext, LPCTSTR filename, MapLayer* pLayer)
    {
    // start parsing input file
    TiXmlDocument doc;
-   bool ok = doc.LoadFile( filename );
+   bool ok = doc.LoadFile(filename);
 
    bool loadSuccess = true;
 
-   if ( !ok )
+   if (!ok)
       {
       CString msg;
-      msg.Format( "Error reading input file, %s", filename );
-      Report::ErrorMsg( doc.ErrorDesc(), msg );
+      msg.Format("Error reading input file, %s", filename);
+      Report::ErrorMsg(doc.ErrorDesc(), msg);
       return false;
       }
 
@@ -218,60 +218,60 @@ bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer 
     * </sync>
     */
 
-   TiXmlElement *pXmlRoot = doc.RootElement();  // <sync  ....>
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <sync  ....>
 
    // get any sync_maps
-   TiXmlElement *pXmlSyncMap = pXmlRoot->FirstChildElement( _T( "sync_map" ) );
+   TiXmlElement* pXmlSyncMap = pXmlRoot->FirstChildElement(_T("sync_map"));
    int count = 0;
-   while ( pXmlSyncMap != NULL )
+   while (pXmlSyncMap != NULL)
       {
-      SyncMap *pSyncMap = new SyncMap;
+      SyncMap* pSyncMap = new SyncMap;
       CString method, query;
       int init = 0;
 
       XML_ATTR smAttrs[] =
          { // attr          type           address                   isReq   checkCol
-               { "name",       TYPE_CSTRING, &( pSyncMap->m_name ), true, 0 },
-               { "source_col", TYPE_CSTRING, &( pSyncMap->m_sourceCol ), true, 0 },
-               { "target_col", TYPE_CSTRING, &( pSyncMap->m_targetCol ), true, 0 },
+               { "name",       TYPE_CSTRING, &(pSyncMap->m_name), true, 0 },
+               { "source_col", TYPE_CSTRING, &(pSyncMap->m_sourceCol), true, 0 },
+               { "target_col", TYPE_CSTRING, &(pSyncMap->m_targetCol), true, 0 },
                { "method",     TYPE_CSTRING, &method, false, 0 },
                { "query",      TYPE_CSTRING, &query, false, 0 },
                { "init",       TYPE_INT,     &init, false, 0 },
                { NULL, TYPE_NULL, NULL, false, 0 } };
 
-      if ( TiXmlGetAttributes( pXmlSyncMap, smAttrs, filename, pLayer ) == false )
+      if (TiXmlGetAttributes(pXmlSyncMap, smAttrs, filename, pLayer) == false)
          {
          delete pSyncMap;
          return false;
          }
 
-      pSyncMap->m_colSource = pLayer->GetFieldCol( pSyncMap->m_sourceCol );
-      pSyncMap->m_colTarget = pLayer->GetFieldCol( pSyncMap->m_targetCol );
+      pSyncMap->m_colSource = pLayer->GetFieldCol(pSyncMap->m_sourceCol);
+      pSyncMap->m_colTarget = pLayer->GetFieldCol(pSyncMap->m_targetCol);
       pSyncMap->m_init = init;
 
-      if ( pSyncMap->m_colSource < 0 )
+      if (pSyncMap->m_colSource < 0)
          {
          CString msg;
-         msg.Format( _T( "Sync: Source column %s not found in IDU coverage when reading <sync_map>" ), pSyncMap->m_sourceCol );
-         Report::ErrorMsg( msg );
+         msg.Format(_T("Sync: Source column %s not found in IDU coverage when reading <sync_map>"), pSyncMap->m_sourceCol);
+         Report::ErrorMsg(msg);
          delete pSyncMap;
 
-         pXmlSyncMap = pXmlSyncMap->NextSiblingElement( _T( "sync_map" ) );
+         pXmlSyncMap = pXmlSyncMap->NextSiblingElement(_T("sync_map"));
          continue;
          }
 
-      if ( pSyncMap->m_colTarget < 0 )
+      if (pSyncMap->m_colTarget < 0)
          {
          CString msg;
-         msg.Format( _T( "Sync: Target column %s not found in IDU coverage when reading <sync_map>" ), pSyncMap->m_targetCol );
-         Report::ErrorMsg( msg );
+         msg.Format(_T("Sync: Target column %s not found in IDU coverage when reading <sync_map>"), pSyncMap->m_targetCol);
+         Report::ErrorMsg(msg);
          delete pSyncMap;
 
-         pXmlSyncMap = pXmlSyncMap->NextSiblingElement( _T( "sync_map" ) );
+         pXmlSyncMap = pXmlSyncMap->NextSiblingElement(_T("sync_map"));
          continue;
          }
 
-      if ( method.CompareNoCase( _T( "useMap" ) ) == 0 )
+      if (method.CompareNoCase(_T("useMap")) == 0)
          pSyncMap->m_method = SyncMap::METHOD::USE_MAP;
       else
          pSyncMap->m_method = SyncMap::METHOD::USE_DELTA;
@@ -282,40 +282,40 @@ bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer 
          pSyncMap->m_pQuery = pQE->ParseQuery(query, 0, "SyncMap");
          }
 
-      this->m_syncMapArray.Add( pSyncMap );
- 
-      TYPE srcType = pLayer->GetFieldType( pSyncMap->m_colSource );
-      TYPE targType = pLayer->GetFieldType( pSyncMap->m_colTarget );
+      this->m_syncMapArray.Add(pSyncMap);
+
+      TYPE srcType = pLayer->GetFieldType(pSyncMap->m_colSource);
+      TYPE targType = pLayer->GetFieldType(pSyncMap->m_colTarget);
 
       // look for child <map> elements (these are class MapElement)
-      TiXmlElement *pXmlMap = pXmlSyncMap->FirstChildElement( _T( "map" ) );
+      TiXmlElement* pXmlMap = pXmlSyncMap->FirstChildElement(_T("map"));
       int mapCount = 0;
 
-      while ( pXmlMap != NULL )
+      while (pXmlMap != NULL)
          {
-         MapElement *pMapElement = new MapElement;
-         LPCTSTR srcValue = pXmlMap->Attribute( _T( "source_value" ) );
+         MapElement* pMapElement = new MapElement;
+         LPCTSTR srcValue = pXmlMap->Attribute(_T("source_value"));
 
-         if ( srcValue == NULL )
+         if (srcValue == NULL)
             {
-            CString msg( _T( "Sync: Unable to find 'source_value' attribute reading <map> element" ) );
-            Report::ErrorMsg( msg );
+            CString msg(_T("Sync: Unable to find 'source_value' attribute reading <map> element"));
+            Report::ErrorMsg(msg);
             delete pMapElement;
             }
          else
             {
-            TCHAR *buffer = new TCHAR[lstrlen( srcValue ) + 1];
-            lstrcpy( buffer, srcValue );
+            TCHAR* buffer = new TCHAR[lstrlen(srcValue) + 1];
+            lstrcpy(buffer, srcValue);
 
             bool isRange = false;
 
-            TCHAR *dash = _tcschr( buffer + 1, '-' );   //+1 to avoild leading negative signs
-            if ( dash == NULL )
+            TCHAR* dash = _tcschr(buffer + 1, '-');   //+1 to avoild leading negative signs
+            if (dash == NULL)
                {
-               VData _srcValue( srcValue );
-               _srcValue.ChangeType( srcType );
+               VData _srcValue(srcValue);
+               _srcValue.ChangeType(srcType);
 
-               if ( lstrcmp( srcValue, _T( "*" ) ) == 0 ) // * matches anything
+               if (lstrcmp(srcValue, _T("*")) == 0) // * matches anything
                   _srcValue.SetNull();
 
                pMapElement->m_sourceValue = _srcValue;
@@ -325,12 +325,12 @@ bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer 
                {
                *dash = NULL;
 
-               pMapElement->m_srcMinValue.Parse( buffer );
-               pMapElement->m_srcMinValue.ChangeType( srcType );
+               pMapElement->m_srcMinValue.Parse(buffer);
+               pMapElement->m_srcMinValue.ChangeType(srcType);
                pMapElement->m_sourceValue = pMapElement->m_srcMinValue;
 
-               pMapElement->m_srcMaxValue.Parse( dash + 1 );
-               pMapElement->m_srcMaxValue.ChangeType( srcType );
+               pMapElement->m_srcMaxValue.Parse(dash + 1);
+               pMapElement->m_srcMaxValue.ChangeType(srcType);
 
                pMapElement->m_isRange = true;
                }
@@ -338,59 +338,59 @@ bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer 
             delete buffer;
 
             // successful define MapElement, add it to the SyncMap
-            pSyncMap->AddMapElement( pMapElement );
+            pSyncMap->AddMapElement(pMapElement);
 
             // start looking for outcome associations
-            const TiXmlElement *pXmlOutcome = pXmlMap->FirstChildElement( _T( "outcome" ) );
+            const TiXmlElement* pXmlOutcome = pXmlMap->FirstChildElement(_T("outcome"));
 
-            while ( pXmlOutcome != NULL )
+            while (pXmlOutcome != NULL)
                {
-               LPCTSTR targetValue = pXmlOutcome->Attribute( _T( "target_value" ) );
-               if ( targetValue == NULL )
+               LPCTSTR targetValue = pXmlOutcome->Attribute(_T("target_value"));
+               if (targetValue == NULL)
                   {
-                  CString msg( _T( "Unable to find 'target_value' attribute reading <map> element" ) );
-                  Report::ErrorMsg( msg );
+                  CString msg(_T("Unable to find 'target_value' attribute reading <map> element"));
+                  Report::ErrorMsg(msg);
                   }
                else
                   {
-                  VData _targetValue( targetValue );
-                  _targetValue.ChangeType( targType );
+                  VData _targetValue(targetValue);
+                  _targetValue.ChangeType(targType);
 
-                  LPCTSTR probability = pXmlOutcome->Attribute( _T( "probability" ) );
+                  LPCTSTR probability = pXmlOutcome->Attribute(_T("probability"));
 
-                  SYNC_OUTCOME *pSyncOutcome = new SYNC_OUTCOME;
+                  SYNC_OUTCOME* pSyncOutcome = new SYNC_OUTCOME;
 
                   pSyncOutcome->targetValue = _targetValue;
 
-                  if ( probability == NULL )
+                  if (probability == NULL)
                      pSyncOutcome->probability = 1.0f;
                   else
                      {
-                     float p = (float) atof( probability );
-                     if ( p > 1.0f )
+                     float p = (float)atof(probability);
+                     if (p > 1.0f)
                         pSyncOutcome->probability = p / 100.0f;
                      else
                         pSyncOutcome->probability = p;
                      }
 
-                  pMapElement->m_syncOutcomeArray.Add( pSyncOutcome );
+                  pMapElement->m_syncOutcomeArray.Add(pSyncOutcome);
                   }
 
-               pXmlOutcome = pXmlOutcome->NextSiblingElement( _T( "outcome" ) );
+               pXmlOutcome = pXmlOutcome->NextSiblingElement(_T("outcome"));
                }  // end of: while (pXmlOutcome != NULL )
             }  // end of: else (srcValue != NULL )
 
          mapCount++;
-         pXmlMap = pXmlMap->NextSiblingElement( _T( "map" ) );
+         pXmlMap = pXmlMap->NextSiblingElement(_T("map"));
          }  // end of: while( pXmlMap != NULL );
 
       CString msg;
-      msg.Format( _T( "Loaded sync_map for source column %s, target column %s (%i mappings)\n" ),
-                  (LPCTSTR) pSyncMap->m_sourceCol, (LPCTSTR) pSyncMap->m_targetCol, mapCount );
-      Report::LogInfo( msg );
-      TRACE( msg );
+      msg.Format(_T("Loaded sync_map for source column %s, target column %s (%i mappings)\n"),
+         (LPCTSTR)pSyncMap->m_sourceCol, (LPCTSTR)pSyncMap->m_targetCol, mapCount);
+      Report::LogInfo(msg);
+      TRACE(msg);
 
-      pXmlSyncMap = pXmlSyncMap->NextSiblingElement( _T( "sync_map" ) );
+      pXmlSyncMap = pXmlSyncMap->NextSiblingElement(_T("sync_map"));
       }  // end of: while ( pXmlSyncMap != NULL )
 
    m_filename = filename;
@@ -398,88 +398,61 @@ bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer 
    }
 
 
-   bool SyncProcess::Run( EnvContext *pContext )
+bool SyncProcess::Run(EnvContext* pContext)
+   {
+   // Basic idea:
+   //
+   const MapLayer* pLayer = pContext->pMapLayer;
+
+   int syncMapCount = (int)m_syncMapArray.GetCount();
+
+   for (int i = 0; i < syncMapCount; i++)
       {
-      // Basic idea:
-      //
-      const MapLayer *pLayer = pContext->pMapLayer;
+      SyncMap* pSyncMap = m_syncMapArray[i];
+      ASSERT(pSyncMap != NULL);
 
-      int syncMapCount = (int) m_syncMapArray.GetCount();
+      if (pSyncMap->m_inUse == false)
+         continue;
 
-      for ( int i = 0; i < syncMapCount; i++ )
+      SyncMap::METHOD method = pSyncMap->m_method;
+      // called from init() only run if asked?
+      if (pContext->runID < 0)
          {
-         SyncMap *pSyncMap = m_syncMapArray[i];
-         ASSERT( pSyncMap != NULL );
+         if (pSyncMap->m_init > 0)
+            pSyncMap->m_method = SyncMap::METHOD::USE_MAP;
+         else
+            continue;      // skip if init <= 0
+         }
 
-         if ( pSyncMap->m_inUse == false )
-            continue;
+      if (pContext->currentYear < 0 && pSyncMap->m_init <= 0)
+         continue;
 
-         SyncMap::METHOD method = pSyncMap->m_method;
-         // called from init() only run if asked?
-         if (pContext->run < 0)
+      int colSource = pSyncMap->m_colSource;
+      int colTarget = pSyncMap->m_colTarget;
+      bool found = false;
+
+      switch (pSyncMap->m_method)
+         {
+         case SyncMap::METHOD::USE_DELTA:
+         {
+         DeltaArray* deltaArray = pContext->pDeltaArray;// get a ptr to the delta array
+
+         // iterate through deltas added since last “seen”
+         INT_PTR size = deltaArray->GetSize();
+         for (INT_PTR i = pContext->firstUnseenDelta; i < size; ++i)
             {
-            if (pSyncMap->m_init > 0)
-               pSyncMap->m_method = SyncMap::METHOD::USE_MAP;
-            else
-               continue;      // skip if init <= 0
-            }            
-            
-         if (pContext->currentYear < 0 && pSyncMap->m_init <= 0)
-            continue;
-
-         int colSource = pSyncMap->m_colSource;
-         int colTarget = pSyncMap->m_colTarget;
-         bool found = false;
-
-         switch ( pSyncMap->m_method )
-            {
-            case SyncMap::METHOD::USE_DELTA:
-               {
-               DeltaArray *deltaArray = pContext->pDeltaArray;// get a ptr to the delta array
-
-               // iterate through deltas added since last “seen”
-               INT_PTR size = deltaArray->GetSize();
-               for ( INT_PTR i = pContext->firstUnseenDelta; i < size; ++i )
-                  {
-                  if ( i < 0 )
-                     break;
-
-                  DELTA &delta = ::EnvGetDelta( deltaArray, i );
-                  if ( delta.col == colSource )   // does the delta column match this SyncMap?
-                     {
-                     // if there is an associated query, does it pass the query?
-                     bool pass = true;
-                     if (pSyncMap->m_pQuery != nullptr)
-                        {
-                        bool result = false;
-                        bool ok = pSyncMap->m_pQuery->Run(delta.cell, result);
-
-                        if (!ok || !result)
-                           pass = false;
-                        }
-
-                     if (pass)
-                        {
-                        // matches, get corresponding MapElement
-                        MapElement* pMapElement = pSyncMap->FindMapElement(delta.newValue);
-
-                        if (pMapElement != NULL)   // not found?  
-                           pMapElement->ApplyOutcome(pContext, delta.cell, colTarget);
-                        }
-                     }  // end of  if ( delta.col = colSource )
-                  }  // end of: deltaArray loop
+            if (i < 0)
                break;
-               }
 
-            case SyncMap::METHOD::USE_MAP:
+            DELTA& delta = ::EnvGetDelta(deltaArray, i);
+            if (delta.col == colSource)   // does the delta column match this SyncMap?
                {
-            for (MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++)
-               {
+               // if there is an associated query, does it pass the query?
                bool pass = true;
                if (pSyncMap->m_pQuery != nullptr)
                   {
                   bool result = false;
-                  bool ok = pSyncMap->m_pQuery->Run(idu, result);
+                  bool ok = pSyncMap->m_pQuery->Run(delta.cell, result);
 
                   if (!ok || !result)
                      pass = false;
@@ -487,97 +460,124 @@ bool SyncProcess::LoadXml( EnvContext *pEnvContext,  LPCTSTR filename, MapLayer 
 
                if (pass)
                   {
-                  VData srcValue;
-                  pLayer->GetData(idu, colSource, srcValue);
-
-                  MapElement* pMapElement = pSyncMap->FindMapElement(srcValue);
+                  // matches, get corresponding MapElement
+                  MapElement* pMapElement = pSyncMap->FindMapElement(delta.newValue);
 
                   if (pMapElement != NULL)   // not found?  
-                     pMapElement->ApplyOutcome(pContext, idu, colTarget);
+                     pMapElement->ApplyOutcome(pContext, delta.cell, colTarget);
                   }
-               }
-
-               break;
-               }
-            }
-
-         pSyncMap->m_method = method;
+               }  // end of  if ( delta.col = colSource )
+            }  // end of: deltaArray loop
+         break;
          }
 
-      return true;
-      }
-
-
-   bool SyncProcessCollection::Init( EnvContext *pEnvContext, LPCTSTR  initStr /*xml input file*/ )
-      {
-      CString string( initStr );
-      ASSERT( !string.IsEmpty() );
-
-      SyncProcess *pProcess = new SyncProcess( pEnvContext->id );
-      if ( pProcess == NULL )
+         case SyncMap::METHOD::USE_MAP:
          {
-         CString msg( _T( "Unable to create SyncProcess instance " ) );
-         msg += pEnvContext->pEnvExtension->m_name;
-         Report::ErrorMsg( msg );
-         return FALSE;
-         }
-
-      // load XML input file specified in initStr
-      MapLayer *pLayer = (MapLayer*) pEnvContext->pMapLayer;
-      bool ok = pProcess->LoadXml( pEnvContext, initStr, pLayer );
-
-      if ( !ok )
-         return FALSE;
-
-      // add to internal collection
-      this->m_syncProcessArray.Add( pProcess );
-
-      // add inUse variable for output
-      for ( int j = 0; j < pProcess->GetSyncMapCount(); j++ )
-         {
-         SyncMap *pMap = pProcess->GetSyncMap( j );
-
-         CString varName( pMap->m_name + ".InUse" );
-         AddInputVar( varName, pMap->m_inUse, "" );
-         }
-
-      pProcess->Run(pEnvContext);
-
-      return TRUE;
-      }
-
-
-   bool SyncProcessCollection::Run( EnvContext *pEnvContext )
-      {
-      const MapLayer *pLayer = pEnvContext->pMapLayer;
-
-      int index;
-      SyncProcess *pProcess = GetSyncProcessFromID( pEnvContext->id, &index );
-      ASSERT( pProcess != NULL );
-
-      bool ok = pProcess->Run( pEnvContext );
-
-      return ok ? TRUE : FALSE;
-      }
-
-
-   SyncProcess *SyncProcessCollection::GetSyncProcessFromID( int id, int *index )
-      {
-      for ( int i = 0; i < m_syncProcessArray.GetSize(); i++ )
-         {
-         SyncProcess *pProcess = m_syncProcessArray.GetAt( i );
-
-         if ( pProcess->m_processID == id )
+         for (MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++)
             {
-            if ( index != NULL )
-               *index = i;
+            bool pass = true;
+            if (pSyncMap->m_pQuery != nullptr)
+               {
+               bool result = false;
+               bool ok = pSyncMap->m_pQuery->Run(idu, result);
 
-            return pProcess;
+               if (!ok || !result)
+                  pass = false;
+               }
+
+            if (pass)
+               {
+               VData srcValue;
+               pLayer->GetData(idu, colSource, srcValue);
+
+               MapElement* pMapElement = pSyncMap->FindMapElement(srcValue);
+
+               if (pMapElement != NULL)   // not found?  
+                  pMapElement->ApplyOutcome(pContext, idu, colTarget);
+               }
             }
+
+         break;
+         }
          }
 
-      if ( index != NULL )
-         *index = -1;
-
-      return NULL;
+      pSyncMap->m_method = method;
       }
+
+   return true;
+   }
+
+
+bool SyncProcessCollection::Init(EnvContext* pEnvContext, LPCTSTR  initStr /*xml input file*/)
+   {
+   CString string(initStr);
+   ASSERT(!string.IsEmpty());
+
+   SyncProcess* pProcess = new SyncProcess(pEnvContext->id);
+   if (pProcess == NULL)
+      {
+      CString msg(_T("Unable to create SyncProcess instance "));
+      msg += pEnvContext->pEnvExtension->m_name;
+      Report::ErrorMsg(msg);
+      return FALSE;
+      }
+
+   // load XML input file specified in initStr
+   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
+   bool ok = pProcess->LoadXml(pEnvContext, initStr, pLayer);
+
+   if (!ok)
+      return FALSE;
+
+   // add to internal collection
+   this->m_syncProcessArray.Add(pProcess);
+
+   // add inUse variable for output
+   for (int j = 0; j < pProcess->GetSyncMapCount(); j++)
+      {
+      SyncMap* pMap = pProcess->GetSyncMap(j);
+
+      CString varName(pMap->m_name + ".InUse");
+      AddInputVar(varName, pMap->m_inUse, "");
+      }
+
+   pProcess->Run(pEnvContext);
+
+   return TRUE;
+   }
+
+
+bool SyncProcessCollection::Run(EnvContext* pEnvContext)
+   {
+   const MapLayer* pLayer = pEnvContext->pMapLayer;
+
+   int index;
+   SyncProcess* pProcess = GetSyncProcessFromID(pEnvContext->id, &index);
+   ASSERT(pProcess != NULL);
+
+   bool ok = pProcess->Run(pEnvContext);
+
+   return ok ? TRUE : FALSE;
+   }
+
+
+SyncProcess* SyncProcessCollection::GetSyncProcessFromID(int id, int* index)
+   {
+   for (int i = 0; i < m_syncProcessArray.GetSize(); i++)
+      {
+      SyncProcess* pProcess = m_syncProcessArray.GetAt(i);
+
+      if (pProcess->m_processID == id)
+         {
+         if (index != NULL)
+            *index = i;
+
+         return pProcess;
+         }
+      }
+
+   if (index != NULL)
+      *index = -1;
+
+   return NULL;
+   }

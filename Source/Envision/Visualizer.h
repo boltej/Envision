@@ -27,11 +27,11 @@ class VizManager;
 
 //interface class for any object that should be called for PostRun/Results animations
 class IVizPostRunHooks
-{
-public:
-	virtual BOOL PostrunReplay(int year) = 0;
-	virtual BOOL PostrunSetYear(int oldYear, int newYear) = 0;
-};
+   {
+   public:
+      virtual BOOL PostrunReplay(int year) = 0;
+      virtual BOOL PostrunSetYear(int oldYear, int newYear) = 0;
+   };
 
 // VisualizerWnd 
 //
@@ -42,105 +42,105 @@ public:
 //
 
 class VisualizerWnd : public CWnd
-{
-friend class VizManager;
+   {
+   friend class VizManager;
 
-DECLARE_DYNAMIC(VisualizerWnd)
+   DECLARE_DYNAMIC(VisualizerWnd)
 
-protected:
-	VisualizerWnd( EnvVisualizer *pViz, int run );    // use VizManager::CreateWnd()
+   protected:
+      VisualizerWnd(EnvVisualizer* pViz, int run);    // use VizManager::CreateWnd()
 
-public:
-   virtual ~VisualizerWnd();
+   public:
+      virtual ~VisualizerWnd();
 
-public:
-   EnvVisualizer *m_pVizInfo;
-   IVizPostRunHooks* m_pRTProcessor;
+   public:
+      EnvVisualizer* m_pVizInfo;
+      IVizPostRunHooks* m_pRTProcessor;
 
-   EnvContext m_envContext;
-   int m_useage; //what view invoked this window?
-public:
-   BOOL InitWindow  ( EnvContext *pContext=NULL );    // NULL means use internal
-   BOOL UpdateWindow( EnvContext *pContext=NULL );
-   
-   virtual BOOL PostrunReplay(int year);
-   virtual BOOL PostrunSetYear(int oldYear, int newYear);
+      EnvContext m_envContext;
+      int m_useage; //what view invoked this window?
+   public:
+      BOOL InitWindow(EnvContext* pContext = NULL);    // NULL means use internal
+      BOOL UpdateWindow(EnvContext* pContext = NULL);
 
-   int GetRun( void ) { return m_envContext.run; }
-   
-   DECLARE_MESSAGE_MAP()
+      virtual BOOL PostrunReplay(int year);
+      virtual BOOL PostrunSetYear(int oldYear, int newYear);
 
-public:
-   //static calls for results run updates
-	static bool RtReplay(CWnd* pWnd, int year) { return ( ((VisualizerWnd*)pWnd)->PostrunReplay(year) ) ? true : false; };  // -1=reset
-	static bool RtSetYear(CWnd* pWnd, int oldYear, int newYear) { return (((VisualizerWnd*)pWnd)->PostrunSetYear(oldYear, newYear) ) ? true : false; }
+      int GetRun(void) { return m_envContext.runID; }
 
-public:
-   afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-   afx_msg void OnSize(UINT nType, int cx, int cy);
+      DECLARE_MESSAGE_MAP()
 
-protected:
-   virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+   public:
+      //static calls for results run updates
+      static bool RtReplay(CWnd* pWnd, int year) { return (((VisualizerWnd*)pWnd)->PostrunReplay(year)) ? true : false; };  // -1=reset
+      static bool RtSetYear(CWnd* pWnd, int oldYear, int newYear) { return (((VisualizerWnd*)pWnd)->PostrunSetYear(oldYear, newYear)) ? true : false; }
 
-public:
-   afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
-   afx_msg int OnMouseActivate(CWnd* pDesktopWnd, UINT nHitTest, UINT message);
-   afx_msg BOOL OnEraseBkgnd(CDC* pDC);
-};
+   public:
+      afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+      afx_msg void OnSize(UINT nType, int cx, int cy);
+
+   protected:
+      virtual BOOL PreCreateWindow(CREATESTRUCT& cs);
+
+   public:
+      afx_msg void OnActivate(UINT nState, CWnd* pWndOther, BOOL bMinimized);
+      afx_msg int OnMouseActivate(CWnd* pDesktopWnd, UINT nHitTest, UINT message);
+      afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+   };
 
 
 class VizManager
-{
-public:
-   VizManager( void ) : m_nextID( 80000 ) { }
+   {
+   public:
+      VizManager(void) : m_nextID(80000) { }
 
-   int AddVisualizer( VisualizerWnd *pWnd ) { return (int) m_visualizers.Add( pWnd ); }
-   int GetVisualizerCount( void ) { return (int) m_visualizers.GetSize(); }
-   VisualizerWnd *GetVisualizerWnd( int i ) { return m_visualizers[ i ]; } 
+      int AddVisualizer(VisualizerWnd* pWnd) { return (int)m_visualizers.Add(pWnd); }
+      int GetVisualizerCount(void) { return (int)m_visualizers.GetSize(); }
+      VisualizerWnd* GetVisualizerWnd(int i) { return m_visualizers[i]; }
 
-   VisualizerWnd *CreateWnd( CWnd *pParent, EnvVisualizer *pInfo, int run, BOOL &success, int useage );
-   
-protected:
-   PtrArray< VisualizerWnd > m_visualizers;
-   
-   int m_nextID;
-};
+      VisualizerWnd* CreateWnd(CWnd* pParent, EnvVisualizer* pInfo, int run, BOOL& success, int useage);
+
+   protected:
+      PtrArray< VisualizerWnd > m_visualizers;
+
+      int m_nextID;
+   };
 
 
 inline
-VisualizerWnd *VizManager::CreateWnd( CWnd *pParent, EnvVisualizer *pInfo, int run, BOOL &success,int useage )
+VisualizerWnd* VizManager::CreateWnd(CWnd* pParent, EnvVisualizer* pInfo, int run, BOOL& success, int useage)
    {
-   VisualizerWnd *pWnd = new VisualizerWnd( pInfo, run );
+   VisualizerWnd* pWnd = new VisualizerWnd(pInfo, run);
    pWnd->m_useage = useage;
 
    RECT rect;
-   pParent->GetClientRect( &rect );
-   
+   pParent->GetClientRect(&rect);
+
    DWORD style = 0;
 
 
    //different uses provide slightly different setups for visualizations;
    //seperate out style flags base on useage case
    switch (useage)
-   {
-   case VZT_INPUT:
-   case VZT_RUNTIME:
-	   style = WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
-	   break;
-   case VZT_POSTRUN:
-   case VZT_POSTRUN_GRAPH:
-   case VZT_POSTRUN_MAP:
-   case VZT_POSTRUN_VIEW:
-	   style = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_VISIBLE;
-	   break;
-   }
+      {
+      case VZT_INPUT:
+      case VZT_RUNTIME:
+         style = WS_CHILD | WS_VISIBLE | WS_BORDER | WS_CLIPCHILDREN | WS_CLIPSIBLINGS;
+         break;
+      case VZT_POSTRUN:
+      case VZT_POSTRUN_GRAPH:
+      case VZT_POSTRUN_MAP:
+      case VZT_POSTRUN_VIEW:
+         style = WS_OVERLAPPEDWINDOW | WS_CLIPSIBLINGS | WS_VISIBLE;
+         break;
+      }
    success = pWnd->Create(NULL, pInfo->m_name, style,
-                           rect, pParent, m_nextID++ );
+      rect, pParent, m_nextID++);
 
-   m_visualizers.Add( pWnd );
-  
+   m_visualizers.Add(pWnd);
+
    pWnd->m_envContext.pWnd = pWnd;
-   pWnd->m_envContext.run  = run;
+   pWnd->m_envContext.runID = run;
    pWnd->m_envContext.yearOfRun = 0;
 
    return pWnd;

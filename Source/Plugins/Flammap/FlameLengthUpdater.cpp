@@ -34,7 +34,7 @@ Copywrite 2012 - Oregon State University
 #include "UNITCONV.H"
 
 
-extern FlamMapAP *gpFlamMapAP;
+extern FlamMapAP* gpFlamMapAP;
 
 using namespace std;
 
@@ -48,19 +48,19 @@ int Round(double in)
 
 
 void FlameLengthUpdater::UpdateDeltaArray(
-   FlamMapAP *pModel,
-   EnvContext *pEnvContext,
-   FireYearRunner *pFireYearRunner,
-   PolyGridLookups *pPolyGridLkUp
+   FlamMapAP* pModel,
+   EnvContext* pEnvContext,
+   FireYearRunner* pFireYearRunner,
+   PolyGridLookups* pPolyGridLkUp
 )
    {
    ASSERT(pEnvContext != NULL);
    ASSERT(pFireYearRunner != NULL);
    ASSERT(pPolyGridLkUp != NULL);
 
-   POINT  *pGridPtNdxs = NULL;
+   POINT* pGridPtNdxs = NULL;
 
-   float *gridPtProportionsArray = NULL;
+   float* gridPtProportionsArray = NULL;
    //float //*FlameLengthValues = NULL,
    float totalPolyFlameLength = 0;
    float maxFlameLength = 0;     // ft
@@ -84,7 +84,7 @@ void FlameLengthUpdater::UpdateDeltaArray(
    int colCTSS = pEnvContext->pMapLayer->GetFieldCol("CTSS");
    int colPFlameLen = pEnvContext->pMapLayer->GetFieldCol("PFlameLen");
    int colFuelModel = pEnvContext->pMapLayer->GetFieldCol("FUELMODEL");
-   FILE *deltaArrayCSV = NULL;
+   FILE* deltaArrayCSV = NULL;
    if (pModel->m_logDeltaArrayUpdates)
       {
       deltaArrayCSV = fopen(pModel->m_outputDeltaArrayUpdatesName, "a+t");
@@ -138,7 +138,7 @@ void FlameLengthUpdater::UpdateDeltaArray(
       fireID = 0;
       float polyFlameLength;
       float maxProportion = 0;
-      int *fireNums = new int[gridPtCount];
+      int* fireNums = new int[gridPtCount];
       int tNum;
       for (gridPt = 0; gridPt < gridPtCount; gridPt++)
          {
@@ -197,7 +197,7 @@ void FlameLengthUpdater::UpdateDeltaArray(
          else
             {
             float fireProp = 0.0, tProp;
-            float *props = new float[firesList.size()];
+            float* props = new float[firesList.size()];
             int loc = 0;
             for (std::list<int>::iterator i = firesList.begin(); i != firesList.end(); ++i)
                {
@@ -259,7 +259,7 @@ void FlameLengthUpdater::UpdateDeltaArray(
          if (deltaArrayCSV)
             {
             //fprintf(deltaArrayCSV, "Yr, Run, IDU, FireID, Flamelength, PFlameLen, CTSS, VegClass, Variant, DISTURB, FUELMODEL\n");
-            fprintf(deltaArrayCSV, "%d, %d, %d, %d, %f", pEnvContext->currentYear, pEnvContext->run, polyIndex, fireID, totalPolyFlameLength);
+            fprintf(deltaArrayCSV, "%d, %d, %d, %d, %f", pEnvContext->currentYear, pEnvContext->runID, polyIndex, fireID, totalPolyFlameLength);
             if (colPFlameLen >= 0)
                {
                float fl;

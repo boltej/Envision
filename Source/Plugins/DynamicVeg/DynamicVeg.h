@@ -29,6 +29,7 @@ Copywrite 2012 - Oregon State University
 #include <vector>
 #include <Vdataobj.h>
 #include <map>
+#include <set>
 #include <PtrArray.h>
 #include <afxtempl.h>
 #include <initializer_list>
@@ -505,8 +506,8 @@ class DynamicVeg : public EnvModelProcess
       static std::vector<std::vector<std::vector<float> > > m_vsi;  //3d vector to hold MC1 si data [year,row,column]
 
       static std::map<ProbKeyclass, std::vector< std::pair<int, float> >, probclasscomp> probmap;
-
       static std::map<ProbKeyclass, std::vector< std::pair<int, float> >, probclasscomp> probmap2;
+      //static std::set<ProbKeyclass> m_probablistic_missing;
 
       static std::map<ProbMultiplierPVTKeyclass, std::vector<float>, ProbMultiplierPVTClassComp> m_probMultiplierPVTMap;
 
@@ -517,8 +518,9 @@ class DynamicVeg : public EnvModelProcess
       static std::map<ProbIndexKeyclass, std::vector<int>, ProbIndexClassComp> m_probIndexMap;
 
       static std::map<DeterminIndexKeyClass, std::vector<int>, DeterminIndexClassComp> m_determinIndexMap;
-
       static std::map<DeterministicKeyclass, std::vector< std::pair<int, int> >, deterministicclasscomp> m_deterministic_trans;
+      //static std::set<DeterministicKeyclass> m_deterministic_missing;
+
 
       static ProbKeyclass m_probInsertKey, m_probLookupKey;
 

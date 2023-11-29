@@ -24,7 +24,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 
-extern CEnvServerDlg *gpMainWnd;
+extern CEnvServerDlg* gpMainWnd;
 extern RestServer restServer;
 
 
@@ -91,31 +91,31 @@ int SvrPopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int e
 // CAboutDlg dialog used for App About
 
 class CAboutDlg : public CDialogEx
-{
-public:
-	CAboutDlg();
+   {
+   public:
+      CAboutDlg();
 
-// Dialog Data
+      // Dialog Data
 #ifdef AFX_DESIGN_TIME
-	enum { IDD = IDD_ABOUTBOX };
+      enum { IDD = IDD_ABOUTBOX };
 #endif
 
-	protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+   protected:
+      virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
-// Implementation
-protected:
-	DECLARE_MESSAGE_MAP()
-};
+      // Implementation
+   protected:
+      DECLARE_MESSAGE_MAP()
+   };
 
 CAboutDlg::CAboutDlg() : CDialogEx(IDD_ABOUTBOX)
-{
-}
+   {
+   }
 
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
-{
-	CDialogEx::DoDataExchange(pDX);
-}
+   {
+   CDialogEx::DoDataExchange(pDX);
+   }
 
 BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
@@ -126,17 +126,17 @@ END_MESSAGE_MAP()
 
 
 CEnvServerDlg::CEnvServerDlg(CWnd* pParent /*=NULL*/)
-	: CDialogEx(IDD_ENVSERVER_DIALOG, pParent)
+   : CDialogEx(IDD_ENVSERVER_DIALOG, pParent)
    , m_scenarioText(_T(""))
    , m_projectFile(_T(""))
    {
    gpMainWnd = this;
-	m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
+   m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
    ::EnvInitEngine(0);
-}
+   }
 
 void CEnvServerDlg::DoDataExchange(CDataExchange* pDX)
-{
+   {
    CDialogEx::DoDataExchange(pDX);
    DDX_Text(pDX, IDC_SCENARIO, m_scenarioText);
    DDX_Text(pDX, IDC_PROJECTFILE, m_projectFile);
@@ -149,9 +149,9 @@ void CEnvServerDlg::DoDataExchange(CDataExchange* pDX)
    }
 
 BEGIN_MESSAGE_MAP(CEnvServerDlg, CDialogEx)
-	ON_WM_SYSCOMMAND()
-	ON_WM_PAINT()
-	ON_WM_QUERYDRAGICON()
+   ON_WM_SYSCOMMAND()
+   ON_WM_PAINT()
+   ON_WM_QUERYDRAGICON()
    ON_BN_CLICKED(IDC_STOP, &CEnvServerDlg::OnBnClickedStop)
    ON_BN_CLICKED(IDC_START, &CEnvServerDlg::OnBnClickedStart)
    ON_WM_CLOSE()
@@ -161,35 +161,35 @@ END_MESSAGE_MAP()
 // CEnvServerDlg message handlers
 
 BOOL CEnvServerDlg::OnInitDialog()
-{
-	CDialogEx::OnInitDialog();
+   {
+   CDialogEx::OnInitDialog();
 
-	// Add "About..." menu item to system menu.
+   // Add "About..." menu item to system menu.
 
-	// IDM_ABOUTBOX must be in the system command range.
-	ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
-	ASSERT(IDM_ABOUTBOX < 0xF000);
+   // IDM_ABOUTBOX must be in the system command range.
+   ASSERT((IDM_ABOUTBOX & 0xFFF0) == IDM_ABOUTBOX);
+   ASSERT(IDM_ABOUTBOX < 0xF000);
 
-	CMenu* pSysMenu = GetSystemMenu(FALSE);
-	if (pSysMenu != NULL)
-	{
-		BOOL bNameValid;
-		CString strAboutMenu;
-		bNameValid = strAboutMenu.LoadString(IDS_ABOUTBOX);
-		ASSERT(bNameValid);
-		if (!strAboutMenu.IsEmpty())
-		{
-			pSysMenu->AppendMenu(MF_SEPARATOR);
-			pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
-		}
-	}
+   CMenu* pSysMenu = GetSystemMenu(FALSE);
+   if (pSysMenu != NULL)
+      {
+      BOOL bNameValid;
+      CString strAboutMenu;
+      bNameValid = strAboutMenu.LoadString(IDS_ABOUTBOX);
+      ASSERT(bNameValid);
+      if (!strAboutMenu.IsEmpty())
+         {
+         pSysMenu->AppendMenu(MF_SEPARATOR);
+         pSysMenu->AppendMenu(MF_STRING, IDM_ABOUTBOX, strAboutMenu);
+         }
+      }
 
-	// Set the icon for this dialog.  The framework does this automatically
-	//  when the application's main window is not a dialog
-	SetIcon(m_hIcon, TRUE);			// Set big icon
-	SetIcon(m_hIcon, FALSE);		// Set small icon
+   // Set the icon for this dialog.  The framework does this automatically
+   //  when the application's main window is not a dialog
+   SetIcon(m_hIcon, TRUE);			// Set big icon
+   SetIcon(m_hIcon, FALSE);		// Set small icon
 
-	// Add scenario entry
+   // Add scenario entry
    m_scenario.AddString("<Run All Scenarios>");
    m_scenario.SetCurSel(0);
 
@@ -200,58 +200,58 @@ BOOL CEnvServerDlg::OnInitDialog()
    msg.Format(_T("EnvServer STARTED at %i-%i-%i %i:%i:%i"), (int)tm.wMonth, (int)tm.wDay, (int)tm.wYear, (int)tm.wHour, (int)tm.wMinute, (int)tm.wSecond);
    Log(msg);
 
-   Report::logMsgProc    = SvrLogMsgProc;
+   Report::logMsgProc = SvrLogMsgProc;
    Report::statusMsgProc = SvrStatusMsgProc;
-   Report::popupMsgProc  = SvrPopupMsgProc;
-   
+   Report::popupMsgProc = SvrPopupMsgProc;
+
    m_timer = SetTimer(1, 5000, NULL); // one event every 1000 ms = 1 s
-   
+
    return TRUE;  // return TRUE  unless you set the focus to a control
-}
+   }
 
 void CEnvServerDlg::OnSysCommand(UINT nID, LPARAM lParam)
-{
-	if ((nID & 0xFFF0) == IDM_ABOUTBOX)
-	{
-		CAboutDlg dlgAbout;
-		dlgAbout.DoModal();
-	}
-	else
-	{
-		CDialogEx::OnSysCommand(nID, lParam);
-	}
-}
+   {
+   if ((nID & 0xFFF0) == IDM_ABOUTBOX)
+      {
+      CAboutDlg dlgAbout;
+      dlgAbout.DoModal();
+      }
+   else
+      {
+      CDialogEx::OnSysCommand(nID, lParam);
+      }
+   }
 
 // If you add a minimize button to your dialog, you will need the code below
 //  to draw the icon.  For MFC applications using the document/view model,
 //  this is automatically done for you by the framework.
 
 void CEnvServerDlg::OnPaint()
-{
-	if (IsIconic())
-	{
-		CPaintDC dc(this); // device context for painting
+   {
+   if (IsIconic())
+      {
+      CPaintDC dc(this); // device context for painting
 
-		SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
+      SendMessage(WM_ICONERASEBKGND, reinterpret_cast<WPARAM>(dc.GetSafeHdc()), 0);
 
-		// Center icon in client rectangle
-		int cxIcon = GetSystemMetrics(SM_CXICON);
-		int cyIcon = GetSystemMetrics(SM_CYICON);
-		CRect rect;
-		GetClientRect(&rect);
-		int x = (rect.Width() - cxIcon + 1) / 2;
-		int y = (rect.Height() - cyIcon + 1) / 2;
+      // Center icon in client rectangle
+      int cxIcon = GetSystemMetrics(SM_CXICON);
+      int cyIcon = GetSystemMetrics(SM_CYICON);
+      CRect rect;
+      GetClientRect(&rect);
+      int x = (rect.Width() - cxIcon + 1) / 2;
+      int y = (rect.Height() - cyIcon + 1) / 2;
 
-		// Draw the icon
-		dc.DrawIcon(x, y, m_hIcon);
-	}
-	else
-	{
-		CDialogEx::OnPaint();
-	}
-}
+      // Draw the icon
+      dc.DrawIcon(x, y, m_hIcon);
+      }
+   else
+      {
+      CDialogEx::OnPaint();
+      }
+   }
 
-void CEnvServerDlg::OnTimer( UINT_PTR eventID )
+void CEnvServerDlg::OnTimer(UINT_PTR eventID)
    {
    /////void EventHandler(void)
    /////   {
@@ -293,13 +293,13 @@ void CEnvServerDlg::OnTimer( UINT_PTR eventID )
 // The system calls this function to obtain the cursor to display while the user drags
 //  the minimized window.
 HCURSOR CEnvServerDlg::OnQueryDragIcon()
-{
-	return static_cast<HCURSOR>(m_hIcon);
-}
+   {
+   return static_cast<HCURSOR>(m_hIcon);
+   }
 
 
 
-void CEnvServerDlg::AddInstance(EnvisionInstance *pInst) // LPCTSTR projectFile) // , int scenario) // , const shared_ptr<Session> &pSession)
+void CEnvServerDlg::AddInstance(EnvisionInstance* pInst) // LPCTSTR projectFile) // , int scenario) // , const shared_ptr<Session> &pSession)
    {
    TCHAR buf[64];
    ctime_s(buf, 64, &pInst->m_start);
@@ -335,20 +335,20 @@ void event_stream_handler(void);
 void CEnvServerDlg::OnBnClickedStart()
    {
    this->UpdateData(1);
-   
+
    if (this->m_projectFile.GetLength() == 0)
       {
       AfxMessageBox("You need to specify a project (.envx) file");
       return;
       }
-   
+
    int scnIndex = this->m_scenario.GetCurSel();
    if (scnIndex < 0 || this->m_scenarioText.GetLength() == 0)
       {
       AfxMessageBox("You need to specify a scenario");
       return;
       }
-   
+
    //AddInstance();   //_projectFile, 0); // , NULL);// m_scenario.GetCurSel() - 1);
    }
 
@@ -359,7 +359,7 @@ void CEnvServerDlg::OnClose()
    }
 
 
-void CEnvServerDlg::OnEnvInstanceFinished(EnvisionInstance *pInst)
+void CEnvServerDlg::OnEnvInstanceFinished(EnvisionInstance* pInst)
    {
    // update instance box
 
@@ -377,16 +377,16 @@ void CEnvServerDlg::OnEnvInstanceFinished(EnvisionInstance *pInst)
          TCHAR buf[64];
          ctime_s(buf, 64, &pInst->m_stop);
 
-         long duration = (long) pInst->m_duration;
+         long duration = (long)pInst->m_duration;
          int hours = duration / 3600;
-         int mins = duration/60;
-         if ( hours > 0 )
+         int mins = duration / 60;
+         if (hours > 0)
             mins = int(duration % hours);
 
          int secs = duration;
-         if ( mins > 0 )
+         if (mins > 0)
             secs = int(duration % mins);
-         
+
          CString label;
          label.Format("%i:%s:%i FINISHED at %s (%ih:%ims:%is)", pInst->GetID(), (LPCTSTR)path.GetName(), pInst->m_scenario, buf, hours, mins, secs);
 
@@ -394,11 +394,11 @@ void CEnvServerDlg::OnEnvInstanceFinished(EnvisionInstance *pInst)
          m_instances.InsertString(i, label);
          break;
          }
-      }      
+      }
    }
 
 
-int CEnvServerDlg::AddSession( int sessionID, LPCTSTR clientURL)
+int CEnvServerDlg::AddSession(int sessionID, LPCTSTR clientURL)
    {
    CString msg;
    msg.Format("Session %i (%s)", sessionID, clientURL);
@@ -414,8 +414,8 @@ void CEnvServerDlg::RemoveSession(int sessionID)
       {
       m_sessions.GetText(i, value);
 
-      TCHAR *p = value.GetBuffer();
-      
+      TCHAR* p = value.GetBuffer();
+
       while (!isdigit(*p)) p++;
 
       int _sessionID = atoi(p);
@@ -438,7 +438,7 @@ EnvisionInstance::EnvisionInstance()
    , m_scenario(-1)
    //, m_pSession(NULL)
    , m_start()
-   , m_pEventSession( nullptr )
+   , m_pEventSession(nullptr)
    , m_stop()
    , m_duration(0)
    {
@@ -468,7 +468,7 @@ int EnvisionInstance::LoadProject(LPCTSTR projectFile) //, int scenario)
    m_projectFile = projectFile;
    //m_scenario = scenario;
 
-   switch(m_status)
+   switch (m_status)
       {
       case ST_INITIALIZED:
          // run LoadProjectFn in a new thread.
@@ -513,7 +513,7 @@ int EnvisionInstance::_LoadProjectThreadFn() //
 // Requires that an EnvModel has been created with LoadProject() prior to this call.
 // a new thread and loading the project file into that thread.
 // it will run the specified scenario on the new thread
-int EnvisionInstance::RunScenario(int scenario, int simulationLength ) //, int scenario)
+int EnvisionInstance::RunScenario(int scenario, int simulationLength) //, int scenario)
    {
    m_scenario = scenario;
 
@@ -522,11 +522,11 @@ int EnvisionInstance::RunScenario(int scenario, int simulationLength ) //, int s
       case ST_PROJECTLOADED:
          m_status = ST_RUNNING;
          m_simulationLength = simulationLength;
-         
+
          //m_pThread = NULL;
          //_RunScenarioThreadFn();         
          m_pThread = new std::thread(&EnvisionInstance::_RunScenarioThreadFn, std::ref(*this)); //  runs foo::bar() on object f
-         
+
          return m_status;
 
       default:
@@ -542,7 +542,7 @@ int EnvisionInstance::_RunScenarioThreadFn()
    ASSERT(m_pEnvModel != NULL);
 
    // run the scenario.
-   int retVal = EnvRunScenario(m_pEnvModel, m_scenario, m_simulationLength, 0);  // m_scenario is zero-based
+   int retVal = EnvRunScenario(m_pEnvModel, m_scenario, 0);  // m_scenario is zero-based
    m_status = ST_PROJECTLOADED;
    return retVal;
    }
@@ -550,22 +550,22 @@ int EnvisionInstance::_RunScenarioThreadFn()
 
 
 
- ////  // get date here, since m_pEnvModel is deleted next
- ////  // coming soon!
- ////
- ////
- ////  // finish up (this delete m_pEnvModel and the associated Map)
- ////  retVal = EnvCloseProject(m_pEnvModel, 0);
- ////
- ////  m_pEnvModel = NULL;
- ////
- ////  auto end = std::chrono::system_clock::now();
- ////  m_stop = std::chrono::system_clock::to_time_t(end);
- ////  m_duration = difftime(m_stop, m_start);   
- ////
- ////  gpMainWnd->OnEnvInstanceFinished(this);
- ////  return retVal;
- ////  }
+////  // get date here, since m_pEnvModel is deleted next
+////  // coming soon!
+////
+////
+////  // finish up (this delete m_pEnvModel and the associated Map)
+////  retVal = EnvCloseProject(m_pEnvModel, 0);
+////
+////  m_pEnvModel = NULL;
+////
+////  auto end = std::chrono::system_clock::now();
+////  m_stop = std::chrono::system_clock::to_time_t(end);
+////  m_duration = difftime(m_stop, m_start);   
+////
+////  gpMainWnd->OnEnvInstanceFinished(this);
+////  return retVal;
+////  }
 
 
 void EnvisionInstance::Join()
@@ -573,7 +573,7 @@ void EnvisionInstance::Join()
    if (m_pThread == NULL)
       return;
 
-   if ( m_pThread->joinable() )
+   if (m_pThread->joinable())
       m_pThread->join();
    }
 

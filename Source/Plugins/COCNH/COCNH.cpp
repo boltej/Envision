@@ -33,6 +33,7 @@ Copywrite 2012 - Oregon State University
 #include <omp.h>
 #include <tinyxml.h>
 #include <random>
+#include <set>
 
 using namespace alglib_impl;
 
@@ -41,7 +42,7 @@ using namespace alglib_impl;
 #endif
 
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext) 
+extern "C" _EXPORT EnvExtension * Factory(EnvContext * pContext)
    {
    switch (pContext->id)
       {
@@ -52,7 +53,7 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext)
       case 32: return (EnvExtension*) new COCNHProcessPost2;
       }
 
-   return nullptr; 
+   return nullptr;
    }
 
 
@@ -60,7 +61,7 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext)
 
 float GetPeoplePerDU(int);
 
-int ComparePlanArea(const void *arg0, const void *arg1);
+int ComparePlanArea(const void* arg0, const void* arg1);
 
 
 bool IsBetween(float x, float lower, float upper);
@@ -106,7 +107,7 @@ bool VegLookup::Init(LPCTSTR filename)
       int cols = m_inputTable.GetColCount();
 
       // column names, get column numbers based on column names
-      TCHAR *colNames[VEGMAPCOLS] = { "BAA_GE_3", "TreesPha", "PUTR2_AvgCov", "JunipPha",
+      TCHAR* colNames[VEGMAPCOLS] = { "BAA_GE_3", "TreesPha", "PUTR2_AvgCov", "JunipPha",
          "LiveBio_Mgha", "TotDeadBio_Mgha", "LiveC_Mgha", "TotDeadC_Mgha", "VPH_GE_3",
          "TotDeadVol_m3ha", "VPH_3_25", "VPH_25_50", "VPH_GE_50", "BPH_3_25","TPH_GE_50" };
 
@@ -124,18 +125,42 @@ bool VegLookup::Init(LPCTSTR filename)
 
       InitHashTable(hashSize);
 
+
+      // NOTE: HARD CODED VALUES - REPLACE
+      std::vector<int> pvts = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,99 };
+      std::vector<int> rgns = { 7,8,9,11,17,18,19,99 };
+
       // iterate through .csv file entries (rows)
+      int count = 0;
       for (int i = 0; i < rows; i++)
          {
          int pvt = m_inputTable.GetAsInt(colPVT, i);
          int vegClass = m_inputTable.GetAsInt(colVegClass, i);
          int region = m_inputTable.GetAsInt(colRegion, i);
 
-         VEGKEY _key((__int32)vegClass, (__int16)region, (__int16)pvt);
-         __int64 key = _key.GetKey();
+         //VEGKEY _key((__int32)vegClass, (__int16)region, (__int16)pvt);
+         //__int64 key = _key.GetKey();
 
-         SetAt(key, i);
+         // handle wildcards
+         for (int _pvt : pvts)
+            {
+            for (int _region : rgns)
+               {
+               if ((pvt == _pvt || pvt == -99)
+                  && (region == _region || region == -99))
+                  {
+                  VEGKEY _key((__int32)vegClass, (__int16)_region, (__int16)_pvt);
+                  __int64 key = _key.GetKey();
+                  SetAt(key, i);
+                  count++;
+                  }
+               }
+            }
+         //SetAt(key, i);
          }
+
+      CString msg;
+      msg.Format("Initialized Veg Lookup table: Read %i rows, resulting in %i lookups", rows, count);
 
       m_isInitialized = true;
       }
@@ -152,7 +177,7 @@ bool VegLookup::Init(LPCTSTR filename)
 
 // veg structure map - global
 
-bool FuelModelLookup::Init(LPCTSTR filename)
+bool FuelModelLookup::Init(LPCTSTR filename, MapLayer*)
    {
    if (m_isInitialized == false)
       {
@@ -196,7 +221,19 @@ bool FuelModelLookup::Init(LPCTSTR filename)
 
       //InitHashTable(hashSize); ONLY NEEDED FOR CMap version
 
-      // iterate through .csv file entries (rows)
+      //CArray<VData, VData&> pvts, variants, regions;
+      //pIDULayer->GetUniqueValues(COCNHProcess::m_colPVT, pvts);
+      //pIDULayer->GetUniqueValues(COCNHProcess::m_colVariant, variants);
+      //pIDULayer->GetUniqueValues(COCNHProcess::m_colRegion, regions);
+
+      // NOTE: HARD CODED VALUES - REPLACE
+      std::vector<int> pvts = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,99 };
+      std::vector<int> rgns = { 7,8,9,11,17,18,19,99 };
+      std::vector<int> vars = { 1,2,3,4,5,6 };
+
+      // iterate through .csv file entries (rows).  For each row, add
+      // an entry to the m_inputTable map (key=FUELMODELKEY, value=Fuel Model
+      int count = 0;
       for (int i = 0; i < rows; i++)
          {
          int pvt = -1;
@@ -206,13 +243,43 @@ bool FuelModelLookup::Init(LPCTSTR filename)
          int variant = m_inputTable.GetAsInt(m_lutColVariant, i);
          int region = m_inputTable.GetAsInt(m_lutColRegion, i);
 
-         FUELMODELKEY key((__int32)vegClass, (__int16)variant, (__int8)pvt, (__int8)region);
-         //__int64 key = _key.GetKey();
+         // handle wildcards
+         for (int _pvt : pvts)
+            {
+            for (int _variant : vars)
+               {
+               for (int _region : rgns)
+                  {
+                  if ((pvt == _pvt || pvt == -99)
+                     && (variant == _variant || variant == -99)
+                     && (region == _region || region == -99))
+                     {
+                     FUELMODELKEY key((__int32)vegClass, (__int16)_variant, (__int8)_pvt, (__int8)_region);
+                     (*this)[key] = i;
+                     //if (pvt == -99 || variant == -99 || region == -99)
+                     //   {
+                     //   CString tr;
+                     //   tr.Format("Generated Fuel Model: %i, %i, %i, %i\n", vegClass, _pvt, _region, _variant);
+                     //   TRACE(tr);
+                     //   }
+                     count++;
+                     }
+                  }
+               }
+            }
 
-         //SetAt(key, i);
-         (*this)[key] = i;
+         //FUELMODELKEY key((__int32)vegClass, (__int16)variant, (__int8)pvt, (__int8)region);
+         ////__int64 key = _key.GetKey();
+         //
+         ////SetAt(key, i);
+         //(*this)[key] = i;
          }
 
+      CString msg;
+      msg.Format("Load %i rows, %i fuel models from %s", rows, count, filename);
+
+      //auto f0 = this->at(FUELMODELKEY(1001100, 4, 1, 8));
+      //auto f1 = this->at(FUELMODELKEY(1101200, 5, 1, 8));
       m_isInitialized = true;
       }
 
@@ -281,7 +348,7 @@ int COCNHProcess::m_colFire1000 = -1;
 int COCNHProcess::m_colFire500 = -1;
 int COCNHProcess::m_colSRFire1000 = -1;
 int COCNHProcess::m_colMXFire1000 = -1;
-int COCNHProcess::m_colPotentialFire500 =-1;
+int COCNHProcess::m_colPotentialFire500 = -1;
 int COCNHProcess::m_colPotentialFire1000 = -1;
 int COCNHProcess::m_colAvePotentialFlameLength1000 = -1;
 int COCNHProcess::m_colPotentialSRFire1000 = -1;
@@ -298,14 +365,14 @@ int COCNHProcess::m_colHarvestVol = -1;
 int COCNHProcess::m_colPriorVeg = -1;
 int COCNHProcess::m_colPFDeadBio = -1;
 int COCNHProcess::m_colPFDeadCarb = -1;
-int COCNHProcess::m_colPlanAreaScore = -1;
-int COCNHProcess::m_colPlanAreaFr = -1;
-int COCNHProcess::m_colPlanAreaFireFr = -1;
-int COCNHProcess::m_colPlanAreaScoreFire = -1;
+//int COCNHProcess::m_colPlanAreaScore = -1;
+//int COCNHProcess::m_colPlanAreaFr = -1;
+//int COCNHProcess::m_colPlanAreaFireFr = -1;
+//int COCNHProcess::m_colPlanAreaScoreFire = -1;
 int COCNHProcess::m_colNDU = -1;
 int COCNHProcess::m_colNewDU = -1;
 int COCNHProcess::m_colSmoke = -1;
-int COCNHProcess::m_colPlanArea = -1;
+//int COCNHProcess::m_colPlanArea = -1;
 int COCNHProcess::m_colPFSawVol = -1;
 int COCNHProcess::m_colPFSawHarvestVol = -1;
 int COCNHProcess::m_colOwner = -1;
@@ -317,24 +384,24 @@ int COCNHProcess::m_colAvailVolRH = -1;
 int COCNHProcess::m_colFireWise = -1;
 int COCNHProcess::m_colVegTranType = -1;
 
-CString COCNHProcess::m_planAreaQueryStr;
-float   COCNHProcess::m_minPlanAreaFrac = 0.20f;
-int     COCNHProcess::m_minPlanAreaReuseTime = 10;
-int     COCNHProcess::m_planAreaTreatmentWindow = 10;
-Query  *COCNHProcess::m_pPAQuery = NULL;
-
-CString COCNHProcess::m_planAreaFireQueryStr;
-float   COCNHProcess::m_minPlanAreaFireFrac = 0.20f;
-int     COCNHProcess::m_minPlanAreaFireReuseTime = 10;
-int     COCNHProcess::m_planAreaFireTreatmentWindow = 10;
-Query  *COCNHProcess::m_pPAFQuery = NULL;
+//CString COCNHProcess::m_planAreaQueryStr;
+//float   COCNHProcess::m_minPlanAreaFrac = 0.20f;
+//int     COCNHProcess::m_minPlanAreaReuseTime = 10;
+//int     COCNHProcess::m_planAreaTreatmentWindow = 10;
+//Query  *COCNHProcess::m_pPAQuery = NULL;
+//
+//CString COCNHProcess::m_planAreaFireQueryStr;
+//float   COCNHProcess::m_minPlanAreaFireFrac = 0.20f;
+//int     COCNHProcess::m_minPlanAreaFireReuseTime = 10;
+//int     COCNHProcess::m_planAreaFireTreatmentWindow = 10;
+//Query  *COCNHProcess::m_pPAFQuery = NULL;
 
 float COCNHProcess::m_percentOfLivePassedOn20 = 0.9f;
 float COCNHProcess::m_percentOfLivePassedOn21 = 0.5f;
 float COCNHProcess::m_percentOfLivePassedOn23 = 0.1f;
 float COCNHProcess::m_percentOfLivePassedOn29 = 0.9f;
 
-float COCNHProcess::m_percentOfLivePassedOn3 =  0.5f;
+float COCNHProcess::m_percentOfLivePassedOn3 = 0.5f;
 float COCNHProcess::m_percentOfLivePassedOn31 = 0.5f;
 float COCNHProcess::m_percentOfLivePassedOn32 = 0.1f;
 float COCNHProcess::m_percentOfLivePassedOn51 = 1.0f;
@@ -387,19 +454,19 @@ CArray< float, float > COCNHProcess::m_priorLiveVolume_3_25IDUArray;
 CString COCNHProcess::m_vegStructurePath;
 CString COCNHProcess::m_fuelModelPath;
 
-QueryEngine *COCNHProcess::m_pQueryEngine = NULL;   // delete???
+QueryEngine* COCNHProcess::m_pQueryEngine = NULL;   // delete???
 
 VegLookup       COCNHProcess::m_vegLookupTable;
 FuelModelLookup COCNHProcess::m_fuelModelLookupTable;
 
-PtrArray< PLAN_AREA_INFO > COCNHProcess::m_planAreaArray;
-CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > COCNHProcess::m_planAreaMap;
+//PtrArray< PLAN_AREA_INFO > COCNHProcess::m_planAreaArray;
+//CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > COCNHProcess::m_planAreaMap;
+//
+//PtrArray< PLAN_AREA_INFO > COCNHProcess::m_planAreaFireArray;
+//CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > COCNHProcess::m_planAreaFireMap;
 
-PtrArray< PLAN_AREA_INFO > COCNHProcess::m_planAreaFireArray;
-CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > COCNHProcess::m_planAreaFireMap;
 
-
-bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
+bool COCNHProcess::Init(EnvContext* pContext, LPCTSTR initStr)
    {
    if (m_isInitialized)  // only initialize the first instance
       return TRUE;
@@ -407,24 +474,23 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
    m_isInitialized = true;
 
    // load input file
-   bool ok = LoadXml( initStr );
-   if ( ! ok )
+   MapLayer* pIDULayer = (MapLayer*)pContext->pMapLayer;
+   bool ok = LoadXml(initStr, pIDULayer);
+   if (!ok)
       return FALSE;
 
    // initialize queries
-   ASSERT( m_pQueryEngine == NULL );
-   m_pQueryEngine = new QueryEngine( (MapLayer*) pContext->pMapLayer );
+   ASSERT(m_pQueryEngine == NULL);
+   m_pQueryEngine = new QueryEngine(pIDULayer);
 
-   if ( m_pPAQuery == NULL && m_planAreaQueryStr.GetLength() > 0 )
-      m_pPAQuery = m_pQueryEngine->ParseQuery( m_planAreaQueryStr, 0, "Plan Area Query" );
-
-   if ( m_pPAFQuery == NULL && m_planAreaFireQueryStr.GetLength() > 0 )
-      m_pPAFQuery = m_pQueryEngine->ParseQuery( m_planAreaFireQueryStr, 0, "Plan Area Fire Query" );
+   //if ( m_pPAQuery == NULL && m_planAreaQueryStr.GetLength() > 0 )
+   //   m_pPAQuery = m_pQueryEngine->ParseQuery( m_planAreaQueryStr, 0, "Plan Area Query" );
+   //
+   //if ( m_pPAFQuery == NULL && m_planAreaFireQueryStr.GetLength() > 0 )
+   //   m_pPAFQuery = m_pQueryEngine->ParseQuery( m_planAreaFireQueryStr, 0, "Plan Area Fire Query" );
 
    // initialize PLAN_AREA_INFOs
-   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
-
-   int iduCount = pLayer->GetRecordCount();
+   int iduCount = pIDULayer->GetRecordCount();
 
    m_priorLiveVolumeGe3IDUArray.SetSize(iduCount);
    m_priorLiveVolumeSawTimberIDUArray.SetSize(iduCount);
@@ -441,7 +507,7 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
    if (!dcn)
       FailAndReturn("DefineColumnNumbers() returned false in COCNH.cpp Init");
 
-   CheckCol( pLayer, m_colPlanArea, "ALLOC_PLAN", TYPE_INT, CC_MUST_EXIST );
+   //CheckCol( pIDULayer, m_colPlanArea, "ALLOC_PLAN", TYPE_INT, CC_MUST_EXIST );
 
    int disturb = 0;
    int tsd = 0;
@@ -453,49 +519,49 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
    int tsh = 0;
    int tsph = 0;
 
-   m_initialLandscpAttribs.SetSize(9,iduCount);
+   m_initialLandscpAttribs.SetSize(9, iduCount);
 
-   int objSize = m_initialLandscpAttribs.SetLabel(0,"DISTURB");
-   objSize      = m_initialLandscpAttribs.SetLabel(1,"TSD");
-   objSize      = m_initialLandscpAttribs.SetLabel(2,"TSF");
-   objSize      = m_initialLandscpAttribs.SetLabel(3,"TSPF");
-   objSize      = m_initialLandscpAttribs.SetLabel(4,"TST");
-   objSize      = m_initialLandscpAttribs.SetLabel(5,"TIV");
-   objSize      = m_initialLandscpAttribs.SetLabel(6,"TSTH");
-   objSize      = m_initialLandscpAttribs.SetLabel(7,"TSH");
-   objSize      = m_initialLandscpAttribs.SetLabel(8,"TSPH");
+   int objSize = m_initialLandscpAttribs.SetLabel(0, "DISTURB");
+   objSize = m_initialLandscpAttribs.SetLabel(1, "TSD");
+   objSize = m_initialLandscpAttribs.SetLabel(2, "TSF");
+   objSize = m_initialLandscpAttribs.SetLabel(3, "TSPF");
+   objSize = m_initialLandscpAttribs.SetLabel(4, "TST");
+   objSize = m_initialLandscpAttribs.SetLabel(5, "TIV");
+   objSize = m_initialLandscpAttribs.SetLabel(6, "TSTH");
+   objSize = m_initialLandscpAttribs.SetLabel(7, "TSH");
+   objSize = m_initialLandscpAttribs.SetLabel(8, "TSPH");
 
-   int colDisturb  = m_initialLandscpAttribs.GetCol("DISTURB");
-   int colTSD       = m_initialLandscpAttribs.GetCol("TSD");
-   int colTSF       = m_initialLandscpAttribs.GetCol("TSF");
-   int colTSPF       = m_initialLandscpAttribs.GetCol("TSPF");
-   int colTST       = m_initialLandscpAttribs.GetCol("TST");
-   int colTIV       = m_initialLandscpAttribs.GetCol("TIV");
-   int colTSTH       = m_initialLandscpAttribs.GetCol("TSTH");
-   int colTSH       = m_initialLandscpAttribs.GetCol("TSH");
-   int colTSPH       = m_initialLandscpAttribs.GetCol("TSPH");
-                                                
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   int colDisturb = m_initialLandscpAttribs.GetCol("DISTURB");
+   int colTSD = m_initialLandscpAttribs.GetCol("TSD");
+   int colTSF = m_initialLandscpAttribs.GetCol("TSF");
+   int colTSPF = m_initialLandscpAttribs.GetCol("TSPF");
+   int colTST = m_initialLandscpAttribs.GetCol("TST");
+   int colTIV = m_initialLandscpAttribs.GetCol("TIV");
+   int colTSTH = m_initialLandscpAttribs.GetCol("TSTH");
+   int colTSH = m_initialLandscpAttribs.GetCol("TSH");
+   int colTSPH = m_initialLandscpAttribs.GetCol("TSPH");
+
+   for (MapLayer::Iterator idu = pIDULayer->Begin(); idu < pIDULayer->End(); idu++)
       {
-      pLayer->GetData(idu, m_colDisturb, disturb);
-      pLayer->GetData(idu, m_colTSD, tsd );
-      pLayer->GetData(idu, m_colTSF, tsf );
-      pLayer->GetData(idu, m_colTSPF, tspf);
-      pLayer->GetData(idu, m_colTST, tst );
-      pLayer->GetData(idu, m_colTimeInVariant, tiv );
-      pLayer->GetData(idu, m_colTSTH, tsth);
-      pLayer->GetData(idu, m_colTSH, tsh );
-      pLayer->GetData(idu, m_colTSPH, tsph);
+      pIDULayer->GetData(idu, m_colDisturb, disturb);
+      pIDULayer->GetData(idu, m_colTSD, tsd);
+      pIDULayer->GetData(idu, m_colTSF, tsf);
+      pIDULayer->GetData(idu, m_colTSPF, tspf);
+      pIDULayer->GetData(idu, m_colTST, tst);
+      pIDULayer->GetData(idu, m_colTimeInVariant, tiv);
+      pIDULayer->GetData(idu, m_colTSTH, tsth);
+      pIDULayer->GetData(idu, m_colTSH, tsh);
+      pIDULayer->GetData(idu, m_colTSPH, tsph);
 
       //store disturb and "time since" attributes to use in INITRUN to reset for replicate runs
       m_initialLandscpAttribs.Set(colDisturb, idu, disturb);
-      m_initialLandscpAttribs.Set(colTSD, idu, tsd );
-      m_initialLandscpAttribs.Set(colTSF, idu, tsf );
+      m_initialLandscpAttribs.Set(colTSD, idu, tsd);
+      m_initialLandscpAttribs.Set(colTSF, idu, tsf);
       m_initialLandscpAttribs.Set(colTSPF, idu, tspf);
-      m_initialLandscpAttribs.Set(colTST, idu, tst );
-      m_initialLandscpAttribs.Set(colTIV, idu, tiv );
+      m_initialLandscpAttribs.Set(colTST, idu, tst);
+      m_initialLandscpAttribs.Set(colTIV, idu, tiv);
       m_initialLandscpAttribs.Set(colTSTH, idu, tsth);
-      m_initialLandscpAttribs.Set(colTSH, idu, tsh );
+      m_initialLandscpAttribs.Set(colTSH, idu, tsh);
       m_initialLandscpAttribs.Set(colTSPH, idu, tsph);
 
       //init various arrays
@@ -508,43 +574,43 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
       m_accountedForNoTransThisStep[idu] = 0;
       m_accountedForSuccessionThisStep[idu] = 0;
       m_timeSinceFirewise[idu] = 5;
-      int planArea = -1;
-      pLayer->GetData(idu, m_colPlanArea, planArea);
-
-      // only count areas inside a plan area
-      if ( planArea > 0 )
-         {
-         // is there already plan area info defined for this plan area?
-         PLAN_AREA_INFO *pInfo = NULL;
-         BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
-         if ( ! found )    // none found, so create one
-            {
-            pInfo = new PLAN_AREA_INFO;
-            pInfo->id = planArea;
-            pInfo->lastUsed     = -(m_minPlanAreaReuseTime + 1);      // make sure it is eligible
-            int index = (int) m_planAreaArray.Add(pInfo);
-            pInfo->index = index;
-            pInfo->areaArray.SetSize( m_planAreaTreatmentWindow );
-            for ( int i=0; i < m_planAreaTreatmentWindow; i++ )
-               pInfo->areaArray[ i ] = 0;
-
-            m_planAreaMap.SetAt(planArea, pInfo);
-
-            // fire
-            pInfo = new PLAN_AREA_INFO;
-            pInfo->id = planArea;
-            pInfo->lastUsed = -(m_minPlanAreaFireReuseTime + 1);      // make sure it is eligible
-            index = (int) m_planAreaFireArray.Add(pInfo);
-            pInfo->index = index;
-            pInfo->areaArray.SetSize( m_planAreaFireTreatmentWindow );
-            for ( int i=0; i < m_planAreaFireTreatmentWindow; i++ )
-               pInfo->areaArray[ i ] = 0;
-
-            m_planAreaFireMap.SetAt(planArea, pInfo); 
-            }
-         }
+      //int planArea = -1;
+      //pIDULayer->GetData(idu, m_colPlanArea, planArea);
+      //
+      //// only count areas inside a plan area
+      //if ( planArea > 0 )
+      //   {
+      //   // is there already plan area info defined for this plan area?
+      //   PLAN_AREA_INFO *pInfo = NULL;
+      //   BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
+      //   if ( ! found )    // none found, so create one
+      //      {
+      //      pInfo = new PLAN_AREA_INFO;
+      //      pInfo->id = planArea;
+      //      pInfo->lastUsed     = -(m_minPlanAreaReuseTime + 1);      // make sure it is eligible
+      //      int index = (int) m_planAreaArray.Add(pInfo);
+      //      pInfo->index = index;
+      //      pInfo->areaArray.SetSize( m_planAreaTreatmentWindow );
+      //      for ( int i=0; i < m_planAreaTreatmentWindow; i++ )
+      //         pInfo->areaArray[ i ] = 0;
+      //
+      //      m_planAreaMap.SetAt(planArea, pInfo);
+      //
+      //      // fire
+      //      pInfo = new PLAN_AREA_INFO;
+      //      pInfo->id = planArea;
+      //      pInfo->lastUsed = -(m_minPlanAreaFireReuseTime + 1);      // make sure it is eligible
+      //      index = (int) m_planAreaFireArray.Add(pInfo);
+      //      pInfo->index = index;
+      //      pInfo->areaArray.SetSize( m_planAreaFireTreatmentWindow );
+      //      for ( int i=0; i < m_planAreaFireTreatmentWindow; i++ )
+      //         pInfo->areaArray[ i ] = 0;
+      //
+      //      m_planAreaFireMap.SetAt(planArea, pInfo); 
+      //      }
+      //   }
       }
- 
+
    // set developed classes, structures based on pop density
    Report::Log("Initializing population structure information");
    PopulateStructure(pContext, false);
@@ -597,55 +663,55 @@ bool COCNHProcess::Init(EnvContext *pContext, LPCTSTR initStr)
 
    // randomize TSD (temporary) 
    Report::Log("Initializing Harvest Fields");
-   pLayer->SetColData(m_colHarvestVol, VData(0), true);
-   pLayer->SetColData(m_colSawTimberHarvVolume, VData(0), true);
-   pLayer->SetColData(m_colPFSawHarvestVol, VData(0), true);
+   pIDULayer->SetColData(m_colHarvestVol, VData(0), true);
+   pIDULayer->SetColData(m_colSawTimberHarvVolume, VData(0), true);
+   pIDULayer->SetColData(m_colPFSawHarvestVol, VData(0), true);
 
-   AddInputVar( "Percent Of Live Passed On 20", m_percentOfLivePassedOn20, "" );
-   AddInputVar( "Percent Of Live Passed On 21", m_percentOfLivePassedOn21, "" );
-   AddInputVar( "Percent Of Live Passed On 23", m_percentOfLivePassedOn23, "" );
-   AddInputVar( "Percent Of Live Passed On 29", m_percentOfLivePassedOn29, "" );
-   AddInputVar( "Percent Of Live Passed On 3",  m_percentOfLivePassedOn3 , "" );
-   AddInputVar( "Percent Of Live Passed On 31", m_percentOfLivePassedOn31, "" );
-   AddInputVar( "Percent Of Live Passed On 32", m_percentOfLivePassedOn32, "" );
-   AddInputVar( "Percent Of Live Passed On 51", m_percentOfLivePassedOn51, "" );
-   AddInputVar( "Percent Of Live Passed On 52", m_percentOfLivePassedOn52, "" );
-   AddInputVar( "Percent Of Live Passed On 55", m_percentOfLivePassedOn55, "" );
-   AddInputVar( "Percent Of Live Passed On 56", m_percentOfLivePassedOn56, "" );
-   AddInputVar( "Percent Of Live Passed On 57", m_percentOfLivePassedOn57, "" );
-   AddInputVar( "Percent PreTransStruct Available 55", m_percentPreTransStructAvailable55, "" );
-   AddInputVar( "Percent PreTransStruct Available 3",  m_percentPreTransStructAvailable3, "" );
-   AddInputVar( "Percent PreTransStruct Available 52", m_percentPreTransStructAvailable52, "" );
-   AddInputVar( "Percent PreTransStruct Available 57", m_percentPreTransStructAvailable57, "" );
-   AddInputVar( "Percent PreTransStruct Available 1",  m_percentPreTransStructAvailable1, "" );
+   AddInputVar("Percent Of Live Passed On 20", m_percentOfLivePassedOn20, "");
+   AddInputVar("Percent Of Live Passed On 21", m_percentOfLivePassedOn21, "");
+   AddInputVar("Percent Of Live Passed On 23", m_percentOfLivePassedOn23, "");
+   AddInputVar("Percent Of Live Passed On 29", m_percentOfLivePassedOn29, "");
+   AddInputVar("Percent Of Live Passed On 3", m_percentOfLivePassedOn3, "");
+   AddInputVar("Percent Of Live Passed On 31", m_percentOfLivePassedOn31, "");
+   AddInputVar("Percent Of Live Passed On 32", m_percentOfLivePassedOn32, "");
+   AddInputVar("Percent Of Live Passed On 51", m_percentOfLivePassedOn51, "");
+   AddInputVar("Percent Of Live Passed On 52", m_percentOfLivePassedOn52, "");
+   AddInputVar("Percent Of Live Passed On 55", m_percentOfLivePassedOn55, "");
+   AddInputVar("Percent Of Live Passed On 56", m_percentOfLivePassedOn56, "");
+   AddInputVar("Percent Of Live Passed On 57", m_percentOfLivePassedOn57, "");
+   AddInputVar("Percent PreTransStruct Available 55", m_percentPreTransStructAvailable55, "");
+   AddInputVar("Percent PreTransStruct Available 3", m_percentPreTransStructAvailable3, "");
+   AddInputVar("Percent PreTransStruct Available 52", m_percentPreTransStructAvailable52, "");
+   AddInputVar("Percent PreTransStruct Available 57", m_percentPreTransStructAvailable57, "");
+   AddInputVar("Percent PreTransStruct Available 1", m_percentPreTransStructAvailable1, "");
 
    return true;
    }
 
 
-bool COCNHProcess::LoadXml( LPCTSTR filename )
+bool COCNHProcess::LoadXml(LPCTSTR filename, MapLayer* pIDULayer)
    {
    // start parsing input file
    TiXmlDocument doc;
-   bool ok = doc.LoadFile( filename );
+   bool ok = doc.LoadFile(filename);
 
    bool loadSuccess = true;
 
-   if ( ! ok )
+   if (!ok)
       {
       CString msg;
-      msg.Format("Error reading input file %s:  %s", filename, doc.ErrorDesc() );
-      Report::ErrorMsg( msg );
+      msg.Format("Error reading input file %s:  %s", filename, doc.ErrorDesc());
+      Report::ErrorMsg(msg);
       return false;
       }
-   
+
    // start interating through the nodes
-   TiXmlElement *pXmlRoot = doc.RootElement();  // <cocnh>
-   if ( pXmlRoot == NULL )
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <cocnh>
+   if (pXmlRoot == NULL)
       {
       CString msg;
-      msg.Format("Missing <cnh> tag in input file %s", filename );
-      Report::ErrorMsg( msg );
+      msg.Format("Missing <cnh> tag in input file %s", filename);
+      Report::ErrorMsg(msg);
       return false;
       }
 
@@ -658,69 +724,69 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
       { "restore_values_on_initrun", TYPE_BOOL, &m_restoreValuesOnInitRun, false, 0 },
       { NULL,             TYPE_NULL,     NULL,                        false,   0 } };
 
-   ok = TiXmlGetAttributes( pXmlRoot, attrs, filename, NULL );
-   if ( ! ok )
+   ok = TiXmlGetAttributes(pXmlRoot, attrs, filename, NULL);
+   if (!ok)
       {
-      CString msg; 
-      msg.Format( _T("Misformed element reading <plan_area> attributes in input file %s"), filename );
-      Report::ErrorMsg( msg );
+      CString msg;
+      msg.Format(_T("Misformed element reading <root> attributes in input file %s"), filename);
+      Report::ErrorMsg(msg);
       }
 
    Report::Log("Initializing veg and fuel model lookup tables");
-   m_vegLookupTable.Init( m_vegStructurePath );
-   m_fuelModelLookupTable.Init( m_fuelModelPath );
+   m_vegLookupTable.Init(m_vegStructurePath);
+   m_fuelModelLookupTable.Init(m_fuelModelPath, pIDULayer);
 
    // <plan_area> tag
-   TiXmlElement *pXmlPlanArea = pXmlRoot->FirstChildElement( "plan_area" );
-   if ( pXmlPlanArea == NULL )
-      {
-      CString msg;
-      msg.Format("Missing <plan_area> tag in input file %s", filename );
-      Report::ErrorMsg( msg );
-      return false;
-      }
-
-   XML_ATTR paAttrs[] = {
-      // attr                 type           address                     isReq  checkCol
-      { "query",              TYPE_CSTRING,  &m_planAreaQueryStr,         true,   0 },
-      { "min_reuse_fraction", TYPE_FLOAT,    &m_minPlanAreaFrac,          true,   0 },
-      { "treatment_window",   TYPE_INT,      &m_planAreaTreatmentWindow,  true,   0 },
-      { "min_reuse_time",     TYPE_INT,      &m_minPlanAreaReuseTime,     true,   0 },
-      { NULL,                 TYPE_NULL,     NULL,                        false,   0 } };
-
-   ok = TiXmlGetAttributes( pXmlPlanArea, paAttrs, filename, NULL );
-   if ( ! ok )
-      {
-      CString msg; 
-      msg.Format( _T("Misformed element reading <plan_area> attributes in input file %s"), filename );
-      Report::ErrorMsg( msg );
-      }
-
-   // <plan_area_fire> tag
-   TiXmlElement *pXmlPlanAreaFire = pXmlRoot->FirstChildElement( "plan_area_fire" );
-   if ( pXmlPlanAreaFire == NULL )
-      {
-      CString msg;
-      msg.Format("Missing <plan_area_fire> tag in input file %s", filename );
-      Report::ErrorMsg( msg );
-      return false;
-      }
-
-   XML_ATTR pafAttrs[] = {
-      // attr                 type           address                        isReq  checkCol
-      { "query",              TYPE_CSTRING,  &m_planAreaFireQueryStr,         true,   0 },
-      { "min_reuse_fraction", TYPE_FLOAT,    &m_minPlanAreaFireFrac,          true,   0 },
-      { "treatment_window",   TYPE_INT,      &m_planAreaFireTreatmentWindow,  true,   0 },
-      { "min_reuse_time",     TYPE_INT,      &m_minPlanAreaFireReuseTime,     true,   0 },
-      { NULL,                 TYPE_NULL,     NULL,                            false,   0 } };
-
-   ok = TiXmlGetAttributes( pXmlPlanAreaFire, pafAttrs, filename, NULL );
-   if ( ! ok )
-      {
-      CString msg; 
-      msg.Format( _T("Misformed element reading <plan_area_fire> attributes in input file %s"), filename );
-      Report::ErrorMsg( msg );
-      }
+   //TiXmlElement *pXmlPlanArea = pXmlRoot->FirstChildElement( "plan_area" );
+   //if ( pXmlPlanArea == NULL )
+   //   {
+   //   CString msg;
+   //   msg.Format("Missing <plan_area> tag in input file %s", filename );
+   //   Report::ErrorMsg( msg );
+   //   return false;
+   //   }
+   //
+   //XML_ATTR paAttrs[] = {
+   //   // attr                 type           address                     isReq  checkCol
+   //   { "query",              TYPE_CSTRING,  &m_planAreaQueryStr,         true,   0 },
+   //   { "min_reuse_fraction", TYPE_FLOAT,    &m_minPlanAreaFrac,          true,   0 },
+   //   { "treatment_window",   TYPE_INT,      &m_planAreaTreatmentWindow,  true,   0 },
+   //   { "min_reuse_time",     TYPE_INT,      &m_minPlanAreaReuseTime,     true,   0 },
+   //   { NULL,                 TYPE_NULL,     NULL,                        false,   0 } };
+   //
+   //ok = TiXmlGetAttributes( pXmlPlanArea, paAttrs, filename, NULL );
+   //if ( ! ok )
+   //   {
+   //   CString msg; 
+   //   msg.Format( _T("Misformed element reading <plan_area> attributes in input file %s"), filename );
+   //   Report::ErrorMsg( msg );
+   //   }
+   //
+   //// <plan_area_fire> tag
+   //TiXmlElement *pXmlPlanAreaFire = pXmlRoot->FirstChildElement( "plan_area_fire" );
+   //if ( pXmlPlanAreaFire == NULL )
+   //   {
+   //   CString msg;
+   //   msg.Format("Missing <plan_area_fire> tag in input file %s", filename );
+   //   Report::ErrorMsg( msg );
+   //   return false;
+   //   }
+   //
+   //XML_ATTR pafAttrs[] = {
+   //   // attr                 type           address                        isReq  checkCol
+   //   { "query",              TYPE_CSTRING,  &m_planAreaFireQueryStr,         true,   0 },
+   //   { "min_reuse_fraction", TYPE_FLOAT,    &m_minPlanAreaFireFrac,          true,   0 },
+   //   { "treatment_window",   TYPE_INT,      &m_planAreaFireTreatmentWindow,  true,   0 },
+   //   { "min_reuse_time",     TYPE_INT,      &m_minPlanAreaFireReuseTime,     true,   0 },
+   //   { NULL,                 TYPE_NULL,     NULL,                            false,   0 } };
+   //
+   //ok = TiXmlGetAttributes( pXmlPlanAreaFire, pafAttrs, filename, NULL );
+   //if ( ! ok )
+   //   {
+   //   CString msg; 
+   //   msg.Format( _T("Misformed element reading <plan_area_fire> attributes in input file %s"), filename );
+   //   Report::ErrorMsg( msg );
+   //   }
 
    return true;
    }
@@ -730,17 +796,17 @@ bool COCNHProcess::LoadXml( LPCTSTR filename )
 /// COCNHProcessPre1
 /////////////////////////////////////////////////////
 
-bool COCNHProcessPre1::Run(EnvContext *pContext)
+bool COCNHProcessPre1::Run(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
    // set PRIOR_VEG equal to the value of VEGCLASS at beginning of Envision time step.
    //SetPriorVegClass( pContext );
-   
+
    pLayer->m_readOnly = false;
 
-   int cnt = (int) m_priorLiveVolumeGe3IDUArray.GetSize();
+   int cnt = (int)m_priorLiveVolumeGe3IDUArray.GetSize();
 
-   for (int i = 0; i < cnt; i++) 
+   for (int i = 0; i < cnt; i++)
       {
       m_priorLiveVolumeGe3IDUArray[i] = 0.0f;
       m_priorLiveVolumeSawTimberIDUArray[i] = 0.0f;
@@ -757,7 +823,7 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
    PopulateStructure(pContext, true);
 
    // update WUI categorization
-   if ((pContext->yearOfRun % m_wuiUpdateFreq == 0 ) && (pContext->yearOfRun != 0))
+   if ((pContext->yearOfRun % m_wuiUpdateFreq == 0) && (pContext->yearOfRun != 0))
       {
       Report::StatusMsg("Populating WUI");
       PopulateWUI(pContext, true);
@@ -784,7 +850,7 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
    UpdateDisturbanceValue(pContext, true);
 
    //reset for each time step
-   
+
    Report::StatusMsg("Initialing IDU data");
    pLayer->SetColData(m_colPdisturb, VData(0), true);
    pLayer->SetColData(m_colPotentialFlameLen, VData(0), true);
@@ -817,10 +883,10 @@ bool COCNHProcessPre1::Run(EnvContext *pContext)
 /////////////////////////////////////////////////////
 /// COCNHProcessPre2
 /////////////////////////////////////////////////////
-bool COCNHProcessPre2::Init(EnvContext *pContext, LPCTSTR initStr)
+bool COCNHProcessPre2::Init(EnvContext* pContext, LPCTSTR initStr)
    {
    COCNHProcess::Init(pContext, initStr);
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
    pLayer->SetColData(m_colHarvestVol, VData(0), true);
    pLayer->SetColData(m_colSawTimberHarvVolume, VData(0), true);
    pLayer->SetColData(m_colPFSawHarvestVol, VData(0), true);
@@ -833,12 +899,12 @@ bool COCNHProcessPre2::Init(EnvContext *pContext, LPCTSTR initStr)
    }
 
 
-bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
-   {   
-   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+bool COCNHProcessPre2::InitRun(EnvContext* pContext, bool useInitSeed)
+   {
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
-   if ( COCNHProcess::m_restoreValuesOnInitRun )
-      {   
+   if (COCNHProcess::m_restoreValuesOnInitRun)
+      {
       int disturb = 0;
       int tsd = 0;
       int tsf = 0;
@@ -848,38 +914,38 @@ bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
       int tsth = 0;
       int tsh = 0;
       int tsph = 0;
-   
-      int colDisturb  = m_initialLandscpAttribs.GetCol("DISTURB");
-      int colTSD      = m_initialLandscpAttribs.GetCol("TSD");
-      int colTSF      = m_initialLandscpAttribs.GetCol("TSF");
-      int colTSPF     = m_initialLandscpAttribs.GetCol("TSPF");
-      int colTST      = m_initialLandscpAttribs.GetCol("TST");
-      int colTIV      = m_initialLandscpAttribs.GetCol("TIV");
-      int colTSTH     = m_initialLandscpAttribs.GetCol("TSTH");
-      int colTSH      = m_initialLandscpAttribs.GetCol("TSH");
-      int colTSPH     = m_initialLandscpAttribs.GetCol("TSPH");
-   
+
+      int colDisturb = m_initialLandscpAttribs.GetCol("DISTURB");
+      int colTSD = m_initialLandscpAttribs.GetCol("TSD");
+      int colTSF = m_initialLandscpAttribs.GetCol("TSF");
+      int colTSPF = m_initialLandscpAttribs.GetCol("TSPF");
+      int colTST = m_initialLandscpAttribs.GetCol("TST");
+      int colTIV = m_initialLandscpAttribs.GetCol("TIV");
+      int colTSTH = m_initialLandscpAttribs.GetCol("TSTH");
+      int colTSH = m_initialLandscpAttribs.GetCol("TSH");
+      int colTSPH = m_initialLandscpAttribs.GetCol("TSPH");
+
       for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
          {
          //restore disturb and "time since" attributes to reset for replicate runs
          m_initialLandscpAttribs.Get(colDisturb, idu, disturb);
-         m_initialLandscpAttribs.Get(colTSD, idu, tsd );
-         m_initialLandscpAttribs.Get(colTSF, idu, tsf );
+         m_initialLandscpAttribs.Get(colTSD, idu, tsd);
+         m_initialLandscpAttribs.Get(colTSF, idu, tsf);
          m_initialLandscpAttribs.Get(colTSPF, idu, tspf);
-         m_initialLandscpAttribs.Get(colTST, idu, tst );
-         m_initialLandscpAttribs.Get(colTIV, idu, tiv );
+         m_initialLandscpAttribs.Get(colTST, idu, tst);
+         m_initialLandscpAttribs.Get(colTIV, idu, tiv);
          m_initialLandscpAttribs.Get(colTSTH, idu, tsth);
-         m_initialLandscpAttribs.Get(colTSH, idu, tsh );
+         m_initialLandscpAttribs.Get(colTSH, idu, tsh);
          m_initialLandscpAttribs.Get(colTSPH, idu, tsph);
-   
+
          pLayer->SetData(idu, m_colDisturb, disturb);
-         pLayer->SetData(idu, m_colTSD, tsd );
-         pLayer->SetData(idu, m_colTSF, tsf );
+         pLayer->SetData(idu, m_colTSD, tsd);
+         pLayer->SetData(idu, m_colTSF, tsf);
          pLayer->SetData(idu, m_colTSPF, tspf);
-         pLayer->SetData(idu, m_colTST, tst );
-         pLayer->SetData(idu, m_colTimeInVariant, tiv );
+         pLayer->SetData(idu, m_colTST, tst);
+         pLayer->SetData(idu, m_colTimeInVariant, tiv);
          pLayer->SetData(idu, m_colTSTH, tsth);
-         pLayer->SetData(idu, m_colTSH, tsh );
+         pLayer->SetData(idu, m_colTSH, tsh);
          pLayer->SetData(idu, m_colTSPH, tsph);
          }
       }
@@ -887,21 +953,21 @@ bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
    // write data from lookup table to idu table for update
    bool wlds = InitVegParamsFromTable(pContext, false);
 
-   for (int i = 0; i < (int) m_planAreaArray.GetSize(); i++)
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaArray[i];
-      pInfo->area = 0;
-      pInfo->score = 0;
-      pInfo->lastUsed = -(m_minPlanAreaReuseTime+1);
-      }
-
-   for (int i = 0; i < (int) m_planAreaFireArray.GetSize(); i++)
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaFireArray[i];
-      pInfo->area = 0;
-      pInfo->score = 0;
-      pInfo->lastUsed = -(m_minPlanAreaFireReuseTime+1);
-      }
+   //for (int i = 0; i < (int) m_planAreaArray.GetSize(); i++)
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaArray[i];
+   //   pInfo->area = 0;
+   //   pInfo->score = 0;
+   //   pInfo->lastUsed = -(m_minPlanAreaReuseTime+1);
+   //   }
+   //
+   //for (int i = 0; i < (int) m_planAreaFireArray.GetSize(); i++)
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaFireArray[i];
+   //   pInfo->area = 0;
+   //   pInfo->score = 0;
+   //   pInfo->lastUsed = -(m_minPlanAreaFireReuseTime+1);
+   //   }
 
    clock_t start = clock();
    bool saa = this->ScoreAllocationAreas(pContext);
@@ -913,9 +979,9 @@ bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
    msg.Format("ScoreAllocationAreas =%.2f secs", (float)duration);
    Report::Log(msg);
 
-   int cnt = (int) m_timeSinceFirewise.GetSize();
+   int cnt = (int)m_timeSinceFirewise.GetSize();
 
-   for (int i = 0; i < cnt; i++) 
+   for (int i = 0; i < cnt; i++)
       {
       m_timeSinceFirewise[i] = 5;
       }
@@ -944,14 +1010,14 @@ bool COCNHProcessPre2::InitRun(EnvContext *pContext, bool useInitSeed)
    pLayer->SetColData(m_colAvailVolPHH, VData(0), true);
    pLayer->SetColData(m_colAvailVolRH, VData(0), true);
    pLayer->SetColData(m_colSmoke, VData(0), true);
-      
+
    return TRUE;
    }
 
 
-bool COCNHProcessPre2::Run(EnvContext *pContext)
+bool COCNHProcessPre2::Run(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    pLayer->m_readOnly = false;
 
@@ -982,7 +1048,7 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
       FailAndReturn("UpdateVegParamsFromTable() returned false in COCNH.cpp Init");
    finish = clock();
 
-   UpdateAvailVolumesFromTable( pContext, false);
+   UpdateAvailVolumesFromTable(pContext, false);
 
    duration = (float)(finish - start) / CLOCKS_PER_SEC;
    msg;
@@ -1078,15 +1144,15 @@ bool COCNHProcessPre2::Run(EnvContext *pContext)
 /////////////////////////////////////////////////////
 
 COCNHProcessPost1::COCNHProcessPost1(void)
-: COCNHProcess()
-, m_disturb3Ha(0)
-, m_disturb29Ha(0)
-, m_disturb55Ha(0)
-, m_disturb51Ha(0)
-, m_disturb54Ha(0)
-, m_disturb52Ha(0)
-, m_disturb6Ha(0)
-, m_disturb1Ha(0)
+   : COCNHProcess()
+   , m_disturb3Ha(0)
+   , m_disturb29Ha(0)
+   , m_disturb55Ha(0)
+   , m_disturb51Ha(0)
+   , m_disturb54Ha(0)
+   , m_disturb52Ha(0)
+   , m_disturb6Ha(0)
+   , m_disturb1Ha(0)
    {  }
 
 
@@ -1094,9 +1160,9 @@ COCNHProcessPost1::~COCNHProcessPost1(void)
    { }
 
 
-bool COCNHProcessPost1::Run(EnvContext *pContext)
+bool COCNHProcessPost1::Run(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    pLayer->m_readOnly = false;
 
@@ -1181,7 +1247,7 @@ bool COCNHProcessPost1::Run(EnvContext *pContext)
    }
 
 
-bool COCNHProcessPost1::Init(EnvContext *pContext, LPCTSTR initStr)
+bool COCNHProcessPost1::Init(EnvContext* pContext, LPCTSTR initStr)
    {
    COCNHProcess::Init(pContext, initStr);
    return TRUE;
@@ -1195,13 +1261,13 @@ bool COCNHProcessPost1::Init(EnvContext *pContext, LPCTSTR initStr)
 /////////////////////////////////////////////////////
 
 
-bool COCNHProcessPost2::Run(EnvContext *pContext)
+bool COCNHProcessPost2::Run(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    pLayer->m_readOnly = false;
 
-   UpdatePlanAreas( pContext );
+   //UpdatePlanAreas( pContext );
 
    // updates harvest harvestVolume = m_priorLiveVolumeGe3 - liveVolumeGe3;
    CalcHarvestBiomass(pContext, false);
@@ -1216,9 +1282,9 @@ bool COCNHProcessPost2::Run(EnvContext *pContext)
 /// COCNHProcess
 /////////////////////////////////////////////////////
 
-bool COCNHProcess::DefineColumnNumbers(EnvContext *pContext)
+bool COCNHProcess::DefineColumnNumbers(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    // get number of column for the different in/outputs required
    CheckCol(pLayer, m_colVegClass, "VEGCLASS", TYPE_LONG, CC_MUST_EXIST);
@@ -1273,12 +1339,12 @@ bool COCNHProcess::DefineColumnNumbers(EnvContext *pContext)
    CheckCol(pLayer, m_colSawTimberHarvVolume, "HARVMRCHVO", TYPE_FLOAT, CC_AUTOADD); //Merchanable timber = saw timber > 25cm
    CheckCol(pLayer, m_colFireReg, "FIRE_REGIM", TYPE_INT, CC_AUTOADD);
    CheckCol(pLayer, m_colThreEndSpecies, "TESPECIES", TYPE_INT, CC_AUTOADD);
-   CheckCol(pLayer, m_colFire500, "FIRE_500M", TYPE_LONG, CC_AUTOADD); 
+   CheckCol(pLayer, m_colFire500, "FIRE_500M", TYPE_LONG, CC_AUTOADD);
    CheckCol(pLayer, m_colFire1000, "FIRE_1KM", TYPE_LONG, CC_AUTOADD);  // formerly FIRE5_1000",
    CheckCol(pLayer, m_colSRFire1000, "FIRESR_1KM", TYPE_LONG, CC_AUTOADD);  // formerly FIRESR_1000"
    CheckCol(pLayer, m_colMXFire1000, "FIREMX_1KM", TYPE_LONG, CC_AUTOADD);  // formerly FIREMX_1000"
    CheckCol(pLayer, m_colFire2000, "FIRE_2KM", TYPE_LONG, CC_AUTOADD);  // formerly FIRE5_2000",
-   CheckCol(pLayer, m_colFire10000, "FIRE_10KM", TYPE_LONG, CC_AUTOADD);  
+   CheckCol(pLayer, m_colFire10000, "FIRE_10KM", TYPE_LONG, CC_AUTOADD);
    CheckCol(pLayer, m_colPrescribedFire10000, "PSFIRE_10K", TYPE_LONG, CC_AUTOADD); // prescribed fire within 10km, within 5 years"
    CheckCol(pLayer, m_colPrescribedFire2000, "PRFIRE_2KM", TYPE_LONG, CC_AUTOADD);  // formerly PREF5_2000",
    CheckCol(pLayer, m_colCondFlameLength270, "CFL_270", TYPE_FLOAT, CC_AUTOADD);
@@ -1289,32 +1355,32 @@ bool COCNHProcess::DefineColumnNumbers(EnvContext *pContext)
    CheckCol(pLayer, m_colPriorVeg, "PRIOR_VEG", TYPE_INT, CC_AUTOADD);
    CheckCol(pLayer, m_colPFDeadBio, "PFDEADBIO", TYPE_FLOAT, CC_AUTOADD);
    CheckCol(pLayer, m_colPFDeadCarb, "PFDEADCARB", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colPlanAreaScore, "PLAN_SCORE", TYPE_INT, CC_AUTOADD);
-   CheckCol(pLayer, m_colPlanAreaFr, "PA_FRAC", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colPlanAreaFireFr, "PAF_FRAC", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colPlanAreaScoreFire, "PS_FIRE", TYPE_INT, CC_AUTOADD);
+   //CheckCol(pLayer, m_colPlanAreaScore, "PLAN_SCORE", TYPE_INT, CC_AUTOADD);
+   //CheckCol(pLayer, m_colPlanAreaFr, "PA_FRAC", TYPE_FLOAT, CC_AUTOADD);
+   //CheckCol(pLayer, m_colPlanAreaFireFr, "PAF_FRAC", TYPE_FLOAT, CC_AUTOADD);
+   //CheckCol(pLayer, m_colPlanAreaScoreFire, "PS_FIRE", TYPE_INT, CC_AUTOADD);
    CheckCol(pLayer, m_colNDU, "N_DU", TYPE_INT, CC_AUTOADD);
    CheckCol(pLayer, m_colNewDU, "NEW_DU", TYPE_INT, CC_AUTOADD);
    CheckCol(pLayer, m_colPdisturb, "PDISTURB", TYPE_LONG, CC_AUTOADD);
    CheckCol(pLayer, m_colFireWise, "FIREWISE", TYPE_LONG, CC_AUTOADD);
    CheckCol(pLayer, m_colPotentialFlameLen, "PFlameLen", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colPotentialFire500, "PFIRE_500M", TYPE_LONG, CC_AUTOADD); 
+   CheckCol(pLayer, m_colPotentialFire500, "PFIRE_500M", TYPE_LONG, CC_AUTOADD);
    CheckCol(pLayer, m_colPotentialFire1000, "PFIRE_1KM", TYPE_LONG, CC_AUTOADD);   // formerly PFIRE51000",
    CheckCol(pLayer, m_colAvePotentialFlameLength1000, "PFLEN_1KM", TYPE_LONG, CC_AUTOADD);
    CheckCol(pLayer, m_colPotentialSRFire1000, "PFIRESR_1K", TYPE_LONG, CC_AUTOADD);   // formerly PFIRESR1000"
    CheckCol(pLayer, m_colPotentialMXFire1000, "PFIREMX_1K", TYPE_LONG, CC_AUTOADD);   // formerly PFIREMX1000"
-   CheckCol(pLayer, m_colPFSawVol, "PFSAWVOL", TYPE_FLOAT, CC_AUTOADD); 
+   CheckCol(pLayer, m_colPFSawVol, "PFSAWVOL", TYPE_FLOAT, CC_AUTOADD);
    CheckCol(pLayer, m_colPFSawHarvestVol, "SALHARVEST", TYPE_FLOAT, CC_AUTOADD);
    CheckCol(pLayer, m_colSmoke, "SMOKE", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colPlanArea, "ALLOC_PLAN", TYPE_INT, CC_MUST_EXIST);
+   //CheckCol(pLayer, m_colPlanArea, "ALLOC_PLAN", TYPE_INT, CC_MUST_EXIST);
    CheckCol(pLayer, m_colOwner, "OWNER", TYPE_INT, CC_MUST_EXIST);
    CheckCol(pLayer, m_colVegTranType, "VEGTRNTYPE", TYPE_INT, CC_AUTOADD);
    CheckCol(pLayer, m_colAvailVolTFB, "AVLVOL_TFB", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colAvailVolPH , "AVLVOL_PHL", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colAvailVolSH , "AVLVOL_SH", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(pLayer, m_colAvailVolPH, "AVLVOL_PHL", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(pLayer, m_colAvailVolSH, "AVLVOL_SH", TYPE_FLOAT, CC_AUTOADD);
    CheckCol(pLayer, m_colAvailVolPHH, "AVLVOL_PHH", TYPE_FLOAT, CC_AUTOADD);
-   CheckCol(pLayer, m_colAvailVolRH , "AVLVOL_RH", TYPE_FLOAT, CC_AUTOADD);
-   
+   CheckCol(pLayer, m_colAvailVolRH, "AVLVOL_RH", TYPE_FLOAT, CC_AUTOADD);
+
    pLayer->SetColData(m_colPdisturb, VData(0), true);
    pLayer->SetColData(m_colPotentialFlameLen, VData(0), true);
    pLayer->SetColData(m_colFire1000, VData(0), true);
@@ -1330,40 +1396,42 @@ bool COCNHProcess::DefineColumnNumbers(EnvContext *pContext)
    pLayer->SetColData(m_colPrescribedFire2000, VData(0), true);
    pLayer->SetColData(m_colFireWise, VData(0), true);
    pLayer->SetColData(m_colFire500, VData(0), true);
-   pLayer->SetColData(m_colPlanAreaFr, VData(0), true);
-   pLayer->SetColData(m_colPlanAreaFireFr, VData(0), true);
+   //pLayer->SetColData(m_colPlanAreaFr, VData(0), true);
+   //pLayer->SetColData(m_colPlanAreaFireFr, VData(0), true);
    pLayer->SetColData(m_colPotentialFire500, VData(0), true);
    pLayer->SetColData(m_colPFSawVol, VData(0), true);
    pLayer->SetColData(m_colPFSawHarvestVol, VData(0), true);
-   
+
    return true;
    }
 
 
 static int updateFuelModelErrCount = 0;
 
-bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::UpdateFuelModel(EnvContext* pContext, bool useAddDelta)
    {
    bool reportErrors = true;
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    int missingCount = 0;
    int foundCount = 0;
 
    // take care of any variant changtes that have happened before now   
-   DeltaArray *deltaArray = pContext->pDeltaArray;
+   DeltaArray* deltaArray = pContext->pDeltaArray;
 
    if (deltaArray != NULL)
       {
       for (INT_PTR i = pContext->firstUnseenDelta; i < deltaArray->GetSize(); i++)
          {
-         DELTA &delta = ::EnvGetDelta(deltaArray, i);
+         DELTA& delta = ::EnvGetDelta(deltaArray, i);
          if (delta.col == m_colVariant)
-            UpdateIDU(pContext, delta.cell, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA );
+            UpdateIDU(pContext, delta.cell, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA);
          }
 
       ::EnvApplyDeltaArray(pContext->pEnvModel);
       }
+
+   std::set<FUELMODELKEY> missing;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -1378,13 +1446,24 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
       pLayer->GetData(idu, m_colVariant, variant);
       pLayer->GetData(idu, m_colRegion, region);
       pLayer->GetData(idu, m_colDisturb, disturb);
+      ASSERT(pvt >= 0);
+      ASSERT(variant >= 0);
+      ASSERT(region >= 0);
+
+      //bool isDeveloped = vegClass < 1500000 ? true : false;
+      //if (isDeveloped)
+      //   {
+      //   int a = 0;
+      //   int b = a;
+      //   }
+
 
       FUELMODELKEY key(vegClass, (__int16)variant, (__int8)pvt, (__int8)region);
       int luRow = -1;
       //BOOL found = m_fuelModelLookupTable.Lookup(key.GetKey(), luRow);
       try { luRow = m_fuelModelLookupTable.at(key); }
       catch (...) {}
-      
+
       // does this fuel model match the pvt, vegclass and variant?
 
       int lcpFuelModel = 0;
@@ -1415,19 +1494,19 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          surfaceSmoke = (float)m_fuelModelLookupTable.GetColData(luRow, lutColSfSmoke);
          mixSevSmoke = (float)m_fuelModelLookupTable.GetColData(luRow, lutColMxSmoke);
          standRepSmoke = (float)m_fuelModelLookupTable.GetColData(luRow, lutColSrSmoke);
-      
+
          // column name: SMOKE_SF
-         if ( disturb == SURFACE_FIRE )
+         if (disturb == SURFACE_FIRE)
             {
-            if ( surfaceSmoke >= (int) 0 )
+            if (surfaceSmoke >= (int)0)
                {
                bool goodSmokeValue = true;
                }
-            else if ( (int) surfaceSmoke == -999 && (int) mixSevSmoke > 0 ) 
+            else if ((int)surfaceSmoke == -999 && (int)mixSevSmoke > 0)
                {
-               surfaceSmoke = 0.9f *  mixSevSmoke;
+               surfaceSmoke = 0.9f * mixSevSmoke;
                }
-            else if ( (int) surfaceSmoke == -999 && (int) mixSevSmoke == -999 && (int) standRepSmoke > 0 )
+            else if ((int)surfaceSmoke == -999 && (int)mixSevSmoke == -999 && (int)standRepSmoke > 0)
                {
                surfaceSmoke = 0.83f * standRepSmoke;
                }
@@ -1435,22 +1514,22 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
                {
                surfaceSmoke = 0.0f;
                }
-                
+
             UpdateIDU(pContext, idu, m_colSmoke, surfaceSmoke, useAddDelta ? ADD_DELTA : SET_DATA);
             }
 
          // column name: MXSMOKE
-         if ( disturb == LOW_SEVERITY_FIRE )
+         if (disturb == LOW_SEVERITY_FIRE)
             {
-            if ( mixSevSmoke >= (int) 0 )
+            if (mixSevSmoke >= (int)0)
                {
                bool goodSmokeValue = true;
                }
-            else if ( (int) mixSevSmoke == -999 && (int) standRepSmoke > 0 ) 
+            else if ((int)mixSevSmoke == -999 && (int)standRepSmoke > 0)
                {
-               mixSevSmoke = 0.9f *  standRepSmoke;
+               mixSevSmoke = 0.9f * standRepSmoke;
                }
-            else if ( (int) mixSevSmoke == -999 && (int) standRepSmoke == -999 && (int) surfaceSmoke > 0 )
+            else if ((int)mixSevSmoke == -999 && (int)standRepSmoke == -999 && (int)surfaceSmoke > 0)
                {
                mixSevSmoke = 1.11f * surfaceSmoke;
                }
@@ -1462,17 +1541,17 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
             }
 
          // column name: SRSMOKE
-         if ( disturb == STAND_REPLACING_FIRE )
+         if (disturb == STAND_REPLACING_FIRE)
             {
-            if ( standRepSmoke >= (int) 0 )
+            if (standRepSmoke >= (int)0)
                {
                bool goodSmokeValue = true;
                }
-            else if ( (int) standRepSmoke == -999 && (int) mixSevSmoke > 0 ) 
+            else if ((int)standRepSmoke == -999 && (int)mixSevSmoke > 0)
                {
-               standRepSmoke = 1.11f *  mixSevSmoke;
+               standRepSmoke = 1.11f * mixSevSmoke;
                }
-            else if ( (int) standRepSmoke == -999 && (int) mixSevSmoke == -999 && (int) surfaceSmoke > 0 )
+            else if ((int)standRepSmoke == -999 && (int)mixSevSmoke == -999 && (int)surfaceSmoke > 0)
                {
                standRepSmoke = 1.20f * surfaceSmoke;
                }
@@ -1484,10 +1563,10 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
             }
 
          // column name: VARIANT (Note: if this is updated, also set time in variant to 0
-         
-         if (UpdateIDU(pContext, idu, m_colVariant, variant, useAddDelta ? ADD_DELTA : SET_DATA ))
-            UpdateIDU(pContext, idu, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA );
-         
+
+         if (UpdateIDU(pContext, idu, m_colVariant, variant, useAddDelta ? ADD_DELTA : SET_DATA))
+            UpdateIDU(pContext, idu, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA);
+
          // column name: FUELMODEL
          if (lcpFuelModel == 0) // pathological case
             {
@@ -1498,13 +1577,12 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
             }
          else
             {
-            UpdateIDU(pContext, idu, m_colFuelModel, lcpFuelModel, useAddDelta ? ADD_DELTA : SET_DATA );
+            UpdateIDU(pContext, idu, m_colFuelModel, lcpFuelModel, useAddDelta ? ADD_DELTA : SET_DATA);
             }
 
          // column name: FIRE_REGIM
-         
-         UpdateIDU(pContext, idu, m_colFireReg, fireRegime, useAddDelta ? ADD_DELTA : SET_DATA );
-         
+         UpdateIDU(pContext, idu, m_colFireReg, fireRegime, useAddDelta ? ADD_DELTA : SET_DATA);
+
          // Note: FUELMODEL and FIRE_REGIM also need to be written to the IDUs, since they are read later in this process
          // Further Note: No longer true
          //bool readOnly = pLayer->m_readOnly;
@@ -1515,13 +1593,16 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
          }
       else  // lookup row not found - report missing row
          {
-         if (reportErrors && vegClass > 2000000 && updateFuelModelErrCount < 10 )//minimum value for vegclass that have STMs
+         //if (reportErrors && vegClass > 2000000 && updateFuelModelErrCount < 10)//minimum value for vegclass that have STMs
+         if (reportErrors)//minimum value for vegclass that have STMs
             {
-            CString msg;
-            msg.Format("Missing Fuel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i",
-               vegClass, pvt, variant, region);
-            Report::LogWarning(msg);
+            //CString msg;
+            //msg.Format("Missing FuelModel lookup encountered: Vegclass=%i, pvt=%i, variant=%i, region=%i",
+            //   vegClass, pvt, variant, region);
+            //Report::LogWarning(msg);
             //reportErrors = false;
+
+            missing.insert(key);  // key.GetKey());
             updateFuelModelErrCount++;
             }
 
@@ -1536,13 +1617,22 @@ bool COCNHProcess::UpdateFuelModel(EnvContext *pContext, bool useAddDelta)
    msg.Format("UpdateFuelModel:  Found count=%i, missing count=%i", foundCount, missingCount);
    Report::Log(msg);
 
+   if (missing.size() > 0)
+      {
+      Report::Log("  Missing fuel models : ");
+      for (auto key : missing)
+         {
+         msg.Format("VegClass: %i, PVT: %i, Variant: %i, Region: %i", (int)key.veg, (int)key.pvt, (int)key.variant, (int)key.region);
+         Report::Log(msg);
+         }
+      }
    return true;
    }
 
 
-bool COCNHProcess::UpdateTimeInVariant(EnvContext *pContext)
+bool COCNHProcess::UpdateTimeInVariant(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    int timeInVariant = 0;
 
@@ -1555,10 +1645,10 @@ bool COCNHProcess::UpdateTimeInVariant(EnvContext *pContext)
       UpdateIDU(pContext, idu, m_colTimeInVariant, timeInVariant, ADD_DELTA);
       }
 
-   DeltaArray *deltaArray = pContext->pDeltaArray;
+   DeltaArray* deltaArray = pContext->pDeltaArray;
    for (INT_PTR i = pContext->firstUnseenDelta; i < deltaArray->GetSize(); i++)
       {
-      DELTA &delta = ::EnvGetDelta(deltaArray, i);
+      DELTA& delta = ::EnvGetDelta(deltaArray, i);
       if (delta.col == m_colVariant)
          UpdateIDU(pContext, delta.cell, m_colTimeInVariant, 0, ADD_DELTA);
       }
@@ -1615,9 +1705,9 @@ return true;
 
 static int updateVegParamsErrCount = 0;
 
-bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::UpdateVegParamsFromTable(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    //   int iCPU = omp_get_num_procs();
    //   omp_set_num_threads(iCPU);
@@ -1627,19 +1717,19 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
       {
       int transType = 0;
 
-      pLayer->GetData( idu, m_colVegTranType, transType );
-      
+      pLayer->GetData(idu, m_colVegTranType, transType);
+
       // only continue if there is ither a successional transition or a disturbance transition
-      if ( transType == 0 )
+      if (transType == 0)
          continue;
-            
+
       int vegClass = -999;
       int pvt = -999;
       int region = -999;
       int disturb = 0;
       float iduAreaM2 = 0.0;
-      
-      
+
+
       pLayer->GetData(idu, m_colVegClass, vegClass);
       pLayer->GetData(idu, m_colPVT, pvt);
       pLayer->GetData(idu, m_colRegion, region);
@@ -1677,22 +1767,22 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
       float smallDiaVolume = 0.f;
       float sawTimberVol = 0.f;
 
-      pLayer->GetData(idu, m_colBasalArea,         m_priorBasalArea);
-      pLayer->GetData(idu, m_colTreesPerHectare,   m_priorTreesPerHectare);
-      pLayer->GetData(idu, m_colBitterbrushCover,   m_priorBitterbrushCover);
-      pLayer->GetData(idu, m_colJunipersPerHectare,m_priorJunipersPerHa);
-      pLayer->GetData(idu, m_colLBioMgha,            m_priorLiveBiomass);
-      pLayer->GetData(idu, m_colDBioMgha,            m_priorDeadBiomass);
-      pLayer->GetData(idu, m_colLCMgha,            m_priorLiveCarbon);
-      pLayer->GetData(idu, m_colDCMgha,            m_priorDeadCarbon);
-      pLayer->GetData(idu, m_colLVolm3ha,            m_priorLiveVolumeGe3);
-      pLayer->GetData(idu, m_colVPH_3_25,            m_priorLiveVolume_3_25);
-      pLayer->GetData(idu, m_colBPH_3_25,            m_priorLiveBiomass_3_25);
-      pLayer->GetData(idu, m_colLVol25_50,         m_priorLiveVolume_25_50);
-      pLayer->GetData(idu, m_colLVolGe50,            m_priorLiveVolumeGe50);
-      pLayer->GetData(idu, m_colDVolm3ha,            m_priorDeadVolume);
+      pLayer->GetData(idu, m_colBasalArea, m_priorBasalArea);
+      pLayer->GetData(idu, m_colTreesPerHectare, m_priorTreesPerHectare);
+      pLayer->GetData(idu, m_colBitterbrushCover, m_priorBitterbrushCover);
+      pLayer->GetData(idu, m_colJunipersPerHectare, m_priorJunipersPerHa);
+      pLayer->GetData(idu, m_colLBioMgha, m_priorLiveBiomass);
+      pLayer->GetData(idu, m_colDBioMgha, m_priorDeadBiomass);
+      pLayer->GetData(idu, m_colLCMgha, m_priorLiveCarbon);
+      pLayer->GetData(idu, m_colDCMgha, m_priorDeadCarbon);
+      pLayer->GetData(idu, m_colLVolm3ha, m_priorLiveVolumeGe3);
+      pLayer->GetData(idu, m_colVPH_3_25, m_priorLiveVolume_3_25);
+      pLayer->GetData(idu, m_colBPH_3_25, m_priorLiveBiomass_3_25);
+      pLayer->GetData(idu, m_colLVol25_50, m_priorLiveVolume_25_50);
+      pLayer->GetData(idu, m_colLVolGe50, m_priorLiveVolumeGe50);
+      pLayer->GetData(idu, m_colDVolm3ha, m_priorDeadVolume);
       m_priorSawTimberVol = m_priorLiveVolumeGe3 - m_priorLiveVolume_3_25;
-   
+
       pLayer->GetData(idu, m_colBasalArea, basalArea);
       pLayer->GetData(idu, m_colTreesPerHectare, treesPerHectare);
       pLayer->GetData(idu, m_colBitterbrushCover, bitterbrushCover);
@@ -1719,9 +1809,9 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
       int seenSuccessionBefore = m_accountedForSuccessionThisStep[idu];
 
       // a successional transition occured in this IDU
-      if ( (transType == 1 || transType == 2) && seenSuccessionBefore == 0 )
+      if ((transType == 1 || transType == 2) && seenSuccessionBefore == 0)
          {
-         m_accountedForSuccessionThisStep[idu] = 1;         
+         m_accountedForSuccessionThisStep[idu] = 1;
          if (found && luRow >= 0)
             {
             basalArea = m_vegLookupTable.GetColData(luRow, BAA_GE_3);
@@ -1739,56 +1829,56 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
             liveVolumeGe50 = m_vegLookupTable.GetColData(luRow, VPH_GE_50);
             deadVolume = m_vegLookupTable.GetColData(luRow, TOTDEADVOL_M3HA);
 
-            if ( basalArea        - m_priorBasalArea            <= 0.0 ) basalArea         = m_priorBasalArea;
-            if ( treesPerHectare  - m_priorTreesPerHectare      <= 0.0 ) treesPerHectare   = m_priorTreesPerHectare;
-            if ( bitterbrushCover - m_priorBitterbrushCover   <= 0.0 ) bitterbrushCover = m_priorBitterbrushCover;
-            if ( junipersPerHa    - m_priorJunipersPerHa      <= 0.0 ) junipersPerHa      = m_priorJunipersPerHa;
-            if ( liveBiomass      - m_priorLiveBiomass         <= 0.0 ) liveBiomass      = m_priorLiveBiomass;
-            if ( deadBiomass      - m_priorDeadBiomass        < 0.0 ) deadBiomass      = m_priorDeadBiomass;
-            if ( liveCarbon       - m_priorLiveCarbon         <= 0.0 ) liveCarbon         = m_priorLiveCarbon;
-            if ( deadCarbon       - m_priorDeadCarbon         < 0.0 ) deadCarbon         = m_priorDeadCarbon;
-            if ( liveVolumeGe3    - m_priorLiveVolumeGe3      <= 0.0 ) liveVolumeGe3      = m_priorLiveVolumeGe3;
-            if ( liveVolume_3_25  - m_priorLiveVolume_3_25    <= 0.0 ) liveVolume_3_25   = m_priorLiveVolume_3_25;
-            if ( liveBiomass_3_25 - m_priorLiveBiomass_3_25   <= 0.0 ) liveBiomass_3_25 = m_priorLiveBiomass_3_25;
-            if ( liveVolume_25_50 - m_priorLiveVolume_25_50   <= 0.0 ) liveVolume_25_50 = m_priorLiveVolume_25_50;
-            if ( liveVolumeGe50   - m_priorLiveVolumeGe50     <= 0.0 ) liveVolumeGe50   = m_priorLiveVolumeGe50;
-            if ( deadVolume       - m_priorDeadVolume         < 0.0 ) deadVolume         = m_priorDeadVolume;
+            if (basalArea - m_priorBasalArea <= 0.0) basalArea = m_priorBasalArea;
+            if (treesPerHectare - m_priorTreesPerHectare <= 0.0) treesPerHectare = m_priorTreesPerHectare;
+            if (bitterbrushCover - m_priorBitterbrushCover <= 0.0) bitterbrushCover = m_priorBitterbrushCover;
+            if (junipersPerHa - m_priorJunipersPerHa <= 0.0) junipersPerHa = m_priorJunipersPerHa;
+            if (liveBiomass - m_priorLiveBiomass <= 0.0) liveBiomass = m_priorLiveBiomass;
+            if (deadBiomass - m_priorDeadBiomass < 0.0) deadBiomass = m_priorDeadBiomass;
+            if (liveCarbon - m_priorLiveCarbon <= 0.0) liveCarbon = m_priorLiveCarbon;
+            if (deadCarbon - m_priorDeadCarbon < 0.0) deadCarbon = m_priorDeadCarbon;
+            if (liveVolumeGe3 - m_priorLiveVolumeGe3 <= 0.0) liveVolumeGe3 = m_priorLiveVolumeGe3;
+            if (liveVolume_3_25 - m_priorLiveVolume_3_25 <= 0.0) liveVolume_3_25 = m_priorLiveVolume_3_25;
+            if (liveBiomass_3_25 - m_priorLiveBiomass_3_25 <= 0.0) liveBiomass_3_25 = m_priorLiveBiomass_3_25;
+            if (liveVolume_25_50 - m_priorLiveVolume_25_50 <= 0.0) liveVolume_25_50 = m_priorLiveVolume_25_50;
+            if (liveVolumeGe50 - m_priorLiveVolumeGe50 <= 0.0) liveVolumeGe50 = m_priorLiveVolumeGe50;
+            if (deadVolume - m_priorDeadVolume < 0.0) deadVolume = m_priorDeadVolume;
 
             sawTimberVol = liveVolumeGe3 - liveVolume_3_25;
 
             float totalBiomass = liveBiomass + deadBiomass;
             float totalCarbon = liveCarbon + liveCarbon;
             float totalVolume = liveVolumeGe3 + deadVolume;
-         
-            UpdateIDU(pContext, idu, m_colDVolm3ha, deadVolume, useAddDelta ? ADD_DELTA : SET_DATA );
-            UpdateIDU(pContext, idu, m_colDCMgha, deadCarbon, useAddDelta ? ADD_DELTA : SET_DATA );
-            UpdateIDU(pContext, idu, m_colDBioMgha, deadBiomass, useAddDelta ? ADD_DELTA : SET_DATA );
-            UpdateIDU(pContext, idu, m_colTBioMgha, totalBiomass, useAddDelta ? ADD_DELTA : SET_DATA ); // live + dead
-            UpdateIDU(pContext, idu, m_colTCMgha, totalCarbon, useAddDelta ? ADD_DELTA : SET_DATA );//live +dead
-            UpdateIDU(pContext, idu, m_colTVolm3ha, totalVolume, useAddDelta ? ADD_DELTA : SET_DATA );
-            UpdateIDU(pContext, idu, m_colSawTimberVolume, sawTimberVol, useAddDelta ? ADD_DELTA : SET_DATA );
+
+            UpdateIDU(pContext, idu, m_colDVolm3ha, deadVolume, useAddDelta ? ADD_DELTA : SET_DATA);
+            UpdateIDU(pContext, idu, m_colDCMgha, deadCarbon, useAddDelta ? ADD_DELTA : SET_DATA);
+            UpdateIDU(pContext, idu, m_colDBioMgha, deadBiomass, useAddDelta ? ADD_DELTA : SET_DATA);
+            UpdateIDU(pContext, idu, m_colTBioMgha, totalBiomass, useAddDelta ? ADD_DELTA : SET_DATA); // live + dead
+            UpdateIDU(pContext, idu, m_colTCMgha, totalCarbon, useAddDelta ? ADD_DELTA : SET_DATA);//live +dead
+            UpdateIDU(pContext, idu, m_colTVolm3ha, totalVolume, useAddDelta ? ADD_DELTA : SET_DATA);
+            UpdateIDU(pContext, idu, m_colSawTimberVolume, sawTimberVol, useAddDelta ? ADD_DELTA : SET_DATA);
             }
-         else if ( vegClass >= 2000000 && updateVegParamsErrCount < 10 )
+         else if ( /*vegClass >= 2000000 &&*/ updateVegParamsErrCount < 10)
             {
             CString msg;
             msg.Format("UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
             Report::LogWarning(msg);
             updateVegParamsErrCount++;
             }
-         } 
-      
+         }
+
       int seenFireBefore = m_accountedForFireThisStep[idu];
 
       // if disturbance get from IDU layer and apply percentage.  This method is called in multiple instances of COCNH.
       // Only go into this condition if no wild fire prior.
-      if ( transType == 3 && seenFireBefore == 0 )
+      if (transType == 3 && seenFireBefore == 0)
          {
          //  set the fire flag 
-         if ( disturb > SURFACE_FIRE && disturb <= STAND_REPLACING_FIRE)
+         if (disturb > SURFACE_FIRE && disturb <= STAND_REPLACING_FIRE)
             m_accountedForFireThisStep[idu] = 1;
 
          seenFireBefore = m_accountedForFireThisStep[idu];
-         
+
          float percentOfLivePassedOn = 1.0f;
 
          //what is passed on 
@@ -1845,8 +1935,8 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
                percentOfLivePassedOn = m_percentOfLivePassedOn57;
                break;
             }
-         
-         sawTimberVol = ( liveVolumeGe3 - liveVolume_3_25 ) * percentOfLivePassedOn; 
+
+         sawTimberVol = (liveVolumeGe3 - liveVolume_3_25) * percentOfLivePassedOn;
          basalArea *= percentOfLivePassedOn;
          treesPerHectare *= percentOfLivePassedOn;
          bitterbrushCover *= percentOfLivePassedOn;
@@ -1861,10 +1951,10 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
          liveVolumeGe50 *= percentOfLivePassedOn;
          //deadVolume *= percentOfLivePassedOn;
 
-         liveVolumeGe3 =  liveVolume_3_25 + sawTimberVol ;
+         liveVolumeGe3 = liveVolume_3_25 + sawTimberVol;
 
          //if clear cut, 100% taken, resulting volumes can't be zero, so go back to the table and volumes for this VEGCLASS
-         if ( disturb == HARVEST )
+         if (disturb == HARVEST)
             {
             if (found && luRow >= 0)
                {
@@ -1883,46 +1973,46 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
                liveVolumeGe50 = m_vegLookupTable.GetColData(luRow, VPH_GE_50);
                deadVolume = m_vegLookupTable.GetColData(luRow, TOTDEADVOL_M3HA);
 
-               if ( basalArea        - m_priorBasalArea            < 0.0 ) basalArea         = m_priorBasalArea;
-               if ( treesPerHectare  - m_priorTreesPerHectare      < 0.0 ) treesPerHectare   = m_priorTreesPerHectare;
-               if ( bitterbrushCover - m_priorBitterbrushCover   < 0.0 ) bitterbrushCover = m_priorBitterbrushCover;
-               if ( junipersPerHa    - m_priorJunipersPerHa      < 0.0 ) junipersPerHa      = m_priorJunipersPerHa;
-               if ( liveBiomass      - m_priorLiveBiomass         < 0.0 ) liveBiomass      = m_priorLiveBiomass;
+               if (basalArea - m_priorBasalArea < 0.0) basalArea = m_priorBasalArea;
+               if (treesPerHectare - m_priorTreesPerHectare < 0.0) treesPerHectare = m_priorTreesPerHectare;
+               if (bitterbrushCover - m_priorBitterbrushCover < 0.0) bitterbrushCover = m_priorBitterbrushCover;
+               if (junipersPerHa - m_priorJunipersPerHa < 0.0) junipersPerHa = m_priorJunipersPerHa;
+               if (liveBiomass - m_priorLiveBiomass < 0.0) liveBiomass = m_priorLiveBiomass;
                //if ( deadBiomass      - m_priorDeadBiomass        < 0.0 ) deadBiomass      = m_priorDeadBiomass;
-               if ( liveCarbon       - m_priorLiveCarbon         < 0.0 ) liveCarbon         = m_priorLiveCarbon;
+               if (liveCarbon - m_priorLiveCarbon < 0.0) liveCarbon = m_priorLiveCarbon;
                //if ( deadCarbon       - m_priorDeadCarbon         < 0.0 ) deadCarbon         = m_priorDeadCarbon;
-               if ( liveVolumeGe3    - m_priorLiveVolumeGe3      < 0.0 ) liveVolumeGe3      = m_priorLiveVolumeGe3;
-               if ( liveVolume_3_25  - m_priorLiveVolume_3_25    < 0.0 ) liveVolume_3_25   = m_priorLiveVolume_3_25;
-               if ( liveBiomass_3_25 - m_priorLiveBiomass_3_25   < 0.0 ) liveBiomass_3_25 = m_priorLiveBiomass_3_25;
-               if ( liveVolume_25_50 - m_priorLiveVolume_25_50   < 0.0 ) liveVolume_25_50 = m_priorLiveVolume_25_50;
-               if ( liveVolumeGe50   - m_priorLiveVolumeGe50     < 0.0 ) liveVolumeGe50   = m_priorLiveVolumeGe50;
+               if (liveVolumeGe3 - m_priorLiveVolumeGe3 < 0.0) liveVolumeGe3 = m_priorLiveVolumeGe3;
+               if (liveVolume_3_25 - m_priorLiveVolume_3_25 < 0.0) liveVolume_3_25 = m_priorLiveVolume_3_25;
+               if (liveBiomass_3_25 - m_priorLiveBiomass_3_25 < 0.0) liveBiomass_3_25 = m_priorLiveBiomass_3_25;
+               if (liveVolume_25_50 - m_priorLiveVolume_25_50 < 0.0) liveVolume_25_50 = m_priorLiveVolume_25_50;
+               if (liveVolumeGe50 - m_priorLiveVolumeGe50 < 0.0) liveVolumeGe50 = m_priorLiveVolumeGe50;
                //if ( deadVolume       - m_priorDeadVolume         < 0.0 ) deadVolume         = m_priorDeadVolume;
 
-                sawTimberVol = liveVolumeGe3 - liveVolume_3_25;
+               sawTimberVol = liveVolumeGe3 - liveVolume_3_25;
                }
             }
-            
-            UpdateIDU(pContext, idu, m_colSawTimberVolume, sawTimberVol, useAddDelta ? ADD_DELTA : SET_DATA );
+
+         UpdateIDU(pContext, idu, m_colSawTimberVolume, sawTimberVol, useAddDelta ? ADD_DELTA : SET_DATA);
          }
 
-      if ( transType > 0 )
+      if (transType > 0)
          {
-      
+
          // column name: BASAL_AREA
-         UpdateIDU(pContext, idu, m_colBasalArea, basalArea, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colBasalArea, basalArea, useAddDelta ? ADD_DELTA : SET_DATA);
 
          //column name: TreesPHa
-         UpdateIDU(pContext, idu, m_colTreesPerHectare, treesPerHectare, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colTreesPerHectare, treesPerHectare, useAddDelta ? ADD_DELTA : SET_DATA);
 
          //column name: PurshiaCov
-         UpdateIDU(pContext, idu, m_colBitterbrushCover, bitterbrushCover, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colBitterbrushCover, bitterbrushCover, useAddDelta ? ADD_DELTA : SET_DATA);
 
          //column name: JunipPHa
-         UpdateIDU(pContext, idu, m_colJunipersPerHectare, junipersPerHa, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colJunipersPerHectare, junipersPerHa, useAddDelta ? ADD_DELTA : SET_DATA);
 
          //update columns for live, dead, and total biomass
          //column name: LBioMgha
-         UpdateIDU(pContext, idu, m_colLBioMgha, liveBiomass, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colLBioMgha, liveBiomass, useAddDelta ? ADD_DELTA : SET_DATA);
 
          //column name: DBioMgha
          //UpdateIDU(pContext, idu, m_colDBioMgha, deadBiomass, useAddDelta ? ADD_DELTA : SET_DATA );
@@ -1933,7 +2023,7 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
 
          // update columns for live, dead, and total carbon pools
          // column name: LCMgha
-         UpdateIDU(pContext, idu, m_colLCMgha, liveCarbon, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colLCMgha, liveCarbon, useAddDelta ? ADD_DELTA : SET_DATA);
 
          // column name: DCMgha
          //UpdateIDU(pContext, idu, m_colDCMgha, deadCarbon, useAddDelta ? ADD_DELTA : SET_DATA );
@@ -1944,7 +2034,7 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
 
          //update columns for live, dead, and total volume
          //column name: LVolm3ha
-         UpdateIDU(pContext, idu, m_colLVolm3ha, liveVolumeGe3, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colLVolm3ha, liveVolumeGe3, useAddDelta ? ADD_DELTA : SET_DATA);
 
          // column name: DVolm3ha
          //UpdateIDU(pContext, idu, m_colDVolm3ha, deadVolume, useAddDelta ? ADD_DELTA : SET_DATA );
@@ -1955,20 +2045,20 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
 
          // update columns for small diameter volume and saw timber volume
          // column name: VPH_3_25
-         UpdateIDU(pContext, idu, m_colVPH_3_25, liveVolume_3_25, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colVPH_3_25, liveVolume_3_25, useAddDelta ? ADD_DELTA : SET_DATA);
 
          // column name: BPH_3_25
-         UpdateIDU(pContext, idu, m_colBPH_3_25, liveBiomass_3_25, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colBPH_3_25, liveBiomass_3_25, useAddDelta ? ADD_DELTA : SET_DATA);
 
          // column name: LVol25_50
-         UpdateIDU(pContext, idu, m_colLVol25_50, liveVolume_25_50, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colLVol25_50, liveVolume_25_50, useAddDelta ? ADD_DELTA : SET_DATA);
 
          // column name: LVolGe50
-         UpdateIDU(pContext, idu, m_colLVolGe50, liveVolumeGe50, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colLVolGe50, liveVolumeGe50, useAddDelta ? ADD_DELTA : SET_DATA);
 
          // column name: SAWTIMBVOL
          //UpdateIDU(pContext, idu, m_colSawTimberVolume, sawTimberVol, useAddDelta ? ADD_DELTA : SET_DATA );
-      
+
          // this updates the available SawTimberVolume (GE3cm - 25cm) available for different treatment types (m3)
          //float availableSawTimberVol55 = sawTimberVol * m_percentOfLivePassedOnAvailable55 * iduAreaHa;
          //float availableSawTimberVol3 = sawTimberVol * m_percentOfLivePassedOnAvailable3 * iduAreaHa;
@@ -1980,7 +2070,7 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
          //UpdateIDU(pContext, idu, m_colAvailVolPH, availableSawTimberVol3, useAddDelta ? ADD_DELTA : SET_DATA );      
          //UpdateIDU(pContext, idu, m_colAvailVolPHH, availableSawTimberVol57, useAddDelta ? ADD_DELTA : SET_DATA );
          //UpdateIDU(pContext, idu, m_colAvailVolRH, availableSawTimberVol1, useAddDelta ? ADD_DELTA : SET_DATA );
-         }      
+         }
       }
 
    ::EnvApplyDeltaArray(pContext->pEnvModel);
@@ -1989,9 +2079,9 @@ bool COCNHProcess::UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDel
    }
 
 
-bool COCNHProcess::UpdateAvailVolumesFromTable(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::UpdateAvailVolumesFromTable(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    //   int iCPU = omp_get_num_procs();
    //   omp_set_num_threads(iCPU);
@@ -2000,26 +2090,26 @@ bool COCNHProcess::UpdateAvailVolumesFromTable(EnvContext *pContext, bool useAdd
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
       int transType = 0;
-      pLayer->GetData( idu, m_colVegTranType, transType );
+      pLayer->GetData(idu, m_colVegTranType, transType);
 
       float iduAreaM2;
       float sawTimberVol = 0.0f;
-            
+
       pLayer->GetData(idu, m_colArea, iduAreaM2);
-      pLayer->GetData( idu, m_colSawTimberVolume, sawTimberVol);
+      pLayer->GetData(idu, m_colSawTimberVolume, sawTimberVol);
       float iduAreaHa = iduAreaM2 * HA_PER_M2;
-         
+
       // this updates the available SawTimberVolume (GE3cm - 25cm) available for different treatment types (m3)
       float availableSawTimberVol55 = sawTimberVol * m_percentPreTransStructAvailable55 * iduAreaHa;
       float availableSawTimberVol3 = sawTimberVol * m_percentPreTransStructAvailable3 * iduAreaHa;
-      
+
       float availableSawTimberVol57 = sawTimberVol * m_percentPreTransStructAvailable57 * iduAreaHa;
       float availableSawTimberVol1 = sawTimberVol * m_percentPreTransStructAvailable1 * iduAreaHa;
 
-      UpdateIDU(pContext, idu, m_colAvailVolTFB, availableSawTimberVol55, useAddDelta ? ADD_DELTA : SET_DATA );
-      UpdateIDU(pContext, idu, m_colAvailVolPH, availableSawTimberVol3, useAddDelta ? ADD_DELTA : SET_DATA );      
-      UpdateIDU(pContext, idu, m_colAvailVolPHH, availableSawTimberVol57, useAddDelta ? ADD_DELTA : SET_DATA );
-      UpdateIDU(pContext, idu, m_colAvailVolRH, availableSawTimberVol1, useAddDelta ? ADD_DELTA : SET_DATA );      
+      UpdateIDU(pContext, idu, m_colAvailVolTFB, availableSawTimberVol55, useAddDelta ? ADD_DELTA : SET_DATA);
+      UpdateIDU(pContext, idu, m_colAvailVolPH, availableSawTimberVol3, useAddDelta ? ADD_DELTA : SET_DATA);
+      UpdateIDU(pContext, idu, m_colAvailVolPHH, availableSawTimberVol57, useAddDelta ? ADD_DELTA : SET_DATA);
+      UpdateIDU(pContext, idu, m_colAvailVolRH, availableSawTimberVol1, useAddDelta ? ADD_DELTA : SET_DATA);
       }
 
    ::EnvApplyDeltaArray(pContext->pEnvModel);
@@ -2028,9 +2118,9 @@ bool COCNHProcess::UpdateAvailVolumesFromTable(EnvContext *pContext, bool useAdd
    }
 
 
-bool COCNHProcess::InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::InitVegParamsFromTable(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    //   int iCPU = omp_get_num_procs();
    //   omp_set_num_threads(iCPU);
@@ -2087,7 +2177,7 @@ bool COCNHProcess::InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta
       float sawTimberVol = 0.f;
 
       // a successional transition occured in this IDU
-      
+
       if (found && luRow >= 0)
          {
          basalArea = m_vegLookupTable.GetColData(luRow, BAA_GE_3);
@@ -2107,7 +2197,7 @@ bool COCNHProcess::InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta
 
          sawTimberVol = liveVolumeGe3 - liveVolume_3_25;
          }
-      else if (vegClass >= 2000000 && updateVegParamsErrCount < 10)
+      else if (/*vegClass >= 2000000 &&*/ updateVegParamsErrCount < 10)
          {
          CString msg;
          msg.Format("UpdateVegParamsFromTable() - missing lookup for vegclass=%i, pvt=%i, region=%i", vegClass, pvt, region);
@@ -2193,10 +2283,10 @@ bool COCNHProcess::InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta
    }
 
 
-bool COCNHProcess::UpdateTimeSinceTreatment(EnvContext *pContext)
+bool COCNHProcess::UpdateTimeSinceTreatment(EnvContext* pContext)
    {
    // Note:  this has to run BEFORE the disturb codes are reset
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2229,10 +2319,10 @@ bool COCNHProcess::UpdateTimeSinceTreatment(EnvContext *pContext)
    }
 
 
-bool COCNHProcess::SetPriorVegClass(EnvContext *pContext)
+bool COCNHProcess::SetPriorVegClass(EnvContext* pContext)
    {
 
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2252,9 +2342,9 @@ bool COCNHProcess::SetPriorVegClass(EnvContext *pContext)
    }
 
 
-bool COCNHProcess::UpdateTimeSinceHarvest(EnvContext *pContext)
+bool COCNHProcess::UpdateTimeSinceHarvest(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2285,9 +2375,9 @@ bool COCNHProcess::UpdateTimeSinceHarvest(EnvContext *pContext)
    }
 
 
-bool COCNHProcess::UpdateTimeSinceThinning(EnvContext *pContext)
+bool COCNHProcess::UpdateTimeSinceThinning(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2301,15 +2391,15 @@ bool COCNHProcess::UpdateTimeSinceThinning(EnvContext *pContext)
 
       switch (disturb)
          {
-         case THINNING:               
-         case MECHANICAL_THINNING:    
+         case THINNING:
+         case MECHANICAL_THINNING:
          case THIN_FROM_BELOW:
          case PARTIAL_HARVEST_LIGHT:
-         case PARTIAL_HARVEST_HIGH:   
-         case MECHANICAL_THINNING_2:  
-         case THIN_FROM_BELOW_2:      
+         case PARTIAL_HARVEST_HIGH:
+         case MECHANICAL_THINNING_2:
+         case THIN_FROM_BELOW_2:
          case PARTIAL_HARVEST_LIGHT_2:
-         case PARTIAL_HARVEST_HIGH_2: 
+         case PARTIAL_HARVEST_HIGH_2:
             TSTH = 1;
             break;
 
@@ -2327,9 +2417,9 @@ bool COCNHProcess::UpdateTimeSinceThinning(EnvContext *pContext)
 
 
 
-bool COCNHProcess::UpdateTimeSincePartialHarvest(EnvContext *pContext)
+bool COCNHProcess::UpdateTimeSincePartialHarvest(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2343,8 +2433,10 @@ bool COCNHProcess::UpdateTimeSincePartialHarvest(EnvContext *pContext)
 
       switch (disturb)
          {
+         case THIN_FROM_BELOW:
+         case THIN_FROM_BELOW_2:
          case PARTIAL_HARVEST:
-         //case PARTIAL_HARVEST_2:
+            //case PARTIAL_HARVEST_2:
          case PARTIAL_HARVEST_LIGHT:
          case PARTIAL_HARVEST_LIGHT_2:
          case PARTIAL_HARVEST_HIGH:
@@ -2366,9 +2458,9 @@ bool COCNHProcess::UpdateTimeSincePartialHarvest(EnvContext *pContext)
 
 
 
-bool COCNHProcess::UpdateTimeSinceFire(EnvContext *pContext)
+bool COCNHProcess::UpdateTimeSinceFire(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2398,9 +2490,9 @@ bool COCNHProcess::UpdateTimeSinceFire(EnvContext *pContext)
    }
 
 
-bool COCNHProcess::UpdateTimeSincePrescribedFire(EnvContext *pContext)
+bool COCNHProcess::UpdateTimeSincePrescribedFire(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2426,9 +2518,9 @@ bool COCNHProcess::UpdateTimeSincePrescribedFire(EnvContext *pContext)
    }
 
 
-bool COCNHProcess::UpdateVegClassVars(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::UpdateVegClassVars(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    int noDataValue = (int)pLayer->GetNoDataValue();
 
@@ -2457,22 +2549,22 @@ bool COCNHProcess::UpdateVegClassVars(EnvContext *pContext, bool useAddDelta)
 
          layers = structStg % 10;
          }
-      
-      UpdateIDU(pContext, idu, m_colCoverType, coverType, useAddDelta ? ADD_DELTA : SET_DATA );
-      UpdateIDU(pContext, idu, m_colStructStg, structStg, useAddDelta ? ADD_DELTA : SET_DATA );
-      UpdateIDU(pContext, idu, m_colCanopyCover, cover, useAddDelta ? ADD_DELTA : SET_DATA );
-      UpdateIDU(pContext, idu, m_colSize, size, useAddDelta ? ADD_DELTA : SET_DATA );
-      UpdateIDU(pContext, idu, m_colLayers, layers, useAddDelta ? ADD_DELTA : SET_DATA );
-            
+
+      UpdateIDU(pContext, idu, m_colCoverType, coverType, useAddDelta ? ADD_DELTA : SET_DATA);
+      UpdateIDU(pContext, idu, m_colStructStg, structStg, useAddDelta ? ADD_DELTA : SET_DATA);
+      UpdateIDU(pContext, idu, m_colCanopyCover, cover, useAddDelta ? ADD_DELTA : SET_DATA);
+      UpdateIDU(pContext, idu, m_colSize, size, useAddDelta ? ADD_DELTA : SET_DATA);
+      UpdateIDU(pContext, idu, m_colLayers, layers, useAddDelta ? ADD_DELTA : SET_DATA);
+
       }
 
    return true;
    }
 
-bool COCNHProcess::UpdatePriorVeg(EnvContext *pContext)
+bool COCNHProcess::UpdatePriorVeg(EnvContext* pContext)
    {
    // get a ptr to the delta array
-   DeltaArray *deltaArray = pContext->pDeltaArray;
+   DeltaArray* deltaArray = pContext->pDeltaArray;
 
    // use static size so deltas added
    INT_PTR daSize = deltaArray->GetSize();
@@ -2483,7 +2575,7 @@ bool COCNHProcess::UpdatePriorVeg(EnvContext *pContext)
    // iterate through deltas added since last “seen”   
    while (index >= pContext->firstUnseenDelta)
       {
-      DELTA &delta = EnvGetDelta(deltaArray, index);
+      DELTA& delta = EnvGetDelta(deltaArray, index);
 
       if (delta.col == m_colVegClass)
          {
@@ -2502,7 +2594,7 @@ bool COCNHProcess::UpdatePriorVeg(EnvContext *pContext)
    }
 
 
-bool COCNHProcess::UpdateThreatenedSpecies(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::UpdateThreatenedSpecies(EnvContext* pContext, bool useAddDelta)
    {
    /*
    MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
@@ -2544,16 +2636,16 @@ bool COCNHProcess::UpdateThreatenedSpecies(EnvContext *pContext, bool useAddDelt
          //if( speciesCount == 1 )
          //   break;
          }
-      
+
       UpdateIDU(pContext, idu, colTESpecies, speciesCount, useAddDelta ? ADD_DELTA : SET_DATA );
-      
+
       }
       */
    return true;
    }
 
 
-bool COCNHProcess::PopulateStructure(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::PopulateStructure(EnvContext* pContext, bool useAddDelta)
    {
    /*
    // iterate through idu shapefile
@@ -2579,7 +2671,7 @@ bool COCNHProcess::PopulateStructure(EnvContext *pContext, bool useAddDelta)
       float dwllUnits = popDens * area / GetPeoplePerDU(uga); // 1 is dummy value, koch 05/2013
 
       newDU = dwllUnits - prevNDU;
-      
+
       UpdateIDU(pContext, idu, m_colNDU, dwllUnits, useAddDelta ? ADD_DELTA : SET_DATA );
 
       if (fp_neq(newDU, 0.0))
@@ -2590,7 +2682,7 @@ bool COCNHProcess::PopulateStructure(EnvContext *pContext, bool useAddDelta)
          {
          UpdateIDU(pContext, idu, m_colNewDU, 0.0f, useAddDelta ? ADD_DELTA : SET_DATA );
          }
-      
+
       // is there at least one residential structure on the idu?
       if (dwllUnits > 1.0f)
          structr = 1;
@@ -2608,20 +2700,20 @@ bool COCNHProcess::PopulateStructure(EnvContext *pContext, bool useAddDelta)
       else if (duPerAc > 4 && duPerAc <= 12)    lulcC = 1101200;   // medium density
       else if (duPerAc > 12)                    lulcC = 1201300;   // high density
 
-      
+
       if (lulcC > 0)
          UpdateIDU(pContext, idu, m_colVegClass, lulcC, useAddDelta ? ADD_DELTA : SET_DATA );
 
       // add new value to delta array
       UpdateIDU(pContext, idu, m_colStructure, structr, useAddDelta ? ADD_DELTA : SET_DATA );
-      
+
       }
       */
    return true;
    }
 
 
-bool COCNHProcess::PopulateWUI(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::PopulateWUI(EnvContext* pContext, bool useAddDelta)
    {
    // From http://silvis.forest.wisc.edu/old/Library/WUIDefinitions.php
    //
@@ -2649,17 +2741,19 @@ bool COCNHProcess::PopulateWUI(EnvContext *pContext, bool useAddDelta)
    int maxCount = 0;
 
    // update residential LULC classes if needed
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    int neighbors[maxNeighbors];
-
-   int   *iduPctBurnable = new int[pLayer->GetPolygonCount()];
-   float *iduWuiPopDens = new float[pLayer->GetPolygonCount()];    // du/acre
+   int iduCount = pLayer->GetPolygonCount();
+   //int   *iduPctBurnable = new int[pLayer->GetPolygonCount()];
+   //float *iduWuiPopDens = new float[pLayer->GetPolygonCount()];    // du/acre
+   std::vector<int> iduPctBurnable(iduCount, 0);
+   std::vector<float> iduWuiPopDens(iduCount, 0);
 
    // pass 1: iterate through the UGA layer, computing WUI stats
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
-      Poly *pPoly = pLayer->GetPolygon(idu);
+      Poly* pPoly = pLayer->GetPolygon(idu);
       int count = pLayer->GetNearbyPolys(pPoly, neighbors, NULL, maxNeighbors, radius);
 
       if (count > maxCount)
@@ -2715,7 +2809,7 @@ bool COCNHProcess::PopulateWUI(EnvContext *pContext, bool useAddDelta)
 
       if (iduPctBurnable[idu] <= 50)     // Interface candidate?
          {
-         Poly *pPoly = pLayer->GetPolygon(idu);
+         Poly* pPoly = pLayer->GetPolygon(idu);
          int count = pLayer->GetNearbyPolys(pPoly, neighbors, NULL, maxNeighbors, 2400);   // why 2400?
 
          bool isInterface = false;
@@ -2748,14 +2842,14 @@ bool COCNHProcess::PopulateWUI(EnvContext *pContext, bool useAddDelta)
          else if (iduWuiPopDens[idu] > highDensThreshold)
             wui = 1;
          }
-      
-      UpdateIDU(pContext, idu, m_colWUI, wui, useAddDelta ? ADD_DELTA : SET_DATA );
-      
+
+      UpdateIDU(pContext, idu, m_colWUI, wui, useAddDelta ? ADD_DELTA : SET_DATA);
+
       }
 
    // clean up
-   delete[] iduPctBurnable;
-   delete[] iduWuiPopDens;
+   //delete[] iduPctBurnable;
+   //delete[] iduWuiPopDens;
 
    return true;
    }
@@ -2767,7 +2861,7 @@ float GetPeoplePerDU(int uga)
    }
 
 
-bool COCNHProcess::CalcTreatmentCost(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::CalcTreatmentCost(EnvContext* pContext, bool useAddDelta)
    {
    /* not required, koch 02/2013
    this->LoadLookupTableTreatCosts(pContext, m_initStrTreatCosts);
@@ -2777,14 +2871,14 @@ bool COCNHProcess::CalcTreatmentCost(EnvContext *pContext, bool useAddDelta)
    float conversArea = 0.0002471f;
 
    // conversion factor from meters to 1000 feet, /1000 *3.28084
-   float conversElev = (float) 0.00328084f;
+   float conversElev = (float)0.00328084f;
 
    //conversion factor from tonnes per hectare to tonnes per acre
    // !!! nochmal kontrollieren, ob in der datenbank wirklich tonnes per hectare sind !!!
-   float conversBiomass = (float) 0.404685642;
+   float conversBiomass = (float)0.404685642;
 
    //calculate treatment cost for all idus
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -2892,29 +2986,29 @@ bool COCNHProcess::CalcTreatmentCost(EnvContext *pContext, bool useAddDelta)
          aspect = 1;
       else
          aspect = 0;
-      
+
       // total $ for the IDU.  Note that these are the costs if treatment is actually done, not that it has been done
-      treatmentCostsPBYN = area*conversArea*exp(6.29f - (0.349f*log(area * conversArea)) + 0.296f*wui + pileHand + fm + 0.506f*teSpp);
-      UpdateIDU(pContext, idu, m_colCostsPrescribedFireHand, treatmentCostsPBYN, useAddDelta ? ADD_DELTA : SET_DATA );
+      treatmentCostsPBYN = area * conversArea * exp(6.29f - (0.349f * log(area * conversArea)) + 0.296f * wui + pileHand + fm + 0.506f * teSpp);
+      UpdateIDU(pContext, idu, m_colCostsPrescribedFireHand, treatmentCostsPBYN, useAddDelta ? ADD_DELTA : SET_DATA);
 
-      treatmentCostsPBNN = area*conversArea*exp(6.29f - (0.349f*log(area * conversArea)) + 0.296f*wui + fm + 0.506f*teSpp);
-      UpdateIDU(pContext, idu, m_colCostsPrescribedFire, treatmentCostsPBNN, useAddDelta ? ADD_DELTA : SET_DATA );
+      treatmentCostsPBNN = area * conversArea * exp(6.29f - (0.349f * log(area * conversArea)) + 0.296f * wui + fm + 0.506f * teSpp);
+      UpdateIDU(pContext, idu, m_colCostsPrescribedFire, treatmentCostsPBNN, useAddDelta ? ADD_DELTA : SET_DATA);
 
-      treatmentCostsMTY = area*conversArea*exp(6.954f - (0.299f*log(area * conversArea)) + 0.484f*wui + 1.142f*biomassReduct + 0.014f*(fuelLoad*conversBiomass) + fr + 0.255f*aspect - 0.184f*(elevation*conversElev));
-      UpdateIDU(pContext, idu, m_colCostsMechTreatmentBio, treatmentCostsMTY, useAddDelta ? ADD_DELTA : SET_DATA );
+      treatmentCostsMTY = area * conversArea * exp(6.954f - (0.299f * log(area * conversArea)) + 0.484f * wui + 1.142f * biomassReduct + 0.014f * (fuelLoad * conversBiomass) + fr + 0.255f * aspect - 0.184f * (elevation * conversElev));
+      UpdateIDU(pContext, idu, m_colCostsMechTreatmentBio, treatmentCostsMTY, useAddDelta ? ADD_DELTA : SET_DATA);
 
-      treatmentCostsMTN = area*conversArea*exp(6.954f - (0.299f*log(area * conversArea)) + 0.484f*wui + 0.014f*(fuelLoad*conversBiomass) + fr + 0.255f*aspect - 0.184f*(elevation*conversElev));
-      UpdateIDU(pContext, idu, m_colCostsMechTreatment, treatmentCostsMTN, useAddDelta ? ADD_DELTA : SET_DATA );
-      
+      treatmentCostsMTN = area * conversArea * exp(6.954f - (0.299f * log(area * conversArea)) + 0.484f * wui + 0.014f * (fuelLoad * conversBiomass) + fr + 0.255f * aspect - 0.184f * (elevation * conversElev));
+      UpdateIDU(pContext, idu, m_colCostsMechTreatment, treatmentCostsMTN, useAddDelta ? ADD_DELTA : SET_DATA);
+
       }
 
    return true;
    }
 
 
-bool COCNHProcess::UpdateDisturbanceValue(EnvContext *pContext, bool useAddDelta)
+bool COCNHProcess::UpdateDisturbanceValue(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++)
       {
@@ -2923,42 +3017,42 @@ bool COCNHProcess::UpdateDisturbanceValue(EnvContext *pContext, bool useAddDelta
       pLayer->GetData(idu, m_colDisturb, disturb);
 
       if (disturb > 0)
-         UpdateIDU(pContext, idu, m_colDisturb, -disturb, useAddDelta ? ADD_DELTA : SET_DATA );
+         UpdateIDU(pContext, idu, m_colDisturb, -disturb, useAddDelta ? ADD_DELTA : SET_DATA);
       }
 
    return true;
    }
 
 
-bool COCNHProcess::UpdateAvgTreesPerHectare(EnvContext *pContext)
+bool COCNHProcess::UpdateAvgTreesPerHectare(EnvContext* pContext)
    {
-   
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
    const int
       expectedPolys = 500;
 
    int
       neighbors[expectedPolys],
       maxPolys = expectedPolys,
-      colTreesPha = pLayer->GetFieldCol( "TreesPha" );
+      colTreesPha = pLayer->GetFieldCol("TreesPha");
 
    float
       distances[expectedPolys],
       //TODO move variable definition and initialization
       thresDistTPH = 500.0f,
-      tphValue     = 0.0f;
+      tphValue = 0.0f;
 
-   
+
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
       int nDU = -1;
       int wui = -1;
-      
-      pLayer->GetData( idu, m_colNDU, nDU);
-      pLayer->GetData( idu, m_colWUI, wui );
-      
+
+      pLayer->GetData(idu, m_colNDU, nDU);
+      pLayer->GetData(idu, m_colWUI, wui);
+
       // home owners only
-      if ( nDU > 0 && wui > 0 )
+      if (nDU > 0 && wui > 0)
          {
          int numFound = pLayer->GetNearbyPolys(pLayer->GetPolygon(idu), neighbors, distances, maxPolys, thresDistTPH);
 
@@ -2969,18 +3063,18 @@ bool COCNHProcess::UpdateAvgTreesPerHectare(EnvContext *pContext)
          for (int j = 0; j < numFound; j++)
             {
             float area = 0;
-            pLayer->GetData( neighbors[j], m_colArea, area );
+            pLayer->GetData(neighbors[j], m_colArea, area);
 
             totalArea += area;
 
             float value = 0.0f;
             pLayer->GetData(neighbors[j], colTreesPha, value);
 
-            if ( value >= 0.0f )
+            if (value >= 0.0f)
                totalTrees += value * area;
             }
 
-         if ( totalArea > 0 )
+         if (totalArea > 0)
             tphValue = totalTrees / totalArea;
          else
             tphValue = 0.0f;
@@ -2994,7 +3088,7 @@ bool COCNHProcess::UpdateAvgTreesPerHectare(EnvContext *pContext)
    return true;
    }
 
-bool COCNHProcess::UpdateAvgCondFlameLength(EnvContext *pContext)
+bool COCNHProcess::UpdateAvgCondFlameLength(EnvContext* pContext)
    {
    const int expectedPolys = 500;
 
@@ -3007,7 +3101,7 @@ bool COCNHProcess::UpdateAvgCondFlameLength(EnvContext *pContext)
    float cflValue = 0.0f;
 
    // iterate through IDU layer
-   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
       int i = pLayer->GetNearbyPolys(pLayer->GetPolygon(idu), neighbors, distances, expectedPolys, m_thresDistCondFlameLength);
@@ -3040,9 +3134,9 @@ bool COCNHProcess::UpdateAvgCondFlameLength(EnvContext *pContext)
    }
 
 
-bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
+bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    // array size variables
    const int expPolyDistShort = 750;
@@ -3080,7 +3174,7 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
    int idus = pLayer->GetPolygonCount();
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-   //for ( int idu=0; idu < idus; idu++)
+      //for ( int idu=0; idu < idus; idu++)
       {
       // init counters
       int fShort = 0;
@@ -3099,33 +3193,33 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
       //if (idu % 10000 == 0 )
       //   Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
 
-      Poly *pPoly = pLayer->GetPolygon(idu);
+      Poly* pPoly = pLayer->GetPolygon(idu);
       int countFShort = pLayer->GetNearbyPolys(pPoly, neighborsFireShort, NULL, expPolyDistShort, m_thresDistFireShort);
       ////int countFMedium = pLayer->GetNearbyPolys(pPoly, neighborsFireMedium, NULL, expPolyDistMedium, m_thresDistFireMedium);
       ////int countFLong = pLayer->GetNearbyPolys(pPoly, neighborsFireLong, NULL, expPolyDistLong, m_thresDistFireLong);
       ////int countPreFLong = pLayer->GetNearbyPolys(pPoly, neighborsPreFireLong, NULL, expPolyDistPreFireLong, m_thresDistPreFireLong);
       ////int countF500m = pLayer->GetNearbyPolys(pPoly, neighborsFire500m, NULL, expPolyDist500m, m_thresDistFire500m);
-      
+
       float sumPotentialFlameLength = 0.0f;
       float avePotentialFlameLength1000 = 0.0f;
       int nDU = -1;
-            
-      pLayer->GetData( idu, m_colNDU, nDU);
-      
+
+      pLayer->GetData(idu, m_colNDU, nDU);
+
       // IDUs with dwellings owners only
       if (nDU > 0)
-         {         
+         {
          // calculate average potential flame lenght within 1km
-         for ( int i = 0; i < countFShort; i++ )
-            {            
+         for (int i = 0; i < countFShort; i++)
+            {
             float potentialFlameLenth = 0.0f;
             pLayer->GetData(neighborsFireShort[i], m_colPotentialFlameLen, potentialFlameLenth);
-            
-            sumPotentialFlameLength =  sumPotentialFlameLength + potentialFlameLenth;
+
+            sumPotentialFlameLength = sumPotentialFlameLength + potentialFlameLenth;
             }
 
-         if ( countFShort > 0 && sumPotentialFlameLength > 0 )
-            avePotentialFlameLength1000 = sumPotentialFlameLength/countFShort;
+         if (countFShort > 0 && sumPotentialFlameLength > 0)
+            avePotentialFlameLength1000 = sumPotentialFlameLength / countFShort;
 
          // calculate value for FIRE5_500
          /////for (int i = 0; i < countF500m; i++)
@@ -3167,24 +3261,24 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
             pLayer->GetData(neighborsFireShort[i], m_colPdisturb, potentialDisturb);
             // TODO: check timing, pre or post defines upper limit (5 or 6)
             // only wildfire, no prescribed fire considered in utility model development
-            if ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE )
+            if (dstrb >= SURFACE_FIRE && dstrb <= STAND_REPLACING_FIRE)
                fShort++;
 
-            if ( potentialDisturb >= SURFACE_FIRE  &&  potentialDisturb <= STAND_REPLACING_FIRE )
+            if (potentialDisturb >= SURFACE_FIRE && potentialDisturb <= STAND_REPLACING_FIRE)
                fPotentialShort++;
 
-            if (  dstrb == STAND_REPLACING_FIRE ) // || ( dstrb == -STAND_REPLACING_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
+            if (dstrb == STAND_REPLACING_FIRE) // || ( dstrb == -STAND_REPLACING_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
                fShortSR++;
 
-            if ( potentialDisturb == STAND_REPLACING_FIRE )
+            if (potentialDisturb == STAND_REPLACING_FIRE)
                fPotentialShortSR++;
 
             //mixed serverity fire in this project.
-            if ( dstrb == LOW_SEVERITY_FIRE ) // || ( dstrb == -LOW_SEVERITY_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
+            if (dstrb == LOW_SEVERITY_FIRE) // || ( dstrb == -LOW_SEVERITY_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
                fShortMX++;
 
             //mixed serverity fire in this project.
-            if ( potentialDisturb == LOW_SEVERITY_FIRE )
+            if (potentialDisturb == LOW_SEVERITY_FIRE)
                fPotentialShortMX++;
 
             }
@@ -3273,7 +3367,7 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
             pFLong = 1;
 
          // vars for old IDU entries
-         
+
          UpdateIDU(pContext, idu, m_colFire500, f500m, SET_DATA);
          UpdateIDU(pContext, idu, m_colFire1000, fShort, SET_DATA);
          UpdateIDU(pContext, idu, m_colSRFire1000, fShortSR, SET_DATA);
@@ -3285,7 +3379,7 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
          UpdateIDU(pContext, idu, m_colPotentialMXFire1000, fPotentialShortMX, SET_DATA);
          UpdateIDU(pContext, idu, m_colFire2000, fMedium, SET_DATA);
          UpdateIDU(pContext, idu, m_colFire10000, fLong, SET_DATA);
-         UpdateIDU(pContext, idu, m_colPrescribedFire10000, fPSFLong, SET_DATA);  
+         UpdateIDU(pContext, idu, m_colPrescribedFire10000, fPSFLong, SET_DATA);
          UpdateIDU(pContext, idu, m_colPrescribedFire2000, pFLong, SET_DATA);
          }
       }
@@ -3303,30 +3397,30 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext *pContext)
 //      plan area score (based on query basal area (plan score) or query area (Fire))
 //  2) after allocations are made (COCNHPost2), update the plan area fraction treated
 
-bool COCNHProcess::ScoreAllocationAreas(EnvContext *pContext)
+bool COCNHProcess::ScoreAllocationAreas(EnvContext* pContext)
    {
-   int paCount = (int)m_planAreaArray.GetSize();
-   // reset plan area info
-   for (int i = 0; i < paCount; i++)
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaArray[i];
-      pInfo->area = 0;
-      pInfo->score = 0;
-      }
+   //int paCount = (int)m_planAreaArray.GetSize();
+   //// reset plan area info
+   //for (int i = 0; i < paCount; i++)
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaArray[i];
+   //   pInfo->area = 0;
+   //   pInfo->score = 0;
+   //   }
 
    // basic idea - iterate through 
    // iterate through idu shapefile
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    //int colPlanArea = pLayer->GetFieldCol("ALLOC_PLAN");
-   if ( m_colPlanArea < 0 )
-      {
-      ASSERT(0);
-      return true;
-      }
+   //if ( m_colPlanArea < 0 )
+   //   {
+   //   ASSERT(0);
+   //   return true;
+   //   }
 
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
+   //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   //   {
       // rank planning areas based on basal area 
       // planning area IDs are in "ALLOC_PLAN"
 
@@ -3334,501 +3428,501 @@ bool COCNHProcess::ScoreAllocationAreas(EnvContext *pContext)
       // rank the scores and populate the top three planning area "PLAN_SCORE" with 
       // 1=top, 2=second, 3=third,...N=Nth all others -1.
 
-      int planArea = -1;
-      pLayer->GetData(idu, m_colPlanArea, planArea);
-
-      // only count areas inside a plan area
-      if ( planArea > 0 )
-         {
-         // is there already plan area info defined for this plan area?
-         PLAN_AREA_INFO *pInfo = NULL;
-         BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
-         if ( ! found )
-            {
-            Report::ErrorMsg( "Error finding plan area ID");
-            continue;
-            }
-
-         ASSERT( pInfo != NULL );
-         if ( m_pPAQuery != NULL )
-            {
-            bool pass = false;
-            m_pPAQuery->Run( idu, pass );
-
-            if ( pass )
-               {
-               float area;
-               pLayer->GetData(idu, m_colArea, area);
-
-               float basalArea = 0;
-               pLayer->GetData(idu, m_colBasalArea, basalArea);
-
-               if ( area > 0 && basalArea > 0)
-                  {
-                  pInfo->score += basalArea * area;
-                  pInfo->area += area;
-                  }
-               }  // end of: if ( pass query )
-            }
-         }  // end of: if ( in plan area )
-      }  // end of: for each IDU
+      //int planArea = -1;
+      //pLayer->GetData(idu, m_colPlanArea, planArea);
+      //
+      //// only count areas inside a plan area
+      //if ( planArea > 0 )
+      //   {
+      //   // is there already plan area info defined for this plan area?
+      //   PLAN_AREA_INFO *pInfo = NULL;
+      //   BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
+      //   if ( ! found )
+      //      {
+      //      Report::ErrorMsg( "Error finding plan area ID");
+      //      continue;
+      //      }
+      //
+      //   ASSERT( pInfo != NULL );
+      //   if ( m_pPAQuery != NULL )
+      //      {
+      //      bool pass = false;
+      //      m_pPAQuery->Run( idu, pass );
+      //
+      //      if ( pass )
+      //         {
+      //         float area;
+      //         pLayer->GetData(idu, m_colArea, area);
+      //
+      //         float basalArea = 0;
+      //         pLayer->GetData(idu, m_colBasalArea, basalArea);
+      //
+      //         if ( area > 0 && basalArea > 0)
+      //            {
+      //            pInfo->score += basalArea * area;
+      //            pInfo->area += area;
+      //            }
+      //         }  // end of: if ( pass query )
+      //      }
+      //   }  // end of: if ( in plan area )
+      //}  // end of: for each IDU
 
    // plan info gathered, scale and sort.  We don't want a plan that:
    // has been used in the recent past (defined by 'm_minPlanAreaReuseTime' (years))
    // Note that a plan area is considered "used" if more than specified fraction ('m_minPlanAreaFrac')
    // of the plan area has been used (treated) in the recent past (defined by m_minPlanAreaReuseTime)
 
-   for (int i = 0; i < paCount; i++)
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaArray[i];
-      pInfo->score /= pInfo->area;   // area-weighted avg basal area
-
-      // have we used this one recently (meaning we've exceeded the area threshold recently?)
-      // if so, set the score to a negative value
-      if ((pContext->yearOfRun - pInfo->lastUsed) <= m_minPlanAreaReuseTime)
-         pInfo->score = -pInfo->score;                 // consideration
-      
-      // if the cumulative area fraction exceed the threshold, then 
-      // exclude this one from further consideration for a period of time
-      else if ( pInfo->areaFracUsed >= m_minPlanAreaFrac )  // this one should be removed from
-         {
-         pInfo->score = -pInfo->score;                 // consideration
-         pInfo->lastUsed = pContext->yearOfRun;
-         }
-      }
-
-   // sort scores
-   qsort(m_planAreaArray.GetData(), paCount, sizeof(INT_PTR), ComparePlanArea);
-   
-   // reset indexes
-   for ( int i=0; i < paCount; i++ )
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaArray[ i ];
-      pInfo->index = i;
-      
-      //if ( i < 10 )
-      //   {
-      //   CString msg;
-      //   msg.Format( "PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
-      //     pInfo->id, i, pInfo->areaFracUsed, pInfo->lastUsed, pInfo->score );
-      //   Report::Log( msg );
-      //   }
-      }
-
-   // put rank into IDU if in top plan areas
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      int planArea = -1;
-      pLayer->GetData(idu, m_colPlanArea, planArea);
-
-      if ( planArea > 0 )
-         {
-         // populate planAreaScore col with ranking of the plan area
-         // note that the array is sorted at this point, best=0, 2nd=1, etc
-         PLAN_AREA_INFO *pInfo = NULL;
-         BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
-         if ( ! found )
-            {
-            Report::ErrorMsg( "Error finding plan area ID");
-            continue;
-            }
-
-         int rank = ( pInfo->score > 0 ) ? pInfo->index+1 : -1;
-         UpdateIDU(pContext, idu, m_colPlanAreaScore, rank , ADD_DELTA);
-         }  
-      else
-         {
-         UpdateIDU(pContext, idu, m_colPlanAreaScore, -99, ADD_DELTA);  // no plan
-         }
-      }  // end of: for each IDU
+   //for (int i = 0; i < paCount; i++)
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaArray[i];
+   //   pInfo->score /= pInfo->area;   // area-weighted avg basal area
+   //
+   //   // have we used this one recently (meaning we've exceeded the area threshold recently?)
+   //   // if so, set the score to a negative value
+   //   if ((pContext->yearOfRun - pInfo->lastUsed) <= m_minPlanAreaReuseTime)
+   //      pInfo->score = -pInfo->score;                 // consideration
+   //   
+   //   // if the cumulative area fraction exceed the threshold, then 
+   //   // exclude this one from further consideration for a period of time
+   //   else if ( pInfo->areaFracUsed >= m_minPlanAreaFrac )  // this one should be removed from
+   //      {
+   //      pInfo->score = -pInfo->score;                 // consideration
+   //      pInfo->lastUsed = pContext->yearOfRun;
+   //      }
+   //   }
+   //
+   //// sort scores
+   //qsort(m_planAreaArray.GetData(), paCount, sizeof(INT_PTR), ComparePlanArea);
+   //
+   //// reset indexes
+   //for ( int i=0; i < paCount; i++ )
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaArray[ i ];
+   //   pInfo->index = i;
+   //   
+   //   //if ( i < 10 )
+   //   //   {
+   //   //   CString msg;
+   //   //   msg.Format( "PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
+   //   //     pInfo->id, i, pInfo->areaFracUsed, pInfo->lastUsed, pInfo->score );
+   //   //   Report::Log( msg );
+   //   //   }
+   //   }
+   //
+   //// put rank into IDU if in top plan areas
+   //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   //   {
+   //   int planArea = -1;
+   //   pLayer->GetData(idu, m_colPlanArea, planArea);
+   //
+   //   if ( planArea > 0 )
+   //      {
+   //      // populate planAreaScore col with ranking of the plan area
+   //      // note that the array is sorted at this point, best=0, 2nd=1, etc
+   //      PLAN_AREA_INFO *pInfo = NULL;
+   //      BOOL found = m_planAreaMap.Lookup(planArea, pInfo);
+   //      if ( ! found )
+   //         {
+   //         Report::ErrorMsg( "Error finding plan area ID");
+   //         continue;
+   //         }
+   //
+   //      int rank = ( pInfo->score > 0 ) ? pInfo->index+1 : -1;
+   //      UpdateIDU(pContext, idu, m_colPlanAreaScore, rank , ADD_DELTA);
+   //      }  
+   //   else
+   //      {
+   //      UpdateIDU(pContext, idu, m_colPlanAreaScore, -99, ADD_DELTA);  // no plan
+   //      }
+   //   }  // end of: for each IDU
 
    return true;
    }
 
 
-int ComparePlanArea(const void *arg0, const void *arg1)
-   {
-   PLAN_AREA_INFO **pInfo0 = (PLAN_AREA_INFO**)arg0;
-   PLAN_AREA_INFO **pInfo1 = (PLAN_AREA_INFO**)arg1;
+//int ComparePlanArea(const void *arg0, const void *arg1)
+//   {
+//   PLAN_AREA_INFO **pInfo0 = (PLAN_AREA_INFO**)arg0;
+//   PLAN_AREA_INFO **pInfo1 = (PLAN_AREA_INFO**)arg1;
+//
+//   return (((*pInfo1)->score - (*pInfo0)->score) > 0) ? 1 : -1;
+//   }
 
-   return (((*pInfo1)->score - (*pInfo0)->score) > 0) ? 1 : -1;
-   }
 
-
-bool COCNHProcess::ScoreAllocationAreasFire(EnvContext *pContext)
+bool COCNHProcess::ScoreAllocationAreasFire(EnvContext* pContext)
    {
    // reset plan area info
-   int pafCount = (int)m_planAreaFireArray.GetSize();
-
-   for (int i = 0; i < pafCount; i++)
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaFireArray[i];
-      pInfo->area = 0;
-      pInfo->score = 0;
-      }
-
-   // basic idea - iterate through 
-   // iterate through idu shapefile
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
-
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      // planning areas are in "ALLOC_PLAN"
-      // for each planning area, calculate area that satisfy the specified query
-      // rank the scores and populate the top three planning area "PS_FIRE" with 
-      // 1=top, 2=second, 3=third,...N=Nth all others -1.
-
-      int planArea = -1;
-      pLayer->GetData(idu, m_colPlanArea, planArea);
-
-      // only count areas inside a plan area
-      if ( planArea > 0 )
-         {
-         // is there already plan area info defined for this plan area?
-         PLAN_AREA_INFO *pInfo = NULL;
-         BOOL found = m_planAreaFireMap.Lookup(planArea, pInfo);
-         if ( ! found )    // none found, so create one
-            {
-            Report::ErrorMsg( "Error finding plan area ID");
-            continue;
-            }
-
-         ASSERT( pInfo != NULL );
-         if ( m_pPAFQuery != NULL )
-            {
-            bool pass = false;
-            m_pPAFQuery->Run( idu, pass );
-
-            if ( pass )
-               {
-               float area;
-               pLayer->GetData(idu, m_colArea, area);
-
-               pInfo->score += area;
-               pInfo->area += area;
-               }
-            }
-         }
-      }  // end of: for each IDU
-
-   // plan info gathered, scale and sort.  We don't want a plan that:
-   // has been used in the recent past (defined by 'm_minPlanAreaReuseTime' (years))
-   // Note that a plan area is considered "used" if more than specified fraction ('m_minPlanAreaFrac')
-   // of the plan area has been used (treated) in the recent past (defined by m_minPlanAreaReuseTime)
-
-   for (int i = 0; i < pafCount; i++)
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaFireArray[i];
-      //pInfo->score /= pInfo->area;   // area-weighted avg basal area - No need to normailize
-
-      // have we used this one recently (meaning we've exceeded the area threshold recently?)
-      // if so, set the score to a negative value
-      if ((pContext->yearOfRun - pInfo->lastUsed) <= m_minPlanAreaFireReuseTime)
-         pInfo->score = -pInfo->score;                 // consideration
-      
-      // if the cumulative area fraction exceed the threshold, then 
-      // exclude this one from further consideration for a period of time
-      else if ( pInfo->areaFracUsed >= m_minPlanAreaFireFrac )  // this one should be removed from
-         {
-         pInfo->score = -pInfo->score;                 // consideration
-         pInfo->lastUsed = pContext->yearOfRun;
-         }
-      }
-
-   qsort(m_planAreaFireArray.GetData(), pafCount, sizeof(INT_PTR), ComparePlanArea);
-
-   // reset indexes
-   for ( int i=0; i < pafCount; i++ )
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaFireArray[ i ];
-      pInfo->index = i;
-      
-      if ( i < 10 )
-         {
-         CString msg;
-         msg.Format( "PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
-           pInfo->id, i, pInfo->areaFracUsed, pInfo->lastUsed, pInfo->score );
-         Report::Log( msg );
-         }
-      }
-
-   // put rank into IDU if in top plan areas
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      int planArea = -1;
-      pLayer->GetData(idu, m_colPlanArea, planArea);
-
-      if ( planArea > 0 )
-         {
-         // populate planAreaScore col with ranking of the plan area
-         // note that the array is sorted at this point, best=0, 2nd=1, etc
-         PLAN_AREA_INFO *pInfo = NULL;
-         BOOL found = m_planAreaFireMap.Lookup(planArea, pInfo);
-         if ( ! found )
-            {
-            Report::ErrorMsg( "Error finding plan area ID");
-            continue;
-            }
-
-         int rank = ( pInfo->score > 0 ) ? pInfo->index+1 : -1;
-         UpdateIDU(pContext, idu, m_colPlanAreaScoreFire, rank , ADD_DELTA);
-         }  
-      else
-         UpdateIDU(pContext, idu, m_colPlanAreaScoreFire, -99, ADD_DELTA);  // no plan
-      }  // end of: for each IDU
+   //int pafCount = (int)m_planAreaFireArray.GetSize();
+   //
+   //for (int i = 0; i < pafCount; i++)
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaFireArray[i];
+   //   pInfo->area = 0;
+   //   pInfo->score = 0;
+   //   }
+   //
+   //// basic idea - iterate through 
+   //// iterate through idu shapefile
+   //MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   //
+   //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   //   {
+   //   // planning areas are in "ALLOC_PLAN"
+   //   // for each planning area, calculate area that satisfy the specified query
+   //   // rank the scores and populate the top three planning area "PS_FIRE" with 
+   //   // 1=top, 2=second, 3=third,...N=Nth all others -1.
+   //
+   //   int planArea = -1;
+   //   pLayer->GetData(idu, m_colPlanArea, planArea);
+   //
+   //   // only count areas inside a plan area
+   //   if ( planArea > 0 )
+   //      {
+   //      // is there already plan area info defined for this plan area?
+   //      PLAN_AREA_INFO *pInfo = NULL;
+   //      BOOL found = m_planAreaFireMap.Lookup(planArea, pInfo);
+   //      if ( ! found )    // none found, so create one
+   //         {
+   //         Report::ErrorMsg( "Error finding plan area ID");
+   //         continue;
+   //         }
+   //
+   //      ASSERT( pInfo != NULL );
+   //      if ( m_pPAFQuery != NULL )
+   //         {
+   //         bool pass = false;
+   //         m_pPAFQuery->Run( idu, pass );
+   //
+   //         if ( pass )
+   //            {
+   //            float area;
+   //            pLayer->GetData(idu, m_colArea, area);
+   //
+   //            pInfo->score += area;
+   //            pInfo->area += area;
+   //            }
+   //         }
+   //      }
+   //   }  // end of: for each IDU
+   //
+   //// plan info gathered, scale and sort.  We don't want a plan that:
+   //// has been used in the recent past (defined by 'm_minPlanAreaReuseTime' (years))
+   //// Note that a plan area is considered "used" if more than specified fraction ('m_minPlanAreaFrac')
+   //// of the plan area has been used (treated) in the recent past (defined by m_minPlanAreaReuseTime)
+   //
+   //for (int i = 0; i < pafCount; i++)
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaFireArray[i];
+   //   //pInfo->score /= pInfo->area;   // area-weighted avg basal area - No need to normailize
+   //
+   //   // have we used this one recently (meaning we've exceeded the area threshold recently?)
+   //   // if so, set the score to a negative value
+   //   if ((pContext->yearOfRun - pInfo->lastUsed) <= m_minPlanAreaFireReuseTime)
+   //      pInfo->score = -pInfo->score;                 // consideration
+   //   
+   //   // if the cumulative area fraction exceed the threshold, then 
+   //   // exclude this one from further consideration for a period of time
+   //   else if ( pInfo->areaFracUsed >= m_minPlanAreaFireFrac )  // this one should be removed from
+   //      {
+   //      pInfo->score = -pInfo->score;                 // consideration
+   //      pInfo->lastUsed = pContext->yearOfRun;
+   //      }
+   //   }
+   //
+   //qsort(m_planAreaFireArray.GetData(), pafCount, sizeof(INT_PTR), ComparePlanArea);
+   //
+   //// reset indexes
+   //for ( int i=0; i < pafCount; i++ )
+   //   {
+   //   PLAN_AREA_INFO *pInfo = m_planAreaFireArray[ i ];
+   //   pInfo->index = i;
+   //   
+   //   if ( i < 10 )
+   //      {
+   //      CString msg;
+   //      msg.Format( "PlanInfo: ID=%i, Rank=%i, AreaFr=%5.3f, lastUsed=%i, score=%f",
+   //        pInfo->id, i, pInfo->areaFracUsed, pInfo->lastUsed, pInfo->score );
+   //      Report::Log( msg );
+   //      }
+   //   }
+   //
+   //// put rank into IDU if in top plan areas
+   //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   //   {
+   //   int planArea = -1;
+   //   pLayer->GetData(idu, m_colPlanArea, planArea);
+   //
+   //   if ( planArea > 0 )
+   //      {
+   //      // populate planAreaScore col with ranking of the plan area
+   //      // note that the array is sorted at this point, best=0, 2nd=1, etc
+   //      PLAN_AREA_INFO *pInfo = NULL;
+   //      BOOL found = m_planAreaFireMap.Lookup(planArea, pInfo);
+   //      if ( ! found )
+   //         {
+   //         Report::ErrorMsg( "Error finding plan area ID");
+   //         continue;
+   //         }
+   //
+   //      int rank = ( pInfo->score > 0 ) ? pInfo->index+1 : -1;
+   //      UpdateIDU(pContext, idu, m_colPlanAreaScoreFire, rank , ADD_DELTA);
+   //      }  
+   //   else
+   //      UpdateIDU(pContext, idu, m_colPlanAreaScoreFire, -99, ADD_DELTA);  // no plan
+   //   }  // end of: for each IDU
 
    return true;
    }
 
-bool COCNHProcess::CalculateFirewise(EnvContext *pContext)
+bool COCNHProcess::CalculateFirewise(EnvContext* pContext)
    {
-  
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
-   
-   //temporarily constant for all IDUs (pers Comm Alan Ager via Erik White
-   float burnProb = 0.002f;
-   
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      int nDU = -1;
-      int wui = -1;
-      int timeSinceFireWise;
-      bool tsfwFlag = false;
 
-      timeSinceFireWise = m_timeSinceFirewise[idu];
-
-      pLayer->GetData( idu, m_colNDU, nDU);
-      pLayer->GetData( idu, m_colWUI, wui );
-      
-      // home owners only
-      if ( nDU > 0 && wui > 0 && timeSinceFireWise > 4 )
-         {
-         
-         int fire5_500m = 0; // 1 if wildfire occured with 500m within past 5 years, else 0
-         int fire5_10km = 0; // 1 if wildfire occured with 10km within past 5 years, else 0  
-         int prescribedFire5_10km = 0;// 1 if prescribed fire occured with 10km within past 5 years, else 0
-         int prescribedFire5_2km = 0;// 1 if prescribed fire occured with 2km within past 5 years, else 0
-         float treePerHectare500m = 0.0f; // trees per hectare within 500m
-         float iduAreaM2 = 0.0f; 
-         
-         pLayer->GetData( idu, m_colArea,  iduAreaM2);
-         
-         float iduAreaAcres = iduAreaM2 * ACRE_PER_M2;
-         
-         // Meant to be conditional flame lenght, for now potential flame length averaged within 1km buffer
-         //float cfl = 0.0f; 
-         float avePotentialFlameLen1000ft = 0.0f;
-
-         pLayer->GetData( idu, m_colFire500, fire5_500m );
-         pLayer->GetData( idu, m_colFire10000, fire5_10km );
-         pLayer->GetData( idu, m_colPrescribedFire10000, prescribedFire5_10km );
-         pLayer->GetData( idu, m_colPrescribedFire2000, prescribedFire5_2km );
-         pLayer->GetData( idu, m_colAvePotentialFlameLength1000, avePotentialFlameLen1000ft );
-         pLayer->GetData( idu, m_colTreesPerHect500, treePerHectare500m );
-         
-         float avePotentialFlameLen1000m = avePotentialFlameLen1000ft * M_PER_FT;
-
-         float y = 0.735f + ( 209.235f * burnProb ) + ( 1.747f * fire5_10km ) + ( 1.322f * prescribedFire5_10km );
-         float z = -5.556f + ( 0.390f * avePotentialFlameLen1000m ) + ( 0.006f * treePerHectare500m ) + ( 1.775f * fire5_10km ) + ( 1.775f * prescribedFire5_2km );
-
-         float chanceWildfire = exp(y) / ( 1 + exp(y) );
-
-         float chanceDamage = exp(z) / ( 1 + exp(z) );
-
-         float x = 1.106f + ( 1.687f * fire5_500m ) + ( 2.154f * chanceWildfire * chanceDamage ); 
-
-         float probabilityFirewise = exp(x) / ( 1 + exp(x) );
-
-         float randNum = (float) m_rn.RandValue( 0., 1. );  //randum number between 0 and 1, uniform distribution
-
-         if ( randNum < probabilityFirewise )
-            {
-            UpdateIDU( pContext, idu, m_colFireWise, 1, ADD_DELTA );
-            m_timeSinceFirewise[idu] = 1;
-            tsfwFlag = true;
-            }
-         else
-            {
-            UpdateIDU(pContext, idu, m_colFireWise, 0, ADD_DELTA);
-            }
-         }
-
-         if ( tsfwFlag == false )
-            m_timeSinceFirewise[idu] = timeSinceFireWise++;
-
-      }  // for each IDU
-
-   ::EnvApplyDeltaArray(pContext->pEnvModel);
+   //MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   //
+   ////temporarily constant for all IDUs (pers Comm Alan Ager via Erik White
+   //float burnProb = 0.002f;
+   //
+   //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+   //   {
+   //   int nDU = -1;
+   //   int wui = -1;
+   //   int timeSinceFireWise;
+   //   bool tsfwFlag = false;
+   //
+   //   timeSinceFireWise = m_timeSinceFirewise[idu];
+   //
+   //   pLayer->GetData( idu, m_colNDU, nDU);
+   //   pLayer->GetData( idu, m_colWUI, wui );
+   //   
+   //   // home owners only
+   //   if ( nDU > 0 && wui > 0 && timeSinceFireWise > 4 )
+   //      {
+   //      
+   //      int fire5_500m = 0; // 1 if wildfire occured with 500m within past 5 years, else 0
+   //      int fire5_10km = 0; // 1 if wildfire occured with 10km within past 5 years, else 0  
+   //      int prescribedFire5_10km = 0;// 1 if prescribed fire occured with 10km within past 5 years, else 0
+   //      int prescribedFire5_2km = 0;// 1 if prescribed fire occured with 2km within past 5 years, else 0
+   //      float treePerHectare500m = 0.0f; // trees per hectare within 500m
+   //      float iduAreaM2 = 0.0f; 
+   //      
+   //      pLayer->GetData( idu, m_colArea,  iduAreaM2);
+   //      
+   //      float iduAreaAcres = iduAreaM2 * ACRE_PER_M2;
+   //      
+   //      // Meant to be conditional flame lenght, for now potential flame length averaged within 1km buffer
+   //      //float cfl = 0.0f; 
+   //      float avePotentialFlameLen1000ft = 0.0f;
+   //
+   //      pLayer->GetData( idu, m_colFire500, fire5_500m );
+   //      pLayer->GetData( idu, m_colFire10000, fire5_10km );
+   //      pLayer->GetData( idu, m_colPrescribedFire10000, prescribedFire5_10km );
+   //      pLayer->GetData( idu, m_colPrescribedFire2000, prescribedFire5_2km );
+   //      pLayer->GetData( idu, m_colAvePotentialFlameLength1000, avePotentialFlameLen1000ft );
+   //      pLayer->GetData( idu, m_colTreesPerHect500, treePerHectare500m );
+   //      
+   //      float avePotentialFlameLen1000m = avePotentialFlameLen1000ft * M_PER_FT;
+   //
+   //      float y = 0.735f + ( 209.235f * burnProb ) + ( 1.747f * fire5_10km ) + ( 1.322f * prescribedFire5_10km );
+   //      float z = -5.556f + ( 0.390f * avePotentialFlameLen1000m ) + ( 0.006f * treePerHectare500m ) + ( 1.775f * fire5_10km ) + ( 1.775f * prescribedFire5_2km );
+   //
+   //      float chanceWildfire = exp(y) / ( 1 + exp(y) );
+   //
+   //      float chanceDamage = exp(z) / ( 1 + exp(z) );
+   //
+   //      float x = 1.106f + ( 1.687f * fire5_500m ) + ( 2.154f * chanceWildfire * chanceDamage ); 
+   //
+   //      float probabilityFirewise = exp(x) / ( 1 + exp(x) );
+   //
+   //      float randNum = (float) m_rn.RandValue( 0., 1. );  //randum number between 0 and 1, uniform distribution
+   //
+   //      if ( randNum < probabilityFirewise )
+   //         {
+   //         UpdateIDU( pContext, idu, m_colFireWise, 1, ADD_DELTA );
+   //         m_timeSinceFirewise[idu] = 1;
+   //         tsfwFlag = true;
+   //         }
+   //      else
+   //         {
+   //         UpdateIDU(pContext, idu, m_colFireWise, 0, ADD_DELTA);
+   //         }
+   //      }
+   //
+   //      if ( tsfwFlag == false )
+   //         m_timeSinceFirewise[idu] = timeSinceFireWise++;
+   //
+   //   }  // for each IDU
+   //
+   //::EnvApplyDeltaArray(pContext->pEnvModel);
    return true;
    }
 
 
 // update PLAN_AREA_INFO's areaArray and areaFracUsed
-int COCNHProcessPost2::UpdatePlanAreas( EnvContext *pContext )
-   {
-   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
-
-   int paCount = (int) m_planAreaArray.GetSize();
-
-   float *areaArray = new float[ paCount ];
-   memset( areaArray, 0, paCount * sizeof( float ) );
-   
-   // for each IDU, look for harvests that occurred in this time step
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      int planArea = -1;
-      pLayer->GetData( idu, m_colPlanArea, planArea );
-
-      // are we in a plan area?
-      if ( planArea > 0 )
-         {
-         // yes, so see if a treatment happened
-         int disturb = -1;
-         pLayer->GetData( idu, m_colDisturb, disturb );
-
-         if (disturb == THIN_FROM_BELOW || disturb == THIN_FROM_BELOW_2 || disturb == PARTIAL_HARVEST || disturb == HARVEST )
-            {
-            PLAN_AREA_INFO *pInfo = NULL;
-            BOOL found = m_planAreaMap.Lookup( planArea, pInfo );
-
-            ASSERT( found );
-            int index = pInfo->index;
-            
-            float area = 0;
-            pLayer->GetData( idu, m_colArea, area );
-            areaArray[ index ] += area;
-            }
-         }
-      }
-
-   // areas calculated for each plan area, add to queue
-   for ( int i=0; i < paCount; i++ )
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaArray[ i ];
-
-      int size = (int) pInfo->areaArray.GetSize();
-
-      for ( int j = size-1; j > 0; j-- )
-         pInfo->areaArray[ j ] = pInfo->areaArray[ j-1 ];
-
-      pInfo->areaArray[ 0 ] = areaArray [ i ];
-
-      // get total area in queue
-      pInfo->areaFracUsed = 0;
-      for ( int j=0; j < size; j++ )
-         pInfo->areaFracUsed += pInfo->areaArray[ j ];
-
-      pInfo->areaFracUsed /= pInfo->area;
-      }
-
-   delete [] areaArray;
-   
-   // update maps
-   for ( MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      int planArea = -1;
-      pLayer->GetData( idu, m_colPlanArea, planArea );
-
-      // are we in a plan area?
-      if ( planArea > 0 )
-         {
-         PLAN_AREA_INFO *pInfo = NULL;
-         BOOL found = m_planAreaMap.Lookup( planArea, pInfo );
-
-         if ( pInfo->areaFracUsed > 0 )
-            UpdateIDU(pContext, idu, m_colPlanAreaFr, pInfo->areaFracUsed, ADD_DELTA);
-         else
-            UpdateIDU(pContext, idu, m_colPlanAreaFr, -99, ADD_DELTA);
-         }
-      }
-
-   //-------------------------------------------------------------------
-   // repeat for fire
-   //-------------------------------------------------------------------
-   int pafCount = (int) m_planAreaFireArray.GetSize();
-
-   areaArray = new float[ pafCount ];
-   memset( areaArray, 0, pafCount * sizeof( float ) );
-   
-   // for each IDU, look for harvests that occurred in this time step
-   for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      int planArea = -1;
-      pLayer->GetData( idu, m_colPlanArea, planArea );
-
-      // are we in a plan area?
-      if ( planArea > 0 )
-         {
-         // yes, so see if a treatment happened
-         int disturb = -1;
-         pLayer->GetData( idu, m_colDisturb, disturb );
-
-        if ( disturb == PRESCRIBED_SURFACE_FIRE_2 )  // a federal prescried fire
-            {
-            PLAN_AREA_INFO *pInfo = NULL;
-            BOOL found = m_planAreaFireMap.Lookup( planArea, pInfo );
-
-            ASSERT( found );
-            int index = pInfo->index;
-            
-            float area = 0;
-            pLayer->GetData( idu, m_colArea, area );
-            areaArray[ index ] += area;
-            }
-         }
-      }
-
-   // areas calculated for each plan area, add to queue
-   for ( int i=0; i < pafCount; i++ )
-      {
-      PLAN_AREA_INFO *pInfo = m_planAreaFireArray[ i ];
-
-      int size = (int) pInfo->areaArray.GetSize();
-
-      for ( int j = size-1; j > 0; j-- )
-         pInfo->areaArray[ j ] = pInfo->areaArray[ j-1 ];
-
-      pInfo->areaArray[ 0 ] = areaArray [ i ];
-
-      // get total area in queue
-      pInfo->areaFracUsed = 0;
-      for ( int j=0; j < size; j++ )
-         pInfo->areaFracUsed += pInfo->areaArray[ j ];
-
-      pInfo->areaFracUsed /= pInfo->area;
-      }
-
-   delete [] areaArray;
-
-   
-   // update maps
-   for ( MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      {
-      int planArea = -1;
-      pLayer->GetData( idu, m_colPlanArea, planArea );
-
-      // are we in a plan area?
-      if ( planArea > 0 )
-         {
-         PLAN_AREA_INFO *pInfo = NULL;
-         BOOL found = m_planAreaFireMap.Lookup( planArea, pInfo );
-
-         if ( pInfo->areaFracUsed > 0 )
-            UpdateIDU(pContext, idu, m_colPlanAreaFireFr, pInfo->areaFracUsed, ADD_DELTA);
-         else
-            UpdateIDU(pContext, idu, m_colPlanAreaFireFr, -99, ADD_DELTA);
-         }
-      }
-
-   return 1;
-   }
+//int COCNHProcessPost2::UpdatePlanAreas( EnvContext *pContext )
+//   {
+//   //MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+//   //
+//   //int paCount = (int) m_planAreaArray.GetSize();
+//   //
+//   //float *areaArray = new float[ paCount ];
+//   //memset( areaArray, 0, paCount * sizeof( float ) );
+//   //
+//   //// for each IDU, look for harvests that occurred in this time step
+//   //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+//   //   {
+//   //   int planArea = -1;
+//   //   pLayer->GetData( idu, m_colPlanArea, planArea );
+//   //
+//   //   // are we in a plan area?
+//   //   if ( planArea > 0 )
+//   //      {
+//   //      // yes, so see if a treatment happened
+//   //      int disturb = -1;
+//   //      pLayer->GetData( idu, m_colDisturb, disturb );
+//   //
+//   //      if (disturb == THIN_FROM_BELOW || disturb == THIN_FROM_BELOW_2 || disturb == PARTIAL_HARVEST || disturb == HARVEST )
+//   //         {
+//   //         PLAN_AREA_INFO *pInfo = NULL;
+//   //         BOOL found = m_planAreaMap.Lookup( planArea, pInfo );
+//   //
+//   //         ASSERT( found );
+//   //         int index = pInfo->index;
+//   //         
+//   //         float area = 0;
+//   //         pLayer->GetData( idu, m_colArea, area );
+//   //         areaArray[ index ] += area;
+//   //         }
+//   //      }
+//   //   }
+//   //
+//   //// areas calculated for each plan area, add to queue
+//   //for ( int i=0; i < paCount; i++ )
+//   //   {
+//   //   PLAN_AREA_INFO *pInfo = m_planAreaArray[ i ];
+//   //
+//   //   int size = (int) pInfo->areaArray.GetSize();
+//   //
+//   //   for ( int j = size-1; j > 0; j-- )
+//   //      pInfo->areaArray[ j ] = pInfo->areaArray[ j-1 ];
+//   //
+//   //   pInfo->areaArray[ 0 ] = areaArray [ i ];
+//   //
+//   //   // get total area in queue
+//   //   pInfo->areaFracUsed = 0;
+//   //   for ( int j=0; j < size; j++ )
+//   //      pInfo->areaFracUsed += pInfo->areaArray[ j ];
+//   //
+//   //   pInfo->areaFracUsed /= pInfo->area;
+//   //   }
+//   //
+//   //delete [] areaArray;
+//   //
+//   //// update maps
+//   //for ( MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+//   //   {
+//   //   int planArea = -1;
+//   //   pLayer->GetData( idu, m_colPlanArea, planArea );
+//   //
+//   //   // are we in a plan area?
+//   //   if ( planArea > 0 )
+//   //      {
+//   //      PLAN_AREA_INFO *pInfo = NULL;
+//   //      BOOL found = m_planAreaMap.Lookup( planArea, pInfo );
+//   //
+//   //      if ( pInfo->areaFracUsed > 0 )
+//   //         UpdateIDU(pContext, idu, m_colPlanAreaFr, pInfo->areaFracUsed, ADD_DELTA);
+//   //      else
+//   //         UpdateIDU(pContext, idu, m_colPlanAreaFr, -99, ADD_DELTA);
+//   //      }
+//   //   }
+//   //
+//   ////-------------------------------------------------------------------
+//   //// repeat for fire
+//   ////-------------------------------------------------------------------
+//   //int pafCount = (int) m_planAreaFireArray.GetSize();
+//   //
+//   //areaArray = new float[ pafCount ];
+//   //memset( areaArray, 0, pafCount * sizeof( float ) );
+//   //
+//   //// for each IDU, look for harvests that occurred in this time step
+//   //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+//   //   {
+//   //   int planArea = -1;
+//   //   pLayer->GetData( idu, m_colPlanArea, planArea );
+//   //
+//   //   // are we in a plan area?
+//   //   if ( planArea > 0 )
+//   //      {
+//   //      // yes, so see if a treatment happened
+//   //      int disturb = -1;
+//   //      pLayer->GetData( idu, m_colDisturb, disturb );
+//   //
+//   //     if ( disturb == PRESCRIBED_SURFACE_FIRE_2 )  // a federal prescried fire
+//   //         {
+//   //         PLAN_AREA_INFO *pInfo = NULL;
+//   //         BOOL found = m_planAreaFireMap.Lookup( planArea, pInfo );
+//   //
+//   //         ASSERT( found );
+//   //         int index = pInfo->index;
+//   //         
+//   //         float area = 0;
+//   //         pLayer->GetData( idu, m_colArea, area );
+//   //         areaArray[ index ] += area;
+//   //         }
+//   //      }
+//   //   }
+//   //
+//   //// areas calculated for each plan area, add to queue
+//   //for ( int i=0; i < pafCount; i++ )
+//   //   {
+//   //   PLAN_AREA_INFO *pInfo = m_planAreaFireArray[ i ];
+//   //
+//   //   int size = (int) pInfo->areaArray.GetSize();
+//   //
+//   //   for ( int j = size-1; j > 0; j-- )
+//   //      pInfo->areaArray[ j ] = pInfo->areaArray[ j-1 ];
+//   //
+//   //   pInfo->areaArray[ 0 ] = areaArray [ i ];
+//   //
+//   //   // get total area in queue
+//   //   pInfo->areaFracUsed = 0;
+//   //   for ( int j=0; j < size; j++ )
+//   //      pInfo->areaFracUsed += pInfo->areaArray[ j ];
+//   //
+//   //   pInfo->areaFracUsed /= pInfo->area;
+//   //   }
+//   //
+//   //delete [] areaArray;
+//   //
+//   //
+//   //// update maps
+//   //for ( MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+//   //   {
+//   //   int planArea = -1;
+//   //   pLayer->GetData( idu, m_colPlanArea, planArea );
+//   //
+//   //   // are we in a plan area?
+//   //   if ( planArea > 0 )
+//   //      {
+//   //      PLAN_AREA_INFO *pInfo = NULL;
+//   //      BOOL found = m_planAreaFireMap.Lookup( planArea, pInfo );
+//   //
+//   //      if ( pInfo->areaFracUsed > 0 )
+//   //         UpdateIDU(pContext, idu, m_colPlanAreaFireFr, pInfo->areaFracUsed, ADD_DELTA);
+//   //      else
+//   //         UpdateIDU(pContext, idu, m_colPlanAreaFireFr, -99, ADD_DELTA);
+//   //      }
+//   //   }
+//
+//   return 1;
+//   }
 
 
 static int calcFireEffectErrCount = 0;
 
-int COCNHProcessPre2::CalcFireEffect(EnvContext *pContext, bool useAddDelta)
+int COCNHProcessPre2::CalcFireEffect(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    //
   // pLayer->SetColData( m_colFireKill, VData(0), true);   // m3/ha
@@ -3840,9 +3934,9 @@ int COCNHProcessPre2::CalcFireEffect(EnvContext *pContext, bool useAddDelta)
       int disturb = 0;
       pLayer->GetData(idu, m_colDisturb, disturb);
 
-      if ( disturb == STAND_REPLACING_FIRE   // 23
-        || disturb ==  LOW_SEVERITY_FIRE     //21
-        || disturb == HIGH_SEVERITY_FIRE )   // 22
+      if (disturb == STAND_REPLACING_FIRE   // 23
+         || disturb == LOW_SEVERITY_FIRE     //21
+         || disturb == HIGH_SEVERITY_FIRE)   // 22
          {
          // we need to look at Previous VEGCLASS
          int priorVeg = 0;
@@ -3871,30 +3965,30 @@ int COCNHProcessPre2::CalcFireEffect(EnvContext *pContext, bool useAddDelta)
             float liveVolumeGe50 = 0;
             float liveVol = 0;
 
-            pLayer->GetData(idu, m_colLVolm3ha,            liveVolumeGe3);
-            pLayer->GetData(idu, m_colVPH_3_25,            liveVolume_3_25);
-            pLayer->GetData(idu, m_colLVol25_50,         liveVolume_25_50);
-            pLayer->GetData(idu, m_colLVolGe50,            liveVolumeGe50);
-         
+            pLayer->GetData(idu, m_colLVolm3ha, liveVolumeGe3);
+            pLayer->GetData(idu, m_colVPH_3_25, liveVolume_3_25);
+            pLayer->GetData(idu, m_colLVol25_50, liveVolume_25_50);
+            pLayer->GetData(idu, m_colLVolGe50, liveVolumeGe50);
+
             //liveVol = liveVolume_25_50  + liveVolumeGe50;
             liveVol = liveVolumeGe3 - liveVolume_3_25;
-            
+
             float priorLiveVol = m_priorLiveVolumeGe3 - m_priorLiveVolume_3_25;
-              
+
             float fireKillVol = priorLiveVol - liveVol;
 
-               if ( fireKillVol < 0.0f && calcFireEffectErrCount < 10 )
-                  {
-                  CString msg;
-                  msg.Format("CalcFireKill: Negative volume killed: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, priorLiveVol, liveVol, fireKillVol );
-                  Report::LogWarning(msg);
-   
-                  calcFireEffectErrCount++;
-                  }
+            if (fireKillVol < 0.0f && calcFireEffectErrCount < 10)
+               {
+               CString msg;
+               msg.Format("CalcFireKill: Negative volume killed: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, priorLiveVol, liveVol, fireKillVol);
+               Report::LogWarning(msg);
 
-               // column name: FIREKILL, replaced with PFSAWVOL that has a biomass decay function
-               //UpdateIDU(pContext, idu, m_colFireKill, fireKillVol, useAddDelta ? ADD_DELTA : SET_DATA );
-               
+               calcFireEffectErrCount++;
+               }
+
+            // column name: FIREKILL, replaced with PFSAWVOL that has a biomass decay function
+            //UpdateIDU(pContext, idu, m_colFireKill, fireKillVol, useAddDelta ? ADD_DELTA : SET_DATA );
+
             }  // end of: if ( priorVeg > 0 )
          }  // end of: if (disturb)
       }  // end of: for each IDU
@@ -3905,10 +3999,11 @@ int COCNHProcessPre2::CalcFireEffect(EnvContext *pContext, bool useAddDelta)
 
 static int calcHarvBiomassErrCount = 0;
 
-int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta)
+int COCNHProcessPost2::CalcHarvestBiomass(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
-   
+   // note that this calculates ACTUAL HARVEST, not all lands
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
+
    float totalHarvestCheck = 1.0f;
 
    // for each IDU, look for harvests that occurred in this time step
@@ -3924,62 +4019,60 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
 
       float totalTimberHarvVol = 0.0f;
       float timberHarvVol = 0.0f;
-      float iduAreaM2 = 0.0f;      
+      float iduAreaM2 = 0.0f;
 
       pLayer->GetData(idu, m_colArea, iduAreaM2);
       float iduAreaHa = iduAreaM2 * HA_PER_M2;
 
-      if (disturb == HARVEST                
+      if (disturb == HARVEST
          || disturb == THINNING
          || disturb == PARTIAL_HARVEST
          || disturb == SELECTION_HARVEST
          || disturb == SALVAGE_HARVEST
          || disturb == SALVAGE_HARVEST_2
          || disturb == THIN_FROM_BELOW
-         || disturb == THIN_FROM_BELOW_2   
+         || disturb == THIN_FROM_BELOW_2
          || disturb == PARTIAL_HARVEST_LIGHT
-         || disturb == PARTIAL_HARVEST_LIGHT_2 
-         || disturb == PARTIAL_HARVEST_HIGH   
-         || disturb == PARTIAL_HARVEST_HIGH_2) 
+         || disturb == PARTIAL_HARVEST_LIGHT_2
+         || disturb == PARTIAL_HARVEST_HIGH
+         || disturb == PARTIAL_HARVEST_HIGH_2)
          {
          // harvest - we need to look at Previous VEGCLASS
          int priorVeg = 0;
          pLayer->GetData(idu, m_colPriorVeg, priorVeg);
-       
-           // we are in a post-harvest state, with defined prior veg
-           //
-           // 1. Get prior veg class values
-           int region = 0;
-           pLayer->GetData(idu, m_colRegion, region);
 
-           int pvt = 0;
-           pLayer->GetData(idu, m_colPVT, pvt);
+         // we are in a post-harvest state, with defined prior veg
+         int region = 0;
+         pLayer->GetData(idu, m_colRegion, region);
 
-           int vegClass = 0;
-           pLayer->GetData(idu, m_colVegClass, vegClass);
+         int pvt = 0;
+         pLayer->GetData(idu, m_colPVT, pvt);
 
-           VEGKEY vegKey(vegClass, region, pvt);
-           int luRow = -1;
-           BOOL found = m_vegLookupTable.Lookup(vegKey.GetKey(), luRow);
+         int vegClass = 0;
+         pLayer->GetData(idu, m_colVegClass, vegClass);
 
-           float liveBiomass = 0;
-           float liveCarbon = 0;
-           float liveVolumeGe3 = 0;
-           float liveVolume_3_25 = 0;
-           float liveVolume_25_50 = 0;
-           float liveVolumeGe50 = 0;
+         VEGKEY vegKey(vegClass, region, pvt);
+         int luRow = -1;
+         BOOL found = m_vegLookupTable.Lookup(vegKey.GetKey(), luRow);
+
+         float liveBiomass = 0;
+         float liveCarbon = 0;
+         float liveVolumeGe3 = 0;
+         float liveVolume_3_25 = 0;
+         float liveVolume_25_50 = 0;
+         float liveVolumeGe50 = 0;
          int   owner = -1;
-      
-         pLayer->GetData(idu, m_colLBioMgha,   liveBiomass);
-         pLayer->GetData(idu, m_colLCMgha,   liveCarbon);   
-         pLayer->GetData(idu, m_colLVolm3ha,   liveVolumeGe3);
-         pLayer->GetData(idu, m_colVPH_3_25,   liveVolume_3_25);      
-         pLayer->GetData(idu, m_colLVol25_50,liveVolume_25_50);
-         pLayer->GetData(idu, m_colLVolGe50,   liveVolumeGe50);
-         pLayer->GetData(idu, m_colLVolGe50,   liveVolumeGe50);
-         pLayer->GetData(idu, m_colOwner,    owner);            
 
-         if ( disturb == SALVAGE_HARVEST || disturb == SALVAGE_HARVEST_2 )
+         pLayer->GetData(idu, m_colLBioMgha, liveBiomass);
+         pLayer->GetData(idu, m_colLCMgha, liveCarbon);
+         pLayer->GetData(idu, m_colLVolm3ha, liveVolumeGe3);
+         pLayer->GetData(idu, m_colVPH_3_25, liveVolume_3_25);
+         pLayer->GetData(idu, m_colLVol25_50, liveVolume_25_50);
+         pLayer->GetData(idu, m_colLVolGe50, liveVolumeGe50);
+         pLayer->GetData(idu, m_colLVolGe50, liveVolumeGe50);
+         pLayer->GetData(idu, m_colOwner, owner);
+
+         if (disturb == SALVAGE_HARVEST || disturb == SALVAGE_HARVEST_2)
             {
             float pfSawVol = 0.0f;
             float availableSawTimberVol52 = 0.0f;
@@ -3988,21 +4081,21 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
 
             pLayer->GetData(idu, m_colPFSawVol, pfSawVol); // m3/ha
             pLayer->GetData(idu, m_colAvailVolSH, availableSawTimberVol52);
-            pLayer->GetData(idu, m_colDVolm3ha,deadTotalVolume) ;// m3/ha            
+            pLayer->GetData(idu, m_colDVolm3ha, deadTotalVolume);// m3/ha            
             //pLayer->GetData(idu, m_colPFDeadBio, deadBiomass); // m3/ha
             //pLayer->GetData(idu, m_colPFDeadCarb, deadCarbon); // m3/ha
 
             salvageSawTimberHarvestVol = availableSawTimberVol52; // m3
-            
-            pfSawVol -= ( salvageSawTimberHarvestVol / iduAreaHa ); // m3/ha
-            
-            deadTotalVolume -= ( salvageSawTimberHarvestVol / iduAreaHa ); // m3/ha
+
+            pfSawVol -= (salvageSawTimberHarvestVol / iduAreaHa); // m3/ha
+
+            deadTotalVolume -= (salvageSawTimberHarvestVol / iduAreaHa); // m3/ha
             //deadCarbon -= ( salvageSawTimberHarvestVol * 0.5f / iduAreaHa );
-            
+
             float liveTotalVolume = m_priorLiveVolumeGe3IDUArray[idu];
-            
+
             float totalVolume = liveTotalVolume + deadTotalVolume;
-                           
+
             UpdateIDU(pContext, idu, m_colDVolm3ha, deadTotalVolume, useAddDelta ? ADD_DELTA : SET_DATA);
             UpdateIDU(pContext, idu, m_colPFSawHarvestVol, salvageSawTimberHarvestVol, useAddDelta ? ADD_DELTA : SET_DATA);
             UpdateIDU(pContext, idu, m_colTVolm3ha, totalVolume, useAddDelta ? ADD_DELTA : SET_DATA);
@@ -4021,35 +4114,35 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
             float availablePHH = 0.0f;
             float availableRH = 0.0f;
 
-            pLayer->GetData( idu, m_colAvailVolTFB, availableTFB ); // m3   DISTURB=55
-            pLayer->GetData( idu, m_colAvailVolPH, availablePH ); // m3   DISTURB=3
-            pLayer->GetData( idu, m_colAvailVolPHH, availablePHH ); // m3   DISTURB=57
-            pLayer->GetData( idu, m_colAvailVolRH, availableRH ); // m3   DISTURB=1
+            pLayer->GetData(idu, m_colAvailVolTFB, availableTFB); // m3   DISTURB=55
+            pLayer->GetData(idu, m_colAvailVolPH, availablePH); // m3   DISTURB=3
+            pLayer->GetData(idu, m_colAvailVolPHH, availablePHH); // m3   DISTURB=57
+            pLayer->GetData(idu, m_colAvailVolRH, availableRH); // m3   DISTURB=1
 
-            switch ( disturb )
+            switch (disturb)
                {
                // saw timber volume
-               case HARVEST:         
-                  sawTimberHarvVol =  availableRH;// m3   
-                  timberHarvVol = sawTimberHarvVol + ( m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable1 );// m3               
+               case HARVEST:
+                  sawTimberHarvVol = availableRH;// m3   
+                  timberHarvVol = sawTimberHarvVol + (m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable1);// m3               
                   break;
                case PARTIAL_HARVEST:
                   sawTimberHarvVol = availablePH;// m3
-                  timberHarvVol = sawTimberHarvVol + ( m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable3 );// m3
+                  timberHarvVol = sawTimberHarvVol + (m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable3);// m3
                   break;
                case THIN_FROM_BELOW:
                case THIN_FROM_BELOW_2:
                   sawTimberHarvVol = availableTFB;// m3
-                  timberHarvVol = sawTimberHarvVol + ( m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable55 );// m3
-                   break;
-               case PARTIAL_HARVEST_HIGH: 
+                  timberHarvVol = sawTimberHarvVol + (m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable55);// m3
+                  break;
+               case PARTIAL_HARVEST_HIGH:
                case PARTIAL_HARVEST_HIGH_2:
                   sawTimberHarvVol = availablePHH;// m3
-                  timberHarvVol = sawTimberHarvVol + ( m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable57 );// m3
+                  timberHarvVol = sawTimberHarvVol + (m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable57);// m3
                   break;
                }
-                                    
-            if ( timberHarvVol < 0.0f && disturb != 51 && calcHarvBiomassErrCount < 10 )
+
+            if (timberHarvVol < 0.0f && disturb != 51 && calcHarvBiomassErrCount < 10)
                {
                CString msg;
                msg.Format("CalcHarvestBiomass: Negative volume harvested: Region=%d  Pvt=%d  disturb=%i  PriorVegclass=%i  CurrentVegClass=%i  priorVol=%f  currentVol=%f  disturbVol=%f   \n", region, pvt, disturb, priorVeg, vegClass, m_priorLiveVolumeGe3, liveVolumeGe3, timberHarvVol);
@@ -4058,12 +4151,12 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
                calcHarvBiomassErrCount++;
                }
             }
-         
+
          float deadTotalVolume = 0.0f;
-         pLayer->GetData( idu, m_colDVolm3ha, deadTotalVolume);
-         
+         pLayer->GetData(idu, m_colDVolm3ha, deadTotalVolume);
+
          float liveTotalVolume = m_priorLiveVolumeGe3IDUArray[idu];
-         
+
          liveTotalVolume -= timberHarvVol / iduAreaHa;
 
          float totalVolume = liveTotalVolume + deadTotalVolume;
@@ -4071,31 +4164,31 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext *pContext, bool useAddDelta
          m_priorLiveBiomassIDUArray[idu] = m_priorLiveBiomass;
          m_priorLiveCarbonIDUArray[idu] = m_priorLiveCarbon;
 
-         totalSawTimberHarvVol = sawTimberHarvVol ;
-         totalTimberHarvVol    = timberHarvVol + salvageSawTimberHarvestVol;
+         totalSawTimberHarvVol = sawTimberHarvVol;
+         totalTimberHarvVol = timberHarvVol + salvageSawTimberHarvestVol;
 
          UpdateIDU(pContext, idu, m_colSawTimberHarvVolume, totalSawTimberHarvVol, useAddDelta ? ADD_DELTA : SET_DATA);
-         UpdateIDU(pContext, idu, m_colHarvestVol, totalTimberHarvVol, useAddDelta ? ADD_DELTA : SET_DATA);         
+         UpdateIDU(pContext, idu, m_colHarvestVol, totalTimberHarvVol, useAddDelta ? ADD_DELTA : SET_DATA);
          UpdateIDU(pContext, idu, m_colTVolm3ha, totalVolume, useAddDelta ? ADD_DELTA : SET_DATA);
          UpdateIDU(pContext, idu, m_colLVolm3ha, liveTotalVolume, useAddDelta ? ADD_DELTA : SET_DATA);
-         
-         if ( owner == 1  )
+
+         if (owner == 1)
             totalHarvestCheck += totalTimberHarvVol;
          //UpdateIDU(pContext, idu, m_colTBioMgha, totalBiomass, useAddDelta ? ADD_DELTA : SET_DATA); // live + dead
          //UpdateIDU(pContext, idu, m_colTCMgha, totalCarbon, useAddDelta ? ADD_DELTA : SET_DATA);//live +dead
 
          }  // if harvest
       }  // end of: for each IDU
-   
-      ::EnvApplyDeltaArray(pContext->pEnvModel);
-      return 1;
+
+   ::EnvApplyDeltaArray(pContext->pEnvModel);
+   return 1;
    }
 
 static int decayPostDisturbBioErrCount = 0;
 
-int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
+int COCNHProcessPre2::DecayDeadResiduals(EnvContext* pContext, bool useAddDelta)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    // for each IDU, look for post-disturbance state that need to be decayed.
    // Basic idea: Immediately after a fire, we want to create dead biomass
@@ -4116,19 +4209,19 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
       int pvt = -999;
       int region = -999;
       int transType = 0;
-      
+
       pLayer->GetData(idu, m_colArea, iduAreaM2);
       pLayer->GetData(idu, m_colVegClass, vegClass);
       pLayer->GetData(idu, m_colPVT, pvt);
       pLayer->GetData(idu, m_colRegion, region);
       pLayer->GetData(idu, m_colDisturb, disturb);
-      pLayer->GetData( idu, m_colVegTranType, transType );
-      
+      pLayer->GetData(idu, m_colVegTranType, transType);
+
       // Salvage logging: feds are going to remove 50%, all others 90%,  add this back in and decay
       int owner = -1;
       pLayer->GetData(idu, m_colOwner, owner);
-      float potentiallyRemoved = ( owner == 1 ) ? 0.5f : 0.9f;
-      
+      float potentiallyRemoved = (owner == 1) ? 0.5f : 0.9f;
+
       float iduAreaHa = iduAreaM2 * HA_PER_M2;
 
       VEGKEY key(vegClass, region, pvt);
@@ -4143,37 +4236,37 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
          || disturb == LOW_SEVERITY_FIRE      // 21 
          || disturb == SURFACE_FIRE)         // 20
          {
- 
+
          // look up prior veg class variables from veg lookup table
          //float priorLiveBiomass = m_vegLookupTable.GetColData(luRow, LIVEBIO_MGHA);
          //float priorLiveCarbon = m_vegLookupTable.GetColData(luRow, LIVEC_MGHA);
-         
+
          // for post-fire disturbances, track dead carbon, biomass
          float lossFraction = 0.0f;
          float percentPreTransStruct = 0.0f;
          switch (disturb)
             {
             // fire disturbances that occured this timestep
-            case SURFACE_FIRE:         
-               {
-               lossFraction = 0.03f;   
-               percentPreTransStruct = m_percentOfLivePassedOn20;
-               break;
-               }
+            case SURFACE_FIRE:
+            {
+            lossFraction = 0.03f;
+            percentPreTransStruct = m_percentOfLivePassedOn20;
+            break;
+            }
             case LOW_SEVERITY_FIRE:
-               {
-               lossFraction = 0.07f;
-               percentPreTransStruct = m_percentOfLivePassedOn21;
+            {
+            lossFraction = 0.07f;
+            percentPreTransStruct = m_percentOfLivePassedOn21;
+            break;
+            }
+            case HIGH_SEVERITY_FIRE:
                break;
-               }
-            case HIGH_SEVERITY_FIRE:   
-               break;
-            case STAND_REPLACING_FIRE: 
-               {
-               lossFraction = 0.08f;
-               percentPreTransStruct = m_percentOfLivePassedOn23;
-               break;
-               }
+            case STAND_REPLACING_FIRE:
+            {
+            lossFraction = 0.08f;
+            percentPreTransStruct = m_percentOfLivePassedOn23;
+            break;
+            }
             }
 
          //float sawTimberVol = 0.0f;
@@ -4191,7 +4284,7 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
             m_priorLiveCarbonIDUArray[idu] = 0;
             decayPostDisturbBioErrCount++;
             }
-         
+
          float priorSawTimberVolume = m_priorLiveVolumeSawTimberIDUArray[idu]; // m3/ha
          float priorLiveVolume = m_priorLiveVolumeGe3IDUArray[idu]; // m3/ha
          float priorLiveBiomass = m_priorLiveBiomassIDUArray[idu]; // Mg/ha
@@ -4204,7 +4297,7 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
 
          float currentLiveBiomass = 0.0f;
          pLayer->GetData(idu, m_colLBioMgha, currentLiveBiomass);
-         
+
          float currentLiveVolumeGe3 = 0.0f;
          pLayer->GetData(idu, m_colLVolm3ha, currentLiveVolumeGe3);
 
@@ -4223,13 +4316,13 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
          UpdateIDU(pContext, idu, m_colTVolm3ha, totalVolume, useAddDelta ? ADD_DELTA : SET_DATA);
 
          float availableSawTimberVol52 = priorSawTimberVolume * m_percentPreTransStructAvailable52 * potentiallyRemoved * iduAreaHa;
-         
+
          int owner = -1;
          pLayer->GetData(idu, m_colOwner, owner);
-         
+
          UpdateIDU(pContext, idu, m_colAvailVolSH, availableSawTimberVol52, useAddDelta ? ADD_DELTA : SET_DATA);
          }  // end of: if disturb generated dead carbon
-      else if ( seenNoTransBefore == 0 && transType == 0 )  // no VEGCLASS transition
+      else if (seenNoTransBefore == 0 && transType == 0)  // no VEGCLASS transition
          {
          m_accountedForNoTransThisStep[idu] = 1;
 
@@ -4238,9 +4331,9 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
          int timeSinceFire;
          pLayer->GetData(idu, m_colTSF, timeSinceFire);
 
-         if ( timeSinceFire < 40 )  // TSF get updated after this call. 
+         if (timeSinceFire < 40)  // TSF get updated after this call. 
             {
-            
+
             /*float deadPFBiomass = 0;
             pLayer->GetData(idu, m_colPFDeadBio, deadPFBiomass);*/
 
@@ -4249,39 +4342,39 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
 
             float availableSawTimberVol52 = 0;
             pLayer->GetData(idu, m_colAvailVolSH, availableSawTimberVol52);
-            
+
             // get the total available, potentially removed is dependent on current owner
             availableSawTimberVol52 /= potentiallyRemoved;
 
             float deadTotalVolume = 0.0f;
             pLayer->GetData(idu, m_colDVolm3ha, deadTotalVolume);
-            
+
             float deadTotalBiomass = 0.0f;
             pLayer->GetData(idu, m_colDBioMgha, deadTotalBiomass);
-            
+
             int colIDUIndex = pLayer->GetFieldCol("IDU_INDEX");
             int iduIndex = 0;
-            pLayer->GetData(idu, colIDUIndex,iduIndex);
-                                    
+            pLayer->GetData(idu, colIDUIndex, iduIndex);
+
             float k = 0.05f;
             float decay = (float)exp(-k);
             deadTotalBiomass *= decay;
-            deadTotalVolume *= decay; 
+            deadTotalVolume *= decay;
             availableSawTimberVol52 *= decay;
-            deadSawTimberVol *= decay;            
+            deadSawTimberVol *= decay;
             float deadTotalCarbon = deadTotalBiomass * 0.5f;
-            
+
             // For IDUs where wild fire left biomass to decay, dead values should never be less than the lookup table values for this IDU
-            if ( found && luRow >= 0 && disturb <= -20 && disturb >= -23 )
+            if (found && luRow >= 0 && disturb <= -20 && disturb >= -23)
                {
-               float lookupTableDeadVolume = m_vegLookupTable.GetColData( luRow, TOTDEADVOL_M3HA );
-               
+               float lookupTableDeadVolume = m_vegLookupTable.GetColData(luRow, TOTDEADVOL_M3HA);
+
                // the decayed values should never be less than the lookup table values for this IDU
-               if (  deadTotalVolume < lookupTableDeadVolume )  
+               if (deadTotalVolume < lookupTableDeadVolume)
                   {
                   deadTotalVolume = lookupTableDeadVolume;
                   deadTotalBiomass = m_vegLookupTable.GetColData(luRow, TOTDEADBIO_MGHA);
-                  deadTotalCarbon = deadTotalBiomass * 0.5f;                  
+                  deadTotalCarbon = deadTotalBiomass * 0.5f;
                   }
                }
 
@@ -4298,17 +4391,17 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
             //UpdateIDU(pContext, idu, m_colPFDeadBio, deadPFBiomass, useAddDelta ? ADD_DELTA : SET_DATA);
             UpdateIDU(pContext, idu, m_colDCMgha, deadTotalCarbon, useAddDelta ? ADD_DELTA : SET_DATA);
             UpdateIDU(pContext, idu, m_colPFSawVol, deadSawTimberVol, useAddDelta ? ADD_DELTA : SET_DATA);
-            UpdateIDU(pContext, idu, m_colDVolm3ha, deadTotalVolume , useAddDelta ? ADD_DELTA : SET_DATA);
+            UpdateIDU(pContext, idu, m_colDVolm3ha, deadTotalVolume, useAddDelta ? ADD_DELTA : SET_DATA);
             //UpdateIDU(pContext, idu, m_colDCMgha, deadPFCarbon, useAddDelta ? ADD_DELTA : SET_DATA);
-            UpdateIDU(pContext, idu, m_colDBioMgha, deadTotalBiomass, useAddDelta ? ADD_DELTA : SET_DATA);            
+            UpdateIDU(pContext, idu, m_colDBioMgha, deadTotalBiomass, useAddDelta ? ADD_DELTA : SET_DATA);
             UpdateIDU(pContext, idu, m_colTBioMgha, totalBiomass, useAddDelta ? ADD_DELTA : SET_DATA); // live + dead
             UpdateIDU(pContext, idu, m_colTCMgha, totalCarbon, useAddDelta ? ADD_DELTA : SET_DATA);//live + dead
             UpdateIDU(pContext, idu, m_colTVolm3ha, totalVolume, useAddDelta ? ADD_DELTA : SET_DATA);// live + dead
 
             UpdateIDU(pContext, idu, m_colAvailVolSH, availableSawTimberVol52 * potentiallyRemoved, useAddDelta ? ADD_DELTA : SET_DATA);
             }  // end of: if time since fire > 0 && < 40
-         else 
-            {         
+         else
+            {
             //UpdateIDU(pContext, idu, m_colPFDeadBio, VData(0.0f), useAddDelta ? ADD_DELTA : SET_DATA);
             //UpdateIDU(pContext, idu, m_colPFDeadCarb, VData(0.0f), useAddDelta ? ADD_DELTA : SET_DATA);
             UpdateIDU(pContext, idu, m_colAvailVolSH, VData(0.0f), useAddDelta ? ADD_DELTA : SET_DATA);
@@ -4316,13 +4409,13 @@ int COCNHProcessPre2::DecayDeadResiduals(EnvContext *pContext, bool useAddDelta)
          }  // end of: else (post-fire)
       }  // end of: for each IDU
 
-      ::EnvApplyDeltaArray(pContext->pEnvModel);
-      return 1;
+   ::EnvApplyDeltaArray(pContext->pEnvModel);
+   return 1;
    }
 
 
 // NOTE - STILL NEED TO INCORPORATE THIS
-bool COCNHProcess::PopulateLulc(EnvContext *pContext, bool useDelta)
+bool COCNHProcess::PopulateLulc(EnvContext* pContext, bool useDelta)
    {
    /*
    MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
@@ -4552,9 +4645,9 @@ return false;
 
 
 
-bool COCNHSetTSD::Run(EnvContext *pContext)
+bool COCNHSetTSD::Run(EnvContext* pContext)
    {
-   MapLayer *pLayer = (MapLayer*)pContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    pLayer->m_readOnly = false;
 

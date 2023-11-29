@@ -35,7 +35,7 @@ Copywrite 2012 - Oregon State University
 #include <EnvModel.h>
 
 
-extern FlamMapAP *gpFlamMapAP;
+extern FlamMapAP* gpFlamMapAP;
 
 LCPGenerator::LCPGenerator() :
    m_nGridNumLayers(0),
@@ -47,13 +47,13 @@ LCPGenerator::LCPGenerator() :
    m_pLCPLayers(NULL),
    m_pPolyGridLkUp(NULL),
    m_pVegClassLCPLookup(NULL)
-{
-   
-}
+   {
 
-LCPGenerator::LCPGenerator( LPCTSTR LCPFName, 
-      LPCTSTR VegClassLCPLookupFName, 
-      PolyGridLookups *pgLookup)  :
+   }
+
+LCPGenerator::LCPGenerator(LPCTSTR LCPFName,
+   LPCTSTR VegClassLCPLookupFName,
+   PolyGridLookups* pgLookup) :
    m_nGridNumLayers(0),
    m_sourceCanopyCoverUnits(0),
    m_sourceHeightUnits(0),
@@ -64,9 +64,9 @@ LCPGenerator::LCPGenerator( LPCTSTR LCPFName,
    m_pPolyGridLkUp(NULL),
    m_pVegClassLCPLookup(NULL)
    {
-      InitLCPValues(LCPFName);
-      InitVegClassLCPLookup(VegClassLCPLookupFName);
-      InitPolyGridLookup(pgLookup);
+   InitLCPValues(LCPFName);
+   InitVegClassLCPLookup(VegClassLCPLookupFName);
+   InitPolyGridLookup(pgLookup);
    }
 
 
@@ -77,7 +77,7 @@ void LCPGenerator::SetLayerPt(LCP_LAYER layer, const int x, const int y, const s
    m_pLCPLayers[ndx] = value;
    } // void LCPGenerator::SetLayerPt(ENV_LCP_LAYER layer, const int x, const int y, const short value);
 
-   
+
 BOOL LCPGenerator::InitLCPValues(LPCTSTR _fName)
    {
    CString msg;
@@ -91,29 +91,29 @@ BOOL LCPGenerator::InitLCPValues(LPCTSTR _fName)
    m_nGridNumLayers = 8;
 
    m_pLCPHeader = new LCPHeader;
- 
+
    // Read the starting LCP file into memory
    CString fName;
-   PathManager::FindPath( _fName, fName );
+   PathManager::FindPath(_fName, fName);
 
-   FILE *pStartingLCPFile = NULL;
+   FILE* pStartingLCPFile = NULL;
 
-   if(!(pStartingLCPFile = fopen(fName,"rb"))) 
+   if (!(pStartingLCPFile = fopen(fName, "rb")))
       {
-      msg.Format(_T("Error: Unable to open Initial FlamMap LCP file **%s**!\n"), fName );
+      msg.Format(_T("Error: Unable to open Initial FlamMap LCP file **%s**!\n"), fName);
       Report::ErrorMsg(msg);
       return FALSE;
       }
 
-   nBytesRead = fread( 
-      (void *)m_pLCPHeader, 
-      (size_t)sizeof(char), 
-      (size_t)sizeof(LCPHeader), 
+   nBytesRead = fread(
+      (void*)m_pLCPHeader,
+      (size_t)sizeof(char),
+      (size_t)sizeof(LCPHeader),
       pStartingLCPFile);
 
-   if(feof(pStartingLCPFile) || nBytesRead != (size_t)sizeof(LCPHeader)) 
+   if (feof(pStartingLCPFile) || nBytesRead != (size_t)sizeof(LCPHeader))
       {
-      msg.Format(_T("Error: Unable to read header from Initial FlamMap LCP file %s!\n"), fName );
+      msg.Format(_T("Error: Unable to read header from Initial FlamMap LCP file %s!\n"), fName);
       Report::ErrorMsg(msg);
       fclose(pStartingLCPFile);
       return FALSE;
@@ -128,63 +128,63 @@ BOOL LCPGenerator::InitLCPValues(LPCTSTR _fName)
    m_pLCPHeader->BUnits = m_pLCPHeader->HUnits = 3;
    m_sourceBaseHeightUnits = m_sourceHeightUnits = gpFlamMapAP->m_vegClassHeightUnits;
 
-   if(m_sourceBaseHeightUnits != 1 &&
+   if (m_sourceBaseHeightUnits != 1 &&
       m_sourceBaseHeightUnits != 2 &&
       m_sourceBaseHeightUnits != 3 &&
       m_sourceBaseHeightUnits != 4
       )
-   {
+      {
       Report::ErrorMsg(_T("Illegal height units in FlamMapAP init file!"));
       return false;
-   }
+      }
 
    m_pLCPHeader->PUnits = 3;
    m_sourceBulkDensityUnits = gpFlamMapAP->m_vegClassBulkDensUnits;
 
-   if(m_pLCPHeader->PUnits != 1 &&
+   if (m_pLCPHeader->PUnits != 1 &&
       m_pLCPHeader->PUnits != 2 &&
       m_pLCPHeader->PUnits != 3 &&
       m_pLCPHeader->PUnits != 4
       )
-   {
+      {
       Report::ErrorMsg(_T("Illegal Bulk Density units in FlamMapAP init file!"));
       return false;
-   }
+      }
 
    m_pLCPHeader->CUnits = 1;
    m_sourceCanopyCoverUnits = gpFlamMapAP->m_vegClassCanopyCoverUnits;
 
-   if(m_pLCPHeader->CUnits != 1 &&
+   if (m_pLCPHeader->CUnits != 1 &&
       m_pLCPHeader->CUnits != 2
       )
-   {
+      {
       Report::ErrorMsg(_T("Illegal Canopy Cover units in FlamMapAP init file!"));
       return false;
-   }
+      }
 
-   int lcpLayersSz = m_nGridNumLayers * (int) m_pLCPHeader->numNorth * (int) m_pLCPHeader->numEast;
-   
+   int lcpLayersSz = m_nGridNumLayers * (int)m_pLCPHeader->numNorth * (int)m_pLCPHeader->numEast;
+
    m_pLCPLayers = new short[lcpLayersSz];
 
-   
+
    //CString msg3;
    //msg3.Format( "size ist %i", lcpLayersSz );
    //Report::InfoMsg( msg3 );
 
    nBytesRead = fread(
-      (void *)m_pLCPLayers, 
-      sizeof(short), 
-      lcpLayersSz, 
+      (void*)m_pLCPLayers,
+      sizeof(short),
+      lcpLayersSz,
       pStartingLCPFile);
 
-   if(nBytesRead != (size_t)lcpLayersSz) 
+   if (nBytesRead != (size_t)lcpLayersSz)
       {
-      msg.Format(_T("Error: Unable to read LCP from FlamMap LCP file %s!\n"), fName );
+      msg.Format(_T("Error: Unable to read LCP from FlamMap LCP file %s!\n"), fName);
       Report::ErrorMsg(msg);
       fclose(pStartingLCPFile);
       return FALSE;
       }
-   
+
    fclose(pStartingLCPFile);
 
    return TRUE;
@@ -192,19 +192,19 @@ BOOL LCPGenerator::InitLCPValues(LPCTSTR _fName)
    } // LCPGenerator::InitLCPValues(LPCTSTR fName); 
 
 
-BOOL LCPGenerator::InitVegClassLCPLookup(LPCTSTR VegClassLCPLookupFName) 
+BOOL LCPGenerator::InitVegClassLCPLookup(LPCTSTR VegClassLCPLookupFName)
    {
    bool rtrnVal = true;
 
    m_pVegClassLCPLookup = new VegClassLCPLookup(VegClassLCPLookupFName, m_sourceCanopyCoverUnits, m_sourceHeightUnits, m_sourceBaseHeightUnits, m_sourceBulkDensityUnits);
-   if( ! gpFlamMapAP->m_runStatus )
+   if (gpFlamMapAP->m_runStatus < 0)
       rtrnVal = false;
 
    return rtrnVal;
    } // BOOL LCPGenerator::InitVegClassLCPLookup(LPCTSTR VegClassLCPLookupFName)
 
 
-void LCPGenerator::InitPolyGridLookup(PolyGridLookups *pgLookup) 
+void LCPGenerator::InitPolyGridLookup(PolyGridLookups* pgLookup)
    {
    ASSERT(pgLookup != NULL);
    m_pPolyGridLkUp = pgLookup;
@@ -213,18 +213,18 @@ void LCPGenerator::InitPolyGridLookup(PolyGridLookups *pgLookup)
 
 LCPGenerator::~LCPGenerator()
    {
-   if(m_pLCPHeader != NULL)
+   if (m_pLCPHeader != NULL)
       delete m_pLCPHeader;
 
-   if(m_pLCPLayers != NULL)
-      delete [] m_pLCPLayers;
+   if (m_pLCPLayers != NULL)
+      delete[] m_pLCPLayers;
 
-   if(m_pVegClassLCPLookup != NULL)
+   if (m_pVegClassLCPLookup != NULL)
       delete m_pVegClassLCPLookup;
    } // ~LandscapeGenerator::LandscapeGenerator()
 
 
-void LCPGenerator::PrepLandscape(EnvContext *pEnvContext) 
+void LCPGenerator::PrepLandscape(EnvContext* pEnvContext)
    {
    // Choices for getting values:
    //
@@ -241,114 +241,136 @@ void LCPGenerator::PrepLandscape(EnvContext *pEnvContext)
    // Initially, using polygon plurality for all fields
 
    CString msg;
-   
+
    int i, j;
    int nMaxPolyCnt = 0,
-       nPolyCnt = 0,
-      *pnPolyNdxs = NULL,
-      *pnPolyVDDTStates = NULL,
-       nPluralPolyNdx,
-       vegClassCol,
-       vegClass,
-       variantCol,
-       variant,
-       voidVegClassCnt = 0,
+      nPolyCnt = 0,
+      * pnPolyNdxs = NULL,
+      * pnPolyVDDTStates = NULL,
+      nPluralPolyNdx,
+      vegClassCol,
+      vegClass,
+      variantCol,
+      variant,
+      voidVegClassCnt = 0,
       useFModelPlus = 0,
       fuelModelPlusCol = -1,
-	  regionCol = -1,
-	  region = 0,
-	  pvtCol = -1,
-	  pvt = 0;
+      regionCol = -1,
+      region = 0,
+      pvtCol = -1,
+      pvt = 0;
 
-   float *pfPolyPortions = NULL;
+   float* pfPolyPortions = NULL;
 
    int ttlPairs = 0,
-       voidCvrType = 0,
-       voidStrctStg = 0,
-       voidBoth = 0;
+      voidCvrType = 0,
+      voidStrctStg = 0,
+      voidBoth = 0;
    __int64 nCellsFModel = 0;
    vegClassCol = gpFlamMapAP->m_vegClassCol;
-   variantCol  = gpFlamMapAP->m_variantCol;
+   variantCol = gpFlamMapAP->m_variantCol;
    fuelModelPlusCol = gpFlamMapAP->m_fModel_plusCol;
    regionCol = gpFlamMapAP->m_regionCol;
    pvtCol = gpFlamMapAP->m_pvtCol;
    REAL xMin, xMax, yMin, yMax;
    pEnvContext->pMapLayer->GetExtents(xMin, xMax, yMin, yMax);
 
-   int startRow = int( (GetNorth() - yMax) / GetCellDim() );
-   int startCol = int( (xMin - GetWest()) / GetCellDim() );
+   int startRow = int((GetNorth() - yMax) / GetCellDim());
+   int startCol = int((xMin - GetWest()) / GetCellDim());
+
+
+   //vegClass = 1001100;
+   //region = 99;
+   //pvt = 99;
+   //variant = 1;
+   //
+   //short fuelModel = m_pVegClassLCPLookup->GetFuelModel(vegClass, region, pvt, variant, false);
+   //short canCover = m_pVegClassLCPLookup->GetCanopyCover(vegClass, region, pvt, variant);
+   //short standHeight = m_pVegClassLCPLookup->GetStandHeight(vegClass, region, pvt, variant);
+   //short baseHeight = m_pVegClassLCPLookup->GetBaseHeight(vegClass, region, pvt, variant);
+   //short bulkDensity = m_pVegClassLCPLookup->GetBulkDensity(vegClass, region, pvt, variant);
+
 
    for (i = 0; i < m_pPolyGridLkUp->GetNumGridRows(); i++)
-   {
-	   for (j = 0; j < m_pPolyGridLkUp->GetNumGridCols(); j++)
-	   {
-		   // Using polygon plurality
-		   nPluralPolyNdx = m_pPolyGridLkUp->GetPolyPluralityForGridPt(i, j);
+      {
+      for (j = 0; j < m_pPolyGridLkUp->GetNumGridCols(); j++)
+         {
+         // Using polygon plurality
+         nPluralPolyNdx = m_pPolyGridLkUp->GetPolyPluralityForGridPt(i, j);
 
-		   if (nPluralPolyNdx > 0)
-		   {
-			   pEnvContext->pMapLayer->GetData(nPluralPolyNdx, vegClassCol, vegClass);
-			   pEnvContext->pMapLayer->GetData(nPluralPolyNdx, variantCol, variant);
+         if (nPluralPolyNdx > 0)
+            {
+            pEnvContext->pMapLayer->GetData(nPluralPolyNdx, vegClassCol, vegClass);
+            pEnvContext->pMapLayer->GetData(nPluralPolyNdx, variantCol, variant);
 
-			   if (fuelModelPlusCol >= 0)
-			   {
-				   pEnvContext->pMapLayer->GetData(nPluralPolyNdx, fuelModelPlusCol, useFModelPlus);
-			   }
-			   else
-				   useFModelPlus = 0;
-			   if (regionCol >= 0)
-			   {
-				   pEnvContext->pMapLayer->GetData(nPluralPolyNdx, regionCol, region);
-			   }
-			   else
-				   region = 0;
-			   if (pvtCol >= 0)
-			   {
-				   pEnvContext->pMapLayer->GetData(nPluralPolyNdx, pvtCol, pvt);
-			   }
-			   else
-				   region = 0;
-			   //FmodelPlus metrics
-			   if (useFModelPlus)
-				   nCellsFModel++;
+            if (fuelModelPlusCol >= 0)
+               {
+               pEnvContext->pMapLayer->GetData(nPluralPolyNdx, fuelModelPlusCol, useFModelPlus);
+               }
+            else
+               useFModelPlus = 0;
 
-			   // Now get the values for the LCP layers and update them for
-			   // the FlamMap run.
+            if (regionCol >= 0)
+               {
+               pEnvContext->pMapLayer->GetData(nPluralPolyNdx, regionCol, region);
+               }
+            else
+               region = 0;
 
-			   if (vegClass < 0)
-				   voidVegClassCnt++;
+            if (pvtCol >= 0)
+               {
+               pEnvContext->pMapLayer->GetData(nPluralPolyNdx, pvtCol, pvt);
+               }
+            else
+               region = 0;
+            //FmodelPlus metrics
+            if (useFModelPlus)
+               nCellsFModel++;
 
-			   /*SetFuelModel  (i+startRow, j+startCol, m_pVegClassLCPLookup->GetFuelModel(vegClass, variant, useFModelPlus));
-			   SetCanopyCover(i+startRow, j+startCol, m_pVegClassLCPLookup->GetCanopyCover(vegClass, variant));
-			   SetStandHeight(i+startRow, j+startCol, m_pVegClassLCPLookup->GetStandHeight(vegClass, variant));
-			   SetBaseHeight (i+startRow, j+startCol, m_pVegClassLCPLookup->GetBaseHeight(vegClass, variant));
-			   SetBulkDensity(i+startRow, j+startCol, m_pVegClassLCPLookup->GetBulkDensity(vegClass, variant));*/
-			   SetFuelModel(i + startRow, j + startCol, m_pVegClassLCPLookup->GetFuelModel(vegClass, region, pvt, variant, useFModelPlus));
-			   SetCanopyCover(i + startRow, j + startCol, m_pVegClassLCPLookup->GetCanopyCover(vegClass, region, pvt, variant));
-			   SetStandHeight(i + startRow, j + startCol, m_pVegClassLCPLookup->GetStandHeight(vegClass, region, pvt, variant));
-			   SetBaseHeight(i + startRow, j + startCol, m_pVegClassLCPLookup->GetBaseHeight(vegClass, region, pvt, variant));
-			   SetBulkDensity(i + startRow, j + startCol, m_pVegClassLCPLookup->GetBulkDensity(vegClass, region, pvt, variant));
-		   }
-		   else
-		   {
-			   SetFuelModel(i + startRow, j + startCol, 99);// m_pVegClassLCPLookup->GetFuelModel(vegClass, region, pvt, variant, useFModelPlus));
-			   SetCanopyCover(i + startRow, j + startCol, -9999);// m_pVegClassLCPLookup->GetCanopyCover(vegClass, region, pvt, variant));
-			   SetStandHeight(i + startRow, j + startCol, -9999);// m_pVegClassLCPLookup->GetStandHeight(vegClass, region, pvt, variant));
-			   SetBaseHeight(i + startRow, j + startCol, -9999);// m_pVegClassLCPLookup->GetBaseHeight(vegClass, region, pvt, variant));
-			   SetBulkDensity(i + startRow, j + startCol, -9999);//m_pVegClassLCPLookup->GetBulkDensity(vegClass, region, pvt, variant));
-		   }
-	   } // for(j=0;j<m_pPolyGridLkUp->numGridCols;i++)
-   } // for(i=0;i<m_pPolyGridLkUp->numGridRows;i++)
+            // Now get the values for the LCP layers and update them for
+            // the FlamMap run.
+
+            if (vegClass < 0)
+               voidVegClassCnt++;
+
+            /*SetFuelModel  (i+startRow, j+startCol, m_pVegClassLCPLookup->GetFuelModel(vegClass, variant, useFModelPlus));
+            SetCanopyCover(i+startRow, j+startCol, m_pVegClassLCPLookup->GetCanopyCover(vegClass, variant));
+            SetStandHeight(i+startRow, j+startCol, m_pVegClassLCPLookup->GetStandHeight(vegClass, variant));
+            SetBaseHeight (i+startRow, j+startCol, m_pVegClassLCPLookup->GetBaseHeight(vegClass, variant));
+            SetBulkDensity(i+startRow, j+startCol, m_pVegClassLCPLookup->GetBulkDensity(vegClass, variant));*/
+
+            short fuelModel = m_pVegClassLCPLookup->GetFuelModel(vegClass, region, pvt, variant, useFModelPlus);
+            short canCover = m_pVegClassLCPLookup->GetCanopyCover(vegClass, region, pvt, variant);
+            short standHeight = m_pVegClassLCPLookup->GetStandHeight(vegClass, region, pvt, variant);
+            short baseHeight = m_pVegClassLCPLookup->GetBaseHeight(vegClass, region, pvt, variant);
+            short bulkDensity = m_pVegClassLCPLookup->GetBulkDensity(vegClass, region, pvt, variant);  // short, should be float?
+
+            SetFuelModel(i + startRow, j + startCol, fuelModel);
+            SetCanopyCover(i + startRow, j + startCol, canCover);
+            SetStandHeight(i + startRow, j + startCol, standHeight);
+            SetBaseHeight(i + startRow, j + startCol, baseHeight);
+            SetBulkDensity(i + startRow, j + startCol, bulkDensity);
+            }
+         else
+            {
+            SetFuelModel(i + startRow, j + startCol, 99);// m_pVegClassLCPLookup->GetFuelModel(vegClass, region, pvt, variant, useFModelPlus));
+            SetCanopyCover(i + startRow, j + startCol, -9999);// m_pVegClassLCPLookup->GetCanopyCover(vegClass, region, pvt, variant));
+            SetStandHeight(i + startRow, j + startCol, -9999);// m_pVegClassLCPLookup->GetStandHeight(vegClass, region, pvt, variant));
+            SetBaseHeight(i + startRow, j + startCol, -9999);// m_pVegClassLCPLookup->GetBaseHeight(vegClass, region, pvt, variant));
+            SetBulkDensity(i + startRow, j + startCol, -9999);//m_pVegClassLCPLookup->GetBulkDensity(vegClass, region, pvt, variant));
+            }
+         } // for(j=0;j<m_pPolyGridLkUp->numGridCols;i++)
+      } // for(i=0;i<m_pPolyGridLkUp->numGridRows;i++)
 
    double propFModel = ((double)nCellsFModel) / (double)(m_pPolyGridLkUp->GetNumGridRows() * m_pPolyGridLkUp->GetNumGridCols());
    msg.Format(_T("Proportion cells using FModelplus: %lf"), propFModel);
    Report::Log(msg);
 
-		// Build filename and write to file
+   // Build filename and write to file
 
    LPCTSTR scenarioName = NULL;
 
-   if ( pEnvContext->pEnvModel->m_pScenario != NULL )
+   if (pEnvContext->pEnvModel->m_pScenario != NULL)
       scenarioName = pEnvContext->pEnvModel->m_pScenario->m_name;
    else
       scenarioName = _T("Default");
@@ -356,38 +378,38 @@ void LCPGenerator::PrepLandscape(EnvContext *pEnvContext)
    TCHAR shortName[200];
    shortName[0] = 0;
    int len = 0;
-   for( len = 0; len < strlen(scenarioName) && len < 200; len++)
+   for (len = 0; len < strlen(scenarioName) && len < 200; len++)
       {
-      if(!isalnum(scenarioName[len]))
-            break;
+      if (!isalnum(scenarioName[len]))
+         break;
       }
 
    strncpy(shortName, scenarioName, len);
    shortName[len] = 0;
 
    CString LCPFName;
-   LCPFName.Format(_T("%s_%s_%03d_%04d.lcp"), (LPCTSTR) gpFlamMapAP->m_scenarioLCPFNameRoot, shortName, pEnvContext->run,  pEnvContext->currentYear );
+   LCPFName.Format(_T("%s_%s_%03d_%04d.lcp"), (LPCTSTR)gpFlamMapAP->m_scenarioLCPFNameRoot, shortName, pEnvContext->runID, pEnvContext->currentYear);
 
    WriteFile(LCPFName, pEnvContext);
 
-   if ( pnPolyNdxs )
-      delete [] pnPolyNdxs;
-   if ( pnPolyVDDTStates )
-      delete [] pnPolyVDDTStates;
-   if ( pfPolyPortions )
-      delete [] pfPolyPortions;
+   if (pnPolyNdxs)
+      delete[] pnPolyNdxs;
+   if (pnPolyVDDTStates)
+      delete[] pnPolyVDDTStates;
+   if (pfPolyPortions)
+      delete[] pfPolyPortions;
    } // void LCPGenerator::PrepLandscape(EnvContext *pEnvContext) 
 
 
-void LCPGenerator::WriteFile(LPCTSTR fName, EnvContext *pEnvContext) 
+void LCPGenerator::WriteFile(LPCTSTR fName, EnvContext* pEnvContext)
    {
-   FILE *pLCPFile = fopen( fName, "wb" );
-   
-   if ( pLCPFile == NULL)
+   FILE* pLCPFile = fopen(fName, "wb");
+
+   if (pLCPFile == NULL)
       {
-      CString msg( "FlamMap: Error Opening file ");
+      CString msg("FlamMap: Error Opening file ");
       msg += fName;
-      Report::ErrorMsg( msg );
+      Report::ErrorMsg(msg);
       }
 
    LCPHeader tHeader;
@@ -397,32 +419,32 @@ void LCPGenerator::WriteFile(LPCTSTR fName, EnvContext *pEnvContext)
 
    REAL xMin, xMax, yMin, yMax;
    pEnvContext->pMapLayer->GetExtents(xMin, xMax, yMin, yMax);
-   
-   tHeader.EastUtm = tHeader.hiEast  = xMax;//this->GetEast();
+
+   tHeader.EastUtm = tHeader.hiEast = xMax;//this->GetEast();
    tHeader.WestUtm = tHeader.loEast = xMin;//this->GetWest();
-   tHeader.NorthUtm  =  tHeader.hiNorth= yMax;//this->GetNorth();
-   tHeader.SouthUtm = tHeader.loNorth  = yMin;//this->GetSouth();
-   
+   tHeader.NorthUtm = tHeader.hiNorth = yMax;//this->GetNorth();
+   tHeader.SouthUtm = tHeader.loNorth = yMin;//this->GetSouth();
+
    size_t bytesWritten = fwrite(
-      (void *)&tHeader, 
-      (size_t)sizeof(char), 
-      (size_t)sizeof(LCPHeader), 
+      (void*)&tHeader,
+      (size_t)sizeof(char),
+      (size_t)sizeof(LCPHeader),
       pLCPFile);
 
    ASSERT(bytesWritten == (size_t)sizeof(LCPHeader));
-   int startRow = int ( (GetNorth() - yMax) / GetCellDim() );
-   int startCol = int ( (xMin - GetWest()) / GetCellDim() );
+   int startRow = int((GetNorth() - yMax) / GetCellDim());
+   int startCol = int((xMin - GetWest()) / GetCellDim());
 
-   for(int r = 0; r < tHeader.numNorth; r++)
+   for (int r = 0; r < tHeader.numNorth; r++)
       {
       int offset = m_nGridNumLayers * (r + startRow) * m_pLCPHeader->numEast + m_nGridNumLayers * startCol;
       bytesWritten = fwrite(
-         (void *)&m_pLCPLayers[offset], 
-         sizeof(short), 
+         (void*)&m_pLCPLayers[offset],
+         sizeof(short),
          m_nGridNumLayers * tHeader.numEast,
          pLCPFile);
       }
-  
+
    fclose(pLCPFile);
 
    gpFlamMapAP->m_lcpFName = fName;
@@ -432,12 +454,12 @@ void LCPGenerator::WriteFile(LPCTSTR fName, EnvContext *pEnvContext)
 
 void LCPGenerator::WriteReadableHeaderToFile(LPCTSTR fName)
    {
-   FILE *outFile = fopen(fName, "w");
-   if ( outFile == NULL)
+   FILE* outFile = fopen(fName, "w");
+   if (outFile == NULL)
       {
-      CString msg( "FlamMap: Error Opening file ");
+      CString msg("FlamMap: Error Opening file ");
       msg += fName;
-      Report::ErrorMsg( msg );
+      Report::ErrorMsg(msg);
       }
 
    fprintf(outFile, "crownFuels: %ld\n", m_pLCPHeader->crownFuels);

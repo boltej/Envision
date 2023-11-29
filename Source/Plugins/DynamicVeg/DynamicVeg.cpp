@@ -53,7 +53,7 @@ using namespace std;
 #endif
 
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext)
+extern "C" _EXPORT EnvExtension * Factory(EnvContext * pContext)
    {
    return (EnvExtension*) new  DynamicVeg;
    }
@@ -197,9 +197,9 @@ DynamicVeg::~DynamicVeg()
 
    }
 
-bool DynamicVeg::Init(EnvContext *pEnvContext, LPCTSTR initStr)
+bool DynamicVeg::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
-   const MapLayer *pLayer = pEnvContext->pMapLayer;
+   const MapLayer* pLayer = pEnvContext->pMapLayer;
 
    // get input file names and input variables   
    if (m_staticsInitialized)
@@ -240,13 +240,13 @@ bool DynamicVeg::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    for (int i = 0; i < (int)m_outputArray.GetSize(); i++)
       {
-      OUTPUT *pOutput = m_outputArray[i];
+      OUTPUT* pOutput = m_outputArray[i];
       AddOutputVar(pOutput->name, pOutput->value, "");
       }
 
    CString tempinistring;
    CString inputString(initStr);
-   CString *pString = &inputString;
+   CString* pString = &inputString;
 
 
    // choose which climate change files to use if necessary
@@ -350,7 +350,7 @@ bool DynamicVeg::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    return TRUE;
    }
 
-bool DynamicVeg::InitRun(EnvContext *pEnvContext, bool useInitSeed)
+bool DynamicVeg::InitRun(EnvContext* pEnvContext, bool useInitSeed)
    {
    // MC1_OUTPUT *pMC1_output = m_mc1_outputArray[ m_mc1_output ];
 
@@ -366,9 +366,9 @@ bool DynamicVeg::InitRun(EnvContext *pEnvContext, bool useInitSeed)
 
    }
 
-bool DynamicVeg::Run(EnvContext *pEnvContext)
+bool DynamicVeg::Run(EnvContext* pEnvContext)
    {
-   MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
    int current_year = pEnvContext->currentYear;
    m_probMultiplierPVTLookupKey.timestep = current_year;
@@ -387,7 +387,7 @@ bool DynamicVeg::Run(EnvContext *pEnvContext)
          break;
       }// end of: switch( modelID)
 
-   ::EnvApplyDeltaArray( pEnvContext->pEnvModel);
+   ::EnvApplyDeltaArray(pEnvContext->pEnvModel);
    return TRUE;
 
    }
@@ -486,82 +486,83 @@ void DynamicVeg::RunTransitions(EnvContext* pEnvContext)
       if (m_disturb < 0 && pEnvContext->id == MODEL_ID::SUCCESSION_TRANSITIONS)
          m_disturb = 0;
 
-      if (m_vegClass >= 1000000)   // not developed
+      //if (m_vegClass >= 1000000)   // not developed
+      {
+      if (m_useVariant) pLayer->GetData(idu, m_colVariant, m_variant);
+      if (m_useVariant) pLayer->GetData(idu, m_colVariant, m_variant);
+
+      if (m_useLAI) pLayer->GetData(idu, m_colLAI, m_LAI);
+
+      if (m_useCarbon) pLayer->GetData(idu, m_colCarbon, m_carbon);
+
+      m_coverType = (int)floor(m_vegClass / 10000.0); //first three digits of VEGCLASS starting from left
+      m_structureStage = (int)floor(fabs(((10000.0 * m_coverType) - m_vegClass) / 10.0)); //second three digits of VEGCLASS starting from left
+      m_variant = (int)fabs(floor((10 * (floor(fabs((10000.0 * m_coverType) - m_vegClass) / 10.0))) - fabs((10000.0 * m_coverType) - m_vegClass))); //last digit of VEGCLASS from left
+
+      int current_year = pEnvContext->yearOfRun;
+      int year_index = 0;
+
+      // dynamic_update is set in the studysite_PVT.xml file (ie Eugene_PVT.xml) see file for explanation 
+      if (m_dynamic_update.dynamic_update)
          {
-         if (m_useVariant) pLayer->GetData(idu, m_colVariant, m_variant);
-
-         if (m_useLAI) pLayer->GetData(idu, m_colLAI, m_LAI);
-
-         if (m_useCarbon) pLayer->GetData(idu, m_colCarbon, m_carbon);
-
-         m_coverType      = (int)floor(m_vegClass / 10000.0); //first three digits of VEGCLASS starting from left
-         m_structureStage = (int)floor(fabs(((10000.0 * m_coverType) - m_vegClass) / 10.0)); //second three digits of VEGCLASS starting from left
-         m_variant        = (int)fabs(floor((10 * (floor(fabs((10000.0 * m_coverType) - m_vegClass) / 10.0))) - fabs((10000.0 * m_coverType) - m_vegClass))); //last digit of VEGCLASS from left
-
-         int current_year = pEnvContext->yearOfRun;
-         int year_index=0;
-
-         // dynamic_update is set in the studysite_PVT.xml file (ie Eugene_PVT.xml) see file for explanation 
-         if (m_dynamic_update.dynamic_update)
-            {
-            year_index = current_year;
-            }
-         else
-            {
-            year_index = 0;
-            }
-
-         if (m_climateChange) //currently climate change is expressed through site index and pvt.
-            {
-            PvtSiteindex2DeltaArr(pEnvContext, idu, m_mc1row, m_mc1col, year_index); //sets m_mc1si and m_mc1pvt
-            }
-         else
-            {
-            m_si = 0;
-            pLayer->GetData(idu, m_colPVT, m_pvt);
-            }
-
-         // Disturbance Transitions
-         if ((m_disturb > 0 && m_disturbArray[idu] != m_disturb && pEnvContext->id == MODEL_ID::DISTURBANCE_TRANSITIONS))   // climate change disturbances     
-            {
-            DisturbanceTransition(pEnvContext, idu);
-
-            if (m_flagProbabilisticTransition)
-               {
-               UpdateIDUVegInfo(pEnvContext, idu, m_flagProbabilisticTransition, m_flagDeterministicTransition);
-               m_vegTransitionArray[idu] = 1;
-               m_disturbArray[idu] = m_disturb;
-               }
-            }
-         else if ((m_disturb == 0 || (m_disturb > CC_DISTURB_LB && m_disturb < CC_DISTURB_UB))
-            && pEnvContext->id == MODEL_ID::SUCCESSION_TRANSITIONS) 
-            // Successional Transitions
-            {
-            if ((int)m_mc1si == (int)-99.1f) continue; // there may be -99 in input data file
-            if ((int)m_mc1pvt == (int)-99.1f) continue;
-
-            // run probabalistic transitions
-            ProbabilityTransition(pEnvContext, idu); //  This sets m_select_to_trans to the intended TO transition, also sets m_flagProbablisticTransition flag to true (TO found) or false
-
-            if (m_flagProbabilisticTransition)
-               {
-               m_vegTransitionArray[idu] = 1;
-               }
-            else
-               {
-               DeterministicTransition(pEnvContext, idu);//also sets flag true or false
-
-               if (m_flagDeterministicTransition)
-                  m_vegTransitionArray[idu] = 1;
-               }
-
-            // update TimeInAgeclass, AGECLASS, VEGCLASS, PVT, STANDAGE, LAI, CARBON, VEGTRANSTYPE, VARIANT, TSD
-            UpdateIDUVegInfo(pEnvContext, idu, m_flagProbabilisticTransition, m_flagDeterministicTransition);
-            }
-
-         if (m_selected_to_trans != m_vegClass && (m_flagProbabilisticTransition || m_flagDeterministicTransition) && m_colPriorVegClass >= 0)
-            UpdateIDU(pEnvContext, idu, m_colPriorVegClass, m_vegClass, ADD_DELTA);
+         year_index = current_year;
          }
+      else
+         {
+         year_index = 0;
+         }
+
+      if (m_climateChange) //currently climate change is expressed through site index and pvt.
+         {
+         PvtSiteindex2DeltaArr(pEnvContext, idu, m_mc1row, m_mc1col, year_index); //sets m_mc1si and m_mc1pvt
+         }
+      else
+         {
+         m_si = 0;
+         pLayer->GetData(idu, m_colPVT, m_pvt);
+         }
+
+      // Disturbance Transitions
+      if ((m_disturb > 0 && m_disturbArray[idu] != m_disturb && pEnvContext->id == MODEL_ID::DISTURBANCE_TRANSITIONS))   // climate change disturbances     
+         {
+         DisturbanceTransition(pEnvContext, idu);
+
+         if (m_flagProbabilisticTransition)
+            {
+            UpdateIDUVegInfo(pEnvContext, idu, m_flagProbabilisticTransition, m_flagDeterministicTransition);
+            m_vegTransitionArray[idu] = 1;
+            m_disturbArray[idu] = m_disturb;
+            }
+         }
+      else if ((m_disturb == 0 || (m_disturb > CC_DISTURB_LB && m_disturb < CC_DISTURB_UB))
+         && pEnvContext->id == MODEL_ID::SUCCESSION_TRANSITIONS)
+         // Successional Transitions
+         {
+         if ((int)m_mc1si == (int)-99.1f) continue; // there may be -99 in input data file
+         if ((int)m_mc1pvt == (int)-99.1f) continue;
+
+         // run probabalistic transitions
+         ProbabilityTransition(pEnvContext, idu); //  This sets m_select_to_trans to the intended TO transition, also sets m_flagProbablisticTransition flag to true (TO found) or false
+
+         if (m_flagProbabilisticTransition)
+            {
+            m_vegTransitionArray[idu] = 1;
+            }
+         else
+            {
+            DeterministicTransition(pEnvContext, idu);//also sets flag true or false
+
+            if (m_flagDeterministicTransition)
+               m_vegTransitionArray[idu] = 1;
+            }
+
+         // update TimeInAgeclass, AGECLASS, VEGCLASS, PVT, STANDAGE, LAI, CARBON, VEGTRANSTYPE, VARIANT, TSD
+         UpdateIDUVegInfo(pEnvContext, idu, m_flagProbabilisticTransition, m_flagDeterministicTransition);
+         }
+
+      if (m_selected_to_trans != m_vegClass && (m_flagProbabilisticTransition || m_flagDeterministicTransition) && m_colPriorVegClass >= 0)
+         UpdateIDU(pEnvContext, idu, m_colPriorVegClass, m_vegClass, ADD_DELTA);
+      }
       } // end IDU loop
    }
 
@@ -579,7 +580,9 @@ bool DynamicVeg::EndRun(EnvContext*)
    msg.Format("No probabilistic transitions were found for the following %d veg classes: \n"
       "m_vegClass,m_disturb,m_regen,m_si,m_pvt,m_region\n", count);
 
-   for (int i = 0; i <= m_badVegTransClasses.GetUpperBound(); i++)
+   int top = min((int)m_badVegTransClasses.GetSize(), 20);
+
+   for (int i = 0; i < top; i++)
       {
       msg += "Missing probabilistic transition: ";
       msg += m_badVegTransClasses[i];
@@ -597,7 +600,10 @@ bool DynamicVeg::EndRun(EnvContext*)
    msg.Format("No deterministic transitions were found for the following %d veg classes: \n"
       "m_vegClass,m_disturb,m_regen,m_si,m_pvt,m_region\n", count);
 
-   for (int i = 0; i <= m_badDeterminVegTransClasses.GetUpperBound(); i++)
+
+   top = min((int)m_badDeterminVegTransClasses.GetSize(), 20);
+
+   for (int i = 0; i < top; i++)
       {
       msg += "Missing deterministic transition: ";
       msg += m_badDeterminVegTransClasses[i];
@@ -611,9 +617,9 @@ bool DynamicVeg::EndRun(EnvContext*)
 
    }
 
-bool DynamicVeg::DisturbanceTransition(EnvContext *pEnvContext, int idu)
+bool DynamicVeg::DisturbanceTransition(EnvContext* pEnvContext, int idu)
    {
-   bool CCdisturbFlag = CC_DISTURB_LB < m_disturb && m_disturb < CC_DISTURB_UB;
+   bool CCdisturbFlag = CC_DISTURB_LB < m_disturb&& m_disturb < CC_DISTURB_UB;
 
    switch (m_disturb)
       {
@@ -772,7 +778,7 @@ bool DynamicVeg::DisturbanceTransition(EnvContext *pEnvContext, int idu)
       case FVG2FTO:
          ProbabilityTransition(pEnvContext, idu);
          break;
-      
+
       default:
          if (CCdisturbFlag && m_unseenCCtrans[CC_DISTURB_UB - m_disturb])
             { // Unrecognized climate change disturbance transition
@@ -789,9 +795,9 @@ bool DynamicVeg::DisturbanceTransition(EnvContext *pEnvContext, int idu)
 
    }
 
-bool DynamicVeg::ProbabilityTransition(EnvContext *pEnvContext, int idu)
+bool DynamicVeg::ProbabilityTransition(EnvContext* pEnvContext, int idu)
    {
-   const MapLayer *pLayer = pEnvContext->pMapLayer;
+   const MapLayer* pLayer = pEnvContext->pMapLayer;
 
    CString msg;
    int mc1sito10;
@@ -800,9 +806,9 @@ bool DynamicVeg::ProbabilityTransition(EnvContext *pEnvContext, int idu)
    if (pEnvContext->id == MODEL_ID::SUCCESSION_TRANSITIONS)
       m_flagProbabilisticTransition = false;
 
-   std::vector< std::pair<int, float> > *m_final_probs = 0;
-   std::vector< float >  *m_probMultiplier = 0;
-   std::vector< std::pair<int, float> > *m_original_final_probs;
+   std::vector< std::pair<int, float> >* m_final_probs = 0;
+   std::vector< float >* m_probMultiplier = 0;
+   std::vector< std::pair<int, float> >* m_original_final_probs;
 
    m_selected_to_trans = -1;
 
@@ -840,7 +846,34 @@ bool DynamicVeg::ProbabilityTransition(EnvContext *pEnvContext, int idu)
       case PRESCRIBED_HIGH_SEVERITY_FIRE_2:
       case PRESCRIBED_STAND_REPLACING_FIRE_2:
          disturb = 29;   // 29=Prescribed Fire in the co_prob_trans.csv file // SURFACE_FIRE;
+         break;
+
+      case MOWING_GRINDING:
+      case MOWING_GRINDING_2:
+         disturb = MOWING_GRINDING;
+         break;
+
+      case SALVAGE_HARVEST:
+      case SALVAGE_HARVEST_2:
+         disturb = SALVAGE_HARVEST;
+         break;
+
+      case THIN_FROM_BELOW:
+      case THIN_FROM_BELOW_2:
+         disturb = THIN_FROM_BELOW;
+         break;
+
+      case PARTIAL_HARVEST_LIGHT:
+      case PARTIAL_HARVEST_LIGHT_2:
+         disturb = PARTIAL_HARVEST;
+         break;
+
+      case PARTIAL_HARVEST_HIGH:
+      case PARTIAL_HARVEST_HIGH_2:
+         disturb = PARTIAL_HARVEST_HIGH;
+         break;
       }
+
 
    m_probLookupKey.from = m_vegClass;
    m_probLookupKey.regen = m_regen;
@@ -967,7 +1000,7 @@ bool DynamicVeg::ProbabilityTransition(EnvContext *pEnvContext, int idu)
    return m_flagProbabilisticTransition;
    }
 
-int DynamicVeg::ChooseProbTrans(double rand_num, float probability_sum, vector<pair<int, float> > *m_final_probs, std::vector< std::pair<int, float> > *m_original_final_probs)
+int DynamicVeg::ChooseProbTrans(double rand_num, float probability_sum, vector<pair<int, float> >* m_final_probs, std::vector< std::pair<int, float> >* m_original_final_probs)
 // Returns integer vegclass tranisitioned to.
    {
    double sum_of_trans_prob;
@@ -1012,10 +1045,10 @@ int DynamicVeg::ChooseProbTrans(double rand_num, float probability_sum, vector<p
 
 static int errAgeClassCount = 0;
 
-bool DynamicVeg::DeterministicTransition(EnvContext *pEnvContext, int idu)
+bool DynamicVeg::DeterministicTransition(EnvContext* pEnvContext, int idu)
    {
-   MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
-   vector<int> *determmapindex = 0;
+   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
+   vector<int>* determmapindex = 0;
 
    CString msg;
 
@@ -1023,7 +1056,7 @@ bool DynamicVeg::DeterministicTransition(EnvContext *pEnvContext, int idu)
 
    int current_year = pEnvContext->currentYear;
 
-   std::vector< std::pair<int, int> > *dtrans_value = 0;
+   std::vector< std::pair<int, int> >* dtrans_value = 0;
 
    m_flagDeterministicTransition = false;
 
@@ -1043,7 +1076,7 @@ bool DynamicVeg::DeterministicTransition(EnvContext *pEnvContext, int idu)
    determmapindex = &m_determinIndexMap[m_determinIndexLookupKey];
    int endage_col = m_deterministic_inputtable.GetCol("ENDAGE");
 
-   if ( determmapindex->size() > 1 )
+   if (determmapindex->size() > 1)
       {
       CString msg;
       msg.Format("Multiple entries for the same state in the deterministic transition table: vegclass_from=%i pvt=%i region=%i",
@@ -1091,7 +1124,7 @@ bool DynamicVeg::DeterministicTransition(EnvContext *pEnvContext, int idu)
 
    }
 
-bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabilistic_flag, bool deterministic_flag)
+bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabilistic_flag, bool deterministic_flag)
    {
 
    //NOTE:  This Class is called after a State Class Transition has been determinded.  It will use the new State Class, and the previsous one,
@@ -1117,13 +1150,13 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
    float carbon_table_value, carbon;
 
    int new_timeInAgeClass = 0;
-   
 
-   MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
-   vector<int> *probmapindex = 0;
+   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
-   vector<int> *determmapindex = 0;
+   vector<int>* probmapindex = 0;
+
+   vector<int>* determmapindex = 0;
 
    if (!probabilistic_flag && !deterministic_flag && m_vegClass >= 2000000 && pEnvContext->id == 2) //no probabilistic or deterministic transition
       {
@@ -1185,12 +1218,12 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
    m_probIndexLookupKey.region = m_region;
    m_probIndexLookupKey.disturb = disturb;
 
-   if (m_selected_to_trans >= 2000000 && deterministic_flag)//deterministic transition, even if prob transition happened before.
+   if (/*m_selected_to_trans >= 2000000 &&*/ deterministic_flag)//deterministic transition, even if prob transition happened before.
       {
-      if (m_vegClass != m_selected_to_trans)
+      if (m_vegClass != m_selected_to_trans && m_selected_to_trans != -99)
          UpdateIDU(pEnvContext, idu, m_colVegClass, m_selected_to_trans, ADD_DELTA);
 
-      if (m_pvt != m_selected_pvtto_trans)
+      if (m_pvt != m_selected_pvtto_trans && m_selected_pvtto_trans != -99)
          UpdateIDU(pEnvContext, idu, m_colPVT, m_selected_pvtto_trans, ADD_DELTA);
 
       m_determinIndexLookupKey.pvt = m_selected_pvtto_trans;
@@ -1198,7 +1231,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
       //getting index into deterministic file for the line that was transitioned to (now the from). for new age value
       determmapindex = &m_determinIndexMap[m_determinIndexLookupKey];
 
-      ASSERT(determmapindex != NULL);
+      //ASSERT(determmapindex != NULL);
 
       if (determmapindex == NULL)
          {
@@ -1228,9 +1261,9 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
       if (determmapindex->size() == 0)
          {
          CString msg;
-         msg.Format("Missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i", 
+         msg.Format("No transitions (1) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
             m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
-         Report::Log(msg);
+         Report::LogWarning(msg);
          }
       else
          {
@@ -1255,7 +1288,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
 
          m_deterministic_inputtable.Get(carbon_col, determmapindex->at(0), carbon_table_value);
 
-         carbon = carbon_table_value*m_carbon_conversion_factor;
+         carbon = carbon_table_value * m_carbon_conversion_factor;
 
          if (m_carbon != carbon)
             UpdateIDU(pEnvContext, idu, m_colCarbon, carbon, ADD_DELTA);
@@ -1330,7 +1363,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
          if (determmapindex->size() == 0)
             {
             CString msg;
-            msg.Format("Missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
+            msg.Format("No transitions (2) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
                m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
             Report::LogError(msg);
             }
@@ -1375,7 +1408,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
          if (determmapindex->size() == 0)
             {
             CString msg;
-            msg.Format("Missing STM in Deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
+            msg.Format("No transitions (3) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
                m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
             Report::LogError(msg);
             }
@@ -1445,7 +1478,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
 
                UpdateIDU(pEnvContext, idu, m_colVegClass, m_selected_to_trans, ADD_DELTA);
 
-               if (m_pvt != m_selected_pvtto_trans)
+               if (m_pvt != m_selected_pvtto_trans && m_selected_pvtto_trans != -99)
                   UpdateIDU(pEnvContext, idu, m_colPVT, m_selected_pvtto_trans, ADD_DELTA);
 
                new_timeInAgeClass = startage + relativeAge; //relative age can be negative, holding a VEGCLASS longer in said class with respect to deterministic transitions.   
@@ -1466,7 +1499,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
 
                UpdateIDU(pEnvContext, idu, m_colVegClass, m_selected_to_trans, ADD_DELTA);
 
-               if (m_pvt != m_selected_pvtto_trans)
+               if (m_pvt != m_selected_pvtto_trans && m_selected_pvtto_trans != -99)
                   UpdateIDU(pEnvContext, idu, m_colPVT, m_selected_pvtto_trans, ADD_DELTA);
 
                UpdateIDU(pEnvContext, idu, m_colAgeClass, new_timeInAgeClass, ADD_DELTA); //only UpdateIDU if change occurs
@@ -1518,7 +1551,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
 
                   UpdateIDU(pEnvContext, idu, m_colVegClass, m_selected_to_trans, ADD_DELTA);
 
-                  if (m_pvt != m_selected_pvtto_trans)
+                  if (m_pvt != m_selected_pvtto_trans && m_selected_pvtto_trans != -99)
                      UpdateIDU(pEnvContext, idu, m_colPVT, m_selected_pvtto_trans, ADD_DELTA);
 
                   UpdateIDU(pEnvContext, idu, m_colAgeClass, new_timeInAgeClass, ADD_DELTA);
@@ -1533,7 +1566,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
 
                   UpdateIDU(pEnvContext, idu, m_colVegClass, m_selected_to_trans, ADD_DELTA);
 
-                  if (m_pvt != m_selected_pvtto_trans)
+                  if (m_pvt != m_selected_pvtto_trans && m_selected_pvtto_trans != -99)
                      UpdateIDU(pEnvContext, idu, m_colPVT, m_selected_pvtto_trans, ADD_DELTA);
 
                   UpdateIDU(pEnvContext, idu, m_colAgeClass, new_timeInAgeClass, ADD_DELTA);
@@ -1581,7 +1614,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext *pEnvContext, int idu, bool probabi
 
    }
 
-bool DynamicVeg::LoadProbMultiplierCSV(CString probMultiplierFilename, EnvContext *pEnvContext)
+bool DynamicVeg::LoadProbMultiplierCSV(CString probMultiplierFilename, EnvContext* pEnvContext)
    {
    int records = m_probMultiplier_inputtable.ReadAscii(probMultiplierFilename, ',', TRUE);
 
@@ -1656,10 +1689,10 @@ bool DynamicVeg::LoadProbMultiplierCSV(CString probMultiplierFilename, EnvContex
 
    }
 
-bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvContext *pEnvContext)
+bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvContext* pEnvContext)
    {
 
-   const MapLayer *pLayer = pEnvContext->pMapLayer;
+   const MapLayer* pLayer = pEnvContext->pMapLayer;
 
    CString msg;
    int rndStandAge;
@@ -1672,7 +1705,7 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
    float tabcarbon;
    int totemp;
    int pvttotemp;
-   
+
    int records = m_deterministic_inputtable.ReadAscii(deterministicfilename, ',', TRUE);
 
    if (records <= 0 || deterministicfilename == "")
@@ -1780,19 +1813,19 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
       int sumMinAge = 0;
       int sumMaxAge = 0;
 
-      vector<int> *tsdIndex = 0;
+      vector<int>* tsdIndex = 0;
 
       pLayer->GetData(idu, m_colRegion, m_region);
       pLayer->GetData(idu, m_colPVT, m_pvt);
       pLayer->GetData(idu, m_colVegClass, m_vegClass);
-      pLayer->GetData(idu, m_colTSD, m_TSD );
-      pLayer->GetData(idu, m_colDisturb, m_disturb );
+      pLayer->GetData(idu, m_colTSD, m_TSD);
+      pLayer->GetData(idu, m_colDisturb, m_disturb);
 
       // the value for DISTURB in the IDU layer may be a negative value (historic)
       // this value is used as part of key into the probability lookup table. For
       // successional tranitions the value should be zero, so set equal to zero for the key
-      if ( m_disturb < 0 ) m_disturb = 0;
-      
+      if (m_disturb < 0) m_disturb = 0;
+
       // loop through look up table  
       for (int j = 0; j < tabrows; j++)
          {
@@ -1814,7 +1847,7 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
             rndStandAge = (int)floor(startStandAge + ((endStandAge - startStandAge) * (rand_num)));
 
             //if specified by switch in the input .xml file, use one of these methods to intialize TSD in the IDU layer
-            switch ( m_initializer.initTSD )
+            switch (m_initializer.initTSD)
                {
 
                case 1:
@@ -1825,13 +1858,13 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
 
                case 2:
 
-                  if ( m_TSD >= startStandAge && m_TSD <= endStandAge )
+                  if (m_TSD >= startStandAge && m_TSD <= endStandAge)
                      continue;
 
                   rndTSD = (int)floor(startStandAge + ((endStandAge - startStandAge) * (rand_num))) - startStandAge;
 
                   break;
-               
+
                case 3:
 
                   //just for proper lookup key, these keys are for future use
@@ -1844,31 +1877,31 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
                   m_TSDIndexLookupKey.pvt = m_pvt;
                   m_TSDIndexLookupKey.disturb = m_disturb; // should always be zero in Init.
 
-                  tsdIndex = &m_TSDIndexMap[m_TSDIndexLookupKey]; 
+                  tsdIndex = &m_TSDIndexMap[m_TSDIndexLookupKey];
 
-                  n = (int) tsdIndex->size();
-                                       
-                  if ( n > 0 )
+                  n = (int)tsdIndex->size();
+
+                  if (n > 0)
                      {
                      int initVal = tsdIndex->at(0);
                      int uniqVals = 0;
-                     for ( int i = 0; i < n; i++ )
+                     for (int i = 0; i < n; i++)
                         {
-                        sumTSD += m_inputtable.GetAsInt( tsd_col, tsdIndex->at(i) );
+                        sumTSD += m_inputtable.GetAsInt(tsd_col, tsdIndex->at(i));
                         sumMinAge += m_inputtable.GetAsInt(minAge_col, tsdIndex->at(i));
                         sumMaxAge += m_inputtable.GetAsInt(maxAge_col, tsdIndex->at(i));
-                        
+
                         // just need to see if at least one is not the same
-                        if ( initVal != tsdIndex->at(i) ) 
-                           uniqVals++;   
+                        if (initVal != tsdIndex->at(i))
+                           uniqVals++;
                         }
 
-                     ( sumTSD > 0 ) ? meanTSD = (int) floor (sumTSD / n) : meanTSD = 0;
-                     ( sumMinAge > 0 ) ? meanMinAge = (int)floor(sumMinAge / n) : meanMinAge = 0;
-                     ( sumMaxAge > 0 ) ? meanMaxAge = (int)floor(sumMaxAge / n) : meanMaxAge = 0;
-                                       
-                     rndTSD = (int) floor( (double)m_rn.RandValue(0., (double) meanTSD ) );
-                        
+                     (sumTSD > 0) ? meanTSD = (int)floor(sumTSD / n) : meanTSD = 0;
+                     (sumMinAge > 0) ? meanMinAge = (int)floor(sumMinAge / n) : meanMinAge = 0;
+                     (sumMaxAge > 0) ? meanMaxAge = (int)floor(sumMaxAge / n) : meanMaxAge = 0;
+
+                     rndTSD = (int)floor((double)m_rn.RandValue(0., (double)meanTSD));
+
                      }
                   else // no  prob successional transition found, use initial IDU layer value
                      {
@@ -1876,7 +1909,7 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
                      }
 
                   break;
-               
+
                default:
 
                   break;
@@ -1886,18 +1919,18 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
                rndTSD = 0;
 
             // In the .xml file, if user wants DynamicVeg to initialize TSD
-            if ( m_initializer.initTSD > 0 )
-               ((MapLayer *)(pEnvContext->pMapLayer))->SetData(idu, m_colTSD, rndTSD);
+            if (m_initializer.initTSD > 0)
+               ((MapLayer*)(pEnvContext->pMapLayer))->SetData(idu, m_colTSD, rndTSD);
 
             // In the .xml file, if user wants DynamicVeg to initialize AGECLASS
-            if ( m_initializer.initAgeClass > 0 )
-               ((MapLayer *)(pEnvContext->pMapLayer))->SetData(idu, m_colAgeClass, rndStandAge);
+            if (m_initializer.initAgeClass > 0)
+               ((MapLayer*)(pEnvContext->pMapLayer))->SetData(idu, m_colAgeClass, rndStandAge);
 
-            if ( m_useLAI )
-               ((MapLayer *)(pEnvContext->pMapLayer))->SetData(idu, m_colLAI, tablai);
+            if (m_useLAI)
+               ((MapLayer*)(pEnvContext->pMapLayer))->SetData(idu, m_colLAI, tablai);
 
-            if ( m_useCarbon )
-               ((MapLayer *)(pEnvContext->pMapLayer))->SetData(idu, m_colCarbon, tabcarbon*m_carbon_conversion_factor);
+            if (m_useCarbon)
+               ((MapLayer*)(pEnvContext->pMapLayer))->SetData(idu, m_colCarbon, tabcarbon * m_carbon_conversion_factor);
 
             break;
             }
@@ -1908,22 +1941,22 @@ bool DynamicVeg::LoadDeterministicTransCSV(CString deterministicfilename, EnvCon
 
    }
 
-bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext *pEnvContext)
+bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext* pEnvContext)
    {
-   const MapLayer *pLayer = pEnvContext->pMapLayer;
+   const MapLayer* pLayer = pEnvContext->pMapLayer;
 
    CString msg;
    int totemp;
    float probtemp;
-//   int disturb;
-//   int tabvegclass;
-//   int tabpvt;
-//   int tabregion;
-//   int minTSD;
-//   int maxTSD;
-//   int minAgeClass;
+   //   int disturb;
+   //   int tabvegclass;
+   //   int tabpvt;
+   //   int tabregion;
+   //   int minTSD;
+   //   int maxTSD;
+   //   int minAgeClass;
 
-   //read in the the data in the .csv lookup table. index zero is MC1 probability lookup table
+      //read in the the data in the .csv lookup table. index zero is MC1 probability lookup table
    int records = m_inputtable.ReadAscii(probfilename, ',', TRUE);
 
    if (records <= 0)
@@ -1948,7 +1981,7 @@ bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext *pEnvContext)
    int propor_col = m_inputtable.GetCol("pxPropor");
    int region_col = m_inputtable.GetCol("REGION");
    int disturb_col = m_inputtable.GetCol("DISTURB");
-   int probtype_col = m_inputtable.GetCol("VDDTProbType");
+   //int probtype_col = m_inputtable.GetCol("VDDTProbType");
    int minage_col = m_inputtable.GetCol("MINAGE");
    int maxage_col = m_inputtable.GetCol("MAXAGE");
    int tsd_col = m_inputtable.GetCol("TSD");
@@ -1979,48 +2012,137 @@ bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext *pEnvContext)
 
    Report::Log("Iterating through input table");
 
-   // loop through look up table  
+   // NOTE: HARD CODED VALUES - REPLACE
+   std::vector<int> pvts = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,99 };
+   std::vector<int> rgns = { 7,8,9,11,17,18,19,99 };
+   //std::vector<int> vars = { 1,2,3,4,5,6 };
+   std::vector<int> regens = { 0, 1, 2 };
+   int countAdded = 0;
+
+   // loop through look up table  , building the following maps:
+   // probMap(2)[] - key=probInsertKey:(vegFrom,futsi,pvt,regen,region,disturb), value=pair(vegTo,prob)
+   // probIndexMap[] - key=probInsertKey:(vegFrom,vegTo,futsi,pvt,regen,region,prob,disturb), value=row in m_inputTable
    for (int j = 0; j < tabrows; j++)
       {
       //Building key for probabilities
+
+      int pvt = -1, regen = -1, region = -1;
       m_inputtable.Get(vfrom_col, j, m_probInsertKey.from);
-      m_inputtable.Get(vto_col, j, totemp);
       m_inputtable.Get(futsi_col, j, m_probInsertKey.si);
-      m_inputtable.Get(pvt_col, j, m_probInsertKey.pvt);
-      m_inputtable.Get(regen_col, j, m_probInsertKey.regen);
-      m_inputtable.Get(p_col, j, probtemp);
-      m_inputtable.Get(region_col, j, m_probInsertKey.region);
+      m_inputtable.Get(pvt_col, j, pvt);  // these are wildcardable, handled below
+      m_inputtable.Get(regen_col, j, regen);
+      m_inputtable.Get(region_col, j, region);
       m_inputtable.Get(disturb_col, j, m_probInsertKey.disturb);
 
+      m_inputtable.Get(vto_col, j, totemp);
+      m_inputtable.Get(p_col, j, probtemp);
+
+      // handle wildcards
+      for (int _pvt : pvts)
+         {
+         for (int _regen : regens)
+            {
+            for (int _region : rgns)
+               {
+               // insert new entry in map if we match a valid value OR a wildcard (-99) value
+               if ((pvt == _pvt || pvt == -99)   // valid pvt OR wildcard
+                  && (region == _region || region == -99)  // valid region OR wildcard
+                  && (regen == _regen || regen == -99))    // valid regen ORr wildcard
+                  {
+                  // Build map
+                  m_probInsertKey.pvt = _pvt;
+                  m_probInsertKey.region = _region;
+                  m_probInsertKey.regen = _regen;
+
+                  probmap[m_probInsertKey].push_back(std::make_pair(totemp, probtemp));
+                  probmap2[m_probInsertKey].push_back(std::make_pair(totemp, probtemp));
+                  countAdded++;
+                  }
+               }
+            }
+         }
+
+
       //Building map     
-      probmap[m_probInsertKey].push_back(std::make_pair(totemp, probtemp));
-      probmap2[m_probInsertKey].push_back(std::make_pair(totemp, probtemp));
+      //probmap[m_probInsertKey].push_back(std::make_pair(totemp, probtemp));
+      //probmap2[m_probInsertKey].push_back(std::make_pair(totemp, probtemp));
 
       //Building key for index into map
       m_inputtable.Get(vfrom_col, j, m_probIndexInsertKey.from);
       m_inputtable.Get(vto_col, j, m_probIndexInsertKey.to);
-      m_inputtable.Get(region_col, j, m_probIndexInsertKey.region);
-      m_inputtable.Get(pvt_col, j, m_probIndexInsertKey.pvt);
+      m_inputtable.Get(futsi_col, j, m_probIndexInsertKey.si);
+      m_inputtable.Get(pvt_col, j, pvt);
+      m_inputtable.Get(regen_col, j, regen);
+      m_inputtable.Get(region_col, j, region);
       m_inputtable.Get(p_col, j, m_probIndexInsertKey.prob);
       m_inputtable.Get(disturb_col, j, m_probIndexInsertKey.disturb);
-      m_inputtable.Get(futsi_col, j, m_probIndexInsertKey.si);
-      m_inputtable.Get(regen_col, j, m_probIndexInsertKey.regen);
+
+      // handle wildcards
+      for (int _pvt : pvts)
+         {
+         for (int _regen : regens)
+            {
+            for (int _region : rgns)
+               {
+               // insert new entry in map if we match a valid value OR a wildcard (-99) value
+               if ((pvt == _pvt || pvt == -99)   // valid pvt OR wildcard
+                  && (region == _region || region == -99)  // valid region OR wildcard
+                  && (regen == _regen || regen == -99))    // valid regen ORr wildcard
+                  {
+                  // Build map
+                  m_probIndexInsertKey.pvt = _pvt;
+                  m_probIndexInsertKey.region = _region;
+                  m_probIndexInsertKey.regen = _regen;
+
+                  //Building map, this map is used once a stateclass transition has happened. j will be the index into this map
+                  //so values used in Age Class determination can be used.
+                  m_probIndexMap[m_probIndexInsertKey].push_back(j);
+                  }
+               }
+            }
+         }
 
       //Building map, this map is used once a stateclass transition has happened. j will be the index into this map
       //so values used in Age Class determination can be used.
-      m_probIndexMap[m_probIndexInsertKey].push_back(j);
+      //m_probIndexMap[m_probIndexInsertKey].push_back(j);
 
       //Building key for TSDindex into map
-      m_inputtable.Get(vfrom_col, j,  m_TSDIndexInsertKey.from);
-      m_inputtable.Get(region_col, j, m_TSDIndexInsertKey.region);
-      m_inputtable.Get(pvt_col, j,    m_TSDIndexInsertKey.pvt);
-      m_inputtable.Get(disturb_col, j,m_TSDIndexInsertKey.disturb);
-      m_inputtable.Get(futsi_col, j,  m_TSDIndexInsertKey.si);
-      m_inputtable.Get(regen_col, j,  m_TSDIndexInsertKey.regen);
+      m_inputtable.Get(vfrom_col, j, m_TSDIndexInsertKey.from);
+      m_inputtable.Get(region_col, j, region);
+      m_inputtable.Get(pvt_col, j, pvt);
+      m_inputtable.Get(disturb_col, j, m_TSDIndexInsertKey.disturb);
+      m_inputtable.Get(futsi_col, j, m_TSDIndexInsertKey.si);
+      m_inputtable.Get(regen_col, j, regen);
+
+      // handle wildcards
+      for (int _pvt : pvts)
+         {
+         for (int _regen : regens)
+            {
+            for (int _region : rgns)
+               {
+               // insert new entry in map if we match a valid value OR a wildcard (-99) value
+               if ((pvt == _pvt || pvt == -99)   // valid pvt OR wildcard
+                  && (region == _region || region == -99)  // valid region OR wildcard
+                  && (regen == _regen || regen == -99))    // valid regen ORr wildcard
+                  {
+                  // Build map
+                  m_TSDIndexInsertKey.pvt = _pvt;
+                  m_TSDIndexInsertKey.region = _region;
+                  m_TSDIndexInsertKey.regen = _regen;
+
+                  // used to initialize TSD in IDU layer with TSD threshold in Probability lookup table
+                  m_TSDIndexMap[m_TSDIndexInsertKey].push_back(j);
+                  }
+               }
+            }
+         }
+
 
       // used to initialize TSD in IDU layer with TSD threshold in Probability lookup table
-      m_TSDIndexMap[m_TSDIndexInsertKey].push_back(j);
+      //m_TSDIndexMap[m_TSDIndexInsertKey].push_back(j);
 
+      //FUTSI, PVT, REGEN, REGION xxx
       }
 
    // if necessary intialize attributes in IDU layer
@@ -2050,7 +2172,7 @@ bool DynamicVeg::LoadProbCSV(CString probfilename, EnvContext *pEnvContext)
 
    }
 
-bool DynamicVeg::LoadMC1PvtSiCSV(CString MC1Sifilename, CString MC1Pvtfilename, EnvContext *pEnvContext)
+bool DynamicVeg::LoadMC1PvtSiCSV(CString MC1Sifilename, CString MC1Pvtfilename, EnvContext* pEnvContext)
    {
 
    CString msg;
@@ -2156,11 +2278,11 @@ int DynamicVeg::RoundToNearest10(float fNumberToRound)
 bool DynamicVeg::LoadXml(LPCTSTR _filename)
    {
    CString filename;
-   if ( PathManager::FindPath( _filename, filename ) < 0 ) //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
+   if (PathManager::FindPath(_filename, filename) < 0) //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
       {
       CString msg;
-      msg.Format( "Input file '%s' not found - this process will be disabled", _filename );
-      Report::ErrorMsg( msg );
+      msg.Format("Input file '%s' not found - this process will be disabled", _filename);
+      Report::ErrorMsg(msg);
       return false;
       }
 
@@ -2179,7 +2301,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
       }
 
    // start interating through the nodes
-   TiXmlElement *pXmlRoot = doc.RootElement();  // <integrator
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <integrator
 
    XML_ATTR setAttrpvt[] = {
          { "dynamic_update", TYPE_INT, &(m_dynamic_update.dynamic_update), true, 0 },
@@ -2230,7 +2352,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
    //   }
 
    // get the VEGCLASS Transition Type log binary switch value **************************************************
-   TiXmlElement *pXmlTransDeltas = pXmlRoot->FirstChildElement("transition_deltas");
+   TiXmlElement* pXmlTransDeltas = pXmlRoot->FirstChildElement("transition_deltas");
 
    if (pXmlTransDeltas == NULL)
       {
@@ -2249,7 +2371,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
 
 
    // get vegtrans file info next  *****************************************************************************
-   TiXmlElement *pXmlVegtransfiles = pXmlRoot->FirstChildElement("vegtransfiles");
+   TiXmlElement* pXmlVegtransfiles = pXmlRoot->FirstChildElement("vegtransfiles");
 
    if (pXmlVegtransfiles == NULL)
       {
@@ -2259,9 +2381,9 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
       return false;
       }
 
-   TiXmlElement *pXmlVegtransfile = pXmlVegtransfiles->FirstChildElement("vegtransfile");
+   TiXmlElement* pXmlVegtransfile = pXmlVegtransfiles->FirstChildElement("vegtransfile");
 
-   LPCTSTR probFilename=NULL, detFilename=NULL, probMultFilename=NULL;
+   LPCTSTR probFilename = NULL, detFilename = NULL, probMultFilename = NULL;
 
    XML_ATTR setAttrsveg[] = {
       // attr                      type           address              isReq  checkCol        
@@ -2272,38 +2394,38 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
 
    ok = TiXmlGetAttributes(pXmlVegtransfile, setAttrsveg, filename, NULL);
 
-   int retVal = PathManager::FindPath( probFilename, m_vegtransfile.probability_filename );  //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
-   if ( retVal < 0 )
+   int retVal = PathManager::FindPath(probFilename, m_vegtransfile.probability_filename);  //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
+   if (retVal < 0)
       {
       CString msg;
-      msg.Format( "Probability Transition file '%s' not found - Dynamic Veg will be disabled...", probFilename );
-      Report::ErrorMsg( msg );
+      msg.Format("Probability Transition file '%s' not found - Dynamic Veg will be disabled...", probFilename);
+      Report::ErrorMsg(msg);
       return false;
       }
 
-   retVal = PathManager::FindPath( detFilename, m_vegtransfile.deterministic_filename );  //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
-   if ( retVal < 0 )
+   retVal = PathManager::FindPath(detFilename, m_vegtransfile.deterministic_filename);  //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
+   if (retVal < 0)
       {
       CString msg;
-      msg.Format( "Deterministic Transition file '%s' not found - Dynamic Veg will be disabled...", detFilename );
-      Report::ErrorMsg( msg );
+      msg.Format("Deterministic Transition file '%s' not found - Dynamic Veg will be disabled...", detFilename);
+      Report::ErrorMsg(msg);
       return false;
       }
-   
-   if ( probMultFilename != NULL && probMultFilename[ 0 ] != NULL )
+
+   if (probMultFilename != NULL && probMultFilename[0] != NULL)
       {
-      retVal = PathManager::FindPath( probMultFilename, m_vegtransfile.probMultiplier_filename );  //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
-      if ( retVal < 0 )
+      retVal = PathManager::FindPath(probMultFilename, m_vegtransfile.probMultiplier_filename);  //  return value: > 0 = success; < 0 = failure (file not found), 0 = path fully qualified and found 
+      if (retVal < 0)
          {
          CString msg;
-         msg.Format( "Probablistic Multiplier file '%s' not found - Dynamic Veg will be disabled...", probMultFilename );
-         Report::ErrorMsg( msg );
+         msg.Format("Probablistic Multiplier file '%s' not found - Dynamic Veg will be disabled...", probMultFilename);
+         Report::ErrorMsg(msg);
          return false;
          }
       }
 
    // get initializer info next  *****************************************************************************
-   TiXmlElement *pXmlInitializers = pXmlRoot->FirstChildElement("initializers");
+   TiXmlElement* pXmlInitializers = pXmlRoot->FirstChildElement("initializers");
 
    if (pXmlInitializers == NULL)
       {
@@ -2313,7 +2435,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
       return false;
       }
 
-   TiXmlElement *pXmlInitializer = pXmlInitializers->FirstChildElement("initializer");
+   TiXmlElement* pXmlInitializer = pXmlInitializers->FirstChildElement("initializer");
 
    XML_ATTR setAttrsini[] = {
       // attr                     type           address                            isReq  checkCol        
@@ -2324,16 +2446,16 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
    ok = TiXmlGetAttributes(pXmlInitializer, setAttrsini, filename, NULL);
 
    // get Outputs next ******************************************************************************************
-   TiXmlElement *pXmlOutputs = pXmlRoot->FirstChildElement("outputs");
+   TiXmlElement* pXmlOutputs = pXmlRoot->FirstChildElement("outputs");
 
-   if ( pXmlOutputs != NULL)
+   if (pXmlOutputs != NULL)
       {
-      TiXmlElement *pXmlOutput = pXmlOutputs->FirstChildElement("output");
+      TiXmlElement* pXmlOutput = pXmlOutputs->FirstChildElement("output");
 
       while (pXmlOutput != NULL)
          {
          // you need some stucture to store these in
-         OUTPUT *pOutput = new OUTPUT;
+         OUTPUT* pOutput = new OUTPUT;
          XML_ATTR setAttrs[] = {
             // attr                    type          address                 isReq  checkCol
                { "name", TYPE_CSTRING, &(pOutput->name), true, 0 },
@@ -2363,7 +2485,7 @@ bool DynamicVeg::LoadXml(LPCTSTR _filename)
 
 
 
-bool DynamicVeg::PvtSiteindex2DeltaArr(EnvContext *pEnvContext, int idu, int mc1row, int mc1col, int year)
+bool DynamicVeg::PvtSiteindex2DeltaArr(EnvContext* pEnvContext, int idu, int mc1row, int mc1col, int year)
    {
    /*From Gabe email exchange 05172011 1635  Topic MC1 netCDF index to Eugene IDU index
 
@@ -2380,9 +2502,9 @@ bool DynamicVeg::PvtSiteindex2DeltaArr(EnvContext *pEnvContext, int idu, int mc1
       */
 
    const
-      MapLayer *pLayer = pEnvContext->pMapLayer;
+      MapLayer* pLayer = pEnvContext->pMapLayer;
 
-   ASSERT( 0 );   // NOTE: THE SITE-SPECIFIC DEPENDENCIES NEED TO BE REMOVED!!!
+   ASSERT(0);   // NOTE: THE SITE-SPECIFIC DEPENDENCIES NEED TO BE REMOVED!!!
    ASSERT(m_climateChange == true);
 
    int row_index = mc1row - 688;  //vectors are zero indexed, so -688
@@ -2396,8 +2518,8 @@ bool DynamicVeg::PvtSiteindex2DeltaArr(EnvContext *pEnvContext, int idu, int mc1
 
    if (year == 0)
       {
-      ((MapLayer *)(pEnvContext->pMapLayer))->SetData(idu, m_colFutsi, mc1sito10);
-      ((MapLayer *)(pEnvContext->pMapLayer))->SetData(idu, m_colPVT, m_mc1pvt);
+      ((MapLayer*)(pEnvContext->pMapLayer))->SetData(idu, m_colFutsi, mc1sito10);
+      ((MapLayer*)(pEnvContext->pMapLayer))->SetData(idu, m_colPVT, m_mc1pvt);
 
       }
    else

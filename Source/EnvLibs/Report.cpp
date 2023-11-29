@@ -34,7 +34,7 @@ LOGMSG_PROC Report::logMsgProc = NULL;
 STATUSMSG_PROC Report::statusMsgProc = NULL;
 POPUPMSG_PROC Report::popupMsgProc = NULL;
 
-FILE *Report::m_pFile = NULL;
+FILE* Report::m_pFile = NULL;
 
 void Report::StatusMsg(LPCTSTR msg)
    {
@@ -105,7 +105,7 @@ int Report::LogMsg(LPCTSTR _msg, REPORT_ACTION action, REPORT_TYPE type)
    }
 
 
-int Report::PopupMsg(LPCTSTR _msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extra )
+int Report::PopupMsg(LPCTSTR _msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int extra)
    {
    if (popupMsgProc)
       {
@@ -169,11 +169,11 @@ int Report::PopupMsg(LPCTSTR _msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int
       title.Replace("%", "percent");  // special formating character
       fullMsg.Replace("%", "percent");
 
-      popupMsgProc((LPCTSTR) fullMsg, (LPCTSTR)title, type, flags, extra );
+      popupMsgProc((LPCTSTR)fullMsg, (LPCTSTR)title, type, flags, extra);
       }
-   
-   if ( m_pFile != NULL )
-      WriteFile( _msg );
+
+   if (m_pFile != NULL)
+      WriteFile(_msg);
 
    return 0;
    }
@@ -187,7 +187,7 @@ int Report::OKMsg( LPCTSTR msg, LPCTSTR hdr )
 
    return 0;
    }
-   
+
 
  int Report::YesNoMsg( LPCTSTR msg,  LPCTSTR hdr)
    {
@@ -218,8 +218,8 @@ int Report::BalloonMsg( LPCTSTR msg, REPORT_TYPE type, int duration)
    CWnd *pMain = ::AfxGetMainWnd();
    CRect rect;
    pMain->GetClientRect( &rect );
-      
-   //CBalloonHelp::LaunchBalloon( hdr, msg, CPoint( 400, rect.bottom-40 ), IDI_WARNING, 
+
+   //CBalloonHelp::LaunchBalloon( hdr, msg, CPoint( 400, rect.bottom-40 ), IDI_WARNING,
    //            CBalloonHelp::unCLOSE_ON_ANYTHING | CBalloonHelp::unSHOW_CLOSE_BUTTON,
    //            pMain, "", duration );
 
@@ -228,27 +228,27 @@ int Report::BalloonMsg( LPCTSTR msg, REPORT_TYPE type, int duration)
    pPopup->SetAnimationType( CMFCPopupMenu::SLIDE );
    pPopup->SetSmallCaption( 0 );
    //pPopup->SetTransparency( 100 );
-      
+
    CMFCDesktopAlertWndInfo params;
 
    switch( type )
       {
       case RT_INFO:    params.m_hIcon = LoadIcon( NULL, IDI_INFORMATION );        break;
       case RT_WARNING: params.m_hIcon = LoadIcon( NULL, IDI_WARNING );            break;
-      case RT_ERROR:   
-      case RT_FATAL:   
+      case RT_ERROR:
+      case RT_FATAL:
       case RT_SYSTEM:  params.m_hIcon = LoadIcon( NULL, IDI_ERROR );              break;
       default: params.m_hIcon = NULL;
       }
 
    params.m_strText = msg;
    params.m_strURL = _T( "" );
-   //params.m_nURLCmdID = 101;   
+   //params.m_nURLCmdID = 101;
    CPoint pos;    // screen coords
    pos.x = 400;
    pos.y = rect.bottom-40;
    pPopup->Create( pMain, params, NULL, pos );
-   pPopup->SetWindowText( hdr );     
+   pPopup->SetWindowText( hdr );
 
    return retVal;
    }
@@ -262,7 +262,7 @@ int Report::SystemErrorMsg  ( LONG s_err, LPCTSTR __msg, LPCTSTR hdr, int flags)
 
    LPVOID lpMsgBuf;
    FormatMessage( FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-      NULL, s_err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,  0,  NULL  );   
+      NULL, s_err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPTSTR) &lpMsgBuf,  0,  NULL  );
 
    CString msg = ( __msg == NULL ) ? "" : __msg ;
    msg += (LPTSTR) lpMsgBuf;
@@ -275,28 +275,28 @@ int Report::SystemErrorMsg  ( LONG s_err, LPCTSTR __msg, LPCTSTR hdr, int flags)
 
    */
 
-int Report::OpenFile( LPCTSTR filename )
+int Report::OpenFile(LPCTSTR filename)
    {
-   if ( m_pFile )
+   if (m_pFile)
       CloseFile();
 
-   int retVal = fopen_s( &m_pFile, filename, "wt");
-   if ( retVal != 0 )
+   int retVal = fopen_s(&m_pFile, filename, "wt");
+   if (retVal != 0)
       {
-      CString msg( "Report: Unable to open file " );
+      CString msg("Report: Unable to open file ");
       msg += filename;
-      Report::ErrorMsg( msg );
+      Report::ErrorMsg(msg);
       }
-      
+
    return retVal;
    }
 
 
-int Report::CloseFile( void )
+int Report::CloseFile(void)
    {
-   if ( m_pFile != NULL )
+   if (m_pFile != NULL)
       {
-      fclose( m_pFile );
+      fclose(m_pFile);
       m_pFile = NULL;
       }
 
@@ -304,17 +304,18 @@ int Report::CloseFile( void )
    }
 
 
-int Report::WriteFile( LPCTSTR line )
+int Report::WriteFile(LPCTSTR line)
    {
-   if ( m_pFile == NULL )
+   if (m_pFile == NULL)
       return -1;
 
-   fputs( line, m_pFile );    // no newline, must add
-   fputc( '\n', m_pFile );
+   fputs(line, m_pFile);    // no newline, must add
+   fputc('\n', m_pFile);
 
+   fflush(m_pFile);
    return 0;
    }
- 
+
 
 
 
@@ -384,7 +385,7 @@ int Report::Msg(LPCTSTR msg, int errorType, LPCTSTR hdr, int flags)
 
 int Report::OKMsg(LPCTSTR msg, LPCTSTR hdr)
    {
-#ifdef _WINDOWS   
+#ifdef _WINDOWS
    CString title = (hdr == NULL) ? "Success" : hdr;
    MessageBox(GetActiveWindow(), msg, title, MB_OK | MB_ICONEXCLAMATION);
 #endif
@@ -396,7 +397,7 @@ int Report::OKMsg(LPCTSTR msg, LPCTSTR hdr)
 int Report::YesNoMsg(LPCTSTR msg, LPCTSTR hdr)
    {
    int retVal = 0;
-#ifdef _WINDOWS   
+#ifdef _WINDOWS
    CString title = (hdr == NULL) ? "Response Requested" : hdr;
    retVal = MessageBox(GetActiveWindow(), msg, title, MB_YESNO | MB_ICONQUESTION);
 #endif
@@ -444,7 +445,7 @@ int Report::BalloonMsg(LPCTSTR msg, int type, int duration)
    CRect rect;
    pMain->GetClientRect(&rect);
 
-   //CBalloonHelp::LaunchBalloon( hdr, msg, CPoint( 400, rect.bottom-40 ), IDI_WARNING, 
+   //CBalloonHelp::LaunchBalloon( hdr, msg, CPoint( 400, rect.bottom-40 ), IDI_WARNING,
    //            CBalloonHelp::unCLOSE_ON_ANYTHING | CBalloonHelp::unSHOW_CLOSE_BUTTON,
    //            pMain, "", duration );
 
@@ -468,7 +469,7 @@ int Report::BalloonMsg(LPCTSTR msg, int type, int duration)
 
    params.m_strText = msg;
    params.m_strURL = _T("");
-   //params.m_nURLCmdID = 101;   
+   //params.m_nURLCmdID = 101;
    CPoint pos;    // screen coords
    pos.x = 400;
    pos.y = rect.bottom - 40;

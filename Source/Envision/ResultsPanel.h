@@ -53,14 +53,14 @@ enum RESULT_CATEGORY
    VC_OTHER
    };
 
-enum RESULT_TYPE 
+enum RESULT_TYPE
    {
    VT_ROOT,
    VT_RUN,
    VT_MULTIRUN,
 
    // maps
-   VT_MAPS, 
+   VT_MAPS,
    VT_MAP_DYNAMIC,      // for dynamically defined maps
    VT_MAP_VISUALIZER,
 
@@ -70,70 +70,70 @@ enum RESULT_TYPE
    VT_GRAPH_APPVAR,
    VT_GRAPH_MODEL_OUTPUT,
    VT_GRAPH_MODEL_OUTPUTS,
-   VT_GRAPH_EVAL_SCORES, 
-   VT_GRAPH_EVAL_RAWSCORES, 
-   VT_GRAPH_POLICY_APP, 
+   VT_GRAPH_EVAL_SCORES,
+   VT_GRAPH_EVAL_RAWSCORES,
+   VT_GRAPH_POLICY_APP,
    VT_GRAPH_POLICY_EFFECTIVENESS_TREND_DYNAMIC,
    VT_GRAPH_POLICY_EFFECTIVENESS_TREND_STATIC,
    VT_GRAPH_GLOBAL_CONSTRAINTS,
    VT_GRAPH_POLICY_STATS,
-   VT_GRAPH_ACTOR_WTS, 
-   VT_GRAPH_ACTOR_COUNTS, 
-   VT_GRAPH_LULCA_TREND,
-   VT_GRAPH_LULCB_TREND,
-   VT_GRAPH_POP_BY_LULCA,
-   VT_GRAPH_EVALSCORES_BY_LULCA,
-   VT_GRAPH_SOCIAL_NETWORK,
+   VT_GRAPH_ACTOR_WTS,
+   VT_GRAPH_ACTOR_COUNTS,
+   //VT_GRAPH_LULCA_TREND,
+   //VT_GRAPH_LULCB_TREND,
+   //VT_GRAPH_POP_BY_LULCA,
+   //VT_GRAPH_EVALSCORES_BY_LULCA,
+   //VT_GRAPH_SOCIAL_NETWORK,
    VT_GRAPH_VISUALIZER,
 
    // views
    VT_VIEWS,
-   VT_VIEW_GOALSPACE, 
+   VT_VIEW_GOALSPACE,
    VT_VIEW_POLICY_APP,
-   VT_VIEW_LULC_TRANS,
+   //VT_VIEW_LULC_TRANS,
    VT_VIEW_DELTA_ARRAY,
    VT_VIEW_VISUALIZER,
 
    // data tables
    VT_DATATABLES,
    VT_DATA_MODEL_OUTPUTS,
-   VT_DATA_EVAL_SCORES, 
-   VT_DATA_EVAL_RAWSCORES, 
-   VT_DATA_ACTOR_WTS, 
-   VT_DATA_ACTOR_COUNTS, 
-   VT_DATA_POLICY_APP, 
+   VT_DATA_EVAL_SCORES,
+   VT_DATA_EVAL_RAWSCORES,
+   VT_DATA_ACTOR_WTS,
+   VT_DATA_ACTOR_COUNTS,
+   VT_DATA_POLICY_APP,
    VT_DATA_POLICY_EFFECTIVENESS,
    VT_DATA_POLICY_SUMMARY,
    VT_DATA_POLICIES_BY_ACTOR_AREA,
    VT_DATA_POLICIES_BY_ACTOR_COUNT,
    VT_DATA_GLOBAL_CONSTRAINTS,
    VT_DATA_POLICY_STATS,
-   VT_DATA_LULC_TRANS,
-   VT_DATA_LULCA_TREND,
-   VT_DATA_LULCB_TREND,
-   VT_DATA_POP_BY_LULCA,
-   VT_DATA_EVALSCORES_BY_LULC_A,
-   VT_DATA_SOCIAL_NETWORK,
+   //VT_DATA_LULC_TRANS,
+   //VT_DATA_LULCA_TREND,
+   //VT_DATA_LULCB_TREND,
+   //VT_DATA_POP_BY_LULCA,
+   //VT_DATA_EVALSCORES_BY_LULC_A,
+   //VT_DATA_SOCIAL_NETWORK,
    // multirun maps
    VT_MULTIMAPS,
    VT_MAP_MULTI_SCENARIO_VULNERABILITY,
 
    // multirun graphs
    VT_MULTIGRAPHS,
-   VT_GRAPH_MULTI_DYNAMIC,    
-   VT_GRAPH_MULTI_EVAL_SCORES, 
+   VT_GRAPH_MULTI_DYNAMIC,
+   VT_GRAPH_MULTI_EVAL_SCORES,
    VT_GRAPH_MULTI_EVAL_SCORE_FREQ,
    VT_GRAPH_MULTI_PARAMETERS,
    VT_GRAPH_MULTI_PARAMETERS_FREQ,
-      
+
    // multirun views
    VT_MULTIVIEWS,
    VT_VIEW_MULTI_TRAJECTORYSPACE,
 
    // Multirun tables
    VT_MULTITABLES,
-   VT_DATA_MULTI_EVAL_SCORES, 
-   VT_DATA_MULTI_EVAL_RAWSCORES, 
+   VT_DATA_MULTI_EVAL_SCORES,
+   VT_DATA_MULTI_EVAL_RAWSCORES,
    VT_DATA_MULTI_EVAL_SCORE_FREQ,
    VT_DATA_MULTI_PARAMETERS,
    VT_DATA_MULTI_PARAMETERS_FREQ,
@@ -142,136 +142,136 @@ enum RESULT_TYPE
    VT_VISUALIZER,
 
    VT_UNKNOWN_RESULT
-   };   
+   };
 
 
 // ResultNode - a class for storing information about each node in the Postrun results tree
 class ResultNode
-{
-public:
-   int         m_run;          // what run is this node associated with
-   INT_PTR     m_extra;        // extra data, used for dynamic map information (contains ptr to EnvEvaluator for result)
-   bool        m_show;
-   CString     m_text;
+   {
+   public:
+      int         m_run;          // what run is this node associated with
+      INT_PTR     m_extra;        // extra data, used for dynamic map information (contains ptr to EnvEvaluator for result)
+      bool        m_show;
+      CString     m_text;
 
-   RESULT_TYPE m_type;         // seen enum above
-   RESULT_CATEGORY m_category;     // 0=run, 1=map, 2=graph, 3=view, 4=datatable, 6=multirun graph, 8=multirun table
-   
-   HTREEITEM   m_hItem;
+      RESULT_TYPE m_type;         // seen enum above
+      RESULT_CATEGORY m_category;     // 0=run, 1=map, 2=graph, 3=view, 4=datatable, 6=multirun graph, 8=multirun table
 
-   bool        m_isExpanded;
+      HTREEITEM   m_hItem;
 
-public:
-   ResultNode( ResultNode *pParent ) : m_pParent( pParent ), m_category( VC_OTHER ), m_extra( 0 ), m_show( true ),
-                     m_type( VT_UNKNOWN_RESULT ), m_text() { }
+      bool        m_isExpanded;
 
-   ResultNode( ResultNode *pParent, RESULT_CATEGORY _category, int _run, INT_PTR _extra, bool _show, RESULT_TYPE _type, LPCTSTR _text ) 
-                  :  m_pParent( pParent ), m_category( _category ), m_run( _run ), m_extra( _extra ), 
-                     m_show( _show ), m_type( _type ), m_text( _text ) { }
+   public:
+      ResultNode(ResultNode* pParent) : m_pParent(pParent), m_category(VC_OTHER), m_extra(0), m_show(true),
+         m_type(VT_UNKNOWN_RESULT), m_text() { }
 
-   ResultNode( ResultNode &r );
-   
-   ~ResultNode();
-   
-   // node pointers
-   ResultNode *m_pParent;
+      ResultNode(ResultNode* pParent, RESULT_CATEGORY _category, int _run, INT_PTR _extra, bool _show, RESULT_TYPE _type, LPCTSTR _text)
+         : m_pParent(pParent), m_category(_category), m_run(_run), m_extra(_extra),
+         m_show(_show), m_type(_type), m_text(_text) { }
 
-   CArray< ResultNode*, ResultNode* > m_children;
-};
+      ResultNode(ResultNode& r);
+
+      ~ResultNode();
+
+      // node pointers
+      ResultNode* m_pParent;
+
+      CArray< ResultNode*, ResultNode* > m_children;
+   };
 
 
 class ResultNodeTree
-{
-//  root
-//    -- run1
-//       -- maps
-//          -- map1
-//          -- ...
-//       -- graphs
-//          -- standard graph1
-//          -- standard graph2
-//          -- model1
-//             -- var1
-//                 -- childVar1
-//                 -- childVar2
-//             -- var 2
-//         ... etc...
-//       -- tables
-//       -- views
-//    -- run2 
+   {
+   //  root
+   //    -- run1
+   //       -- maps
+   //          -- map1
+   //          -- ...
+   //       -- graphs
+   //          -- standard graph1
+   //          -- standard graph2
+   //          -- model1
+   //             -- var1
+   //                 -- childVar1
+   //                 -- childVar2
+   //             -- var 2
+   //         ... etc...
+   //       -- tables
+   //       -- views
+   //    -- run2 
 
-public:
-   ResultNode *m_pRootNode;  // base of the tree.  Run Nodes get added here
+   public:
+      ResultNode* m_pRootNode;  // base of the tree.  Run Nodes get added here
 
-   ResultNodeTree();
-   ~ResultNodeTree() { if ( m_pRootNode != NULL ) delete m_pRootNode; }
+      ResultNodeTree();
+      ~ResultNodeTree() { if (m_pRootNode != NULL) delete m_pRootNode; }
 
-   ResultNode *AddNode( ResultNode *pParent, int _run, RESULT_CATEGORY _category, INT_PTR _extra, RESULT_TYPE _type, LPCTSTR _text );
-};
-   
+      ResultNode* AddNode(ResultNode* pParent, int _run, RESULT_CATEGORY _category, INT_PTR _extra, RESULT_TYPE _type, LPCTSTR _text);
+   };
+
 
 // ResultsPanel - parent window that contains everything associated with the Post-Run Results view,
 // including the results tree, the results tree container window, and the ResultWnd that holds
 //  all the results
 
 class ResultsPanel : public CWnd
-{
-	DECLARE_DYNAMIC(ResultsPanel)
+   {
+   DECLARE_DYNAMIC(ResultsPanel)
 
-public:
-	ResultsPanel();
-	virtual ~ResultsPanel();
+   public:
+      ResultsPanel();
+      virtual ~ResultsPanel();
 
-   StaticSplitterWnd m_splitterWnd;
- 
-   ResultsWnd   *m_pResultsWnd;
-   ResultsTree  *m_pTreeWnd;
-   CTreeCtrl    *m_pTree;
+      StaticSplitterWnd m_splitterWnd;
 
-public:
-   CWnd *GetActiveView() { return m_pResultsWnd->m_pActiveWnd; }
+      ResultsWnd* m_pResultsWnd;
+      ResultsTree* m_pTreeWnd;
+      CTreeCtrl* m_pTree;
 
-   //static ResultInfoArray m_resultInfo;
-   static ResultNodeTree m_resultTree;
+   public:
+      CWnd* GetActiveView() { return m_pResultsWnd->m_pActiveWnd; }
 
-   //static LPCTSTR GetResultText( RESULT_TYPE );
-   //static int     GetResultCategory( RESULT_TYPE );
+      //static ResultInfoArray m_resultInfo;
+      static ResultNodeTree m_resultTree;
 
-   bool AddRun( int run );
-   bool AddMultiRun( int run );
+      //static LPCTSTR GetResultText( RESULT_TYPE );
+      //static int     GetResultCategory( RESULT_TYPE );
 
-   void AddMapWnd  ( ResultNode* ); //RESULT_TYPE type, int run, int fieldInfoOffset );
-   void AddChangeMapWnd( ResultNode* ); //RESULT_TYPE type, int run, int fieldInfoOffset );
-   void AddGraphWnd( ResultNode* ); //RESULT_TYPE type, int run, int extra );
-   void AddViewWnd ( ResultNode* ); //RESULT_TYPE type, int run, int extra );
-   void AddDataTableWnd( ResultNode* );   //RESULT_TYPE type, int run, int extra );
-   void AddMultiRunResult( ResultNode* );   // RESULT_TYPE type, int run );
+      bool AddRun(int run);
+      bool AddMultiRun(int run);
 
-   void AddCrossRunGraph( ResultNode* ); //RESULT_TYPE type, int extra );
+      void AddMapWnd(ResultNode*); //RESULT_TYPE type, int run, int fieldInfoOffset );
+      void AddChangeMapWnd(ResultNode*); //RESULT_TYPE type, int run, int fieldInfoOffset );
+      void AddGraphWnd(ResultNode*); //RESULT_TYPE type, int run, int extra );
+      void AddViewWnd(ResultNode*); //RESULT_TYPE type, int run, int extra );
+      void AddDataTableWnd(ResultNode*);   //RESULT_TYPE type, int run, int extra );
+      void AddMultiRunResult(ResultNode*);   // RESULT_TYPE type, int run );
 
-   void AddVisualizerWnd( ResultNode* );
+      void AddCrossRunGraph(ResultNode*); //RESULT_TYPE type, int extra );
 
-   void ExportDataTable( ResultNode* ); //RESULT_TYPE type, int run );
-   void ExportModelOutputs( int run=-1, bool promptForPath=true );  // -1 = all runs
+      void AddVisualizerWnd(ResultNode*);
 
-   void RemoveAll( void ) { m_pResultsWnd->RemoveAll(); }
+      void ExportDataTable(ResultNode*); //RESULT_TYPE type, int run );
+      void ExportModelOutputs(int run = -1, bool promptForPath = true);  // -1 = all runs
 
-protected:
-   ResultNode *AddTreeNode( ResultNode *pParent, int run, RESULT_CATEGORY category, INT_PTR extra, RESULT_TYPE resultType, LPCTSTR label );
+      void RemoveAll(void) { m_pResultsWnd->RemoveAll(); }
 
-   int  AddDynamicGraphNodes( ResultNode *pGraphNode );
-	
- public:
-    int PopulateTreeCtrl();    // populate nodes on tree control
+   protected:
+      ResultNode* AddTreeNode(ResultNode* pParent, int run, RESULT_CATEGORY category, INT_PTR extra, RESULT_TYPE resultType, LPCTSTR label);
 
- protected:  // helper functions for PopulateTreeCtrl()
-   int PopulateTreeCtrl( ResultNode*, int level );  // returns number of children shown + whether this one is shown
-   int SetNodeVisibility( ResultNode*, int level );
+      int  AddDynamicGraphNodes(ResultNode* pGraphNode);
 
-   afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
-	afx_msg void OnSize(UINT nType, int cx, int cy);
-   DECLARE_MESSAGE_MAP()
+   public:
+      int PopulateTreeCtrl();    // populate nodes on tree control
 
-};
+   protected:  // helper functions for PopulateTreeCtrl()
+      int PopulateTreeCtrl(ResultNode*, int level);  // returns number of children shown + whether this one is shown
+      int SetNodeVisibility(ResultNode*, int level);
+
+      afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
+      afx_msg void OnSize(UINT nType, int cx, int cy);
+      DECLARE_MESSAGE_MAP()
+
+   };
 
 

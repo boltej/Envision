@@ -94,7 +94,7 @@ float TraitContainer::ComputeSimilarity(TraitContainer* pOther)
 
 SNNode::SNNode(SNIP_NODETYPE nodeType)
    :m_nodeType(nodeType)
-   {   
+   {
    //m_reactivity = (float) randNodeInit.RandValue( ACT_LOWER_BOUND, ACT_UPPER_BOUND );   
    }
 
@@ -209,7 +209,7 @@ bool SNLayer::Init()
    return true;
    }
 
-int SNLayer::GetNodes(SNIP_NODETYPE nodeType, vector<SNNode*> &nodes)
+int SNLayer::GetNodes(SNIP_NODETYPE nodeType, vector<SNNode*>& nodes)
    {
    nodes.resize(0);
 
@@ -218,7 +218,7 @@ int SNLayer::GetNodes(SNIP_NODETYPE nodeType, vector<SNNode*> &nodes)
       if (node->m_nodeType == nodeType)
          nodes.push_back(node);
       }
-   return (int) nodes.size();
+   return (int)nodes.size();
    }
 
 
@@ -245,7 +245,7 @@ SNNode* SNLayer::FindNode(LPCTSTR name)
       SNNode* node = m_nodeMap.at(name);
       return node;
       }
-   catch(exception e) {
+   catch (exception e) {
       CString msg;
       msg.Format("Exception encountered finding node %s", name);
       Report::LogError(msg);
@@ -280,13 +280,13 @@ bool SNLayer::RemoveNode(SNNode* pNode)
          {
          //m_edges.Remove(pEdge);
          std::erase(m_edges, pEdge);
-         for ( int j=0; j < (int) pEdge->m_pFromNode->m_outEdges.size(); j++)
+         for (int j = 0; j < (int)pEdge->m_pFromNode->m_outEdges.size(); j++)
             if (pEdge->m_pFromNode->m_outEdges[j] == pEdge)
                {
                std::erase(pEdge->m_pFromNode->m_outEdges, pEdge);
                break;
-               }   
-                  
+               }
+
          for (int j = 0; j < (int)pEdge->m_pToNode->m_inEdges.size(); j++)
             if (pEdge->m_pToNode->m_inEdges[j] == pEdge)
                {
@@ -316,7 +316,7 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
    out << "    \"description\": \"" << pSNIPModel->m_description << "\",\n";
 
    out << "        \"traits\": [";
-   int nTraits = (int) pSNIPModel->m_traitsLabels.size();
+   int nTraits = (int)pSNIPModel->m_traitsLabels.size();
    for (int i = 0; i < nTraits; i++)
       {
       if (i == (nTraits - 1))  // no comma
@@ -339,11 +339,11 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
    out << "        \"value\": \"" << pSNIPModel->m_pInputNode->m_reactivity << "\"\n    },\n";
 
    out << "    \"infSubmodel\": " << "\"trust\",\n";
-   out << "    \"infSubmodelWt\" : "                 << pSNIPModel->m_infSubmodelWt << ",\n";
-   out << "    \"agg_input_sigma\" : "               << pSNIPModel->m_aggInputSigma << ",\n";
-   out << "    \"trans_eff_max\" : "                 << pSNIPModel->m_transEffMax << ",\n";
-   out << "    \"reactivity_max\" : "                << pSNIPModel->m_nodeReactivityMax << ",\n";
-   out << "    \"reactivity_threshold\" : "          << pSNIPModel->m_activationThreshold << ",\n";
+   out << "    \"infSubmodelWt\" : " << pSNIPModel->m_infSubmodelWt << ",\n";
+   out << "    \"agg_input_sigma\" : " << pSNIPModel->m_aggInputSigma << ",\n";
+   out << "    \"trans_eff_max\" : " << pSNIPModel->m_transEffMax << ",\n";
+   out << "    \"reactivity_max\" : " << pSNIPModel->m_nodeReactivityMax << ",\n";
+   out << "    \"reactivity_threshold\" : " << pSNIPModel->m_activationThreshold << ",\n";
    out << "    \"reactivity_steepness_factor_B\" : " << pSNIPModel->m_activationSteepFactB << ",\n";
    out << "    \"node_size\" : \"reactivity\",\n";
    out << "    \"node_color\" : \"TheTrait\",\n";
@@ -353,9 +353,9 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
    out << "    \"edge_label\" : \"transEff\",\n";
    out << "    \"show_tips\" : true,\n";
    out << "    \"show_landscape_signal_edges\" : true,\n";
-   out << "    \"layout\" : \"preset\",\n"; 
-   out << "    \"zoom\" : 1.262,\n"; 
-   
+   out << "    \"layout\" : \"preset\",\n";
+   out << "    \"zoom\" : 1.262,\n";
+
    out << "    \"center\" : { \n";
    out << "        \"x\" : -176.178, \n";
    out << "        \"y\" : -79.18881535874661 \n     },\n";
@@ -363,9 +363,9 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
    out << "    },\n"; // close settings
 
    out << "    \"nodes\": [\n";
-   int nNodes = (int) this->m_nodes.size();
+   int nNodes = (int)this->m_nodes.size();
 
-   for (int j=0; j < nNodes; j++ )
+   for (int j = 0; j < nNodes; j++)
       {
       auto node = m_nodes[j];
 
@@ -386,7 +386,7 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
       out << "        \"type\" : \"" << type << "\",\n";
 
       out << "        \"traits\": [";
-      nTraits = (int) node->m_traits.size();
+      nTraits = (int)node->m_traits.size();
       for (int i = 0; i < nTraits; i++)
          {
          auto trait = node->m_traits[i];
@@ -398,11 +398,11 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
       out << "],\n";
 
       out << "        \"reactivity\": " << node->m_reactivity << ",\n";
-      out << "        \"influence\": " << node->m_influence<< ",\n";
+      out << "        \"influence\": " << node->m_influence << ",\n";
 
 
       out << "        \"x\": " << 0 << ",\n";
-      if (j == (nNodes-1) )
+      if (j == (nNodes - 1))
          out << "        \"y\": " << 0 << "\n     }\n";
       else
          out << "        \"y\": " << 0 << "\n     },\n";
@@ -411,23 +411,23 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
 
    // edges
    out << "    \"edges\": [\n";
-   int nEdges = (int) this->m_edges.size();
+   int nEdges = (int)this->m_edges.size();
 
    for (int j = 0; j < nEdges; j++)
       {
       auto edge = m_edges[j];
 
       out << "      {\n";
-      out << "        \"from\" : \""   << edge->m_pFromNode->m_name << "\",\n";
-      out << "        \"to\" : \""     << edge->m_pToNode->m_name << "\",\n";
-      out << "        \"trust\" : "    << edge->m_trust << ",\n";
+      out << "        \"from\" : \"" << edge->m_pFromNode->m_name << "\",\n";
+      out << "        \"to\" : \"" << edge->m_pToNode->m_name << "\",\n";
+      out << "        \"trust\" : " << edge->m_trust << ",\n";
       out << "        \"influence\": " << edge->m_influence << "\n";
       if (j == (nEdges - 1))
          out << "      }\n";
       else
          out << "      },\n";
       }
-   
+
    out << "    ]\n";
    out << "  }\n";
    out << "}\n";
@@ -465,7 +465,7 @@ bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
    out << "<graph id='G' edgedefault='directed'> \n";
 
    //for (int i = 0; i < (int)this->m_nodes.size(); i++)
-   for( SNNode *pNode : this->m_nodes)
+   for (SNNode* pNode : this->m_nodes)
       {
       //SNNode* pNode = this->m_nodes[i];
       string color = "black";
@@ -486,8 +486,8 @@ bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
       }
 
    //for (int i = 0; i < (int)this->m_edges.size(); i++)
-   for (SNEdge* pEdge : this->m_edges )
-{
+   for (SNEdge* pEdge : this->m_edges)
+      {
       string color = "black";
 
       //switch (pEdge->m_nodeType)
@@ -506,7 +506,7 @@ bool SNLayer::ExportNetworkGraphML(LPCTSTR path)
       out << "  <data key='e5'>" << pEdge->m_influence << "</data> \n";  // influence
       out << "</edge> \n";
       }
-      
+
    out << "</graph>\n";
    out << "</graphml>\n";
    out.close();
@@ -557,7 +557,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
    int nNA_Engagers = 0;
    int nNA_Both = 0;
    int nNA_Only = 0;
-   int numTraits = (int) this->m_pSNIPModel->m_traitsLabels.size();
+   int numTraits = (int)this->m_pSNIPModel->m_traitsLabels.size();
 
    // get LA groupings and add LA nodes for each group
    std::vector<string>& groups = this->m_pSNIPModel->m_traitsLabels;
@@ -650,55 +650,55 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
          case NT_INPUT_SIGNAL:    x = 0;               y = int(yMax / 2);                          break;
          case NT_ASSESSOR:        x = int(0.12f * xMax); y = int(float(yMax * na) / nAssessors); na++; break;
          case NT_ENGAGER:         x = int(0.88f * xMax); y = int(float(yMax * ne) / nEngagers);  ne++; break;
-         case NT_LANDSCAPE_ACTOR: x = xMax; y = int(float(yMax * nla) / nLAs);  nla++; break; 
+         case NT_LANDSCAPE_ACTOR: x = xMax; y = int(float(yMax * nla) / nLAs);  nla++; break;
          case NT_NETWORK_ACTOR:
+         {
+         bool assessor = false;
+         for (int j = 0; j < (int)pNode->m_inEdges.size(); j++)
+            if (pNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
+               {
+               assessor = true;
+               break;
+               }
+
+         bool engager = false;
+         for (int j = 0; j < (int)pNode->m_outEdges.size(); j++)
+            if (pNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
+               {
+               engager = true;
+               break;
+               }
+
+         // input only - left col
+         if (assessor && !engager)
             {
-            bool assessor = false;
-            for (int j = 0; j < (int)pNode->m_inEdges.size(); j++)
-               if (pNode->m_inEdges[j]->m_pFromNode->m_nodeType == NT_ASSESSOR)
-                  {
-                  assessor = true;
-                  break;
-                  }
-
-            bool engager = false;
-            for (int j = 0; j < (int)pNode->m_outEdges.size(); j++)
-               if (pNode->m_outEdges[j]->m_pToNode->m_nodeType == NT_ENGAGER)
-                  {
-                  engager = true;
-                  break;
-                  }
-
-            // input only - left col
-            if (assessor && !engager)
-               {
-               y = int(float(yMax) * nnLeft / nNA_Assessors);
-               x = int(0.24f * xMax);
-               nnLeft++;
-               }
-            else if (engager && !assessor)  // enager only, right column 
-               {
-               y = int(yMax * nnRight / nNA_Engagers);
-               x = int(0.76f * xMax);
-               nnRight++;
-               }
-            else if (engager && assessor)  // both, center column
-               {
-               x = int(0.5 * xMax);
-               y = int(yMax * nnCenter / nNA_Both);
-               nnCenter++;
-               }
-            else // connect to neither engager or assessor
-               {
-               x = int(xMax * randUnif.RandValue(0.30, 0.70));
-               if (x > (0.45f * xMax) && x <= 0.50f * xMax)
-                  x = int(randUnif.RandValue(0.30, 0.45) * xMax);
-               if (x < (0.55f * xMax) && x > 0.50f * xMax)
-                  x = int(randUnif.RandValue(0.55, 0.70) * xMax);
-               y = int(randUnif.RandValue(0, yMax));
-               }
-            break;
+            y = int(float(yMax) * nnLeft / nNA_Assessors);
+            x = int(0.24f * xMax);
+            nnLeft++;
             }
+         else if (engager && !assessor)  // enager only, right column 
+            {
+            y = int(yMax * nnRight / nNA_Engagers);
+            x = int(0.76f * xMax);
+            nnRight++;
+            }
+         else if (engager && assessor)  // both, center column
+            {
+            x = int(0.5 * xMax);
+            y = int(yMax * nnCenter / nNA_Both);
+            nnCenter++;
+            }
+         else // connect to neither engager or assessor
+            {
+            x = int(xMax * randUnif.RandValue(0.30, 0.70));
+            if (x > (0.45f * xMax) && x <= 0.50f * xMax)
+               x = int(randUnif.RandValue(0.30, 0.45) * xMax);
+            if (x < (0.55f * xMax) && x > 0.50f * xMax)
+               x = int(randUnif.RandValue(0.55, 0.70) * xMax);
+            y = int(randUnif.RandValue(0, yMax));
+            }
+         break;
+         }
          }
 
       const int maxNodeSize = 20;
@@ -789,7 +789,7 @@ bool SNLayer::ExportNetworkGEXF(LPCTSTR path, LPCTSTR date)
             _AddGEFXEdge(out, date, pEdge->m_id.c_str(), pEdge->m_pFromNode->m_id.c_str(), pEdge->m_pToNode->m_id.c_str(), thick, pEdge->m_signalStrength, pEdge->m_trust, pEdge->m_influence);
          }
       }
-   
+
    // add landscape actor group edges
 
    /////// first get ready calc stats
@@ -903,7 +903,7 @@ void SNLayer::_AddGEFXNode(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR labe
 
    unsigned char r = 0, g = 0, b = 0;
    ::RWBColorRamp(0, 1, reactivity, r, g, b);
-   out << " <viz:color r='" << (int) r << "' g='" << (int) g << "' b='" << (int) b << "' a='1.0'/>" << endl;
+   out << " <viz:color r='" << (int)r << "' g='" << (int)g << "' b='" << (int)b << "' a='1.0'/>" << endl;
    out << " <viz:position x='" << x << "' y='" << y << "' z='0.0'/>" << endl;
    out << " <viz:size value='" << size << "'/>" << endl;
    out << " <viz:shape value='disc'/>" << endl;
@@ -924,7 +924,7 @@ void SNLayer::_AddGEFXEdge(ofstream& out, LPCTSTR date, LPCTSTR id, LPCTSTR sour
    // thickness = influence
    unsigned char r = 0, g = 0, b = 0;
    ::RWBColorRamp(0, 1, trust, r, g, b);
-   out << " <viz:color r='" << (int) r << "' g='" << (int) g << "' b='" << (int) b << "' a='1.0'/>" << endl;
+   out << " <viz:color r='" << (int)r << "' g='" << (int)g << "' b='" << (int)b << "' a='1.0'/>" << endl;
    out << " <viz:thickness value='" << thick << "'/>" << endl;
    out << " <viz:shape value='solid' />" << endl;
 
@@ -936,7 +936,7 @@ int SNLayer::CheckNetwork()
    {
    int nIslandNodes = 0;
    int nUnknownNodes = 0;
-   
+
    for (int i = 0; i < (int)this->m_nodes.size(); i++)
       {
       if ((i % 100) == 0)
@@ -961,9 +961,9 @@ int SNLayer::CheckNetwork()
 
       SNEdge* pEdge = this->m_edges[i];
 
-      if ( pEdge->m_pToNode == nullptr)
+      if (pEdge->m_pToNode == nullptr)
          nEdgeMissingNodes++;
-      else if ( FindNode(pEdge->m_pToNode->m_name) == nullptr )
+      else if (FindNode(pEdge->m_pToNode->m_name) == nullptr)
          nEdgeMissingNodes++;
 
       if (pEdge->m_pFromNode == nullptr)
@@ -1005,7 +1005,7 @@ int SNLayer::CheckNetwork()
 
 SNIPModel::SNIPModel(SNLayer* pLayer)
    : m_actorProfiles(UNIT_MEASURE::U_UNDEFINED)
-   , m_pSNLayer(pLayer) 
+   , m_pSNLayer(pLayer)
    { }
 
 
@@ -1061,7 +1061,7 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "totalEdgeSignalStrength");
    m_pOutputData->SetLabel(col++, "inputActivation");
    m_pOutputData->SetLabel(col++, "landscapeSignalInfluence");
-   m_pOutputData->SetLabel(col++, "signalContestedness"); 
+   m_pOutputData->SetLabel(col++, "signalContestedness");
    m_pOutputData->SetLabel(col++, "meanDegreeCentrality");//30
    m_pOutputData->SetLabel(col++, "meanBetweenessCentrality");
    m_pOutputData->SetLabel(col++, "meanClosenessCentrality");
@@ -1070,7 +1070,7 @@ bool SNIPModel::Init()
    m_pOutputData->SetLabel(col++, "meanInfWtClosenessCentrality");
    m_pOutputData->SetLabel(col++, "normCoordinators");
    m_pOutputData->SetLabel(col++, "normGatekeeper");
-   m_pOutputData->SetLabel(col++, "normRepresentative"); 
+   m_pOutputData->SetLabel(col++, "normRepresentative");
    m_pOutputData->SetLabel(col++, "notLeaders");
    m_pOutputData->SetLabel(col++, "clusteringCoefficient"); //40
    m_pOutputData->SetLabel(col++, "NLA_Influence");
@@ -1082,7 +1082,7 @@ bool SNIPModel::Init()
    if (this->m_pSNLayer->m_pSNIP != nullptr)
       {
       this->m_pSNLayer->m_pSNIP->AddOutputVar(this->m_pSNLayer->m_name.c_str(), m_pOutputData, "");
-      
+
       this->m_pSNLayer->m_pSNIP->AddInputVar("LA Trust Decay Factor", this->m_laTrustDecay, "");
       //this->m_pSNLayer->m_pSNIP->AddInputVar("Landscape Signal", this->m_laTrustDecay, "");
       }
@@ -1113,9 +1113,9 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       this->m_traitsMap[trait] = index++;
       }
 
-   json &settings = m_networkJSON["settings"];
+   json& settings = m_networkJSON["settings"];
 
-   json &autogenLandscapeSignals = settings["autogenerate_landscape_signals"];
+   json& autogenLandscapeSignals = settings["autogenerate_landscape_signals"];
    float autoGenFraction = autogenLandscapeSignals["fraction"];
    std::string autoGenBias = autogenLandscapeSignals["bias"];
    ASSERT(autoGenFraction < 0.0000001f);  // autogen landscape signals not currently supported
@@ -1183,9 +1183,9 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
       _traits.clear();
       for (int i = 0; i < traitsCount; i++)
          _traits.push_back(ntraits[i]);
-         //_traits[i] = ntraits[i];
+      //_traits[i] = ntraits[i];
 
-      // add node to collection
+   // add node to collection
       if ((nodeType != NT_LANDSCAPE_ACTOR || includeLandscapeActors))
          {
          SNNode* pNode = this->BuildNode(nodeType, nname.c_str(), _traits);
@@ -1213,7 +1213,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
 
       SNNode* pFromNode = this->m_pSNLayer->FindNode(from.c_str());
       SNNode* pToNode = this->m_pSNLayer->FindNode(to.c_str());
-      
+
       if (pFromNode == nullptr)
          {
          if (errorCount < 100)
@@ -1224,7 +1224,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
             }
          continue;
          }
-      
+
       if (pToNode == nullptr)
          {
          if (errorCount < 100)
@@ -1235,7 +1235,7 @@ bool SNIPModel::LoadSnipNetwork(LPCTSTR path, bool includeLandscapeActors)
             }
          continue;
          }
-      
+
       //ASSERT(pFromNode != nullptr && pToNode != nullptr);
       int transTime = 1; // ???
       this->BuildEdge(pFromNode, pToNode, transTime, trust, _traits);   // note: no traits
@@ -1280,7 +1280,7 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, std::vector<f
    pNode->m_pLayer = this->m_pSNLayer;   // snipModel: this,
    pNode->m_index = this->m_pSNLayer->m_nextNodeIndex;
    pNode->m_id = std::format("n{}", this->m_pSNLayer->m_nextNodeIndex++);
-      //label : '',
+   //label : '',
    pNode->m_state = STATE_ACTIVE;  // : STATE_ACTIVE,
    pNode->m_reactivity = 0;  // : reactivity,
    pNode->m_sumInfs = 0;     // : 0,
@@ -1306,13 +1306,13 @@ SNNode* SNIPModel::BuildNode(SNIP_NODETYPE nodeType, LPCTSTR name, std::vector<f
       this->m_pSNLayer->m_outputNodeCount++;
 
    this->m_pSNLayer->m_nodes.push_back(pNode); //SNNode( nodeType ) );
-   this->m_pSNLayer->m_nodeMap[string((LPCTSTR) pNode->m_name)] = pNode;
+   this->m_pSNLayer->m_nodeMap[string((LPCTSTR)pNode->m_name)] = pNode;
 
    return pNode;
    }
 
 
-SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, std::vector<float> &traits)
+SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, float trust, std::vector<float>& traits)
    {
    ASSERT(pFromNode != nullptr && pToNode != nullptr);
 
@@ -1353,22 +1353,22 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
    }
 
 
-int SNIPModel::FindNodesFromTrait(string &trait, SNIP_NODETYPE ntype, float threshold, vector<SNNode*>& nodes)
+int SNIPModel::FindNodesFromTrait(string& trait, SNIP_NODETYPE ntype, float threshold, vector<SNNode*>& nodes)
    {
    nodes.clear();
 
    for (int i = 0; i < GetNodeCount(); i++)
       {
       SNNode* pNode = GetNode(i);
-      if (pNode->m_nodeType == ntype && this->FindTraitValue(pNode, trait) > threshold )
+      if (pNode->m_nodeType == ntype && this->FindTraitValue(pNode, trait) > threshold)
          nodes.push_back(pNode);
       }
-   return (int) nodes.size();
+   return (int)nodes.size();
    }
 
 
 
-float SNIPModel::FindTraitValue(TraitContainer* pTC, string &name)
+float SNIPModel::FindTraitValue(TraitContainer* pTC, string& name)
    {
    try {
       int index = m_traitsMap[name];
@@ -1446,7 +1446,7 @@ void SNIPModel::AddAutogenInputEdges()
 void SNIPModel::AddAutogenInputEdge(std::string id, SNNode* pSourceNode, SNNode* pTargetNode, float sourceTraits[], float actorValue)
    {/*
    Report::LogWarning("SNIP: AddAutogenInputEdge not supported!");
-   
+
    this.cy.add({
        group: 'edges',
        data : {
@@ -1566,7 +1566,7 @@ void SNIPModel::ResetNetwork()
       SNNode* pNode = this->GetNode(i);
 
       // apply to ANY_ACTOR (but not input nodes)
-      if (pNode->IsInputSignal() == false )
+      if (pNode->IsInputSignal() == false)
          {
          pNode->m_state = STATE_ACTIVE;  // the node is initially active
          pNode->m_reactivity = 0;
@@ -1970,7 +1970,7 @@ float SNIPModel::SolveEqNetwork(float  bias)
 
    CString msg;
    msg.Format("Solving equilibrium network for cycle %i (%i active nodes, %i active edges, %i landscape actors), Input=%.2f",
-                  this->m_currentCycle, nodeCount, edgeCount, laCount, m_pInputNode->m_reactivity);
+      this->m_currentCycle, nodeCount, edgeCount, laCount, m_pInputNode->m_reactivity);
    Report::StatusMsg(msg);
 
    // set input nodes to their appropriate values
@@ -2357,44 +2357,44 @@ float SNIPModel::GetInputLevel(int cycle)
          return this->m_netInputs[cycle];
 
       case I_ENVISION_SIGNAL:
+      {
+      float score = 0;   // [0,1]
+      if (this->m_pEvaluator != nullptr)
          {
-         float score = 0;   // [0,1]
-         if (this->m_pEvaluator != nullptr)
-            {
-            score = this->m_pEvaluator->m_score;  // -3 - +3?
-            score += 3;    // 0-6 
-            score /= 6;    // 0-1
-            }
-         else
-            {
-            score = this->m_k;
-            }
-
-         return score;
+         score = this->m_pEvaluator->m_score;  // -3 - +3?
+         score += 3;    // 0-6 
+         score /= 6;    // 0-1
          }
-         ////case I_TRACKOUTPUT: 
-         ////   { // track output
-         ////    //let lagPeriod = parseInt($("#lagPeriod").val());
-         ////
-         ////    // are we at the start of a simulation
-         ////   if (cycle <= this->m_lagPeriod) 
-         ////      {
-         ////      return this->m_initialValue; //parseFloat($("#initialValue").val());
-         ////      }
-         ////   else 
-         ////      {
-         ////      //var slope = parseFloat($("#slope").val());
-         ////      float output = 0;
-         ////      if (this->m_lagPeriod == 0)
-         ////         output = GetOutputLevel();
-         ////      else
-         ////         output = this->m_netOutputs[cycle - this->m_lagPeriod];
-         ////
-         ////      float input = this->m_slope * output;
-         ////      this->m_netInputs[cycle] = input;
-         ////      return input;
-         ////      }
-         ////   }
+      else
+         {
+         score = this->m_k;
+         }
+
+      return score;
+      }
+      ////case I_TRACKOUTPUT: 
+      ////   { // track output
+      ////    //let lagPeriod = parseInt($("#lagPeriod").val());
+      ////
+      ////    // are we at the start of a simulation
+      ////   if (cycle <= this->m_lagPeriod) 
+      ////      {
+      ////      return this->m_initialValue; //parseFloat($("#initialValue").val());
+      ////      }
+      ////   else 
+      ////      {
+      ////      //var slope = parseFloat($("#slope").val());
+      ////      float output = 0;
+      ////      if (this->m_lagPeriod == 0)
+      ////         output = GetOutputLevel();
+      ////      else
+      ////         output = this->m_netOutputs[cycle - this->m_lagPeriod];
+      ////
+      ////      float input = this->m_slope * output;
+      ////      this->m_netInputs[cycle] = input;
+      ////      return input;
+      ////      }
+      ////   }
       }
 
    return 0;
@@ -2441,7 +2441,7 @@ void SNIPModel::UpdateNetworkStats()
       SNNode* pNode = this->GetNode(i);
       ASSERT(isnan(pNode->m_reactivity) == false);
 
-      if (pNode->IsInputSignal() == false )
+      if (pNode->IsInputSignal() == false)
          {
          // min reactivity
          float nodeReactivity = pNode->m_reactivity;
@@ -2452,7 +2452,7 @@ void SNIPModel::UpdateNetworkStats()
             this->m_netStats.maxNodeReactivity = nodeReactivity;
          // mean reactivity
          this->m_netStats.meanNodeReactivity += nodeReactivity;
-         
+
          networkNodeCount++;
          }
       else
@@ -2460,11 +2460,11 @@ void SNIPModel::UpdateNetworkStats()
 
       if (pNode->IsLandscapeActor())
          {
-         if ( pNode->m_reactivity < this->m_netStats.minLANodeReactivity)
+         if (pNode->m_reactivity < this->m_netStats.minLANodeReactivity)
             this->m_netStats.minLANodeReactivity = pNode->m_reactivity;
 
          this->m_netStats.meanLANodeReactivity += pNode->m_reactivity;
-         
+
          if (pNode->m_reactivity > this->m_netStats.maxLANodeReactivity)
             this->m_netStats.maxLANodeReactivity = pNode->m_reactivity;
 
@@ -2516,8 +2516,8 @@ void SNIPModel::UpdateNetworkStats()
       if (pNode->IsInputSignal() == false)
          {
          ssNodeReactivity += (pNode->m_reactivity - this->m_netStats.meanNodeReactivity) * (pNode->m_reactivity - this->m_netStats.meanNodeReactivity);
-         
-         if( pNode->IsLandscapeActor() )
+
+         if (pNode->IsLandscapeActor())
             ssLANodeReactivity += (pNode->m_reactivity - this->m_netStats.meanLANodeReactivity) * (pNode->m_reactivity - this->m_netStats.meanLANodeReactivity);
          }
 
@@ -2576,11 +2576,11 @@ void SNIPModel::UpdateNetworkStats()
       if (pEdge->m_edgeType == ET_NETWORK)
          {
          ssEdgeTransEff = (pEdge->m_transEff - this->m_netStats.meanEdgeTransEff) * (pEdge->m_transEff - this->m_netStats.meanEdgeTransEff);
-         ssEdgeInfluence = (pEdge->m_influence- this->m_netStats.meanEdgeInfluence) * (pEdge->m_influence - this->m_netStats.meanEdgeInfluence);
+         ssEdgeInfluence = (pEdge->m_influence - this->m_netStats.meanEdgeInfluence) * (pEdge->m_influence - this->m_netStats.meanEdgeInfluence);
          }
       }
    this->m_netStats.stddevEdgeTransEff = (float)sqrt(ssEdgeTransEff / edgeCount);
-   this->m_netStats.stddevEdgeInfluence = (float)sqrt(ssEdgeInfluence/ edgeCount);
+   this->m_netStats.stddevEdgeInfluence = (float)sqrt(ssEdgeInfluence / edgeCount);
 
 
    // LAReactivity.reduce((a, b) => (a + b)) / LAReactivity.length
@@ -2725,14 +2725,14 @@ bool SNIPModel::CollectData(EnvContext* pEnvContext)
    CArray<float, float> data;
 
 
-   data.Add((float) pEnvContext->currentYear);
-   data.Add((float) this->m_cycles);
-   data.Add((float) this->m_convergeIterations);
-   data.Add((float) this->GetNodeCount());
-   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_INPUT_SIGNAL));
-   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_ASSESSOR));
-   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_ENGAGER));
-   data.Add((float) this->GetNodeCount(SNIP_NODETYPE::NT_LANDSCAPE_ACTOR));
+   data.Add((float)pEnvContext->currentYear);
+   data.Add((float)this->m_cycles);
+   data.Add((float)this->m_convergeIterations);
+   data.Add((float)this->GetNodeCount());
+   data.Add((float)this->GetNodeCount(SNIP_NODETYPE::NT_INPUT_SIGNAL));
+   data.Add((float)this->GetNodeCount(SNIP_NODETYPE::NT_ASSESSOR));
+   data.Add((float)this->GetNodeCount(SNIP_NODETYPE::NT_ENGAGER));
+   data.Add((float)this->GetNodeCount(SNIP_NODETYPE::NT_LANDSCAPE_ACTOR));
 
    data.Add(m_netStats.minNodeReactivity);
    data.Add(m_netStats.meanNodeReactivity);
@@ -2782,11 +2782,11 @@ bool SNIPModel::CollectData(EnvContext* pEnvContext)
    data.Add(m_netStats.normNLA_TransEff);
    data.Add(m_netStats.normEdgeSignalStrength);
    this->m_pOutputData->AppendRow(data);
- 
+
    return true;
    }
 
-int SNIPModel::GetMaxDegree(bool) 
+int SNIPModel::GetMaxDegree(bool)
    {
    int count = GetNodeCount(); int maxDegree = 0;
    for (int i = 0; i < count; i++) {
@@ -2805,13 +2805,13 @@ int SNIPModel::GetActiveNodeCount(SNIP_NODETYPE type)
    for (int i = 0; i < count; i++)
       {
       SNNode* pNode = m_pSNLayer->GetNode(i);
-      if ((pNode->m_nodeType == type || type==NT_UNKNOWN) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
+      if ((pNode->m_nodeType == type || type == NT_UNKNOWN) && (pNode->m_state == SNIP_STATE::STATE_ACTIVE))
          activeCount++;
       }
    return activeCount;
    }
 
-int SNIPModel::GetActiveEdgeCount() 
+int SNIPModel::GetActiveEdgeCount()
    {
    int count = GetEdgeCount();
    int activeCount = 0;
@@ -3069,7 +3069,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
    RandUniform randUnif(0, 1);
 
    // get the csv cols that have the trust levels for each actor trait
-   for ( int i=0; i < traitsCount; i++)
+   for (int i = 0; i < traitsCount; i++)
       traitsCols[i] = this->m_actorProfiles.GetCol(m_traitsLabels[i].c_str());
 
    // get a list of engagers
@@ -3109,7 +3109,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
                // randomly pick one
                if (_engagers.size() > 0)
                   {
-                  int engagerIndex = (int)randUnif.RandValue(0, (double) _engagers.size());
+                  int engagerIndex = (int)randUnif.RandValue(0, (double)_engagers.size());
 
                   SNNode* pEngager = _engagers[engagerIndex];
 
@@ -3127,7 +3127,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
                   if (pLANode != nullptr)
                      {
                      int transTime = 1; // ???
-                     
+
                      // scale trait (trust) before storing
                      traitTrustLevel *= m_initTrustMultiplier;
                      traitTrustLevel *= this->m_transEffMax;
@@ -3156,7 +3156,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
       }  // end of: for each IDU
 
    CString msg;
-   msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i of %i engagers. %i eligible Landscape Actors were not connectable to any engagers", newLACount, newEdgeCount, (int)engagedEngagers.size(), (int) engagers.size(), unconnectedLACount);
+   msg.Format("Added %i Landscape Actors to the SNIP network, with %i connections to %i of %i engagers. %i eligible Landscape Actors were not connectable to any engagers", newLACount, newEdgeCount, (int)engagedEngagers.size(), (int)engagers.size(), unconnectedLACount);
    Report::LogInfo(msg);
 
    return 0;
@@ -3169,7 +3169,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
    int profileCount = m_actorProfiles.GetRowCount();
 
    // basic idea:  We want to assign each candidate IDU (actor) to a specific actor profile
-   // based on ??? and build a network actor->landscape actor edge in SNIP to 
+   // based on ??? and build a network actor->landscape actor edge in SNIP to
    // represent the onnection
    int colIDUProfileID = -1;
 
@@ -3221,7 +3221,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
                int col = m_actorProfiles.GetCol(trait.c_str());
                if (col >= 0)
                   {
-                  // should a link be created to the network actor(s)? 
+                  // should a link be created to the network actor(s)?
                   float wt = m_actorProfiles.GetAsFloat(col, profileIndex);
                   if ( wt > membershipThreshold)
                      {// make a LA node if we haven't already
@@ -3328,13 +3328,13 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
 
 /*
 
-   
+
    int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
       {
       int profileCount = m_actorProfiles.GetRowCount();
 
       // basic idea:  We want to assign each candidate IDU (actor) to a specific actor profile
-      // based on ??? and build a network actor->landscape actor edge in SNIP to 
+      // based on ??? and build a network actor->landscape actor edge in SNIP to
       // represent the onnection
       int colIDUProfileID = -1;
 
@@ -3371,7 +3371,7 @@ int SNIPModel::ConnectToIDUs(MapLayer* pIDULayer)
                // if the trait matches the actor profile, that signals that we want to creating a landscape actor
                // and connect it to an engager actor matching the trait in the SNIP network.
                // Note that this implies that one landscape actor can be connected to many engager network nodes.
-            
+
                            // we want to add a node to our network for this landscape actor
                            CString nname;
                            nname.Format("LA_%i", (int)idu);
@@ -3529,7 +3529,7 @@ int SNIPModel::PopulateActorProfiles(MapLayer* pIDULayer)
 
          // have the closest agent profile, next assign to IDU and build connections in SNIP.
          // Note that both nodes, representing landscape actors, and edges connecting these LA nodes
-         // to in-network Engager nodes are built 
+         // to in-network Engager nodes are built
          pIDULayer->SetData(idu, colIDUProfileID, closest+1);  // profiles are one-based
          profileUsage[closest]++;
          usedIDUCount++;
@@ -3541,7 +3541,7 @@ int SNIPModel::PopulateActorProfiles(MapLayer* pIDULayer)
    int profilesUsed = 0;
    for (int p : profileUsage)
       if (p > 0)
-         profilesUsed++;  
+         profilesUsed++;
 
    CString msg;
    msg.Format("Populated %i of %i Actor Profiles to %i IDUs", profilesUsed, profileCount, usedIDUCount);
@@ -3558,7 +3558,7 @@ int SNIPModel::PopulateActorAttitudes(MapLayer* pIDULayer)
    // based on ??? and build a network actor->landscape actor edge in SNIP to 
    // represent the onnection
 
-    ASSERT(this->m_colIDUProfileID >= 0);
+   ASSERT(this->m_colIDUProfileID >= 0);
 
    int colIDUA2rxn = -1;
    this->m_pSNLayer->m_pSNIP->CheckCol(pIDULayer, colIDUA2rxn, "A2rxn", TYPE_FLOAT, CC_AUTOADD);
@@ -3665,154 +3665,134 @@ void SNIPModel::GetMotifs(SNIP_MOTIF motif)
    return nodes;
    }  */
 
-/*
-GetDegreeCentralities(selector, normed) {
-   let nas = this.cy.nodes(selector);  //NETWORK_ACTOR);
-   let values = [];
+   /*
+   GetDegreeCentralities(selector, normed) {
+      let nas = this.cy.nodes(selector);  //NETWORK_ACTOR);
+      let values = [];
 
-   let maxDC = 0;
-   if (normed) {
-      nas.forEach(node = > {
-         let outgoers = node.outgoers('edge');
-         if (outgoers.length > maxDC)
-            maxDC = outgoers.length;
-         });
-      }
-
-   nas.forEach(node = > {
-      if (normed)
-         values.push(node.outgoers('edge').length / maxDC);
-      else
-         values.push(node.outgoers('edge').length);
-      });
-
-   return values;
-   }
-
-GetInfWtDegreeCentralities(selector, normed) {
-   let nas = this.cy.nodes(selector);  //NETWORK_ACTOR);
-   let values = [];
-
-   let maxDC = 0;
-   if (normed) {
-      nas.forEach(node = > {
-         let outgoers = node.outgoers('edge');
-
-         outgoers.forEach(edge = > {
-            if (edge.data('influence') > maxDC)
-               maxDC = edge.data('influence');
+      let maxDC = 0;
+      if (normed) {
+         nas.forEach(node = > {
+            let outgoers = node.outgoers('edge');
+            if (outgoers.length > maxDC)
+               maxDC = outgoers.length;
             });
+         }
+
+      nas.forEach(node = > {
+         if (normed)
+            values.push(node.outgoers('edge').length / maxDC);
+         else
+            values.push(node.outgoers('edge').length);
          });
+
+      return values;
       }
 
-   nas.forEach(node = > {
-      let outgoers = node.outgoers('edge');
-      let dci = 0;
-      if (normed)
-         outgoers.forEach(edge = > dci += edge.data('influence') / maxDC);
+   GetInfWtDegreeCentralities(selector, normed) {
+      let nas = this.cy.nodes(selector);  //NETWORK_ACTOR);
+      let values = [];
+
+      let maxDC = 0;
+      if (normed) {
+         nas.forEach(node = > {
+            let outgoers = node.outgoers('edge');
+
+            outgoers.forEach(edge = > {
+               if (edge.data('influence') > maxDC)
+                  maxDC = edge.data('influence');
+               });
+            });
+         }
+
+      nas.forEach(node = > {
+         let outgoers = node.outgoers('edge');
+         let dci = 0;
+         if (normed)
+            outgoers.forEach(edge = > dci += edge.data('influence') / maxDC);
+         else
+            outgoers.forEach(edge = > dci += edge.data('influence'));
+
+         values.push(dci);
+         });
+
+      return values;
+      }
+
+
+   GetBetweennessCentralities(selector, normed) {
+      let nas = this.cy.nodes(selector);
+      let bc = null;
+      if (normed)     // NEEDS WORK!  NORM NOT IMPLEMTENTED
+         bc = nas.bc({ directed: true });  // betweenness
       else
-         outgoers.forEach(edge = > dci += edge.data('influence'));
+         bc = nas.bc({ directed: true });  // betweenness
 
-      values.push(dci);
-      });
+      let values = [];
+      let _this = this;
+      nas.forEach(node = > {
+         let _bc = bc.betweenness(node);
+         values.push(_bc);
+         });
 
-   return values;
-   }
+      return values;
+      }
 
+   GetInfWtBetweennessCentralities(selector, normed) {
+      let nas = this.cy.nodes(selector);
+      let bc = null;
+      if (normed)
+         bc = nas.bc({ weight: (edge) = > edge.data('influence'), directed: true });  // betweenness
+      else
+         bc = nas.bc({ directed: true });  // betweenness
 
-GetBetweennessCentralities(selector, normed) {
-   let nas = this.cy.nodes(selector);
-   let bc = null;
-   if (normed)     // NEEDS WORK!  NORM NOT IMPLEMTENTED
-      bc = nas.bc({ directed: true });  // betweenness
-   else
-      bc = nas.bc({ directed: true });  // betweenness
-
-   let values = [];
-   let _this = this;
-   nas.forEach(node = > {
-      let _bc = bc.betweenness(node);
-      values.push(_bc);
-      });
-
-   return values;
-   }
-
-GetInfWtBetweennessCentralities(selector, normed) {
-   let nas = this.cy.nodes(selector);
-   let bc = null;
-   if (normed)
-      bc = nas.bc({ weight: (edge) = > edge.data('influence'), directed: true });  // betweenness
-   else
-      bc = nas.bc({ directed: true });  // betweenness
-
-   let values = [];
-   let _this = this;
-   nas.forEach(node = > {
-      let _bc = bc.betweenness(node);
-      values.push(_bc);
-      });
-
-return values;
-}
-
-GetClosenessCentralities(selector, normed) {
-   let nas = this.cy.nodes(selector);
-   let values = [];
-   let cc = null;
-   if (normed)
-      cc = nas.ccn({ directed: true });
-   else
-      cc = nas.cc({ directed: true });
-
-   let _this = this;
-   nas.forEach(node = > {
-      let value = cc.closeness(node);
-      values.push(value);
-      });
+      let values = [];
+      let _this = this;
+      nas.forEach(node = > {
+         let _bc = bc.betweenness(node);
+         values.push(_bc);
+         });
 
    return values;
    }
 
-GetInfWtClosenessCentralities(selector, normed) {
-   let nas = this.cy.nodes(selector);
-   let values = [];
-   let cc = null;
+   GetClosenessCentralities(selector, normed) {
+      let nas = this.cy.nodes(selector);
+      let values = [];
+      let cc = null;
+      if (normed)
+         cc = nas.ccn({ directed: true });
+      else
+         cc = nas.cc({ directed: true });
 
-   if (normed)
-      cc = nas.ccn({ weight: (edge) = > Math.abs(edge.data('influence')), directed: true });  // betweenness
-   else
-      cc = nas.cc({ directed: true });  // betweenness
+      let _this = this;
+      nas.forEach(node = > {
+         let value = cc.closeness(node);
+         values.push(value);
+         });
 
-   nas.forEach(node = > {
-      let value = cc.closeness(node);
-      values.push(value);
-      });
+      return values;
+      }
 
-   return values;
-   }
+   GetInfWtClosenessCentralities(selector, normed) {
+      let nas = this.cy.nodes(selector);
+      let values = [];
+      let cc = null;
 
-*/
+      if (normed)
+         cc = nas.ccn({ weight: (edge) = > Math.abs(edge.data('influence')), directed: true });  // betweenness
+      else
+         cc = nas.cc({ directed: true });  // betweenness
 
+      nas.forEach(node = > {
+         let value = cc.closeness(node);
+         values.push(value);
+         });
 
+      return values;
+      }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+   */
 
 
 
@@ -3824,8 +3804,28 @@ GetInfWtClosenessCentralities(selector, normed) {
 
 
 
-//int SNLayer::Activate( void )
-/////////////////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+   //int SNLayer::Activate( void )
+   /////////////////////////////////////////////////////////////////////
 
 void SNLayer::GetInteriorNodes(std::vector<SNNode* >& out) //get all interior nodes (ie organizations)
    {
@@ -4144,7 +4144,7 @@ SNIP::SNIP(SNIP& sn)
 
 
 
-bool SNIP::Init(EnvContext *pEnvContext, LPCTSTR filename)
+bool SNIP::Init(EnvContext* pEnvContext, LPCTSTR filename)
    {
    // build network edges base in initStr.
    // Note that:
@@ -4179,48 +4179,48 @@ bool SNIP::InitRun(EnvContext* pEnvContext, bool)
 
 bool SNIP::Run(EnvContext* pEnvContext)
    {
-   MapLayer* pIDULayer = (MapLayer*) pEnvContext->pMapLayer;
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
    for (int i = 0; i < this->GetLayerCount(); i++)
       {
       SNLayer* pLayer = GetLayer(i);
 
       // update network if needed
+      {
+      // for each landscape actor node, modify incoming edges trust values
+      // based on IDU informtion
+      for (int j = 0; j < pLayer->GetNodeCount(); j++)
          {
-         // for each landscape actor node, modify incoming edges trust values
-         // based on IDU informtion
-         for (int j = 0; j < pLayer->GetNodeCount(); j++)
+         SNNode* pNode = pLayer->GetNode(j);
+         if (pNode->m_idu >= 0 && pNode->IsLandscapeActor())
             {
-            SNNode* pNode = pLayer->GetNode(j);
-            if (pNode->m_idu >= 0 && pNode->IsLandscapeActor())
+            float adapt = 0;
+            if (pLayer->m_pSNIPModel->m_colIDUAdapt > 0)
                {
-               float adapt = 0;
-               if (pLayer->m_pSNIPModel->m_colIDUAdapt > 0)
-                  {
-                  // get adaptive factor from map
-                  pIDULayer->GetData(pNode->m_idu, pLayer->m_pSNIPModel->m_colIDUAdapt, adapt);
-                  ASSERT(std::isnan(adapt) == false);
+               // get adaptive factor from map
+               pIDULayer->GetData(pNode->m_idu, pLayer->m_pSNIPModel->m_colIDUAdapt, adapt);
+               ASSERT(std::isnan(adapt) == false);
 
-                  if (std::isnan(adapt))
-                     adapt = 0;
-                  }
+               if (std::isnan(adapt))
+                  adapt = 0;
+               }
 
-               // apply to each Engager <--> LA edge 
-               for (int k = 0; k < pNode->m_inEdges.size(); k++)
-                  {
-                  float trust = pNode->m_inEdges[k]->m_trust;
+            // apply to each Engager <--> LA edge 
+            for (int k = 0; k < pNode->m_inEdges.size(); k++)
+               {
+               float trust = pNode->m_inEdges[k]->m_trust;
 
-                  // apply decay factor
-                  trust *= (1.0f - pLayer->m_pSNIPModel->m_laTrustDecay);
+               // apply decay factor
+               trust *= (1.0f - pLayer->m_pSNIPModel->m_laTrustDecay);
 
-                  // add adaption factor
-                  trust += (1 - (trust /pLayer->m_pSNIPModel->m_transEffMax)) * adapt;
+               // add adaption factor
+               trust += (1 - (trust / pLayer->m_pSNIPModel->m_transEffMax)) * adapt;
 
-                  pNode->m_inEdges[k]->m_trust = trust;
-                  }
+               pNode->m_inEdges[k]->m_trust = trust;
                }
             }
          }
+      }
 
       Report::Log_s("Running SNIP Model %s", pLayer->m_pSNIPModel->m_name.c_str());
       pLayer->m_pSNIPModel->RunSimulation(true, false);
@@ -4242,10 +4242,10 @@ bool SNIP::Run(EnvContext* pEnvContext)
          Scenario* pScenario = ::EnvGetScenario(pEnvContext->pEnvModel, pEnvContext->scenarioIndex);
 
          CString path;
-         path.Format("%sSNIP_%s_Year%i_%s_Run%i.gexf", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR) pScenario->m_name, pEnvContext->run);
+         path.Format("%sSNIP_%s_Year%i_%s_Run%i.gexf", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
          pLayer->ExportNetworkGEXF(path);
 
-         path.Format("%sSNIP_%s_Year%i_%s_Run%i.json", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR)pScenario->m_name, pEnvContext->run);
+         path.Format("%sSNIP_%s_Year%i_%s_Run%i.json", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
          pLayer->ExportNetworkJSON(path);
          }
       }
@@ -4262,7 +4262,7 @@ bool SNIP::CollectData(EnvContext* pEnvContext)
    for (int i = 0; i < this->GetLayerCount(); i++)
       {
       SNLayer* pLayer = GetLayer(i);
-      SNIPModel *pModel = pLayer->m_pSNIPModel;
+      SNIPModel* pModel = pLayer->m_pSNIPModel;
 
       pModel->CollectData(pEnvContext);
       }
@@ -4271,7 +4271,7 @@ bool SNIP::CollectData(EnvContext* pEnvContext)
    }
 
 
-bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
+bool SNIP::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    {
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
@@ -4309,9 +4309,9 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
    while (pXmlLayer != nullptr)
       {
-      LPTSTR name = nullptr, path = nullptr, profiles = nullptr, profileQuery=nullptr, reactivityCol=nullptr, adaptCol=nullptr, engagerCol=nullptr, landscapeSignal=nullptr;
-      int exportNetwork = 0, verifyNetwork = 0,  popProfileID = 0;
-      float m_mappingFrac = 0, laTrustDecay=0, initTrustMultiplier=1;
+      LPTSTR name = nullptr, path = nullptr, profiles = nullptr, profileQuery = nullptr, reactivityCol = nullptr, adaptCol = nullptr, engagerCol = nullptr, landscapeSignal = nullptr;
+      int exportNetwork = 0, verifyNetwork = 0, popProfileID = 0;
+      float m_mappingFrac = 0, laTrustDecay = 0, initTrustMultiplier = 1;
       XML_ATTR attrs[] = { // attr             type        address           isReq checkCol
                          { "name",               TYPE_STRING,  &name,            true,  0 },
                          { "path",               TYPE_STRING,  &path,            true,  0 },
@@ -4347,7 +4347,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
          if (isdigit(landscapeSignal[0]) || landscapeSignal[0] == '-')
             {
-            pLayer->m_pSNIPModel->m_k = (float) atof(landscapeSignal);
+            pLayer->m_pSNIPModel->m_k = (float)atof(landscapeSignal);
             pLayer->m_pSNIPModel->m_pEvaluator = nullptr;
             }
          else
@@ -4366,7 +4366,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
          if (engagerCol != nullptr && engagerCol[0] != 0)
             CheckCol(pIDULayer, pLayer->m_colEngager, engagerCol, TYPE_STRING, CC_AUTOADD);
-         
+
          if (adaptCol != nullptr && adaptCol[0] != 0)
             {
             CheckCol(pIDULayer, pLayer->m_pSNIPModel->m_colIDUAdapt, adaptCol, TYPE_FLOAT, CC_AUTOADD);
@@ -4390,19 +4390,19 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
          if (popProfileID > 0)
             {
-            pLayer->m_pSNIPModel->PopulateActorProfiles( pIDULayer);  // build profile map, set profileIDs in IDUs
+            pLayer->m_pSNIPModel->PopulateActorProfiles(pIDULayer);  // build profile map, set profileIDs in IDUs
             pLayer->m_pSNIPModel->PopulateActorAttitudes(pIDULayer);
             }
 
          pLayer->m_pSNIPModel->m_laTrustDecay = laTrustDecay;
 
          pLayer->m_pSNIPModel->ConnectToIDUs(pIDULayer);
-         
+
          pLayer->m_exportNetworkInterval = exportNetwork;
 
          // network is fully created at this point, check for any problems
-         if ( verifyNetwork > 0 )
-            pLayer->CheckNetwork();         
+         if (verifyNetwork > 0)
+            pLayer->CheckNetwork();
          }  // end of: if ( layer is ok )
 
       pXmlLayer = pXmlLayer->NextSiblingElement("layer");
@@ -4415,7 +4415,7 @@ bool SNIP::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
 bool SNIP::RemoveLayer(LPCTSTR name)
    {
-   for (int i = 0; i < (int) this->m_layerArray.size(); i++)
+   for (int i = 0; i < (int)this->m_layerArray.size(); i++)
       {
       ////if ( m_layerArray[ i ]->m_name.CompareNoCase( name ) == 0 )
       ////   {

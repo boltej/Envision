@@ -86,7 +86,7 @@ int _PopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int ext
    return 0;
    }
 
-void RunModel(EnvModel *pModel)
+void RunModel(EnvModel* pModel)
    {
    if (pModel->m_runStatus == RS_RUNNING)
       {
@@ -103,26 +103,26 @@ void RunModel(EnvModel *pModel)
    //try
    //   {
    pModel->Run(0);      // don't randomize
-                        //   }
-                        //catch ( EnvFatalException & ex )
-                        //   {
-                        //   CString msg;
-                        //   msg.Format( "Fatal Error:\n  %s", ex.what() );
-                        //   Report::ErrorMsg( msg );
-                        //   }
+   //   }
+   //catch ( EnvFatalException & ex )
+   //   {
+   //   CString msg;
+   //   msg.Format( "Fatal Error:\n  %s", ex.what() );
+   //   Report::ErrorMsg( msg );
+   //   }
 
 
    Report::StatusMsg("All Done!!!");
    }
 
 #ifdef __cplusplus
-   extern "C" {
+extern "C" {
 #endif // 
 
 
 
 
-int EnvInitEngine(int initFlags)
+   int EnvInitEngine(int initFlags)
       {
       AFX_MANAGE_STATE(AfxGetStaticModuleState());
       //AddGDALPath();
@@ -130,224 +130,224 @@ int EnvInitEngine(int initFlags)
       return 1;
       }
 
-EnvModel* EnvLoadProject(LPCTSTR envxFile, int initFlags)
-    {
-    AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-    EnvModel *pModel = new EnvModel;   // memory leak?
-    Map *pMap = new Map;
-
-    //theApp.AddJob(pModel, pMap);
-
-    Report::logMsgProc = _LogMsgProc;
-    Report::statusMsgProc = _StatusMsgProc;
-    Report::popupMsgProc = _PopupMsgProc;
-
-    EnvLoader loader;
-    int result = loader.LoadProject(envxFile, pMap, pModel);
-
-    if (result < 0)
-       return NULL;
-
-    // set up bins for loaded layer(s)
-    for (int i = 0; i < pMap->GetLayerCount(); i++)
-       {
-       if (pMap->GetLayer(i)->m_pData != NULL)
-          Map::SetupBins(pMap, i, -1);
-       }
-
-    // add a field for each actor value; cf CEnvDoc::CEnvDoc()
-    for (int i = 0; i < pModel->GetActorValueCount(); i++)
-       {
-       METAGOAL *pInfo = pModel->GetActorValueMetagoalInfo(i);
-       CString label(pInfo->name);
-       label += " Actor Value";
-
-       CString field;
-       field.Format("ACTOR%s", (PCTSTR)pInfo->name);
-       if (field.GetLength() > 10)
-          field.Truncate(10);
-       field.Replace(' ', '_');
-
-       pModel->m_pIDULayer->AddFieldInfo(field, 0, label, _T(""), _T(""), TYPE_FLOAT, MFIT_QUANTITYBINS, BCF_GREEN_INCR, 0, true);
-       }
-
-    int defaultScenario = pModel->m_pScenarioManager->GetDefaultScenario();
-    pModel->SetScenario(pModel->m_pScenarioManager->GetScenario(defaultScenario));
-
-    //LoadExtensions();
-
-    // reset EnvModel
-    pModel->Reset();
-
-    int levels = pModel->m_lulcTree.GetLevels();
-
-    switch (levels)
-       {
-       case 1:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcA);   break;
-       case 2:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcB);   break;
-       case 3:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcC);   break;
-       case 4:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcD);   break;
-       }
-
-    return pModel;
-    }
-
-
-// scenario is zero-based, -1=run all
-int EnvRunScenario(EnvModel *pModel, int scenario, int simulationLength, int runFlags)
-    {
-    AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-    if (pModel == NULL)
-       {
-       Report::ErrorMsg("No Envision Model is defined");
-       return -10;
-       }
-
-    ScenarioManager *pScenarioManager = pModel->m_pScenarioManager;
-
-    pModel->m_yearsToRun = simulationLength;
-    pModel->m_endYear = pModel->m_startYear + simulationLength;
-
-    if (scenario < 0)  // run all?
-       {
-       for (int i = 0; i < pScenarioManager->GetCount(); i++)
-          {
-          Scenario *pScenario = pScenarioManager->GetScenario(i);
-          pModel->SetScenario(pScenario);
-          RunModel(pModel);
-          }
-
-       pModel->SetScenario(NULL);
-       }
-    else   // a specific scenario specified
-       {
-       pModel->SetScenario(pScenarioManager->GetScenario(scenario));
-       RunModel(pModel);
-       }
-    return 1;
-   }     // note: scenario is zero-based, use -1 to run all scenarios
-
-
-
-int EnvCloseProject(EnvModel *pModel, int closeFlags)
-   {
-   AFX_MANAGE_STATE(AfxGetStaticModuleState());
-
-   if ((closeFlags & ENVCP_PRESERVE_MAP ) == 0 )
+   EnvModel* EnvLoadProject(LPCTSTR envxFile, int initFlags)
       {
-      Map *pMap = pModel->m_pIDULayer->m_pMap;
-      delete pMap;
-      }
+      AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
-   delete pModel;
-   return 0;
-   }
+      EnvModel* pModel = new EnvModel;   // memory leak?
+      Map* pMap = new Map;
 
+      //theApp.AddJob(pModel, pMap);
 
-int EnvCloseEngine()
-    {
-    AFX_MANAGE_STATE(AfxGetStaticModuleState());
+      Report::logMsgProc = _LogMsgProc;
+      Report::statusMsgProc = _StatusMsgProc;
+      Report::popupMsgProc = _PopupMsgProc;
 
-    //theApp.RemoveJobs();
+      EnvLoader loader;
+      int result = loader.LoadProject(envxFile, pMap, pModel);
 
-    return 1;
-    }
+      if (result < 0)
+         return NULL;
 
-
-
-
-DELTA& EnvGetDelta(DeltaArray *da, INT_PTR index) { return da->GetAt(index); }
-int EnvApplyDeltaArray(EnvModel *pModel) { return pModel->ApplyDeltaArray(pModel->m_pIDULayer); }
-
-int EnvGetEvaluatorCount( EnvModel *pModel ) { return pModel->GetEvaluatorCount(); }
-EnvEvaluator* EnvGetEvaluatorInfo(EnvModel *pModel, int i) { return pModel->GetEvaluatorInfo(i); }
-EnvEvaluator* EnvFindEvaluatorInfo(EnvModel *pModel, LPCTSTR name) { return pModel->FindEvaluatorInfo(name); }
-
-LPCTSTR EnvGetCurrentScenarioName(EnvModel* pModel) { return pModel->m_pScenario ? (LPCTSTR)pModel->m_pScenario->m_name : NULL; }
-
-
-int EnvGetAutoProcessCount( EnvModel *pModel) { return pModel->GetModelProcessCount(); }
-EnvModelProcess* EnvGetAutoProcessInfo(EnvModel *pModel, int i) { return pModel->GetModelProcessInfo(i); }
-
-int EnvChangeIDUActor(EnvContext *pContext, int idu, int groupID, bool randomize) { return pContext->pEnvModel->ChangeIDUActor(pContext, idu, groupID, randomize); }
-
-// policy related methods
-int     EnvGetPolicyCount(EnvModel *pModel) { return pModel->m_pPolicyManager->GetPolicyCount(); }
-int     EnvGetUsedPolicyCount(EnvModel *pModel) { return pModel->m_pPolicyManager->GetUsedPolicyCount(); }
-EnvPolicy *EnvGetPolicy(EnvModel *pModel, int i) { return pModel->m_pPolicyManager->GetPolicy(i); }
-EnvPolicy *EnvGetPolicyFromID(EnvModel *pModel, int id) { return pModel->m_pPolicyManager->GetPolicyFromID(id); }
-
-
-// Scenario related methods
-int       EnvGetScenarioCount(EnvModel *pModel) { return pModel->m_pScenarioManager->GetCount(); }
-Scenario *EnvGetScenario(EnvModel *pModel, int i) { return pModel->m_pScenarioManager->GetScenario(i); }
-Scenario *EnvGetScenarioFromName(EnvModel *pModel, LPCTSTR name, int *index)
-   {
-   Scenario *pScenario = pModel->m_pScenarioManager->GetScenario(name);
-
-   if (index != NULL && pScenario != NULL)
-      {
-      *index = pModel->m_pScenarioManager->GetScenarioIndex(pScenario);
-      }
-
-   return pScenario;
-   }
-
-
-int EnvGenLulcTransTable(EnvModel* pModel)
-   {
-   FDataObj* pData = pModel->m_pDataManager->CalculateLulcTransTable();
-
-   CString path = PathManager::GetPath( PM_OUTPUT_DIR );  // {ProjectDir}/Outputs/CurrentScenarioName/
-   path += "LULC_Trans_Table.csv";
-   pData->WriteAscii(path);
-   return 1;
-   }
-
-
-
-
-//int EnvStandardizeOutputFilename( LPTSTR filename, LPTSTR pathAndFilename, int maxLength )
-//   {
-//   EnvCleanFileName( filename );
-//    
-//   CString path = PathManager::GetPath( PM_OUTPUT_DIR );  // {ProjectDir}\Outputs\CurrentScenarioName\
-//   path += filename;
-//   _tcsncpy( pathAndFilename, (LPCTSTR) path, maxLength );
-//
-//   return path.GetLength();
-//   }
-
-int EnvCleanFileName(LPTSTR filename)
-   {
-   if (filename == NULL)
-      return 0;
-
-   TCHAR *ptr = filename;
-
-   while (*ptr != NULL)
-      {
-      switch (*ptr)
+      // set up bins for loaded layer(s)
+      for (int i = 0; i < pMap->GetLayerCount(); i++)
          {
-         case ' ':   *ptr = '_';    break;  // blanks
-         case '\\':  *ptr = '_';    break;  // illegal filename characters 
-         case '/':   *ptr = '_';    break;
-         case ':':   *ptr = '_';    break;
-         case '*':   *ptr = '_';    break;
-         case '"':   *ptr = '_';    break;
-         case '?':   *ptr = '_';    break;
-         case '<':   *ptr = '_';    break;
-         case '>':   *ptr = '_';    break;
-         case '|':   *ptr = '_';    break;
+         if (pMap->GetLayer(i)->m_pData != NULL)
+            Map::SetupBins(pMap, i, -1);
          }
 
-      ptr++;
+      // add a field for each actor value; cf CEnvDoc::CEnvDoc()
+      for (int i = 0; i < pModel->GetActorValueCount(); i++)
+         {
+         METAGOAL* pInfo = pModel->GetActorValueMetagoalInfo(i);
+         CString label(pInfo->name);
+         label += " Actor Value";
+
+         CString field;
+         field.Format("ACTOR%s", (PCTSTR)pInfo->name);
+         if (field.GetLength() > 10)
+            field.Truncate(10);
+         field.Replace(' ', '_');
+
+         pModel->m_pIDULayer->AddFieldInfo(field, 0, label, _T(""), _T(""), TYPE_FLOAT, MFIT_QUANTITYBINS, BCF_GREEN_INCR, 0, true);
+         }
+
+      int defaultScenario = pModel->m_pScenarioManager->GetDefaultScenario();
+      pModel->SetScenario(pModel->m_pScenarioManager->GetScenario(defaultScenario));
+
+      //LoadExtensions();
+
+      // reset EnvModel
+      pModel->Reset();
+
+      int levels = pModel->m_lulcTree.GetLevels();
+
+      switch (levels)
+         {
+         case 1:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcA);   break;
+         case 2:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcB);   break;
+         case 3:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcC);   break;
+         case 4:  pModel->m_pIDULayer->CopyColData(pModel->m_colStartLulc, pModel->m_colLulcD);   break;
+         }
+
+      return pModel;
       }
 
-   return (int)_tcslen(filename);
-   }
+
+   // scenario is zero-based, -1=run all
+   int EnvRunScenario(EnvModel* pModel, int scenario, int runFlags)
+      {
+      AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+      if (pModel == NULL)
+         {
+         Report::ErrorMsg("No Envision Model is defined");
+         return -10;
+         }
+
+      ScenarioManager* pScenarioManager = pModel->m_pScenarioManager;
+
+      //pModel->m_yearsToRun = simulationLength;
+      //pModel->m_endYear = pModel->m_startYear + simulationLength;
+
+      if (scenario < 0)  // run all?
+         {
+         for (int i = 0; i < pScenarioManager->GetCount(); i++)
+            {
+            Scenario* pScenario = pScenarioManager->GetScenario(i);
+            pModel->SetScenario(pScenario);
+            RunModel(pModel);
+            }
+
+         pModel->SetScenario(NULL);
+         }
+      else   // a specific scenario specified
+         {
+         pModel->SetScenario(pScenarioManager->GetScenario(scenario));
+         RunModel(pModel);
+         }
+      return 1;
+      }     // note: scenario is zero-based, use -1 to run all scenarios
+
+
+
+   int EnvCloseProject(EnvModel* pModel, int closeFlags)
+      {
+      AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+      if ((closeFlags & ENVCP_PRESERVE_MAP) == 0)
+         {
+         Map* pMap = pModel->m_pIDULayer->m_pMap;
+         delete pMap;
+         }
+
+      delete pModel;
+      return 0;
+      }
+
+
+   int EnvCloseEngine()
+      {
+      AFX_MANAGE_STATE(AfxGetStaticModuleState());
+
+      //theApp.RemoveJobs();
+
+      return 1;
+      }
+
+
+
+
+   DELTA& EnvGetDelta(DeltaArray* da, INT_PTR index) { return da->GetAt(index); }
+   int EnvApplyDeltaArray(EnvModel* pModel) { return pModel->ApplyDeltaArray(pModel->m_pIDULayer); }
+
+   int EnvGetEvaluatorCount(EnvModel* pModel) { return pModel->GetEvaluatorCount(); }
+   EnvEvaluator* EnvGetEvaluatorInfo(EnvModel* pModel, int i) { return pModel->GetEvaluatorInfo(i); }
+   EnvEvaluator* EnvFindEvaluatorInfo(EnvModel* pModel, LPCTSTR name) { return pModel->FindEvaluatorInfo(name); }
+
+   LPCTSTR EnvGetCurrentScenarioName(EnvModel* pModel) { return pModel->m_pScenario ? (LPCTSTR)pModel->m_pScenario->m_name : NULL; }
+
+
+   int EnvGetAutoProcessCount(EnvModel* pModel) { return pModel->GetModelProcessCount(); }
+   EnvModelProcess* EnvGetAutoProcessInfo(EnvModel* pModel, int i) { return pModel->GetModelProcessInfo(i); }
+
+   int EnvChangeIDUActor(EnvContext* pContext, int idu, int groupID, bool randomize) { return pContext->pEnvModel->ChangeIDUActor(pContext, idu, groupID, randomize); }
+
+   // policy related methods
+   int     EnvGetPolicyCount(EnvModel* pModel) { return pModel->m_pPolicyManager->GetPolicyCount(); }
+   int     EnvGetUsedPolicyCount(EnvModel* pModel) { return pModel->m_pPolicyManager->GetUsedPolicyCount(); }
+   EnvPolicy* EnvGetPolicy(EnvModel* pModel, int i) { return pModel->m_pPolicyManager->GetPolicy(i); }
+   EnvPolicy* EnvGetPolicyFromID(EnvModel* pModel, int id) { return pModel->m_pPolicyManager->GetPolicyFromID(id); }
+
+
+   // Scenario related methods
+   int       EnvGetScenarioCount(EnvModel* pModel) { return pModel->m_pScenarioManager->GetCount(); }
+   Scenario* EnvGetScenario(EnvModel* pModel, int i) { return pModel->m_pScenarioManager->GetScenario(i); }
+   Scenario* EnvGetScenarioFromName(EnvModel* pModel, LPCTSTR name, int* index)
+      {
+      Scenario* pScenario = pModel->m_pScenarioManager->GetScenario(name);
+
+      if (index != NULL && pScenario != NULL)
+         {
+         *index = pModel->m_pScenarioManager->GetScenarioIndex(pScenario);
+         }
+
+      return pScenario;
+      }
+
+
+   int EnvGenLulcTransTable(EnvModel* pModel)
+      {
+      //FDataObj* pData = pModel->m_pDataManager->CalculateLulcTransTable();
+      //
+      //CString path = PathManager::GetPath( PM_OUTPUT_DIR );  // {ProjectDir}/Outputs/CurrentScenarioName/
+      //path += "LULC_Trans_Table.csv";
+      //pData->WriteAscii(path);
+      return 1;
+      }
+
+
+
+
+   //int EnvStandardizeOutputFilename( LPTSTR filename, LPTSTR pathAndFilename, int maxLength )
+   //   {
+   //   EnvCleanFileName( filename );
+   //    
+   //   CString path = PathManager::GetPath( PM_OUTPUT_DIR );  // {ProjectDir}\Outputs\CurrentScenarioName\
+   //   path += filename;
+   //   _tcsncpy( pathAndFilename, (LPCTSTR) path, maxLength );
+   //
+   //   return path.GetLength();
+   //   }
+
+   int EnvCleanFileName(LPTSTR filename)
+      {
+      if (filename == NULL)
+         return 0;
+
+      TCHAR* ptr = filename;
+
+      while (*ptr != NULL)
+         {
+         switch (*ptr)
+            {
+            case ' ':   *ptr = '_';    break;  // blanks
+            case '\\':  *ptr = '_';    break;  // illegal filename characters 
+            case '/':   *ptr = '_';    break;
+            case ':':   *ptr = '_';    break;
+            case '*':   *ptr = '_';    break;
+            case '"':   *ptr = '_';    break;
+            case '?':   *ptr = '_';    break;
+            case '<':   *ptr = '_';    break;
+            case '>':   *ptr = '_';    break;
+            case '|':   *ptr = '_';    break;
+            }
+
+         ptr++;
+         }
+
+      return (int)_tcslen(filename);
+      }
 
 
 #ifdef __cplusplus

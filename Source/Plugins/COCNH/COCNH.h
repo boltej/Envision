@@ -67,7 +67,7 @@ enum VEGCOLINDEX
    VPH_25_50,
    VPH_GE_50,
    BPH_3_25,
-	TPH_GE_50,
+   TPH_GE_50,
    VEGMAPCOLS
    };
 
@@ -129,45 +129,116 @@ struct FUELMODELKEY
 
    FUELMODELKEY(__int32 _veg, __int16 _variant, __int8 _pvt, __int8 _region) : veg(_veg), variant(_variant), pvt(_pvt), region(_region) { }
 
-   //__int64 GetKey(void) { __int64 key = MAKE< __int64 >(veg, (MAKE< __int32 >(variant, MAKE< __int16 >(pvt, region)))); return key; }
+   __int64 GetKey(void) const { __int64 key = MAKE< __int64 >(veg, (MAKE< __int32 >(variant, MAKE< __int16 >(pvt, region)))); return key; }
    };
 
 
-//enum FUELMODELCOLINDEX
-//   {
-//   REGION,
-//   PVT,
-//   VEGCLASS,
-//   VARIANT_,
-//   LCP_FUEL_MODEL,
-//   FIRE_REGIME,
-//   TIV,
-//   FUELMODELMAPCOLS
-//   };
+/*
+
+bool operator==(const FUELMODELKEY& lhs, const FUELMODELKEY& rhs) {
+   if (lhs.veg == rhs.veg)
+      {
+      if (lhs.variant == rhs.variant || lhs.variant == -99 || rhs.variant == -99)
+         {
+         if (lhs.pvt == rhs.pvt || lhs.pvt == -99 || rhs.pvt == -99)
+            {
+            if (lhs.region == rhs.region || lhs.region == -99 || rhs.region == -99)
+               return true;
+            }
+         }
+      }
+   return false;
+   }
+   */
+
+
+   //enum FUELMODELCOLINDEX
+   //   {
+   //   REGION,
+   //   PVT,
+   //   VEGCLASS,
+   //   VARIANT_,
+   //   LCP_FUEL_MODEL,
+   //   FIRE_REGIME,
+   //   TIV,
+   //   FUELMODELMAPCOLS
+   //   };
 
 
 
-// Comparitive class for looking up values in probability "map" container
+   // Comparitive class for looking up values in probability "map" container
 struct FuelModelLookupComp {
-   bool operator() (const FUELMODELKEY &lhs, const FUELMODELKEY &rhs) const
+   bool operator() (const FUELMODELKEY& lhs, const FUELMODELKEY& rhs) const
       {
       if (lhs.veg == rhs.veg)
          {
-         if (lhs.variant == rhs.variant || lhs.variant == -99 || rhs.variant == -99)
+         if (lhs.variant == rhs.variant) // || lhs.variant == -99 || rhs.variant == -99)
             {
-            if (lhs.pvt == rhs.pvt || lhs.pvt == -99 || rhs.pvt == -99)
+            if (lhs.pvt == rhs.pvt) // || lhs.pvt == -99 || rhs.pvt == -99)
                return lhs.region < rhs.region;
             else
                return lhs.pvt < rhs.pvt;
             }
          else
             return lhs.variant < rhs.variant;
-         }       
+         }
       else
          return lhs.veg < rhs.veg;
       }
+
+   /*
+   bool operator() (const FUELMODELKEY& lhs, const FUELMODELKEY& rhs) const
+      {
+      if (lhs.veg == rhs.veg)
+         {
+         if (lhs.variant == rhs.variant || lhs.variant == -99 || rhs.variant == -99)
+            {
+            if (lhs.pvt == rhs.pvt || lhs.pvt == -99 || rhs.pvt == -99)
+               {
+               if (lhs.region == rhs.region || lhs.region == -99 || rhs.region == -99)
+                  return false;
+               else
+                  return lhs.region < rhs.region;
+               }
+            else
+               return lhs.pvt < rhs.pvt;
+            }
+         else
+            return lhs.variant < rhs.variant;
+         }
+      else
+         return lhs.veg < rhs.veg;
+      } */
+      /*
+      bool operator() (const FUELMODELKEY& lhs, const FUELMODELKEY& rhs) const
+         {
+         const int MATCH = 1, WILD = 2, MISS = 3;
+
+         __int64 lKey = lhs.GetKey();
+         __int64 rKey = rhs.GetKey();
+
+         if ( lhs.veg != rhs.veg )
+            return lKey < rKey;
+
+         int varFlag = (lhs.variant == rhs.variant) ? MATCH: (lhs.variant == -99 || rhs.variant == -99) ? WILD: MISS;
+         int pvtFlag = (lhs.pvt == rhs.pvt) ? MATCH : (lhs.pvt == -99 || rhs.pvt == -99) ? WILD : MISS;
+         int regFlag = (lhs.region== rhs.region) ? MATCH : (lhs.region == -99 || rhs.region == -99) ? WILD : MISS;
+
+         if (varFlag == MISS || pvtFlag == MISS || regFlag == MISS)
+            return lKey < rKey;
+
+         if (varFlag == WILD || pvtFlag == WILD || regFlag == WILD)
+            return false;
+
+         return lKey < rKey;
+         } */
    };
 
+bool operator < (const FUELMODELKEY& k1, const FUELMODELKEY& k2) {
+   __int64 _k1 = k1.GetKey();
+   __int64 _k2 = k2.GetKey();
+   return _k1 < _k2;
+   }
 
 
 //class FuelModelLookup : public CMap< __int64, __int64, int, int >
@@ -191,7 +262,7 @@ class FuelModelLookup : public std::map< FUELMODELKEY, int, FuelModelLookupComp 
 
       //int m_colArray[ FUELMODELMAPCOLS ];
 
-      bool Init(LPCTSTR filename);
+      bool Init(LPCTSTR filename, MapLayer*);
 
       // lookup table cols
       int m_lutColPVT;
@@ -204,7 +275,7 @@ class FuelModelLookup : public std::map< FUELMODELKEY, int, FuelModelLookupComp 
       int m_lutColSfSmoke;
       int m_lutColMxSmoke;
       int m_lutColSrSmoke;
-      
+
       float GetColData(int row, int colIndex)
          {
          ASSERT(m_isInitialized);
@@ -225,21 +296,21 @@ class FuelModelLookup : public std::map< FUELMODELKEY, int, FuelModelLookupComp 
 
 // does this fuel model match the pvt, vegclass and variant?
 
-
-struct PLAN_AREA_INFO
-   {
-   int    id;
-   int    index;     // offset in array
-   float  area;
-   double score;
-   int    lastUsed;  // year last used
-   float  areaFracUsed;  // fraction of area actually used (treated) within the last ten yeaers
-
-   CArray <float> areaArray;    // FIFO queue with year areas treated, size =   
-
-
-   PLAN_AREA_INFO(void) : id(-1), index( -1 ), area(0), score(0), lastUsed(-1 ), areaFracUsed( 0 ) { }
-   };
+//
+//struct PLAN_AREA_INFO
+//   {
+//   int    id;
+//   int    index;     // offset in array
+//   float  area;
+//   double score;
+//   int    lastUsed;  // year last used
+//   float  areaFracUsed;  // fraction of area actually used (treated) within the last ten yeaers
+//
+//   CArray <float> areaArray;    // FIFO queue with year areas treated, size =   
+//
+//
+//   PLAN_AREA_INFO(void) : id(-1), index( -1 ), area(0), score(0), lastUsed(-1 ), areaFracUsed( 0 ) { }
+//   };
 
 
 
@@ -280,126 +351,126 @@ class COCNHProcess : public EnvModelProcess
    {
    public:
       COCNHProcess() : EnvModelProcess() { }
-      ~COCNHProcess(void) { if ( m_pQueryEngine == NULL ) delete m_pQueryEngine; m_pQueryEngine = NULL; }
-      
-      bool Init(EnvContext *pContext, LPCTSTR initStr);
+      ~COCNHProcess(void) { if (m_pQueryEngine == NULL) delete m_pQueryEngine; m_pQueryEngine = NULL; }
+
+      bool Init(EnvContext* pContext, LPCTSTR initStr);
 
    protected:
-      bool LoadXml( LPCTSTR filename );
+      bool LoadXml(LPCTSTR filename, MapLayer*);
 
       //! Get IDU.shp column numbers.
       //! Get the column numbers for all columns required to read or write information
       //! used in Init()
-      bool DefineColumnNumbers(EnvContext *pContext);
+      bool DefineColumnNumbers(EnvContext* pContext);
 
       //! Update variables related to cover type and structural stage.
       //! Update information, that is based on changes in VEGCLAss variable. This includes cover type,
       //! structural stage, canopy cover, size, layers.
       //! Used in COCNHProcess::Init(), COCHNProcessPost::Run()
-      bool UpdateVegClassVars(EnvContext *pContext, bool useAddDelta);
+      bool UpdateVegClassVars(EnvContext* pContext, bool useAddDelta);
 
       //! Used where needed in the COCNH process.  Scans delta array for VEGCLASS change and
       //! updates IDU layer attribute PRIOR_VEG
-      bool UpdatePriorVeg(EnvContext *pContext);
+      bool UpdatePriorVeg(EnvContext* pContext);
 
       //! Write vegetation structure information to IDUs
       //! Write vegetation structure information derived from lookup table to IDU. This includes variables
       //! such as values basal area, biomass, standage....
       //! Used in COCNHProcess::Init(), COCHNProcessPre2::Run(), COCNHProcessPost::Run();
-      bool UpdateVegParamsFromTable(EnvContext *pContext, bool useAddDelta);
-		bool InitVegParamsFromTable(EnvContext *pContext, bool useAddDelta);
+      bool UpdateVegParamsFromTable(EnvContext* pContext, bool useAddDelta);
+      bool InitVegParamsFromTable(EnvContext* pContext, bool useAddDelta);
 
       // called in Pre2
-      bool UpdateAvailVolumesFromTable(EnvContext *pContext, bool useAddDelta);
+      bool UpdateAvailVolumesFromTable(EnvContext* pContext, bool useAddDelta);
 
       //! Update disturbance value.
       //! This function sets the value in the DISTURB column to -DISTURB, if there is an entry > 0. This is related to 
       //! hardcoded entry in FlameLenDisturbHandler line 181: if ( disturb > 0 ) { newvariant = 1;...
       //! Used in COCNHProcessPre1::Run()
-      bool UpdateDisturbanceValue(EnvContext *pContext, bool useAddDelta);
+      bool UpdateDisturbanceValue(EnvContext* pContext, bool useAddDelta);
 
       //! Load the fuelmodel lookup table from .csv file.
       //! The lookup table includes the relationship between a specific CTSS numerical code and
       //! and the corresponding fire related values such as fuel model, fire regime, ....
       //! Used in COCNHProcess::Init()
-      bool LoadLookupTableFuelModels(EnvContext *pContext, LPCSTR initStr);
+      //bool LoadLookupTableFuelModels(EnvContext *pContext, LPCSTR initStr);
 
       //! Write the fuelmodel information to IDU.shp.
       //! Write fire and fuel related information derived from lookup table to IDU.shp. This includes variables
       //! such as fuel model, fire regime,....
       //! Used in COCNHProcess::Init(), COCHNProcessPre2::Run(), COCNHProcessPost::Run();
-      bool UpdateFuelModel(EnvContext *pContext, bool useAddDelta);
+      bool UpdateFuelModel(EnvContext* pContext, bool useAddDelta);
 
       //! Calculate fuel treatment costs.
       //! Calculate fuel treatment costs based on Calkin and Gebert (2006) Modeling Fuel Treatment Costs
       //! on Forest Service Lands in the Western United States. WJAF 21(4).
       //! Used in COCNHProcess::Init(), COCHNProcessPre2::Run(), COCNHProcessPost::Run();
-      bool CalcTreatmentCost(EnvContext *pContext, bool useAddDelta);
+      bool CalcTreatmentCost(EnvContext* pContext, bool useAddDelta);
 
       //! Sets PRIOR_VEG to the VEGCLASS value at the beginning of time step
       //! Used in COCHNProcessPre1::Run()
-      bool SetPriorVegClass(EnvContext *pContext);
+      bool SetPriorVegClass(EnvContext* pContext);
 
       //! Update the time since treatment variable TST.
       //! Set to 0 if treatment in same timestep, otherwise count 1 up.
       //! Used in COCHNProcessPre1::Run()
-      bool UpdateTimeSinceTreatment(EnvContext *pContext);
+      bool UpdateTimeSinceTreatment(EnvContext* pContext);
 
       //! Update time since harvest variable TSH.
       //! Set to 0 if harvest in same timestep, otherwise count 1 up.
       //! Used in COCHNProcessPre1::Run()
-      bool UpdateTimeSinceHarvest(EnvContext *pContext);
+      bool UpdateTimeSinceHarvest(EnvContext* pContext);
 
       //! Used in COCHNProcessPre1::Run()
-      bool UpdateTimeSincePartialHarvest(EnvContext *pContext);
+      bool UpdateTimeSincePartialHarvest(EnvContext* pContext);
 
       //! Used in COCHNProcessPre1::Run()
-      bool UpdateTimeSinceThinning(EnvContext *pContext);
+      bool UpdateTimeSinceThinning(EnvContext* pContext);
 
       //! Update time in variant variable TIV.
       //! Set to 0 if variant changes in same timestep, otherwise count 1 up.
       //! Used in COCHNProcessPre1::Run()
-      bool UpdateTimeInVariant(EnvContext *pContext);
+      bool UpdateTimeInVariant(EnvContext* pContext);
 
       //! Used in COCHNProcessPre1::Run()
-      bool UpdateTimeSinceFire(EnvContext *pContext);
+      bool UpdateTimeSinceFire(EnvContext* pContext);
 
       //! Used in COCHNProcessPre1::Run()
-      bool UpdateTimeSincePrescribedFire(EnvContext *pContext);
+      bool UpdateTimeSincePrescribedFire(EnvContext* pContext);
 
       //! Update column "TESPECIES" - threated or endangered species (0/1).
       //! Update value in column "TESPECIES" based on habitat suitability models provided
       //! by Anita Morzillo from the ILAP projectk; defined in TerrBiodiv.dll.
       //! Used in COCHNProcess::Init(), COCHNProcessPost::Run()
-      bool UpdateThreatenedSpecies(EnvContext *pContext, bool useAddDelta);
+      bool UpdateThreatenedSpecies(EnvContext* pContext, bool useAddDelta);
 
       //! Update WUI category.
       //! Update WUI category (interface, intermixed, subcategories) based on population density
       //! and landscape characteristics/neighborhood.
       //! Used in COCHNProcess::Init(), COCHNProcessPre1::Run()
-      bool PopulateWUI(EnvContext *pContext, bool useAddDelta);
+      bool PopulateWUI(EnvContext* pContext, bool useAddDelta);
 
       //! Currently not implemented.
-      bool PopulateLulc(EnvContext *pContext, bool useDelta);
+      bool PopulateLulc(EnvContext* pContext, bool useDelta);
 
       //!  Not currently used
-      bool PopulateStructure(EnvContext *pContext, bool useAddDelta);
+      bool PopulateStructure(EnvContext* pContext, bool useAddDelta);
 
       //!  Not currently used
-      bool UpdateAvgTreesPerHectare(EnvContext *pContext);
+      bool UpdateAvgTreesPerHectare(EnvContext* pContext);
 
       //!  Not currently used
-      bool UpdateAvgCondFlameLength(EnvContext *pContext);
+      bool UpdateAvgCondFlameLength(EnvContext* pContext);
 
       //! Used in COCHNProcessPre2::Run()
-      bool UpdateFireOccurrences(EnvContext *pContext);
+      bool UpdateFireOccurrences(EnvContext* pContext);
 
       //! Used by spatial allocator, Used in COCHNProcessPre2::Run()
-      bool ScoreAllocationAreas(EnvContext *pContext);
-      bool ScoreAllocationAreasFire(EnvContext *pContext);
-		
-		// calculates probability and sets FIREWISE attribute in IDU layer for home owner, 1-TRUE, 0-FALSE 
-		bool CalculateFirewise(EnvContext *pContext);
+      bool ScoreAllocationAreas(EnvContext* pContext);
+      bool ScoreAllocationAreasFire(EnvContext* pContext);
+
+      // calculates probability and sets FIREWISE attribute in IDU layer for home owner, 1-TRUE, 0-FALSE 
+      bool CalculateFirewise(EnvContext* pContext);
       /*
       //!
       bool IsResidential( int zone );
@@ -457,10 +528,10 @@ class COCNHProcess : public EnvModelProcess
       //! Column number in the IDU table for Disturbance code.
       static int m_colDisturb;
       //! Column number in the IDU table for Potential Disturbance code.
-      static int m_colPdisturb;    
-		//! Column number in the IDU table for Potential Flame Length code.
-		static int m_colPotentialFlameLen;
-		//! Column number in the IDU table for Potential Vegetation Type.
+      static int m_colPdisturb;
+      //! Column number in the IDU table for Potential Flame Length code.
+      static int m_colPotentialFlameLen;
+      //! Column number in the IDU table for Potential Vegetation Type.
       static int m_colPVT;
       //!
       //static int m_colPVTType;
@@ -528,7 +599,7 @@ class COCNHProcess : public EnvModelProcess
       static int m_colLVol25_50;
       //!
       static int m_colSawTimberVolume;
-		//!
+      //!
       static int m_colSawTimberHarvVolume;
       //!
       static int m_colLVolGe50;
@@ -538,17 +609,17 @@ class COCNHProcess : public EnvModelProcess
       static int m_colThreEndSpecies;
       //!
       static int m_colFire1000;
-		//!
+      //!
       static int m_colFire500;
       //!
       static int m_colSRFire1000;
       //!
       static int m_colMXFire1000;
-		//!
+      //!
       static int m_colPotentialFire500;
       //!
       static int m_colPotentialFire1000;
-		//!
+      //!
       static int m_colAvePotentialFlameLength1000;
       //!
       static int m_colPotentialSRFire1000;
@@ -558,8 +629,8 @@ class COCNHProcess : public EnvModelProcess
       static int m_colFire2000;
       //!
       static int m_colFire10000;
-		//!
-		static int m_colPrescribedFire10000;
+      //!
+      static int m_colPrescribedFire10000;
       //!
       static int m_colPrescribedFire2000;
       //!
@@ -576,28 +647,28 @@ class COCNHProcess : public EnvModelProcess
       static int m_colPFDeadBio;
       static int m_colPFDeadCarb;
 
-      static int m_colPlanAreaScore;
-      static int m_colPlanAreaScoreFire;
+      //static int m_colPlanAreaScore;
+      //static int m_colPlanAreaScoreFire;
 
       static int m_colNDU;
 
       static int m_colNewDU;
       static int m_colSmoke; // smoke generated in kg/ha
 
-      static int m_colPlanArea;  // ALLOC_PLAN
-      static int m_colPlanAreaFr;  // PA_FRAC
-      static int m_colPlanAreaFireFr;  // PAF_FRAC
-		static int m_colPFSawVol; // post fire saw timber volume, decays after fire event
-	   static int m_colPFSawHarvestVol; // post fire saw timber volume, decays after fire event
-		static int m_colOwner; // OWNER attribute in IDU layer
-		static int   m_colAvailVolTFB;
-		static int	m_colAvailVolPH;
-		static int	m_colAvailVolSH;
-		static int	m_colAvailVolPHH;
-		static int	m_colAvailVolRH;
-		static int  m_colFireWise;
-		static int  m_colVegTranType;
-		static IDataObj m_initialLandscpAttribs;
+      //static int m_colPlanArea;  // ALLOC_PLAN
+      //static int m_colPlanAreaFr;  // PA_FRAC
+      //static int m_colPlanAreaFireFr;  // PAF_FRAC
+      static int m_colPFSawVol; // post fire saw timber volume, decays after fire event
+      static int m_colPFSawHarvestVol; // post fire saw timber volume, decays after fire event
+      static int m_colOwner; // OWNER attribute in IDU layer
+      static int   m_colAvailVolTFB;
+      static int	m_colAvailVolPH;
+      static int	m_colAvailVolSH;
+      static int	m_colAvailVolPHH;
+      static int	m_colAvailVolRH;
+      static int  m_colFireWise;
+      static int  m_colVegTranType;
+      static IDataObj m_initialLandscpAttribs;
       static bool m_restoreValuesOnInitRun;
 
    protected:
@@ -618,88 +689,88 @@ class COCNHProcess : public EnvModelProcess
 
       //!
       map< int, float> m_mapLookupTreatCostsFloat;
-		
+
       //! Map for fuel model information from lookup table.
       //map< vector< int >, vector< int > >  m_mapLookupFuelModel;
 
       vector<string> m_path;
-		static RandUniform   m_rn;
+      static RandUniform   m_rn;
 
    public:
-      static QueryEngine *m_pQueryEngine;   // delete???
+      static QueryEngine* m_pQueryEngine;   // delete???
 
    protected:
-      static CString m_planAreaQueryStr;
-      static float   m_minPlanAreaFrac;  // decimal
-      static int     m_minPlanAreaReuseTime;
-      static int     m_planAreaTreatmentWindow;
-      static Query  *m_pPAQuery;
+      //      static CString m_planAreaQueryStr;
+      //      static float   m_minPlanAreaFrac;  // decimal
+      //      static int     m_minPlanAreaReuseTime;
+      //      static int     m_planAreaTreatmentWindow;
+      //      static Query  *m_pPAQuery;
+      //
+      //      static CString m_planAreaFireQueryStr;
+      //      static float   m_minPlanAreaFireFrac;
+      //      static int     m_planAreaFireTreatmentWindow;
+      //      static int     m_minPlanAreaFireReuseTime;
+      //      static Query  *m_pPAFQuery;
 
-      static CString m_planAreaFireQueryStr;
-      static float   m_minPlanAreaFireFrac;
-      static int     m_planAreaFireTreatmentWindow;
-      static int     m_minPlanAreaFireReuseTime;
-      static Query  *m_pPAFQuery;
+      static float   m_percentOfLivePassedOn3;
+      static float   m_percentOfLivePassedOn20;
+      static float   m_percentOfLivePassedOn21;
+      static float   m_percentOfLivePassedOn23;
+      static float   m_percentOfLivePassedOn29;
+      static float   m_percentOfLivePassedOn31;
+      static float   m_percentOfLivePassedOn32;
+      static float   m_percentOfLivePassedOn51;
+      static float   m_percentOfLivePassedOn52;
+      static float   m_percentOfLivePassedOn55;
+      static float   m_percentOfLivePassedOn56;
+      static float   m_percentOfLivePassedOn57;
 
-		static float   m_percentOfLivePassedOn3;
-		static float   m_percentOfLivePassedOn20;
-		static float   m_percentOfLivePassedOn21;
-		static float   m_percentOfLivePassedOn23;
-		static float   m_percentOfLivePassedOn29;
-		static float   m_percentOfLivePassedOn31;
-		static float   m_percentOfLivePassedOn32;
-		static float   m_percentOfLivePassedOn51;
-		static float   m_percentOfLivePassedOn52;
-		static float   m_percentOfLivePassedOn55;
-		static float   m_percentOfLivePassedOn56;
-		static float   m_percentOfLivePassedOn57;
+      static float   m_percentPreTransStructAvailable55;
+      static float	m_percentPreTransStructAvailable3;
+      static float	m_percentPreTransStructAvailable52;
+      static float	m_percentPreTransStructAvailable57;
+      static float	m_percentPreTransStructAvailable1;
 
-		static float   m_percentPreTransStructAvailable55;
-		static float	m_percentPreTransStructAvailable3;
-		static float	m_percentPreTransStructAvailable52;
-		static float	m_percentPreTransStructAvailable57;
-		static float	m_percentPreTransStructAvailable1;
+      static float m_priorBasalArea;
+      static float m_priorTreesPerHectare;
+      static float m_priorBitterbrushCover;
+      static float m_priorJunipersPerHa;
+      static float m_priorLiveBiomass;
+      static float m_priorDeadBiomass;
+      static float m_priorLiveCarbon;
+      static float m_priorDeadCarbon;
+      static float m_priorTotalCarbon;
+      static float m_priorLiveVolumeGe3;
+      static float m_priorLiveVolume_3_25;
+      static float m_priorLiveBiomass_3_25;
+      static float m_priorLiveVolume_25_50;
+      static float m_priorLiveVolumeGe50;
+      static float m_priorDeadVolume;
+      static float m_priorTotalVolume;
+      static float m_priorSmallDiaVolume;
+      static float m_priorSawTimberVol;
 
-		static float m_priorBasalArea;
-		static float m_priorTreesPerHectare;
-		static float m_priorBitterbrushCover;
-		static float m_priorJunipersPerHa;
-		static float m_priorLiveBiomass;
-		static float m_priorDeadBiomass;
-		static float m_priorLiveCarbon;
-		static float m_priorDeadCarbon;
-		static float m_priorTotalCarbon;
-		static float m_priorLiveVolumeGe3;
-		static float m_priorLiveVolume_3_25;
-		static float m_priorLiveBiomass_3_25;
-		static float m_priorLiveVolume_25_50;
-		static float m_priorLiveVolumeGe50;
-		static float m_priorDeadVolume;
-		static float m_priorTotalVolume;
-		static float m_priorSmallDiaVolume;
-		static float m_priorSawTimberVol;
+      static CArray< int, int >  m_accountedForFireThisStep;
+      static CArray< int, int >  m_accountedForNoTransThisStep;
+      static CArray< int, int >  m_accountedForSuccessionThisStep;
+      static CArray< int, int >  m_timeSinceFirewise;
 
-		static CArray< int, int >  m_accountedForFireThisStep;
-		static CArray< int, int >  m_accountedForNoTransThisStep;
-		static CArray< int, int >  m_accountedForSuccessionThisStep;
-		static CArray< int, int >  m_timeSinceFirewise;
-
-		static CArray< float, float > m_priorLiveVolumeGe3IDUArray;   
-		static CArray< float, float > m_priorLiveVolumeSawTimberIDUArray;
-		static CArray< float, float > m_priorLiveBiomassIDUArray;
-		static CArray< float, float > m_priorLiveCarbonIDUArray;
-		static CArray< float, float > m_priorLiveVolume_3_25IDUArray;
+      static CArray< float, float > m_priorLiveVolumeGe3IDUArray;
+      static CArray< float, float > m_priorLiveVolumeSawTimberIDUArray;
+      static CArray< float, float > m_priorLiveBiomassIDUArray;
+      static CArray< float, float > m_priorLiveCarbonIDUArray;
+      static CArray< float, float > m_priorLiveVolume_3_25IDUArray;
 
    public:
       // info for plan area scoring
-      static PtrArray< PLAN_AREA_INFO > m_planAreaArray;
-      static CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > m_planAreaMap;  // key=plan area ID
+      //static PtrArray< PLAN_AREA_INFO > m_planAreaArray;
+      //static CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > m_planAreaMap;  // key=plan area ID
+      //
+      //static PtrArray< PLAN_AREA_INFO > m_planAreaFireArray;
+      //static CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > m_planAreaFireMap;  // key=plan area ID
 
-      static PtrArray< PLAN_AREA_INFO > m_planAreaFireArray;
-      static CMap< int, int, PLAN_AREA_INFO*, PLAN_AREA_INFO* > m_planAreaFireMap;  // key=plan area ID
-   
-public:
-      
+   public:
+
       //! Path to file with lookup table for vegetation structure variables.
       static CString m_vegStructurePath;
 
@@ -715,7 +786,7 @@ public:
 class COCNHProcessPre1 : public COCNHProcess
    {
    public:
-      bool Run(EnvContext *pContext);
+      bool Run(EnvContext* pContext);
    };
 
 
@@ -728,15 +799,15 @@ class COCNHProcessPre2 : public COCNHProcess
    public:
       COCNHProcessPre2(void) : COCNHProcess() { }
 
-      bool Init(EnvContext *pContext, LPCTSTR initStr);
-      bool InitRun(EnvContext *pContext, bool useInitSeed);
+      bool Init(EnvContext* pContext, LPCTSTR initStr);
+      bool InitRun(EnvContext* pContext, bool useInitSeed);
 
-      bool Run(EnvContext *pContext);
+      bool Run(EnvContext* pContext);
 
-	protected:
-	   int  CalcFireEffect(EnvContext*, bool useAddDelta);
-		int  DecayDeadResiduals(EnvContext*, bool useAddDelta);
-		
+   protected:
+      int  CalcFireEffect(EnvContext*, bool useAddDelta);
+      int  DecayDeadResiduals(EnvContext*, bool useAddDelta);
+
    };
 
 
@@ -750,8 +821,8 @@ class COCNHProcessPost1 : public COCNHProcess
       COCNHProcessPost1();
       ~COCNHProcessPost1(void);
 
-      bool Init(EnvContext *pContext, LPCTSTR initStr);
-      bool Run(EnvContext *pContext);
+      bool Init(EnvContext* pContext, LPCTSTR initStr);
+      bool Run(EnvContext* pContext);
 
    protected:
       float m_disturb3Ha;
@@ -771,21 +842,21 @@ class COCNHProcessPost2 : public COCNHProcess
 
       COCNHProcessPost2(void) : COCNHProcess() { }
 
-      bool Run(EnvContext *pContext);
+      bool Run(EnvContext* pContext);
 
    protected:
       int  CalcHarvestBiomass(EnvContext*, bool useAddDelta);
-      int  UpdatePlanAreas( EnvContext *pContext );
+      //int  UpdatePlanAreas( EnvContext *pContext );
    };
 
 
 class COCNHSetTSD : public COCNHProcess
    {
    public:
-      COCNHSetTSD(void) : COCNHProcess()  { }
+      COCNHSetTSD(void) : COCNHProcess() { }
       ~COCNHSetTSD(void) { }
 
-      bool Run(EnvContext *pContext);
+      bool Run(EnvContext* pContext);
    protected:
    };
 

@@ -7,48 +7,48 @@
 #include <maplayer.h>
 #include <Report.h>
 
-extern QueryEngine *_gpQueryEngine;
-extern char *gQueryBuffer;
-extern MapLayer *gFieldLayer;
+extern QueryEngine* _gpQueryEngine;
+extern char* gQueryBuffer;
+extern MapLayer* gFieldLayer;
 extern int gUserFnIndex;
-char functionBuffer[ 128 ];
+char functionBuffer[128];
 bool QShowCompilerErrors = true;
-TCHAR QSource[ 256 ];
-TCHAR QQueryStr[ 512 ];
+TCHAR QSource[256];
+TCHAR QQueryStr[1024];
 int   QCurrentLineNo = 0;
 
 //#define YYDEBUG
 
 //---- prototypes -----
 
-char *QStripWhitespace( char *p );
-int   QIsReserved ( char **p );
-int   QIsFunction( char **p );
-int   QIsFieldCol( char **p );
-MapLayer *QIsMapLayer( char **p );
-QExternal *QIsExternal( char **p );
-char *QParseString( char **p );
-void  QCompilerError( LPCSTR errMsg, LPSTR buffer );
-void  yyerror( const char* );
-int   QCountNewlines( char *start, char *end );
-void  QInitGlobals( int lineNo, LPCTSTR queryStr, LPCTSTR source );
-int   yylex( void );
+char* QStripWhitespace(char* p);
+int   QIsReserved(char** p);
+int   QIsFunction(char** p);
+int   QIsFieldCol(char** p);
+MapLayer* QIsMapLayer(char** p);
+QExternal* QIsExternal(char** p);
+char* QParseString(char** p);
+void  QCompilerError(LPCSTR errMsg, LPSTR buffer);
+void  yyerror(const char*);
+int   QCountNewlines(char* start, char* end);
+void  QInitGlobals(int lineNo, LPCTSTR queryStr, LPCTSTR source);
+int   yylex(void);
 
 
 //------ constants ---------
 
 
 //----- keywords ------
-typedef union  {
+typedef union {
    int           ivalue;
    double        dvalue;
-   char         *pStr;
-   QExternal    *pExternal;
-   QNode        *pNode;
+   char* pStr;
+   QExternal* pExternal;
+   QNode* pNode;
    QFNARG       qFnArg;    // a structure with members: int functionID; QArgList *pArgList;
    //QValueSet    *pValueSet;
-   MapLayer     *pMapLayer;	// only used for field references
-} YYSTYPE;
+   MapLayer* pMapLayer;	// only used for field references
+   } YYSTYPE;
 #define INTEGER 257
 #define BOOLEAN 258
 #define DOUBLE 259
@@ -94,24 +94,24 @@ YYSTYPE yylval, yyval;
 
 
 
-struct KEYWORD { int type; const char *keyword; int ivalue; };
+struct KEYWORD { int type; const char* keyword; int ivalue; };
 
-const int OPERATOR     = 0;
+const int OPERATOR = 0;
 const int INT_CONSTANT = 1;
-const int BUILTIN_FN   = 2;
+const int BUILTIN_FN = 2;
 
 
-KEYWORD fKeywordArray[] = 
-{ { OPERATOR,      "and ",       AND  },
-  { OPERATOR,      "or ",        OR   },
-  { OPERATOR,      "not ",       NOT   },
-  { OPERATOR,      "contains ",  CONTAINS   },
+KEYWORD fKeywordArray[] =
+   { { OPERATOR,      "and ",       AND  },
+     { OPERATOR,      "or ",        OR   },
+     { OPERATOR,      "not ",       NOT   },
+     { OPERATOR,      "contains ",  CONTAINS   },
 
-  //-- integer constants --//
-  { INT_CONSTANT,  "false",     0   },
-  { INT_CONSTANT,  "true",      1   },
+   //-- integer constants --//
+   { INT_CONSTANT,  "false",     0   },
+   { INT_CONSTANT,  "true",      1   },
 
-  { -1,  NULL,     0   } };
+   { -1,  NULL,     0   } };
 
 
 //extern int lineNo;
@@ -121,87 +121,87 @@ KEYWORD fKeywordArray[] =
 
 int yylex()
    {
-   char *p = gQueryBuffer;
+   char* p = gQueryBuffer;
 top:
-   p = QStripWhitespace( p );
-   
+   p = QStripWhitespace(p);
+
    //end of line found?
-   if (p == NULL || *p == NULL )
+   if (p == NULL || *p == NULL)
       return 0;
 
    // are we starting a comment?  (of the form /* ... */ )
-   if ( *p == '/' && *(p+1) == '*' )
+   if (*p == '/' && *(p + 1) == '*')
       {
-      p +=2;
-cycle:
-      char *end = strchr( p, '*' );
-      if ( end == (char*) '\0' )
-        {
-        QCompilerError( "Unterminated comment found", p );
-        //QCurrentLineNo = 0;
-        return 0;
-        }
+      p += 2;
+   cycle:
+      char* end = strchr(p, '*');
+      if (end == (char*)'\0')
+         {
+         QCompilerError("Unterminated comment found", p);
+         //QCurrentLineNo = 0;
+         return 0;
+         }
 
-      if ( *(end+1) != '/' )   // did we find a '*/' (as opposed to just a '*')?
-        {
-        QCurrentLineNo += QCountNewlines( p, end );
-        p = end+1;
-        goto cycle;
-        }
+      if (*(end + 1) != '/')   // did we find a '*/' (as opposed to just a '*')?
+         {
+         QCurrentLineNo += QCountNewlines(p, end);
+         p = end + 1;
+         goto cycle;
+         }
       else     // a valid comment delimiter was found, start again...
-        {
-        QCurrentLineNo += QCountNewlines( p, end );
-        p = end+2;
-        }
+         {
+         QCurrentLineNo += QCountNewlines(p, end);
+         p = end + 2;
+         }
 
-       goto top;
-       }
+      goto top;
+      }
 
    // are we starting a comment?  (of the form { })
-   if ( *p == '{' )
+   if (*p == '{')
       {
       p++;
-      char *end = strchr( p, '}' );
-      if ( end == NULL )
-        {
-        QCompilerError( "Unterminated comment found", p );
-        return 0;
-        }
-       else
-        {
-        QCurrentLineNo += QCountNewlines( p, end );
-        p = end+1;
-        }
-       goto top;
-       }
+      char* end = strchr(p, '}');
+      if (end == NULL)
+         {
+         QCompilerError("Unterminated comment found", p);
+         return 0;
+         }
+      else
+         {
+         QCurrentLineNo += QCountNewlines(p, end);
+         p = end + 1;
+         }
+      goto top;
+      }
 
    // are we starting a comment?  (of the form //  \n )
-   if ( *p == '/' && *(p+1) == '/' )
+   if (*p == '/' && *(p + 1) == '/')
       {
-      char *end = strchr( p+2, '\n' );
-      if ( end == NULL )
+      char* end = strchr(p + 2, '\n');
+      if (end == NULL)
          {
          QCurrentLineNo = 0;
          return 0;
          }
 
       QCurrentLineNo++;
-      p = end+1;  // move to start of next line
+      p = end + 1;  // move to start of next line
       goto top;
       }
 
    // end of input?
-   if ( *p == '\0' )
+   if (*p == '\0')
       {
       QCurrentLineNo = 0;
       return 0;
       }
 
    // what's here?
-   switch ( *p )
+   switch (*p)
       {
       // operators
-	  case '%':
+      case '%':
          gQueryBuffer = ++p;
          return yylval.ivalue = '%';
 
@@ -211,102 +211,102 @@ cycle:
 
       case '>':
          p++;
-         if ( *p == '=' )
+         if (*p == '=')
             {
-           gQueryBuffer = ++p;
-              yylval.ivalue = GE;
-           }
+            gQueryBuffer = ++p;
+            yylval.ivalue = GE;
+            }
          else
-           {
-           gQueryBuffer = p;
-           yylval.ivalue = GT;
-           }
+            {
+            gQueryBuffer = p;
+            yylval.ivalue = GT;
+            }
          return yylval.ivalue;
 
       case '<':
          p++;
-         if ( *p == '=' )
+         if (*p == '=')
             {
             gQueryBuffer = ++p;
             yylval.ivalue = LE;
             }
-         else if ( *p == '>' )
-           {
-           gQueryBuffer = ++p;
-           yylval.ivalue = NE;         
-           }
+         else if (*p == '>')
+            {
+            gQueryBuffer = ++p;
+            yylval.ivalue = NE;
+            }
          else
-           {
-           gQueryBuffer = p;
-           yylval.ivalue = LT;
-           }
+            {
+            gQueryBuffer = p;
+            yylval.ivalue = LT;
+            }
          return yylval.ivalue;
 
       case '|':
-           gQueryBuffer = ++p;
-           return yylval.ivalue = COR;
+         gQueryBuffer = ++p;
+         return yylval.ivalue = COR;
 
       case '&':
-           gQueryBuffer = ++p;
-           return yylval.ivalue = CAND;
-      
+         gQueryBuffer = ++p;
+         return yylval.ivalue = CAND;
+
       case '!':
-         if ( *(p+1) == '=' ) 
+         if (*(p + 1) == '=')
             {
-           gQueryBuffer = p+2;
-           return yylval.ivalue = NE;           
-           }
+            gQueryBuffer = p + 2;
+            return yylval.ivalue = NE;
+            }
          break;
-         
+
       case '$':
          gQueryBuffer = ++p;
-         return yylval.ivalue = CONTAINS;   
+         return yylval.ivalue = CONTAINS;
 
       case '@':		// external? (this should be removed!)
-         {
-         gQueryBuffer = ++p;
+      {
+      gQueryBuffer = ++p;
 
-         MapLayer *pLayer = gFieldLayer;
-         if ( pLayer == NULL )
-	         pLayer =_gpQueryEngine->GetMapLayer();
+      MapLayer* pLayer = gFieldLayer;
+      if (pLayer == NULL)
+         pLayer = _gpQueryEngine->GetMapLayer();
 
-		 char *end = p;
-		 while( isalnum( *end ) || *end == '_' ) end++;
-		 char _end = *end;
-		 *end = NULL;
-		 int col = pLayer->GetFieldCol( p );
-         yylval.pExternal = _gpQueryEngine->AddExternal( p, col );   
-		 *end = _end;
-		 gQueryBuffer = end;
-		 return EXTERNAL;  // yylval.pExternal;
-		 }
+      char* end = p;
+      while (isalnum(*end) || *end == '_') end++;
+      char _end = *end;
+      *end = NULL;
+      int col = pLayer->GetFieldCol(p);
+      yylval.pExternal = _gpQueryEngine->AddExternal(p, col);
+      *end = _end;
+      gQueryBuffer = end;
+      return EXTERNAL;  // yylval.pExternal;
+      }
 
       case '(':
       case ')':
       case ',':
       case '[':
       case ']':
-      case '.':      
+      case '.':
          gQueryBuffer = ++p;
-         return yylval.ivalue = *(p-1);
-         
+         return yylval.ivalue = *(p - 1);
+
       case '\'':	// single quote
-		// see if we have a legal char
-		if ( isalnum( *(p+1) ) && *(p+2) == '\'' )
-		   {
-		   gQueryBuffer += 3;
-		   yylval.ivalue = (int) (*(p+1));
-		   return INTEGER;
-		   }
-		break;
+         // see if we have a legal char
+         if (isalnum(*(p + 1)) && *(p + 2) == '\'')
+            {
+            gQueryBuffer += 3;
+            yylval.ivalue = (int)(*(p + 1));
+            return INTEGER;
+            }
+         break;
 
       }  // end of: switch( *p )
 
    // not an operator, is it a reserved word?
-   int reservedIndex = QIsReserved( &p );
-   if ( reservedIndex >= 0 )
-       {
-      if ( p == NULL )
+   int reservedIndex = QIsReserved(&p);
+   if (reservedIndex >= 0)
+      {
+      if (p == NULL)
          {
          QCurrentLineNo = 0;
          return 0;
@@ -314,41 +314,41 @@ cycle:
 
       gQueryBuffer = p;      // note:  IsReserved increments p if match found
 
-      switch( fKeywordArray[ reservedIndex ].type  )
+      switch (fKeywordArray[reservedIndex].type)
          {
          case OPERATOR:         // a reserved word - operator
-            return yylval.ivalue = fKeywordArray[ reservedIndex ].ivalue;
+            return yylval.ivalue = fKeywordArray[reservedIndex].ivalue;
 
          case INT_CONSTANT:     // an integer constant
-            yylval.ivalue = fKeywordArray[ reservedIndex ].ivalue;
+            yylval.ivalue = fKeywordArray[reservedIndex].ivalue;
             return INTEGER;
-            
+
          default:
-            ASSERT( 0 );
+            ASSERT(0);
          }
       }   // end of:  if ( IsReserved() )
 
    // Is it a function?
-   int fnID = QIsFunction( &p );
-   if ( fnID >= 0 )
-	  {
+   int fnID = QIsFunction(&p);
+   if (fnID >= 0)
+      {
       gQueryBuffer = p;
       return yylval.ivalue = fnID;   // this is the #defined ID of the function
       }
-      
+
    // or a layer name?
-   MapLayer *pLayer = QIsMapLayer( &p );
-   if ( pLayer != NULL )
+   MapLayer* pLayer = QIsMapLayer(&p);
+   if (pLayer != NULL)
       {
       gQueryBuffer = p;
       gFieldLayer = pLayer;
-      yylval.pMapLayer = pLayer;      
+      yylval.pMapLayer = pLayer;
       return MAPLAYER;
       }
-              
+
    // or a field column name?
-   int col = QIsFieldCol( &p );
-   if ( col >=0 )
+   int col = QIsFieldCol(&p);
+   if (col >= 0)
       {
       gQueryBuffer = p;
       gFieldLayer = NULL;
@@ -356,64 +356,64 @@ cycle:
       return FIELD;
       }
 
-	// or an external/appvar name?
-	QExternal *pExt = QIsExternal( &p );
-	if ( pExt != NULL )
-	   {
-       gQueryBuffer = p;
-       yylval.pExternal = pExt;
-       return EXTERNAL;
-       }
+   // or an external/appvar name?
+   QExternal* pExt = QIsExternal(&p);
+   if (pExt != NULL)
+      {
+      gQueryBuffer = p;
+      yylval.pExternal = pExt;
+      return EXTERNAL;
+      }
 
    // is it a number?
    bool negative = false;
-   if ( *p == '-' )
+   if (*p == '-')
       {
       negative = true;
       p++;
       }
 
-   if ( isdigit( *p ) )
+   if (isdigit(*p))
       {
       // find terminating character
-      char *end = p;
+      char* end = p;
       int   type = INTEGER;
-      while ( isdigit( *end ) || *end == '.' )
+      while (isdigit(*end) || *end == '.')
          {
-         if ( *end == '.' )
+         if (*end == '.')
             type = DOUBLE;
          end++;
          }
 
-      if ( type == DOUBLE )
+      if (type == DOUBLE)
          {
-         yylval.dvalue = atof( p );
-         if ( negative )
+         yylval.dvalue = atof(p);
+         if (negative)
             yylval.dvalue = -yylval.dvalue;
          }
       else   // INTEGER
          {
-         yylval.ivalue = atoi( p );
-         if ( negative )
+         yylval.ivalue = atoi(p);
+         if (negative)
             yylval.ivalue = -yylval.ivalue;
          }
 
       // is there a unit associated with this constant?
-      while ( *end == ' ' )   // skip white space
+      while (*end == ' ')   // skip white space
          end++;
-   
+
       gQueryBuffer = end;
       return type;
       }   // end of: isdigit( *p )
 
-   if ( negative )    // back pointer up
+   if (negative)    // back pointer up
       --p;
 
    // or a string?
-   char *str;
-   if ( *p == '"' )   // start of a string delimiter?
+   char* str;
+   if (*p == '"')   // start of a string delimiter?
       {
-      if ( ( str = QParseString( &p ) ) != NULL )
+      if ((str = QParseString(&p)) != NULL)
          {
          yylval.pStr = str;
          gQueryBuffer = p;
@@ -421,18 +421,18 @@ cycle:
          }
       }
 
-   QCompilerError( "Unrecognized token found", p );
+   QCompilerError("Unrecognized token found", p);
    return *p;
    //QCurrentLineNo = 0;
    //return 0;
    }
 
 
-char *QStripWhitespace( char *p )// strip white space
+char* QStripWhitespace(char* p)// strip white space
    {
-   while( *p == ' ' || *p == '\t' || *p == '\r' || *p == '\n'  )
+   while (*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
       {
-      if ( *p == '\n' || *p == '\r' )
+      if (*p == '\n' || *p == '\r')
          QCurrentLineNo++;
       p++;
       }
@@ -444,178 +444,178 @@ char *QStripWhitespace( char *p )// strip white space
 // check to see if the string is a fieldname in the current map.  If so, increment cursor to
 // following character and return keyword id.  Othewise, do nothing and return -1
 
-int QIsFieldCol( char **p )
+int QIsFieldCol(char** p)
    {
-   if ( ! isalpha( (int) (**p ) ) && **p != '_' )	// has to start with alpha or underscore
+   if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
       return -1;
-      
-   MapLayer *pLayer = gFieldLayer;
-   if ( pLayer == NULL )
-	  pLayer =_gpQueryEngine->GetMapLayer();
-	  
+
+   MapLayer* pLayer = gFieldLayer;
+   if (pLayer == NULL)
+      pLayer = _gpQueryEngine->GetMapLayer();
+
    // find termination of field name
-   char *end = *p;
-   while ( isalnum( (int) (*end ) ) || *end == '_' )
+   char* end = *p;
+   while (isalnum((int)(*end)) || *end == '_')
       end++;
 
    char endChar = *end;
    *end = '\0';
 
-   int col = pLayer->GetFieldCol( *p );
-   
+   int col = pLayer->GetFieldCol(*p);
+
    *end = endChar;
-   
-   if ( col >= 0 )   // col found?
+
+   if (col >= 0)   // col found?
       *p = end;
-  
+
    return col;
    }
 
 // check to see if the string is a External Variable (AppVar).  If so, increment cursor to
 // following character and return variable name (id).  Othewise, do nothing and return NULL
 
-   QExternal *QIsExternal(char **p)
-      {
-      if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
-         return NULL;
-
-      TCHAR name[64];
-      memset(name, 0, 64);
-      TCHAR *ptr = *p;
-      int index = 0;
-      while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// can only contain 'a-Z', '0-9', '_','.'  with alpha or underscore
-         {
-         name[index] = *ptr;
-         index++;
-         ptr++;
-         }
-
-      // ptr pts to the first position after the name.  See if the name matches an extern id
-      QExternal *pExt = _gpQueryEngine->FindExternal(name);
-      if (pExt == NULL)
-         return NULL;
-
-      // found, so return found external
-      *p = ptr;
-      return pExt;
-      }
-
-
-MapLayer *QIsMapLayer( char **p )
+QExternal* QIsExternal(char** p)
    {
-   if ( ! isalpha( (int) (**p ) ) && **p != '_' )	// has to start with alpha or underscore
+   if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
       return NULL;
 
-   MapLayer *pLayer = _gpQueryEngine->GetMapLayer();
-   Map      *pMap   = pLayer->m_pMap;
-	  
+   TCHAR name[64];
+   memset(name, 0, 64);
+   TCHAR* ptr = *p;
+   int index = 0;
+   while ((isalnum((int)(*ptr))) || *ptr == '_' || *ptr == '.')	// can only contain 'a-Z', '0-9', '_','.'  with alpha or underscore
+      {
+      name[index] = *ptr;
+      index++;
+      ptr++;
+      }
+
+   // ptr pts to the first position after the name.  See if the name matches an extern id
+   QExternal* pExt = _gpQueryEngine->FindExternal(name);
+   if (pExt == NULL)
+      return NULL;
+
+   // found, so return found external
+   *p = ptr;
+   return pExt;
+   }
+
+
+MapLayer* QIsMapLayer(char** p)
+   {
+   if (!isalpha((int)(**p)) && **p != '_')	// has to start with alpha or underscore
+      return NULL;
+
+   MapLayer* pLayer = _gpQueryEngine->GetMapLayer();
+   Map* pMap = pLayer->m_pMap;
+
    // find termination of field name
-   char *end = *p;
-   while ( isalnum( (int) (*end ) ) || *end == '_' )
+   char* end = *p;
+   while (isalnum((int)(*end)) || *end == '_')
       end++;
-      
-   if ( *end != '.' )    // layer names must terminate with '.'
-      return NULL;      
+
+   if (*end != '.')    // layer names must terminate with '.'
+      return NULL;
 
    char endChar = *end;
    *end = '\0';
 
    int col = -1;
-   pLayer = pMap->GetLayer( *p );
-   
+   pLayer = pMap->GetLayer(*p);
+
    *end = endChar;
-   
-   if ( pLayer != NULL )   // layer found?
+
+   if (pLayer != NULL)   // layer found?
       *p = end;
 
    return pLayer;
    }
 
 
-int QIsFunction( char **p )
+int QIsFunction(char** p)
    {
-   if ( _strnicmp( "Index", *p, 5 ) == 0 )
+   if (_strnicmp("Index", *p, 5) == 0)
       {
       *p += 5;
       return INDEX;
-      } 
-   if ( _strnicmp( "NextToArea", *p, 10 ) == 0 )
+      }
+   if (_strnicmp("NextToArea", *p, 10) == 0)
       {
       *p += 10;
       return NEXTTOAREA;
-      } 
-      
-   if ( _strnicmp( "NextTo", *p, 6 ) == 0 )
+      }
+
+   if (_strnicmp("NextTo", *p, 6) == 0)
       {
       *p += 6;
       return NEXTTO;
       }
-      
-  //if ( _strnicmp( "WithinAreaFrac", *p, 14 ) == 0 )
-  //    {
-  //    *p += 14;
-  //    return WITHINAREAFRAC;
-  //    }
+
+   //if ( _strnicmp( "WithinAreaFrac", *p, 14 ) == 0 )
+   //    {
+   //    *p += 14;
+   //    return WITHINAREAFRAC;
+   //    }
 
 
-   if ( _strnicmp( "WithinArea", *p, 10 ) == 0 )
+   if (_strnicmp("WithinArea", *p, 10) == 0)
       {
       *p += 10;
       return WITHINAREA;
       }
-      
-      
-   if ( _strnicmp( "Within", *p, 6 ) == 0 )
+
+
+   if (_strnicmp("Within", *p, 6) == 0)
       {
       *p += 6;
       return WITHIN;
       }
-      
-   if ( _strnicmp( "MOVAVG", *p, 6 ) == 0 )
+
+   if (_strnicmp("MOVAVG", *p, 6) == 0)
       {
       *p += 6;
       return MOVAVG;
       }
 
-      
-   if ( _strnicmp( "CHANGED", *p, 7 ) == 0 )
+
+   if (_strnicmp("CHANGED", *p, 7) == 0)
       {
       *p += 7;
       return CHANGED;
       }
 
-   if ( _strnicmp( "DELTA", *p, 5 ) == 0 )
+   if (_strnicmp("DELTA", *p, 5) == 0)
       {
       *p += 5;
       return DELTA;
       }
 
-   if ( _strnicmp( "TIME", *p, 4 ) == 0 )
+   if (_strnicmp("TIME", *p, 4) == 0)
       {
       *p += 4;
       return TIME;
       }
 
-    // is it a user defined function?
-    for (int i=0; i < _gpQueryEngine->GetUserFnCount();i++)
-        {
-        QUserFn *pFn = _gpQueryEngine->GetUserFn(i);
-        if ( _strnicmp(pFn->m_name, *p, pFn->m_name.GetLength()) == 0 )
-            {
-            gUserFnIndex = i;
-            *p += pFn->m_name.GetLength();
+   // is it a user defined function?
+   for (int i = 0; i < _gpQueryEngine->GetUserFnCount(); i++)
+      {
+      QUserFn* pFn = _gpQueryEngine->GetUserFn(i);
+      if (_strnicmp(pFn->m_name, *p, pFn->m_name.GetLength()) == 0)
+         {
+         gUserFnIndex = i;
+         *p += pFn->m_name.GetLength();
 
-            switch( pFn->m_nArgs)
-                {
-                //case 0:
-                //    return USERFN0;
-                //case 1:
-                //    return USERFN1;
-                case 2:
-                    return USERFN2;
-                }
+         switch (pFn->m_nArgs)
+            {
+            //case 0:
+            //    return USERFN0;
+            //case 1:
+            //    return USERFN1;
+            case 2:
+               return USERFN2;
             }
-        }
+         }
+      }
 
    return -1;
    }
@@ -624,17 +624,17 @@ int QIsFunction( char **p )
 // check to see if the string is a reserved word.  If so, increment cursor to
 // following character and return keyword id.  Othewise, do nothing and return -1
 
-int QIsReserved( char **p )
+int QIsReserved(char** p)
    {
-   int i=0;
-   while ( fKeywordArray[ i ].keyword != NULL )
+   int i = 0;
+   while (fKeywordArray[i].keyword != NULL)
       {
-      const char *keyword = fKeywordArray[ i ].keyword;
-      if ( _strnicmp( *p, keyword, lstrlen( keyword ) ) == 0 )
+      const char* keyword = fKeywordArray[i].keyword;
+      if (_strnicmp(*p, keyword, lstrlen(keyword)) == 0)
          {
-         *p += lstrlen( keyword );
+         *p += lstrlen(keyword);
          return i;
-          }
+         }
       ++i;
       }
 
@@ -643,57 +643,57 @@ int QIsReserved( char **p )
 
 
 
-char *QParseString( char **p )
+char* QParseString(char** p)
    {
-   ASSERT( **p == '"' );
+   ASSERT(**p == '"');
    (*p)++;
 
-   char *end = strchr( *p, '"' );
+   char* end = strchr(*p, '"');
 
-   if ( end == NULL )
+   if (end == NULL)
       {
-      QCompilerError( "Unterminated string found", *p );
+      QCompilerError("Unterminated string found", *p);
       QCurrentLineNo = 0;
       return 0;
       }
 
    // actual string found, so see if it is already in the string table
    *end = '\0';
-   LPCSTR str = _gpQueryEngine->FindString( *p, true );
+   LPCSTR str = _gpQueryEngine->FindString(*p, true);
    *end = '"';
-   *p = end+1;
-   return (char*) str;
+   *p = end + 1;
+   return (char*)str;
    }
 
-void QCompilerError( LPCSTR errorStr, LPSTR buffer )
+void QCompilerError(LPCSTR errorStr, LPSTR buffer)
    {
-   char _buffer[ 512 ];
-   strncpy_s( _buffer, 512, buffer, 512);
-   _buffer[511] = '\0';
+   char _buffer[1024];
+   strncpy_s(_buffer, 1024, buffer, 1024);
+   _buffer[1023] = '\0';
 
    CString msg;
-   msg.Format( "Query Compiler Error: %s while reading '%s' at line %i: %s.  The complete parse string is '%s'", errorStr, QSource, QCurrentLineNo+1, _buffer, QQueryStr );
-   
-   if ( QShowCompilerErrors )
-	  Report::ErrorMsg( msg, "Compiler Error", MB_OK );
+   msg.Format("Query Compiler Error: %s while reading '%s' at line %i: %s.  The complete parse string is '%s'", errorStr, QSource, QCurrentLineNo + 1, _buffer, QQueryStr);
 
-   _gpQueryEngine->AddError( QCurrentLineNo, errorStr );
+   if (QShowCompilerErrors)
+      Report::ErrorMsg(msg, "Compiler Error", MB_OK);
+
+   _gpQueryEngine->AddError(QCurrentLineNo, errorStr);
    }
 
 
 
-void yyerror( const char *msg )
+void yyerror(const char* msg)
    {
-   QCompilerError( msg, gQueryBuffer );
+   QCompilerError(msg, gQueryBuffer);
    }
 
 
-int QCountNewlines( char *start, char *end )
+int QCountNewlines(char* start, char* end)
    {
    int count = 0;
-   while ( start != end )
+   while (start != end)
       {
-      if ( *start == '\n' )
+      if (*start == '\n')
          count++;
 
       start++;
@@ -701,19 +701,19 @@ int QCountNewlines( char *start, char *end )
 
    return count;
    }
-   
 
-void  QInitGlobals( int lineNo, LPCTSTR queryStr, LPCTSTR source )
-	{
-	if ( lineNo >= 0 )
-		QCurrentLineNo = lineNo;
 
-	if ( queryStr != NULL )
-		lstrcpyn( QQueryStr, queryStr, 511 );
+void  QInitGlobals(int lineNo, LPCTSTR queryStr, LPCTSTR source)
+   {
+   if (lineNo >= 0)
+      QCurrentLineNo = lineNo;
 
-	if ( source != NULL )
-		lstrcpyn( QSource, source, 255 );
-	}
+   if (queryStr != NULL)
+      lstrcpyn(QQueryStr, queryStr, 511);
+
+   if (source != NULL)
+      lstrcpyn(QSource, source, 255);
+   }
 
 
 
@@ -723,7 +723,7 @@ const int yyexca[] = {
   0, -1,
   -2, 0,
   0,
-};
+   };
 
 #define YYNPROD 55
 #define YYLAST 302
@@ -767,7 +767,7 @@ const int yyact[] = {
       40,      41,      42,      43,      44,      45,      46,      47,
        0,       0,      28,      29,      28,      29,       0,       0,
       28,      29,      28,      29,      28,      29,
-};
+   };
 
 const int yypact[] = {
    -4096,     -40,    -280,     -40,   -4096,     -40,       4,   -4096,
@@ -785,12 +785,12 @@ const int yypact[] = {
       -9,    -240,     -72,     -73,      24,      15,      13,       7,
       -6,       3,      27,       2,   -4096,   -4096,   -4096,   -4096,
    -4096,   -4096,    -245,   -4096,   -4096,   -4096,       1,   -4096,
-};
+   };
 
 const int yypgo[] = {
        0,      71,     114,     113,     112,      24,     111,      27,
      110,     109,     100,
-};
+   };
 
 const int yyr1[] = {
        0,      10,      10,       1,       1,       1,       1,       2,
@@ -800,7 +800,7 @@ const int yyr1[] = {
        5,       7,       7,       7,       7,       7,       8,       8,
        9,       9,       6,       6,       6,       6,       6,       6,
        6,       6,       6,       6,       6,       6,       6,
-};
+   };
 
 const int yyr2[] = {
        0,       2,       0,       3,       2,       1,       3,       1,
@@ -810,7 +810,7 @@ const int yyr2[] = {
        3,       1,       4,       4,       6,       6,       3,       1,
        1,       1,       3,       4,       4,       6,       6,       6,
        6,       8,       6,       4,       3,       6,       6,
-};
+   };
 
 const int yychk[] = {
    -4096,     -10,      -1,     286,      -3,      40,      -5,      -7,
@@ -828,7 +828,7 @@ const int yychk[] = {
       44,      44,      -7,     257,     259,     257,     257,     259,
      259,     257,      -5,     257,      93,      93,      41,      41,
       41,      41,      44,      41,      41,      41,     259,      41,
-};
+   };
 
 const int yydef[] = {
        2,      -2,       1,       0,       5,       0,      10,      25,
@@ -846,7 +846,7 @@ const int yydef[] = {
        0,       0,       0,       0,       0,       0,       0,       0,
        0,       0,       0,       0,      36,      37,      45,      46,
       47,      48,       0,      50,      53,      54,       0,      49,
-};
+   };
 
 /*****************************************************************/
 /* PCYACC LALR parser driver routine -- a table driven procedure */
@@ -881,217 +881,221 @@ int pcyytoken = -1;          /* input token */
 
 
 int yyparse()
-{
+   {
 #ifdef YYSHORT
-  const short *yyxi;
+   const short* yyxi;
 #else
-  const int *yyxi;
+   const int* yyxi;
 #endif
 #ifdef YYASTFLAG
-    int ti; int tj;
+   int ti; int tj;
 #endif
 
 #ifdef YYDEBUG
-int tmptoken;
+   int tmptoken;
 #endif
-  int statestack[YYMAXDEPTH]; /* state stack */
-  int      j, m;              /* working index */
-  YYSTYPE *yypvt;
-  int      tmpstate, *yyps, n;
-  YYSTYPE *yypv;
+   int statestack[YYMAXDEPTH]; /* state stack */
+   int      j, m;              /* working index */
+   YYSTYPE* yypvt;
+   int      tmpstate, * yyps, n;
+   YYSTYPE* yypv;
 
 
-  tmpstate = 0;
-  pcyytoken = -1;
+   tmpstate = 0;
+   pcyytoken = -1;
 
 
 #ifdef YYDEBUG
-  tmptoken = -1;
+   tmptoken = -1;
 #endif
 
 
-  pcyyerrct = 0;
-  pcyyerrfl = 0;
-  yyps = &statestack[-1];
-  yypv = &yyv[-1];
+   pcyyerrct = 0;
+   pcyyerrfl = 0;
+   yyps = &statestack[-1];
+   yypv = &yyv[-1];
 
 
-  enstack:    /* push stack */
+enstack:    /* push stack */
 #ifdef YYDEBUG
-    printf("at state %d, next token %d\n", tmpstate, tmptoken);
+   printf("at state %d, next token %d\n", tmpstate, tmptoken);
 #endif
-    if (++yyps - &statestack[YYMAXDEPTH-1] > 0) {
+   if (++yyps - &statestack[YYMAXDEPTH - 1] > 0) {
       yyerror("pcyacc internal stack overflow");
       return(1);
-    }
-    *yyps = tmpstate;
-    ++yypv;
-    *yypv = yyval;
+      }
+   *yyps = tmpstate;
+   ++yypv;
+   *yypv = yyval;
 
 
-  newstate:
-    n = yypact[tmpstate];
-    if (n <= PCYYFLAG) goto defaultact; /*  a simple state */
+newstate:
+   n = yypact[tmpstate];
+   if (n <= PCYYFLAG) goto defaultact; /*  a simple state */
 
 
-    if (pcyytoken < 0) if ((pcyytoken=yylex()) < 0) pcyytoken = 0;
-    if ((n += pcyytoken) < 0 || n >= YYLAST) goto defaultact;
+   if (pcyytoken < 0) if ((pcyytoken = yylex()) < 0) pcyytoken = 0;
+   if ((n += pcyytoken) < 0 || n >= YYLAST) goto defaultact;
 
 
-    if (yychk[n=yyact[n]] == pcyytoken) { /* a shift */
+   if (yychk[n = yyact[n]] == pcyytoken) { /* a shift */
 #ifdef YYDEBUG
-      tmptoken  = pcyytoken;
+      tmptoken = pcyytoken;
 #endif
       pcyytoken = -1;
       yyval = yylval;
       tmpstate = n;
       if (pcyyerrfl > 0) --pcyyerrfl;
       goto enstack;
-    }
+      }
 
 
-  defaultact:
+defaultact:
 
 
-    if ((n=yydef[tmpstate]) == -2) {
-      if (pcyytoken < 0) if ((pcyytoken=yylex())<0) pcyytoken = 0;
-      for (yyxi=yyexca; (*yyxi!= (-1)) || (yyxi[1]!=tmpstate); yyxi += 2);
-      while (*(yyxi+=2) >= 0) if (*yyxi == pcyytoken) break;
-      if ((n=yyxi[1]) < 0) { /* an accept action */
+   if ((n = yydef[tmpstate]) == -2) {
+      if (pcyytoken < 0) if ((pcyytoken = yylex()) < 0) pcyytoken = 0;
+      for (yyxi = yyexca; (*yyxi != (-1)) || (yyxi[1] != tmpstate); yyxi += 2);
+      while (*(yyxi += 2) >= 0) if (*yyxi == pcyytoken) break;
+      if ((n = yyxi[1]) < 0) { /* an accept action */
 #ifdef YYASTFLAG
-          yytfilep = fopen(yytfilen, "w");
-          if (yytfilep == NULL) {
+         yytfilep = fopen(yytfilen, "w");
+         if (yytfilep == NULL) {
             fprintf(stderr, "Can't open t file: %s\n", yytfilen);
-            return(0);          }
-          for (ti=redcnt-1; ti>=0; ti--) {
+            return(0);
+            }
+         for (ti = redcnt - 1; ti >= 0; ti--) {
             tj = svdprd[redseq[ti]];
             while (strcmp(svdnams[tj], "$EOP"))
-              fprintf(yytfilep, "%s ", svdnams[tj++]);
+               fprintf(yytfilep, "%s ", svdnams[tj++]);
             fprintf(yytfilep, "\n");
-          }
-          fclose(yytfilep);
-#endif
-
-        return (0);
-      }
-    }
-
-
-    if (n == 0) {        /* error situation */
-      switch (pcyyerrfl) {
-        case WAS0ERR:          /* an error just occurred */
-          yyerror("syntax error");
-            ++pcyyerrct;
-        case WAS1ERR:
-        case WAS2ERR:           /* try again */
-          pcyyerrfl = 3;
-	   /* find a state for a legal shift action */
-          while (yyps >= statestack) {
-	     n = yypact[*yyps] + YYERRCODE;
-	     if (n >= 0 && n < YYLAST && yychk[yyact[n]] == YYERRCODE) {
-	       tmpstate = yyact[n];  /* simulate a shift of "error" */
-	       goto enstack;
             }
-	     n = yypact[*yyps];
-
-
-	     /* the current yyps has no shift on "error", pop stack */
-#ifdef YYDEBUG
-            printf("error: pop state %d, recover state %d\n", *yyps, yyps[-1]);
+         fclose(yytfilep);
 #endif
-	     --yyps;
-	     --yypv;
-	   }
+
+         return (0);
+         }
+      }
 
 
-	   yyabort:
+   if (n == 0) {        /* error situation */
+      switch (pcyyerrfl) {
+         case WAS0ERR:          /* an error just occurred */
+            yyerror("syntax error");
+            ++pcyyerrct;
+         case WAS1ERR:
+         case WAS2ERR:           /* try again */
+            pcyyerrfl = 3;
+            /* find a state for a legal shift action */
+            while (yyps >= statestack) {
+               n = yypact[*yyps] + YYERRCODE;
+               if (n >= 0 && n < YYLAST && yychk[yyact[n]] == YYERRCODE) {
+                  tmpstate = yyact[n];  /* simulate a shift of "error" */
+                  goto enstack;
+                  }
+               n = yypact[*yyps];
+
+
+               /* the current yyps has no shift on "error", pop stack */
+#ifdef YYDEBUG
+               printf("error: pop state %d, recover state %d\n", *yyps, yyps[-1]);
+#endif
+               --yyps;
+               --yypv;
+               }
+
+
+         yyabort:
 
 #ifdef YYASTFLAG
-              yytfilep = fopen(yytfilen, "w");
-              if (yytfilep == NULL) {
-                fprintf(stderr, "Can't open t file: %s\n", yytfilen);
-                return(1);              }
-              for (ti=1; ti<redcnt; ti++) {
-                tj = svdprd[redseq[ti]];
-                while (strcmp(svdnams[tj], "$EOP"))
+            yytfilep = fopen(yytfilen, "w");
+            if (yytfilep == NULL) {
+               fprintf(stderr, "Can't open t file: %s\n", yytfilen);
+               return(1);
+               }
+            for (ti = 1; ti < redcnt; ti++) {
+               tj = svdprd[redseq[ti]];
+               while (strcmp(svdnams[tj], "$EOP"))
                   fprintf(yytfilep, "%s ", svdnams[tj++]);
-                fprintf(yytfilep, "\n");
-              }
-              fclose(yytfilep);
+               fprintf(yytfilep, "\n");
+               }
+            fclose(yytfilep);
 #endif
 
-	     return(1);
+            return(1);
 
 
-	 case WAS3ERR:  /* clobber input char */
+         case WAS3ERR:  /* clobber input char */
 #ifdef YYDEBUG
-          printf("error: discard token %d\n", pcyytoken);
+            printf("error: discard token %d\n", pcyytoken);
 #endif
-          if (pcyytoken == 0) goto yyabort; /* quit */
-	   pcyytoken = -1;
-	   goto newstate;      } /* switch */
-    } /* if */
+            if (pcyytoken == 0) goto yyabort; /* quit */
+            pcyytoken = -1;
+            goto newstate;
+         } /* switch */
+      } /* if */
 
 
-    /* reduction, given a production n */
+      /* reduction, given a production n */
 #ifdef YYDEBUG
-    printf("reduce with rule %d\n", n);
+   printf("reduce with rule %d\n", n);
 #endif
 #ifdef YYASTFLAG
-    if ( redcnt<YYREDMAX ) redseq[redcnt++] = n;
+   if (redcnt < YYREDMAX) redseq[redcnt++] = n;
 #endif
-    yyps -= yyr2[n];
-    yypvt = yypv;
-    yypv -= yyr2[n];
-    yyval = yypv[1];
-    m = n;
-    /* find next state from goto table */
-    n = yyr1[n];
-    j = yypgo[n] + *yyps + 1;
-    if (j>=YYLAST || yychk[ tmpstate = yyact[j] ] != -n) tmpstate = yyact[yypgo[n]];
-    switch (m) { /* actions associated with grammar rules */
-      
-      case 1:{ _gpQueryEngine->AddQuery( yypvt[-0].pNode ); } break;
-      case 3:{ yyval.pNode = new QNode( yypvt[-2].pNode, yypvt[-1].ivalue, yypvt[-0].pNode ); } break;
-      case 4:{ yyval.pNode = new QNode( (QNode*)NULL, NOT, yypvt[-0].pNode ); } break;
-      case 5:{ yyval.pNode = yypvt[-0].pNode; } break;
-      case 6:{ yyval.pNode = yypvt[-1].pNode; } break;
-      case 9:{ yyval.pNode = new QNode( yypvt[-2].pNode, yypvt[-1].ivalue, yypvt[-0].pNode ); } break;
-      case 10:{ yyval.pNode = yypvt[-0].pNode; } break;
-      case 20:{ yyval.pNode = new QNode( yypvt[-2].pNode, '+', yypvt[-0].pNode ); } break;
-      case 21:{ yyval.pNode = new QNode( yypvt[-2].pNode, '-', yypvt[-0].pNode ); } break;
-      case 22:{ yyval.pNode = new QNode( yypvt[-2].pNode, '*', yypvt[-0].pNode ); } break;
-      case 23:{ yyval.pNode = new QNode( yypvt[-2].pNode, '/', yypvt[-0].pNode ); } break;
-      case 24:{ yyval.pNode = new QNode( yypvt[-2].pNode, '%', yypvt[-0].pNode ); } break;
-      case 25:{ yyval.pNode = yypvt[-0].pNode; } break;
-      case 26:{ yyval.pNode = new QNode( yypvt[-0].pExternal ); } break;
-      case 27:{ yyval.pNode = new QNode( yypvt[-0].ivalue ); } break;
-      case 28:{ yyval.pNode = new QNode( yypvt[-0].dvalue ); } break;
-      case 29:{ yyval.pNode = new QNode( yypvt[-0].pStr ); } break;
-      case 30:{ yyval.pNode = new QNode( yypvt[-0].ivalue ); } break;
-      case 31:{ yyval.pNode = new QNode( yypvt[-0].qFnArg ); } break;
-      case 32:{ yyval.pNode = yypvt[-1].pNode; } break;
-      case 33:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-0].ivalue ); } break;
-      case 34:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
-      case 35:{ yyval.pNode = new QNode( _gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
-      case 36:{ yyval.pNode = new QNode( yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
-      case 37:{ yyval.pNode = new QNode( yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
-      case 38:{ yyval.ivalue = 1; } break;
-      case 39:{ yyval.ivalue = 1; } break;
-      case 40:{ yyval.ivalue = (int) _gpQueryEngine->AddValue( yypvt[-0].ivalue ); } break;
-      case 41:{ yyval.ivalue = (int) _gpQueryEngine->AddValue( yypvt[-0].dvalue ); } break;
-      case 42:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-2].ivalue ); } break;
-      case 43:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
-      case 44:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].pNode ); } break;
-      case 45:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue ); } break;
-      case 46:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
-      case 47:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
-      case 48:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue); } break;
-      case 49:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-7].ivalue, yypvt[-5].pNode, yypvt[-3].dvalue, yypvt[-1].dvalue ); } break;
-      case 50:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, (double) yypvt[-1].ivalue ); } break;
-      case 51:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;
-      case 52:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-2].ivalue ); } break;
-      case 53:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].pNode ); } break;
-      case 54:{ yyval.qFnArg = _gpQueryEngine->AddFunctionArgs( yypvt[-5].ivalue, yypvt[-3].ivalue, yypvt[-1].ivalue ); } break;    }
-    goto enstack;
-}
+   yyps -= yyr2[n];
+   yypvt = yypv;
+   yypv -= yyr2[n];
+   yyval = yypv[1];
+   m = n;
+   /* find next state from goto table */
+   n = yyr1[n];
+   j = yypgo[n] + *yyps + 1;
+   if (j >= YYLAST || yychk[tmpstate = yyact[j]] != -n) tmpstate = yyact[yypgo[n]];
+   switch (m) { /* actions associated with grammar rules */
+
+      case 1: { _gpQueryEngine->AddQuery(yypvt[-0].pNode); } break;
+      case 3: { yyval.pNode = new QNode(yypvt[-2].pNode, yypvt[-1].ivalue, yypvt[-0].pNode); } break;
+      case 4: { yyval.pNode = new QNode((QNode*)NULL, NOT, yypvt[-0].pNode); } break;
+      case 5: { yyval.pNode = yypvt[-0].pNode; } break;
+      case 6: { yyval.pNode = yypvt[-1].pNode; } break;
+      case 9: { yyval.pNode = new QNode(yypvt[-2].pNode, yypvt[-1].ivalue, yypvt[-0].pNode); } break;
+      case 10: { yyval.pNode = yypvt[-0].pNode; } break;
+      case 20: { yyval.pNode = new QNode(yypvt[-2].pNode, '+', yypvt[-0].pNode); } break;
+      case 21: { yyval.pNode = new QNode(yypvt[-2].pNode, '-', yypvt[-0].pNode); } break;
+      case 22: { yyval.pNode = new QNode(yypvt[-2].pNode, '*', yypvt[-0].pNode); } break;
+      case 23: { yyval.pNode = new QNode(yypvt[-2].pNode, '/', yypvt[-0].pNode); } break;
+      case 24: { yyval.pNode = new QNode(yypvt[-2].pNode, '%', yypvt[-0].pNode); } break;
+      case 25: { yyval.pNode = yypvt[-0].pNode; } break;
+      case 26: { yyval.pNode = new QNode(yypvt[-0].pExternal); } break;
+      case 27: { yyval.pNode = new QNode(yypvt[-0].ivalue); } break;
+      case 28: { yyval.pNode = new QNode(yypvt[-0].dvalue); } break;
+      case 29: { yyval.pNode = new QNode(yypvt[-0].pStr); } break;
+      case 30: { yyval.pNode = new QNode(yypvt[-0].ivalue); } break;
+      case 31: { yyval.pNode = new QNode(yypvt[-0].qFnArg); } break;
+      case 32: { yyval.pNode = yypvt[-1].pNode; } break;
+      case 33: { yyval.pNode = new QNode(_gpQueryEngine->GetMapLayer(), yypvt[-0].ivalue); } break;
+      case 34: { yyval.pNode = new QNode(_gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].pNode); } break;
+      case 35: { yyval.pNode = new QNode(_gpQueryEngine->GetMapLayer(), yypvt[-3].ivalue, yypvt[-1].ivalue); } break;
+      case 36: { yyval.pNode = new QNode(yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].pNode); } break;
+      case 37: { yyval.pNode = new QNode(yypvt[-5].pMapLayer, yypvt[-3].ivalue, yypvt[-1].ivalue); } break;
+      case 38: { yyval.ivalue = 1; } break;
+      case 39: { yyval.ivalue = 1; } break;
+      case 40: { yyval.ivalue = (int)_gpQueryEngine->AddValue(yypvt[-0].ivalue); } break;
+      case 41: { yyval.ivalue = (int)_gpQueryEngine->AddValue(yypvt[-0].dvalue); } break;
+      case 42: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-2].ivalue); } break;
+      case 43: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-3].ivalue, yypvt[-1].pNode); } break;
+      case 44: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-3].ivalue, yypvt[-1].pNode); } break;
+      case 45: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue); } break;
+      case 46: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-5].ivalue, yypvt[-3].pNode, (double)yypvt[-1].ivalue); } break;
+      case 47: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-5].ivalue, yypvt[-3].pNode, (double)yypvt[-1].ivalue); } break;
+      case 48: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].dvalue); } break;
+      case 49: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-7].ivalue, yypvt[-5].pNode, yypvt[-3].dvalue, yypvt[-1].dvalue); } break;
+      case 50: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-5].ivalue, yypvt[-3].pNode, (double)yypvt[-1].ivalue); } break;
+      case 51: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-3].ivalue, yypvt[-1].ivalue); } break;
+      case 52: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-2].ivalue); } break;
+      case 53: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-5].ivalue, yypvt[-3].pNode, yypvt[-1].pNode); } break;
+      case 54: { yyval.qFnArg = _gpQueryEngine->AddFunctionArgs(yypvt[-5].ivalue, yypvt[-3].ivalue, yypvt[-1].ivalue); } break;
+      }
+   goto enstack;
+   }

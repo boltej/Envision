@@ -35,13 +35,13 @@ Copywrite 2012 - Oregon State University
 #include <vector>
 #include <afxtempl.h>
 #include <PathManager.h>
-#include "AlgLib\ap.h"
+//#include "AlgLib\ap.h"
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
 #endif
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext)
+extern "C" _EXPORT EnvExtension * Factory(EnvContext * pContext)
    {
    return (EnvExtension*) new FlameLenDisturbHandler;
    }
@@ -51,83 +51,83 @@ extern "C" _EXPORT EnvExtension* Factory(EnvContext *pContext)
 // (unsigned int)((((unsigned int)(a)) << 24) | (((unsigned int)(b)) << 16) | (((unsigned int)(c)) << 8) | (((unsigned int)(d))))
 
 __int64 GetKey(int VegClass, int Region, int Pvt, int Variant)
-{
-	__int64
-		key = (__int64)VegClass * 100000 + (__int64)Region * 1000 + (__int64)Pvt * 10 + (__int64)Variant;
-	return key;
-}
+   {
+   __int64
+      key = (__int64)VegClass * 100000 + (__int64)Region * 1000 + (__int64)Pvt * 10 + (__int64)Variant;
+   return key;
+   }
 
 //char filenamej[] = "C:\\Envision\\StudyAreas\\Lebanon\\vegclass_fire_vddt_transitions.csv";
 
 FlameLenDisturbHandler::FlameLenDisturbHandler()
-: EnvModelProcess()
-, m_colDisturb ( -1 )
-, m_colFlameLen ( -1 )
-, m_colVegClass ( -1 )
-, m_colVariant ( -1 )
-, m_colTSD ( -1 )
-, m_colPVT ( -1 )
-, m_colRegion ( -1 )
-, m_colArea( -1 )
-, m_pvt ( 0 )
-, m_vegClass ( -1 )
-, m_variant ( 1 )
-, m_region ( -1 )
-, m_disturb ( -99 )
-, m_surfaceFireAreaHa( 0 )
-, m_surfaceFireAreaPct( 0 )
-, m_surfaceFireAreaCumHa( 0 )
-, m_lowSeverityFireAreaHa( 0 )
-, m_lowSeverityFireAreaPct( 0 )
-, m_lowSeverityFireAreaCumHa( 0 )
-, m_highSeverityFireAreaHa( 0 )
-, m_highSeverityFireAreaPct( 0 )   
-, m_highSeverityFireAreaCumHa( 0 ) 
-, m_standReplacingFireAreaHa( 0 ) 
-, m_standReplacingFireAreaPct( 0 ) 
-, m_standReplacingFireAreaCumHa( 0 )
-, m_colPotentialDisturb(-1)
-, m_colPotentialFlameLen(-1)
- {
- m_vegFireMap.InitHashTable( 10000 );
- }; // end of FlameLenthToDisturb constructor
- 
+   : EnvModelProcess()
+   , m_colDisturb(-1)
+   , m_colFlameLen(-1)
+   , m_colVegClass(-1)
+   , m_colVariant(-1)
+   , m_colTSD(-1)
+   , m_colPVT(-1)
+   , m_colRegion(-1)
+   , m_colArea(-1)
+   , m_pvt(0)
+   , m_vegClass(-1)
+   , m_variant(1)
+   , m_region(-1)
+   , m_disturb(-99)
+   , m_surfaceFireAreaHa(0)
+   , m_surfaceFireAreaPct(0)
+   , m_surfaceFireAreaCumHa(0)
+   , m_lowSeverityFireAreaHa(0)
+   , m_lowSeverityFireAreaPct(0)
+   , m_lowSeverityFireAreaCumHa(0)
+   , m_highSeverityFireAreaHa(0)
+   , m_highSeverityFireAreaPct(0)
+   , m_highSeverityFireAreaCumHa(0)
+   , m_standReplacingFireAreaHa(0)
+   , m_standReplacingFireAreaPct(0)
+   , m_standReplacingFireAreaCumHa(0)
+   , m_colPotentialDisturb(-1)
+   , m_colPotentialFlameLen(-1)
+   {
+   m_vegFireMap.InitHashTable(10000);
+   }; // end of FlameLenthToDisturb constructor
+
 FlameLenDisturbHandler::~FlameLenDisturbHandler()
    {
-   
+
    } // end of FlameLenthToDisturb destructor
 
 //======================================================
 // Disturbance generator
 //======================================================
 
-bool FlameLenDisturbHandler::Init( EnvContext *pEnvContext, LPCTSTR initStr )
+bool FlameLenDisturbHandler::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
-   const MapLayer *pLayer = pEnvContext->pMapLayer;
-   
-   bool ok = LoadXml( initStr ); // get input file names and input variable
+   const MapLayer* pLayer = pEnvContext->pMapLayer;
 
-   if ( ! ok )
+   bool ok = LoadXml(initStr); // get input file names and input variable
+
+   if (!ok)
       {
-      CString msg( "FlameLenDisturbHandler: Unable to find FlameLenDisturbHandler's .xml init file" );
-     
-      Report::ErrorMsg( msg );
-      return FALSE;
-      }   
-    
-   // check and store relevant columns
-   CheckCol( pLayer, m_colVegClass, "VEGCLASS", TYPE_INT, CC_MUST_EXIST );
-   CheckCol( pLayer, m_colDisturb,  "DISTURB" , TYPE_INT, CC_MUST_EXIST );
-   CheckCol( pLayer, m_colVariant,  "VARIANT",   TYPE_INT,   CC_MUST_EXIST );
-   CheckCol( pLayer, m_colFlameLen, "FLAMELEN",  TYPE_FLOAT, CC_MUST_EXIST );
-   CheckCol( pLayer, m_colPVT,      "PVT" ,     TYPE_INT, CC_MUST_EXIST );
-   CheckCol( pLayer, m_colRegion,   "REGION" ,  TYPE_INT, CC_MUST_EXIST );
-   CheckCol( pLayer, m_colArea,     "AREA",     TYPE_FLOAT, CC_MUST_EXIST );
-   CheckCol( pLayer, m_colTSD,      "TSD" ,     TYPE_INT, CC_MUST_EXIST );
+      CString msg("FlameLenDisturbHandler: Unable to find FlameLenDisturbHandler's .xml init file");
 
-	m_colPotentialDisturb = pLayer->GetFieldCol("PDISTURB");
-	m_colPotentialFlameLen = pLayer->GetFieldCol("PFlameLen");
-   
+      Report::ErrorMsg(msg);
+      return FALSE;
+      }
+
+   // check and store relevant columns
+   CheckCol(pLayer, m_colVegClass, "VEGCLASS", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(pLayer, m_colDisturb, "DISTURB", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(pLayer, m_colVariant, "VARIANT", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(pLayer, m_colFlameLen, "FLAMELEN", TYPE_FLOAT, CC_MUST_EXIST);
+   CheckCol(pLayer, m_colPVT, "PVT", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(pLayer, m_colRegion, "REGION", TYPE_INT, CC_MUST_EXIST);
+   CheckCol(pLayer, m_colArea, "AREA", TYPE_FLOAT, CC_MUST_EXIST);
+   CheckCol(pLayer, m_colTSD, "TSD", TYPE_INT, CC_MUST_EXIST);
+
+   m_colPotentialDisturb = pLayer->GetFieldCol("PDISTURB");
+   m_colPotentialFlameLen = pLayer->GetFieldCol("PFlameLen");
+
 
    // read fire lookup file
    CString path;
@@ -140,320 +140,368 @@ bool FlameLenDisturbHandler::Init( EnvContext *pEnvContext, LPCTSTR initStr )
       }
 
    VDataObj data(U_UNDEFINED);
-   int rows = data.ReadAscii( path );
-   
-   if ( rows <= 0 )
+   int rows = data.ReadAscii(path);
+
+   if (rows <= 0)
       {
-      CString msg( "FlameLenDisturbHandler initialization error:  Unable to read  file " );
+      CString msg("FlameLenDisturbHandler initialization error:  Unable to read  file ");
       msg += path;
-      Report::ErrorMsg( msg );
+      Report::ErrorMsg(msg);
       return FALSE;
       }
 
-   int vegclass_col        = data.GetCol( "VEGCLASS");
-	int region_col				= data.GetCol( "REGION");
-	int pvt_col					= data.GetCol( "PVT");
-   int variant_col         = data.GetCol( "VARIANT");	
-   int lcpfuelmod_col      = data.GetCol( "LCP_FUEL_MODEL");	
-   int lcpcnpycov_col      = data.GetCol( "LCP_CNPY_COV");	
-   int lcpcnpyht_col       = data.GetCol( "LCP_CNPY_HT");	
-   int lcpcnpybsht_col     = data.GetCol( "LCP_CNPY_BS_HT");	
-   int lcpcnpyblkdns_col   = data.GetCol( "LCP_CNPY_BLK_DNS");	
-   int nofire_col          = data.GetCol( "NO_FIRE");	
-   int surface_col         = data.GetCol( "SURFACE_FIRE");	
-   int mixlow_col          = data.GetCol( "MIXED_SEVERITY_BURN_LOW");	
-   int mixhigh_col         = data.GetCol( "MIXED_SEVERITY_BURN_HIGH");	
-   int standrpl_col        = data.GetCol( "STAND_REPLACING_FIRE");	
-   int notrans_col         = data.GetCol( "VEGCLASS_NO_FIRE_TRANSITION");	
-   int surfacetrans_col    = data.GetCol( "VEGCLASS_SURFACE_FIRE_TRANSITION");	
-   int mixlowtrans_col     = data.GetCol( "VEGCLASS_MIXED_SEVERITY_BURN_LOW_TRANSITION");	
-   int mixhightrans_col    = data.GetCol( "VEGCLASS_MIXED_SEVERITY_BURN_HIGH_TRANSITION");	
-   int standrpltrans_col   = data.GetCol( "VEGCLASS_STAND_REPLACING_FIRE_TRANSITION");
+   int vegclass_col = data.GetCol("VEGCLASS");
+   int region_col = data.GetCol("REGION");
+   int pvt_col = data.GetCol("PVT");
+   int variant_col = data.GetCol("VARIANT");
+   int lcpfuelmod_col = data.GetCol("LCP_FUEL_MODEL");
+   int lcpcnpycov_col = data.GetCol("LCP_CNPY_COV");
+   int lcpcnpyht_col = data.GetCol("LCP_CNPY_HT");
+   int lcpcnpybsht_col = data.GetCol("LCP_CNPY_BS_HT");
+   int lcpcnpyblkdns_col = data.GetCol("LCP_CNPY_BLK_DNS");
+   int nofire_col = data.GetCol("NO_FIRE");
+   int surface_col = data.GetCol("SURFACE_FIRE");
+   int mixlow_col = data.GetCol("MIXED_SEVERITY_BURN_LOW");
+   int mixhigh_col = data.GetCol("MIXED_SEVERITY_BURN_HIGH");
+   int standrpl_col = data.GetCol("STAND_REPLACING_FIRE");
+   int notrans_col = data.GetCol("VEGCLASS_NO_FIRE_TRANSITION");
+   int surfacetrans_col = data.GetCol("VEGCLASS_SURFACE_FIRE_TRANSITION");
+   int mixlowtrans_col = data.GetCol("VEGCLASS_MIXED_SEVERITY_BURN_LOW_TRANSITION");
+   int mixhightrans_col = data.GetCol("VEGCLASS_MIXED_SEVERITY_BURN_HIGH_TRANSITION");
+   int standrpltrans_col = data.GetCol("VEGCLASS_STAND_REPLACING_FIRE_TRANSITION");
 
-   if ( vegclass_col    < 0 || lcpcnpybsht_col   < 0 ||  mixhigh_col   < 0 || mixhightrans_col  < 0 || 
-        variant_col     < 0 || lcpcnpyblkdns_col < 0 ||  standrpl_col  < 0 || standrpltrans_col < 0 || 
-        lcpfuelmod_col  < 0 || nofire_col        < 0 ||  notrans_col   < 0 || lcpcnpycov_col    < 0 || 
-        surface_col     < 0 || surfacetrans_col  < 0 ||  lcpcnpyht_col < 0 || mixlow_col        < 0 ||  
-		  mixlowtrans_col < 0 || region_col < 0 || pvt_col < 0 )             
+   if (vegclass_col < 0 || lcpcnpybsht_col < 0 || mixhigh_col < 0 || mixhightrans_col < 0 ||
+      variant_col < 0 || lcpcnpyblkdns_col < 0 || standrpl_col < 0 || standrpltrans_col < 0 ||
+      lcpfuelmod_col < 0 || nofire_col < 0 || notrans_col < 0 || lcpcnpycov_col < 0 ||
+      surface_col < 0 || surfacetrans_col < 0 || lcpcnpyht_col < 0 || mixlow_col < 0 ||
+      mixlowtrans_col < 0 || region_col < 0 || pvt_col < 0)
       {
       CString msg;
       msg.Format("FlameLenDisturbHandler::Init One or more column headings are incorrect in fire lookup file\n");
-      Report::ErrorMsg( msg );
+      Report::ErrorMsg(msg);
       return false;
       }
-                              
-   for ( int i=0; i < rows; i++ )
-      {
-      FIRE_STATE *pFS = new FIRE_STATE;
-      data.Get( vegclass_col,      i, pFS->vegClass );
-      data.Get( variant_col,       i, pFS->variant );
-		data.Get( region_col,        i, pFS->region );
-		data.Get( pvt_col,			  i, pFS->pvt );
-      data.Get( nofire_col,        i, pFS->none );
-      data.Get( surface_col,       i, pFS->groundFire );
-      data.Get( mixlow_col,        i, pFS->mixedSeverityFire1 );
-      data.Get( mixhigh_col,       i, pFS->mixedSeverityFire2 );
-      data.Get( standrpl_col,      i, pFS->severeFire ); 
-	   data.Get( surfacetrans_col,  i, pFS->surfaceToVeg );
-      data.Get( mixlowtrans_col,   i, pFS->mixedSeverityFire1ToVeg );
-      data.Get( mixhightrans_col,  i, pFS->mixedSeverityFire2ToVeg );
-      data.Get( standrpltrans_col, i, pFS->severeToVeg );
-      
-	   m_fireSeverityArray.Add( pFS );
-      }
 
-   for ( int i=0; i < m_fireSeverityArray.GetSize(); i++ )
+
+   // NOTE: HARD CODED VALUES - REPLACE
+   std::vector<int> pvts = { 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,22,99 };
+   std::vector<int> rgns = { 7,8,9,11,17,18,19,99 };
+   std::vector<int> vars = { 1,2,3,4,5,6 };
+   int count = 0;
+
+   for (int i = 0; i < rows; i++)
       {
-      if ( m_fireSeverityArray[ i ]->vegClass > 0 )
+      // iterate through .csv file entries (rows).  For each row, add
+      // an entry to the m_inputTable map (key=FUELMODELKEY, value=Fuel Model
+
+         // handle wildcards
+      int pvt = -1, region = -1, variant = -1;
+      data.Get(variant_col, i, variant);
+      data.Get(region_col, i, region);
+      data.Get(pvt_col, i, pvt);
+
+      for (int _pvt : pvts)
          {
-        // LONG vegPvtRegionVariant = MAKELONGER( m_fireSeverityArray[ i ]->vegClass, m_fireSeverityArray[ i ]->pvt,
-		//		m_fireSeverityArray[ i ]->region, m_fireSeverityArray[ i ]->variant );
-		  __int64 vegPvtRegionVariant = GetKey(m_fireSeverityArray[i]->vegClass, m_fireSeverityArray[i]->region,
-			  m_fireSeverityArray[i]->pvt, m_fireSeverityArray[i]->variant);
-			m_vegFireMap.SetAt( vegPvtRegionVariant, i );
-			//ATLTRACE2("Added to FlameLenDisturbHandler::m_vegFireMap: %I64d, %d\n", vegPvtRegionVariant, i);
+         for (int _variant : vars)
+            {
+            for (int _region : rgns)
+               {
+               if ((pvt == _pvt || pvt == -99)
+                  && (variant == _variant || variant == -99)
+                  && (region == _region || region == -99))
+                  {
+                  FIRE_STATE* pFS = new FIRE_STATE;
+                  data.Get(vegclass_col, i, pFS->vegClass);
+                  //data.Get(variant_col, i, variant);
+                  //data.Get(region_col, i, region);
+                  //data.Get(pvt_col, i, _pvt);
+                  data.Get(nofire_col, i, pFS->none);
+                  data.Get(surface_col, i, pFS->groundFire);
+                  data.Get(mixlow_col, i, pFS->mixedSeverityFire1);
+                  data.Get(mixhigh_col, i, pFS->mixedSeverityFire2);
+                  data.Get(standrpl_col, i, pFS->severeFire);
+                  data.Get(surfacetrans_col, i, pFS->surfaceToVeg);
+                  data.Get(mixlowtrans_col, i, pFS->mixedSeverityFire1ToVeg);
+                  data.Get(mixhightrans_col, i, pFS->mixedSeverityFire2ToVeg);
+                  data.Get(standrpltrans_col, i, pFS->severeToVeg);
+
+                  pFS->pvt = _pvt;
+                  pFS->variant = _variant;
+                  pFS->region = _region;
+
+                  m_fireSeverityArray.Add(pFS);
+
+                  count++;
+                  }
+               }
+            }
          }
       }
 
-   AddOutputVar( _T( "Surface Fire Area (ha)" ),                        m_surfaceFireAreaHa,    _T("") );
-   AddOutputVar( _T( "Surface Fire Area (%)" ),                         m_surfaceFireAreaPct,   _T("") );
-   AddOutputVar( _T( "Surface Fire Area (Cumulative - ha)" ),           m_surfaceFireAreaCumHa, _T("") );
+   for (int i = 0; i < m_fireSeverityArray.GetSize(); i++)
+      {
+      if (m_fireSeverityArray[i]->vegClass > 0)
+         {
+         // LONG vegPvtRegionVariant = MAKELONGER( m_fireSeverityArray[ i ]->vegClass, m_fireSeverityArray[ i ]->pvt,
+       //		m_fireSeverityArray[ i ]->region, m_fireSeverityArray[ i ]->variant );
+         __int64 vegPvtRegionVariant = GetKey(m_fireSeverityArray[i]->vegClass, m_fireSeverityArray[i]->region,
+            m_fireSeverityArray[i]->pvt, m_fireSeverityArray[i]->variant);
+         m_vegFireMap.SetAt(vegPvtRegionVariant, i);
+         //ATLTRACE2("Added to FlameLenDisturbHandler::m_vegFireMap: %I64d, %d\n", vegPvtRegionVariant, i);
+         }
+      }
 
-   AddOutputVar( _T( "Low Severity Fire Area (ha)" ),                   m_lowSeverityFireAreaHa,    _T("") );
-   AddOutputVar( _T( "Low Severity Fire Area (%)" ),                    m_lowSeverityFireAreaPct,   _T("") );
-   AddOutputVar( _T( "Low Severity Fire Area (Cumulative - ha)" ),      m_lowSeverityFireAreaCumHa, _T("") );
+   AddOutputVar(_T("Surface Fire Area (ha)"), m_surfaceFireAreaHa, _T(""));
+   AddOutputVar(_T("Surface Fire Area (%)"), m_surfaceFireAreaPct, _T(""));
+   AddOutputVar(_T("Surface Fire Area (Cumulative - ha)"), m_surfaceFireAreaCumHa, _T(""));
 
-   AddOutputVar( _T( "High Severity Fire Area (ha)" ),                  m_highSeverityFireAreaHa,    _T("") );
-   AddOutputVar( _T( "High Severity Fire Area (%)" ),                   m_highSeverityFireAreaPct,   _T("") );
-   AddOutputVar( _T( "High Severity Fire Area (Cumulative - ha)" ),     m_highSeverityFireAreaCumHa, _T("") );
+   AddOutputVar(_T("Low Severity Fire Area (ha)"), m_lowSeverityFireAreaHa, _T(""));
+   AddOutputVar(_T("Low Severity Fire Area (%)"), m_lowSeverityFireAreaPct, _T(""));
+   AddOutputVar(_T("Low Severity Fire Area (Cumulative - ha)"), m_lowSeverityFireAreaCumHa, _T(""));
 
-   AddOutputVar( _T( "Stand Replacing Fire Area (ha)" ),                m_standReplacingFireAreaHa,    _T("") );
-   AddOutputVar( _T( "Stand Replacing Fire Area (%)" ),                 m_standReplacingFireAreaPct,   _T("") );
-   AddOutputVar( _T( "Stand Replacing Fire Area (Cumulative - ha)" ),   m_standReplacingFireAreaCumHa, _T("") );
-  
+   AddOutputVar(_T("High Severity Fire Area (ha)"), m_highSeverityFireAreaHa, _T(""));
+   AddOutputVar(_T("High Severity Fire Area (%)"), m_highSeverityFireAreaPct, _T(""));
+   AddOutputVar(_T("High Severity Fire Area (Cumulative - ha)"), m_highSeverityFireAreaCumHa, _T(""));
+
+   AddOutputVar(_T("Stand Replacing Fire Area (ha)"), m_standReplacingFireAreaHa, _T(""));
+   AddOutputVar(_T("Stand Replacing Fire Area (%)"), m_standReplacingFireAreaPct, _T(""));
+   AddOutputVar(_T("Stand Replacing Fire Area (Cumulative - ha)"), m_standReplacingFireAreaCumHa, _T(""));
+
    return TRUE;
    }
 
-bool FlameLenDisturbHandler::InitRun( EnvContext *pContext, bool useInitSeed )
+bool FlameLenDisturbHandler::InitRun(EnvContext* pContext, bool useInitSeed)
    {
    m_surfaceFireAreaHa = 0;
    m_surfaceFireAreaPct = 0;
    m_surfaceFireAreaCumHa = 0;
-   
+
    m_lowSeverityFireAreaHa = 0;
    m_lowSeverityFireAreaPct = 0;
    m_lowSeverityFireAreaCumHa = 0;
-   
+
    m_highSeverityFireAreaHa = 0;
-   m_highSeverityFireAreaPct = 0;   
-   m_highSeverityFireAreaCumHa = 0; 
-   
-   m_standReplacingFireAreaHa = 0; 
-   m_standReplacingFireAreaPct = 0; 
+   m_highSeverityFireAreaPct = 0;
+   m_highSeverityFireAreaCumHa = 0;
+
+   m_standReplacingFireAreaHa = 0;
+   m_standReplacingFireAreaPct = 0;
    m_standReplacingFireAreaCumHa = 0;
 
    return TRUE;
    }
 
-bool FlameLenDisturbHandler::Run( EnvContext *pEnvContext )
+bool FlameLenDisturbHandler::Run(EnvContext* pEnvContext)
    {
    m_surfaceFireAreaHa = 0;
    m_surfaceFireAreaPct = 0;
-   
+
    m_lowSeverityFireAreaHa = 0;
    m_lowSeverityFireAreaPct = 0;
-   
+
    m_highSeverityFireAreaHa = 0;
-   m_highSeverityFireAreaPct = 0;   
-   
-   m_standReplacingFireAreaHa = 0; 
-   m_standReplacingFireAreaPct = 0; 
-     
-   MapLayer *pMapLayer = ( MapLayer* ) pEnvContext->pMapLayer;
+   m_highSeverityFireAreaPct = 0;
 
-   int current_year = pEnvContext->currentYear; 
+   m_standReplacingFireAreaHa = 0;
+   m_standReplacingFireAreaPct = 0;
 
-   int vegCount = (int) this->m_vegFireMap.GetSize();
+   MapLayer* pMapLayer = (MapLayer*)pEnvContext->pMapLayer;
 
-   for ( MapLayer::Iterator idu = pMapLayer->Begin( ); idu != pMapLayer->End(); idu++ )
+   int current_year = pEnvContext->currentYear;
+
+   int vegCount = (int)this->m_vegFireMap.GetSize();
+
+   for (MapLayer::Iterator idu = pMapLayer->Begin(); idu != pMapLayer->End(); idu++)
       {
       float flameLen = -1.f;
-		float potentialFlameLen = -1.f;
+      float potentialFlameLen = -1.f;
       int newvegclass = -1;
-	   int newvariant = -1;
+      int newvariant = -1;
       float area;
       int disturb = -99;
-		int potentialDisturb = -99;
-      
-      if ( m_colFlameLen != -1 )
-         pMapLayer->GetData( idu, m_colFlameLen, flameLen );
+      int potentialDisturb = -99;
 
-		if ( m_colPotentialFlameLen != -1 )
-			pMapLayer->GetData(idu, m_colPotentialFlameLen, potentialFlameLen);
+      if (m_colFlameLen != -1)
+         pMapLayer->GetData(idu, m_colFlameLen, flameLen);
 
-      pMapLayer->GetData( idu, m_colVegClass, m_vegClass );
-		pMapLayer->GetData( idu, m_colPVT, m_pvt );
-		pMapLayer->GetData( idu, m_colRegion, m_region );
-      pMapLayer->GetData( idu, m_colVariant, m_variant);
-      pMapLayer->GetData( idu, m_colArea, area);
-      
-		if (alglib::fp_greater(flameLen, 0.0001f))		
-			{
-			int index = -1;      // this is a row index in the veg/Fire lookup table
-			
-			//LONG vegPvtRegionVariant = MAKELONGER( (short) m_vegClass, (short) m_pvt,
-			//	(short) m_region, (short) m_variant );
-			__int64 vegPvtRegionVariant = GetKey(m_vegClass, m_region,
-				m_pvt, m_variant);
+      if (m_colPotentialFlameLen != -1)
+         pMapLayer->GetData(idu, m_colPotentialFlameLen, potentialFlameLen);
 
-			bool result = m_vegFireMap.Lookup( vegPvtRegionVariant, index );
+      pMapLayer->GetData(idu, m_colVegClass, m_vegClass);
+      pMapLayer->GetData(idu, m_colPVT, m_pvt);
+      pMapLayer->GetData(idu, m_colRegion, m_region);
+      pMapLayer->GetData(idu, m_colVariant, m_variant);
+      pMapLayer->GetData(idu, m_colArea, area);
 
-			if ( result == FALSE )
-				{     // mapping not found in table, so skip to next IDU
-			   CString msg;
-				msg.Format("FlameLenDisturbHandler: Unable to type fire severity based on flame length, m_vegClass = %d , m_region = %d, , m_pvt = %d, , m_variant = %d", m_vegClass, m_region, m_pvt, m_variant );
+      //if (alglib::fp_greater(flameLen, 0.0001f))		
+      if (flameLen > 0.0001f)
+         {
+         int index = -1;      // this is a row index in the veg/Fire lookup table
+
+         //LONG vegPvtRegionVariant = MAKELONGER( (short) m_vegClass, (short) m_pvt,
+         //	(short) m_region, (short) m_variant );
+         __int64 vegPvtRegionVariant = GetKey(m_vegClass, m_region, m_pvt, m_variant);
+
+         BOOL result = m_vegFireMap.Lookup(vegPvtRegionVariant, index);
+
+         if (result == FALSE)
+            {     // mapping not found in table, so skip to next IDU
+            CString msg;
+            msg.Format("FlameLenDisturbHandler: Unable to type fire severity based on flame length, m_vegClass = %d , m_region = %d, , m_pvt = %d, , m_variant = %d", m_vegClass, m_region, m_pvt, m_variant);
             Report::Log(msg);
-				continue;
-				}
-			// mapping found, interpret...
-			
-			FIRE_STATE *pFS = m_fireSeverityArray[ index ];
+            continue;
+            }
+         // mapping found, interpret...
 
-			// check fire states - first is NONE
-			if ( pFS->none > 0 && flameLen <= pFS->none )
+         FIRE_STATE* pFS = m_fireSeverityArray[index];
+         ASSERT(pFS != nullptr);
+
+         // check fire states - first is NONE
+         float totalArea = pMapLayer->GetTotalArea();
+         if (pFS->none > 0 && flameLen <= pFS->none)
             ;
 
-			else if ( pFS->groundFire > 0 && flameLen <= pFS->groundFire )
-			   {
-				disturb = SURFACE_FIRE;
+         else if (pFS->groundFire > 0 && flameLen <= pFS->groundFire)
+            {
+            disturb = SURFACE_FIRE;
 
-			   m_surfaceFireAreaHa    += area / 10000;  // assume coverage is in meters!!!
-			   m_surfaceFireAreaPct   += area / (10000 * pMapLayer->GetTotalArea());
-			   m_surfaceFireAreaCumHa += area / 10000;
+            m_surfaceFireAreaHa += area / M2_PER_HA;  // assume coverage is in meters!!!
+            m_surfaceFireAreaPct += area / totalArea;
+            //m_surfaceFireAreaPct += area / (M2_PER_HA * pMapLayer->GetTotalArea());  // incorrect?  fixed with above line 10/30/2023
+            m_surfaceFireAreaCumHa += area / M2_PER_HA;
 
-			   }
-			else if ( pFS->mixedSeverityFire1 > 0 && flameLen <= pFS->mixedSeverityFire1 )
-			   {
-				disturb = LOW_SEVERITY_FIRE;
+            }
+         else if (pFS->mixedSeverityFire1 > 0 && flameLen <= pFS->mixedSeverityFire1)
+            {
+            disturb = LOW_SEVERITY_FIRE;
 
-			   m_lowSeverityFireAreaHa    += area / 10000;  // assume coverage is in meters!!!
-			   m_lowSeverityFireAreaPct   += area / (10000 * pMapLayer->GetTotalArea());
-			   m_lowSeverityFireAreaCumHa += area / 10000;
-			   }
-			else if ( pFS->mixedSeverityFire2 > 0 && flameLen <= pFS->mixedSeverityFire2 )
-			   {				
-				disturb = HIGH_SEVERITY_FIRE;
+            m_lowSeverityFireAreaHa += area / M2_PER_HA;  // assume coverage is in meters!!!
+            //m_lowSeverityFireAreaPct += area / (M2_PER_HA * pMapLayer->GetTotalArea());
+            m_lowSeverityFireAreaPct += area / totalArea;
+            m_lowSeverityFireAreaCumHa += area / M2_PER_HA;
+            }
+         else if (pFS->mixedSeverityFire2 > 0 && flameLen <= pFS->mixedSeverityFire2)
+            {
+            disturb = HIGH_SEVERITY_FIRE;
 
-			   m_highSeverityFireAreaHa    += area / 10000;  // assume coverage is in meters!!!
-			   m_highSeverityFireAreaPct   += area / (10000 * pMapLayer->GetTotalArea());
-			   m_highSeverityFireAreaCumHa += area / 10000;
-			   }
-			else if ( pFS->severeFire > 0 && flameLen <= pFS->severeFire )
-			   {
-				disturb = STAND_REPLACING_FIRE;
+            m_highSeverityFireAreaHa += area / M2_PER_HA;  // assume coverage is in meters!!!
+            //m_highSeverityFireAreaPct += area / (M2_PER_HA * pMapLayer->GetTotalArea());
+            m_highSeverityFireAreaPct += area / totalArea;
+            m_highSeverityFireAreaCumHa += area / M2_PER_HA;
+            }
+         else if (pFS->severeFire > 0 && flameLen <= pFS->severeFire)
+            {
+            disturb = STAND_REPLACING_FIRE;
 
-			   m_standReplacingFireAreaHa    += area / 10000;  // assume coverage is in meters!!!
-			   m_standReplacingFireAreaPct   += area / (10000 * pMapLayer->GetTotalArea());
-			   m_standReplacingFireAreaCumHa += area / 10000;
-			   }				
-			}	
-		
-		m_disturb = disturb;
+            m_standReplacingFireAreaHa += area / M2_PER_HA;  // assume coverage is in meters!!!
+            //m_standReplacingFireAreaPct   += area / (M2_PER_HA * pMapLayer->GetTotalArea());
+            m_standReplacingFireAreaPct += area / totalArea;
+            m_standReplacingFireAreaCumHa += area / M2_PER_HA;
+            }
+         }
 
-		if (alglib::fp_greater(potentialFlameLen, 0.0001f))
-			{
-			int index = -1;      // this is a row index in the veg/Fire lookup table
+      m_disturb = disturb;
 
-			//LONG vegPvtRegionVariant = MAKELONGER( (short) m_vegClass, (short) m_pvt,
-			//	(short) m_region, (short) m_variant );
-			__int64 vegPvtRegionVariant = GetKey(m_vegClass, m_region,
-				m_pvt, m_variant);
+      //if (alglib::fp_greater(potentialFlameLen, 0.0001f))
+      if (potentialFlameLen > 0.0001f)
+         {
+         int index = -1;      // this is a row index in the veg/Fire lookup table
 
-			bool result = m_vegFireMap.Lookup(vegPvtRegionVariant, index);
+         //LONG vegPvtRegionVariant = MAKELONGER( (short) m_vegClass, (short) m_pvt,
+         //	(short) m_region, (short) m_variant );
+         __int64 vegPvtRegionVariant = GetKey(m_vegClass, m_region,
+            m_pvt, m_variant);
 
-			if (result == FALSE)     // mapping not found in table, so skip to next IDU
-				continue;
+         bool result = m_vegFireMap.Lookup(vegPvtRegionVariant, index);
 
-			// mapping found, interpret...
+         if (result == FALSE)     // mapping not found in table, so skip to next IDU
+            continue;
 
-			FIRE_STATE *pFS = m_fireSeverityArray[index];
+         // mapping found, interpret...
 
-			// check fire states - first is NONE
-			if (pFS->none > 0 && potentialFlameLen <= pFS->none);
+         FIRE_STATE* pFS = m_fireSeverityArray[index];
 
-			else if (pFS->groundFire > 0 && potentialFlameLen <= pFS->groundFire)
-				{		
-				potentialDisturb = SURFACE_FIRE;
-				}
-			else if (pFS->mixedSeverityFire1 > 0 && potentialFlameLen <= pFS->mixedSeverityFire1)
-				{
-				potentialDisturb = LOW_SEVERITY_FIRE;
-				}
-			else if (pFS->mixedSeverityFire2 > 0 && potentialFlameLen <= pFS->mixedSeverityFire2)
-				{
-				potentialDisturb = HIGH_SEVERITY_FIRE;
-				}
-			else if (pFS->severeFire > 0 && potentialFlameLen <= pFS->severeFire)
-				{
-				potentialDisturb = STAND_REPLACING_FIRE;
-				}
-			}
+         // check fire states - first is NONE
+         if (pFS->none > 0 && potentialFlameLen <= pFS->none);
 
-		if (m_disturb > 0)
-			{
-			UpdateIDU(pEnvContext, idu, m_colDisturb, m_disturb, ADD_DELTA);
-			UpdateIDU(pEnvContext, idu, m_colTSD, 0, ADD_DELTA);
-			}
+         else if (pFS->groundFire > 0 && potentialFlameLen <= pFS->groundFire)
+            {
+            potentialDisturb = SURFACE_FIRE;
+            }
+         else if (pFS->mixedSeverityFire1 > 0 && potentialFlameLen <= pFS->mixedSeverityFire1)
+            {
+            potentialDisturb = LOW_SEVERITY_FIRE;
+            }
+         else if (pFS->mixedSeverityFire2 > 0 && potentialFlameLen <= pFS->mixedSeverityFire2)
+            {
+            potentialDisturb = HIGH_SEVERITY_FIRE;
+            }
+         else if (pFS->severeFire > 0 && potentialFlameLen <= pFS->severeFire)
+            {
+            potentialDisturb = STAND_REPLACING_FIRE;
+            }
+         }
 
-		if (potentialDisturb > 0 && m_colPotentialDisturb != -1 )
-			{
-			UpdateIDU(pEnvContext, idu, m_colPotentialDisturb, potentialDisturb, ADD_DELTA);
-			}
-		
+      if (m_disturb > 0)
+         {
+         UpdateIDU(pEnvContext, idu, m_colDisturb, m_disturb, ADD_DELTA);
+         UpdateIDU(pEnvContext, idu, m_colTSD, 0, ADD_DELTA);
+         }
+
+      if (potentialDisturb > 0 && m_colPotentialDisturb != -1)
+         {
+         UpdateIDU(pEnvContext, idu, m_colPotentialDisturb, potentialDisturb, ADD_DELTA);
+         }
+
       }// end IDU loop
 
    return TRUE;
    }
 
-bool FlameLenDisturbHandler::LoadXml( LPCTSTR filename )
+bool FlameLenDisturbHandler::LoadXml(LPCTSTR filename)
    {
    // start parsing input file
    TiXmlDocument doc;
-   
-   bool ok = doc.LoadFile( filename );
+
+   bool ok = doc.LoadFile(filename);
 
    bool loadSuccess = true;
 
-   if ( ! ok )
+   if (!ok)
       {
       CString msg;
-      msg.Format("Error reading input file %s:  %s", filename, doc.ErrorDesc() );
-      Report::ErrorMsg( msg );
+      msg.Format("Error reading input file %s:  %s", filename, doc.ErrorDesc());
+      Report::ErrorMsg(msg);
       return false;
       }
-   
+
    // start interating through the nodes
-   TiXmlElement *pXmlRoot = doc.RootElement();  // <integrator
-     
-   TiXmlElement *pXmlfireLookupFiles = pXmlRoot->FirstChildElement( "fireLookupFiles" );
-   
-   if ( pXmlfireLookupFiles == NULL )
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <integrator
+
+   TiXmlElement* pXmlfireLookupFiles = pXmlRoot->FirstChildElement("fireLookupFiles");
+
+   if (pXmlfireLookupFiles == nullptr)
       {
-      CString msg( "FlameLenDisturbHandler::LoadXml:Unable to find <fireLookupFiles> tag reading " );
+      CString msg("FlameLenDisturbHandler::LoadXml:Unable to find <fireLookupFiles> tag reading ");
       msg += filename;
-      Report::ErrorMsg( msg );
+      Report::ErrorMsg(msg);
       return false;
       }
 
-   TiXmlElement *pXmlfireLookupFile = pXmlfireLookupFiles->FirstChildElement( "fireLookupFile" );
-  
-      XML_ATTR setAttrs[] = {
-         // attr                     type           address                                     isReq  checkCol        
-         { "fireLookupFile",         TYPE_CSTRING,  &(m_fireLookupFile.firelookup_filename),    true,   0 },  
-         { NULL,                     TYPE_NULL,     NULL,                                       false,  0 } };
+   TiXmlElement* pXmlfireLookupFile = pXmlfireLookupFiles->FirstChildElement("fireLookupFile");
+   ASSERT(pXmlfireLookupFile != nullptr);
+   const char* _filename = pXmlfireLookupFile->Attribute("name");
+   ASSERT(_filename != nullptr);
+   m_fireLookupFile.firelookup_filename = _filename;
+   Report::Log_s("Loading fire lookup file %s", _filename);
 
-      ok = TiXmlGetAttributes( pXmlfireLookupFile, setAttrs, filename, NULL );
-     
+   //XML_ATTR setAttrs[] = {
+   //   // attr                     type           address                                     isReq  checkCol        
+   //   { "name",         TYPE_CSTRING,  &(m_fireLookupFile.firelookup_filename),    true,   0 },  
+   //   { NULL,                     TYPE_NULL,     NULL,                                       false,  0 } };
+   //
+   //ok = TiXmlGetAttributes( pXmlfireLookupFile, setAttrs, filename, NULL );
+   //ASSERT(ok)
    return true;
    }
 

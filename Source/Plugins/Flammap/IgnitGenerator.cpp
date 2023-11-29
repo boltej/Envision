@@ -38,17 +38,17 @@ Copywrite 2012 - Oregon State University
 
 #include "FlamMapAP.h"
 
-extern  FlamMapAP *gpFlamMapAP;
+extern  FlamMapAP* gpFlamMapAP;
 extern bool FuelIsNonburnable(int fuel);
 
-IgnitGenerator::IgnitGenerator(EnvContext *pEnvContext) 
-   {   
+IgnitGenerator::IgnitGenerator(EnvContext* pEnvContext)
+   {
    ASSERT(pEnvContext != NULL);
 
-   int polyCnt = ((MapLayer *)(pEnvContext->pMapLayer))->GetPolygonCount();
+   int polyCnt = ((MapLayer*)(pEnvContext->pMapLayer))->GetPolygonCount();
 
    m_MonteCarloIDUProbs = new double[polyCnt];
-   for( int i=0; i < polyCnt; i++ )
+   for (int i = 0; i < polyCnt; i++)
       m_MonteCarloIDUProbs[i] = 0.;
 
    m_TtlProb = m_initialProb = m_IDU_TtlProb = m_IDU_InitialProb = 0.0;
@@ -56,11 +56,11 @@ IgnitGenerator::IgnitGenerator(EnvContext *pEnvContext)
    m_gridCellProbs = NULL;
    m_numCells = m_rows = m_cols = 0;
    m_IN_UGB_Time0 = new int[polyCnt];
-   memset(m_IN_UGB_Time0, 0, polyCnt *sizeof(int));
+   memset(m_IN_UGB_Time0, 0, polyCnt * sizeof(int));
    } // IgnitGenerator::IgnitGenerator(EnvContext *pEnvContext)
 
 
-IgnitGenerator::~IgnitGenerator() 
+IgnitGenerator::~IgnitGenerator()
    {
    delete[] m_MonteCarloIDUProbs;
    delete[] m_IN_UGB_Time0;
@@ -68,24 +68,24 @@ IgnitGenerator::~IgnitGenerator()
    } // IgnitGenerator::~IgnitGenerator()
 
 void IgnitGenerator::DestroyGridCellProbabilities()
-{
-   if(m_gridCellProbs)
    {
+   if (m_gridCellProbs)
+      {
       delete[] m_gridCellProbs;
       m_gridCellProbs = NULL;
+      }
    }
-}
 
 double IgnitGenerator::GetIgnitRatio()
-{
-  // if(m_initialProb > 0.0)
-     // return m_TtlProb/m_initialProb;
-	if(m_IDU_InitialProb > 0.0)
-		return this->m_IDU_TtlProb / m_IDU_InitialProb;
-	return 1.0;
-}
+   {
+   // if(m_initialProb > 0.0)
+      // return m_TtlProb/m_initialProb;
+   if (m_IDU_InitialProb > 0.0)
+      return this->m_IDU_TtlProb / m_IDU_InitialProb;
+   return 1.0;
+   }
 
-void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *pPolyGridLookups, CFlamMap *pFlamMap) 
+void IgnitGenerator::UpdateProbArray(EnvContext* pEnvContext, PolyGridLookups* pPolyGridLookups, CFlamMap* pFlamMap)
    {
    ASSERT(pEnvContext != NULL);
    DestroyGridCellProbabilities();
@@ -94,16 +94,16 @@ void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *p
    m_numCells = m_rows * m_cols;
 
    m_gridCellProbs = new double[m_numCells];
-   if(!m_gridCellProbs)
+   if (!m_gridCellProbs)
       {
       //display an error
       return;
       }
 
-  // memset(m_gridCellProbs, 0, m_numCells * sizeof(double));
-	for(__int64 c = 0; c < m_numCells; c++)
-		m_gridCellProbs[c] = -1.0;
-   
+   // memset(m_gridCellProbs, 0, m_numCells * sizeof(double));
+   for (__int64 c = 0; c < m_numCells; c++)
+      m_gridCellProbs[c] = -1.0;
+
    double
       distToMajRd,
       distToMinRd,
@@ -128,20 +128,20 @@ void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *p
    distToMinRdCol = pEnvContext->pMapLayer->GetFieldCol("RDSMIN");
    popDensCol = pEnvContext->pMapLayer->GetFieldCol("POPDENS");
    ugbCol = pEnvContext->pMapLayer->GetFieldCol("IN_UGB");
-   
-   if( pEnvContext->yearOfRun == pEnvContext->startYear )
+
+   if (pEnvContext->yearOfRun == pEnvContext->startYear)
       { //populate m_IN_UGB_Time0 for exclusion of polygons
-      for( int pgonNdx=0; pgonNdx<((MapLayer *)(pEnvContext->pMapLayer))->GetPolygonCount(); pgonNdx++) 
+      for (int pgonNdx = 0; pgonNdx < ((MapLayer*)(pEnvContext->pMapLayer))->GetPolygonCount(); pgonNdx++)
          {
          pEnvContext->pMapLayer->GetData(pgonNdx, ugbCol, ugb);
          m_IN_UGB_Time0[pgonNdx] = ugb;
          }
       }
    m_IDU_TtlProb = 0.0;
-   POINT *pGridPtNdxs = NULL;
+   POINT* pGridPtNdxs = NULL;
    int    GridPtCnt = 0;
    int    MaxGridPtCnt = 0;
-	int fuel;
+   int fuel;
 
    // Calc probability for each polygon
    double terms[10];
@@ -149,9 +149,9 @@ void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *p
    //outName.Format("C:\\Envision\\StudyAreas\\Eugene\\FlamMap\\%d.txt", pEnvContext->year);
    //FILE *out = fopen(outName, "wt");
    //fprintf(out, "ID, D_Major, D_Minor, D_Unkwn, POPDENS, Term1, Term2, Term3, Term4, Term5, Term6, Term7, Term8, Term9, Term10, Logit, Probability\n");
-   for( int pgonNdx=0; pgonNdx<((MapLayer *)(pEnvContext->pMapLayer))->GetPolygonCount(); pgonNdx++) 
+   for (int pgonNdx = 0; pgonNdx < ((MapLayer*)(pEnvContext->pMapLayer))->GetPolygonCount(); pgonNdx++)
       {
-      if(m_IN_UGB_Time0[pgonNdx] == 0)//not in Urban Growth Area, so use it
+      if (m_IN_UGB_Time0[pgonNdx] == 0)//not in Urban Growth Area, so use it
          {
          pEnvContext->pMapLayer->GetData(pgonNdx, distToMajRdCol, distToMajRd);
          pEnvContext->pMapLayer->GetData(pgonNdx, distToMinRdCol, distToMinRd);
@@ -172,11 +172,11 @@ void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *p
          terms[5] = -4.098e-12 * pow(distToMinRd, 3);
          terms[6] = -1.905e-04 * distToUnidentifiedRoad;
          terms[7] = 1.243e-02 * popDens;
-         terms[8] = -3.843e-05 * pow(popDens , 2);
-         terms[9] = 2.759e-08 * pow(popDens , 3);// calculate the monte carlo upper bound for the polygon
+         terms[8] = -3.843e-05 * pow(popDens, 2);
+         terms[9] = 2.759e-08 * pow(popDens, 3);// calculate the monte carlo upper bound for the polygon
 
          logit = 1.25;
-         for(int t = 0; t < 10; t++)
+         for (int t = 0; t < 10; t++)
             {
             logit += terms[t];
             //if(out)
@@ -196,7 +196,7 @@ void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *p
          2.759e-08 * pow(popDens , 3);// calculate the monte carlo upper bound for the polygon
          */
          //m_TtlProb += exp(logit) / (exp(logit) + 1);
-         if(logit >= 7.097827e+002)
+         if (logit >= 7.097827e+002)
             m_MonteCarloIDUProbs[pgonNdx] = 1.0;
          else if (logit <= -7.083964e+002)
             m_MonteCarloIDUProbs[pgonNdx] = 0.0;
@@ -207,161 +207,161 @@ void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *p
       else//in UrbanGrowthArea, set probability to zero
          m_MonteCarloIDUProbs[pgonNdx] = 0.0;
 
-      if((GridPtCnt = pPolyGridLookups->GetGridPtCntForPoly(pgonNdx)) > MaxGridPtCnt) 
+      if ((GridPtCnt = pPolyGridLookups->GetGridPtCntForPoly(pgonNdx)) > MaxGridPtCnt)
          {
          MaxGridPtCnt = GridPtCnt;
-         if(pGridPtNdxs)
-            delete [] pGridPtNdxs;
+         if (pGridPtNdxs)
+            delete[] pGridPtNdxs;
 
          pGridPtNdxs = new POINT[MaxGridPtCnt];
          } // if((nGridPtCnt = m_pPolyGridLkUp->GetGridPtCntForPoly(i)) > nMaxGridPtCnt)
 
       // get the grid points for the poly
       pPolyGridLookups->GetGridPtNdxsForPoly(pgonNdx, pGridPtNdxs);
-      for(int c = 0; c < GridPtCnt; c++)
-        {
+      for (int c = 0; c < GridPtCnt; c++)
+         {
          row = pGridPtNdxs[c].x, col = pGridPtNdxs[c].y;
-			fuel = (int) pFlamMap->GetLayerValueByCell(FUEL, (int) col, (int) row);
-			if(!FuelIsNonburnable( fuel ))
-				m_gridCellProbs[row * pPolyGridLookups->GetNumGridCols() + col] = m_MonteCarloIDUProbs[pgonNdx];
-        }
-	  m_IDU_TtlProb += m_MonteCarloIDUProbs[pgonNdx];
+         fuel = (int)pFlamMap->GetLayerValueByCell(FUEL, (int)col, (int)row);
+         if (!FuelIsNonburnable(fuel))
+            m_gridCellProbs[row * pPolyGridLookups->GetNumGridCols() + col] = m_MonteCarloIDUProbs[pgonNdx];
+         }
+      m_IDU_TtlProb += m_MonteCarloIDUProbs[pgonNdx];
       } // for(int pgonNdx=0; pgonNdx<
-   if( pGridPtNdxs )
-      delete [] pGridPtNdxs;
-	if(gpFlamMapAP->m_outputIgnitProbGrids)
-	{
-		char gridFileName[MAX_PATH];
-		sprintf(gridFileName, "%s%d_ignitProb_IDUonly%03d_%04d.asc", (LPCTSTR) gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->run, pEnvContext->currentYear);
-		FILE *gridFile = fopen(gridFileName, "wt");
-		fprintf(gridFile, "NCOLS %ld\n", (long) m_cols);
-		fprintf(gridFile, "NROWS %ld\n", (long) m_rows);
-		fprintf(gridFile, "XLLCORNER %lf\n", pFlamMap->GetWest());
-		fprintf(gridFile, "YLLCORNER %lf\n", pFlamMap->GetSouth());
-		fprintf(gridFile, "CELLSIZE %lf\n", pFlamMap->GetCellSize());
-		fprintf(gridFile, "NODATA_VALUE %f\n", -9999.0);
-		__int64 cellLoc;
-		for(int r = 0; r < m_rows; r++)
-		{
-			for(int c = 0; c < m_cols; c++)
-			{
-				cellLoc = r * m_cols + c;
-				if(m_gridCellProbs[cellLoc] > 0.0)
-					fprintf(gridFile, "%lf ",  m_gridCellProbs[cellLoc]);
-				else
-					fprintf(gridFile, "%lf ",  -9999.0);
-			}
-			fprintf(gridFile, "\n");
-		}
-		fclose(gridFile);
-	}
+   if (pGridPtNdxs)
+      delete[] pGridPtNdxs;
+   if (gpFlamMapAP->m_outputIgnitProbGrids)
+      {
+      char gridFileName[MAX_PATH];
+      sprintf(gridFileName, "%s%d_ignitProb_IDUonly%03d_%04d.asc", (LPCTSTR)gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, pEnvContext->currentYear);
+      FILE* gridFile = fopen(gridFileName, "wt");
+      fprintf(gridFile, "NCOLS %ld\n", (long)m_cols);
+      fprintf(gridFile, "NROWS %ld\n", (long)m_rows);
+      fprintf(gridFile, "XLLCORNER %lf\n", pFlamMap->GetWest());
+      fprintf(gridFile, "YLLCORNER %lf\n", pFlamMap->GetSouth());
+      fprintf(gridFile, "CELLSIZE %lf\n", pFlamMap->GetCellSize());
+      fprintf(gridFile, "NODATA_VALUE %f\n", -9999.0);
+      __int64 cellLoc;
+      for (int r = 0; r < m_rows; r++)
+         {
+         for (int c = 0; c < m_cols; c++)
+            {
+            cellLoc = r * m_cols + c;
+            if (m_gridCellProbs[cellLoc] > 0.0)
+               fprintf(gridFile, "%lf ", m_gridCellProbs[cellLoc]);
+            else
+               fprintf(gridFile, "%lf ", -9999.0);
+            }
+         fprintf(gridFile, "\n");
+         }
+      fclose(gridFile);
+      }
    __int64 nProbs = 0;
-	double minIDUprob = 0.0;
-	for(int r = 0; r < m_rows; r++)
-	{
-		for(int c = 0; c < m_cols; c++)
-		{
-			if(m_gridCellProbs[r * m_cols + c] > 0.0)
-			{
-				//fuel = (int) pFlamMap->GetLayerValueByCell(FUEL, c, r);
-				//if(!FuelIsNonburnable(fuel))
-				//{
-					ttlProbability += m_gridCellProbs[r * m_cols + c];
-					minIDUprob = min(minIDUprob > 0.0 ? minIDUprob : m_gridCellProbs[r * m_cols + c], m_gridCellProbs[r * m_cols + c]);
-					nProbs++;
-				//}
-			}
-		}
-	}
-	/*for(__int64 c = 0; c < m_numCells; c++)
-	{
-		fuel = (int) pFlamMap->GetLayerValueByCell(FUEL, fireX, fireY);
-		if(m_gridCellProbs[c] > 0.0)
-		{
-			ttlProbability += m_gridCellProbs[c];
-			minIDUprob = min(minIDUprob > 0.0 ? minIDUprob : m_gridCellProbs[c], m_gridCellProbs[c]);
-			nProbs++;
-		}
-	}*/
-	for(int r = 0; r < m_rows; r++)
-	{
-		for(int c = 0; c < m_cols; c++)
-		{
-			if(m_gridCellProbs[r * m_cols + c] < 0.0)
-			{
-				fuel = (int) pFlamMap->GetLayerValueByCell(FUEL, c, r);
-				if(!FuelIsNonburnable(fuel))
-				{
-					m_gridCellProbs[r * m_cols + c] = minIDUprob;
-					ttlProbability += m_gridCellProbs[r * m_cols + c];
-				}
-			}
-		}
-	}
-	/*for(__int64 c = 0; c < m_numCells; c++)
-	{
-		if(m_gridCellProbs[c] < 0.0)
-		{
-			m_gridCellProbs[c] = minIDUprob;
-			ttlProbability += m_gridCellProbs[c];
-		}
-	}*/
-
-	if(nProbs > 0)
-	{
-		for(__int64 c = 0; c < m_numCells; c++)
-		{
-			if(m_gridCellProbs[c] > 0.0)
-				m_gridCellProbs[c] /= ttlProbability;
-			else
-				m_gridCellProbs[c] = 0.0;
-			if(c > 0)
-			{
-				m_gridCellProbs[c] += m_gridCellProbs[c - 1];
-			}
-		}
-	}
-   
-	if(gpFlamMapAP->m_outputIgnitProbGrids)
-	{
-		char gridFileName[MAX_PATH];
-		sprintf(gridFileName, "%s%d_ignitProb_final%03d_%04d.asc", (LPCTSTR) gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->run, pEnvContext->currentYear);
-		FILE *gridFile = fopen(gridFileName, "wt");
-		fprintf(gridFile, "NCOLS %ld\n", (long) m_cols);
-		fprintf(gridFile, "NROWS %ld\n", (long) m_rows);
-		fprintf(gridFile, "XLLCORNER %lf\n", pFlamMap->GetWest());
-		fprintf(gridFile, "YLLCORNER %lf\n", pFlamMap->GetSouth());
-		fprintf(gridFile, "CELLSIZE %lf\n", pFlamMap->GetCellSize());
-		fprintf(gridFile, "NODATA_VALUE %f\n", -9999.0);
-		__int64 cellLoc;
-		for(int r = 0; r < m_rows; r++)
-		{
-			for(int c = 0; c < m_cols; c++)
-			{
-				cellLoc = r * m_cols + c;
-				if(cellLoc == 0 && m_gridCellProbs[cellLoc] > 0.0)
-				{
-					fprintf(gridFile, "%lf ",  m_gridCellProbs[cellLoc]);
-				}
-				else if(cellLoc > 0 && m_gridCellProbs[cellLoc] > m_gridCellProbs[cellLoc - 1])
-				{
-					double diff = m_gridCellProbs[cellLoc] - m_gridCellProbs[cellLoc - 1];
-					fprintf(gridFile, "%lf ",  diff);
-
-				}
-				else
-					fprintf(gridFile, "%lf ",  -9999.0);
-			}
-			fprintf(gridFile, "\n");
-		}
-		fclose(gridFile);
-	}
-   if( pEnvContext->yearOfRun == pEnvContext->startYear )
+   double minIDUprob = 0.0;
+   for (int r = 0; r < m_rows; r++)
+      {
+      for (int c = 0; c < m_cols; c++)
+         {
+         if (m_gridCellProbs[r * m_cols + c] > 0.0)
+            {
+            //fuel = (int) pFlamMap->GetLayerValueByCell(FUEL, c, r);
+            //if(!FuelIsNonburnable(fuel))
+            //{
+            ttlProbability += m_gridCellProbs[r * m_cols + c];
+            minIDUprob = min(minIDUprob > 0.0 ? minIDUprob : m_gridCellProbs[r * m_cols + c], m_gridCellProbs[r * m_cols + c]);
+            nProbs++;
+            //}
+            }
+         }
+      }
+   /*for(__int64 c = 0; c < m_numCells; c++)
    {
+      fuel = (int) pFlamMap->GetLayerValueByCell(FUEL, fireX, fireY);
+      if(m_gridCellProbs[c] > 0.0)
+      {
+         ttlProbability += m_gridCellProbs[c];
+         minIDUprob = min(minIDUprob > 0.0 ? minIDUprob : m_gridCellProbs[c], m_gridCellProbs[c]);
+         nProbs++;
+      }
+   }*/
+   for (int r = 0; r < m_rows; r++)
+      {
+      for (int c = 0; c < m_cols; c++)
+         {
+         if (m_gridCellProbs[r * m_cols + c] < 0.0)
+            {
+            fuel = (int)pFlamMap->GetLayerValueByCell(FUEL, c, r);
+            if (!FuelIsNonburnable(fuel))
+               {
+               m_gridCellProbs[r * m_cols + c] = minIDUprob;
+               ttlProbability += m_gridCellProbs[r * m_cols + c];
+               }
+            }
+         }
+      }
+   /*for(__int64 c = 0; c < m_numCells; c++)
+   {
+      if(m_gridCellProbs[c] < 0.0)
+      {
+         m_gridCellProbs[c] = minIDUprob;
+         ttlProbability += m_gridCellProbs[c];
+      }
+   }*/
+
+   if (nProbs > 0)
+      {
+      for (__int64 c = 0; c < m_numCells; c++)
+         {
+         if (m_gridCellProbs[c] > 0.0)
+            m_gridCellProbs[c] /= ttlProbability;
+         else
+            m_gridCellProbs[c] = 0.0;
+         if (c > 0)
+            {
+            m_gridCellProbs[c] += m_gridCellProbs[c - 1];
+            }
+         }
+      }
+
+   if (gpFlamMapAP->m_outputIgnitProbGrids)
+      {
+      char gridFileName[MAX_PATH];
+      sprintf(gridFileName, "%s%d_ignitProb_final%03d_%04d.asc", (LPCTSTR)gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, pEnvContext->currentYear);
+      FILE* gridFile = fopen(gridFileName, "wt");
+      fprintf(gridFile, "NCOLS %ld\n", (long)m_cols);
+      fprintf(gridFile, "NROWS %ld\n", (long)m_rows);
+      fprintf(gridFile, "XLLCORNER %lf\n", pFlamMap->GetWest());
+      fprintf(gridFile, "YLLCORNER %lf\n", pFlamMap->GetSouth());
+      fprintf(gridFile, "CELLSIZE %lf\n", pFlamMap->GetCellSize());
+      fprintf(gridFile, "NODATA_VALUE %f\n", -9999.0);
+      __int64 cellLoc;
+      for (int r = 0; r < m_rows; r++)
+         {
+         for (int c = 0; c < m_cols; c++)
+            {
+            cellLoc = r * m_cols + c;
+            if (cellLoc == 0 && m_gridCellProbs[cellLoc] > 0.0)
+               {
+               fprintf(gridFile, "%lf ", m_gridCellProbs[cellLoc]);
+               }
+            else if (cellLoc > 0 && m_gridCellProbs[cellLoc] > m_gridCellProbs[cellLoc - 1])
+               {
+               double diff = m_gridCellProbs[cellLoc] - m_gridCellProbs[cellLoc - 1];
+               fprintf(gridFile, "%lf ", diff);
+
+               }
+            else
+               fprintf(gridFile, "%lf ", -9999.0);
+            }
+         fprintf(gridFile, "\n");
+         }
+      fclose(gridFile);
+      }
+   if (pEnvContext->yearOfRun == pEnvContext->startYear)
+      {
       m_initialProb = ttlProbability;
-	  m_IDU_InitialProb = m_IDU_TtlProb;
-   }
-   
+      m_IDU_InitialProb = m_IDU_TtlProb;
+      }
+
    m_TtlProb = ttlProbability;
    //TRACE3("Year %d, InitialProb = %f, totalProb = %f", pEnvContext->year, m_initialProb, m_TtlProb);
    //CString msg;
@@ -370,27 +370,27 @@ void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext, PolyGridLookups *p
    } // void IgnitGenerator::UpdateProbArray(EnvContext *pEnvContext)
 
 
-int IgnitGenerator::GetIgnitionPointFromGrid(EnvContext *pEnvContext, REAL &x, REAL &y)
-{
+int IgnitGenerator::GetIgnitionPointFromGrid(EnvContext* pEnvContext, REAL& x, REAL& y)
+   {
    int ret = 0;
-   
+
    double monteCarloDraw = gpFlamMapAP->m_pIgnitRand->GetUnif01() * m_gridCellProbs[m_numCells - 1];  /////m_randUnif.RandValue(0.0, m_gridCellProbs[m_numCells - 1]);
    __int64 c = 0;
 
-   while(monteCarloDraw > m_gridCellProbs[c] && c < m_numCells)
+   while (monteCarloDraw > m_gridCellProbs[c] && c < m_numCells)
       c++;
-   
+
    __int64 row, col;
-   
+
    col = c % m_cols;
    row = (c - col) / m_cols;
-   
+
    REAL xMin, xMax, yMin, yMax, res;
    pEnvContext->pMapLayer->GetExtents(xMin, xMax, yMin, yMax);
-   
-   res = (float) gpFlamMapAP->m_cellDim;
+
+   res = (float)gpFlamMapAP->m_cellDim;
    x = xMin + col * res + res / 2.0;
    y = yMax - row * res - res / 2.0;
-   
+
    return 1;
-}
+   }

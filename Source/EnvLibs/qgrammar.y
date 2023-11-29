@@ -17,7 +17,7 @@ extern int gUserFnIndex;
 char functionBuffer[ 128 ];
 bool QShowCompilerErrors = true;
 TCHAR QSource[ 256 ];
-TCHAR QQueryStr[ 512 ];
+TCHAR QQueryStr[ 1024 ];
 int   QCurrentLineNo = 0;
 
 //#define YYDEBUG
@@ -796,9 +796,9 @@ char *QParseString( char **p )
 
 void QCompilerError( LPCSTR errorStr, LPSTR buffer )
    {
-   char _buffer[ 512 ];
-   strncpy_s( _buffer, 512, buffer, 512);
-   _buffer[511] = '\0';
+   char _buffer[ 1024 ];
+   strncpy_s( _buffer, 1024, buffer, 1024);
+   _buffer[1023] = '\0';
 
    CString msg;
    msg.Format( "Query Compiler Error: %s while reading '%s' at line %i: %s.  The complete parse string is '%s'", errorStr, QSource, QCurrentLineNo+1, _buffer, QQueryStr );

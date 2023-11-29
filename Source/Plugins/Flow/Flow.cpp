@@ -65,7 +65,7 @@ Copywrite 2012 - Oregon State University
 
 #define _EXPORT __declspec( dllexport )
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new FlowModel; }
+extern "C" _EXPORT EnvExtension * Factory(EnvContext*) { return (EnvExtension*) new FlowModel; }
 
 
 MTDOUBLE HRU::m_mvDepthMelt = 0;  // volume of water in snow
@@ -130,7 +130,7 @@ int ParamTable::CreateMap(void)
    }
 
 
-bool ParamTable::Lookup(VData key, int col, int &value)
+bool ParamTable::Lookup(VData key, int col, int& value)
    {
    if (m_pTable == NULL)
       return false;
@@ -144,7 +144,7 @@ bool ParamTable::Lookup(VData key, int col, int &value)
    }
 
 
-bool ParamTable::Lookup(VData key, int col, float &value)
+bool ParamTable::Lookup(VData key, int col, float& value)
    {
    if (m_pTable == NULL)
       return false;
@@ -158,10 +158,10 @@ bool ParamTable::Lookup(VData key, int col, float &value)
    }
 
 
-bool ModelOutput::Init(EnvContext *pEnvContext )
+bool ModelOutput::Init(EnvContext* pEnvContext)
    {
-   MapLayer *pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-   FlowModel *pFlowModel = (FlowModel*)pEnvContext->pEnvExtension;
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+   FlowModel* pFlowModel = (FlowModel*)pEnvContext->pEnvExtension;
 
    if (m_queryStr.GetLength() > 0)
       {
@@ -213,7 +213,7 @@ bool ModelOutput::Init(EnvContext *pEnvContext )
          pFlowModel->AddModelVar(_T("WC"), _T("hruLayerWDepth"), &HRUPool::m_mvWDepth);
          pFlowModel->AddModelVar(_T("Elws"), _T("hruElws"), &HRU::m_mvElws);
          pFlowModel->AddModelVar(_T("Elws"), _T("hruDepthToWT"), &HRU::m_mvDepthToWT);
-    
+
          pFlowModel->AddModelVar(_T("Extra State Variable Conc"), _T("esv_hruLayer"), &HRUPool::m_mvESV);
 
          pFlowModel->AddModelVar(_T("Streamflow"), _T("esv_reachOutflow"), &Reach::m_mvCurrentTracer);
@@ -253,7 +253,7 @@ bool ModelOutput::Init(EnvContext *pEnvContext )
    }
 
 
-bool ModelOutput::InitStream(FlowModel *pFlowModel, MapLayer *pStreamLayer)
+bool ModelOutput::InitStream(FlowModel* pFlowModel, MapLayer* pStreamLayer)
    {
    if (m_queryStr.GetLength() > 0)
       {
@@ -297,7 +297,7 @@ bool ModelOutput::InitStream(FlowModel *pFlowModel, MapLayer *pStreamLayer)
    }
 
 
-ModelOutputGroup &ModelOutputGroup::operator = (ModelOutputGroup &mog)
+ModelOutputGroup& ModelOutputGroup::operator = (ModelOutputGroup& mog)
    {
    m_name = mog.m_name;
    m_pDataObj = NULL;
@@ -309,7 +309,7 @@ ModelOutputGroup &ModelOutputGroup::operator = (ModelOutputGroup &mog)
    // copy each model output
    for (int i = 0; i < (int)mog.GetSize(); i++)
       {
-      ModelOutput *pOutput = new ModelOutput(*(mog.GetAt(i)));
+      ModelOutput* pOutput = new ModelOutput(*(mog.GetAt(i)));
       ASSERT(pOutput != NULL);
       this->Add(pOutput);
       }
@@ -323,7 +323,7 @@ ModelOutputGroup &ModelOutputGroup::operator = (ModelOutputGroup &mog)
 // H R U P O O L
 ///////////////////////////////////////////////////////////////////////////////
 
-HRUPool::HRUPool(HRU *pHRU)
+HRUPool::HRUPool(HRU* pHRU)
    : FluxContainer()
    , StateVarContainer()
    , m_volumeWater(0.0f)
@@ -345,7 +345,7 @@ HRUPool::HRUPool(HRU *pHRU)
 
 
 
-HRUPool &HRUPool::operator = (HRUPool &l)
+HRUPool& HRUPool::operator = (HRUPool& l)
    {
    m_volumeWater = l.m_volumeWater;
    m_contributionToReach = l.m_contributionToReach;
@@ -367,7 +367,7 @@ HRUPool &HRUPool::operator = (HRUPool &l)
    }
 
 
-Reach *HRUPool::GetReach(void)
+Reach* HRUPool::GetReach(void)
    {
    return m_pHRU->m_pCatchment->m_pReach;
    }
@@ -464,7 +464,7 @@ HRU::~HRU(void)
    }
 
 
-int HRU::AddPools(  FlowModel *pFlowModel, /*int poolCount, float initWaterContent, float initTemperature, */ bool grid)
+int HRU::AddPools(FlowModel* pFlowModel, /*int poolCount, float initWaterContent, float initTemperature, */ bool grid)
    {
    HRUPool hruLayer(this);
 
@@ -472,9 +472,9 @@ int HRU::AddPools(  FlowModel *pFlowModel, /*int poolCount, float initWaterConte
 
    for (int i = 0; i < pFlowModel->m_poolInfoArray.GetSize(); i++)
       {
-      PoolInfo *pInfo = pFlowModel->m_poolInfoArray[ i ];
+      PoolInfo* pInfo = pFlowModel->m_poolInfoArray[i];
 
-      HRUPool *pHRUPool = new HRUPool(hruLayer);
+      HRUPool* pHRUPool = new HRUPool(hruLayer);
       ASSERT(pHRUPool != NULL);
 
       m_poolArray.Add(pHRUPool);
@@ -502,8 +502,8 @@ int HRU::AddPools(  FlowModel *pFlowModel, /*int poolCount, float initWaterConte
 
    for (int i = 0; i < m_poolArray.GetSize(); i++)
       {
-      HRUPool *pLayer = m_poolArray[i];
-      if ( !grid ) // if it is a grid, the water flux array is allocated by BuildCatchmentFromGrids.  
+      HRUPool* pLayer = m_poolArray[i];
+      if (!grid) // if it is a grid, the water flux array is allocated by BuildCatchmentFromGrids.  
          {
          pLayer->m_waterFluxArray.SetSize(7);
          for (int j = 0; j < 7; j++)
@@ -574,7 +574,7 @@ Reach::~Reach(void)
 void Reach::SetGeometry(float wdRatio)
    {
    //ASSERT( pReach->m_qArray != NULL );
-   ReachSubnode *pNode = (ReachSubnode*)m_subnodeArray[0];
+   ReachSubnode* pNode = (ReachSubnode*)m_subnodeArray[0];
    ASSERT(pNode != NULL);
 
    m_depth = GetDepthFromQ(pNode->m_discharge, wdRatio);
@@ -588,8 +588,8 @@ float Reach::GetDepthFromQ(float Q, float wdRatio)  // ASSUMES A SPECIFIC CHANNE
    {
    // Q=m3/sec
    // from kellie:  d = ( 5/9 Q n s^2 ) ^ 3/8   -- assumes width = 3*depth, rectangular channel
-   float wdterm = (float)pow((wdRatio / (2 + wdRatio)), 2.0f / 3.0f)*wdRatio;
-   float depth = (float)pow(((Q*m_n) / ((float)sqrt(m_slope)*wdterm)), 3.0f / 8.0f);
+   float wdterm = (float)pow((wdRatio / (2 + wdRatio)), 2.0f / 3.0f) * wdRatio;
+   float depth = (float)pow(((Q * m_n) / ((float)sqrt(m_slope) * wdterm)), 3.0f / 8.0f);
    return (float)depth;
    }
 
@@ -599,7 +599,7 @@ float Reach::GetDischarge(int subnode /*=-1*/)
    if (subnode < 0)
       subnode = this->GetSubnodeCount() - 1;
 
-   ReachSubnode *pNode = (ReachSubnode*) this->m_subnodeArray[subnode];
+   ReachSubnode* pNode = (ReachSubnode*)this->m_subnodeArray[subnode];
    ASSERT(pNode != NULL);
 
    float q = pNode->m_discharge;
@@ -614,18 +614,18 @@ float Reach::GetDischarge(int subnode /*=-1*/)
 float Reach::GetUpstreamInflow()
    {
    float Q = 0.0f;
-   ReachSubnode *pNodeLeft = NULL;
+   ReachSubnode* pNodeLeft = NULL;
    if (this->m_pLeft && this->m_pLeft->m_polyIndex >= 0)
       {
       int lastSubnode = this->m_pLeft->GetSubnodeCount() - 1;
-      pNodeLeft = (ReachSubnode*) this->m_pLeft->m_subnodeArray[lastSubnode];
+      pNodeLeft = (ReachSubnode*)this->m_pLeft->m_subnodeArray[lastSubnode];
       }
 
-   ReachSubnode *pNodeRight = NULL;
+   ReachSubnode* pNodeRight = NULL;
    if (this->m_pRight && this->m_pRight->m_polyIndex >= 0)
       {
       int lastSubnode = this->m_pRight->GetSubnodeCount() - 1;
-      pNodeRight = (ReachSubnode*) this->m_pRight->m_subnodeArray[lastSubnode];
+      pNodeRight = (ReachSubnode*)this->m_pRight->m_subnodeArray[lastSubnode];
       }
 
    if (pNodeLeft != NULL)
@@ -636,20 +636,20 @@ float Reach::GetUpstreamInflow()
    return Q;
    }
 
-bool Reach::GetUpstreamInflow(float &QLeft, float &QRight)
+bool Reach::GetUpstreamInflow(float& QLeft, float& QRight)
    {
-   ReachSubnode *pNodeLeft = NULL;
+   ReachSubnode* pNodeLeft = NULL;
    if (this->m_pLeft && this->m_pLeft->m_polyIndex >= 0)
       {
       int lastSubnode = this->m_pLeft->GetSubnodeCount() - 1;
-      pNodeLeft = (ReachSubnode*) this->m_pLeft->m_subnodeArray[lastSubnode];
+      pNodeLeft = (ReachSubnode*)this->m_pLeft->m_subnodeArray[lastSubnode];
       }
 
-   ReachSubnode *pNodeRight = NULL;
+   ReachSubnode* pNodeRight = NULL;
    if (this->m_pRight && this->m_pRight->m_polyIndex >= 0)
       {
       int lastSubnode = this->m_pRight->GetSubnodeCount() - 1;
-      pNodeRight = (ReachSubnode*) this->m_pRight->m_subnodeArray[lastSubnode];
+      pNodeRight = (ReachSubnode*)this->m_pRight->m_subnodeArray[lastSubnode];
       }
 
    if (pNodeLeft != NULL)
@@ -660,20 +660,20 @@ bool Reach::GetUpstreamInflow(float &QLeft, float &QRight)
    return true;
    }
 
-bool Reach::GetUpstreamTemperature(float &tempLeft, float &tempRight)
+bool Reach::GetUpstreamTemperature(float& tempLeft, float& tempRight)
    {
-   ReachSubnode *pNodeLeft = NULL;
+   ReachSubnode* pNodeLeft = NULL;
    if (this->m_pLeft && this->m_pLeft->m_polyIndex >= 0)
       {
       int lastSubnode = this->m_pLeft->GetSubnodeCount() - 1;
-      pNodeLeft = (ReachSubnode*) this->m_pLeft->m_subnodeArray[lastSubnode];
+      pNodeLeft = (ReachSubnode*)this->m_pLeft->m_subnodeArray[lastSubnode];
       }
 
-   ReachSubnode *pNodeRight = NULL;
+   ReachSubnode* pNodeRight = NULL;
    if (this->m_pRight && this->m_pRight->m_polyIndex >= 0)
       {
       int lastSubnode = this->m_pRight->GetSubnodeCount() - 1;
-      pNodeRight = (ReachSubnode*) this->m_pRight->m_subnodeArray[lastSubnode];
+      pNodeRight = (ReachSubnode*)this->m_pRight->m_subnodeArray[lastSubnode];
       }
 
    if (pNodeLeft != NULL)
@@ -798,7 +798,7 @@ ControlPoint::~ControlPoint(void)
    }
 
 
-void Reservoir::InitDataCollection(FlowModel *pFlowModel)
+void Reservoir::InitDataCollection(FlowModel* pFlowModel)
    {
    if (m_pResData == NULL)
       {
@@ -906,7 +906,7 @@ void Reservoir::InitDataCollection(FlowModel *pFlowModel)
 
 // this function iterates through the columns of the rule priority table,
 // loading up constraints
-bool Reservoir::ProcessRulePriorityTable(EnvModel* pEnvModel, FlowModel *pFlowModel)
+bool Reservoir::ProcessRulePriorityTable(EnvModel* pEnvModel, FlowModel* pFlowModel)
    {
    if (m_pRulePriorityTable == NULL)
       return false;
@@ -921,7 +921,7 @@ bool Reservoir::ProcessRulePriorityTable(EnvModel* pEnvModel, FlowModel *pFlowMo
    // iterate through the zones defined in the file
    for (int i = 0; i < cols; i++)
       {
-      ZoneInfo *pZone = new ZoneInfo;
+      ZoneInfo* pZone = new ZoneInfo;
       ASSERT(pZone != NULL);
 
       pZone->m_zone = (ZONE)i;  // ???????
@@ -933,7 +933,7 @@ bool Reservoir::ProcessRulePriorityTable(EnvModel* pEnvModel, FlowModel *pFlowMo
          {
          CString filename = m_pRulePriorityTable->GetAsString(i, j);
 
-         ResConstraint *pConstraint = FindResConstraint(pFlowModel->m_path + m_dir + m_rpdir + filename);
+         ResConstraint* pConstraint = FindResConstraint(pFlowModel->m_path + m_dir + m_rpdir + filename);
 
          if (pConstraint == NULL && filename.CompareNoCase(_T("Missing")) != 0) // not yet loaded?  and not _T('Missing'))?    Still not loaded?
             {
@@ -946,17 +946,17 @@ bool Reservoir::ProcessRulePriorityTable(EnvModel* pEnvModel, FlowModel *pFlowMo
             TCHAR heading[256];
             lstrcpy(heading, filename);
 
-            TCHAR *control = NULL;
-            TCHAR *next = NULL;
+            TCHAR* control = NULL;
+            TCHAR* next = NULL;
             TCHAR delim[] = _T(" ,_");  //allowable delimeters, space and underscore
 
             control = _tcstok_s(heading, delim, &next);  // Returns string at head of file. 
             int records = -1;
 
             if (lstrcmpi(control, _T("cp")) == 0)
-               records = pFlowModel->LoadTable(pEnvModel, pFlowModel->m_path + m_dir + m_cpdir + filename, (DataObj**) &(pConstraint->m_pRCData), 0);
+               records = pFlowModel->LoadTable(pEnvModel, pFlowModel->m_path + m_dir + m_cpdir + filename, (DataObj**)&(pConstraint->m_pRCData), 0);
             else
-               records = pFlowModel->LoadTable(pEnvModel, pFlowModel->m_path + m_dir + m_rpdir + filename, (DataObj**) &(pConstraint->m_pRCData), 0);
+               records = pFlowModel->LoadTable(pEnvModel, pFlowModel->m_path + m_dir + m_rpdir + filename, (DataObj**)&(pConstraint->m_pRCData), 0);
 
             if (records <= 0)  // No records? Display error msg
                {
@@ -979,8 +979,8 @@ bool Reservoir::ProcessRulePriorityTable(EnvModel* pEnvModel, FlowModel *pFlowMo
             TCHAR  name[256];
             lstrcpy(name, filename);
 
-            TCHAR *ruletype = NULL;
-            TCHAR *next = NULL;
+            TCHAR* ruletype = NULL;
+            TCHAR* next = NULL;
             TCHAR  delim[] = _T(" ,_");  //allowable delimeters, space and underscore
 
             // Ruletypes
@@ -1077,7 +1077,7 @@ float Reservoir::GetTargetElevationFromRuleCurve(int doy)
    }
 
 
-void Reservoir::UpdateMaxGateOutflows(Reservoir *pRes, float currentPoolElevation)
+void Reservoir::UpdateMaxGateOutflows(Reservoir* pRes, float currentPoolElevation)
    {
    /*ASSERT(pRes->m_pRO_releaseCapacityTable != NULL);
    ASSERT(pRes->m_pSpillwayReleaseCapacityTable != NULL);*/
@@ -1092,7 +1092,7 @@ void Reservoir::UpdateMaxGateOutflows(Reservoir *pRes, float currentPoolElevatio
    }
 
 
-float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
+float Reservoir::GetResOutflow(FlowModel* pFlowModel, Reservoir* pRes, int doy)
    {
    ASSERT(pRes != NULL);
 
@@ -1130,7 +1130,7 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
       pRes->m_volume = currentVolume;
 
       float desiredRelease = (currentVolume - targetPoolVolume) / SEC_PER_DAY;     //This would bring pool elevation back to the rule curve in one timestep.  Converted from m3/day to m3/s  (cms).  
-                                                                   //This would be ideal if possible within the given constraints.
+      //This would be ideal if possible within the given constraints.
       if (currentVolume < targetPoolVolume) //if we want to fill the reservoir
          desiredRelease = pRes->m_minOutflow;
       //desiredRelease = 0.0f;//kbv 3/16/2014
@@ -1172,7 +1172,7 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
          }
       else if (currentPoolElevation <= targetPoolElevation)
          {
-   
+
          if (currentPoolElevation <= bufferZoneElevation) //in the buffer zone
             {
             zone = ZONE_BUFFER;
@@ -1192,7 +1192,7 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
          }
 
       // Once we know what zone we are in, we can access the array of appropriate constraints for the particular reservoir and zone.       
-      ZoneInfo *pZone = NULL;
+      ZoneInfo* pZone = NULL;
       if (zone >= 0 && zone < pRes->m_zoneInfoArray.GetSize())
          pZone = pRes->m_zoneInfoArray.GetAt(zone);
 
@@ -1201,13 +1201,13 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
          // Loop through constraints and modify actual release.  Apply the flood control rules in order here.
          for (int i = 0; i < pZone->m_resConstraintArray.GetSize(); i++)
             {
-            ResConstraint *pConstraint = pZone->m_resConstraintArray.GetAt(i);
+            ResConstraint* pConstraint = pZone->m_resConstraintArray.GetAt(i);
             ASSERT(pConstraint != NULL);
 
             CString filename = pConstraint->m_constraintFileName;
 
             // Get first column label and appropriate data to use for lookup
-            DataObj *pConstraintTable = pConstraint->m_pRCData;
+            DataObj* pConstraintTable = pConstraint->m_pRCData;
             ASSERT(pConstraintTable != NULL);
 
             CString xlabel = pConstraintTable->GetLabel(0);
@@ -1346,7 +1346,7 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
                // Determine which control point this is.....use COMID to identify
                for (int k = 0; k < pFlowModel->m_controlPointArray.GetSize(); k++)
                   {
-                  ControlPoint *pControl = pFlowModel->m_controlPointArray.GetAt(k);
+                  ControlPoint* pControl = pFlowModel->m_controlPointArray.GetAt(k);
                   ASSERT(pControl != NULL);
 
                   if (pControl->InUse())
@@ -1401,8 +1401,8 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
                { //first, we have to strip the first header to get to the 2nd, which tells us whether the rule is a min or a max 
                TCHAR powname[256];
                lstrcpy(powname, filename);
-               TCHAR *ruletype = NULL;
-               TCHAR *next = NULL;
+               TCHAR* ruletype = NULL;
+               TCHAR* next = NULL;
                TCHAR delim[] = _T(" ,_");  //allowable delimeters: , ; space ; underscore
 
                ruletype = _tcstok_s(powname, delim, &next);  //Strip header.  should be pow_ for power plant rules
@@ -1429,8 +1429,8 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
                //first, we have to strip the first header to get to the 2nd, which tells us whether the rule is a min or a max 
                TCHAR roname[256];
                lstrcpy(roname, filename);
-               TCHAR *ruletype = NULL;
-               TCHAR *next = NULL;
+               TCHAR* ruletype = NULL;
+               TCHAR* next = NULL;
                TCHAR delim[] = _T(" ,_");  //allowable delimeters: , ; space ; underscore
                ruletype = _tcstok_s(roname, delim, &next);  //Strip header.  should be pow_ for power plant rules
                ruletype = _tcstok_s(NULL, delim, &next);  //Returns next string at head of file (max or min).
@@ -1455,8 +1455,8 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
                //first, we have to strip the first header to get to the 2nd, which tells us whether the rule is a min or a max 
                TCHAR spillname[256];
                lstrcpy(spillname, filename);
-               TCHAR *ruletype = NULL;
-               TCHAR *next = NULL;
+               TCHAR* ruletype = NULL;
+               TCHAR* next = NULL;
                TCHAR delim[] = _T(" ,_");  //allowable delimeters: , ; space ; underscore
 
                ruletype = _tcstok_s(spillname, delim, &next);  //Strip header.  should be pow_ for power plant rules
@@ -1503,7 +1503,7 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
             //     actualRelease = pRes->m_minOutflow;
 
             if (pRes->m_elevation < pRes->m_inactive_elev)      //In the inactive zone, water is not accessible for release from any of the gates.
-               actualRelease = pRes->m_outflow / SEC_PER_DAY*0.5f;
+               actualRelease = pRes->m_outflow / SEC_PER_DAY * 0.5f;
 
             outflow = actualRelease;
             }//end of for ( int i=0; i < pZone->m_resConstraintArray.GetSize(); i++ )
@@ -1523,7 +1523,7 @@ float Reservoir::GetResOutflow(FlowModel *pFlowModel, Reservoir *pRes, int doy)
    }
 
 
-float Reservoir::AssignReservoirOutletFlows(Reservoir *pRes, float outflow)
+float Reservoir::AssignReservoirOutletFlows(Reservoir* pRes, float outflow)
    {
    ASSERT(pRes != NULL);
 
@@ -1552,9 +1552,9 @@ float Reservoir::AssignReservoirOutletFlows(Reservoir *pRes, float outflow)
          pRes->m_RO_flow = pRes->m_maxRO_Flow;    //If both power plant and RO are at max capacity, route remaining flow to spillway.
 
          excessFlow -= pRes->m_RO_flow;
-         
+
          // excess flow cannot exceed the max spillway flow
-         if ( excessFlow > pRes->m_maxSpillwayFlow )
+         if (excessFlow > pRes->m_maxSpillwayFlow)
             excessFlow = pRes->m_maxSpillwayFlow;
 
          if (pRes->m_spillwayFlow < pRes->m_minSpillwayFlow)   //If spillway has a minimum flow, reduce RO flow to accomodate
@@ -1582,10 +1582,10 @@ float Reservoir::AssignReservoirOutletFlows(Reservoir *pRes, float outflow)
    return adjOutflow;
    }
 
-void  Reservoir::CalculateHydropowerOutput(Reservoir *pRes)
+void  Reservoir::CalculateHydropowerOutput(Reservoir* pRes)
    {
    float head = pRes->m_elevation - pRes->m_tailwater_elevation;
-   float powerOut = (1000 * pRes->m_powerFlow*9.81f*head*pRes->m_turbine_efficiency) / 1000000;   //power output in MW
+   float powerOut = (1000 * pRes->m_powerFlow * 9.81f * head * pRes->m_turbine_efficiency) / 1000000;   //power output in MW
    pRes->m_power = powerOut;
 
    }
@@ -1861,11 +1861,11 @@ FlowModel::~FlowModel()
    }
 
 
-bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
+bool FlowModel::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
    EnvExtension::Init(pEnvContext, initStr);
 
-   MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
+   MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
    bool ok = LoadXml(initStr, pEnvContext);
 
@@ -1929,8 +1929,8 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colCatchmentCatchID, m_catchIDCol, TYPE_INT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colCatchmentHruID, m_hruIDCol, TYPE_INT, CC_AUTOADD);
 
-   
-   EnvExtension::CheckCol( m_pCatchmentLayer, m_colHruSWC,             _T("SWC"),          TYPE_FLOAT, CC_AUTOADD ); //Not used
+
+   EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruSWC, _T("SWC"), TYPE_FLOAT, CC_AUTOADD); //Not used
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruTemp, _T("TEMP"), TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruTempYr, _T("TEMP_YR"), TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruTemp10Yr, _T("TEMP_10YR"), TYPE_FLOAT, CC_AUTOADD);
@@ -1955,11 +1955,11 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colIrrigation, "IRRIGATION", TYPE_INT, CC_AUTOADD);
 
-  EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUPercentIrrigated, "HRU_IRR_P", TYPE_FLOAT, CC_AUTOADD);
+   EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUPercentIrrigated, "HRU_IRR_P", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHRUMeanLAI, "HRU_LAI", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colAgeClass, "HRU_AGE", TYPE_FLOAT, CC_AUTOADD);
    EnvExtension::CheckCol(m_pCatchmentLayer, m_colHruSWC, "HRU_SWC", TYPE_FLOAT, CC_AUTOADD);
-   
+
    // <streams>
    EnvExtension::CheckCol(m_pStreamLayer, m_colStreamFrom, m_fromCol, TYPE_INT, CC_MUST_EXIST);  // required for building topology
    EnvExtension::CheckCol(m_pStreamLayer, m_colStreamTo, m_toCol, TYPE_INT, CC_MUST_EXIST);
@@ -1992,7 +1992,7 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    InitReaches();      // create, initialize reaches based on stream layer
    InitCatchments();   // create, initialize catchments based on catchment layer
    InitReservoirs();   // initialize reservoirs
-   InitReservoirControlPoints( pEnvContext->pEnvModel);   //initialize reservoir control points
+   InitReservoirControlPoints(pEnvContext->pEnvModel);   //initialize reservoir control points
 
    // connect catchments to reaches
    Report::Log("Flow: Building topology");
@@ -2030,10 +2030,10 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    m_pTotalFluxData->SetLabel(6, "Annual Total Snowfall (acre-ft)");
 
    this->AddOutputVar("Global Flux Summary", m_pTotalFluxData, "");
-   
+
    for (int i = 0; i < (int)m_reservoirArray.GetSize(); i++)
       {
-      Reservoir *pRes = m_reservoirArray[i];
+      Reservoir* pRes = m_reservoirArray[i];
       CString name(pRes->m_name);
       name += "-Filled";
       this->AddOutputVar(name, pRes->m_filled, "");
@@ -2042,7 +2042,7 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    // set up dataobj for any model outputs
    for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
       {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
       int moCount = 0;
       for (int i = 0; i < (int)pGroup->GetSize(); i++)
@@ -2090,11 +2090,11 @@ bool FlowModel::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    int numPoly = 0;
    for (int i = 0; i < m_catchmentArray.GetSize(); i++)
       {
-      Catchment *pCatchment = m_catchmentArray[i];
+      Catchment* pCatchment = m_catchmentArray[i];
       areaTotal += pCatchment->m_area;
       for (int j = 0; j < pCatchment->GetHRUCount(); j++)
          {
-         HRU *pHRU = pCatchment->GetHRU(j);
+         HRU* pHRU = pCatchment->GetHRU(j);
          for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
             numPoly++;
          numHRU++;
@@ -2134,10 +2134,10 @@ void FlowModel::SummarizeIDULULC()
    float lai = 0.0f; float age = 0.0f; int lulcB = 0; int lulcA = 0; int irrigation = 0;
    for (int i = 0; i < m_catchmentArray.GetSize(); i++)
       {
-      Catchment *pCatchment = m_catchmentArray[i];
+      Catchment* pCatchment = m_catchmentArray[i];
       for (int j = 0; j < pCatchment->GetHRUCount(); j++)
          {
-         HRU *pHRU = pCatchment->GetHRU(j);
+         HRU* pHRU = pCatchment->GetHRU(j);
          float meanLAI = 0.0f;
          float areaIrrigated = 0.0f;
          float totalArea = 0.0f;
@@ -2146,7 +2146,7 @@ void FlowModel::SummarizeIDULULC()
             {
             m_flowContext.pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[k], m_colCatchmentArea, area);
             m_flowContext.pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[k], m_colLai, lai);
-            meanLAI += lai*area;
+            meanLAI += lai * area;
             totalArea += area;
 
             m_flowContext.pEnvContext->pMapLayer->GetData(pHRU->m_polyIndexArray[k], m_colIrrigation, irrigation);
@@ -2162,14 +2162,14 @@ void FlowModel::SummarizeIDULULC()
             for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
                {
                this->UpdateIDU(m_flowContext.pEnvContext, pHRU->m_polyIndexArray[k], m_colHRUPercentIrrigated, pHRU->m_percentIrrigated, ADD_DELTA);
-           //    this->UpdateIDU(m_flowContext.pEnvContext, pHRU->m_polyIndexArray[k], m_colHRUMeanLAI, pHRU->m_meanLAI, SET_DATA);
+               //    this->UpdateIDU(m_flowContext.pEnvContext, pHRU->m_polyIndexArray[k], m_colHRUMeanLAI, pHRU->m_meanLAI, SET_DATA);
                }
             }
          }
       }
    }
 
-bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
+bool FlowModel::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    {
    EnvExtension::InitRun(pEnvContext, true);
    m_flowContext.Reset();
@@ -2185,9 +2185,9 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    m_totalWaterInput = 0;
    m_totalWaterOutput = 0;
 
-  // SummarizeIDULULC();
+   // SummarizeIDULULC();
 
-   // ReadState();//read file including initial values for the state variables. This avoids model spin up issues
+    // ReadState();//read file including initial values for the state variables. This avoids model spin up issues
 
    InitRunPlugins();
    InitRunReservoirs(pEnvContext);
@@ -2198,7 +2198,7 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    // if model outputs are in use, set up the data object
    for (int i = 0; i < (int)m_modelOutputGroupArray.GetSize(); i++)
       {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[i];
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[i];
 
       if (pGroup->m_pDataObj != NULL)
          {
@@ -2214,17 +2214,17 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
       }
 
    OpenDetailedOutputFiles();
-   
+
    if (m_climateStationRuns) //we need to find the closest station and write the offset to the IDU
       {
       //Get the climate stations for this run.  These are coordinates for ALL the climate stations 
-      int siteCount=16;
-      int runNumber = m_flowContext.pEnvContext->run;
+      int siteCount = 16;
+      int runNumber = m_flowContext.pEnvContext->runID;
 
-//      if (runNumber > 0)
-//         siteCount = 4;
+      //      if (runNumber > 0)
+      //         siteCount = 4;
 
-      FDataObj *pGridLocationData = new FDataObj;
+      FDataObj* pGridLocationData = new FDataObj;
       pGridLocationData->ReadAscii("GridLocations.csv");
 
       //get the subset of stations to be used in this model run
@@ -2239,27 +2239,27 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
          {
          Poly* pPoly = m_flowContext.pEnvContext->pMapLayer->m_pPolyArray->GetAt(i);
          float minDist = 1e10; int location = 0;
-         for (int j=0;j<siteCount;j++)
-            { 
-            int realizRow = pRealizationData->GetAsInt(j+1 , runNumber);
- 
-            float x = pGridLocationData->Get(8, realizRow-1);
-            float y = pGridLocationData->Get(9, realizRow-1);
+         for (int j = 0; j < siteCount; j++)
+            {
+            int realizRow = pRealizationData->GetAsInt(j + 1, runNumber);
+
+            float x = pGridLocationData->Get(8, realizRow - 1);
+            float y = pGridLocationData->Get(9, realizRow - 1);
 
             //Have x and y, now get distance to this polygon
             Vertex v = pPoly->GetCentroid();
 
             float dist = sqrt((x - v.x) * (x - v.x) + (y - v.y) * (y - v.y));
 
-            if (dist<minDist)
-               { 
-               minDist=dist;
-               location= realizRow;
-               int s=1;
+            if (dist < minDist)
+               {
+               minDist = dist;
+               location = realizRow;
+               int s = 1;
                }
             }
 
-         m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location , ADD_DELTA);
+         m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location, ADD_DELTA);
          }
       delete pGridLocationData;
       delete pRealizationData;
@@ -2270,14 +2270,14 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
       {
       for (int i = 0; i < m_numberOfYears; i++)
          {
-         FlowScenario *pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
+         FlowScenario* pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
 
-         if ( pScenario->m_useStationData == false )
+         if (pScenario->m_useStationData == false)
             {
             for (int j = 0; j < (int)pScenario->m_climateInfoArray.GetSize(); j++)//different climate parameters
                {
-               ClimateDataInfo *pInfo = pScenario->m_climateInfoArray[j];
-               GeoSpatialDataObj *pObj = new GeoSpatialDataObj(U_UNDEFINED);
+               ClimateDataInfo* pInfo = pScenario->m_climateInfoArray[j];
+               GeoSpatialDataObj* pObj = new GeoSpatialDataObj(U_UNDEFINED);
                pObj->InitLibraries();
                pInfo->m_pNetCDFDataArray.Add(pObj);
                }
@@ -2292,10 +2292,10 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
          {
 
          UpdateMonteCarloInput(pEnvContext, i);
-         pEnvContext->run = i;
+         pEnvContext->runID = i;
          pEnvContext->currentYear = initYear;
          if (i > 0)
-             GlobalMethodManager::InitRun(&m_flowContext);
+            GlobalMethodManager::InitRun(&m_flowContext);
 
          for (int j = 0; j < m_numberOfYears; j++)
             {
@@ -2336,7 +2336,7 @@ bool FlowModel::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    }
 
 
-bool FlowModel::EndRun(EnvContext *pEnvContext)
+bool FlowModel::EndRun(EnvContext* pEnvContext)
    {
    if (m_saveStateAtEndOfRun)
       SaveState();
@@ -2358,20 +2358,20 @@ bool FlowModel::EndRun(EnvContext *pEnvContext)
 
    //Get the objective function for each of the locations with measured values
    if (!m_estimateParameters)
-   {
+      {
       int c = 0;
       float ns = -1.0f; float nsLN = -1.0f; float ve = 0.0f;
       for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
-      {
-         ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+         {
+         ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
          for (int i = 0; i < (int)pGroup->GetSize(); i++)
-         {
-            if (pGroup->GetAt(i)->m_inUse)
             {
-               ModelOutput *pOutput = pGroup->GetAt(i);
-               if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
+            if (pGroup->GetAt(i)->m_inUse)
                {
+               ModelOutput* pOutput = pGroup->GetAt(i);
+               if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
+                  {
                   GetObjectiveFunction(pGroup->m_pDataObj, ns, nsLN, ve);//this will include time meas model
                   LPCTSTR format = "Flow: %s All Data ns = %.3f, nsLog = %.3f, volumeError = %.3f";
                   CString msg; msg.Format(format, pGroup->m_name, ns, nsLN, ve); Report::Log(msg);
@@ -2380,11 +2380,11 @@ bool FlowModel::EndRun(EnvContext *pEnvContext)
                   format = "Flow: %s Daily ns = %.3f, nsLog = %.3f, volumeError = %.3f";
                   msg; msg.Format(format, pGroup->m_name, ns, nsLN, ve); Report::Log(msg);
                   c++;
+                  }
                }
             }
          }
       }
-   }
 
    // output timers
    ReportTimings("Flow: Climate Data Run Time = %.0f seconds", m_loadClimateRunTime);
@@ -2433,7 +2433,7 @@ int FlowModel::OpenDetailedOutputFiles()
    }
 
 
-int FlowModel::OpenDetailedOutputFilesIDU(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::OpenDetailedOutputFilesIDU(CArray< FILE*, FILE* >& filePtrArray)
    {
    int hruCount = GetHRUCount();
    int hruPoolCount = GetHRUPoolCount();
@@ -2474,7 +2474,7 @@ int FlowModel::OpenDetailedOutputFilesIDU(CArray< FILE*, FILE* > &filePtrArray)
       {
       CString outputPath;
       outputPath.Format("%s%s%s", PathManager::GetPath(PM_OUTPUT_DIR), (PCTSTR)names[i], ".flw");
-      FILE *fp = NULL;
+      FILE* fp = NULL;
       PCTSTR file = (PCTSTR)outputPath;
       fopen_s(&fp, file, "wb");
 
@@ -2518,7 +2518,7 @@ int FlowModel::OpenDetailedOutputFilesIDU(CArray< FILE*, FILE* > &filePtrArray)
    return count;
    }
 
-int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* >& filePtrArray)
    {
    int hruCount = GetHRUCount();
    int hruPoolCount = GetHRUPoolCount();
@@ -2537,22 +2537,22 @@ int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* > &filePtrArray)
 
    CStringArray names;     // units??
 
-  /* names.Add("L1Depth");                   // 0
-   names.Add("L2Depth");
-   names.Add("L3Depth");
-   names.Add("L4Depth");
-   names.Add("L5Depth");
-   names.Add("Precip");
-   names.Add("AET");
-   names.Add("Recharge");
-   names.Add("PET");
-   names.Add("ELWS");
-   names.Add("Runoff");
-   names.Add("GWOut");
-   names.Add("LossToGW");
-   names.Add("GainFromGW");
-   names.Add("L0Depth");
-   */
+   /* names.Add("L1Depth");                   // 0
+    names.Add("L2Depth");
+    names.Add("L3Depth");
+    names.Add("L4Depth");
+    names.Add("L5Depth");
+    names.Add("Precip");
+    names.Add("AET");
+    names.Add("Recharge");
+    names.Add("PET");
+    names.Add("ELWS");
+    names.Add("Runoff");
+    names.Add("GWOut");
+    names.Add("LossToGW");
+    names.Add("GainFromGW");
+    names.Add("L0Depth");
+    */
    names.Add("SWE");
 
 
@@ -2572,7 +2572,7 @@ int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* > &filePtrArray)
       {
       CString outputPath;
       outputPath.Format("%s%s%s", PathManager::GetPath(PM_OUTPUT_DIR), (PCTSTR)names[i], ".flw");
-      FILE *fp = NULL;
+      FILE* fp = NULL;
       PCTSTR file = (PCTSTR)outputPath;
       fopen_s(&fp, file, "wb");
 
@@ -2600,7 +2600,7 @@ int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* > &filePtrArray)
 
          for (int i = 0; i < hruCount; i++)
             {
-            HRU *pHRU = m_hruArray[i];
+            HRU* pHRU = m_hruArray[i];
             int row = pHRU->m_demRow;
             int col = pHRU->m_demCol;
             fwrite(&row, sizeof(int), 1, fp);
@@ -2622,7 +2622,7 @@ int FlowModel::OpenDetailedOutputFilesGrid(CArray< FILE*, FILE* > &filePtrArray)
    return count;
    }
 
-int FlowModel::OpenDetailedOutputFilesGridTracer(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::OpenDetailedOutputFilesGridTracer(CArray< FILE*, FILE* >& filePtrArray)
    {
    int hruCount = GetHRUCount();
    int hruLayerCount = GetHRUPoolCount();
@@ -2667,7 +2667,7 @@ int FlowModel::OpenDetailedOutputFilesGridTracer(CArray< FILE*, FILE* > &filePtr
       {
       CString outputPath;
       outputPath.Format("%s%s%s", PathManager::GetPath(PM_OUTPUT_DIR), (PCTSTR)names[i], ".flw");
-      FILE *fp = NULL;
+      FILE* fp = NULL;
       PCTSTR file = (PCTSTR)outputPath;
       fopen_s(&fp, file, "wb");
 
@@ -2695,7 +2695,7 @@ int FlowModel::OpenDetailedOutputFilesGridTracer(CArray< FILE*, FILE* > &filePtr
 
          for (int i = 0; i < hruCount; i++)
             {
-            HRU *pHRU = m_hruArray[i];
+            HRU* pHRU = m_hruArray[i];
             int row = pHRU->m_demRow;
             int col = pHRU->m_demCol;
             fwrite(&row, sizeof(int), 1, fp);
@@ -2718,7 +2718,7 @@ int FlowModel::OpenDetailedOutputFilesGridTracer(CArray< FILE*, FILE* > &filePtr
    }
 
 
-int FlowModel::OpenDetailedOutputFilesReach(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::OpenDetailedOutputFilesReach(CArray< FILE*, FILE* >& filePtrArray)
    {
    int hruCount = GetHRUCount();
    int hruPoolCount = GetHRUPoolCount();
@@ -2726,7 +2726,7 @@ int FlowModel::OpenDetailedOutputFilesReach(CArray< FILE*, FILE* > &filePtrArray
    int reservoirCount = (int)m_reservoirArray.GetSize();
    int polyCount = m_pCatchmentLayer->GetRowCount();
    int modelStateVarCount = hruPoolCount;
-   int numYears = m_flowContext.pEnvContext->endYear - m_flowContext.pEnvContext->startYear ;
+   int numYears = m_flowContext.pEnvContext->endYear - m_flowContext.pEnvContext->startYear;
    int version = 2;
    int collectionInterval = m_detailedSaveInterval;
 
@@ -2750,7 +2750,7 @@ int FlowModel::OpenDetailedOutputFilesReach(CArray< FILE*, FILE* > &filePtrArray
       {
       CString outputPath;
       outputPath.Format("%s%s%s", PathManager::GetPath(PM_OUTPUT_DIR), (PCTSTR)names[i], ".flw");
-      FILE *fp = NULL;
+      FILE* fp = NULL;
       PCTSTR file = (PCTSTR)outputPath;
       fopen_s(&fp, file, "wb");
 
@@ -2774,14 +2774,14 @@ int FlowModel::OpenDetailedOutputFilesReach(CArray< FILE*, FILE* > &filePtrArray
 
          for (int j = 0; j < reachCount; j++)
             {
-            Reach *pReach = m_reachArray[j];
+            Reach* pReach = m_reachArray[j];
             if (pReach->m_reachIndex >= 0)
                fwrite(&pReach->m_reachIndex, sizeof(int), 1, fp);
             }
 
          for (int j = 0; j < reachCount; j++)
             {
-            Reach *pReach = m_reachArray[j];
+            Reach* pReach = m_reachArray[j];
             if (pReach->m_reachIndex >= 0)
                fwrite(&pReach->m_reachID, sizeof(int), 1, fp);
             }
@@ -2794,7 +2794,7 @@ int FlowModel::OpenDetailedOutputFilesReach(CArray< FILE*, FILE* > &filePtrArray
    }
 
 
-int FlowModel::SaveDetailedOutputIDU(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::SaveDetailedOutputIDU(CArray< FILE*, FILE* >& filePtrArray)
    {
    ASSERT(filePtrArray.GetSize() == 13);
 
@@ -2802,7 +2802,7 @@ int FlowModel::SaveDetailedOutputIDU(CArray< FILE*, FILE* > &filePtrArray)
    int hruPoolCount = GetHRUPoolCount();
    int reachCount = GetReachCount();
    int reservoirCount = (int)m_reservoirArray.GetSize();
-   int modelStateVarCount = ((hruPoolCount*hruCount) + reachCount)*m_hruSvCount + reservoirCount;
+   int modelStateVarCount = ((hruPoolCount * hruCount) + reachCount) * m_hruSvCount + reservoirCount;
 
    // iterate through IDUs
    for (int i = 0; i < m_pCatchmentLayer->GetRowCount(); i++)
@@ -2824,7 +2824,7 @@ int FlowModel::SaveDetailedOutputIDU(CArray< FILE*, FILE* > &filePtrArray)
       m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colHruSWE, snow);
       m_flowContext.pEnvContext->pMapLayer->GetData(i, m_colHruMaxSWE, max_snow);
 
-      float height = (float)(46.6f*(1.0 - exp(-0.0144*age)));
+      float height = (float)(46.6f * (1.0 - exp(-0.0144 * age)));
 
       fwrite(&lai, sizeof(float), 1, filePtrArray[0]);
       fwrite(&age, sizeof(float), 1, filePtrArray[1]);
@@ -2846,7 +2846,7 @@ int FlowModel::SaveDetailedOutputIDU(CArray< FILE*, FILE* > &filePtrArray)
    }
 
 
-int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* >& filePtrArray)
    {
    ASSERT(filePtrArray.GetSize() == 1);
 
@@ -2854,7 +2854,7 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
    int hruPoolCount = GetHRUPoolCount();
    int reachCount = GetReachCount();
    int reservoirCount = (int)m_reservoirArray.GetSize();
-   int modelStateVarCount = ((hruPoolCount*hruCount) + reachCount)*m_hruSvCount + reservoirCount;
+   int modelStateVarCount = ((hruPoolCount * hruCount) + reachCount) * m_hruSvCount + reservoirCount;
 
    int numRows = m_pGrid->GetRowCount();
    int numCols = m_pGrid->GetColCount();
@@ -2869,21 +2869,21 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
          m_pGrid->GetData(j, i, value);//Go to the elevation grid and get the value
          if (value == m_pGrid->GetNoDataValue())
             {
-          /*  fwrite(&value, sizeof(float), 1, filePtrArray[0]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[1]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[2]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[3]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[4]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[5]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[6]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[7]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[8]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[9]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[10]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[11]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[12]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[13]);
-            fwrite(&value, sizeof(float), 1, filePtrArray[14]);*/
+            /*  fwrite(&value, sizeof(float), 1, filePtrArray[0]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[1]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[2]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[3]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[4]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[5]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[6]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[7]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[8]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[9]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[10]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[11]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[12]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[13]);
+              fwrite(&value, sizeof(float), 1, filePtrArray[14]);*/
             fwrite(&value, sizeof(float), 1, filePtrArray[0]);
             }
          else
@@ -2893,95 +2893,95 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
             if (offSet > 0)
                {
 
-               HRU *pHRU = GetHRU(offSet);
+               HRU* pHRU = GetHRU(offSet);
 
 
                float l1 = 0.0f; float l2 = 0.0f; float l3 = 0.0f; float l4 = 0.0f; float l5 = 0.0f; float l0 = 0.0f;
 
-               HRUPool *pLayer = pHRU->GetPool(0);
+               HRUPool* pLayer = pHRU->GetPool(0);
                float area = pHRU->m_area;
                float precip = pHRU->m_currentPrecip;//precipitation (mm/d )
                float pet = pHRU->m_currentMaxET;
                float swe = pHRU->m_depthSWE;
 
 
-               float et = pLayer->m_waterFluxArray[FL_TOP_SINK] / area*1000.0f*-1.0f;//AET (m3/d converted to mm/d )
+               float et = pLayer->m_waterFluxArray[FL_TOP_SINK] / area * 1000.0f * -1.0f;//AET (m3/d converted to mm/d )
                float elws = pHRU->m_elws;
                float gwOut = pHRU->m_currentGWFlowOut;
                float runoff = pHRU->m_currentRunoff;
                float recharge = 0;
-//               HRUPool *pLayer2 = pHRU->GetPool(2);//Layer above Groundwater...specific to 5 Layer SRS model
- //              et += pLayer2->m_waterFluxArray[FL_TOP_SINK] / area*1000.0f*-1.0f;//this adds et from argillic
+               //               HRUPool *pLayer2 = pHRU->GetPool(2);//Layer above Groundwater...specific to 5 Layer SRS model
+                //              et += pLayer2->m_waterFluxArray[FL_TOP_SINK] / area*1000.0f*-1.0f;//this adds et from argillic
 
                et = pHRU->m_currentET;
- //              float recharge = -1.0f*((float)pLayer2->m_waterFluxArray[FL_BOTTOM_SINK] + (float)pLayer2->m_waterFluxArray[FL_BOTTOM_SOURCE]) / area*1000.0f;
+               //              float recharge = -1.0f*((float)pLayer2->m_waterFluxArray[FL_BOTTOM_SINK] + (float)pLayer2->m_waterFluxArray[FL_BOTTOM_SOURCE]) / area*1000.0f;
                float lossToGW = 0.0f; float gainFromGW = 0.0f;
                if (recharge > 0.0f)
                   lossToGW = recharge;
                else
-                  gainFromGW = recharge*-1.0f;
+                  gainFromGW = recharge * -1.0f;
 
                recharge = pHRU->m_currentGWRecharge;
 
-               l1 = (float)pLayer->m_volumeWater / area*1000.0f;
+               l1 = (float)pLayer->m_volumeWater / area * 1000.0f;
                fwrite(&swe, sizeof(float), 1, filePtrArray[0]);
-              /* fwrite(&l1, sizeof(float), 1, filePtrArray[0]);
-               fwrite(&precip, sizeof(float), 1, filePtrArray[5]);
-               fwrite(&pet, sizeof(float), 1, filePtrArray[8]);
-               fwrite(&et, sizeof(float), 1, filePtrArray[6]);
-               fwrite(&recharge, sizeof(float), 1, filePtrArray[7]);//mm/d where + means gw is being recharged and - means gw is discharging into argillic.
-               fwrite(&elws, sizeof(float), 1, filePtrArray[9]);
-               fwrite(&runoff, sizeof(float), 1, filePtrArray[10]);
-               fwrite(&gwOut, sizeof(float), 1, filePtrArray[11]);
-               fwrite(&lossToGW, sizeof(float), 1, filePtrArray[12]);
-               fwrite(&gainFromGW, sizeof(float), 1, filePtrArray[13]);
+               /* fwrite(&l1, sizeof(float), 1, filePtrArray[0]);
+                fwrite(&precip, sizeof(float), 1, filePtrArray[5]);
+                fwrite(&pet, sizeof(float), 1, filePtrArray[8]);
+                fwrite(&et, sizeof(float), 1, filePtrArray[6]);
+                fwrite(&recharge, sizeof(float), 1, filePtrArray[7]);//mm/d where + means gw is being recharged and - means gw is discharging into argillic.
+                fwrite(&elws, sizeof(float), 1, filePtrArray[9]);
+                fwrite(&runoff, sizeof(float), 1, filePtrArray[10]);
+                fwrite(&gwOut, sizeof(float), 1, filePtrArray[11]);
+                fwrite(&lossToGW, sizeof(float), 1, filePtrArray[12]);
+                fwrite(&gainFromGW, sizeof(float), 1, filePtrArray[13]);
 
 
-               pLayer = pHRU->GetPool( 1);
-               l2 = (float)pLayer->m_volumeWater / area*1000.0f;
-               fwrite(&l2, sizeof(float), 1, filePtrArray[1]);
+                pLayer = pHRU->GetPool( 1);
+                l2 = (float)pLayer->m_volumeWater / area*1000.0f;
+                fwrite(&l2, sizeof(float), 1, filePtrArray[1]);
 
 
-               pLayer = pHRU->GetPool( 2);
-               l3 = (float)pLayer->m_volumeWater / area*1000.0f;
-               fwrite(&l3, sizeof(float), 1, filePtrArray[2]);
+                pLayer = pHRU->GetPool( 2);
+                l3 = (float)pLayer->m_volumeWater / area*1000.0f;
+                fwrite(&l3, sizeof(float), 1, filePtrArray[2]);
 
 
-               pLayer = pHRU->GetPool( 3);
-               l4 = (float)pLayer->m_volumeWater / area*1000.0f;
-               fwrite(&l4, sizeof(float), 1, filePtrArray[3]);
+                pLayer = pHRU->GetPool( 3);
+                l4 = (float)pLayer->m_volumeWater / area*1000.0f;
+                fwrite(&l4, sizeof(float), 1, filePtrArray[3]);
 
 
-               pLayer = pHRU->GetPool( 4);
-               l5 = (float)pLayer->m_volumeWater / area*1000.0f;
-               fwrite(&l5, sizeof(float), 1, filePtrArray[4]);
+                pLayer = pHRU->GetPool( 4);
+                l5 = (float)pLayer->m_volumeWater / area*1000.0f;
+                fwrite(&l5, sizeof(float), 1, filePtrArray[4]);
 
-               pLayer = pHRU->GetPool( 5);
-               l0 = (float)pLayer->m_volumeWater / area*1000.0f;
-               fwrite(&l0, sizeof(float), 1, filePtrArray[14]);
+                pLayer = pHRU->GetPool( 5);
+                l0 = (float)pLayer->m_volumeWater / area*1000.0f;
+                fwrite(&l0, sizeof(float), 1, filePtrArray[14]);
 
-               */
+                */
                }
             else
                {
                float val = 0.0f;
                fwrite(&val, sizeof(float), 1, filePtrArray[0]);
-              /* fwrite(&val, sizeof(float), 1, filePtrArray[1]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[2]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[3]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[4]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[5]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[6]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[7]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[8]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[9]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[10]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[11]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[12]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[13]);
-               fwrite(&val, sizeof(float), 1, filePtrArray[14]);
+               /* fwrite(&val, sizeof(float), 1, filePtrArray[1]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[2]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[3]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[4]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[5]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[6]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[7]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[8]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[9]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[10]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[11]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[12]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[13]);
+                fwrite(&val, sizeof(float), 1, filePtrArray[14]);
 
-               */
+                */
                }
             }
          }
@@ -2990,46 +2990,46 @@ int FlowModel::SaveDetailedOutputGrid(CArray< FILE*, FILE* > &filePtrArray)
    return 1;
    }
 
-int FlowModel::SaveDetailedOutputGridTracer(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::SaveDetailedOutputGridTracer(CArray< FILE*, FILE* >& filePtrArray)
    {
    ASSERT(filePtrArray.GetSize() == 6);
 
    int hruCount = GetHRUCount();
    int hruLayerCount = GetHRUPoolCount();
-   int modelStateVarCount = (hruLayerCount*hruCount)*m_hruSvCount;
+   int modelStateVarCount = (hruLayerCount * hruCount) * m_hruSvCount;
 
    int numRows = m_pGrid->GetRowCount();
    int numCols = m_pGrid->GetColCount();
 
    for (int k = 0; k < m_hruSvCount - 1; k++)
-   {
-      for (int i = 0; i < numCols; i++)
       {
-         for (int j = 0; j < numRows; j++)
+      for (int i = 0; i < numCols; i++)
          {
+         for (int j = 0; j < numRows; j++)
+            {
             float value = 0.0f;
 
             m_pGrid->GetData(j, i, value);//Go to the elevation grid and get the value
             if (value == m_pGrid->GetNoDataValue())
-            {
+               {
                fwrite(&value, sizeof(float), 1, filePtrArray[0]);
                fwrite(&value, sizeof(float), 1, filePtrArray[1]);
                fwrite(&value, sizeof(float), 1, filePtrArray[2]);
                fwrite(&value, sizeof(float), 1, filePtrArray[3]);
                fwrite(&value, sizeof(float), 1, filePtrArray[4]);
                fwrite(&value, sizeof(float), 1, filePtrArray[5]);
-            }
+               }
             else
-            {
+               {
                int offSet = m_pHruGrid->Get(i, j);//this gives us the offset in the m_hruArray for this particular grid location (i and j)
 
                if (offSet > 0)
-               {
-                  HRU *pHRU = GetHRU(offSet);
+                  {
+                  HRU* pHRU = GetHRU(offSet);
 
                   float l1 = 0.0f; float l2 = 0.0f; float l3 = 0.0f; float l4 = 0.0f; float l5 = 0.0f; float l0 = 0.0f;
 
-                  HRUPool *pLayer = pHRU->GetPool( 0);
+                  HRUPool* pLayer = pHRU->GetPool(0);
                   float area = pHRU->m_area;
 
                   // pLayer = pHRU->GetPool(0);
@@ -3038,35 +3038,35 @@ int FlowModel::SaveDetailedOutputGridTracer(CArray< FILE*, FILE* > &filePtrArray
                   fwrite(&l2, sizeof(float), 1, filePtrArray[0]);
 
 
-                  pLayer = pHRU->GetPool( 1);
+                  pLayer = pHRU->GetPool(1);
                   if (pLayer->m_volumeWater > 0.0f)
                      l3 = float(pLayer->m_svArray[k] / pLayer->m_volumeWater);
                   fwrite(&l3, sizeof(float), 1, filePtrArray[1]);
 
 
-                  pLayer = pHRU->GetPool( 2);
+                  pLayer = pHRU->GetPool(2);
                   if (pLayer->m_volumeWater > 0.0f)
                      l4 = float(pLayer->m_svArray[k] / pLayer->m_volumeWater);
                   fwrite(&l4, sizeof(float), 1, filePtrArray[2]);
 
 
-                  pLayer = pHRU->GetPool( 3);
+                  pLayer = pHRU->GetPool(3);
                   if (pLayer->m_volumeWater > 0.0f)
                      l5 = float(pLayer->m_svArray[k] / pLayer->m_volumeWater);
                   fwrite(&l5, sizeof(float), 1, filePtrArray[3]);
 
-                  pLayer = pHRU->GetPool( 4);
+                  pLayer = pHRU->GetPool(4);
                   if (pLayer->m_volumeWater > 0.0f)
                      l0 = float(pLayer->m_svArray[k] / pLayer->m_volumeWater);
                   fwrite(&l0, sizeof(float), 1, filePtrArray[4]);
 
-                  pLayer = pHRU->GetPool( 5);
+                  pLayer = pHRU->GetPool(5);
                   if (pLayer->m_volumeWater > 0.0f)
                      l0 = float(pLayer->m_svArray[k] / pLayer->m_volumeWater);
                   fwrite(&l0, sizeof(float), 1, filePtrArray[5]);
-               }
+                  }
                else
-               {
+                  {
                   float val = 0.0f;
                   fwrite(&val, sizeof(float), 1, filePtrArray[0]);
                   fwrite(&val, sizeof(float), 1, filePtrArray[1]);
@@ -3074,11 +3074,11 @@ int FlowModel::SaveDetailedOutputGridTracer(CArray< FILE*, FILE* > &filePtrArray
                   fwrite(&val, sizeof(float), 1, filePtrArray[3]);
                   fwrite(&val, sizeof(float), 1, filePtrArray[4]);
                   fwrite(&val, sizeof(float), 1, filePtrArray[5]);
+                  }
                }
             }
          }
       }
-   }
 
    return 1;
    }
@@ -3132,7 +3132,7 @@ int FlowModel::SaveDetailedOutputGridTracer(CArray< FILE*, FILE* > &filePtrArray
    }
 */
 
-int FlowModel::SaveDetailedOutputReach(CArray< FILE*, FILE* > &filePtrArray)
+int FlowModel::SaveDetailedOutputReach(CArray< FILE*, FILE* >& filePtrArray)
    {
    ASSERT(filePtrArray.GetSize() == 1);
 
@@ -3140,15 +3140,15 @@ int FlowModel::SaveDetailedOutputReach(CArray< FILE*, FILE* > &filePtrArray)
 
    for (int i = 0; i < reachCount; i++)
       {
-      Reach *pReach = m_reachArray[i];
-      ReachSubnode *pNode = pReach->GetReachSubnode(0);
+      Reach* pReach = m_reachArray[i];
+      ReachSubnode* pNode = pReach->GetReachSubnode(0);
 
       if (filePtrArray[0] != NULL)
          fwrite(&pNode->m_discharge, sizeof(float), 1, filePtrArray[0]);
 
       for (int k = 0; k < m_hruSvCount - 1; k++)
          {
-         float sv = (float) pNode->GetStateVar(k);
+         float sv = (float)pNode->GetStateVar(k);
          fwrite(&sv, sizeof(float), 1, filePtrArray[0]);
          }
       }
@@ -3212,17 +3212,17 @@ int FlowModel::SaveState()
    int hruPoolCount = GetHRUPoolCount();
    int reachCount = GetReachCount();
    int reservoirCount = (int)m_reservoirArray.GetSize();
-   int modelStateVarCount = ((hruPoolCount*hruCount) + reachCount)*m_hruSvCount + reservoirCount;
+   int modelStateVarCount = ((hruPoolCount * hruCount) + reachCount) * m_hruSvCount + reservoirCount;
 
    // does file exist?
    CString tmpPath;
 
    tmpPath = PathManager::GetPath(PM_IDU_DIR);//directory with the idu
 
-   FILE *fp;
+   FILE* fp;
    CString filename;
    filename.Format(_T("%s%s"), (LPCTSTR)tmpPath, (LPCTSTR)m_initConditionsFileName);
-   const char *file = filename;
+   const char* file = filename;
 
    errno_t err;
    if ((err = fopen_s(&fp, file, _T("wb"))) != 0)
@@ -3238,10 +3238,10 @@ int FlowModel::SaveState()
    float zero = 0;
    for (int i = 0; i < hruCount; i++)
       {
-      HRU *pHRU = m_hruArray[i];
+      HRU* pHRU = m_hruArray[i];
       for (int j = 0; j < hruPoolCount; j++)
          {
-         HRUPool *pLayer = pHRU->GetPool(j);
+         HRUPool* pLayer = pHRU->GetPool(j);
          if (pLayer->m_volumeWater >= 0.0f)
             fwrite(&pLayer->m_volumeWater, sizeof(double), 1, fp);
          else
@@ -3261,11 +3261,11 @@ int FlowModel::SaveState()
 
    for (int i = 0; i < reachCount; i++)
       {
-      Reach *pReach = m_reachArray[i];
+      Reach* pReach = m_reachArray[i];
 
       for (int k = 0; k < pReach->m_subnodeArray.GetSize(); k++)
          {
-         ReachSubnode *pNode = pReach->GetReachSubnode(k);
+         ReachSubnode* pNode = pReach->GetReachSubnode(k);
          //fprintf(fp, "%f ", pNode->m_discharge);//m3
          if (pNode->m_discharge >= -10.0f)
             fwrite(&pNode->m_discharge, sizeof(float), 1, fp);
@@ -3297,7 +3297,7 @@ int FlowModel::ReadState()
    int reachCount = GetReachCount();
    int reservoirCount = (int)m_reservoirArray.GetSize();
 
-   int modelStateVarCount = ((hruPoolCount*hruCount) + reachCount)*m_hruSvCount + reservoirCount;
+   int modelStateVarCount = ((hruPoolCount * hruCount) + reachCount) * m_hruSvCount + reservoirCount;
    // does file exist?
    CString tmpPath = PathManager::GetPath(PM_IDU_DIR);//directory with the idu
    int fileStateVarCount = 0;
@@ -3312,8 +3312,8 @@ int FlowModel::ReadState()
       }
    else //the file can be found. First check that it has the same # of state variables as the current model.  If not, the model changed, so don't read the file now
       {
-      FILE *fp = NULL;
-      const char *file = tmpPath;
+      FILE* fp = NULL;
+      const char* file = tmpPath;
       errno_t err;
       if ((err = fopen_s(&fp, file, _T("rb"))) != 0)
          {
@@ -3341,10 +3341,10 @@ int FlowModel::ReadState()
          float _val = 0;
          for (int i = 0; i < hruCount; i++)
             {
-            HRU *pHRU = m_hruArray[i];
+            HRU* pHRU = m_hruArray[i];
             for (int j = 0; j < hruPoolCount; j++)
                {
-               HRUPool *pLayer = pHRU->GetPool(j);
+               HRUPool* pLayer = pHRU->GetPool(j);
                //fscanf(fp, _T("%f "), &pLayer->m_volumeWater);
                fread(&pLayer->m_volumeWater, sizeof(double), 1, fp);
                if (pLayer->m_volumeWater < 0.0f)
@@ -3360,10 +3360,10 @@ int FlowModel::ReadState()
             }
          for (int i = 0; i < reachCount; i++)
             {
-            Reach *pReach = m_reachArray[i];
+            Reach* pReach = m_reachArray[i];
             for (int j = 0; j < pReach->m_subnodeArray.GetSize(); j++)
                {
-               ReachSubnode *pNode = pReach->GetReachSubnode(j);
+               ReachSubnode* pNode = pReach->GetReachSubnode(j);
                fread(&pNode->m_discharge, sizeof(float), 1, fp);
                //fscanf(fp, _T("%f "), &pNode->m_discharge);
                for (int k = 0; k < m_hruSvCount - 1; k++)
@@ -3378,12 +3378,12 @@ int FlowModel::ReadState()
    }
 
 
-void FlowModel::ResetDataStorageArrays(EnvContext *pEnvContext)
+void FlowModel::ResetDataStorageArrays(EnvContext* pEnvContext)
    {
    // if model outputs are in use, set up the data object
    for (int i = 0; i < (int)m_modelOutputGroupArray.GetSize(); i++)
       {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[i];
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[i];
 
       if (pGroup->m_pDataObj != NULL)
          {
@@ -3397,7 +3397,7 @@ void FlowModel::ResetDataStorageArrays(EnvContext *pEnvContext)
 
 
 // FlowModel::Run() runs the model for one year
-bool FlowModel::Run(EnvContext *pEnvContext)
+bool FlowModel::Run(EnvContext* pEnvContext)
    {
    CString msgStart;
    msgStart.Format(_T("Flow: Starting year %i"), pEnvContext->yearOfRun);
@@ -3420,18 +3420,18 @@ bool FlowModel::Run(EnvContext *pEnvContext)
       int reachCount = (int)m_reachArray.GetSize();
       for (int i = 0; i < reachCount; i++)
          {
-         Reach *pReach = m_reachArray[i];
+         Reach* pReach = m_reachArray[i];
          ASSERT(pReach != NULL);
 
          for (int j = 0; j < pReach->GetSubnodeCount(); j++)
             {
-            ReachSubnode *pSubnode = pReach->GetReachSubnode(j);
+            ReachSubnode* pSubnode = pReach->GetReachSubnode(j);
             ASSERT(pSubnode != NULL);
 
             //initialize the subnode volumes using mannings equation
             float Q = pSubnode->m_discharge;
             SetGeometry(pReach, Q);
-            pSubnode->m_volume = pReach->m_width*pReach->m_depth*pReach->m_length / pReach->m_subnodeArray.GetSize();
+            pSubnode->m_volume = pReach->m_width * pReach->m_depth * pReach->m_length / pReach->m_subnodeArray.GetSize();
             }
          }
       }
@@ -3441,7 +3441,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
 
    clock_t start = clock();
 
-   FlowScenario *pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
+   FlowScenario* pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
    if (!pScenario->m_useStationData)
       {
       LoadClimateData(pEnvContext, pEnvContext->currentYear);
@@ -3456,7 +3456,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
    StartYear(&m_flowContext);     // calls GLobalMethods::StartYear(), initialize annual variable, accumulators
 
    // convert envision time to days
-   m_currentTime = m_flowContext.time = pEnvContext->currentYear*365.0f;
+   m_currentTime = m_flowContext.time = pEnvContext->currentYear * 365.0f;
    m_flowContext.svCount = m_hruSvCount - 1;  //???? 
    m_timeInRun = pEnvContext->yearOfRun * 365.0;   // days
 
@@ -3496,7 +3496,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
       if (!m_estimateParameters)
          msg.Format(_T("Flow: Time: %6.1f - Simulating HRUs..."), m_timeInRun);
       else
-         msg.Format(_T("Flow: Run %i of %i: Time: %6.1f of %i days "), pEnvContext->run + 1, m_numberOfRuns, m_timeInRun, m_numberOfYears * 365);
+         msg.Format(_T("Flow: Run %i of %i: Time: %6.1f of %i days "), pEnvContext->runID + 1, m_numberOfRuns, m_timeInRun, m_numberOfYears * 365);
 
       Report::StatusMsg(msg);
 
@@ -3565,7 +3565,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
       // Note: GetReservoirDerivatives() calls GlobalMethod::Run()'s for any method with 
       // (m_timing&GMT_RESERVOIR) != 0 
       if (m_reservoirFluxMethod != RES_OPTIMIZATION)//if it is, Reservoirs are handled elsewhere
-      {
+         {
          m_flowContext.timing = GMT_RESERVOIR;
          m_reservoirBlock.Integrate(m_currentTime, m_currentTime + stepSize, GetReservoirDerivatives, &m_flowContext);     // update stream reaches
 
@@ -3576,7 +3576,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
          // check reservoirs for filling
          for (int i = 0; i < (int)m_reservoirArray.GetSize(); i++)
             {
-            Reservoir *pRes = m_reservoirArray[i];
+            Reservoir* pRes = m_reservoirArray[i];
             //CString msg;
             //msg.Format( _T("Reservoir check: Filled=%i, elevation=%f, dam top=%f"), pRes->m_filled, pRes->m_elevation, pRes->m_dam_top_elev );
             //Report::Log( msg );
@@ -3634,7 +3634,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
 
       if (m_detailedOutputFlags & 16)  // daily Grid Tracer IDU
          {
-         if ((m_pGrid && pEnvContext->currentYear - pEnvContext->startYear >= m_detailedSaveAfterYears &&  (fmod((double)m_currentTime, m_detailedSaveInterval) < 0.01f)))//only save tracers every 10 days
+         if ((m_pGrid && pEnvContext->currentYear - pEnvContext->startYear >= m_detailedSaveAfterYears && (fmod((double)m_currentTime, m_detailedSaveInterval) < 0.01f)))//only save tracers every 10 days
             SaveDetailedOutputGridTracer(m_iduDailyTracerFilePtrArray);
          }
 
@@ -3719,12 +3719,12 @@ bool FlowModel::Run(EnvContext *pEnvContext)
       {
       for (int i = 0; i < m_reservoirArray.GetSize(); i++)
          {
-         Scenario *pScenario = EnvGetScenario(pEnvContext->pEnvModel,pEnvContext->scenarioIndex);
+         Scenario* pScenario = EnvGetScenario(pEnvContext->pEnvModel, pEnvContext->scenarioIndex);
 
-         Reservoir *pRes = m_reservoirArray[ i ];
+         Reservoir* pRes = m_reservoirArray[i];
          CString outputPath;
-         outputPath.Format(_T("%s%sAppliedConstraints_%s_Run%i.csv"), PathManager::GetPath(PM_OUTPUT_DIR), (LPCTSTR) pRes->m_name, (LPCTSTR) pScenario->m_name, pEnvContext->run);
-         pRes->m_pResSimRuleCompare->WriteAscii(outputPath);         
+         outputPath.Format(_T("%s%sAppliedConstraints_%s_Run%i.csv"), PathManager::GetPath(PM_OUTPUT_DIR), (LPCTSTR)pRes->m_name, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
+         pRes->m_pResSimRuleCompare->WriteAscii(outputPath);
          }
 
       float channel = 0.0f;
@@ -3738,7 +3738,7 @@ bool FlowModel::Run(EnvContext *pEnvContext)
    }
 
 
-bool FlowModel::StartYear(FlowContext *pFlowContext)
+bool FlowModel::StartYear(FlowContext* pFlowContext)
    {
    m_annualTotalET = 0; // acre-ft
    m_annualTotalPrecip = 0; // acre-ft
@@ -3748,12 +3748,12 @@ bool FlowModel::StartYear(FlowContext *pFlowContext)
 
    GlobalMethodManager::StartYear(&m_flowContext);   // this invokes StartYear() for any internal global methods 
 
-   FlowScenario *pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
+   FlowScenario* pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
 
    // reset reservoirs for this year
    for (int i = 0; i < (int)m_reservoirArray.GetSize(); i++)
       {
-      Reservoir *pRes = m_reservoirArray[i];
+      Reservoir* pRes = m_reservoirArray[i];
       pRes->m_filled = 0;
 
       if (pRes->m_probMaintenance > -1)//the reservoir may be, or have been, taken offline
@@ -3779,18 +3779,18 @@ bool FlowModel::StartYear(FlowContext *pFlowContext)
       pRes->m_avgPoolElevJunAug = 0;
       }
 
-    // fix up any water transfers between irrigated and non-irrigated soil layers
+   // fix up any water transfers between irrigated and non-irrigated soil layers
    CUIntArray irrigArray;
    CUIntArray nonIrrigArray;
-   for ( int i=0; i < this->m_poolInfoArray.GetSize(); i++ )
+   for (int i = 0; i < this->m_poolInfoArray.GetSize(); i++)
       {
-      if ( this->m_poolInfoArray[ i ]->m_type == PT_SOIL )
-         nonIrrigArray.Add( i );
-      else if (this->m_poolInfoArray[i]->m_type == PT_IRRIGATED )
-         irrigArray.Add( i );
+      if (this->m_poolInfoArray[i]->m_type == PT_SOIL)
+         nonIrrigArray.Add(i);
+      else if (this->m_poolInfoArray[i]->m_type == PT_IRRIGATED)
+         irrigArray.Add(i);
       }
 
-   if ( irrigArray.GetSize() > 0 && nonIrrigArray.GetSize() > 0 )
+   if (irrigArray.GetSize() > 0 && nonIrrigArray.GetSize() > 0)
       {
       // okay, we know what pools are irrigated an non-irrigated.  Allocate between them
 
@@ -3798,7 +3798,7 @@ bool FlowModel::StartYear(FlowContext *pFlowContext)
       int hruCount = GetHRUCount();
       for (int h = 0; h < hruCount; h++)
          {
-         HRU *pHRU = GetHRU(h);
+         HRU* pHRU = GetHRU(h);
          double targetIrrigatedArea = 0.0;
          // get HRU area that is in irrigation
          for (int m = 0; m < pHRU->m_polyIndexArray.GetSize(); m++)
@@ -3813,11 +3813,11 @@ bool FlowModel::StartYear(FlowContext *pFlowContext)
 
          float targetNonIrrArea = (float)(pHRU->m_area - targetIrrigatedArea);
          float irrigatedVolume = 0;
-         for ( int i=0; i < irrigArray.GetSize(); i++ )
-            irrigatedVolume += (float) pHRU->GetPool( irrigArray[i] )->m_volumeWater;
+         for (int i = 0; i < irrigArray.GetSize(); i++)
+            irrigatedVolume += (float)pHRU->GetPool(irrigArray[i])->m_volumeWater;
          float nonIrrigatedVolume = 0;
          for (int i = 0; i < nonIrrigArray.GetSize(); i++)
-            nonIrrigatedVolume += (float) pHRU->GetPool( nonIrrigArray[i] )->m_volumeWater;
+            nonIrrigatedVolume += (float)pHRU->GetPool(nonIrrigArray[i])->m_volumeWater;
          // old...
          //float nonIrrigatedVolume = (float)pHRU->GetPool(2)->m_volumeWater;
          //float irrigatedVolume = (float)pHRU->GetPool(3)->m_volumeWater;
@@ -3828,26 +3828,26 @@ bool FlowModel::StartYear(FlowContext *pFlowContext)
 
          // if more than one, reapportion between pools of the same type in proportion to their depths?
          // NOT YET IMPLEMENTED, assume one and one
-         ASSERT( irrigArray.GetSize() == 1 && nonIrrigArray.GetSize() == 1 );
-         pHRU->GetPool( nonIrrigArray[0] )->m_volumeWater = (targetNonIrrArea / pHRU->m_area) * totWater;
-         pHRU->GetPool( irrigArray[0] )->m_volumeWater = (targetIrrigatedArea / pHRU->m_area) * totWater;
+         ASSERT(irrigArray.GetSize() == 1 && nonIrrigArray.GetSize() == 1);
+         pHRU->GetPool(nonIrrigArray[0])->m_volumeWater = (targetNonIrrArea / pHRU->m_area) * totWater;
+         pHRU->GetPool(irrigArray[0])->m_volumeWater = (targetIrrigatedArea / pHRU->m_area) * totWater;
          pHRU->m_areaIrrigated = (float)targetIrrigatedArea;
 
-         ASSERT( pHRU->GetPool( nonIrrigArray[0])->m_volumeWater >= 0 );
-         ASSERT( pHRU->GetPool( irrigArray[0])->m_volumeWater >= 0);
+         ASSERT(pHRU->GetPool(nonIrrigArray[0])->m_volumeWater >= 0);
+         ASSERT(pHRU->GetPool(irrigArray[0])->m_volumeWater >= 0);
          } // end of loop thru HRUs
       }
    return true;
    }
 
 
-bool FlowModel::StartStep(FlowContext *pFlowContext)
+bool FlowModel::StartStep(FlowContext* pFlowContext)
    {
    int hruCount = GetHRUCount();
 
    for (int h = 0; h < hruCount; h++)
       {
-      HRU *pHRU = GetHRU(h);
+      HRU* pHRU = GetHRU(h);
       pHRU->m_currentMaxET = 0;
       pHRU->m_currentET = 0;
       pHRU->m_currentRunoff = 0;
@@ -3861,13 +3861,13 @@ bool FlowModel::StartStep(FlowContext *pFlowContext)
    }
 
 
-bool FlowModel::EndStep(FlowContext *pFlowContext)
+bool FlowModel::EndStep(FlowContext* pFlowContext)
    {
    // get discharge at pour points
    for (int i = 0; i < this->m_reachTree.GetRootCount(); i++)
       {
-      ReachNode *pRootNode = this->m_reachTree.GetRootNode(i);
-      Reach *pReach = GetReachFromNode(pRootNode);
+      ReachNode* pRootNode = this->m_reachTree.GetRootNode(i);
+      Reach* pReach = GetReachFromNode(pRootNode);
       float discharge = pReach->GetDischarge();   // m3/sec
 
       // convert to acreft/day
@@ -3879,7 +3879,7 @@ bool FlowModel::EndStep(FlowContext *pFlowContext)
    }
 
 
-bool FlowModel::EndYear(FlowContext *pFlowContext)
+bool FlowModel::EndYear(FlowContext* pFlowContext)
    {
    m_annualTotalET = 0.0f;
    m_annualTotalPrecip = 0.0f;
@@ -3889,20 +3889,20 @@ bool FlowModel::EndYear(FlowContext *pFlowContext)
    // HRU's
    for (int i = 0; i < (int)m_hruArray.GetSize(); i++)
       {
-      HRU *pHRU = m_hruArray[i];
+      HRU* pHRU = m_hruArray[i];
 
-//      ASSERT(pHRU->m_et_yr >= 0.0f && pHRU->m_et_yr <= 1.0E10f);
-      m_annualTotalET += pHRU->m_et_yr       * pHRU->m_area * M_PER_MM * ACREFT_PER_M3;        // mm/year * area(m2) * m/mm * acreft/m3   = acre-ft
-      m_annualTotalPrecip += pHRU->m_precip_yr   * pHRU->m_area * M_PER_MM * ACREFT_PER_M3;        // mm/year * area(m2) * m/mm * acreft/m3   = acre-ft
+      //      ASSERT(pHRU->m_et_yr >= 0.0f && pHRU->m_et_yr <= 1.0E10f);
+      m_annualTotalET += pHRU->m_et_yr * pHRU->m_area * M_PER_MM * ACREFT_PER_M3;        // mm/year * area(m2) * m/mm * acreft/m3   = acre-ft
+      m_annualTotalPrecip += pHRU->m_precip_yr * pHRU->m_area * M_PER_MM * ACREFT_PER_M3;        // mm/year * area(m2) * m/mm * acreft/m3   = acre-ft
       m_annualTotalRainfall += pHRU->m_rainfall_yr * pHRU->m_area * M_PER_MM * ACREFT_PER_M3;        // mm/year * area(m2) * m/mm * acreft/m3   = acre-ft
       m_annualTotalSnowfall += pHRU->m_snowfall_yr * pHRU->m_area * M_PER_MM * ACREFT_PER_M3;        // mm/year * area(m2) * m/mm * acreft/m3   = acre-ft
       }
 
    // Reservoirs
-   for (int i = 0; i < (int) this->m_reservoirArray.GetSize(); i++)
+   for (int i = 0; i < (int)this->m_reservoirArray.GetSize(); i++)
       {
-      Reservoir *pRes = m_reservoirArray.GetAt(i);
-      pRes->m_avgPoolVolJunAug  /= (AUG_31 - JUN_1 + 1);    // days between Jun 1, Aug 31
+      Reservoir* pRes = m_reservoirArray.GetAt(i);
+      pRes->m_avgPoolVolJunAug /= (AUG_31 - JUN_1 + 1);    // days between Jun 1, Aug 31
       pRes->m_avgPoolElevJunAug /= (AUG_31 - JUN_1 + 1);    // days between Jun 1, Aug 31
       }
 
@@ -3930,45 +3930,45 @@ bool FlowModel::EndYear(FlowContext *pFlowContext)
 // 
 // When the model is finished for the last year of the current simulation, evaluate that model run over its entire period.
 // if we are not in the last year, wait till the next Envision timestep
-void FlowModel::UpdateMonteCarloOutput(EnvContext *pEnvContext, int runNumber)
+void FlowModel::UpdateMonteCarloOutput(EnvContext* pEnvContext, int runNumber)
    {
    //Get the number of locations with measured values
    int numMeas = 0;
    for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
-   {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+      {
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
       for (int i = 0; i < (int)pGroup->GetSize(); i++)
-      {
-         if (pGroup->GetAt(i)->m_inUse)
          {
-            ModelOutput *pOutput = pGroup->GetAt(i);
+         if (pGroup->GetAt(i)->m_inUse)
+            {
+            ModelOutput* pOutput = pGroup->GetAt(i);
             if (pOutput->m_pDataObjObs != NULL && pOutput->m_queryStr)
                numMeas++;
-         }
-      }
-   }
-   //Get the objective function for each of the locations with measured values
-   float *ns_ = new float[numMeas];
-   int c = 0;
-   float ns = -1.0f; float nsLN = -1.0f; float ve = 0.0f;
-   for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
-   {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
-
-      for (int i = 0; i < (int)pGroup->GetSize(); i++)
-      {
-         if (pGroup->GetAt(i)->m_inUse)
-         {
-            ModelOutput *pOutput = pGroup->GetAt(i);
-            if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
-            {
-               ns_[c] = GetObjectiveFunction(pGroup->m_pDataObj, ns, nsLN, ve);//this will include time meas model
-               c++;
             }
          }
       }
-   }
+   //Get the objective function for each of the locations with measured values
+   float* ns_ = new float[numMeas];
+   int c = 0;
+   float ns = -1.0f; float nsLN = -1.0f; float ve = 0.0f;
+   for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
+      {
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
+
+      for (int i = 0; i < (int)pGroup->GetSize(); i++)
+         {
+         if (pGroup->GetAt(i)->m_inUse)
+            {
+            ModelOutput* pOutput = pGroup->GetAt(i);
+            if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
+               {
+               ns_[c] = GetObjectiveFunction(pGroup->m_pDataObj, ns, nsLN, ve);//this will include time meas model
+               c++;
+               }
+            }
+         }
+      }
    //Get the highest value for the objective function
    float maxNS = -999999.0f;
    for (int i = 0; i < numMeas; i++)
@@ -3978,32 +3978,32 @@ void FlowModel::UpdateMonteCarloOutput(EnvContext *pEnvContext, int runNumber)
    //Add objective functions and time series data to the dataobjects
    int count = 0;
    for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
-   {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+      {
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
       for (int i = 0; i < (int)pGroup->GetSize(); i++)
-      {
-         if (pGroup->GetAt(i)->m_inUse)
          {
-            ModelOutput *pOutput = pGroup->GetAt(i);
-            if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
+         if (pGroup->GetAt(i)->m_inUse)
             {
-               FDataObj *pObj = m_mcOutputTables.GetAt(count);//objective
+            ModelOutput* pOutput = pGroup->GetAt(i);
+            if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
+               {
+               FDataObj* pObj = m_mcOutputTables.GetAt(count);//objective
                count++;
-               FDataObj *pData = m_mcOutputTables.GetAt(count);//timeseries
+               FDataObj* pData = m_mcOutputTables.GetAt(count);//timeseries
                count++;
 
-               if (pEnvContext->run == 0)//add the measured data to the mc measured file
-               {
+               if (pEnvContext->runID == 0)//add the measured data to the mc measured file
+                  {
                   pData->SetSize(2, pGroup->m_pDataObj->GetRowCount());
                   for (int i = 0; i < pData->GetRowCount(); i++)
-                  {
+                     {
                      pData->Set(0, i, i);//time
                      pData->Set(1, i, pGroup->m_pDataObj->Get(2, i));//measured value
+                     }
                   }
-               }
                if (maxNS > m_nsThreshold)
-               {
+                  {
                   pData->AppendCol(_T("q"));
                   for (int i = 0; i < pData->GetRowCount(); i++)
                      pData->Set(pData->GetColCount() - 1, i, pGroup->m_pDataObj->Get(1, i));
@@ -4011,8 +4011,8 @@ void FlowModel::UpdateMonteCarloOutput(EnvContext *pEnvContext, int runNumber)
                   float nsg = -1.0f; float nsLNg = -1.0f; float veg = -1.0f;
                   GetObjectiveFunction(pGroup->m_pDataObj, ns, nsLN, ve);//this will include time meas model
                   GetObjectiveFunctionGrouped(pGroup->m_pDataObj, nsg, nsLNg, veg);//this will include time meas model
-                  float *nsArray = new float[7];
-                  nsArray[0] = (float)pEnvContext->run;
+                  float* nsArray = new float[7];
+                  nsArray[0] = (float)pEnvContext->runID;
                   nsArray[1] = ns;
                   nsArray[2] = nsLN;
                   nsArray[3] = ve;
@@ -4021,30 +4021,30 @@ void FlowModel::UpdateMonteCarloOutput(EnvContext *pEnvContext, int runNumber)
                   nsArray[6] = veg;
                   pObj->AppendRow(nsArray, 7);
                   delete[] nsArray;
+                  }
                }
             }
          }
       }
-   }
    //if the simulation wasn't behavioral for any of the measurement points, then remove that parameter set from the parameter array
    if (maxNS < m_nsThreshold)
       m_pParameterData->DeleteRow(m_pParameterData->GetRowCount() - 1);
    CString path = PathManager::GetPath(3);
    // write the results to the disk
-   if (fmod((double)pEnvContext->run, m_saveResultsEvery) < 0.01f)
-   {
+   if (fmod((double)pEnvContext->runID, m_saveResultsEvery) < 0.01f)
+      {
       count = 0;
       for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
-      {
-         ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+         {
+         ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
          for (int i = 0; i < (int)pGroup->GetSize(); i++)
-         {
-            if (pGroup->GetAt(i)->m_inUse)
             {
-               ModelOutput *pOutput = pGroup->GetAt(i);
-               if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
+            if (pGroup->GetAt(i)->m_inUse)
                {
+               ModelOutput* pOutput = pGroup->GetAt(i);
+               if (pOutput->m_pDataObjObs != NULL && pGroup->m_pDataObj != NULL)
+                  {
                   CString fileOut;
 
                   if (m_rnSeed >= 0)
@@ -4070,66 +4070,66 @@ void FlowModel::UpdateMonteCarloOutput(EnvContext *pEnvContext, int runNumber)
 
                   m_pParameterData->WriteAscii(fileOut);
 
-               }
-               if (pEnvContext->run == 0)//for the first run, look for a climate data object and write it to a file.  
-               {
+                  }
+               if (pEnvContext->runID == 0)//for the first run, look for a climate data object and write it to a file.  
+                  {
                   CString fileOut; CString name;
                   if (pGroup->m_pDataObj != NULL && pGroup->m_name == _T("Climate"))
-                  {
-                     for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)//search the output array for a group that has a descriptive (place) m_name
                      {
-                        ModelOutputGroup *pGroupName = m_modelOutputGroupArray[j];
-                        for (int i = 0; i < (int)pGroupName->GetSize(); i++)
+                     for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)//search the output array for a group that has a descriptive (place) m_name
                         {
-                           if (pGroupName->GetAt(i)->m_inUse)
+                        ModelOutputGroup* pGroupName = m_modelOutputGroupArray[j];
+                        for (int i = 0; i < (int)pGroupName->GetSize(); i++)
                            {
-                              ModelOutput *pOutput = pGroupName->GetAt(i);
+                           if (pGroupName->GetAt(i)->m_inUse)
+                              {
+                              ModelOutput* pOutput = pGroupName->GetAt(i);
                               if (pOutput->m_pDataObjObs != NULL && pGroupName->m_pDataObj != NULL)
                                  name = pGroupName->m_name;
                               continue;
+                              }
                            }
                         }
-                     }
                      fileOut.Format(_T("%soutput\\%sClimate.csv"), (LPCTSTR)path, name);
                      pGroup->m_pDataObj->WriteAscii(fileOut);
+                     }
                   }
                }
             }
          }
       }
-   }
 
    CString msg;
-   msg.Format(_T("Flow: Results for Runs 1 to %i written to disk.  Check directory %soutput"), pEnvContext->run + 1, (LPCTSTR)path);
+   msg.Format(_T("Flow: Results for Runs 1 to %i written to disk.  Check directory %soutput"), pEnvContext->runID + 1, (LPCTSTR)path);
    Report::Log(msg);
    }
 
 
-void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
+void FlowModel::UpdateMonteCarloInput(EnvContext* pEnvContext, int runNumber)
    {
    //update storage arrays (parameters, error  and also (perhaps...)modeled discharge)
    int paramCount = (int)m_parameterArray.GetSize();
-   float *paramValueData = new float[paramCount + 1];
+   float* paramValueData = new float[paramCount + 1];
 
    paramValueData[0] = (float)runNumber;
 
    for (int i = 0; i < paramCount; i++)
       {
-      ParameterValue *pParam = m_parameterArray.GetAt(i);
+      ParameterValue* pParam = m_parameterArray.GetAt(i);
 
       float value = (float)m_randUnif1.RandValue(pParam->m_minValue, pParam->m_maxValue);
 
       //we have a value, and need to update the table with it.
-      ParamTable *pTable = GetTable(pParam->m_table);
+      ParamTable* pTable = GetTable(pParam->m_table);
       int col_name = pTable->GetFieldCol(pParam->m_name);
       float oldValue = 0.0f;
 
-      FDataObj *pTableData = (FDataObj*)pTable->GetDataObj();
-      FDataObj *pInitialTableData = (FDataObj*)pTable->GetInitialDataObj();
+      FDataObj* pTableData = (FDataObj*)pTable->GetDataObj();
+      FDataObj* pInitialTableData = (FDataObj*)pTable->GetInitialDataObj();
       for (int j = 0; j < pTableData->GetRowCount(); j++)
          {
          float oldValue = pInitialTableData->Get(col_name, j);
-         float newValue = oldValue*value;
+         float newValue = oldValue * value;
          if (pParam->m_distribute)
             pTableData->Set(col_name, j, newValue);
          else
@@ -4143,10 +4143,10 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
    delete[] paramValueData;
 
    if (m_runFromFile)//if we are running from a file...this is specific to UGA project
-   {
+      {
       //Get the climate stations for this run.  These are coordinates for ALL the climate stations 
       int siteCount = 4;
-      int runNumber = m_flowContext.pEnvContext->run;
+      int runNumber = m_flowContext.pEnvContext->runID;
 
       FDataObj* pGridLocationData = new FDataObj;
       pGridLocationData->ReadAscii("GridLocations.csv");
@@ -4160,11 +4160,11 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
       Vertex v(1, 1);
 
       for (int i = 0; i < m_flowContext.pEnvContext->pMapLayer->m_pPolyArray->GetSize(); i++)
-      {
+         {
          Poly* pPoly = m_flowContext.pEnvContext->pMapLayer->m_pPolyArray->GetAt(i);
          float minDist = 1e10; int location = 0;
          for (int j = 0; j < siteCount; j++)
-         {
+            {
             int realizRow = pRealizationData->GetAsInt(j + 1, runNumber);
             float x = pGridLocationData->Get(8, realizRow - 1);
             float y = pGridLocationData->Get(9, realizRow - 1);
@@ -4175,17 +4175,17 @@ void FlowModel::UpdateMonteCarloInput(EnvContext *pEnvContext, int runNumber)
             float dist = sqrt((x - v.x) * (x - v.x) + (y - v.y) * (y - v.y));
 
             if (dist < minDist)
-            {
+               {
                minDist = dist;
                location = realizRow;
                int s = 1;
+               }
             }
-         }
          m_flowContext.pFlowModel->UpdateIDU(m_flowContext.pEnvContext, i, m_colStationID, location, ADD_DELTA);
-      }
+         }
       delete pGridLocationData;
       delete pRealizationData;
-   }
+      }
 
    }
 
@@ -4323,7 +4323,7 @@ bool FlowModel::SetGlobalReservoirFluxes(void)
    }
 
 
-bool FlowModel::InitReservoirControlPoints(EnvModel *pEnvModel)
+bool FlowModel::InitReservoirControlPoints(EnvModel* pEnvModel)
    {
    int controlPointCount = (int)m_controlPointArray.GetSize();
    // Code here to step through each control point
@@ -4332,13 +4332,13 @@ bool FlowModel::InitReservoirControlPoints(EnvModel *pEnvModel)
 
    for (int i = 0; i < controlPointCount; i++)
       {
-      ControlPoint *pControl = m_controlPointArray.GetAt(i);
+      ControlPoint* pControl = m_controlPointArray.GetAt(i);
       ASSERT(pControl != NULL);
 
-      TCHAR *r = NULL;
+      TCHAR* r = NULL;
       TCHAR delim[] = _T(",");
       TCHAR res[256];
-      TCHAR *next = NULL;
+      TCHAR* next = NULL;
       CString resString = pControl->m_reservoirsInfluenced;  //list of reservoirs influenced...from XML file
       lstrcpy(res, resString);
       r = _tcstok_s(res, delim, &next);   //Get first value
@@ -4351,7 +4351,7 @@ bool FlowModel::InitReservoirControlPoints(EnvModel *pEnvModel)
          {
          for (int j = 0; j < m_reservoirArray.GetSize(); j++)
             {
-            Reservoir *pRes = m_reservoirArray.GetAt(j);
+            Reservoir* pRes = m_reservoirArray.GetAt(j);
             ASSERT(pRes != NULL);
 
             int resID = pRes->m_id;
@@ -4374,7 +4374,7 @@ bool FlowModel::InitReservoirControlPoints(EnvModel *pEnvModel)
 
          for (int k = 0; k < m_reachArray.GetSize(); k++)
             {
-            Reach *pReach = m_reachArray.GetAt(k);
+            Reach* pReach = m_reachArray.GetAt(k);
             if (pReach->m_reachID == pControl->m_location)     // Is this location a control point?
                {
                //If so, add a pointer to the reach to the control point class
@@ -4390,7 +4390,7 @@ bool FlowModel::InitReservoirControlPoints(EnvModel *pEnvModel)
          pControl->m_pResAllocation = new FDataObj(int(pControl->m_influencedReservoirsArray.GetSize()), 0, U_UNDEFINED);
 
          //load table for control point constraints 
-         LoadTable(pEnvModel, this->m_path + pControl->m_dir + pControl->m_controlPointFileName, (DataObj**) &(pControl->m_pControlPointConstraintsTable), 0);
+         LoadTable(pEnvModel, this->m_path + pControl->m_dir + pControl->m_controlPointFileName, (DataObj**)&(pControl->m_pControlPointConstraintsTable), 0);
          }
       }
 
@@ -4405,7 +4405,7 @@ bool FlowModel::UpdateReservoirControlPoints(int doy)
 
    for (int i = 0; i < controlPointCount; i++)
       {
-      ControlPoint *pControl = m_controlPointArray.GetAt(i);
+      ControlPoint* pControl = m_controlPointArray.GetAt(i);
       ASSERT(pControl != NULL);
 
       if (pControl->InUse() == false)
@@ -4419,7 +4419,7 @@ bool FlowModel::UpdateReservoirControlPoints(int doy)
       //Parse rule name and determine m_type  ( IN the case of downstream control points, only maximum and minimum)
       TCHAR name[256];
       strcpy_s(name, filename);
-      TCHAR* ruletype = NULL, *next = NULL;
+      TCHAR* ruletype = NULL, * next = NULL;
       TCHAR delim[] = _T(" ,_");  //allowable delimeters: , ; space ; underscore
 
       ruletype = strtok_s(name, delim, &next);  //Strip header.  should be cp_ for control points
@@ -4432,10 +4432,10 @@ bool FlowModel::UpdateReservoirControlPoints(int doy)
          pControl->m_type = RCT_MIN;
 
       // Get constraint value
-      DataObj *constraintTable = pControl->m_pControlPointConstraintsTable;
+      DataObj* constraintTable = pControl->m_pControlPointConstraintsTable;
       ASSERT(constraintTable != NULL);
 
-      Reach *pReach = pControl->m_pReach;       //get reach at location of control point  
+      Reach* pReach = pControl->m_pReach;       //get reach at location of control point  
 
       CString xlabel = constraintTable->GetLabel(0);
 
@@ -4493,7 +4493,7 @@ bool FlowModel::UpdateReservoirControlPoints(int doy)
             ASSERT(pControl->m_pResAllocation != NULL);
             ASSERT(influenced == pControl->m_pResAllocation->GetColCount());
 
-            float *resallocation = new float[influenced]();   //array the size of all reservoirs influenced by this control point
+            float* resallocation = new float[influenced]();   //array the size of all reservoirs influenced by this control point
 
             switch (pControl->m_type)
                {
@@ -4595,12 +4595,12 @@ void FlowModel::UpdateReservoirWaterYear(int dayOfYear)
    float resVolumeBasin = 0.0;
    for (int i = 0; i < reservoirCount; i++)
       {
-      Reservoir *pRes = m_reservoirArray.GetAt(i);
+      Reservoir* pRes = m_reservoirArray.GetAt(i);
       ASSERT(pRes != NULL);
       resVolumeBasin += (float)pRes->m_volume;   // This value in m3
       }
 
-   resVolumeBasin = resVolumeBasin/(M3_PER_ACREFT*1000000.0f);   //convert volume to millions of acre-ft  (MAF)
+   resVolumeBasin = resVolumeBasin / (M3_PER_ACREFT * 1000000.0f);   //convert volume to millions of acre-ft  (MAF)
 
    if (resVolumeBasin > 1.48f)                            //USACE defined "Abundant" water year in Willamette
       this->m_waterYearType = 1.48f;
@@ -4630,11 +4630,11 @@ bool FlowModel::SetGlobalReservoirFluxesResSimLite(void)
    // iterate through reservoirs, calling fluxes as needed
    for (int i = 0; i < reservoirCount; i++)
       {
-      Reservoir *pRes = m_reservoirArray.GetAt(i);
+      Reservoir* pRes = m_reservoirArray.GetAt(i);
       ASSERT(pRes != NULL);
 
       // first, inflow.  We get the inflow from any stream reaches flowing into the downstream reach this res is connected to.
-      Reach *pReach = pRes->m_pDownstreamReach;
+      Reach* pReach = pRes->m_pDownstreamReach;
 
       // no associated reach?
       if (pReach == NULL)
@@ -4643,8 +4643,8 @@ bool FlowModel::SetGlobalReservoirFluxesResSimLite(void)
          continue;
          }
 
-      Reach *pLeft = (Reach*)pReach->m_pLeft;
-      Reach *pRight = (Reach*)pReach->m_pRight;
+      Reach* pLeft = (Reach*)pReach->m_pLeft;
+      Reach* pRight = (Reach*)pReach->m_pRight;
 
       //set inflow, outflows
       float inflow = 0;
@@ -4654,16 +4654,16 @@ bool FlowModel::SetGlobalReservoirFluxesResSimLite(void)
          inflow = pLeft->GetDischarge();
       if (pRight != NULL)
          inflow += pRight->GetDischarge();
-      
+
       float outflow = 0;
 
       // rule curve stuff goes here
-      pRes->m_inflow = inflow*SEC_PER_DAY;  //m3 per day
+      pRes->m_inflow = inflow * SEC_PER_DAY;  //m3 per day
 
 
       outflow = pRes->GetResOutflow(this, pRes, dayOfYear);
       ASSERT(outflow >= 0);
-      pRes->m_outflow = outflow*SEC_PER_DAY;    //m3 per day 
+      pRes->m_outflow = outflow * SEC_PER_DAY;    //m3 per day 
       }
 
    return true;
@@ -5120,7 +5120,7 @@ bool FlowModel::RedrawMap(EnvContext *pEnvContext)
    }
    */
 
-void FlowModel::UpdateYearlyDeltas(EnvContext *pEnvContext)
+void FlowModel::UpdateYearlyDeltas(EnvContext* pEnvContext)
    {
    int activeField = m_pCatchmentLayer->GetActiveField();
    int catchmentCount = (int)m_catchmentArray.GetSize();
@@ -5130,12 +5130,12 @@ void FlowModel::UpdateYearlyDeltas(EnvContext *pEnvContext)
       {
       for (int i = 0; i < catchmentCount; i++)
          {
-         Catchment *pCatchment = m_catchmentArray[i];
-         HRU *pHRU = NULL;
+         Catchment* pCatchment = m_catchmentArray[i];
+         HRU* pHRU = NULL;
 
          for (int j = 0; j < pCatchment->GetHRUCount(); j++)
             {
-            HRU *pHRU = pCatchment->GetHRU(j);
+            HRU* pHRU = pCatchment->GetHRU(j);
 
             float aridityIndex = pHRU->m_maxET_yr / pHRU->m_precip_yr;
             pHRU->m_aridityIndex.AddValue(aridityIndex);
@@ -5176,7 +5176,7 @@ void FlowModel::UpdateYearlyDeltas(EnvContext *pEnvContext)
    }
 
 
-void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
+void FlowModel::GetMaxSnowPack(EnvContext* pEnvContext)
    {
    m_pCatchmentLayer->m_readOnly = false;
    int catchmentCount = (int)m_catchmentArray.GetSize();
@@ -5184,20 +5184,20 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
    //First sum the total volume of snow for this day
    for (int i = 0; i < catchmentCount; i++)
       {
-      Catchment *pCatchment = m_catchmentArray[i];
+      Catchment* pCatchment = m_catchmentArray[i];
       for (int j = 0; j < pCatchment->GetHRUCount(); j++)
          {
-         HRU *pHRU = pCatchment->GetHRU(j);
-         for ( int k=0; k < this->m_poolInfoArray.GetSize(); k++ )
+         HRU* pHRU = pCatchment->GetHRU(j);
+         for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
             {
-            if ( this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/ )
-                if ((float)pHRU->GetPool(k)->m_volumeWater > 0.0f)
-                   totalSnow += (float)pHRU->GetPool( k)->m_volumeWater/1e6; //get the current year snowpack
+            if (this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/)
+               if ((float)pHRU->GetPool(k)->m_volumeWater > 0.0f)
+                  totalSnow += (float)pHRU->GetPool(k)->m_volumeWater / 1e6; //get the current year snowpack
             }
          }
       }
    if (totalSnow < 0)
-       totalSnow = 0;
+      totalSnow = 0;
    // then compare the total volume to the previously defined maximum volume
    if (totalSnow > m_volumeMaxSWE)
       {
@@ -5208,7 +5208,7 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
       //#pragma omp parallel for
       for (int j = 0; j < m_hruArray.GetSize(); j++)
          {
-         HRU *pHRU = m_hruArray.GetAt(j);
+         HRU* pHRU = m_hruArray.GetAt(j);
          float volSnow = 0;
          for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
             {
@@ -5216,15 +5216,15 @@ void FlowModel::GetMaxSnowPack(EnvContext *pEnvContext)
                volSnow += (float)pHRU->GetPool(k)->m_volumeWater; //get the current year snowpack
             }
 
-//         for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
- //           this->UpdateIDU(pEnvContext, pHRU->m_polyIndexArray[k], m_colHruMaxSWE, volSnow, SET_DATA);
+         //         for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
+          //           this->UpdateIDU(pEnvContext, pHRU->m_polyIndexArray[k], m_colHruMaxSWE, volSnow, SET_DATA);
          }
       }
    m_pCatchmentLayer->m_readOnly = true;
    }
 
 
-void FlowModel::UpdateAprilDeltas(EnvContext *pEnvContext)
+void FlowModel::UpdateAprilDeltas(EnvContext* pEnvContext)
    {
    // int activeField = m_pCatchmentLayer->GetActiveField();
    int catchmentCount = (int)m_catchmentArray.GetSize();
@@ -5235,10 +5235,10 @@ void FlowModel::UpdateAprilDeltas(EnvContext *pEnvContext)
       {
       for (int i = 0; i < catchmentCount; i++)
          {
-         Catchment *pCatchment = m_catchmentArray[i];
+         Catchment* pCatchment = m_catchmentArray[i];
          for (int j = 0; j < pCatchment->GetHRUCount(); j++)
             {
-            HRU *pHRU = pCatchment->GetHRU(j);
+            HRU* pHRU = pCatchment->GetHRU(j);
             for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
                {
                int idu = pHRU->m_polyIndexArray[k];
@@ -5253,10 +5253,10 @@ void FlowModel::UpdateAprilDeltas(EnvContext *pEnvContext)
                for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
                   {
                   if (this->m_poolInfoArray[k]->m_type == PT_SNOW /*|| this->m_poolInfoArray[k]->m_type == PT_MELT*/)
-                     volSnow += (float) pHRU->GetPool( k)->m_volumeWater; //get the current year snowpack
+                     volSnow += (float)pHRU->GetPool(k)->m_volumeWater; //get the current year snowpack
                   }
 
-               float _ref = volSnow / pHRU->m_area*1000.0f; //get the current year snowpack (mm)
+               float _ref = volSnow / pHRU->m_area * 1000.0f; //get the current year snowpack (mm)
 
                if (pEnvContext->yearOfRun < 10)//estimate the denominator of the snow index
                   m_pCatchmentLayer->SetData(idu, m_colRefSnow, _ref + refSnow); //total amount of snow over the 5 year period
@@ -5288,7 +5288,7 @@ void FlowModel::UpdateAprilDeltas(EnvContext *pEnvContext)
    }
 
 // called each FLOW timestep when m_mapUpdate == 2
-bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
+bool FlowModel::WriteDataToMap(EnvContext* pEnvContext)
    {
    int activeField = m_pCatchmentLayer->GetActiveField();
    m_pCatchmentLayer->m_readOnly = false;
@@ -5298,52 +5298,52 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
    float currTime = m_flowContext.dayOfYear + time;
    //if (!m_pGrid)   //m_buildCatchmentsMethod != 2 )    // not a grid based model?
     //  {
-      int hruCount = (int)m_hruArray.GetSize();
-      //#pragma omp parallel for  // firstprivate( pEnvContext )
-      for (int h = 0; h < hruCount; h++)
+   int hruCount = (int)m_hruArray.GetSize();
+   //#pragma omp parallel for  // firstprivate( pEnvContext )
+   for (int h = 0; h < hruCount; h++)
+      {
+      float airTempMin = -999.0f; float airTempMax = 0.0f; float airTemp = 0.0f;
+      float prec = 0.0f;
+      HRU* pHRU = m_hruArray[h];
+      GetHRUClimate(CDT_TMIN, pHRU, (int)currTime, airTempMin);
+      GetHRUClimate(CDT_TMAX, pHRU, (int)currTime, airTempMax);
+      airTemp = (airTempMin + airTempMax) / 2.0f;
+      GetHRUClimate(CDT_PRECIP, pHRU, (int)currTime, prec);
+      for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
          {
-         float airTempMin = -999.0f; float airTempMax = 0.0f; float airTemp = 0.0f;
-         float prec = 0.0f;
-         HRU *pHRU = m_hruArray[h];
-         GetHRUClimate(CDT_TMIN, pHRU, (int)currTime, airTempMin);
-         GetHRUClimate(CDT_TMAX, pHRU, (int)currTime, airTempMax);
-         airTemp = (airTempMin + airTempMax) / 2.0f;
-         GetHRUClimate(CDT_PRECIP, pHRU, (int)currTime, prec);
-         for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
+         int idu = pHRU->m_polyIndexArray[k];
+
+         m_pCatchmentLayer->SetData(idu, m_colHruTemp, airTemp);
+         m_pCatchmentLayer->SetData(idu, m_colHruPrecip, prec);
+
+         float snow = 0;     (float)pHRU->GetPool(0)->m_volumeWater;
+         for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
             {
-            int idu = pHRU->m_polyIndexArray[k];
-
-            m_pCatchmentLayer->SetData(idu, m_colHruTemp, airTemp);
-            m_pCatchmentLayer->SetData(idu, m_colHruPrecip, prec);
-
-            float snow = 0;     (float)pHRU->GetPool(0)->m_volumeWater ;
-            for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
-               {
-               if (this->m_poolInfoArray[k]->m_type == PT_SNOW )
-                  snow += ((float) pHRU->GetPool( k)->m_volumeWater/ pHRU->m_area)*MM_PER_M; //get the current year snowpack
-               }
-
-            m_pCatchmentLayer->SetData(idu, m_colHRUMeanLAI, pHRU->m_meanLAI); //lai
-            m_pCatchmentLayer->SetData(idu, m_colAgeClass, pHRU->m_meanAge); //lai
-            m_pCatchmentLayer->SetData( idu, m_colHruSWC,   pHRU->m_swc );
-            m_pCatchmentLayer->SetData(idu, m_colIrrigation, pHRU->m_irr);
+            if (this->m_poolInfoArray[k]->m_type == PT_SNOW)
+               snow += ((float)pHRU->GetPool(k)->m_volumeWater / pHRU->m_area) * MM_PER_M; //get the current year snowpack
             }
+
+         m_pCatchmentLayer->SetData(idu, m_colHRUMeanLAI, pHRU->m_meanLAI); //lai
+         m_pCatchmentLayer->SetData(idu, m_colAgeClass, pHRU->m_meanAge); //lai
+         m_pCatchmentLayer->SetData(idu, m_colHruSWC, pHRU->m_swc);
+         m_pCatchmentLayer->SetData(idu, m_colIrrigation, pHRU->m_irr);
          }
-	  activeField = m_pCatchmentLayer->GetActiveField();
-	  m_pCatchmentLayer->ClassifyData(activeField);
-    //  }
+      }
+   activeField = m_pCatchmentLayer->GetActiveField();
+   m_pCatchmentLayer->ClassifyData(activeField);
+   //  }
 
    int reachCount = (int)m_reachArray.GetSize();
    m_pStreamLayer->m_readOnly = false;
 
    for (int i = 0; i < reachCount; i++)
       {
-      Reach *pReach = m_reachArray.GetAt(i);
+      Reach* pReach = m_reachArray.GetAt(i);
       ASSERT(pReach != NULL);
 
       if (pReach->m_subnodeArray.GetSize() > 0 && pReach->m_polyIndex >= 0)
          {
-         ReachSubnode *pNode = (ReachSubnode*)pReach->m_subnodeArray[0];
+         ReachSubnode* pNode = (ReachSubnode*)pReach->m_subnodeArray[0];
          ASSERT(pNode != NULL);
          m_pStreamLayer->SetData(pReach->m_polyIndex, m_colStreamReachOutput, pNode->m_discharge);  // m3/sec
          }
@@ -5353,127 +5353,127 @@ bool FlowModel::WriteDataToMap(EnvContext *pEnvContext)
       {
       int hruCount = (int)m_hruArray.GetSize();
 
-/*
-      float modelDepth = 0;
-      for (int i = 0; i < this->m_poolInfoArray.GetSize(); i++)
-         modelDepth += this->m_poolInfoArray[ i ]->m_depth;
+      /*
+            float modelDepth = 0;
+            for (int i = 0; i < this->m_poolInfoArray.GetSize(); i++)
+               modelDepth += this->m_poolInfoArray[ i ]->m_depth;
 
-#pragma omp parallel for // firstprivate( pEnvContext )
-      for (int h = 0; h < hruCount; h++)
-         {
-         HRU *pHRU = m_hruArray[h];
-         float waterDepth = 0.0f;
-         for (int i = 0; i < pHRU->GetPoolCount(); i++)
-            waterDepth += pHRU->GetPool(i)->m_wDepth;
-         float elws = pHRU->m_elevation - modelDepth + (waterDepth / 1000.0f);//m
-         float depthToWT = pHRU->m_elevation - elws;
-         float wc = 0.0f;
-         float myElev = 50;
-         if (m_gridClassification == 0)
-            wc = pHRU->GetPool(0)->m_wDepth;
-         if (m_gridClassification == 1)
-            wc = elws;
-         if (m_gridClassification == 2)
-            wc = depthToWT;
-         if (m_gridClassification == 6)//water content in the 1st layer
-            wc = pHRU->GetPool(1)->m_wDepth;
-         if (m_gridClassification == 20)//water content in the 1st layer
-            wc = float((pHRU->GetPool( 0)->m_volumeWater + pHRU->GetPool( 1)->m_volumeWater) / (pHRU->m_area*(pHRU->GetPool( 0)->m_depth + pHRU->GetPool( 1)->m_depth)));
-
-         if (m_gridClassification == 30)//water content in the GW layer
-            wc = pHRU->GetPool( 4)->m_wDepth;
-
-         if (m_gridClassification == 50)//water content in the GW layer
-            {
-            wc = pHRU->m_currentET;
-            }
-         if (m_gridClassification == 60)//water content in the GW layer
-            {
-            wc = pHRU->m_currentRunoff;
-
-            }
-         if (m_gridClassification == 70)//map saturated ground
-            {
-            wc = pHRU->m_biomass;
-            }
-
-
-         if (m_gridClassification == 10)
-            {
-            if (pHRU->GetPool( 1)->m_volumeWater > 0.0f)
+      #pragma omp parallel for // firstprivate( pEnvContext )
+            for (int h = 0; h < hruCount; h++)
                {
-               float porosity = 0.4f;
-               float area = pHRU->m_area;
-               HRUPool *pHRULayer0 = pHRU->GetPool( 0);
-               HRUPool *pHRULayer1 = pHRU->GetPool( 1);
-               float d0 = pHRULayer0->m_depth;
-               float d1 = pHRULayer1->m_depth;
-               float w0 = (float)pHRULayer0->m_volumeWater;
-               float w1 = (float)pHRULayer1->m_volumeWater;
+               HRU *pHRU = m_hruArray[h];
+               float waterDepth = 0.0f;
+               for (int i = 0; i < pHRU->GetPoolCount(); i++)
+                  waterDepth += pHRU->GetPool(i)->m_wDepth;
+               float elws = pHRU->m_elevation - modelDepth + (waterDepth / 1000.0f);//m
+               float depthToWT = pHRU->m_elevation - elws;
+               float wc = 0.0f;
+               float myElev = 50;
+               if (m_gridClassification == 0)
+                  wc = pHRU->GetPool(0)->m_wDepth;
+               if (m_gridClassification == 1)
+                  wc = elws;
+               if (m_gridClassification == 2)
+                  wc = depthToWT;
+               if (m_gridClassification == 6)//water content in the 1st layer
+                  wc = pHRU->GetPool(1)->m_wDepth;
+               if (m_gridClassification == 20)//water content in the 1st layer
+                  wc = float((pHRU->GetPool( 0)->m_volumeWater + pHRU->GetPool( 1)->m_volumeWater) / (pHRU->m_area*(pHRU->GetPool( 0)->m_depth + pHRU->GetPool( 1)->m_depth)));
 
-               float depthWater = (w0 + w1) / area;//length of water
-               float totalDepth = (d1 + d0)*porosity; //total length (of airspace) available
-               float depthToWT = totalDepth - depthWater;
-               if (depthToWT < 0.0f)
-                  depthToWT = 0.0f;
-               wc = depthToWT;
-               }
-            }
-         if (pHRU->GetPool( 0)->m_svArray != NULL)
-            {
-            if (m_gridClassification == 2)
-               {
-               if (pHRU->GetPool( 0)->m_volumeWater > 0.0f)
+               if (m_gridClassification == 30)//water content in the GW layer
+                  wc = pHRU->GetPool( 4)->m_wDepth;
+
+               if (m_gridClassification == 50)//water content in the GW layer
                   {
-                  float water = (float)pHRU->GetPool( 0)->m_volumeWater;
-                  float mass = pHRU->GetPool( 0)->GetExtraStateVarValue(0);
-                  wc = mass / water;//kg/m3
-                  int stop = 1;
+                  wc = pHRU->m_currentET;
                   }
-               }
-            if (m_gridClassification == 3)
-               {
-               if (pHRU->GetPool( 1)->m_volumeWater > 0.0f)
+               if (m_gridClassification == 60)//water content in the GW layer
                   {
-                  float water = (float)pHRU->GetPool( 1)->m_volumeWater;
-                  float mass = pHRU->GetPool( 1)->GetExtraStateVarValue(0);
-                  wc = mass / water;//kg/m3
-                  int stop = 1;
-                  }
-               }
+                  wc = pHRU->m_currentRunoff;
 
-            if (m_gridClassification == 80)
-               {
-               if (pHRU->GetPool( 4)->m_volumeWater > 0.0f)
-                  {
-                  float water = (float)pHRU->GetPool( 4)->m_volumeWater;
-                  float mass = pHRU->GetPool( 4)->GetExtraStateVarValue(0);
-                  wc = mass / water;//kg/m3
-                  int stop = 1;
                   }
-               }
-            if (m_gridClassification == 300)
-               {
-               float mass = pHRU->GetPool( 4)->GetExtraStateVarValue(0);
-               if (pHRU->GetPool( 4)->m_volumeWater > 0.0f && mass > 0.0f)
+               if (m_gridClassification == 70)//map saturated ground
                   {
-                  float water = (float)pHRU->GetPool( 4)->m_volumeWater;
-                  wc = mass / water;//kg/m3
-                  int stop = 1;
+                  wc = pHRU->m_biomass;
                   }
-               }
 
-            }
-         m_pGrid->SetData(pHRU->m_demRow, pHRU->m_demCol, wc);
-         }
-         */
+
+               if (m_gridClassification == 10)
+                  {
+                  if (pHRU->GetPool( 1)->m_volumeWater > 0.0f)
+                     {
+                     float porosity = 0.4f;
+                     float area = pHRU->m_area;
+                     HRUPool *pHRULayer0 = pHRU->GetPool( 0);
+                     HRUPool *pHRULayer1 = pHRU->GetPool( 1);
+                     float d0 = pHRULayer0->m_depth;
+                     float d1 = pHRULayer1->m_depth;
+                     float w0 = (float)pHRULayer0->m_volumeWater;
+                     float w1 = (float)pHRULayer1->m_volumeWater;
+
+                     float depthWater = (w0 + w1) / area;//length of water
+                     float totalDepth = (d1 + d0)*porosity; //total length (of airspace) available
+                     float depthToWT = totalDepth - depthWater;
+                     if (depthToWT < 0.0f)
+                        depthToWT = 0.0f;
+                     wc = depthToWT;
+                     }
+                  }
+               if (pHRU->GetPool( 0)->m_svArray != NULL)
+                  {
+                  if (m_gridClassification == 2)
+                     {
+                     if (pHRU->GetPool( 0)->m_volumeWater > 0.0f)
+                        {
+                        float water = (float)pHRU->GetPool( 0)->m_volumeWater;
+                        float mass = pHRU->GetPool( 0)->GetExtraStateVarValue(0);
+                        wc = mass / water;//kg/m3
+                        int stop = 1;
+                        }
+                     }
+                  if (m_gridClassification == 3)
+                     {
+                     if (pHRU->GetPool( 1)->m_volumeWater > 0.0f)
+                        {
+                        float water = (float)pHRU->GetPool( 1)->m_volumeWater;
+                        float mass = pHRU->GetPool( 1)->GetExtraStateVarValue(0);
+                        wc = mass / water;//kg/m3
+                        int stop = 1;
+                        }
+                     }
+
+                  if (m_gridClassification == 80)
+                     {
+                     if (pHRU->GetPool( 4)->m_volumeWater > 0.0f)
+                        {
+                        float water = (float)pHRU->GetPool( 4)->m_volumeWater;
+                        float mass = pHRU->GetPool( 4)->GetExtraStateVarValue(0);
+                        wc = mass / water;//kg/m3
+                        int stop = 1;
+                        }
+                     }
+                  if (m_gridClassification == 300)
+                     {
+                     float mass = pHRU->GetPool( 4)->GetExtraStateVarValue(0);
+                     if (pHRU->GetPool( 4)->m_volumeWater > 0.0f && mass > 0.0f)
+                        {
+                        float water = (float)pHRU->GetPool( 4)->m_volumeWater;
+                        wc = mass / water;//kg/m3
+                        int stop = 1;
+                        }
+                     }
+
+                  }
+               m_pGrid->SetData(pHRU->m_demRow, pHRU->m_demCol, wc);
+               }
+               */
       }
 
    return true;
    }
 
 
-bool FlowModel::ResetFluxValuesForStep(EnvContext *pEnvContext)
+bool FlowModel::ResetFluxValuesForStep(EnvContext* pEnvContext)
    {
    for (int i = 0; i < m_catchmentArray.GetSize(); i++)
       {
@@ -5483,29 +5483,29 @@ bool FlowModel::ResetFluxValuesForStep(EnvContext *pEnvContext)
 
    for (int i = 0; i < m_reachArray.GetSize(); i++)
       {
-      Reach *pReach = m_reachArray.GetAt(i);
+      Reach* pReach = m_reachArray.GetAt(i);
       pReach->ResetFluxValue();
 
-      ReachSubnode *subnode = pReach->GetReachSubnode(0);
+      ReachSubnode* subnode = pReach->GetReachSubnode(0);
       for (int k = 0; k < m_hruSvCount - 1; k++)
          subnode->ResetExtraSvFluxValue(k);
       }
 
    for (int i = 0; i < m_reservoirArray.GetSize(); i++)
       {
-      Reservoir *pRes = m_reservoirArray.GetAt(i);
+      Reservoir* pRes = m_reservoirArray.GetAt(i);
       pRes->ResetFluxValue();
       }
 
 
    for (int i = 0; i < m_hruArray.GetSize(); i++)
       {
-      HRU *pHRU = m_hruArray.GetAt(i);
+      HRU* pHRU = m_hruArray.GetAt(i);
       int neighborCount = (int)pHRU->m_neighborArray.GetSize();
 
       for (int j = 0; j < pHRU->m_poolArray.GetSize(); j++)
          {
-         HRUPool *pLayer = pHRU->m_poolArray.GetAt(j);
+         HRUPool* pLayer = pHRU->m_poolArray.GetAt(j);
          pLayer->ResetFluxValue();
 
          for (int k = 0; k < (int)pLayer->m_waterFluxArray.GetSize(); k++) //kbv 4/27/15   why would these two lines be commented out?
@@ -5522,17 +5522,17 @@ bool FlowModel::ResetFluxValuesForStep(EnvContext *pEnvContext)
 
 bool FlowModel::ResetCumulativeYearlyValues()
    {
-   EnvContext *pEnvContext = m_flowContext.pEnvContext;
+   EnvContext* pEnvContext = m_flowContext.pEnvContext;
 
    for (int i = 0; i < m_hruArray.GetSize(); i++)
       {
-      HRU *pHRU = m_hruArray.GetAt(i);
+      HRU* pHRU = m_hruArray.GetAt(i);
 
       int hruPoolCount = pHRU->GetPoolCount();
       float waterDepth = 0.0f;
       for (int l = 0; l < hruPoolCount; l++)
          {
-         HRUPool *pHRUPool = pHRU->GetPool(l);
+         HRUPool* pHRUPool = pHRU->GetPool(l);
          waterDepth += float(pHRUPool->m_wDepth);//mm of total storage
          }
 
@@ -5571,7 +5571,7 @@ bool FlowModel::ResetCumulativeWaterYearValues()
    {
    for (int i = 0; i < m_hruArray.GetSize(); i++)
       {
-      HRU *pHRU = m_hruArray.GetAt(i);
+      HRU* pHRU = m_hruArray.GetAt(i);
       pHRU->m_precip_wateryr = 0.0f;
       }
    return true;
@@ -5639,7 +5639,7 @@ bool FlowModel::InitReaches(void)
 
       for (int i = 0; i < roots; i++)
          {
-         ReachNode *pRoot = m_reachTree.GetRootNode(i);
+         ReachNode* pRoot = m_reachTree.GetRootNode(i);
          PopulateTreeID(pRoot, i);
          }
       }
@@ -5650,13 +5650,13 @@ bool FlowModel::InitReaches(void)
 
    for (int i = 0; i < roots; i++)
       {
-      ReachNode *pRoot = m_reachTree.GetRootNode(i);
-      ReachNode *pReachNode = (Reach*)m_reachTree.FindLeftLeaf(pRoot);  // find leftmost leaf of entire tree
+      ReachNode* pRoot = m_reachTree.GetRootNode(i);
+      ReachNode* pReachNode = (Reach*)m_reachTree.FindLeftLeaf(pRoot);  // find leftmost leaf of entire tree
       m_reachArray.Add((Reach*)pReachNode);   // add leftmost node
 
       while (pReachNode)
          {
-         ReachNode *pDownNode = pReachNode->m_pDown;
+         ReachNode* pDownNode = pReachNode->m_pDown;
 
          if (pDownNode == NULL) // root of tree reached?
             break;
@@ -5679,16 +5679,16 @@ bool FlowModel::InitReaches(void)
    int reachCount = (int)m_reachArray.GetSize();
    for (int i = 0; i < reachCount; i++)
       {
-      Reach *pReach = m_reachArray[i];
+      Reach* pReach = m_reachArray[i];
 
       for (int j = 0; j < pReach->GetSubnodeCount(); j++)
          {
-         ReachSubnode *pSubnode = pReach->GetReachSubnode(j);
+         ReachSubnode* pSubnode = pReach->GetReachSubnode(j);
          float Q = pSubnode->m_discharge;
          SetGeometry(pReach, Q);
          pReach->m_n = m_n;
          pReach->m_wdRatio = m_wdRatio;
-         pSubnode->m_volume = pReach->m_width*pReach->m_depth*pReach->m_length / pReach->m_subnodeArray.GetSize();
+         pSubnode->m_volume = pReach->m_width * pReach->m_depth * pReach->m_length / pReach->m_subnodeArray.GetSize();
          int i = 0;
          }
       }
@@ -5700,11 +5700,11 @@ bool FlowModel::InitReaches(void)
       int reachCount = (int)m_reachArray.GetSize();
       for (int i = 0; i < reachCount; i++)
          {
-         Reach *pReach = m_reachArray[i];
+         Reach* pReach = m_reachArray[i];
 
          for (int j = 0; j < pReach->GetSubnodeCount(); j++)
             {
-            ReachSubnode *pSubnode = pReach->GetReachSubnode(j);
+            ReachSubnode* pSubnode = pReach->GetReachSubnode(j);
             pSubnode->AllocateStateVars(m_reachSvCount - 1);
 
             }
@@ -5728,12 +5728,12 @@ bool FlowModel::InitReachSubnodes(void)
       int reachCount = (int)m_reachArray.GetSize();
       for (int i = 0; i < reachCount; i++)
          {
-         Reach *pReach = m_reachArray[i];
+         Reach* pReach = m_reachArray[i];
          ASSERT(pReach != NULL);
 
          for (int j = 0; j < pReach->GetSubnodeCount(); j++)
             {
-            ReachSubnode *pSubnode = pReach->GetReachSubnode(j);
+            ReachSubnode* pSubnode = pReach->GetReachSubnode(j);
             ASSERT(pSubnode != NULL);
 
             pSubnode->AllocateStateVars(m_reachSvCount - 1);
@@ -5750,7 +5750,7 @@ bool FlowModel::InitReachSubnodes(void)
    }
 
 
-void FlowModel::PopulateTreeID(ReachNode *pNode, int treeID)
+void FlowModel::PopulateTreeID(ReachNode* pNode, int treeID)
    {
    if (pNode == NULL)
       return;
@@ -5802,22 +5802,22 @@ bool FlowModel::InitCatchments(void)
 
    SetCatchmentAttributes();     // populates internal HRU members (area, elevation, centroid) for all catchments
 
-    // allocate any necessary "extra" state variables
+   // allocate any necessary "extra" state variables
    if (m_hruSvCount > 1)//then there are extra state variables..
       {
       int catchmentCount = (int)m_catchmentArray.GetSize();
       for (int i = 0; i < catchmentCount; i++)
          {
-         Catchment *pCatchment = m_catchmentArray[i];
-         HRU *pHRU = NULL;
+         Catchment* pCatchment = m_catchmentArray[i];
+         HRU* pHRU = NULL;
 
          for (int j = 0; j < pCatchment->GetHRUCount(); j++)
             {
-            HRU *pHRU = pCatchment->GetHRU(j);
+            HRU* pHRU = pCatchment->GetHRU(j);
 
             for (int k = 0; k < pHRU->GetPoolCount(); k++)
                {
-               HRUPool *pLayer = pHRU->GetPool(k);
+               HRUPool* pLayer = pHRU->GetPool(k);
                pLayer->AllocateStateVars(m_hruSvCount - 1);
                }
             }
@@ -5836,12 +5836,12 @@ bool FlowModel::SetCatchmentAttributes(void)
       int catchmentCount = (int)m_catchmentArray.GetSize();
       for (int i = 0; i < catchmentCount; i++)
          {
-         Catchment *pCatchment = m_catchmentArray[ i ];
+         Catchment* pCatchment = m_catchmentArray[i];
 
          pCatchment->m_area = 0;
-         for ( int j=0; j < pCatchment->GetHRUCount(); j++ )
+         for (int j = 0; j < pCatchment->GetHRUCount(); j++)
             {
-            HRU *pHRU = pCatchment->GetHRU( j );
+            HRU* pHRU = pCatchment->GetHRU(j);
             pCatchment->m_area += pHRU->m_area;
             }
          }
@@ -5855,7 +5855,7 @@ bool FlowModel::SetHRUAttributes()
    {
    for (int j = 0; j < m_hruArray.GetSize(); j++)
       {
-      HRU *pHRU = m_hruArray[ j ];
+      HRU* pHRU = m_hruArray[j];
       float area = 0.0f; float elevation = 0.0f; float _elev = 0.0f;
       pHRU->m_area = 0;
 
@@ -5864,20 +5864,20 @@ bool FlowModel::SetHRUAttributes()
          m_pCatchmentLayer->GetData(pHRU->m_polyIndexArray[k], m_colCatchmentArea, area);
          m_pCatchmentLayer->GetData(pHRU->m_polyIndexArray[k], m_colElev, _elev);
          pHRU->m_area += area;
-         elevation += _elev*area;
+         elevation += _elev * area;
          }
 
       pHRU->m_elevation = elevation / pHRU->m_area;
-    
+
       // set up pool areas
       for (int k = 0; k < this->m_poolInfoArray.GetSize(); k++)
          {
-         HRUPool *pHRUPool = pHRU->m_poolArray[k];
-         PoolInfo *pInfo = this->m_poolInfoArray[k];
-         pHRUPool->m_volumeWater = pInfo->m_initWaterContent*pHRUPool->m_depth*pHRU->m_area;  
+         HRUPool* pHRUPool = pHRU->m_poolArray[k];
+         PoolInfo* pInfo = this->m_poolInfoArray[k];
+         pHRUPool->m_volumeWater = pInfo->m_initWaterContent * pHRUPool->m_depth * pHRU->m_area;
          }
 
-      Poly *pPoly = m_pCatchmentLayer->GetPolygon(pHRU->m_polyIndexArray.GetAt(0));
+      Poly* pPoly = m_pCatchmentLayer->GetPolygon(pHRU->m_polyIndexArray.GetAt(0));
       Vertex centroid = pPoly->GetCentroid();
       pHRU->m_centroid = centroid;
 
@@ -5911,14 +5911,14 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
    int hruQueryCount = GenerateAggregateQueries(m_pCatchmentLayer, m_colsHruAgg, hruQueryArray);
 
    // temporary allocations
-   Catchment **catchments = new Catchment*[queryCount];  // placeholder for catchments
+   Catchment** catchments = new Catchment * [queryCount];  // placeholder for catchments
    memset(catchments, 0, queryCount * sizeof(Catchment*));  // initially, all NULL
 
    m_pCatchmentLayer->SetColNoData(m_colCatchmentCatchID);
    m_pCatchmentLayer->SetColNoData(m_colCatchmentHruID);
 
    int hruCols = (int)m_colsHruAgg.GetSize();
-   VData *hruValueArray = new VData[hruCols];
+   VData* hruValueArray = new VData[hruCols];
 
    int polyCount = m_pCatchmentLayer->GetPolygonCount();
    int hruCount = 0;
@@ -5942,7 +5942,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
       // iterate through the catchment aggregate queries, to see if this polygon satisfies any of them
       for (int j = 0; j < queryCount; j++)
          {
-         Query *pQuery = catchmentQueryArray.GetAt(j);
+         Query* pQuery = catchmentQueryArray.GetAt(j);
          bool result = false;
          bool ok = pQuery->Run(polyIndex, result);
 
@@ -5961,7 +5961,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
    // store catchments
    for (int j = 0; j < queryCount; j++)
       {
-      Catchment *pCatchment = catchments[j];
+      Catchment* pCatchment = catchments[j];
       if (pCatchment != NULL)
          m_catchmentArray.Add(pCatchment);
       }
@@ -5974,7 +5974,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
       m_pCatchmentLayer->ClearSelection();
 
    //Catchments are allocated, now we need to iterate the grid allocating an HRU for every grid cell.
-   HRU *pHRU = NULL;
+   HRU* pHRU = NULL;
    hruCount = 0;
    int foundHRUs = 0;
    float minElev = 1E10;
@@ -5988,7 +5988,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
          REAL x = 0, y = 0;
          int index = -1;
          m_pGrid->GetGridCellCenter(i, j, x, y);
-         Poly *pPoly = m_pCatchmentLayer->GetPolygonFromCoord(x, y, &index);
+         Poly* pPoly = m_pCatchmentLayer->GetPolygonFromCoord(x, y, &index);
          float elev = 0.0f;
 
          m_pGrid->GetData(i, j, elev);
@@ -6001,7 +6001,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
                {
                for (int k = 0; k < (int)m_catchmentArray.GetSize(); k++) //figure out which catchment this HRU is in!
                   {
-                  Catchment *pCatchment = m_catchmentArray[k];
+                  Catchment* pCatchment = m_catchmentArray[k];
                   ASSERT(pCatchment != NULL);
 
                   int catchID = -1;
@@ -6013,7 +6013,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
                      pHRU->m_id = hruCount;
                      pHRU->m_demRow = i;
                      pHRU->m_demCol = j;
-                     pHRU->m_area = (float)( m_pGrid->GetGridCellWidth()*m_pGrid->GetGridCellWidth() );
+                     pHRU->m_area = (float)(m_pGrid->GetGridCellWidth() * m_pGrid->GetGridCellWidth());
                      REAL x = 0.0f; REAL y = 0.0f;
                      m_pGrid->GetGridCellCenter(i, j, x, y);
                      pHRU->m_centroid.x = x;
@@ -6031,9 +6031,9 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
 
                      for (int kk = 0; kk < this->m_poolInfoArray.GetSize(); kk++)
                         {
-                        HRUPool *pHRUPool = pHRU->m_poolArray[kk];
-                        PoolInfo *pInfo = this->m_poolInfoArray[kk];
-                        pHRUPool->m_volumeWater = pInfo->m_initWaterContent*pHRUPool->m_depth*pHRU->m_area;   // 0.4 is the porosity?
+                        HRUPool* pHRUPool = pHRU->m_poolArray[kk];
+                        PoolInfo* pInfo = this->m_poolInfoArray[kk];
+                        pHRUPool->m_volumeWater = pInfo->m_initWaterContent * pHRUPool->m_depth * pHRU->m_area;   // 0.4 is the porosity?
                         }
 
                      AddHRU(pHRU, pCatchment);
@@ -6056,13 +6056,13 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
 
    for (int h = 0; h < hruCount; h++)
       {
-      HRU *pHRU = GetHRU(h);
+      HRU* pHRU = GetHRU(h);
       int neighborCount = 0;
       if (pHRU->m_elevation == m_minElevation)
          pHRU->m_lowestElevationHRU = true;
       for (int k = 0; k < hruCount; k++) // go back through and add neighbor pointers to the neighbor array.
          {
-         HRU *pNeighborHRU = GetHRU(k);
+         HRU* pNeighborHRU = GetHRU(k);
          ASSERT(pNeighborHRU != NULL);
          if (h != k)//don't add the current hru to its own neighbor array
             {
@@ -6093,7 +6093,7 @@ bool FlowModel::BuildCatchmentsFromGrids(void)
       int layerCount = pHRU->GetPoolCount();
       for (int i = 0; i < layerCount; i++)                  //Assume all other layers include exchange only in upward and downward directions
          {
-         HRUPool *pHRUPool = pHRU->GetPool(i);
+         HRUPool* pHRUPool = pHRU->GetPool(i);
 
          pHRUPool->m_waterFluxArray.SetSize(neighborCount + 7);
 
@@ -6137,14 +6137,14 @@ bool FlowModel::BuildCatchmentsFromQueries(void)
    int hruQueryCount = GenerateAggregateQueries(m_pCatchmentLayer, m_colsHruAgg, hruQueryArray);
 
    // temporary allocations
-   Catchment **catchments = new Catchment*[queryCount];  // placeholder for catchments
+   Catchment** catchments = new Catchment * [queryCount];  // placeholder for catchments
    memset(catchments, 0, queryCount * sizeof(Catchment*));  // initially, all NULL
 
    m_pCatchmentLayer->SetColNoData(m_colCatchmentCatchID);
    m_pCatchmentLayer->SetColNoData(m_colCatchmentHruID);
 
    int hruCols = (int)m_colsHruAgg.GetSize();
-   VData *hruValueArray = new VData[hruCols];
+   VData* hruValueArray = new VData[hruCols];
 
    int polyCount = m_pCatchmentLayer->GetPolygonCount();
    int hruCount = 0;
@@ -6168,7 +6168,7 @@ bool FlowModel::BuildCatchmentsFromQueries(void)
       // iterate through the catchment aggregate queries, to see if this polygon satisfies any of them
       for (int j = 0; j < queryCount; j++)
          {
-         Query *pQuery = catchmentQueryArray.GetAt(j);
+         Query* pQuery = catchmentQueryArray.GetAt(j);
          bool result = false;
          bool ok = pQuery->Run(polyIndex, result);
 
@@ -6181,7 +6181,7 @@ bool FlowModel::BuildCatchmentsFromQueries(void)
                }
 
             // we know which catchment it's in, next figure out which HRU it is in
-            Catchment *pCatchment = catchments[j];
+            Catchment* pCatchment = catchments[j];
             ASSERT(pCatchment != NULL);
 
             // store this in the catchment layer
@@ -6189,10 +6189,10 @@ bool FlowModel::BuildCatchmentsFromQueries(void)
             m_pCatchmentLayer->SetData(polyIndex, m_colCatchmentCatchID, pCatchment->m_id);
 
             // does it satisfy an existing HRU for this catchment?
-            HRU *pHRU = NULL;
+            HRU* pHRU = NULL;
             for (int k = 0; k < pCatchment->GetHRUCount(); k++)
                {
-               HRU *_pHRU = pCatchment->GetHRU(k);
+               HRU* _pHRU = pCatchment->GetHRU(k);
                // _pHRU->m_hruValueArray.SetSize(hruCols);
                ASSERT(_pHRU != NULL);
                ASSERT(_pHRU->m_polyIndexArray.GetSize() > 0);
@@ -6229,7 +6229,7 @@ bool FlowModel::BuildCatchmentsFromQueries(void)
                AddHRU(pHRU, pCatchment);
 
                pHRU->m_id = hruCount;
-               pHRU->AddPools( this, false );  //m_poolCount, 0, m_initTemperature, false);
+               pHRU->AddPools(this, false);  //m_poolCount, 0, m_initTemperature, false);
                hruCount++;
                }
 
@@ -6245,7 +6245,7 @@ bool FlowModel::BuildCatchmentsFromQueries(void)
    // store catchments
    for (int j = 0; j < queryCount; j++)
       {
-      Catchment *pCatchment = catchments[j];
+      Catchment* pCatchment = catchments[j];
 
       if (pCatchment != NULL)
          m_catchmentArray.Add(pCatchment);
@@ -6301,7 +6301,7 @@ bool FlowModel::BuildCatchmentsFromLayer(void)
       if (!ok)
          continue;
 
-      Catchment *pCatchment = NULL;
+      Catchment* pCatchment = NULL;
       ok = catchmentMap.Lookup(catchID, pCatchment) ? true : false;
       if (!ok)
          {
@@ -6310,10 +6310,10 @@ bool FlowModel::BuildCatchmentsFromLayer(void)
          }
 
       // catchment covered, now do HRU's
-      HRU *pHRU = NULL;
+      HRU* pHRU = NULL;
       for (int j = 0; j < pCatchment->GetHRUCount(); j++)
          {
-         HRU *_pHRU = pCatchment->GetHRU(j);
+         HRU* _pHRU = pCatchment->GetHRU(j);
 
          if (_pHRU->m_id == hruID)
             {
@@ -6327,7 +6327,7 @@ bool FlowModel::BuildCatchmentsFromLayer(void)
          pHRU = new HRU;
          AddHRU(pHRU, pCatchment);
          // m_hruArray.Add(pHRU);
-         pHRU->AddPools(this, false ); //m_poolCount, 0, m_initTemperature, false);
+         pHRU->AddPools(this, false); //m_poolCount, 0, m_initTemperature, false);
          pHRU->m_id = hruCount;
          hruCount++;
          }
@@ -6343,7 +6343,7 @@ bool FlowModel::BuildCatchmentsFromLayer(void)
    }
 
 
-int FlowModel::BuildCatchmentFromPolygons(Catchment *pCatchment, int polyArray[], int polyCount)
+int FlowModel::BuildCatchmentFromPolygons(Catchment* pCatchment, int polyArray[], int polyCount)
    {
    // generate aggregates - these are the spatial units for running catchment-based models.  Two types of 
    // aggregates exist - catchments, and within catchments, collections of HRU's
@@ -6365,7 +6365,7 @@ int FlowModel::BuildCatchmentFromPolygons(Catchment *pCatchment, int polyArray[]
    int hruQueryCount = GenerateAggregateQueries(m_pCatchmentLayer, m_colsHruAgg, hruQueryArray);
 
    int hruCols = (int)m_colsHruAgg.GetSize();     // number of cols referenced in the queries
-   VData *hruValueArray = new VData[hruCols];    // will store field values during queries
+   VData* hruValueArray = new VData[hruCols];    // will store field values during queries
 
    int hruCount = 0;
 
@@ -6387,10 +6387,10 @@ int FlowModel::BuildCatchmentFromPolygons(Catchment *pCatchment, int polyArray[]
       m_pCatchmentLayer->SetData(polyIndex, m_colCatchmentCatchID, pCatchment->m_id);
 
       // does it satisfy an existing HRU for this catchment?
-      HRU *pHRU = NULL;
+      HRU* pHRU = NULL;
       for (int k = 0; k < pCatchment->GetHRUCount(); k++)
          {
-         HRU *_pHRU = pCatchment->GetHRU(k);
+         HRU* _pHRU = pCatchment->GetHRU(k);
          // _pHRU->m_hruValueArray.SetSize(hruCols);
          ASSERT(_pHRU != NULL);
          ASSERT(_pHRU->m_polyIndexArray.GetSize() > 0);
@@ -6447,14 +6447,14 @@ int FlowModel::BuildCatchmentFromPolygons(Catchment *pCatchment, int polyArray[]
 
 
 
-int FlowModel::ParseCols(MapLayer *pLayer /*in*/, CString &aggCols /*in*/, CUIntArray &colsAgg /*out*/)
+int FlowModel::ParseCols(MapLayer* pLayer /*in*/, CString& aggCols /*in*/, CUIntArray& colsAgg /*out*/)
    {
    // parse columns
-   TCHAR *buffer = new TCHAR[aggCols.GetLength() + 1];
-   TCHAR *nextToken = NULL;
+   TCHAR* buffer = new TCHAR[aggCols.GetLength() + 1];
+   TCHAR* nextToken = NULL;
    lstrcpy(buffer, (LPCTSTR)aggCols);
 
-   TCHAR *col = _tcstok_s(buffer, _T(","), &nextToken);
+   TCHAR* col = _tcstok_s(buffer, _T(","), &nextToken);
 
    int colCount = 0;
 
@@ -6486,7 +6486,7 @@ int FlowModel::ParseCols(MapLayer *pLayer /*in*/, CString &aggCols /*in*/, CUInt
 
 
 
-int FlowModel::GenerateAggregateQueries(MapLayer *pLayer /*in*/, CUIntArray &colsAgg /*in*/, CArray< Query*, Query* > &queryArray /*out*/)
+int FlowModel::GenerateAggregateQueries(MapLayer* pLayer /*in*/, CUIntArray& colsAgg /*in*/, CArray< Query*, Query* >& queryArray /*out*/)
    {
    queryArray.RemoveAll();
 
@@ -6501,7 +6501,7 @@ int FlowModel::GenerateAggregateQueries(MapLayer *pLayer /*in*/, CUIntArray &col
 
    for (int i = 0; i < colCount; i++)
       {
-      CStringArray *attrValArray = new CStringArray;
+      CStringArray* attrValArray = new CStringArray;
       if (pLayer->GetUniqueValues(colsAgg[i], *attrValArray) > 0)
          colStrArrays.Add(attrValArray);
       else
@@ -6514,7 +6514,7 @@ int FlowModel::GenerateAggregateQueries(MapLayer *pLayer /*in*/, CUIntArray &col
 
    if (colCount == 1)
       {
-      CStringArray *attrValArray = colStrArrays[0];
+      CStringArray* attrValArray = colStrArrays[0];
 
       LPCTSTR colName = pLayer->GetFieldLabel(colsAgg[0]);
 
@@ -6530,7 +6530,7 @@ int FlowModel::GenerateAggregateQueries(MapLayer *pLayer /*in*/, CUIntArray &col
             } */
 
          ASSERT(m_pCatchmentQE != NULL);
-         Query *pQuery = m_pCatchmentQE->ParseQuery(queryStr, 0, _T("Flow Aggregate Query"));
+         Query* pQuery = m_pCatchmentQE->ParseQuery(queryStr, 0, _T("Flow Aggregate Query"));
 
          if (pQuery == NULL)
             {
@@ -6546,8 +6546,8 @@ int FlowModel::GenerateAggregateQueries(MapLayer *pLayer /*in*/, CUIntArray &col
 
    else if (colCount == 2)
       {
-      CStringArray *attrValArray0 = colStrArrays[0];
-      CStringArray *attrValArray1 = colStrArrays[1];
+      CStringArray* attrValArray0 = colStrArrays[0];
+      CStringArray* attrValArray1 = colStrArrays[1];
 
       LPCTSTR colName0 = pLayer->GetFieldLabel(colsAgg[0]);
       LPCTSTR colName1 = pLayer->GetFieldLabel(colsAgg[1]);
@@ -6566,7 +6566,7 @@ int FlowModel::GenerateAggregateQueries(MapLayer *pLayer /*in*/, CUIntArray &col
                } */
 
             ASSERT(m_pCatchmentQE != NULL);
-            Query *pQuery = m_pCatchmentQE->ParseQuery(queryStr, 0, _T("Flow Aggregate Query"));
+            Query* pQuery = m_pCatchmentQE->ParseQuery(queryStr, 0, _T("Flow Aggregate Query"));
 
             if (pQuery == NULL)
                {
@@ -6607,7 +6607,7 @@ bool FlowModel::ConnectCatchmentsToReaches(void)
    // maps into the stream coverage
    for (INT_PTR i = 0; i < catchmentCount; i++)
       {
-      Catchment *pCatchment = m_catchmentArray[i];
+      Catchment* pCatchment = m_catchmentArray[i];
       pCatchment->m_pReach = NULL;
 
       // have catchment, use the IDU associated with the first HRU in catchment to get
@@ -6618,13 +6618,13 @@ bool FlowModel::ConnectCatchmentsToReaches(void)
 
       if (pCatchment->GetHRUCount() > 0)
          {
-         HRU *pHRU = pCatchment->GetHRU(0);
+         HRU* pHRU = pCatchment->GetHRU(0);
          m_pCatchmentLayer->GetData(pHRU->m_polyIndexArray[0], m_colCatchmentJoin, catchmentJoinID);
 
          // look for this catchID in the reaches
          for (INT_PTR j = 0; j < reachCount; j++)
             {
-            Reach *pReach = m_reachArray[j];
+            Reach* pReach = m_reachArray[j];
 
             int streamJoinID = -1;
             m_pStreamLayer->GetData(pReach->m_polyIndex, this->m_colStreamJoin, streamJoinID);
@@ -6685,7 +6685,7 @@ if ( m_minStreamOrder > 1 )
 
    for (INT_PTR j = 0; j < reachCount; j++)
       {
-      Reach *pReach = m_reachArray[j];
+      Reach* pReach = m_reachArray[j];
 
       if (pReach->m_catchmentArray.GetSize() > 1)
          Report::Log(_T("Flow: More than one catchment attached to a reach!"));
@@ -6701,10 +6701,10 @@ if ( m_minStreamOrder > 1 )
 
    for (INT_PTR j = 0; j < reachCount; j++)
       {
-      Reach *pReach = m_reachArray[j];
+      Reach* pReach = m_reachArray[j];
       if (pReach->m_catchmentArray.GetSize() > 0)
          {
-         Catchment *pCatchment = pReach->m_catchmentArray[0];
+         Catchment* pCatchment = pReach->m_catchmentArray[0];
          m_pStreamLayer->SetData(pReach->m_polyIndex, colCatchmentID, pCatchment->m_id);
          }
       }
@@ -6735,7 +6735,7 @@ bool FlowModel::InitReservoirs(void)
          // found a reach with an associated reservoir
          // we will need to fix up the Reservoirs reach pointers,
          // and associated Reach's pRes pointer.
-         Reservoir *pRes = FindReservoirFromID(resID);
+         Reservoir* pRes = FindReservoirFromID(resID);
 
          if (pRes == NULL)
             {
@@ -6745,7 +6745,7 @@ bool FlowModel::InitReservoirs(void)
             }
          else
             {
-            Reach *pReach = (Reach*)m_reachTree.GetReachNodeFromPolyIndex(i);
+            Reach* pReach = (Reach*)m_reachTree.GetReachNodeFromPolyIndex(i);
 
             // get the reach assocated with this reservoir ID
             // If found, set reach and reservoir to point to each other.
@@ -6753,7 +6753,7 @@ bool FlowModel::InitReservoirs(void)
                {
                pRes->m_pDownstreamReach = pReach;    // note: this will be moved downstream below.
                pReach->m_pReservoir = pRes;   ///????
-               pRes->m_reachArray.Add(pReach); 
+               pRes->m_reachArray.Add(pReach);
                }
             else
                {
@@ -6775,21 +6775,21 @@ bool FlowModel::InitReservoirs(void)
       {
       // for each reservoir, move the Reach pointer downstream
       // until a different resID found
-      Reservoir *pRes = m_reservoirArray[i];
+      Reservoir* pRes = m_reservoirArray[i];
       ASSERT(pRes != NULL);
 
-      Reach *pReach = pRes->m_pDownstreamReach;   // initially , this points to a reach "in" the reservoir, if any
+      Reach* pReach = pRes->m_pDownstreamReach;   // initially , this points to a reach "in" the reservoir, if any
 
       if (pReach != NULL)   // any associated reachs?
          {
          //if ( pRes->m_reachArray.GetSize() > 0 )
          //Reach *pReach = pRes->m_reachArray[0];   // initially, this points to a reach "in" the reservoir
-         ReachNode *pNode = pReach;
+         ReachNode* pNode = pReach;
 
          // traverse down until this node's resID != this one
          while (pNode != NULL)
             {
-            ReachNode *pDown = pNode->GetDownstreamNode(true);
+            ReachNode* pDown = pNode->GetDownstreamNode(true);
 
             if (pDown == NULL)  // root of tree?
                break;
@@ -6809,7 +6809,7 @@ bool FlowModel::InitReservoirs(void)
          // fix up the pointers
          if (pNode != NULL)
             {
-            Reach *pDownstreamReach = GetReachFromNode(pNode);
+            Reach* pDownstreamReach = GetReachFromNode(pNode);
             pRes->m_pDownstreamReach->m_pReservoir = NULL;
             pRes->m_pDownstreamReach = pDownstreamReach;
             pDownstreamReach->m_pReservoir = pRes;
@@ -6869,7 +6869,7 @@ bool FlowModel::InitReservoirs(void)
 
    for (int i = 0; i < m_reservoirArray.GetSize(); i++)
       {
-      Reservoir *pRes = m_reservoirArray.GetAt(i);
+      Reservoir* pRes = m_reservoirArray.GetAt(i);
       this->AddInputVar(pRes->m_name + _T(" ResMaintenance"), pRes->m_probMaintenance, _T("Probability that the reservoir will need to be taken offline in any year"));
       }
 
@@ -6879,7 +6879,7 @@ bool FlowModel::InitReservoirs(void)
       int resCount = (int)m_reservoirArray.GetSize();
       for (int i = 0; i < resCount; i++)
          {
-         Reservoir *pRes = m_reservoirArray[i];
+         Reservoir* pRes = m_reservoirArray[i];
          ASSERT(pRes != NULL);
          pRes->AllocateStateVars(m_reservoirSvCount - 1);
          }
@@ -6893,21 +6893,21 @@ bool FlowModel::InitReservoirs(void)
    }
 
 
-bool FlowModel::InitRunReservoirs(EnvContext *pEnvContext)
+bool FlowModel::InitRunReservoirs(EnvContext* pEnvContext)
    {
    int resCount = (int)m_reservoirArray.GetSize();
    int usedResCount = 0;
-   EnvModel *pEnvModel = pEnvContext->pEnvModel;
+   EnvModel* pEnvModel = pEnvContext->pEnvModel;
 
    for (int i = 0; i < resCount; i++)
       {
       // for each reservoir, move the Reach pointer downstream
       // until a different resID found
-      Reservoir *pRes = m_reservoirArray[i];
+      Reservoir* pRes = m_reservoirArray[i];
       ASSERT(pRes != NULL);
 
-      Reach *pReach = pRes->m_pDownstreamReach;   // this points to the first reach downstream of the reservoir
-      
+      Reach* pReach = pRes->m_pDownstreamReach;   // this points to the first reach downstream of the reservoir
+
       if (pReach != NULL)   // any downstream reache?  if not, this Reservoir is ignored
          {
          //Initialize reservoir outflow to minimum outflow
@@ -6954,7 +6954,7 @@ bool FlowModel::InitRunReservoirs(EnvContext *pEnvContext)
                //LoadTable(pEnvModel, pRes->m_dir + _T("Output_from_ResSIM\\") + pRes->m_ressimRuleOutputFilename, (DataObj**)&(pRes->m_pResSimRuleOutput), 1);
                }
 
-            pRes->ProcessRulePriorityTable(pEnvModel,this);
+            pRes->ProcessRulePriorityTable(pEnvModel, this);
             }
          } // end of: if ( pReach != NULL )
 
@@ -7023,7 +7023,7 @@ int FlowModel::SimplifyNetwork(void)
    if (this->m_minCatchmentArea > 0)
       {
       CString _msg;
-      _msg.Format(_T("Min Catchment Area: %.1g ha, Max Catchment Area: %.1g ha"), (float) this->m_minCatchmentArea / M2_PER_HA, (float) this->m_maxCatchmentArea / M2_PER_HA);
+      _msg.Format(_T("Min Catchment Area: %.1g ha, Max Catchment Area: %.1g ha"), (float)this->m_minCatchmentArea / M2_PER_HA, (float)this->m_maxCatchmentArea / M2_PER_HA);
       msg += _msg;
       }
 
@@ -7035,7 +7035,7 @@ int FlowModel::SimplifyNetwork(void)
       // now, starting with the leaves, move down stream, looking for excluded stream reaches
       for (int i = 0; i < m_reachTree.GetRootCount(); i++)
          {
-         ReachNode *pRoot = m_reachTree.GetRootNode(i);
+         ReachNode* pRoot = m_reachTree.GetRootNode(i);
 
          // algorithm:  start with the root.  Simplify the left side, then the right side,
          // recursively with the following rule:
@@ -7071,7 +7071,7 @@ int FlowModel::SimplifyNetwork(void)
          }
       }
 
-   catch (CException *ex) // Catch all other CException derived exceptions 
+   catch (CException* ex) // Catch all other CException derived exceptions 
       {
       TCHAR info[300];
       if (ex->GetErrorMessage(info, 300) == TRUE)
@@ -7091,7 +7091,7 @@ int FlowModel::SimplifyNetwork(void)
    // update catchment/reach cumulative drainage areas
    // this->PopulateCatchmentCumulativeAreas();
 
-   int finalReachCount = (int) this->m_reachArray.GetSize();
+   int finalReachCount = (int)this->m_reachArray.GetSize();
    int finalHRUCount = 0;
 
    // update catchID and join cols to reflect the simplified network
@@ -7102,12 +7102,12 @@ int FlowModel::SimplifyNetwork(void)
 
    for (int i = 0; i < (int)m_catchmentArray.GetSize(); i++)
       {
-      Catchment *pCatchment = m_catchmentArray[i];
+      Catchment* pCatchment = m_catchmentArray[i];
       finalHRUCount += pCatchment->GetHRUCount();
 
       for (int j = 0; j < pCatchment->GetHRUCount(); j++)
          {
-         HRU *pHRU = pCatchment->GetHRU(j);
+         HRU* pHRU = pCatchment->GetHRU(j);
          ASSERT(pHRU != NULL);
          areaTotal += pHRU->m_area;
 
@@ -7123,7 +7123,7 @@ int FlowModel::SimplifyNetwork(void)
    // update stream join values
    for (int i = 0; i < this->m_reachArray.GetSize(); i++)
       {
-      Reach *pReach = m_reachArray[i];
+      Reach* pReach = m_reachArray[i];
 
       if (pReach->m_catchmentArray.GetSize() > 0)
          m_pStreamLayer->SetData(pReach->m_polyIndex, this->m_colStreamJoin, pReach->m_catchmentArray[0]->m_id);
@@ -7138,7 +7138,7 @@ int FlowModel::SimplifyNetwork(void)
 
 
 // returns number of reaches in the simplified tree
-int FlowModel::SimplifyTree(ReachNode *pNode)
+int FlowModel::SimplifyTree(ReachNode* pNode)
    {
    if (pNode == NULL)
       return 0;
@@ -7155,7 +7155,7 @@ int FlowModel::SimplifyTree(ReachNode *pNode)
    ASSERT(pNode->m_polyIndex >= 0);
    bool result = false;
    bool ok = m_pStreamQE->Run(m_pStreamQuery, pNode->m_polyIndex, result);
-   Reach *pReach = GetReachFromNode(pNode);
+   Reach* pReach = GetReachFromNode(pNode);
    if ((ok && result) || pReach->m_isMeasured)
       {
       // it does, so we keep this one and move on to the upstream nodes
@@ -7170,8 +7170,8 @@ int FlowModel::SimplifyTree(ReachNode *pNode)
          return 0;                  // tree will be deleted  NOTE: NOT IMPLEMENTED YET
       else
          {
-         ReachNode *pDownNode = pNode->GetDownstreamNode(true);  // skips phantoms
-         Reach *pDownReach = GetReachFromNode(pDownNode);
+         ReachNode* pDownNode = pNode->GetDownstreamNode(true);  // skips phantoms
+         Reach* pDownReach = GetReachFromNode(pDownNode);
          if (pDownReach == NULL)
             {
             CString msg;
@@ -7180,9 +7180,9 @@ int FlowModel::SimplifyTree(ReachNode *pNode)
             }
          else
             {
-            int beforeCatchCount = (int) this->m_catchmentArray.GetSize();
+            int beforeCatchCount = (int)this->m_catchmentArray.GetSize();
             MoveCatchments(pDownReach, pNode, true);   // moves all catchments for this and above (recursively)
-            int afterCatchCount = (int) this->m_catchmentArray.GetSize();
+            int afterCatchCount = (int)this->m_catchmentArray.GetSize();
 
             //CString msg;
             //msg.Format( _T("Flow: Pruning %i catchments that don't satisfy the Simplification query"), (beforeCatchCount-afterCatchCount) );
@@ -7197,7 +7197,7 @@ int FlowModel::SimplifyTree(ReachNode *pNode)
    }
 
 
-int FlowModel::ApplyCatchmentConstraints(ReachNode *pRoot)
+int FlowModel::ApplyCatchmentConstraints(ReachNode* pRoot)
    {
    // applies min/max size constraints on a catchment.  Basic rule is:
    // if the catchment for this reach is too small, combine it with another
@@ -7216,7 +7216,7 @@ int FlowModel::ApplyCatchmentConstraints(ReachNode *pRoot)
       removeCount = 0;
       for (int i = 0; i < (int)m_reachArray.GetSize(); i++)
          {
-         Reach *pReach = m_reachArray[i];
+         Reach* pReach = m_reachArray[i];
          int removed = ApplyAreaConstraints(pReach);
 
          // if this reach was removed, then move i back one to compensate
@@ -7238,7 +7238,7 @@ int FlowModel::ApplyCatchmentConstraints(ReachNode *pRoot)
 
 
 // return 0 if no change, 1 if Reach is altered
-int FlowModel::ApplyAreaConstraints(ReachNode *pNode)
+int FlowModel::ApplyAreaConstraints(ReachNode* pNode)
    {
    // this method examines the current reach.  if the contributing area of the reach is too small, try to combine it with another catchments
    // Basic rule is:
@@ -7251,7 +7251,7 @@ int FlowModel::ApplyAreaConstraints(ReachNode *pNode)
    if (pNode == NULL)
       return 0;
 
-   Reach *pReach = GetReachFromNode(pNode);
+   Reach* pReach = GetReachFromNode(pNode);
 
    if (pReach == NULL)      // no reach exist no action required
       return 0;
@@ -7264,14 +7264,14 @@ int FlowModel::ApplyAreaConstraints(ReachNode *pNode)
 
    // catchment area for this reach is too small, combine it.
    // Step one, look above, left 
-   ReachNode *pLeft = pNode->m_pLeft;
+   ReachNode* pLeft = pNode->m_pLeft;
    while (pLeft != NULL && GetReachFromNode(pLeft) == NULL)
       pLeft = pLeft->m_pLeft;
 
    // does a left reach exist?  if so, check area and combine if minimum not satisfied
    if (pLeft != NULL)
       {
-      Reach *pLeftReach = GetReachFromNode(pLeft);
+      Reach* pLeftReach = GetReachFromNode(pLeft);
       ASSERT(pLeftReach != NULL);
       if (!pLeftReach->m_isMeasured)
          {
@@ -7279,7 +7279,7 @@ int FlowModel::ApplyAreaConstraints(ReachNode *pNode)
          if ((pLeftReach->GetCatchmentArea() + catchArea) <= m_maxCatchmentArea)
             {
             MoveCatchments(pReach, pLeft, false);   // move the upstream reach to this one, no recursion
-           // RemoveReach( pLeft ); //leave reaches in the network  KBV
+            // RemoveReach( pLeft ); //leave reaches in the network  KBV
             RemoveCatchment(pLeft);
             return 1;
             }
@@ -7287,14 +7287,14 @@ int FlowModel::ApplyAreaConstraints(ReachNode *pNode)
       }
 
    // look above, right
-   ReachNode *pRight = pNode->m_pRight;
+   ReachNode* pRight = pNode->m_pRight;
    while (pRight != NULL && GetReachFromNode(pRight) == NULL)
       pRight = pRight->m_pRight;
 
    // does a right reach exist?  if so, check area and combine if minimum not satisfied
    if (pRight != NULL)
       {
-      Reach *pRightReach = GetReachFromNode(pRight);
+      Reach* pRightReach = GetReachFromNode(pRight);
       ASSERT(pRightReach != NULL);
       if (!pRightReach->m_isMeasured)
          {
@@ -7302,7 +7302,7 @@ int FlowModel::ApplyAreaConstraints(ReachNode *pNode)
          if ((pRightReach->GetCatchmentArea() + catchArea) <= m_maxCatchmentArea)
             {
             MoveCatchments(pReach, pRight, false);   // move the upstream reach to this one, no recursion
-           // RemoveReach( pRight );  //leave reaches in the network KBV
+            // RemoveReach( pRight );  //leave reaches in the network KBV
             RemoveCatchment(pRight);
             return 1;
             }
@@ -7310,15 +7310,15 @@ int FlowModel::ApplyAreaConstraints(ReachNode *pNode)
       }
 
    // no capacity upstream, how about downstream?
-   ReachNode *pDown = pNode->m_pDown;
+   ReachNode* pDown = pNode->m_pDown;
    while (pDown != NULL && GetReachFromNode(pDown) == NULL)
       pDown = pDown->m_pDown;
 
    // does a down reach exist?  if so, check area and combine if minimum not satisfied
    if (pDown != NULL && pReach->m_isMeasured == false)
       {
-      Reach *pDownReach = GetReachFromNode(pDown);
-      Reach *pReach = GetReachFromNode(pNode);
+      Reach* pDownReach = GetReachFromNode(pDown);
+      Reach* pReach = GetReachFromNode(pNode);
       ASSERT(pDownReach != NULL);
 
       // is there available capacity upstream?
@@ -7346,7 +7346,7 @@ float FlowModel::PopulateCatchmentCumulativeAreas(void)
    float area = 0;
    for (int i = 0; i < m_reachTree.GetRootCount(); i++)
       {
-      ReachNode *pRoot = m_reachTree.GetRootNode(i);
+      ReachNode* pRoot = m_reachTree.GetRootNode(i);
       area += PopulateCatchmentCumulativeAreas(pRoot);
       }
 
@@ -7358,7 +7358,7 @@ float FlowModel::PopulateCatchmentCumulativeAreas(void)
 // coverages with cumulative values.  Assumes internal catchment areas have already been 
 // determined.
 
-float FlowModel::PopulateCatchmentCumulativeAreas(ReachNode *pNode)
+float FlowModel::PopulateCatchmentCumulativeAreas(ReachNode* pNode)
    {
    if (pNode == NULL)
       return 0;
@@ -7366,7 +7366,7 @@ float FlowModel::PopulateCatchmentCumulativeAreas(ReachNode *pNode)
    float leftArea = PopulateCatchmentCumulativeAreas(pNode->m_pLeft);
    float rightArea = PopulateCatchmentCumulativeAreas(pNode->m_pRight);
 
-   Reach *pReach = GetReachFromNode(pNode);
+   Reach* pReach = GetReachFromNode(pNode);
 
    if (pReach != NULL)
       {
@@ -7386,7 +7386,7 @@ float FlowModel::PopulateCatchmentCumulativeAreas(ReachNode *pNode)
          {
          for (int i = 0; i < (int)pReach->m_catchmentArray.GetSize(); i++)
             {
-            Catchment *pCatch = pReach->m_catchmentArray[i];
+            Catchment* pCatch = pReach->m_catchmentArray[i];
             SetCatchmentData(pCatch, m_colCatchmentCumArea, area);
             }
          }
@@ -7402,7 +7402,7 @@ float FlowModel::PopulateCatchmentCumulativeAreas(ReachNode *pNode)
 
 // FlowModel::MoveCatchments() takes the catchment HRUs associated wih the "from" node and moves them to the
 //    "to" reach, and optionally repeats recursively up the network.
-int FlowModel::MoveCatchments(Reach *pToReach, ReachNode *pFromNode, bool recurse)
+int FlowModel::MoveCatchments(Reach* pToReach, ReachNode* pFromNode, bool recurse)
    {
    if (pFromNode == NULL || pToReach == NULL)
       return 0;
@@ -7414,7 +7414,7 @@ int FlowModel::MoveCatchments(Reach *pToReach, ReachNode *pFromNode, bool recurs
       return leftCount + rightCount;
       }
 
-   Reach *pFromReach = GetReachFromNode(pFromNode);
+   Reach* pFromReach = GetReachFromNode(pFromNode);
 
    int fromCatchmentCount = (int)pFromReach->m_catchmentArray.GetSize();
 
@@ -7429,7 +7429,7 @@ int FlowModel::MoveCatchments(Reach *pToReach, ReachNode *pFromNode, bool recurs
       // first catchment in the "to" reach catchment list
       int toCatchmentCount = (int)pToReach->m_catchmentArray.GetSize();
 
-      Catchment *pToCatchment = NULL;
+      Catchment* pToCatchment = NULL;
 
       if (toCatchmentCount == 0)//KELLIE
          {
@@ -7443,7 +7443,7 @@ int FlowModel::MoveCatchments(Reach *pToReach, ReachNode *pFromNode, bool recurs
 
       for (int i = 0; i < fromCatchmentCount; i++)
          {
-         Catchment *pFromCatchment = pFromReach->m_catchmentArray.GetAt(i);
+         Catchment* pFromCatchment = pFromReach->m_catchmentArray.GetAt(i);
 
          pToReach->m_cumUpstreamArea = pFromReach->m_cumUpstreamArea + pToReach->GetCatchmentArea();
          pToReach->m_cumUpstreamLength = pFromReach->m_cumUpstreamLength + pToReach->m_length;
@@ -7461,8 +7461,8 @@ int FlowModel::MoveCatchments(Reach *pToReach, ReachNode *pFromNode, bool recurs
    // recurse if specified
    if (recurse && !pFromReach->m_isMeasured) // we don't want to recurse farther if we have find a reach for which we are saving model output for comparison with measurements
       {
-      ReachNode *pLeft = pFromNode->m_pLeft;
-      ReachNode *pRight = pFromNode->m_pRight;
+      ReachNode* pLeft = pFromNode->m_pLeft;
+      ReachNode* pRight = pFromNode->m_pRight;
 
       int leftCount = MoveCatchments(pToReach, pLeft, recurse);
       int rightCount = MoveCatchments(pToReach, pRight, recurse);
@@ -7471,8 +7471,8 @@ int FlowModel::MoveCatchments(Reach *pToReach, ReachNode *pFromNode, bool recurs
       }
    else if (recurse && pFromReach->m_isMeasured) // so skip the measured reach, and continue recursion above it
       {
-      ReachNode *pLeft = pFromNode->m_pLeft;
-      ReachNode *pRight = pFromNode->m_pRight;
+      ReachNode* pLeft = pFromNode->m_pLeft;
+      ReachNode* pRight = pFromNode->m_pRight;
 
       int leftCount = MoveCatchments(pFromReach, pLeft, recurse);
       int rightCount = MoveCatchments(pFromReach, pRight, recurse);
@@ -7487,7 +7487,7 @@ int FlowModel::MoveCatchments(Reach *pToReach, ReachNode *pFromNode, bool recurs
 // Combines the two catchments into the target catchment, copying/combining HRUs in the process.
 // Depending on the deleteSource flag, the source catchment is optionally deleted
 
-int FlowModel::CombineCatchments(Catchment *pTargetCatchment, Catchment *pSourceCatchment, bool deleteSource)
+int FlowModel::CombineCatchments(Catchment* pTargetCatchment, Catchment* pSourceCatchment, bool deleteSource)
    {
    // get list of polygons to move from soure to target
    int hruCount = pSourceCatchment->GetHRUCount();
@@ -7496,7 +7496,7 @@ int FlowModel::CombineCatchments(Catchment *pTargetCatchment, Catchment *pSource
 
    for (int i = 0; i < hruCount; i++)
       {
-      HRU *pHRU = pSourceCatchment->GetHRU(i);
+      HRU* pHRU = pSourceCatchment->GetHRU(i);
 
       for (int j = 0; j < pHRU->m_polyIndexArray.GetSize(); j++)
          polyArray.Add(pHRU->m_polyIndexArray[j]);
@@ -7528,13 +7528,13 @@ int FlowModel::CombineCatchments(Catchment *pTargetCatchment, Catchment *pSource
    }
 
 
-int FlowModel::RemoveCatchmentHRUs(Catchment *pCatchment)
+int FlowModel::RemoveCatchmentHRUs(Catchment* pCatchment)
    {
    int count = pCatchment->GetHRUCount();
    // first, remove from FlowModel
    for (int i = 0; i < count; i++)
       {
-      HRU *pHRU = pCatchment->GetHRU(i);
+      HRU* pHRU = pCatchment->GetHRU(i);
       this->m_hruArray.Remove(pHRU);    // deletes the HHRU
       }
 
@@ -7549,7 +7549,7 @@ int FlowModel::RemoveCatchmentHRUs(Catchment *pCatchment)
 
 
 // removes all reaches and reachnodes, starting with the passed in node
-int FlowModel::RemoveReaches(ReachNode *pNode)
+int FlowModel::RemoveReaches(ReachNode* pNode)
    {
    if (pNode == NULL)
       return 0;
@@ -7565,7 +7565,7 @@ int FlowModel::RemoveReaches(ReachNode *pNode)
          m_pStreamLayer->SetData(pNode->m_polyIndex, m_colStreamOrder, -order);
          }
 
-      Reach *pReach = GetReachFromNode(pNode);
+      Reach* pReach = GetReachFromNode(pNode);
       removed++;
 
       // remove from internal list
@@ -7590,9 +7590,9 @@ int FlowModel::RemoveReaches(ReachNode *pNode)
    }
 
 
-bool FlowModel::RemoveCatchment(ReachNode *pNode)
+bool FlowModel::RemoveCatchment(ReachNode* pNode)
    {
-   Reach *pReach = GetReachFromNode(pNode);
+   Reach* pReach = GetReachFromNode(pNode);
 
    if (pReach == NULL)    // NULL, phantom, or no associated Reach
       return 0;
@@ -7606,7 +7606,7 @@ bool FlowModel::RemoveCatchment(ReachNode *pNode)
    // delete any associated catchments
    for (int i = 0; i < (int)pReach->m_catchmentArray.GetSize(); i++)
       {
-      Catchment *pCatchment = pReach->m_catchmentArray[i];
+      Catchment* pCatchment = pReach->m_catchmentArray[i];
 
       for (int j = 0; j < (int)m_catchmentArray.GetSize(); j++)
          {
@@ -7621,9 +7621,9 @@ bool FlowModel::RemoveCatchment(ReachNode *pNode)
    }
 
 // removes this reach and reachnode, converting the node into a phantom node
-bool FlowModel::RemoveReach(ReachNode *pNode)
+bool FlowModel::RemoveReach(ReachNode* pNode)
    {
-   Reach *pReach = GetReachFromNode(pNode);
+   Reach* pReach = GetReachFromNode(pNode);
 
    if (pReach == NULL)    // NULL, phantom, or no associated Reach
       return 0;
@@ -7637,7 +7637,7 @@ bool FlowModel::RemoveReach(ReachNode *pNode)
    // delete any associated catchments
    for (int i = 0; i < (int)pReach->m_catchmentArray.GetSize(); i++)
       {
-      Catchment *pCatchment = pReach->m_catchmentArray[i];
+      Catchment* pCatchment = pReach->m_catchmentArray[i];
 
       for (int j = 0; j < (int)m_catchmentArray.GetSize(); j++)
          {
@@ -7669,11 +7669,11 @@ bool FlowModel::RemoveReach(ReachNode *pNode)
 
 // load table take a filename, creates a new DataObject of the specified type, and fills it
 // with the file-based table
-int FlowModel::LoadTable(EnvModel *pEnvModel, LPCTSTR filename, DataObj** pDataObj, int type)
+int FlowModel::LoadTable(EnvModel* pEnvModel, LPCTSTR filename, DataObj** pDataObj, int type)
    {
    if (*pDataObj != NULL)
       {
-      delete *pDataObj;
+      delete* pDataObj;
       *pDataObj = NULL;
       }
 
@@ -7691,7 +7691,7 @@ int FlowModel::LoadTable(EnvModel *pEnvModel, LPCTSTR filename, DataObj** pDataO
       }
 
    CString path(filename);
-   this->ApplyMacros(pEnvModel,path);
+   this->ApplyMacros(pEnvModel, path);
 
    switch (type)
       {
@@ -7713,7 +7713,7 @@ int FlowModel::LoadTable(EnvModel *pEnvModel, LPCTSTR filename, DataObj** pDataO
 
    if ((*pDataObj)->ReadAscii(path) <= 0)
       {
-      delete *pDataObj;
+      delete* pDataObj;
       *pDataObj = NULL;
 
       CString msg(_T("Flow: Error reading table: "));
@@ -7765,17 +7765,17 @@ bool FlowModel::InitIntegrationBlocks(void)
 
       for (int j = 0; j < count; j++)
          {
-         HRU *pHRU = m_catchmentArray[i]->GetHRU(j);
+         HRU* pHRU = m_catchmentArray[i]->GetHRU(j);
 
          for (int k = 0; k < hruPoolCount; k++)
             {
-            HRUPool *pHRUPool = m_catchmentArray[i]->GetHRU(j)->GetPool(k);
+            HRUPool* pHRUPool = m_catchmentArray[i]->GetHRU(j)->GetPool(k);
 
             pHRUPool->m_svIndex = hruSvCount;
             m_hruBlock.SetStateVar(&(pHRUPool->m_volumeWater), hruSvCount++);
 
             for (int l = 0; l < m_hruSvCount - 1; l++)
-               { 
+               {
                m_hruBlock.SetStateVar(&(pHRUPool->m_svArray[l]), hruSvCount++);
                pHRUPool->m_svArray[l] = 0.0f;
                }
@@ -7792,7 +7792,7 @@ bool FlowModel::InitIntegrationBlocks(void)
       int reachSvCount = 0;
       for (int i = 0; i < reachCount; i++)
          {
-         Reach *pReach = m_reachArray[i];
+         Reach* pReach = m_reachArray[i];
          reachSvCount += pReach->GetSubnodeCount();
          }
 
@@ -7807,12 +7807,12 @@ bool FlowModel::InitIntegrationBlocks(void)
       reachSvCount = 0;
       for (int i = 0; i < reachCount; i++)
          {
-         Reach *pReach = m_reachArray[i];
+         Reach* pReach = m_reachArray[i];
 
          for (int j = 0; j < pReach->GetSubnodeCount(); j++)
             {
             // assign state variables
-            ReachSubnode *pNode = (ReachSubnode*)pReach->m_subnodeArray[j];
+            ReachSubnode* pNode = (ReachSubnode*)pReach->m_subnodeArray[j];
             pNode->m_svIndex = reachSvCount;
             m_reachBlock.SetStateVar(&pNode->m_volume, reachSvCount++);
 
@@ -7829,7 +7829,7 @@ bool FlowModel::InitIntegrationBlocks(void)
    int resSvCount = 0;
    for (int i = 0; i < reservoirCount; i++)
       {
-      Reservoir *pRes = m_reservoirArray.GetAt(i);
+      Reservoir* pRes = m_reservoirArray.GetAt(i);
       pRes->m_svIndex = resSvCount;
       m_reservoirBlock.SetStateVar(&(pRes->m_volume), resSvCount++);
 
@@ -7882,21 +7882,21 @@ void FlowModel::AllocateOutputVars()
    }
 
 
-void FlowModel::GetCatchmentDerivatives(double time, double timeStep, int svCount, double *derivatives /*out*/, void *extra)
+void FlowModel::GetCatchmentDerivatives(double time, double timeStep, int svCount, double* derivatives /*out*/, void* extra)
    {
-   FlowContext *pFlowContext = (FlowContext*)extra;
+   FlowContext* pFlowContext = (FlowContext*)extra;
 
    pFlowContext->timeStep = (float)timeStep;
    pFlowContext->time = (float)time;
 
-   FlowModel *pModel = pFlowContext->pFlowModel;
+   FlowModel* pModel = pFlowContext->pFlowModel;
    //pModel->ResetFluxValuesForStep(pFlowContext->pEnvContext);
 
    pModel->SetGlobalExtraSVRxn();
 
    GlobalMethodManager::Step(pFlowContext);
 
-//   pFlowContext->svCount = m_pFlowModel->m_hruSvCount - 1;
+   //   pFlowContext->svCount = m_pFlowModel->m_hruSvCount - 1;
 
    int catchmentCount = (int)pModel->m_catchmentArray.GetSize();
    int hruPoolCount = pModel->GetHRUPoolCount();
@@ -7910,12 +7910,12 @@ void FlowModel::GetCatchmentDerivatives(double time, double timeStep, int svCoun
 #pragma omp parallel for firstprivate( flowContext )
    for (int h = 0; h < hruCount; h++)
       {
-      HRU *pHRU = pModel->m_hruArray[h];
+      HRU* pHRU = pModel->m_hruArray[h];
       flowContext.pHRU = pHRU;
 
       for (int l = 0; l < hruPoolCount; l++)
          {
-         HRUPool *pHRUPool = pHRU->GetPool(l);
+         HRUPool* pHRUPool = pHRU->GetPool(l);
          flowContext.pHRUPool = pHRUPool;
          int svIndex = pHRUPool->m_svIndex;
          float flux = pHRUPool->GetFluxValue();
@@ -7945,10 +7945,10 @@ void FlowModel::GetCatchmentDerivatives(double time, double timeStep, int svCoun
 
 
 
-void FlowModel::GetReservoirDerivatives(double time, double timeStep, int svCount, double *derivatives /*out*/, void *extra)
+void FlowModel::GetReservoirDerivatives(double time, double timeStep, int svCount, double* derivatives /*out*/, void* extra)
    {
-   FlowContext *pFlowContext = (FlowContext*)extra;
-   FlowModel *pModel = pFlowContext->pFlowModel;
+   FlowContext* pFlowContext = (FlowContext*)extra;
+   FlowModel* pModel = pFlowContext->pFlowModel;
 
    // compute derivative values for reservoir
    pFlowContext->timeStep = (float)timeStep;
@@ -7965,7 +7965,7 @@ void FlowModel::GetReservoirDerivatives(double time, double timeStep, int svCoun
       {
       FlowContext flowContext(*pFlowContext);    // make a copy for openMP
 
-      Reservoir *pRes = pModel->m_reservoirArray[i];
+      Reservoir* pRes = pModel->m_reservoirArray[i];
 
       int svIndex = pRes->m_svIndex;
 
@@ -7982,21 +7982,21 @@ void FlowModel::GetReservoirDerivatives(double time, double timeStep, int svCoun
 
 
 
-void FlowModel::GetTotalDerivatives(double time, double timeStep, int svCount, double *derivatives /*out*/, void *extra)
+void FlowModel::GetTotalDerivatives(double time, double timeStep, int svCount, double* derivatives /*out*/, void* extra)
    {
-   FlowContext *pFlowContext = (FlowContext*)extra;
+   FlowContext* pFlowContext = (FlowContext*)extra;
 
    // NOTE: NEED TO INITIALIZE TIME IN FlowContext before calling here...
    // NOTE:  Should probably do a breadth-first search of the tree(s) rather than what is here.  This could be accomplished by
    //  sorting the m_reachArray in InitReaches()
-   FlowModel *pModel = pFlowContext->pFlowModel;
+   FlowModel* pModel = pFlowContext->pFlowModel;
 
    derivatives[0] = pModel->m_totalWaterInputRate;
    derivatives[1] = pModel->m_totalWaterOutputRate;
    }
 
 
-ParamTable *FlowModel::GetTable(LPCTSTR name)
+ParamTable* FlowModel::GetTable(LPCTSTR name)
    {
    for (int i = 0; i < (int)m_tableArray.GetSize(); i++)
       if (lstrcmpi(m_tableArray[i]->m_pTable->GetName(), name) == 0)
@@ -8006,9 +8006,9 @@ ParamTable *FlowModel::GetTable(LPCTSTR name)
    }
 
 
-bool FlowModel::GetTableValue(LPCTSTR name, int col, int row, float &value)
+bool FlowModel::GetTableValue(LPCTSTR name, int col, int row, float& value)
    {
-   ParamTable *pTable = GetTable(name);
+   ParamTable* pTable = GetTable(name);
 
    if (pTable == NULL)
       return false;
@@ -8020,9 +8020,9 @@ bool FlowModel::GetTableValue(LPCTSTR name, int col, int row, float &value)
 
 void FlowModel::AddReservoirLayer(void)
    {
-   Map *pMap = m_pCatchmentLayer->GetMapPtr();
+   Map* pMap = m_pCatchmentLayer->GetMapPtr();
 
-   MapLayer *pResLayer = pMap->GetLayer(_T("Reservoirs"));
+   MapLayer* pResLayer = pMap->GetLayer(_T("Reservoirs"));
 
    if (pResLayer != NULL)      // already exists?
       {
@@ -8034,26 +8034,26 @@ void FlowModel::AddReservoirLayer(void)
    int usedResCount = 0;
    for (int i = 0; i < resCount; i++)
       {
-      if (m_reservoirArray[i]->m_reachArray.GetSize() > 0 ) //pDownstreamReach != NULL)
+      if (m_reservoirArray[i]->m_reachArray.GetSize() > 0) //pDownstreamReach != NULL)
          usedResCount++;
       }
 
    m_pResLayer = pMap->AddLayer(LT_POINT);
 
-   DataObj *pData = m_pResLayer->CreateDataTable(0, 1, DOT_FLOAT);
+   DataObj* pData = m_pResLayer->CreateDataTable(0, 1, DOT_FLOAT);
 
    usedResCount = 0;
    for (int i = 0; i < resCount; i++)
       {
-      Reservoir *pRes = m_reservoirArray[i];
+      Reservoir* pRes = m_reservoirArray[i];
 
       if (pRes->m_pDownstreamReach != NULL)
          {
          int polyIndex = pRes->m_pDownstreamReach->m_polyIndex;
 
-         Poly *pPt = m_pStreamLayer->GetPolygon(polyIndex);
+         Poly* pPt = m_pStreamLayer->GetPolygon(polyIndex);
          int vertexCount = (int)pPt->m_vertexArray.GetSize();
-         Vertex &v = pPt->m_vertexArray[vertexCount - 1];
+         Vertex& v = pPt->m_vertexArray[vertexCount - 1];
 
          m_pResLayer->AddPoint(v.x, v.y);
          pData->Set(0, i, pRes->m_volume);
@@ -8187,9 +8187,9 @@ void FlowModel::AddReservoirLayer(void)
 
 
 // this method reads an xml input file
-bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
+bool FlowModel::LoadXml(LPCTSTR filename, EnvContext* pEnvContext)
    {
-   MapLayer *pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
    // start parsing input file
    TiXmlDocument doc;
@@ -8206,9 +8206,9 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }
 
    // start interating through the nodes
-   TiXmlElement *pXmlRoot = doc.RootElement();  // <flow_model>
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <flow_model>
 
-   FlowModel *pModel = this;
+   FlowModel* pModel = this;
 
    pModel->m_filename = filename;
    CString grid;
@@ -8288,14 +8288,14 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
    if (iduDailyTracerOutput) pModel->m_detailedOutputFlags += 16;
 
    //------------------- <scenario macros> ------------------
-   TiXmlElement *pXmlMacros = pXmlRoot->FirstChildElement(_T("macros"));
+   TiXmlElement* pXmlMacros = pXmlRoot->FirstChildElement(_T("macros"));
    if (pXmlMacros)
       {
-      TiXmlElement *pXmlMacro = pXmlMacros->FirstChildElement(_T("macro"));
+      TiXmlElement* pXmlMacro = pXmlMacros->FirstChildElement(_T("macro"));
 
       while (pXmlMacro != NULL)
          {
-         ScenarioMacro *pMacro = new ScenarioMacro;
+         ScenarioMacro* pMacro = new ScenarioMacro;
          XML_ATTR macroAttrs[] = {
             // attr                 type          address                     isReq  checkCol
             { _T("name"),              TYPE_CSTRING,   &(pMacro->m_name),          true,   0 },
@@ -8315,10 +8315,10 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             pModel->m_macroArray.Add(pMacro);
 
             // parse any details
-            TiXmlElement *pXmlScn = pXmlMacro->FirstChildElement(_T("scenario"));
+            TiXmlElement* pXmlScn = pXmlMacro->FirstChildElement(_T("scenario"));
             while (pXmlScn != NULL)
                {
-               SCENARIO_MACRO *pScn = new SCENARIO_MACRO;
+               SCENARIO_MACRO* pScn = new SCENARIO_MACRO;
                CString scnName;
                XML_ATTR scnAttrs[] = {
                   // attr           type          address                  isReq  checkCol
@@ -8336,7 +8336,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                   }
                else
                   {
-                  Scenario *pScenario = NULL;  //::EnvGetScenarioFromName( scnName, &(pScn->envScenarioIndex) );   // this is the envision scenario index
+                  Scenario* pScenario = NULL;  //::EnvGetScenarioFromName( scnName, &(pScn->envScenarioIndex) );   // this is the envision scenario index
 
                   //if ( pScenario != NULL )
                   pMacro->m_macroArray.Add(pScn);
@@ -8351,7 +8351,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
          }  // end of: while ( pXmlMacro != NULL )   }
       }
    //------------------- <catchment> ------------------
-   TiXmlElement *pXmlCatchment = pXmlRoot->FirstChildElement(_T("catchments"));
+   TiXmlElement* pXmlCatchment = pXmlRoot->FirstChildElement(_T("catchments"));
    XML_ATTR catchmentAttrs[] = {
       // attr                 type          address                           isReq  checkCol
       { _T("layer"),              TYPE_CSTRING,  &(pModel->m_catchmentLayer),     false,   0 },
@@ -8385,33 +8385,33 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }
 
    // process <pools> tag
-   TiXmlElement *pXmlPools = pXmlCatchment->FirstChildElement(_T("pools"));
-   if (pXmlPools == NULL )
+   TiXmlElement* pXmlPools = pXmlCatchment->FirstChildElement(_T("pools"));
+   if (pXmlPools == NULL)
       {
       Report::ErrorMsg("Flow: missing <pools> tags defined within the parent <catchment> tag. At least one pool is required.  Flow can not continue until this is fixed...");
       delete pModel;
       return false;
       }
-   if ( pXmlPools->NoChildren())
+   if (pXmlPools->NoChildren())
       {
       Report::ErrorMsg("Flow: No <pool> tags defined within the parent <pool> tag. At least one pool is required.  Flow can not continue until this is fixed...");
       delete pModel;
       return false;
       }
 
-   TiXmlElement *pXmlPool = pXmlPools->FirstChildElement(_T("pool"));
+   TiXmlElement* pXmlPool = pXmlPools->FirstChildElement(_T("pool"));
    while (pXmlPool != NULL)
       {
-      PoolInfo *pInfo = new PoolInfo;
+      PoolInfo* pInfo = new PoolInfo;
       CString type;
       XML_ATTR poolAttrs[] = {
-      // attr                        type          address                           isReq  checkCol
-         { _T("name"),               TYPE_CSTRING,  &(pInfo->m_name),                true,    0 },
-         { _T("type"),               TYPE_CSTRING,  &type,                           true,    0 },
-         { _T("depth"),              TYPE_FLOAT,    &(pInfo->m_depth),               true,    0 },
-         { _T("init_water_content"), TYPE_FLOAT,    &(pInfo->m_initWaterContent),    false,   0 },
-         { _T("init_water_temp"),    TYPE_FLOAT,    &(pInfo->m_initWaterTemp ),      false,   0 },
-         { NULL,                     TYPE_NULL,     NULL,                            false,   0 } };
+         // attr                        type          address                           isReq  checkCol
+            { _T("name"),               TYPE_CSTRING,  &(pInfo->m_name),                true,    0 },
+            { _T("type"),               TYPE_CSTRING,  &type,                           true,    0 },
+            { _T("depth"),              TYPE_FLOAT,    &(pInfo->m_depth),               true,    0 },
+            { _T("init_water_content"), TYPE_FLOAT,    &(pInfo->m_initWaterContent),    false,   0 },
+            { _T("init_water_temp"),    TYPE_FLOAT,    &(pInfo->m_initWaterTemp),      false,   0 },
+            { NULL,                     TYPE_NULL,     NULL,                            false,   0 } };
 
       ok = TiXmlGetAttributes(pXmlPool, poolAttrs, filename, NULL);
       if (!ok)
@@ -8425,25 +8425,25 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
       type.MakeLower();
 
-      if ( type[0] == 'v' )
+      if (type[0] == 'v')
          pInfo->m_type = PT_VEG;
-      else if ( type[0] == 'i' )
+      else if (type[0] == 'i')
          pInfo->m_type = PT_IRRIGATED;
-      else if ( type[0] == 's' && type[1] == 'n' )
+      else if (type[0] == 's' && type[1] == 'n')
          pInfo->m_type = PT_SNOW;
       else if (type[0] == 's' && type[1] == 'o')
          pInfo->m_type = PT_SOIL;
-      else if (type[0] == 'm' )
+      else if (type[0] == 'm')
          pInfo->m_type = PT_MELT;
       else
          {
          CString msg;
-         msg.Format( "Flow: Unrecognized pool type ('%s') - must be one of 'veg', 'soil', 'irrigated', or 'snow'.", (LPCTSTR) type);
-         Report::LogWarning( msg );
+         msg.Format("Flow: Unrecognized pool type ('%s') - must be one of 'veg', 'soil', 'irrigated', or 'snow'.", (LPCTSTR)type);
+         Report::LogWarning(msg);
          pInfo->m_type = PT_SOIL;
          }
 
-      this->m_poolInfoArray.Add( pInfo );
+      this->m_poolInfoArray.Add(pInfo);
       pXmlPool = pXmlPool->NextSiblingElement(_T("pool"));
       }
 
@@ -8491,7 +8491,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }
 
    //-------------- <stream> ------------------
-   TiXmlElement *pXmlStream = pXmlRoot->FirstChildElement(_T("streams"));
+   TiXmlElement* pXmlStream = pXmlRoot->FirstChildElement(_T("streams"));
    float reachTimeStep = 1.0f;
    XML_ATTR streamAttrs[] = {
       // attr              type           address                          isReq  checkCol
@@ -8544,11 +8544,11 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
    if (!pModel->m_orderCol.IsEmpty())
       CheckCol(pModel->m_pStreamLayer, pModel->m_colStreamOrder, pModel->m_orderCol, TYPE_LONG, CC_AUTOADD);
 
-   TiXmlElement *pXmlGlobal = pXmlRoot->FirstChildElement(_T("global_methods"));
+   TiXmlElement* pXmlGlobal = pXmlRoot->FirstChildElement(_T("global_methods"));
    if (pXmlGlobal != NULL)
       {
       // process and child nodes
-      TiXmlElement *pXmlGlobalChild = pXmlGlobal->FirstChildElement();
+      TiXmlElement* pXmlGlobalChild = pXmlGlobal->FirstChildElement();
 
       while (pXmlGlobalChild != NULL)
          {
@@ -8559,7 +8559,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             // Reach Routing
             if (_tcsicmp(tagName, _T("reach_routing")) == 0)
                {
-               pModel->m_pReachRouting = ReachRouting::LoadXml(pXmlGlobalChild, filename,this);
+               pModel->m_pReachRouting = ReachRouting::LoadXml(pXmlGlobalChild, filename, this);
                if (pModel->m_pReachRouting != NULL)
                   GlobalMethodManager::AddGlobalMethod(pModel->m_pReachRouting);
                }
@@ -8567,7 +8567,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             // lateral exchnage
             else if (_tcsicmp(tagName, _T("lateral_exchange")) == 0)
                {
-               pModel->m_pLateralExchange = LateralExchange::LoadXml(pXmlGlobalChild, filename,this);
+               pModel->m_pLateralExchange = LateralExchange::LoadXml(pXmlGlobalChild, filename, this);
                if (pModel->m_pLateralExchange != NULL)
                   GlobalMethodManager::AddGlobalMethod(pModel->m_pLateralExchange);
                }
@@ -8575,7 +8575,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             // hru vertical exchange
             else if (_tcsicmp(tagName, _T("hru_vertical_exchange")) == 0)
                {
-               pModel->m_pHruVertExchange = HruVertExchange::LoadXml(pXmlGlobalChild, filename,this);
+               pModel->m_pHruVertExchange = HruVertExchange::LoadXml(pXmlGlobalChild, filename, this);
                if (pModel->m_pHruVertExchange != NULL)
                   GlobalMethodManager::AddGlobalMethod(pModel->m_pHruVertExchange);
                }
@@ -8583,7 +8583,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             // external methods
             else if (_tcsicmp(tagName, _T("external")) == 0)
                {
-               GlobalMethod *pMethod = ExternalMethod::LoadXml(pXmlGlobalChild, filename,this);
+               GlobalMethod* pMethod = ExternalMethod::LoadXml(pXmlGlobalChild, filename, this);
                if (pMethod != NULL)
                   GlobalMethodManager::AddGlobalMethod(pMethod);
                }
@@ -8591,24 +8591,24 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             // evap_trans
             else if (_tcsicmp(tagName, _T("evap_trans")) == 0)
                {
-               GlobalMethod *pMethod = EvapTrans::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
+               GlobalMethod* pMethod = EvapTrans::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
                if (pMethod != NULL)
                   GlobalMethodManager::AddGlobalMethod(pMethod);
                }
 
             // daily urban water demand 
             else if (_tcsicmp(tagName, _T("climate_metrics")) == 0)
-            {
-                GlobalMethod* pMethod = Climate_Metrics::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
-                if (pMethod != NULL)
-                    GlobalMethodManager::AddGlobalMethod(pMethod);
-            }
+               {
+               GlobalMethod* pMethod = Climate_Metrics::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
+               if (pMethod != NULL)
+                  GlobalMethodManager::AddGlobalMethod(pMethod);
+               }
 
 
             // daily urban water demand 
             else if (_tcsicmp(tagName, _T("Urban_Water_Demand")) == 0)
                {
-               GlobalMethod *pMethod = DailyUrbanWaterDemand::LoadXml(pXmlGlobalChild, pIDULayer, filename,this);
+               GlobalMethod* pMethod = DailyUrbanWaterDemand::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
                if (pMethod != NULL)
                   GlobalMethodManager::AddGlobalMethod(pMethod);
                }
@@ -8616,7 +8616,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             // flux (multiple entries allowed)
             else if (_tcsicmp(tagName, _T("flux")) == 0)
                {
-               GlobalMethod *pMethod = FluxExpr::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
+               GlobalMethod* pMethod = FluxExpr::LoadXml(pXmlGlobalChild, pIDULayer, filename, this);
                if (pMethod != NULL)
                   GlobalMethodManager::AddGlobalMethod(pMethod);
                }
@@ -8624,7 +8624,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             // allocations (multiple entries allowed)
             else if (_tcsicmp(tagName, _T("allocation")) == 0)
                {
-               GlobalMethod *pMethod = WaterAllocation::LoadXml(pXmlGlobalChild, filename, this);
+               GlobalMethod* pMethod = WaterAllocation::LoadXml(pXmlGlobalChild, filename, this);
                if (pMethod != NULL)
                   GlobalMethodManager::AddGlobalMethod(pMethod);
                }
@@ -8635,7 +8635,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }  // end of: if ( pXmlGlobal != NULL )
 
    // scenarios
-   TiXmlElement *pXmlScenarios = pXmlRoot->FirstChildElement(_T("scenarios"));
+   TiXmlElement* pXmlScenarios = pXmlRoot->FirstChildElement(_T("scenarios"));
    if (pXmlScenarios == NULL)
       {
       CString msg(_T("Flow: Missing <scenarios> tag when reading "));
@@ -8648,7 +8648,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       int defaultIndex = 0;
       TiXmlGetAttr(pXmlScenarios, _T("default"), defaultIndex, 0, false);
 
-      TiXmlElement *pXmlScenario = pXmlScenarios->FirstChildElement(_T("scenario"));
+      TiXmlElement* pXmlScenario = pXmlScenarios->FirstChildElement(_T("scenario"));
 
       while (pXmlScenario != NULL)
          {
@@ -8672,14 +8672,14 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             break;
             }
 
-         FlowScenario *pScenario = new FlowScenario;
+         FlowScenario* pScenario = new FlowScenario;
          pScenario->m_id = id;
          pScenario->m_name = name;
          pModel->m_scenarioArray.Add(pScenario);
          pScenario->m_useStationData = false;
 
          //---------- <climate> ----------------------------------
-         TiXmlElement *pXmlClimate = pXmlScenario->FirstChildElement(_T("climate"));
+         TiXmlElement* pXmlClimate = pXmlScenario->FirstChildElement(_T("climate"));
          while (pXmlClimate != NULL)
             {
             LPTSTR path = NULL, varName = NULL, cdtype = NULL;
@@ -8696,7 +8696,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                { _T("delta"),     TYPE_FLOAT,    &delta,    false,  0 },
                { _T("elev"),      TYPE_FLOAT,    &elev,     false,  0 },
                { _T("id"),        TYPE_INT,      &id,       false,  0 },
-               
+
                { NULL,        TYPE_NULL,     NULL,      false,  0 } };
 
             bool ok = TiXmlGetAttributes(pXmlClimate, climateAttrs, filename);
@@ -8708,17 +8708,17 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                }
             else
                {
-               ClimateDataInfo *pInfo = new ClimateDataInfo;
+               ClimateDataInfo* pInfo = new ClimateDataInfo;
                pInfo->m_varName = varName;
 
                // is there a : in the path?  If so it is complete.  If not, assume it is a subdirectory of the project path
-               if ( _tcschr( path, ':') != NULL )   // there was a colon
+               if (_tcschr(path, ':') != NULL)   // there was a colon
                   pInfo->m_path = path;
                else
                   pInfo->m_path = pModel->m_path + path;
 
                // if not a weather station, allocate a geospatial data object
-               if ( cdtype[0] != 'c' )
+               if (cdtype[0] != 'c')
                   pInfo->m_pNetCDFData = new GeoSpatialDataObj(U_UNDEFINED);
 
                pInfo->m_useDelta = pXmlClimate->Attribute(_T("delta")) ? true : false;
@@ -8760,44 +8760,44 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                      break;
 
                   case _T('c'):
+                  {
+                  pInfo->m_type = CDT_STATIONDATA;
+                  pScenario->m_useStationData = true;
+
+                  bool success = true;
+                  CString _path;
+                  if (PathManager::FindPath(path, _path) < 0)
                      {
-                     pInfo->m_type = CDT_STATIONDATA;
-                     pScenario->m_useStationData = true;
-
-                     bool success = true;
-                     CString _path;
-                     if (PathManager::FindPath(path, _path) < 0)
-                        {
-                        CString msg;
-                        msg.Format(_T("Flow: Climate Station path '%s' not found.  Climate data will not be available."), path);
-                        Report::LogWarning(msg);
-                        success = false;
-                        }
-
-                     if ( pModel->m_colStationID < 0 && id >= 0)
-                        pModel->m_colStationID = pIDULayer->GetFieldCol( "STATIONID" );
-  
-                     if ( success )
-                        {
-                        pInfo->m_path = _path;
-                        pInfo->m_id = id;
-                        pInfo->m_stationElevation = elev;
-                        pModel->ReadClimateStationData(pInfo, _path );
-                        //pModel->m_climateFilePath = _path;
-                        //pModel->ReadClimateStationData(_path);
-                        //pModel->m_climateStationElev = elev;
-                        }
+                     CString msg;
+                     msg.Format(_T("Flow: Climate Station path '%s' not found.  Climate data will not be available."), path);
+                     Report::LogWarning(msg);
+                     success = false;
                      }
+
+                  if (pModel->m_colStationID < 0 && id >= 0)
+                     pModel->m_colStationID = pIDULayer->GetFieldCol("STATIONID");
+
+                  if (success)
+                     {
+                     pInfo->m_path = _path;
+                     pInfo->m_id = id;
+                     pInfo->m_stationElevation = elev;
+                     pModel->ReadClimateStationData(pInfo, _path);
+                     //pModel->m_climateFilePath = _path;
+                     //pModel->ReadClimateStationData(_path);
+                     //pModel->m_climateStationElev = elev;
+                     }
+                  }
                   break;
 
                   default:
-                     {
-                     CString msg;
-                     msg.Format(_T("Flow Error: Unrecognized climate data '%s'type reading file %s"), cdtype, filename);
-                     Report::LogWarning(msg);
-                     delete pInfo;
-                     pInfo = NULL;
-                     }
+                  {
+                  CString msg;
+                  msg.Format(_T("Flow Error: Unrecognized climate data '%s'type reading file %s"), cdtype, filename);
+                  Report::LogWarning(msg);
+                  delete pInfo;
+                  pInfo = NULL;
+                  }
                   }  // end of: switch( type[ 0 ] )
 
                if (pInfo != NULL)
@@ -8812,20 +8812,20 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                      }
                   else    // getting weather station data
                      {
-                     if ( pScenario->m_climateInfoArray.GetSize() > 1 ) 
+                     if (pScenario->m_climateInfoArray.GetSize() > 1)
                         {
-                        if ( pModel->m_colStationID < 0 )
+                        if (pModel->m_colStationID < 0)
                            {
-                           Report::LogError(_T("Flow Error: Multiple weather stations defined, but [STATIONID] field is not present in the IDU coverage.  This field should be populated before proceeding.") );
+                           Report::LogError(_T("Flow Error: Multiple weather stations defined, but [STATIONID] field is not present in the IDU coverage.  This field should be populated before proceeding."));
                            }
-                        else if ( pInfo->m_id < 0 )
+                        else if (pInfo->m_id < 0)
                            {
                            CString msg;
-                           msg.Format(_T("Flow Error: Weather station '%s' is missing it's ID.  This should be specified before proceeding."), (LPCTSTR) pInfo->m_path );
+                           msg.Format(_T("Flow Error: Weather station '%s' is missing it's ID.  This should be specified before proceeding."), (LPCTSTR)pInfo->m_path);
                            Report::LogError(msg);
                            }
                         }
-               
+
                      pScenario->m_climateDataMap.SetAt(pInfo->m_id, pInfo);
                      pScenario->m_climateInfoArray.Add(pInfo);
                      }
@@ -8845,7 +8845,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }  // end of: if ( pXmlScenarios != NULL )
 
    //----------- <reservoirs> ------------------------------
-   TiXmlElement *pXmlReservoirs = pXmlRoot->FirstChildElement(_T("reservoirs"));
+   TiXmlElement* pXmlReservoirs = pXmlRoot->FirstChildElement(_T("reservoirs"));
 
    if (pXmlReservoirs != NULL)
       {
@@ -8863,11 +8863,11 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
       if (ok)
          {
-         TiXmlElement *pXmlRes = pXmlReservoirs->FirstChildElement(_T("reservoir"));
+         TiXmlElement* pXmlRes = pXmlReservoirs->FirstChildElement(_T("reservoir"));
 
          while (pXmlRes != NULL)
             {
-            Reservoir *pRes = new Reservoir;
+            Reservoir* pRes = new Reservoir;
             LPCSTR reservoirType = NULL;
 
             float volume = 0.0f;
@@ -8919,50 +8919,50 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             switch (reservoirType[0])
                {
                case _T('F'):
-                  {
-                  pRes->m_reservoirType = ResType_FloodControl;
-                  CString msg;
-                  msg.Format(_T("Flow: Reservoir %s is Flood Control"), (LPCTSTR)pRes->m_name);
-                  break;
-                  }
+               {
+               pRes->m_reservoirType = ResType_FloodControl;
+               CString msg;
+               msg.Format(_T("Flow: Reservoir %s is Flood Control"), (LPCTSTR)pRes->m_name);
+               break;
+               }
                case _T('R'):
-                  {
-                  pRes->m_reservoirType = ResType_RiverRun;
-                  CString msg;
-                  msg.Format(_T("Flow: Reservoir %s is River Run"), (LPCTSTR)pRes->m_name);
-                  break;
-                  }
+               {
+               pRes->m_reservoirType = ResType_RiverRun;
+               CString msg;
+               msg.Format(_T("Flow: Reservoir %s is River Run"), (LPCTSTR)pRes->m_name);
+               break;
+               }
                case _T('C'):
-                  {
-                  pRes->m_reservoirType = ResType_CtrlPointControl;
-                  CString msg;
-                  msg.Format(_T("Flow: Reservoir %s is Control Point Control"), (LPCTSTR)pRes->m_name);
-                  break;
-                  }
+               {
+               pRes->m_reservoirType = ResType_CtrlPointControl;
+               CString msg;
+               msg.Format(_T("Flow: Reservoir %s is Control Point Control"), (LPCTSTR)pRes->m_name);
+               break;
+               }
                case _T('O'):
                {
-                  pRes->m_reservoirType = ResType_Optimized;
-                  CString msg;
-                  msg.Format(_T("Flow: Reservoir %s is Controlled by Calvin Allocation Model"), (LPCTSTR)pRes->m_name);
-                  break;
+               pRes->m_reservoirType = ResType_Optimized;
+               CString msg;
+               msg.Format(_T("Flow: Reservoir %s is Controlled by Calvin Allocation Model"), (LPCTSTR)pRes->m_name);
+               break;
                }
                default:
-                  {
-                  CString msg(_T("Flow: Unrecognized 'reservoir_type' attribute '"));
-                  msg += reservoirType;
-                  msg += _T("' reading <reservoir> tag for Reservoir '");
-                  msg += (LPCSTR)pRes->m_name;
-                  //      msg += _T("'. This output will be ignored...");
-                  Report::ErrorMsg(msg);
-                  break;
-                  }
+               {
+               CString msg(_T("Flow: Unrecognized 'reservoir_type' attribute '"));
+               msg += reservoirType;
+               msg += _T("' reading <reservoir> tag for Reservoir '");
+               msg += (LPCSTR)pRes->m_name;
+               //      msg += _T("'. This output will be ignored...");
+               Report::ErrorMsg(msg);
+               break;
+               }
                }
 
             if (pRes != NULL)
                {
                pRes->InitializeReservoirVolume(volume);
                //pModel->m_reservoirArray.Add(pRes);
-               pModel->AddReservoir( pRes );
+               pModel->AddReservoir(pRes);
                }
 
             pXmlRes = pXmlRes->NextSiblingElement(_T("reservoir"));
@@ -8973,7 +8973,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
    //----------- <control points> ------------------------------
    if (pXmlReservoirs != NULL)
       {
-      TiXmlElement *pXmlControlPointsParent = pXmlRoot->FirstChildElement(_T("controlPoints"));
+      TiXmlElement* pXmlControlPointsParent = pXmlRoot->FirstChildElement(_T("controlPoints"));
 
       if (pXmlControlPointsParent == NULL)
          pXmlControlPointsParent = pXmlReservoirs;
@@ -8984,11 +8984,11 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
          if (ok)
             {
-            TiXmlElement *pXmlCP = pXmlControlPointsParent->FirstChildElement(_T("controlPoint"));
+            TiXmlElement* pXmlCP = pXmlControlPointsParent->FirstChildElement(_T("controlPoint"));
 
             while (pXmlCP != NULL)
                {
-               ControlPoint *pControl = new ControlPoint;
+               ControlPoint* pControl = new ControlPoint;
 
                XML_ATTR cpAttrs[] = {
                   // attr               type         address                                isReq   checkCol
@@ -9019,7 +9019,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }  // end of: if ( pXmlReservoirs != NULL)
 
    //-------- extra state variables next ------------
-   StateVar *pSV = new StateVar;  // first is always "water"
+   StateVar* pSV = new StateVar;  // first is always "water"
    pSV->m_name = _T("water");
    pSV->m_index = 0;
    pSV->m_uniqueID = -1;
@@ -9029,10 +9029,10 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
    LPCTSTR fieldname = NULL;
    int numTracers = 0;
 
-   TiXmlElement *pXmlStateVars = pXmlRoot->FirstChildElement(_T("additional_state_vars"));
+   TiXmlElement* pXmlStateVars = pXmlRoot->FirstChildElement(_T("additional_state_vars"));
    if (pXmlStateVars != NULL)
       {
-      TiXmlElement *pXmlStateVar = pXmlStateVars->FirstChildElement(_T("state_var"));
+      TiXmlElement* pXmlStateVar = pXmlStateVars->FirstChildElement(_T("state_var"));
 
       while (pXmlStateVar != NULL)
          {
@@ -9077,72 +9077,72 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                pModel->AddStateVar(pSV);
                }
             }
-/*
-         CString path;
-         if (PathManager::FindPath(appTablePath, path) < 0)
-            {
-            CString msg(_T("Flow: ESV table source error: Unable to open/read "));
-            msg += appTablePath;
-            Report::ErrorMsg(msg);
-            }
-
-         if (path.IsEmpty() == false)
-            {
-            DataObj *pDataObj;
-            pDataObj = new FDataObj;   // MEMORY LEAK!!!!  NOT SURE WHAT THE INTENTION HERE IS?
-            ASSERT(0);
-
-            int rows = pDataObj->ReadAscii(path);
-
-            if (rows <= 0)
-               {
-               CString msg(_T("Flow: ESV table source error: Unable to open/read "));
-               msg += appTablePath;
-               Report::ErrorMsg(msg);
-               delete pDataObj;
-               }
-            else
-               {
-               ParamTable *pTable = new ParamTable;
-
-               pTable->m_pTable = pDataObj;
-               pTable->m_type = pDataObj->GetDOType();
-
-               if (fieldname != NULL)
-                  {
-                  pTable->m_fieldName = fieldname;
-                  pTable->m_iduCol = pIDULayer->GetFieldCol(fieldname);
-
-                  if (pTable->m_iduCol < 0)
+         /*
+                  CString path;
+                  if (PathManager::FindPath(appTablePath, path) < 0)
                      {
-                     CString msg(_T("Flow: ESV table source error: column '"));
-                     msg += fieldname;
-                     msg += _T("; not found in IDU coverage");
+                     CString msg(_T("Flow: ESV table source error: Unable to open/read "));
+                     msg += appTablePath;
                      Report::ErrorMsg(msg);
                      }
-                  }
 
-               pTable->CreateMap();
-               pSV->m_tableArray.Add(pTable);
-               }
-            }
+                  if (path.IsEmpty() == false)
+                     {
+                     DataObj *pDataObj;
+                     pDataObj = new FDataObj;   // MEMORY LEAK!!!!  NOT SURE WHAT THE INTENTION HERE IS?
+                     ASSERT(0);
 
-         // read in esv parameter  Table
-         //pSV->m_paramTablePath = paramTablePath;
-         path.Empty();
-         if (PathManager::FindPath(paramTablePath, path) < 0)
-            {
-            CString msg(_T("Flow: ESV table source error: Unable to open/read "));
-            msg += appTablePath;
-            Report::ErrorMsg(msg);
-            }
+                     int rows = pDataObj->ReadAscii(path);
 
-         if (path.IsEmpty() == false)
-            {
-            pSV->m_paramTable = new VDataObj;
-            pSV->m_paramTable->ReadAscii(path, _T(','));
-            }
-*/
+                     if (rows <= 0)
+                        {
+                        CString msg(_T("Flow: ESV table source error: Unable to open/read "));
+                        msg += appTablePath;
+                        Report::ErrorMsg(msg);
+                        delete pDataObj;
+                        }
+                     else
+                        {
+                        ParamTable *pTable = new ParamTable;
+
+                        pTable->m_pTable = pDataObj;
+                        pTable->m_type = pDataObj->GetDOType();
+
+                        if (fieldname != NULL)
+                           {
+                           pTable->m_fieldName = fieldname;
+                           pTable->m_iduCol = pIDULayer->GetFieldCol(fieldname);
+
+                           if (pTable->m_iduCol < 0)
+                              {
+                              CString msg(_T("Flow: ESV table source error: column '"));
+                              msg += fieldname;
+                              msg += _T("; not found in IDU coverage");
+                              Report::ErrorMsg(msg);
+                              }
+                           }
+
+                        pTable->CreateMap();
+                        pSV->m_tableArray.Add(pTable);
+                        }
+                     }
+
+                  // read in esv parameter  Table
+                  //pSV->m_paramTablePath = paramTablePath;
+                  path.Empty();
+                  if (PathManager::FindPath(paramTablePath, path) < 0)
+                     {
+                     CString msg(_T("Flow: ESV table source error: Unable to open/read "));
+                     msg += appTablePath;
+                     Report::ErrorMsg(msg);
+                     }
+
+                  if (path.IsEmpty() == false)
+                     {
+                     pSV->m_paramTable = new VDataObj;
+                     pSV->m_paramTable->ReadAscii(path, _T(','));
+                     }
+         */
          pXmlStateVar = pXmlStateVar->NextSiblingElement(_T("state_var"));
          }
       }
@@ -9151,11 +9151,11 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
    pModel->m_hruSvCount = pModel->m_reachSvCount = pModel->m_reservoirSvCount = pModel->GetStateVarCount();
 
    // tables next
-   TiXmlElement *pXmlTables = pXmlRoot->FirstChildElement(_T("tables"));
+   TiXmlElement* pXmlTables = pXmlRoot->FirstChildElement(_T("tables"));
    if (pXmlTables != NULL)
       {
       // get tables next
-      TiXmlElement *pXmlTable = pXmlTables->FirstChildElement(_T("table"));
+      TiXmlElement* pXmlTable = pXmlTables->FirstChildElement(_T("table"));
       while (pXmlTable != NULL)
          {
          LPCTSTR name = NULL;
@@ -9183,8 +9183,8 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             }
          else
             {
-            DataObj *pDataObj;
-            DataObj *pInitDataObj;
+            DataObj* pDataObj;
+            DataObj* pInitDataObj;
 
             if (*type == _T('v'))
                {
@@ -9223,7 +9223,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                   }
                else
                   {
-                  ParamTable *pTable = new ParamTable;
+                  ParamTable* pTable = new ParamTable;
 
                   pTable->m_pTable = pDataObj;
                   pTable->m_pInitialValuesTable = pDataObj;  ///???? 
@@ -9257,7 +9257,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
       }
 
    // Parameter Estimation 
-   TiXmlElement *pXmlParameters = pXmlRoot->FirstChildElement(_T("parameterEstimation"));
+   TiXmlElement* pXmlParameters = pXmlRoot->FirstChildElement(_T("parameterEstimation"));
    if (pXmlParameters != NULL)
       {
       float numberOfRuns;
@@ -9307,7 +9307,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
          //   pModel->m_paramEstOutputPath += outputPath;
          }
       // get tables next
-      TiXmlElement *pXmlParameter = pXmlParameters->FirstChildElement(_T("parameter"));
+      TiXmlElement* pXmlParameter = pXmlParameters->FirstChildElement(_T("parameter"));
       while (pXmlParameter != NULL)
          {
          LPCTSTR name = NULL;
@@ -9338,7 +9338,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
             }
          else
             {
-            ParameterValue *pParam = new ParameterValue;
+            ParameterValue* pParam = new ParameterValue;
             if (name != NULL)
                {
                pParam->m_name = name;
@@ -9357,21 +9357,21 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
 
    // output expressions
-   TiXmlElement *pXmlModelOutputs = pXmlRoot->FirstChildElement(_T("outputs"));
+   TiXmlElement* pXmlModelOutputs = pXmlRoot->FirstChildElement(_T("outputs"));
    if (pXmlModelOutputs != NULL)
       {
-      TiXmlElement *pXmlGroup = pXmlModelOutputs->FirstChildElement(_T("output_group"));
+      TiXmlElement* pXmlGroup = pXmlModelOutputs->FirstChildElement(_T("output_group"));
 
       while (pXmlGroup != NULL)
          {
-         ModelOutputGroup *pGroup = new ModelOutputGroup;
+         ModelOutputGroup* pGroup = new ModelOutputGroup;
          pGroup->m_name = pXmlGroup->Attribute(_T("name"));
          if (pGroup->m_name.IsEmpty())
             pGroup->m_name = _T("Flow Model Output");
 
          m_modelOutputGroupArray.Add(pGroup);
 
-         TiXmlElement *pXmlModelOutput = pXmlGroup->FirstChildElement(_T("output"));
+         TiXmlElement* pXmlModelOutput = pXmlGroup->FirstChildElement(_T("output"));
 
          while (pXmlModelOutput != NULL)
             {
@@ -9412,7 +9412,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                }
             else
                {
-               ModelOutput *pOutput = new ModelOutput;
+               ModelOutput* pOutput = new ModelOutput;
 
                pOutput->m_name = name;
                pOutput->m_queryStr = query;
@@ -9507,11 +9507,11 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                      {
                      pOutput->m_modelDomain = MOD_HRULAYER;
 
-                     TCHAR *buffer = new TCHAR[255];
-                     TCHAR *nextToken;
+                     TCHAR* buffer = new TCHAR[255];
+                     TCHAR* nextToken;
                      lstrcpy(buffer, (LPCTSTR)domain);
 
-                     TCHAR *col = _tcstok_s(buffer, _T(":"), &nextToken);
+                     TCHAR* col = _tcstok_s(buffer, _T(":"), &nextToken);
                      CString p;
                      while (col != NULL)
                         {
@@ -9556,11 +9556,11 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
                      {
                      case _T('e'):
                      {
-                     TCHAR *buffer = new TCHAR[255];
-                     TCHAR *nextToken = NULL;
+                     TCHAR* buffer = new TCHAR[255];
+                     TCHAR* nextToken = NULL;
                      lstrcpy(buffer, (LPCTSTR)expr);
 
-                     TCHAR *col = _tcstok_s(buffer, _T(":"), &nextToken);
+                     TCHAR* col = _tcstok_s(buffer, _T(":"), &nextToken);
 
                      CString p;
                      p = col;
@@ -9591,7 +9591,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
 
                // check to make sure the query for any stream sites returns a reach
                bool pass = true;
-               if (pOutput->m_modelDomain == MOD_REACH  && pOutput->m_pDataObjObs)
+               if (pOutput->m_modelDomain == MOD_REACH && pOutput->m_pDataObjObs)
                   {
                   pass = false;
                   for (MapLayer::Iterator i = pModel->m_pStreamLayer->Begin(); i < pModel->m_pStreamLayer->End(); i++)
@@ -9676,7 +9676,7 @@ bool FlowModel::LoadXml(LPCTSTR filename, EnvContext *pEnvContext )
    // video capture
    /*
    TiXmlElement *pXmlVideoCapture = pXmlRoot->FirstChildElement(_T("video_capture"));
-   
+
    if (pXmlVideoCapture != NULL)
       {
       //pModel->m_useRecorder = true;
@@ -9750,17 +9750,17 @@ int FlowModel::IdentifyMeasuredReaches(void)
    //for ( MapLayer::Iterator i=this->m_pStreamLayer->Begin(); i < m_pStreamLayer->End(); i++ )
    for (int i = 0; i < (int)m_reachArray.GetSize(); i++)
       {
-      Reach *pReach = m_reachArray[i];
+      Reach* pReach = m_reachArray[i];
 
       int polyIndex = pReach->m_polyIndex;
 
-      for (int k = 0; k < (int) this->m_modelOutputGroupArray.GetSize(); k++)
+      for (int k = 0; k < (int)this->m_modelOutputGroupArray.GetSize(); k++)
          {
-         ModelOutputGroup *pGroup = m_modelOutputGroupArray[k];
+         ModelOutputGroup* pGroup = m_modelOutputGroupArray[k];
 
          for (int j = 0; j < (int)pGroup->GetSize(); j++)
             {
-            ModelOutput *pOutput = pGroup->GetAt(j);
+            ModelOutput* pOutput = pGroup->GetAt(j);
 
             if (pOutput->m_modelDomain == MOD_REACH && pOutput->m_pQuery != NULL)
                {
@@ -9816,15 +9816,15 @@ bool FlowModel::InitializeParameterEstimationSampleArray(void)
    int moCount = 0;//number of outputs with measured time series
    for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
       {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
       for (int i = 0; i < (int)pGroup->GetSize(); i++)
          {
          if (pGroup->GetAt(i)->m_pDataObjObs != NULL)
             {
             moCount++;
-            FDataObj *pErrorStatData = new FDataObj(7, 0, U_UNDEFINED);
+            FDataObj* pErrorStatData = new FDataObj(7, 0, U_UNDEFINED);
             // FDataObj *pParameterData = new FDataObj((int)m_parameterArray.GetSize(),0);
-            FDataObj *pDischargeData = new FDataObj(1, 1, U_UNDEFINED);
+            FDataObj* pDischargeData = new FDataObj(1, 1, U_UNDEFINED);
             // m_mcOutputTables.Add(pParameterData);
             m_mcOutputTables.Add(pErrorStatData);
             m_mcOutputTables.Add(pDischargeData);
@@ -9996,15 +9996,15 @@ bool FlowModel::InitializeHRULayerSampleArray(void)
 void FlowModel::CollectData(int dayOfYear)
    {
    // reservoirs
-   for (int i = 0; i < (int) this->m_reservoirArray.GetSize(); i++)
+   for (int i = 0; i < (int)this->m_reservoirArray.GetSize(); i++)
       {
-      Reservoir *pRes = m_reservoirArray.GetAt(i);
+      Reservoir* pRes = m_reservoirArray.GetAt(i);
 
       ASSERT(pRes->m_pResData != NULL);
 
       if (pRes->m_reservoirType == ResType_CtrlPointControl)
          {
-         float *data = new float[4];
+         float* data = new float[4];
          data[0] = (float)m_timeInRun;
          data[1] = pRes->GetPoolElevationFromVolume();
          data[2] = pRes->m_inflow / SEC_PER_DAY;
@@ -10016,7 +10016,7 @@ void FlowModel::CollectData(int dayOfYear)
          }
       else if (pRes->m_reservoirType == ResType_Optimized)
          {
-         float *data = new float[3];
+         float* data = new float[3];
          data[0] = (float)m_timeInRun;
          data[1] = pRes->m_inflow / SEC_PER_DAY;
          data[2] = pRes->m_outflow / SEC_PER_DAY;
@@ -10028,7 +10028,7 @@ void FlowModel::CollectData(int dayOfYear)
       else
          {
          // float data [ 8 ];
-         float *data = new float[8];
+         float* data = new float[8];
          data[0] = (float)m_timeInRun;
          data[1] = pRes->GetPoolElevationFromVolume();
          data[2] = pRes->GetTargetElevationFromRuleCurve(dayOfYear);
@@ -10047,7 +10047,7 @@ void FlowModel::CollectData(int dayOfYear)
          {
          VData vtime = m_timeInRun;
          vtime.ChangeType(TYPE_INT);
-         VData *Rules = new VData[7];
+         VData* Rules = new VData[7];
 
          VData activerule;
          activerule.ChangeType(TYPE_CSTRING);
@@ -10095,7 +10095,7 @@ void FlowModel::CollectData(int dayOfYear)
 
 
 // called daily (or whatever timestep FLOW is running at)
-void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
+void FlowModel::UpdateHRULevelVariables(EnvContext* pEnvContext)
    {
    float time = float(m_currentTime - (int)m_currentTime);
    float dt = m_flowContext.timeStep;
@@ -10104,9 +10104,9 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
    m_pCatchmentLayer->m_readOnly = false;
 
    //   #pragma omp parallel for 
-   for (int i = 0; i < (int) this->m_hruArray.GetSize(); i++)
+   for (int i = 0; i < (int)this->m_hruArray.GetSize(); i++)
       {
-      HRU *pHRU = m_hruArray[i];
+      HRU* pHRU = m_hruArray[i];
 
       // climate
       float precip = 0.0f;
@@ -10117,42 +10117,42 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
       GetHRUClimate(CDT_SOLARRAD, pHRU, (int)currTime, pHRU->m_currentRadiation);
       //ASSERT(pHRU->m_currentMaxTemp > -100.0f);
       if (pHRU->m_currentAirTemp < -100)
-      {
-          pHRU->m_currentAirTemp = 5;
-          pHRU->m_currentPrecip = 0;
-          pHRU->m_currentMinTemp = 5;
-          pHRU->m_currentMaxTemp = 5;
-      }
-      pHRU->m_precip_yr += (float) (pHRU->m_currentPrecip*m_timeStep);         // mm
-      pHRU->m_precip_wateryr += (float) (pHRU->m_currentPrecip*m_timeStep);         // mm
-      pHRU->m_rainfall_yr += (float) (pHRU->m_currentRainfall*m_timeStep);       // mm
-      pHRU->m_snowfall_yr += (float) (pHRU->m_currentSnowFall*m_timeStep);       // mm
-      pHRU->m_temp_yr += (float) (pHRU->m_currentAirTemp*m_timeStep);
-      pHRU->m_gwRecharge_yr += (float) (pHRU->m_currentGWRecharge*m_timeStep);       // mm
-      pHRU->m_gwFlowOut_yr += (float) (pHRU->m_currentGWFlowOut*m_timeStep);
+         {
+         pHRU->m_currentAirTemp = 5;
+         pHRU->m_currentPrecip = 0;
+         pHRU->m_currentMinTemp = 5;
+         pHRU->m_currentMaxTemp = 5;
+         }
+      pHRU->m_precip_yr += (float)(pHRU->m_currentPrecip * m_timeStep);         // mm
+      pHRU->m_precip_wateryr += (float)(pHRU->m_currentPrecip * m_timeStep);         // mm
+      pHRU->m_rainfall_yr += (float)(pHRU->m_currentRainfall * m_timeStep);       // mm
+      pHRU->m_snowfall_yr += (float)(pHRU->m_currentSnowFall * m_timeStep);       // mm
+      pHRU->m_temp_yr += (float)(pHRU->m_currentAirTemp * m_timeStep);
+      pHRU->m_gwRecharge_yr += (float)(pHRU->m_currentGWRecharge * m_timeStep);       // mm
+      pHRU->m_gwFlowOut_yr += (float)(pHRU->m_currentGWFlowOut * m_timeStep);
 
       // hydrology
       pHRU->m_depthMelt = 0;
-     // pHRU->m_depthSWE  = 0;
-      for ( int j=0; j < this->m_poolInfoArray.GetSize(); j++ )
+      // pHRU->m_depthSWE  = 0;
+      for (int j = 0; j < this->m_poolInfoArray.GetSize(); j++)
          {
-         switch(this->m_poolInfoArray[j]->m_type )
+         switch (this->m_poolInfoArray[j]->m_type)
             {
             case PT_VEG:
-           //    pHRU->m_depthMelt += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
+               //    pHRU->m_depthMelt += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
                break;
 
             case PT_SNOW:
-            //   pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
+               //   pHRU->m_depthSWE += float(pHRU->GetPool(j)->m_volumeWater / pHRU->m_area); // volume of ice in snow 
                break;
             }
          }
 
-    //  pHRU->m_depthSWE += pHRU->m_depthMelt; // SWE includes melt + ice
+      //  pHRU->m_depthSWE += pHRU->m_depthMelt; // SWE includes melt + ice
 
-      pHRU->m_maxET_yr += float( pHRU->m_currentMaxET*m_timeStep );
-      pHRU->m_et_yr += float( pHRU->m_currentET*m_timeStep );
-      pHRU->m_runoff_yr += float( pHRU->m_currentRunoff*m_timeStep );
+      pHRU->m_maxET_yr += float(pHRU->m_currentMaxET * m_timeStep);
+      pHRU->m_et_yr += float(pHRU->m_currentET * m_timeStep);
+      pHRU->m_runoff_yr += float(pHRU->m_currentRunoff * m_timeStep);
 
       // THIS SHOULDN"T BE HERE!!!!!!
       /*
@@ -10165,7 +10165,7 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
             switch (this->m_poolInfoArray[j]->m_type)
                {
                case PT_SNOW:
-                  snow += ((float)pHRU->GetPool(j)->m_volumeWater / pHRU->m_area ) * MM_PER_M;  // m3 / m2 
+                  snow += ((float)pHRU->GetPool(j)->m_volumeWater / pHRU->m_area ) * MM_PER_M;  // m3 / m2
                   break;
                }
             }
@@ -10179,7 +10179,7 @@ void FlowModel::UpdateHRULevelVariables(EnvContext *pEnvContext)
    }
 
 
-bool FlowModel::GetHRUData(HRU *pHRU, int col, VData &value, DAMETHOD method)
+bool FlowModel::GetHRUData(HRU* pHRU, int col, VData& value, DAMETHOD method)
    {
    if (method == DAM_FIRST)
       {
@@ -10199,7 +10199,7 @@ bool FlowModel::GetHRUData(HRU *pHRU, int col, VData &value, DAMETHOD method)
    }
 
 
-bool FlowModel::GetHRUData(HRU *pHRU, int col, bool  &value, DAMETHOD method)
+bool FlowModel::GetHRUData(HRU* pHRU, int col, bool& value, DAMETHOD method)
    {
    VData _value;
    if (GetHRUData(pHRU, col, _value, method) == false)
@@ -10209,7 +10209,7 @@ bool FlowModel::GetHRUData(HRU *pHRU, int col, bool  &value, DAMETHOD method)
    }
 
 
-bool FlowModel::GetHRUData(HRU *pHRU, int col, int  &value, DAMETHOD method)
+bool FlowModel::GetHRUData(HRU* pHRU, int col, int& value, DAMETHOD method)
    {
    VData _value;
    if (GetHRUData(pHRU, col, _value, method) == false)
@@ -10219,7 +10219,7 @@ bool FlowModel::GetHRUData(HRU *pHRU, int col, int  &value, DAMETHOD method)
    }
 
 
-bool FlowModel::GetHRUData(HRU *pHRU, int col, float &value, DAMETHOD method)
+bool FlowModel::GetHRUData(HRU* pHRU, int col, float& value, DAMETHOD method)
    {
    VData _value;
    if (GetHRUData(pHRU, col, _value, method) == false)
@@ -10230,11 +10230,11 @@ bool FlowModel::GetHRUData(HRU *pHRU, int col, float &value, DAMETHOD method)
 
 
 
-bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, VData &value, DAMETHOD method)
+bool FlowModel::GetCatchmentData(Catchment* pCatchment, int col, VData& value, DAMETHOD method)
    {
    if (method == DAM_FIRST)
       {
-      HRU *pHRU = pCatchment->GetHRU(0);
+      HRU* pHRU = pCatchment->GetHRU(0);
       if (pHRU == NULL || pHRU->m_polyIndexArray.IsEmpty())
          return false;
 
@@ -10247,7 +10247,7 @@ bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, VData &value, D
       int hruCount = pCatchment->GetHRUCount();
       for (int i = 0; i < hruCount; i++)
          {
-         HRU *pHRU = pCatchment->GetHRU(i);
+         HRU* pHRU = pCatchment->GetHRU(i);
 
          da.AddPolys((int*)(pHRU->m_polyIndexArray.GetData()),
             (int)pHRU->m_polyIndexArray.GetSize());
@@ -10259,7 +10259,7 @@ bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, VData &value, D
    }
 
 
-bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, int &value, DAMETHOD method)
+bool FlowModel::GetCatchmentData(Catchment* pCatchment, int col, int& value, DAMETHOD method)
    {
    VData _value;
    if (GetCatchmentData(pCatchment, col, _value, method) == false)
@@ -10269,7 +10269,7 @@ bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, int &value, DAM
    }
 
 
-bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, bool &value, DAMETHOD method)
+bool FlowModel::GetCatchmentData(Catchment* pCatchment, int col, bool& value, DAMETHOD method)
    {
    VData _value;
    if (GetCatchmentData(pCatchment, col, _value, method) == false)
@@ -10279,7 +10279,7 @@ bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, bool &value, DA
    }
 
 
-bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, float &value, DAMETHOD method)
+bool FlowModel::GetCatchmentData(Catchment* pCatchment, int col, float& value, DAMETHOD method)
    {
    VData _value;
    if (GetCatchmentData(pCatchment, col, _value, method) == false)
@@ -10290,14 +10290,14 @@ bool FlowModel::GetCatchmentData(Catchment *pCatchment, int col, float &value, D
 
 
 
-bool FlowModel::SetCatchmentData(Catchment *pCatchment, int col, VData value)
+bool FlowModel::SetCatchmentData(Catchment* pCatchment, int col, VData value)
    {
    if (col < 0)
       return false;
 
    for (int i = 0; i < pCatchment->GetHRUCount(); i++)
       {
-      HRU *pHRU = pCatchment->GetHRU(i);
+      HRU* pHRU = pCatchment->GetHRU(i);
 
       for (int j = 0; j < (int)pHRU->m_polyIndexArray.GetSize(); j++)
          m_pCatchmentLayer->SetData(pHRU->m_polyIndexArray[j], col, value);
@@ -10306,26 +10306,26 @@ bool FlowModel::SetCatchmentData(Catchment *pCatchment, int col, VData value)
    }
 
 
-bool FlowModel::GetReachData(Reach *pReach, int col, VData &value)
+bool FlowModel::GetReachData(Reach* pReach, int col, VData& value)
    {
    int record = pReach->m_polyIndex;
    return m_pStreamLayer->GetData(record, col, value);
    }
 
-bool FlowModel::GetReachData(Reach *pReach, int col, bool &value)
+bool FlowModel::GetReachData(Reach* pReach, int col, bool& value)
    {
    int record = pReach->m_polyIndex;
    return m_pStreamLayer->GetData(record, col, value);
    }
 
 
-bool FlowModel::GetReachData(Reach *pReach, int col, int &value)
+bool FlowModel::GetReachData(Reach* pReach, int col, int& value)
    {
    int record = pReach->m_polyIndex;
    return m_pStreamLayer->GetData(record, col, value);
    }
 
-bool FlowModel::GetReachData(Reach *pReach, int col, float &value)
+bool FlowModel::GetReachData(Reach* pReach, int col, float& value)
    {
    int record = pReach->m_polyIndex;
    return m_pStreamLayer->GetData(record, col, value);
@@ -10338,7 +10338,7 @@ bool FlowModel::GetReachData(Reach *pReach, int col, float &value)
 //--  Opens and loads the file into the data object
 //-------------------------------------------------------------------
 
-int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
+int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj& dataObj, int dataType)
    {
    CString fileName;
    PathManager::FindPath(_fileName, fileName);
@@ -10389,7 +10389,7 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
 
    //long fileSize = _filelength ( _fileno( fp ) );
 
-   TCHAR *buffer = new TCHAR[fileSize + 2];
+   TCHAR* buffer = new TCHAR[fileSize + 2];
    memset(buffer, 0, (fileSize + 2) * sizeof(TCHAR));
 
    //fread ( buffer, fileSize, 1, fp );
@@ -10399,7 +10399,7 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
 
 
    //-- skip any leading comments --//
-   char *p = buffer;
+   char* p = buffer;
    while (*p == _T('#') || *p == _T('a') || *p == _T('5'))
       {
       p = strchr(p, _T('\n'));
@@ -10407,7 +10407,7 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
       }
 
    //-- start parsing buffer --//
-   char *end = strchr(p, _T('\n'));
+   char* end = strchr(p, _T('\n'));
 
    //-- NULL-terminate then get column count --//
    *end = NULL;
@@ -10427,7 +10427,7 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
    d[1] = _T('-');
    d[2] = _T('\n');
    d[3] = NULL;
-   char *next;
+   char* next;
 
    p = strtok_s(buffer, d, &next);
    _cols = 0;
@@ -10436,14 +10436,14 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
       {
       while (*p == _T(' ')) p++;   // strip leading blanks
 
-     // SetLabel( _cols++, p );
+      // SetLabel( _cols++, p );
       p = strtok_s(NULL, d, &next);   // look for delimiter or newline
       }
 
    //-- ready to start parsing data --//
    int cols = 7;
    int c = 2;
-   float *data = new float[c];
+   float* data = new float[c];
    memset(data, 0, c * sizeof(float));
 
    p = strtok_s(end + 1, d, &next);  // look for delimiter
@@ -10475,7 +10475,7 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
             //COleDateTime time;
             //time.SetDate(year,month,day);
             int dayOfYear = ::GetDayOfYear(month, day, year);   // 1-based
-            float time = (year*365.0f) + dayOfYear - 1;   // days since 0000
+            float time = (year * 365.0f) + dayOfYear - 1;   // days since 0000
 
             data[0] = time;
             }
@@ -10498,13 +10498,13 @@ int FlowModel::ReadUSGSFlow(LPCSTR _fileName, FDataObj &dataObj, int dataType)
    return dataObj.GetRowCount();
    }
 
-float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, float &ve)
+float FlowModel::GetObjectiveFunction(FDataObj* pData, float& ns, float& nsLN, float& ve)
    {
    int meas = 0;
    int offset = 0;
    int n = pData->GetRowCount();
    float obsMean = 0.0f, predMean = 0.0f, obsMeanL = 0.0f, predMeanL = 0.0f;
-   int firstSample = int( 180 / m_timeStep );
+   int firstSample = int(180 / m_timeStep);
    for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values
       // might be unacceptable due to initial conditions...
       {
@@ -10512,11 +10512,11 @@ float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, f
       pData->Get(0, j, time);
       pData->Get(2, j, obs); //add up all the discharge values and then...
       obsMean += obs;
-      if (obs!=0.0f)
+      if (obs != 0.0f)
          obsMeanL += log10(obs);
       pData->Get(1, j, pred);
       predMean += pred;
-      if (pred!=0.0f)
+      if (pred != 0.0f)
          predMeanL += log10(pred);
       }
    obsMean = obsMean / ((float)n - (float)firstSample); // divide them by the sample size to generate the average.
@@ -10532,8 +10532,8 @@ float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, f
       pData->Get(2, row, obs);
       pData->Get(1, row, pred); // Assuming col i holds data for the reach corresponding to measurement
 
-      errorSum += ((obs - pred)*(obs - pred));
-      errorSumDenom += ((obs - obsMean)*(obs - obsMean));
+      errorSum += ((obs - pred) * (obs - pred));
+      errorSumDenom += ((obs - obsMean) * (obs - obsMean));
 
       ve_numerator += (obs - pred);
       ve_denominator += obs;
@@ -10541,7 +10541,7 @@ float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, f
       double a = 0.0f;
       double b = 0.0f;
       if (obs > 0.0f)
-        {
+         {
          a = log10(obs) - log10(pred);
          b = log10(obs) - obsMeanL;
          }
@@ -10559,29 +10559,29 @@ float FlowModel::GetObjectiveFunction(FDataObj *pData, float &ns, float &nsLN, f
    return ns;
    }
 
-float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &nsLN, float &ve)
-{
+float FlowModel::GetObjectiveFunctionGrouped(FDataObj* pData, float& ns, float& nsLN, float& ve)
+   {
    int meas = 0;
    int offset = 0;
    int n = pData->GetRowCount();
-   FDataObj *pDataGrouped = new FDataObj(3, 0, 0.0f, U_UNDEFINED);     // MEMORY LEAK!!!!!!
+   FDataObj* pDataGrouped = new FDataObj(3, 0, 0.0f, U_UNDEFINED);     // MEMORY LEAK!!!!!!
    float obsMean = 0.0f, predMean = 0.0f, obsMeanL = 0.0f, predMeanL = 0.0f;
-   int firstSample = int( 180 / m_timeStep );
+   int firstSample = int(180 / m_timeStep);
    for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values                                       // might be unacceptable due to initial conditions...
-   {
+      {
       float time = 0.0f; float obs = 0.0f; float pred = 0.0f;
       pData->Get(0, j, time);
       pData->Get(2, j, obs); //add up all the discharge values and then...
       obsMean += obs;
       if (obs != 0.0f)
-          obsMeanL += log10(obs);
+         obsMeanL += log10(obs);
       pData->Get(1, j, pred);
       predMean += pred;
       if (pred != 0.0f)
-          predMeanL += log10(pred);
-   }
+         predMeanL += log10(pred);
+      }
    obsMean = obsMean / ((float)n - (float)firstSample); // divide them by the sample size to generate the average.
-                                                        //predMean = predMean/((float)n-(float)firstSample); // divide them by the sample size to generate the average.
+   //predMean = predMean/((float)n-(float)firstSample); // divide them by the sample size to generate the average.
    obsMeanL = obsMeanL / ((float)n - (float)firstSample);
    //predMeanL=predMeanL/((float)n-(float)firstSample);
 
@@ -10589,18 +10589,18 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
    int previousTimeDaily = (int)pData->Get(0, firstSample - 1);
    float numHour = 0;
    for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values                                         // might be unacceptable due to initial conditions...
-   {
+      {
       float time = pData->Get(0, j);
 
       int timeDaily = (int)time;
       if (timeDaily == previousTimeDaily)
-      {
+         {
          numHour++;
          obsMeanDaily += pData->Get(2, j); //add up all the discharge values and then...
          predMeanDaily += pData->Get(1, j);
-      }
+         }
       else //we moved on to the next day, so average
-      {
+         {
          obsMeanDaily = obsMeanDaily / numHour;
          predMeanDaily = predMeanDaily / numHour;
          numHour = 1;
@@ -10609,20 +10609,20 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
          previousTimeDaily = timeDaily;
          obsMeanDaily = pData->Get(2, j); //add up all the discharge values and then...
          predMeanDaily = pData->Get(1, j);
+         }
       }
-   }
 
    double errorSum = 0.0f, errorSumDenom = 0.0f, errorSumLN = 0.0f, errorSumDenomLN = 0.0f, r2Denom1 = 0.0f, r2Denom2 = 0.0f; float ve_numerator = 0.0f; float ve_denominator = 0.0f;
    n = pDataGrouped->GetRowCount();
    for (int row = 0; row < n; row++)
-   {
+      {
       float pred = 0.0f, obs = 0.0f; float time = 0.0f;
       pDataGrouped->Get(0, row, time);
       pDataGrouped->Get(2, row, obs);
       pDataGrouped->Get(1, row, pred);
 
-      errorSum += ((obs - pred)*(obs - pred));
-      errorSumDenom += ((obs - obsMean)*(obs - obsMean));
+      errorSum += ((obs - pred) * (obs - pred));
+      errorSumDenom += ((obs - obsMean) * (obs - obsMean));
 
       ve_numerator += (obs - pred);
       ve_denominator += obs;
@@ -10632,109 +10632,109 @@ float FlowModel::GetObjectiveFunctionGrouped(FDataObj *pData, float &ns, float &
       // double b = log10(obs) - log10(obsMean);
       errorSumLN += pow(a, 2);
       errorSumDenomLN += pow(b, 2);
-   }
+      }
 
    if (errorSumDenom > 0.0f)
-   {
+      {
       ns = (float)(1.0f - (errorSum / errorSumDenom));
       nsLN = (float)(1.0f - (errorSumLN / errorSumDenomLN));
       ve = (float)ve_numerator / ve_denominator;
-   }
+      }
 
    delete pDataGrouped;
 
    return ns;
-}
+   }
 
 
 void FlowModel::GetNashSutcliffeGrouped(float ns)
-{
+   {
    int meas = 0;
    float _ns = 1.0f; float _nsLN = 1.0f;
-   float *data = new float[m_reachMeasuredDataArray.GetSize()];
+   float* data = new float[m_reachMeasuredDataArray.GetSize()];
    int offset = 0;
-   FDataObj *pDataGrouped = new FDataObj(U_UNDEFINED);
+   FDataObj* pDataGrouped = new FDataObj(U_UNDEFINED);
    for (int l = 0; l < (int)m_reachMeasuredDataArray.GetSize(); l++)
-   {
-      FDataObj *pData = m_reachMeasuredDataArray.GetAt(l);
+      {
+      FDataObj* pData = m_reachMeasuredDataArray.GetAt(l);
 
       int n = pData->GetRowCount();
       float obsMean = 0.0f, predMean = 0.0f;
-      int firstSample = int( 50 / m_flowContext.timeStep );
+      int firstSample = int(50 / m_flowContext.timeStep);
 
       for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values                                         // might be unacceptable due to initial conditions...
-      {
+         {
          float time = pData->Get(0, j);
          obsMean += pData->Get(2, j); //add up all the discharge values and then...
          predMean += pData->Get(1, j);
-      }
+         }
       obsMean = obsMean / ((float)n - (float)firstSample); // divide them by the sample size to generate the average.
       predMean = predMean / ((float)n - (float)firstSample); // divide them by the sample size to generate the average.
 
       float obsMeanDaily = 0.0f, predMeanDaily = 0.0f;
       int previousTimeDaily = (int)pData->Get(0, firstSample - 1);
       for (int j = firstSample; j < n; j++) //50this skips the first 50 days. Assuming those values                                         // might be unacceptable due to initial conditions...
-      {
+         {
          float time = pData->Get(0, j);
          float numHour = 0;
          int timeDaily = (int)time;
          if (timeDaily == previousTimeDaily)
-         {
+            {
             numHour++;
             obsMeanDaily += pData->Get(2, j); //add up all the discharge values and then...
             predMeanDaily += pData->Get(1, j);
-         }
+            }
          else //we moved on to the next day, so average
-         {
+            {
             obsMeanDaily = obsMeanDaily / numHour;
             predMeanDaily = predMeanDaily / numHour;
-            float *dailyData = new float[3]; dailyData[0] = (float)timeDaily; dailyData[1] = predMean; dailyData[2] = obsMean;
+            float* dailyData = new float[3]; dailyData[0] = (float)timeDaily; dailyData[1] = predMean; dailyData[2] = obsMean;
             pDataGrouped->AppendRow(dailyData, 3);
             delete[] dailyData;
             previousTimeDaily = timeDaily;
             obsMeanDaily = pData->Get(2, j); //add up all the discharge values and then...
             predMeanDaily = pData->Get(1, j);
+            }
          }
-      }
 
       double errorSum = 0.0f, errorSumDenom = 0.0f, errorSumLN = 0.0f, errorSumDenomLN = 0.0f, r2Denom1 = 0.0f, r2Denom2 = 0.0f;
       n = pDataGrouped->GetRowCount();
       for (int row = 0; row < n; row++)
-      {
+         {
          float pred = 0.0f, obs = 0.0f;
          float time = pDataGrouped->Get(0, row);
          obs = pDataGrouped->Get(2, row);
          pDataGrouped->Get(1, row, pred); // Assuming col i holds data for the reach corresponding to measurement
 
-         errorSum += ((obs - pred)*(obs - pred));
-         errorSumDenom += ((obs - obsMean)*(obs - obsMean));
+         errorSum += ((obs - pred) * (obs - pred));
+         errorSumDenom += ((obs - obsMean) * (obs - obsMean));
          double a = log10(obs) - log10(pred);
          double b = log10(obs) - log10(obsMean);
          errorSumLN += pow(a, 2);
          errorSumDenomLN += (b, 2);
-      }
+         }
 
       if (errorSumDenom > 0.0f)
-      {
+         {
          _ns = (float)(1.0f - (errorSum / errorSumDenom));
          _nsLN = (float)(1.0f - (errorSumLN / errorSumDenomLN));
-      }
+         }
       ns = _ns;
-   }
+      }
    delete[] data;
    delete pDataGrouped;
-}
+   }
 
 
-void FlowModel::GetNashSutcliffe(float *ns)
+void FlowModel::GetNashSutcliffe(float* ns)
    {
    int meas = 0;
    float _ns = 1.0f; float _nsLN = 1.0f;
-   float *data = new float[m_reachMeasuredDataArray.GetSize()];
+   float* data = new float[m_reachMeasuredDataArray.GetSize()];
    int offset = 0;
    for (int l = 0; l < (int)m_reachMeasuredDataArray.GetSize(); l++)
       {
-      FDataObj *pData = m_reachMeasuredDataArray.GetAt(l);
+      FDataObj* pData = m_reachMeasuredDataArray.GetAt(l);
       int n = pData->GetRowCount();
       float obsMean = 0.0f, predMean = 0.0f;
       int firstSample = 200;
@@ -10756,8 +10756,8 @@ void FlowModel::GetNashSutcliffe(float *ns)
          obs = pData->Get(2, row);
          pData->Get(1, row, pred); // Assuming col i holds data for the reach corresponding to measurement
 
-         errorSum += ((obs - pred)*(obs - pred));
-         errorSumDenom += ((obs - obsMean)*(obs - obsMean));
+         errorSum += ((obs - pred) * (obs - pred));
+         errorSumDenom += ((obs - obsMean) * (obs - obsMean));
          double a = log10(obs) - log10(pred);
          double b = log10(obs) - log10(obsMean);
          errorSumLN += pow(a, 2);
@@ -10778,9 +10778,9 @@ void FlowModel::GetNashSutcliffe(float *ns)
    }
 
 
-int FlowModel::ReadClimateStationData(ClimateDataInfo *pInfo, LPCSTR filename)
+int FlowModel::ReadClimateStationData(ClimateDataInfo* pInfo, LPCSTR filename)
    {
-   ASSERT( pInfo != NULL );
+   ASSERT(pInfo != NULL);
 
    if (pInfo->m_pStationData != NULL)  // is there already a climate data obj?
       delete pInfo->m_pStationData;
@@ -10798,30 +10798,30 @@ int FlowModel::ReadClimateStationData(ClimateDataInfo *pInfo, LPCSTR filename)
       }
 
    int records = (int)pInfo->m_pStationData->ReadAscii(path, ',', TRUE);
-   m_colCsvYear         = pInfo->m_pStationData->GetCol("year");
-   m_colCsvMonth        = pInfo->m_pStationData->GetCol("month");
-   m_colCsvDay          = pInfo->m_pStationData->GetCol("day");
-   m_colCsvHour         = pInfo->m_pStationData->GetCol("hour");
-   m_colCsvMinute       = pInfo->m_pStationData->GetCol("minute");
-   m_colCsvPrecip       = pInfo->m_pStationData->GetCol("precip");
-   m_colCsvTMean        = pInfo->m_pStationData->GetCol("tavg");
-   m_colCsvTMin         = pInfo->m_pStationData->GetCol("tmin");
-   m_colCsvTMax         = pInfo->m_pStationData->GetCol("tmax");
-   m_colCsvSolarRad     = pInfo->m_pStationData->GetCol("srad");
-   m_colCsvWindspeed    = pInfo->m_pStationData->GetCol("windspd");
-   m_colCsvRelHumidity  = pInfo->m_pStationData->GetCol("relHumidity");
-   m_colCsvSpHumidity   = pInfo->m_pStationData->GetCol("sphumidity");
+   m_colCsvYear = pInfo->m_pStationData->GetCol("year");
+   m_colCsvMonth = pInfo->m_pStationData->GetCol("month");
+   m_colCsvDay = pInfo->m_pStationData->GetCol("day");
+   m_colCsvHour = pInfo->m_pStationData->GetCol("hour");
+   m_colCsvMinute = pInfo->m_pStationData->GetCol("minute");
+   m_colCsvPrecip = pInfo->m_pStationData->GetCol("precip");
+   m_colCsvTMean = pInfo->m_pStationData->GetCol("tavg");
+   m_colCsvTMin = pInfo->m_pStationData->GetCol("tmin");
+   m_colCsvTMax = pInfo->m_pStationData->GetCol("tmax");
+   m_colCsvSolarRad = pInfo->m_pStationData->GetCol("srad");
+   m_colCsvWindspeed = pInfo->m_pStationData->GetCol("windspd");
+   m_colCsvRelHumidity = pInfo->m_pStationData->GetCol("relHumidity");
+   m_colCsvSpHumidity = pInfo->m_pStationData->GetCol("sphumidity");
    m_colCsvVPD = pInfo->m_pStationData->GetCol("vpdKPA");
 
    for (int i = 0; i < pInfo->m_pStationData->GetRowCount(); i++)
       {
-      int year  = (int)pInfo->m_pStationData->Get(m_colCsvYear, i);
+      int year = (int)pInfo->m_pStationData->Get(m_colCsvYear, i);
       int month = (int)pInfo->m_pStationData->Get(m_colCsvMonth, i);
-      int day   = (int)pInfo->m_pStationData->Get(m_colCsvDay, i);
+      int day = (int)pInfo->m_pStationData->Get(m_colCsvDay, i);
 
       int dayOfYear = ::GetDayOfYear(month, day, year);  // 1-based
 
-      float time = (year*365.0f) + dayOfYear - 1;   // days since 0000
+      float time = (year * 365.0f) + dayOfYear - 1;   // days since 0000
 
       if (m_colCsvHour >= 0)
          {
@@ -10850,39 +10850,39 @@ void FlowModel::ResetStateVariables()
    // iterate through catchments/hrus/hrulayers, calling fluxes as needed
    for (int i = 0; i < catchmentCount; i++)
       {
-      Catchment *pCatchment = GetCatchment(i);
+      Catchment* pCatchment = GetCatchment(i);
       int hruCount = pCatchment->GetHRUCount();
       for (int h = 0; h < hruCount; h++)
          {
-         HRU *pHRU = pCatchment->GetHRU(h);
+         HRU* pHRU = pCatchment->GetHRU(h);
          int hruPoolCount = pHRU->GetPoolCount();
          float waterDepth = 0.0f;
          for (int l = 0; l < hruPoolCount; l++)
             {
-            HRUPool *pHRUPool = pHRU->GetPool(l);
-            waterDepth += float(pHRUPool->m_volumeWater / pHRU->m_area*1000.0f);//mm of total storage
+            HRUPool* pHRUPool = pHRU->GetPool(l);
+            waterDepth += float(pHRUPool->m_volumeWater / pHRU->m_area * 1000.0f);//mm of total storage
             }
          pHRU->m_initStorage = waterDepth;
          }
       }
    }
 
-void FlowModel::GetTotalStorage(float &channel, float &terrestrial)
+void FlowModel::GetTotalStorage(float& channel, float& terrestrial)
    {
 
    int catchmentCount = GetCatchmentCount();
    // iterate through catchments/hrus/hrulayers, calling fluxes as needed
    for (int i = 0; i < catchmentCount; i++)
       {
-      Catchment *pCatchment = GetCatchment(i);
+      Catchment* pCatchment = GetCatchment(i);
       int hruCount = pCatchment->GetHRUCount();
       for (int h = 0; h < hruCount; h++)
          {
-         HRU *pHRU = pCatchment->GetHRU(h);
+         HRU* pHRU = pCatchment->GetHRU(h);
          int hruPoolCount = pHRU->GetPoolCount();
          for (int l = 0; l < hruPoolCount; l++)
             {
-            HRUPool *pHRUPool = pHRU->GetPool(l);
+            HRUPool* pHRUPool = pHRU->GetPool(l);
             terrestrial += float(pHRUPool->m_volumeWater);
             }
          }
@@ -10891,9 +10891,9 @@ void FlowModel::GetTotalStorage(float &channel, float &terrestrial)
    int reachCount = (int)m_reachArray.GetSize();
    for (int i = 0; i < reachCount; i++)
       {
-      Reach *pReach = m_reachArray[i];
+      Reach* pReach = m_reachArray[i];
       SetGeometry(pReach, pReach->GetReachSubnode(0)->m_discharge);
-      channel += (pReach->m_width*pReach->m_depth*pReach->m_length);
+      channel += (pReach->m_width * pReach->m_depth * pReach->m_length);
       }
    }
 
@@ -10965,7 +10965,7 @@ bool FlowModel::EndRunPlugins(void)
    }
 
 
-int FlowModel::GetUpstreamCatchmentCount(ReachNode *pStartNode)
+int FlowModel::GetUpstreamCatchmentCount(ReachNode* pStartNode)
    {
    if (pStartNode == NULL)
       return 0;
@@ -10975,7 +10975,7 @@ int FlowModel::GetUpstreamCatchmentCount(ReachNode *pStartNode)
       {
       count += GetUpstreamCatchmentCount(pStartNode->m_pLeft);
 
-      Reach *pReach = GetReachFromNode(pStartNode->m_pLeft);
+      Reach* pReach = GetReachFromNode(pStartNode->m_pLeft);
 
       if (pReach != NULL)
          count += (int)pReach->m_catchmentArray.GetSize();
@@ -10985,7 +10985,7 @@ int FlowModel::GetUpstreamCatchmentCount(ReachNode *pStartNode)
       {
       count += GetUpstreamCatchmentCount(pStartNode->m_pRight);
 
-      Reach *pReach = GetReachFromNode(pStartNode->m_pRight);
+      Reach* pReach = GetReachFromNode(pStartNode->m_pRight);
 
       if (pReach != NULL)
          count += (int)pReach->m_catchmentArray.GetSize();
@@ -11000,12 +11000,12 @@ int FlowModel::GetUpstreamCatchmentCount(ReachNode *pStartNode)
 /////////////////////////////////////////////////////////////////////////////////
 
 // called at the beginning of each invocation of FlowModel::Run() (beginning of each year)
-bool FlowModel::LoadClimateData(EnvContext *pEnvContext, int year)
+bool FlowModel::LoadClimateData(EnvContext* pEnvContext, int year)
    {
-   FlowScenario *pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
+   FlowScenario* pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
    for (int i = 0; i < (int)pScenario->m_climateInfoArray.GetSize(); i++)
       {
-      ClimateDataInfo *pInfo = pScenario->m_climateInfoArray[i];
+      ClimateDataInfo* pInfo = pScenario->m_climateInfoArray[i];
 
       if (pInfo->m_pNetCDFData == NULL)
          continue;
@@ -11026,14 +11026,14 @@ bool FlowModel::LoadClimateData(EnvContext *pEnvContext, int year)
          }
 
 
-      else if (m_estimateParameters && pEnvContext->run == 0)//estimating parameters and on the first run.  Load all climate data for this year
+      else if (m_estimateParameters && pEnvContext->runID == 0)//estimating parameters and on the first run.  Load all climate data for this year
          {
          CString path;
          path.Format(_T("%s_%i.nc"), (LPCTSTR)pInfo->m_path, year);
          CString msg;
          msg.Format(_T("Loading Climate %s"), (LPCTSTR)pInfo->m_path);
          Report::Log(msg);
-         GeoSpatialDataObj *pObj = pInfo->m_pNetCDFDataArray.GetAt(GetCurrentYearOfRun());
+         GeoSpatialDataObj* pObj = pInfo->m_pNetCDFDataArray.GetAt(GetCurrentYearOfRun());
          pObj->Open(path, pInfo->m_varName);
          pObj->ReadSpatialData();
          }
@@ -11059,11 +11059,11 @@ bool FlowModel::LoadClimateData(EnvContext *pEnvContext, int year)
 // called at the end of FlowModel::Run()
 void FlowModel::CloseClimateData(void)
    {
-   FlowScenario *pScenario = m_scenarioArray[m_currentFlowScenarioIndex];
+   FlowScenario* pScenario = m_scenarioArray[m_currentFlowScenarioIndex];
 
    for (int i = 0; i < (int)pScenario->m_climateInfoArray.GetSize(); i++)
       {
-      ClimateDataInfo *pInfo = pScenario->m_climateInfoArray[i];
+      ClimateDataInfo* pInfo = pScenario->m_climateInfoArray[i];
 
       if (pInfo->m_pNetCDFData != NULL)
          pInfo->m_pNetCDFData->Close();
@@ -11071,33 +11071,33 @@ void FlowModel::CloseClimateData(void)
    }
 
 
-bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &value)
+bool FlowModel::GetHRUClimate(CDTYPE type, HRU* pHRU, int dayOfYear, float& value)
    {
-   FlowScenario *pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
+   FlowScenario* pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
    if (!pScenario->m_useStationData) //it is from a NETCDF format
       {
-      ClimateDataInfo *pInfo = GetClimateDataInfo((int) type);
+      ClimateDataInfo* pInfo = GetClimateDataInfo((int)type);
       if (!m_estimateParameters)
          {
          if (pInfo != NULL && pInfo->m_pNetCDFData != NULL)   // find a data object?
             {
-             if (pHRU->m_climateIndex < 0)   // first time through
-                 {
-                 double x = pHRU->m_centroid.x;
-                 double y = pHRU->m_centroid.y;
-                 value = pInfo->m_pNetCDFData->Get(x, y, pHRU->m_climateIndex, dayOfYear, m_projectionWKT, false);
-                 
-                 //if (value > -100 && m_provenClimateIndex == -1)
-                 //    m_provenClimateIndex = pHRU->m_climateIndex;
+            if (pHRU->m_climateIndex < 0)   // first time through
+               {
+               double x = pHRU->m_centroid.x;
+               double y = pHRU->m_centroid.y;
+               value = pInfo->m_pNetCDFData->Get(x, y, pHRU->m_climateIndex, dayOfYear, m_projectionWKT, false);
 
-                 if (value == -9999) //missing data in the file. Code identifies a nearby gridcell that does have data
-                     {
-                     pHRU->m_climateIndex = m_provenClimateIndex;
-                     value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
-                     pHRU->m_pCatchment->m_climateIndex = pHRU->m_climateIndex;
-                     }
-                    
-                 }
+               //if (value > -100 && m_provenClimateIndex == -1)
+               //    m_provenClimateIndex = pHRU->m_climateIndex;
+
+               if (value == -9999) //missing data in the file. Code identifies a nearby gridcell that does have data
+                  {
+                  pHRU->m_climateIndex = m_provenClimateIndex;
+                  value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
+                  pHRU->m_pCatchment->m_climateIndex = pHRU->m_climateIndex;
+                  }
+
+               }
             else
                value = pInfo->m_pNetCDFData->Get(pHRU->m_climateIndex, dayOfYear);
 
@@ -11111,7 +11111,7 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
 
       else //m_estimateParameters is true
          {
-         GeoSpatialDataObj *pObj = pInfo->m_pNetCDFDataArray.GetAt(GetCurrentYearOfRun());//current year
+         GeoSpatialDataObj* pObj = pInfo->m_pNetCDFDataArray.GetAt(GetCurrentYearOfRun());//current year
          if (pInfo != NULL && pObj != NULL)   // find a data object?
             {
             if (pHRU->m_climateIndex < 0)
@@ -11140,18 +11140,18 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
       // CDT_RELHUMIDITY: 12
       // CDT_SPHUMIDITY:  13
       // CDT_VPD:         14
-      ASSERT( pHRU->m_polyIndexArray.GetSize() > 0 );
-      if ( pScenario->m_climateInfoArray.GetSize() > 1 && m_colStationID < 0 )
+      ASSERT(pHRU->m_polyIndexArray.GetSize() > 0);
+      if (pScenario->m_climateInfoArray.GetSize() > 1 && m_colStationID < 0)
          return false;
 
       int idu = pHRU->m_polyIndexArray[0];
       int stationID = 0;
-      if ( m_colStationID >= 0 )
-         this->m_pCatchmentLayer->GetData( idu, m_colStationID, stationID );
+      if (m_colStationID >= 0)
+         this->m_pCatchmentLayer->GetData(idu, m_colStationID, stationID);
 
-      ClimateDataInfo *pInfo = GetClimateDataInfo(stationID );
+      ClimateDataInfo* pInfo = GetClimateDataInfo(stationID);
 
-      if ( pInfo == NULL || pInfo->m_pStationData == NULL )
+      if (pInfo == NULL || pInfo->m_pStationData == NULL)
          return false;
 
       value = 0;
@@ -11164,31 +11164,31 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
             break;
 
          case CDT_TMEAN:    // 2
+         {
+         float temp = 0;
+         int timeOffset = m_timeOffset;
+         if (m_colCsvTMean >= 0) // tmean col defined?
+            temp = pInfo->m_pStationData->IGet((float)m_currentTime, 0, m_colCsvTMean, IM_LINEAR, &timeOffset);
+         //temp = m_pClimateStationData->IGetInternal((float)m_currentTime, m_colCsvTMean, IM_LINEAR, m_timeOffset, false);
+         else if (m_colCsvTMin >= 0 && m_colCsvTMax >= 0)
             {
-            float temp = 0;
-            int timeOffset = m_timeOffset;
-            if (m_colCsvTMean >= 0) // tmean col defined?
-               temp = pInfo->m_pStationData->IGet((float)m_currentTime, 0, m_colCsvTMean, IM_LINEAR, &timeOffset);
-            //temp = m_pClimateStationData->IGetInternal((float)m_currentTime, m_colCsvTMean, IM_LINEAR, m_timeOffset, false);
-            else if (m_colCsvTMin >= 0 && m_colCsvTMax >= 0)
-               {
-               timeOffset = m_timeOffset;
-               float tMin = pInfo->m_pStationData->IGet((float)m_currentTime, 0, m_colCsvTMin, IM_LINEAR, &timeOffset);
-               //float tMin = m_pClimateStationData->IGetInternal((float)m_currentTime, m_colCsvTMin, IM_LINEAR, m_timeOffset, false);
-               timeOffset = m_timeOffset;
-               float tMax = pInfo->m_pStationData->IGet((float)m_currentTime, 0, m_colCsvTMax, IM_LINEAR, &timeOffset);
-               //float tMax = m_pClimateStationData->IGetInternal((float)m_currentTime, m_colCsvTMax, IM_LINEAR, m_timeOffset, false);
-               temp = (tMin + tMax) / 2;
-               }
-
-            // adjust for elevation
-            if (pHRU->m_elevation == 0)
-               pHRU->m_elevation = pInfo->m_stationElevation;
-
-            float elevKM = pHRU->m_elevation / 1000.f;
-            value = temp + (-4.0f*(elevKM - pInfo->m_stationElevation / 1000.0f));
+            timeOffset = m_timeOffset;
+            float tMin = pInfo->m_pStationData->IGet((float)m_currentTime, 0, m_colCsvTMin, IM_LINEAR, &timeOffset);
+            //float tMin = m_pClimateStationData->IGetInternal((float)m_currentTime, m_colCsvTMin, IM_LINEAR, m_timeOffset, false);
+            timeOffset = m_timeOffset;
+            float tMax = pInfo->m_pStationData->IGet((float)m_currentTime, 0, m_colCsvTMax, IM_LINEAR, &timeOffset);
+            //float tMax = m_pClimateStationData->IGetInternal((float)m_currentTime, m_colCsvTMax, IM_LINEAR, m_timeOffset, false);
+            temp = (tMin + tMax) / 2;
             }
-            break;
+
+         // adjust for elevation
+         if (pHRU->m_elevation == 0)
+            pHRU->m_elevation = pInfo->m_stationElevation;
+
+         float elevKM = pHRU->m_elevation / 1000.f;
+         value = temp + (-4.0f * (elevKM - pInfo->m_stationElevation / 1000.0f));
+         }
+         break;
 
          case CDT_TMIN: // 4
             if (m_colCsvTMin >= 0)
@@ -11255,12 +11255,12 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
             break;
 
          default:
-            {
-            CString msg;
-            msg.Format(_T("Flow: Runtime Error - Invalid climate type selector (%i) passed while getting HRU climate data"), type);
-            Report::LogWarning(msg);
-            return false;
-            }
+         {
+         CString msg;
+         msg.Format(_T("Flow: Runtime Error - Invalid climate type selector (%i) passed while getting HRU climate data"), type);
+         Report::LogWarning(msg);
+         return false;
+         }
          }
 
       return true;
@@ -11270,30 +11270,30 @@ bool FlowModel::GetHRUClimate(CDTYPE type, HRU *pHRU, int dayOfYear, float &valu
    }
 
 
-ClimateDataInfo *FlowModel::GetClimateDataInfo(int typeOrStationID ) 
+ClimateDataInfo* FlowModel::GetClimateDataInfo(int typeOrStationID)
    {
-   FlowScenario *pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
-   if ( pScenario == NULL )
+   FlowScenario* pScenario = m_scenarioArray.GetAt(m_currentFlowScenarioIndex);
+   if (pScenario == NULL)
       return NULL;
-   
-   ClimateDataInfo *pInfo = NULL;
- 
-   if ( pScenario->m_climateDataMap.Lookup(typeOrStationID, pInfo) ) 
-      return pInfo; 
-   
+
+   ClimateDataInfo* pInfo = NULL;
+
+   if (pScenario->m_climateDataMap.Lookup(typeOrStationID, pInfo))
+      return pInfo;
+
    return NULL;
    }
 
 
-bool FlowModel::GetReachClimate(CDTYPE type, Reach *pReach, int dayOfYear, float &value)
+bool FlowModel::GetReachClimate(CDTYPE type, Reach* pReach, int dayOfYear, float& value)
    {
-   ClimateDataInfo *pInfo = GetClimateDataInfo(type);
+   ClimateDataInfo* pInfo = GetClimateDataInfo(type);
 
    if (pInfo != NULL && pInfo->m_pNetCDFData != NULL)   // find a data object?
       {
       if (pReach->m_climateIndex < 0)
          {
-         Poly *pPoly = m_pStreamLayer->GetPolygon(pReach->m_polyIndex);
+         Poly* pPoly = m_pStreamLayer->GetPolygon(pReach->m_polyIndex);
 
          if (pPoly->GetVertexCount() > 0)
             {
@@ -11328,7 +11328,7 @@ float FlowModel::GetTotalReachLength(void)
 
    for (int i = 0; i < this->GetReachCount(); i++)
       {
-      Reach *pReach = m_reachArray[i];
+      Reach* pReach = m_reachArray[i];
 
       length += pReach->m_length;
       }
@@ -11355,11 +11355,11 @@ bool FlowModel::CollectModelOutput(void)
 
    for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
       {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
       for (int i = 0; i < (int)pGroup->GetSize(); i++)
          {
-         ModelOutput *pOutput = pGroup->GetAt(i);
+         ModelOutput* pOutput = pGroup->GetAt(i);
 
          // initialize ModelOutput
          pOutput->m_value = 0;
@@ -11405,11 +11405,11 @@ bool FlowModel::CollectModelOutput(void)
 
          for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
             {
-            ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+            ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
             for (int i = 0; i < (int)pGroup->GetSize(); i++)
                {
-               ModelOutput *pOutput = pGroup->GetAt(i);
+               ModelOutput* pOutput = pGroup->GetAt(i);
 
                if (pOutput->m_inUse == false || pOutput->m_modelDomain != MOD_IDU)
                   continue;
@@ -11466,11 +11466,11 @@ bool FlowModel::CollectModelOutput(void)
       {
       for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
          {
-         ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+         ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
          for (int i = 0; i < (int)pGroup->GetSize(); i++)
             {
-            ModelOutput *pOutput = pGroup->GetAt(i);
+            ModelOutput* pOutput = pGroup->GetAt(i);
 
             if (pOutput->m_inUse == false || pOutput->m_modelDomain != MOD_GRID)
                continue;
@@ -11480,7 +11480,7 @@ bool FlowModel::CollectModelOutput(void)
             int offSet = m_pHruGrid->Get(row, col);//this gives us the offset in the m_hruArray for this particular grid location (i and j)
             if (offSet > 0)
                {
-               HRU *pHRU = GetHRU(offSet);
+               HRU* pHRU = GetHRU(offSet);
                HRU::m_mvElws = pHRU->m_elws;
                pOutput->m_value = pHRU->m_elws;
                pOutput->m_totalQueryArea = 1.0f;
@@ -11494,9 +11494,9 @@ bool FlowModel::CollectModelOutput(void)
    totalIDUArea = 0;
    if (moCountHru > 0)
       {
-      for (int h = 0; h < (int) this->m_hruArray.GetSize(); h++)
+      for (int h = 0; h < (int)this->m_hruArray.GetSize(); h++)
          {
-         HRU *pHRU = m_hruArray[h];
+         HRU* pHRU = m_hruArray[h];
 
          int idu = pHRU->m_polyIndexArray[0];       // use the first IDU to evaluate
 
@@ -11540,11 +11540,11 @@ bool FlowModel::CollectModelOutput(void)
 
          for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
             {
-            ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+            ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
             for (int i = 0; i < (int)pGroup->GetSize(); i++)
                {
-               ModelOutput *pOutput = pGroup->GetAt(i);
+               ModelOutput* pOutput = pGroup->GetAt(i);
 
                if (pOutput->m_inUse == false || pOutput->m_modelDomain != MOD_HRU)
                   continue;
@@ -11601,9 +11601,9 @@ bool FlowModel::CollectModelOutput(void)
    totalIDUArea = 1;
    if (moCountHruLayer > 0)
       {
-      for (int h = 0; h < (int) this->m_hruArray.GetSize(); h++)
+      for (int h = 0; h < (int)this->m_hruArray.GetSize(); h++)
          {
-         HRU *pHRU = m_hruArray[h];
+         HRU* pHRU = m_hruArray[h];
 
          for (int k = 0; k < pHRU->m_polyIndexArray.GetSize(); k++)
             {
@@ -11617,15 +11617,15 @@ bool FlowModel::CollectModelOutput(void)
 
             for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
                {
-               ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+               ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
                for (int i = 0; i < (int)pGroup->GetSize(); i++)
                   {
-                  ModelOutput *pOutput = pGroup->GetAt(i);
+                  ModelOutput* pOutput = pGroup->GetAt(i);
 
                   if (pOutput->m_inUse == true && pOutput->m_modelDomain == MOD_HRULAYER)
                      {
-                     HRUPool *pHRUPool = pHRU->GetPool(pOutput->m_number);
+                     HRUPool* pHRUPool = pHRU->GetPool(pOutput->m_number);
                      // update static HRUPool variables
                      HRUPool::m_mvWC = pHRUPool->m_wc;  // volume of water 
                      HRUPool::m_mvWDepth = pHRUPool->m_wDepth;
@@ -11692,10 +11692,10 @@ bool FlowModel::CollectModelOutput(void)
    totalIDUArea = 1;
    if (moCountReach > 0)
       {
-      for (int h = 0; h < (int) this->m_reachArray.GetSize(); h++)
+      for (int h = 0; h < (int)this->m_reachArray.GetSize(); h++)
          {
-         Reach *pReach = m_reachArray[h];
-         ReachSubnode *pNode = pReach->GetReachSubnode(0);
+         Reach* pReach = m_reachArray[h];
+         ReachSubnode* pNode = pReach->GetReachSubnode(0);
 
          if (m_pModelOutputStreamQE)
             m_pModelOutputStreamQE->SetCurrentRecord(pReach->m_reachIndex);
@@ -11709,16 +11709,16 @@ bool FlowModel::CollectModelOutput(void)
 
          for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
             {
-            ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+            ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
             for (int i = 0; i < (int)pGroup->GetSize(); i++)
                {
-               ModelOutput *pOutput = pGroup->GetAt(i);
+               ModelOutput* pOutput = pGroup->GetAt(i);
 
                if (pOutput->m_inUse == false || pOutput->m_modelDomain != MOD_REACH)
                   continue;
                if (pNode->m_svArray != NULL)
-                  Reach::m_mvCurrentTracer = pNode->m_svArray[pOutput->m_esvNumber] ;  // volume of water        
+                  Reach::m_mvCurrentTracer = pNode->m_svArray[pOutput->m_esvNumber];  // volume of water        
                bool passConstraints = true;
 
                if (pOutput->m_pQuery)
@@ -11765,19 +11765,19 @@ bool FlowModel::CollectModelOutput(void)
       {
       for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
          {
-         ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+         ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
          for (int i = 0; i < (int)pGroup->GetSize(); i++)
             {
-            ModelOutput *pOutput = pGroup->GetAt(i);
+            ModelOutput* pOutput = pGroup->GetAt(i);
 
             if (pOutput->m_inUse == false || pOutput->m_modelDomain != MOD_RESERVOIR)
                continue;
             else
                {
-               for (int h = 0; h < (int) this->m_reservoirArray.GetSize(); h++)
+               for (int h = 0; h < (int)this->m_reservoirArray.GetSize(); h++)
                   {
-                  Reservoir *pRes = m_reservoirArray[h];
+                  Reservoir* pRes = m_reservoirArray[h];
                   if (pRes->m_id == pOutput->m_siteNumber)
                      pOutput->m_value = pRes->m_elevation;
                   }
@@ -11793,9 +11793,9 @@ bool FlowModel::CollectModelOutput(void)
    totalIDUArea = 0;
    if (moCountHruIdu > 0)
       {
-      for (int h = 0; h < (int) this->m_hruArray.GetSize(); h++)
+      for (int h = 0; h < (int)this->m_hruArray.GetSize(); h++)
          {
-         HRU *pHRU = m_hruArray[h];
+         HRU* pHRU = m_hruArray[h];
 
          for (int z = 0; z < pHRU->m_polyIndexArray.GetSize(); z++)
             {
@@ -11810,8 +11810,8 @@ bool FlowModel::CollectModelOutput(void)
             totalIDUArea += area;
 
             // update static HRU variables
-            HRU::m_mvDepthMelt = pHRU->m_depthMelt*1000.0f;  // volume of water in snow (converted from m to mm)
-            HRU::m_mvDepthSWE = pHRU->m_depthSWE*1000.0f;   // volume of ice in snow (converted from m to mm)
+            HRU::m_mvDepthMelt = pHRU->m_depthMelt * 1000.0f;  // volume of water in snow (converted from m to mm)
+            HRU::m_mvDepthSWE = pHRU->m_depthSWE * 1000.0f;   // volume of ice in snow (converted from m to mm)
             HRU::m_mvCurrentPrecip = pHRU->m_currentPrecip;
             HRU::m_mvCurrentRainfall = pHRU->m_currentRainfall;
             HRU::m_mvCurrentSnowFall = pHRU->m_currentSnowFall;
@@ -11833,11 +11833,11 @@ bool FlowModel::CollectModelOutput(void)
 
             for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
                {
-               ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+               ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
                for (int i = 0; i < (int)pGroup->GetSize(); i++)
                   {
-                  ModelOutput *pOutput = pGroup->GetAt(i);
+                  ModelOutput* pOutput = pGroup->GetAt(i);
 
                   if (pOutput->m_inUse == false || pOutput->m_modelDomain != MOD_HRU_IDU)
                      continue;
@@ -11895,13 +11895,13 @@ bool FlowModel::CollectModelOutput(void)
    // do any fixup needed and add to data object for each group
    for (int j = 0; j < (int)m_modelOutputGroupArray.GetSize(); j++)
       {
-      ModelOutputGroup *pGroup = m_modelOutputGroupArray[j];
+      ModelOutputGroup* pGroup = m_modelOutputGroupArray[j];
 
       // any outputs?
       int moCount = 0;
       for (int i = 0; i < (int)pGroup->GetSize(); i++)
          {
-         ModelOutput *pOutput = pGroup->GetAt(i);
+         ModelOutput* pOutput = pGroup->GetAt(i);
          if (pOutput->m_inUse)
             moCount++;
          if (pOutput->m_pDataObjObs != NULL)//add 1 column if we have observations for this point.
@@ -11911,14 +11911,14 @@ bool FlowModel::CollectModelOutput(void)
       if (moCount == 0)
          continue;
 
-      float *outputArray = new float[moCount + 1];
+      float* outputArray = new float[moCount + 1];
       outputArray[0] = (float)m_timeInRun;
 
       int index = 1;
 
       for (int i = 0; i < (int)pGroup->GetSize(); i++)
          {
-         ModelOutput *pOutput = pGroup->GetAt(i);
+         ModelOutput* pOutput = pGroup->GetAt(i);
 
          if (pOutput->m_inUse)
             {
@@ -11940,7 +11940,7 @@ bool FlowModel::CollectModelOutput(void)
             outputArray[index++] = pOutput->m_value;
             }
          if (pOutput->m_pDataObjObs != NULL)
-            outputArray[index] = pOutput->m_pDataObjObs->IGet((float)m_currentTime-2.0f);
+            outputArray[index] = pOutput->m_pDataObjObs->IGet((float)m_currentTime - 2.0f);
          }
 
       pGroup->m_pDataObj->AppendRow(outputArray, moCount + 1);
@@ -11955,11 +11955,11 @@ bool FlowModel::CollectModelOutput(void)
    return true;
    }
 
-int FlowModel::AddModelVar(LPCTSTR label, LPCTSTR varName, MTDOUBLE *value)
+int FlowModel::AddModelVar(LPCTSTR label, LPCTSTR varName, MTDOUBLE* value)
    {
    ASSERT(m_pMapExprEngine != NULL);
 
-   ModelVar *pModelVar = new ModelVar(label);
+   ModelVar* pModelVar = new ModelVar(label);
 
    m_pMapExprEngine->AddVariable(varName, value);
 
@@ -11967,7 +11967,7 @@ int FlowModel::AddModelVar(LPCTSTR label, LPCTSTR varName, MTDOUBLE *value)
    }
 
 
-void FlowModel::ApplyMacros(EnvModel *pEnvModel, CString &str)
+void FlowModel::ApplyMacros(EnvModel* pEnvModel, CString& str)
    {
    if (str.Find(_T('{')) < 0)
       return;
@@ -11979,16 +11979,16 @@ void FlowModel::ApplyMacros(EnvModel *pEnvModel, CString &str)
       return;
 
    // iterate through the macros, applying substitutions as needed
-   for (int i = 0; i < (int) this->m_macroArray.GetSize(); i++)
+   for (int i = 0; i < (int)this->m_macroArray.GetSize(); i++)
       {
-      ScenarioMacro *pMacro = this->m_macroArray[i];
+      ScenarioMacro* pMacro = this->m_macroArray[i];
 
       // for this macro, see if a value is defined for the current scenario.
       // if so, use it; if not, use the default value
       CString value(pMacro->m_defaultValue);
       for (int j = 0; j < (int)pMacro->m_macroArray.GetSize(); j++)
          {
-         SCENARIO_MACRO *pScn = pMacro->m_macroArray[j];
+         SCENARIO_MACRO* pScn = pMacro->m_macroArray[j];
 
          int index = -1;
          if (::EnvGetScenarioFromName(pEnvModel, pScn->envScenarioName, &index) != NULL)
@@ -12010,7 +12010,7 @@ void FlowModel::ApplyMacros(EnvModel *pEnvModel, CString &str)
 /////////////////////////////////////////////////////////////////// 
 //  additional functions
 
-void SetGeometry(Reach *pReach, float discharge)
+void SetGeometry(Reach* pReach, float discharge)
    {
    ASSERT(pReach != NULL);
 
@@ -12019,18 +12019,18 @@ void SetGeometry(Reach *pReach, float discharge)
 
    }
 
-float GetDepthFromQ(Reach *pReach, float Q, float wdRatio)  // ASSUMES A SPECIFIC CHANNEL GEOMETRY
+float GetDepthFromQ(Reach* pReach, float Q, float wdRatio)  // ASSUMES A SPECIFIC CHANNEL GEOMETRY
    {
    // from kellie:  d = ( 5/9 Q n s^2 ) ^ 3/8   -- assumes width = 3*depth, rectangular channel
-   float wdterm = (float)pow((wdRatio / (2 + wdRatio)), 2.0f / 3.0f)*wdRatio;
-   float depth = (float)pow(((Q*pReach->m_n) / ((float)sqrt(pReach->m_slope)*wdterm)), 3.0f / 8.0f);
+   float wdterm = (float)pow((wdRatio / (2 + wdRatio)), 2.0f / 3.0f) * wdRatio;
+   float depth = (float)pow(((Q * pReach->m_n) / ((float)sqrt(pReach->m_slope) * wdterm)), 3.0f / 8.0f);
    return depth;
    }
 
 
 // figure out what kind of flux it is
 // source string syntax= fn:<dllpath:function> for functional, db:<datasourcepath:columnname> for datasets
-FLUXSOURCE ParseSource(LPCTSTR _sourceStr, CString &path, CString &source, HINSTANCE &hDLL, FLUXFN &fn)
+FLUXSOURCE ParseSource(LPCTSTR _sourceStr, CString& path, CString& source, HINSTANCE& hDLL, FLUXFN& fn)
    {
    TCHAR sourceStr[256];
    lstrcpy(sourceStr, _sourceStr);
@@ -12149,7 +12149,7 @@ float GetVerticalDrainage(float wc)
    float kSat = 1.0f;//m/d
    float ratio = (wc - wp) / (porosity - wp);
    float power = 3.0f + (2.0f / lamda);
-   float kTheta = (kSat)* pow(ratio, power);
+   float kTheta = (kSat)*pow(ratio, power);
 
    if (wc < wp) //no flux if too dry
       kTheta = 0.0f;
@@ -12161,7 +12161,7 @@ float GetVerticalDrainage(float wc)
 float GetBaseflow(float wc)
    {
    float k1 = 0.01f;
-   float baseflow = wc*k1;
+   float baseflow = wc * k1;
    return baseflow;//m/d
    }
 
@@ -12173,27 +12173,27 @@ float CalcRelHumidity(float specHumid, float tMean, float elevation)
    float P = 101.3f * (float)pow(((293 - 0.0065 * elevation) / 293), 5.26);
    float e = specHumid / 0.622f * P;
    // temp in deg C
-   float E = 6.112f * (float)exp(17.62*tMean / (243.12 + tMean));
+   float E = 6.112f * (float)exp(17.62 * tMean / (243.12 + tMean));
    // rel. humidity [-]
    float ret = e / E;
 
    return ret;
    }
 
-bool FlowModel::CheckHRUPoolValues( int doy, int year)
+bool FlowModel::CheckHRUPoolValues(int doy, int year)
    {
    int count = 0;
    for (int i = 0; i < m_hruArray.GetSize(); i++)
       {
-      HRU *pHRU = m_hruArray[i];
-   
+      HRU* pHRU = m_hruArray[i];
+
       for (int j = 0; j < pHRU->m_poolArray.GetSize(); j++)
          {
-         if ( pHRU->m_poolArray[j]->m_volumeWater < 0)
+         if (pHRU->m_poolArray[j]->m_volumeWater < 0)
             {
             CString msg;
-            msg.Format( "Flow: HRUPool %i:%i has negative water content", i, j);
-            TRACE( msg );
+            msg.Format("Flow: HRUPool %i:%i has negative water content", i, j);
+            TRACE(msg);
             Report::LogWarning(msg);
             pHRU->m_poolArray[j]->m_volumeWater = 0;
             count++;
@@ -12201,11 +12201,11 @@ bool FlowModel::CheckHRUPoolValues( int doy, int year)
          }
       }
 
-   if ( count > 0 )
+   if (count > 0)
       {
       CString msg;
-      msg.Format( "Flow: Negative water volumes found in %i of %i HRUpools at day %i, year %i", count, int(m_hruArray.GetSize()*this->GetHRUPoolCount()),  doy, year );
-      Report::LogWarning( msg );
+      msg.Format("Flow: Negative water volumes found in %i of %i HRUpools at day %i, year %i", count, int(m_hruArray.GetSize() * this->GetHRUPoolCount()), doy, year);
+      Report::LogWarning(msg);
       return false;
       }
 

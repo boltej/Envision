@@ -18,13 +18,13 @@ Copywrite 2012 - Oregon State University
 
 */
 /* FireQueue.h
-** 
+**
 ** This class is designed to do the following:
 **
 ** - Read a file of possible fires, one line at a time
 ** - Create an object of class Fire for the line
 ** - Queue the fire if it is to be used during the run
-** - Provide access to the parameters associated with each 
+** - Provide access to the parameters associated with each
 **   fire
 ** - Allow the fire at the head of the queue to be removed
 **
@@ -41,12 +41,12 @@ using namespace std; // for queue
 
 class FireQueue {
 private:
-	queue<Fire *> Fires;
+	queue<Fire*> Fires;
 
 public:
-	FireQueue(CString InitFName) {Init(InitFName.GetString());}
-	FireQueue(const char * InitFName) {Init(InitFName);}
-	void Init(const char * InitFName);
+	FireQueue(LPCTSTR InitFName) { Init(InitFName); }
+	FireQueue(const char* InitFName) { Init(InitFName); }
+	void Init(const char* InitFName);
 
 	~FireQueue();
 
@@ -58,11 +58,11 @@ public:
 	int GetHdBurnPeriod();
 	bool GetHdDoRun();
 	int FireCnt();
-	void DeleteHd(){
-		if(!Fires.empty()) {
+	void DeleteHd() {
+		if (!Fires.empty()) {
 			delete Fires.front();
 			Fires.pop();
-		}
-	} // DeleteHd()
+			}
+		} // DeleteHd()
 
-}; // class FireQueue
+	}; // class FireQueue

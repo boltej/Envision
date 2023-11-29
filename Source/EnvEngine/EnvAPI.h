@@ -28,23 +28,25 @@ class EnvEvaluator;
 class EnvModelProcess;
 
 enum ENV_CP_FLAGS   // EnvCloseProject() flags;
-   { ENVCP_PRESERVE_MAP=1 };
+   {
+   ENVCP_PRESERVE_MAP = 1
+   };
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
    // High-level (Dynamic) interface functions
-   typedef int (PASCAL *INITENGINEFN)(int);
-   typedef EnvModel* (PASCAL *LOADPROJECTFN)(LPCTSTR, int);
-   typedef int (PASCAL *RUNSCENARIOFN)(EnvModel*, int, int);
-   typedef int (PASCAL *CLOSEPROJECTFN)(EnvModel*, int);
-   typedef int (PASCAL *CLOSEENGINEFN)();
+   typedef int (PASCAL* INITENGINEFN)(int);
+   typedef EnvModel* (PASCAL* LOADPROJECTFN)(LPCTSTR, int);
+   typedef int (PASCAL* RUNSCENARIOFN)(EnvModel*, int, int);
+   typedef int (PASCAL* CLOSEPROJECTFN)(EnvModel*, int);
+   typedef int (PASCAL* CLOSEENGINEFN)();
 
    ENVAPI int       PASCAL EnvInitEngine(int initFlags);
    ENVAPI EnvModel* PASCAL EnvLoadProject(LPCTSTR envxFile, int initFlags);
-   ENVAPI int       PASCAL EnvRunScenario(EnvModel *pModel, int scenario, int simulationLength, int runFlags);  // scenario is zero-based, -1=run all
-   ENVAPI int       PASCAL EnvCloseProject(EnvModel *pModel, int closeFlags);  // scenario is zero-based, -1=run all
+   ENVAPI int       PASCAL EnvRunScenario(EnvModel* pModel, int scenario, int runFlags);  // scenario is zero-based, -1=run all
+   ENVAPI int       PASCAL EnvCloseProject(EnvModel* pModel, int closeFlags);  // scenario is zero-based, -1=run all
 
 
 
@@ -58,7 +60,7 @@ extern "C" {
    ENVAPI bool PASCAL EnvGetLayerName(MapLayer*, int index, LPTSTR name, int maxLength);
    */
 
-   ENVAPI DELTA&  PASCAL EnvGetDelta(DeltaArray*, INT_PTR index);
+   ENVAPI DELTA& PASCAL EnvGetDelta(DeltaArray*, INT_PTR index);
    ENVAPI int     PASCAL EnvApplyDeltaArray(EnvModel*);
    /*
    ENVAPI bool PASCAL EnvGetDataFloat(EnvModel *pModel, int layer, int row, int col, float *value);
@@ -93,8 +95,8 @@ extern "C" {
 
    // ScenarioManager methods
    ENVAPI int        PASCAL EnvGetScenarioCount(EnvModel*);
-   ENVAPI Scenario * PASCAL EnvGetScenario(EnvModel*, int i);
-   ENVAPI Scenario * PASCAL EnvGetScenarioFromName(EnvModel*, LPCTSTR name, int *index);
+   ENVAPI Scenario* PASCAL EnvGetScenario(EnvModel*, int i);
+   ENVAPI Scenario* PASCAL EnvGetScenarioFromName(EnvModel*, LPCTSTR name, int* index);
 
    // DataManager methods
    ENVAPI int        PASCAL EnvGenLulcTransTable(EnvModel*);

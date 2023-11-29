@@ -53,31 +53,32 @@ Pull bunches of stuff from FlamMapRunner
 class FireYearRunner {
 private:
    FiresList m_firesList;
-   float
-      *m_pYrFlameLens;
-   int *m_pFireNums;
 
-   IgnitGenerator
-      *m_pIgnitGenerator;
+   vector<float>m_yrFlameLens; //    float* m_pYrFlameLens;
+   vector<int> m_fireNums;     //    int *m_pFireNums;
 
-	EnvContext
-      *m_pEnvContext;
+   //float * m_pYrFlameLens;
+   //int* m_pFireNums;
+
+   IgnitGenerator* m_pIgnitGenerator;
+
+   EnvContext* m_pEnvContext;
 
    // Fuel moistures, same fuel moistures used each run
    //CString
    //   m_FuelMoistures;
-   
+
    void RunFlamMap();
 
 public:
-   FireYearRunner(EnvContext *pEnvContext);
+   FireYearRunner(EnvContext* pEnvContext);
    ~FireYearRunner();
 
-   int RunFireYear(EnvContext *pEnvContext, PolyGridLookups *pPolyGridLookups);
+   int RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyGridLookups);
    float GetFlameLen(const int x, const int y);
-	double CalcIduAreaBurned(EnvContext *pEnvContext, float *flameLenLayer, long *numStudyAreaCells);
-	int GetFireNum(const int x, const int y);
+   double CalcIduAreaBurned(EnvContext* pEnvContext, float* flameLenLayer, long* numStudyAreaCells);
+   int GetFireNum(const int x, const int y);
 
-   bool CalcIduPotentialFlameLen( EnvContext *pContext, MapLayer *pGrid );
+   bool CalcIduPotentialFlameLen(EnvContext* pContext, MapLayer* pGrid);
 
-}; // class FireYearRunner
+   }; // class FireYearRunner
