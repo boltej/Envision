@@ -152,6 +152,11 @@ struct NetStats {
    float maxLANodeReactivity = -99.0f;
    float stddevLANodeReactivity = -99.0f;
 
+   float minNonLANodeReactivity = -99.0f;
+   float meanNonLANodeReactivity = -99.0f;
+   float maxNonLANodeReactivity = -99.0f;
+   float stddevNonLANodeReactivity = -99.0f;
+
    float minNodeInfluence = -99.0f;
    float meanNodeInfluence = -99.0f;
    float maxNodeInfluence = -99.0f;
@@ -161,6 +166,16 @@ struct NetStats {
    float meanEdgeTransEff = -99.0f;
    float maxEdgeTransEff = -99.0f;
    float stddevEdgeTransEff = -99.0f;
+
+   float minLAEdgeTransEff = -99.0f;
+   float meanLAEdgeTransEff = -99.0f;
+   float maxLAEdgeTransEff = -99.0f;
+   float stddevLAEdgeTransEff = -99.0f;
+
+   float minNonLAEdgeTransEff = -99.0f;
+   float meanNonLAEdgeTransEff = -99.0f;
+   float maxNonLAEdgeTransEff = -99.0f;
+   float stddevNonLAEdgeTransEff = -99.0f;
 
    float minEdgeInfluence = -99.0f;
    float meanEdgeInfluence = -99.0f;
@@ -686,6 +701,7 @@ class _EXPORT SNIP : public  EnvModelProcess
       //virtual int  OutputVar(int id, MODEL_VAR** modelVar);
 
    public:
+      int m_use = 1;
       SNLayer* AddLayer(void) { m_layerArray.push_back(new SNLayer(this)); return m_layerArray[m_layerArray.size() - 1]; }
       bool     RemoveLayer(LPCTSTR name);
       SNLayer* GetLayer(int i) { return m_layerArray[i]; }

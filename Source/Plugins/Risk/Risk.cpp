@@ -109,11 +109,13 @@ bool Risk::Run(EnvContext* pEnvContext)
    float lossAreaPotentialHousing = 0;
    float lossAreaPotentialTimber = 0;
 
-
    /// temp?
    float totalArea = 0;
    float maxPotentialDamagePerHa = 0;
    float maxActualDamagePerHa = 0;
+
+   int colForAllocZone = pIDULayer->GetFieldCol("ForAllocZo");
+   ASSERT(colForAllocZone >= 0);
 
    vector<float> potLossPerHas;
    vector<float> actLossPerHas;
@@ -178,7 +180,10 @@ bool Risk::Run(EnvContext* pEnvContext)
       float timberVol = 0; // m3/ha
       pIDULayer->GetData(idu, this->m_colTimberVol, timberVol);
 
-      if (timberVol > 0)
+      int forAllocZone = -1;
+      pIDULayer->GetData(idu, colForAllocZone, forAllocZone);
+
+      if (timberVol > 0 && forAllocZone != 5 && forAllocZone != 7)
          {
          int lu = 0;
          pIDULayer->GetData(idu, this->m_colLookupTimber, lu);

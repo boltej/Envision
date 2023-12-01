@@ -62,6 +62,8 @@ Copywrite 2012 - Oregon State University
 #include <fstream>
 #include <filesystem>
 
+// new version
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -6041,6 +6043,8 @@ void ChronicHazards::ConstructBPS(int currentYear)
    // Iterate thought the Dune points. looking for points that are protecting a building
    // When one of these is found, check tests to see if we should build a bps.
 
+   // NOTE: NEED TO ADD GOAL18 constraint?
+
    for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
       //MapLayer::Iterator endPoint = point;
@@ -6063,12 +6067,13 @@ void ChronicHazards::ConstructBPS(int currentYear)
       // dune protecting building?
       if (duneBldgIndex != -1)
          {
+         // get the most frequent value from erosion moving averages
          MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
          float eroFreq = eroMovingWindow->GetFreqValue();
          m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
 
          int nextBldgIndex = duneBldgIndex;
-         float buildBPSThreshold = m_idpyFactor * 365.0f;
+         float buildBPSThreshold = m_idpyFactor * 365.0f; // determine threshold for impact days/year to trigger
 
          float maxAmtTop = 0.0f;
          float minToeElevation = 10000.0f;
@@ -6101,6 +6106,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
                float distToBldg = 0.0f;
                m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
 
+               // get this years storm-induced event based erosion
                bool isImpactedByEErosion = false;
                isImpactedByEErosion = IsBldgImpactedByEErosion(nextBldgIndex, avgKD, distToBldg);
 
@@ -6152,7 +6158,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
          endPoint--;  // we should be just over the northern edge of the IDU, back up so we are just inside of it.
          } // end protecting building
 
-           // make sure everything is okay, diddn't overrun bounds
+      // make sure everything is okay, diddn't overrun bounds
       if (endPoint >= m_pDuneLayer->End())
          Report::ErrorMsg("Coastal Hazards: Invalid Endpoint encountered when Constructing BPS (0)");
       if (endPoint < m_pDuneLayer->Begin())
@@ -9215,6 +9221,7 @@ void ChronicHazards::RaiseInfrastructure(EnvContext* pEnvContext)
 void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
    {
    bool buildIndex = false;
+   int numBldgsRemoved = 0;
 
    int recordCount = m_pIDULayer->GetRecordCount();
    ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
@@ -9288,7 +9295,8 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
                   pi.IncurCost(cost);
 
                   // track remove building count
-                  m_noBldgsRemovedFromHazardZone += 1;
+                  numBldgsRemoved++;
+                  m_noBldgsRemovedFromHazardZone++;
 
                   // write year and remove building in building layer
                   m_pBldgLayer->SetData(bldgIndex, m_colBldgRemoveYr, pEnvContext->currentYear);
@@ -9332,6 +9340,9 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
          pPoly->InitLogicalPoints(m_pMap);
          } // end each buildings
       } // end each IDU
+
+      Report::Log_i("Removed %i buildings from hazardous areas", numBldgsRemoved);
+
    } // end RemoveFromHazardZone
 
 
