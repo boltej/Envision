@@ -1752,13 +1752,15 @@ void EnvModel::ApplyMandatoryPolicies()
 
 void EnvModel::ApplyScheduledPolicies()
    {
+   // note: a "scheduled" policy is a policy that runs independently of any actors.  This function runs any scheduled policy
+   // on any IDU with a qualifying siteAttr 
    int cellCount = m_pIDULayer->GetRecordCount();   // active records by default
 
    for (int i = 0; i < m_pPolicyManager->GetPolicyScheduleCount(); i++)
       {
       POLICY_SCHEDULE& ps = m_pPolicyManager->GetPolicySchedule(i);
 
-      if (ps.year == m_currentYear)
+      if ((ps.startYear < 0 || ps.startYear <= m_currentYear) && (ps.endYear < 0 || m_currentYear <= ps.endYear))
          {
          // get all cell where this policy applies
          for (MapLayer::Iterator cell = m_pIDULayer->Begin(); cell != m_pIDULayer->End(); cell++)
@@ -2017,25 +2019,11 @@ int EnvModel::CollectRelevantPolicies(int cell, int year, POLICY_TYPE policyType
       if (!pPolicy->m_mandatory && policyType == PT_MANDATORY)
          continue;
 
-      // cehcks agains global constraints
+      // checks agains global constraints
       if (DoesPolicyApply(pPolicy, cell))
          policyScoreArray[relevantPolicyCount++].pPolicy = pPolicy;
       }  // end of:  for ( i < policyCount );
 
-   // if there are any mandatory policies, reduce set to just these.  This will exclude
-   // any non-mandatory policies from being applied 
-   /*
-   int mandatoryPolicyCount = 0;
-   for ( int i=0; i < relevantPolicyCount; i++ )
-      {
-      EnvPolicy *pPolicy = policyScoreArray[i].pPolicy;
-      if ( pPolicy->m_mandatory )
-         policyScoreArray[ mandatoryPolicyCount++ ].pPolicy = pPolicy;
-      }
-
-   if ( mandatoryPolicyCount > 0 )
-      return mandatoryPolicyCount;
-   else*/
    return relevantPolicyCount;
    }
 

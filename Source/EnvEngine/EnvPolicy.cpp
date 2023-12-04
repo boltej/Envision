@@ -1795,7 +1795,7 @@ void PolicyManager::BuildPolicySchedule()
 
       if (pPolicy->m_use && pPolicy->m_isScheduled)
          {
-         POLICY_SCHEDULE ps(pPolicy->m_startDate, pPolicy);
+         POLICY_SCHEDULE ps(pPolicy->m_startDate, pPolicy->m_endDate, pPolicy);
          m_policySchedule.Add(ps);
          }
       }

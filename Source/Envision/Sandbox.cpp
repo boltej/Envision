@@ -420,7 +420,7 @@ void Sandbox::CalculateGoalScores(CArray<EnvPolicy*>& schedPolicy, EnvPolicy* pP
    for (i = 0; i < schedPolicy.GetCount(); ++i)
       {
       EnvPolicy* pPolicy = schedPolicy.GetAt(i);
-      gpPolicyManager->AddPolicySchedule(pPolicy->m_startDate, pPolicy);
+      gpPolicyManager->AddPolicySchedule(pPolicy->m_startDate, pPolicy->m_endDate, pPolicy);
       }
 
    for (m_currentYear = 0; m_currentYear < m_yearsToRun; m_currentYear++)

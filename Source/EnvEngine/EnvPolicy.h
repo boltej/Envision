@@ -956,13 +956,14 @@ public:
 
 struct POLICY_SCHEDULE     // for managing scheduled policies
    {
-   int year;
+   int startYear;  // first (actual) year policy is applied
+   int endYear;  // last (actual) year policy is applied
    EnvPolicy *pPolicy;
 
-   POLICY_SCHEDULE() : year( -1 ), pPolicy( NULL ) {}
-   POLICY_SCHEDULE( int _year, EnvPolicy *_pPolicy ) : year( _year ), pPolicy( _pPolicy ) { }
+   POLICY_SCHEDULE() : startYear( -1 ), endYear(-1), pPolicy( NULL ) {}
+   POLICY_SCHEDULE( int _startYear, int _endYear, EnvPolicy *_pPolicy ) : startYear( _startYear ), endYear(_endYear), pPolicy( _pPolicy ) { }
    POLICY_SCHEDULE( const POLICY_SCHEDULE &p ) { *this = p; }      // copy constructor
-   POLICY_SCHEDULE &operator = (const POLICY_SCHEDULE &p ) { year = p.year; pPolicy = p.pPolicy; return *this; }   
+   POLICY_SCHEDULE &operator = (const POLICY_SCHEDULE &p ) { startYear = p.startYear; endYear = p.endYear, pPolicy = p.pPolicy; return *this; }   
    };
 
 
@@ -987,7 +988,7 @@ public:
    bool    ReplaceGlobalConstraints( PtrArray< GlobalConstraint > &newConstraintArray );
 
    void    ClearPolicySchedule() { m_policySchedule.RemoveAll(); }
-   int     AddPolicySchedule(int year, EnvPolicy* pPolicy) { POLICY_SCHEDULE ps(year, pPolicy); return (int)m_policySchedule.Add(ps); }
+   int     AddPolicySchedule(int startYear,int endYear, EnvPolicy* pPolicy) { POLICY_SCHEDULE ps(startYear, endYear, pPolicy); return (int)m_policySchedule.Add(ps); }
    int     GetPolicyScheduleCount() { return (int) m_policySchedule.GetSize(); }
    POLICY_SCHEDULE &GetPolicySchedule( int i ) { return m_policySchedule[ i ]; }
    void    BuildPolicySchedule();
