@@ -2006,7 +2006,23 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    if (this->m_usePriorGrids == false)
       {
       CString sfincsFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
-      std::filesystem::copy((LPCTSTR)sfincsFile, (LPCTSTR)outFile);
+      try {
+         std::filesystem::copy((LPCTSTR)sfincsFile, (LPCTSTR)outFile, std::filesystem::copy_options::overwrite_existing);
+         }
+      catch (const std::exception& ex) {
+         Report::LogError(ex.what());
+
+         //ex.stackTrace[0].fileName
+         //ex.stackTrace[0].lineNumber
+         // std::cout<<ex.what();
+         }
+      catch (const std::string& ex) {
+         Report::LogError(ex.c_str()); //std::cout << ex;
+         }
+      catch (...) {
+         //std::exception_ptr p = std::current_exception();
+         Report::LogError("Unspecified exception when running flood model");
+         }
       }
 
    this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
