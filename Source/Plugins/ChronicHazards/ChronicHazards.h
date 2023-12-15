@@ -303,6 +303,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       // input layers used by submodels
       MapLayer* m_pIDULayer = nullptr;                     // ptr to IDU Layer
+      MapLayer* m_pDuneLayer = nullptr;
       MapLayer* m_pRoadLayer = nullptr;                  // ptr to Road Layer
       MapLayer* m_pBldgLayer = nullptr;                  // ptr to Building Layer
       MapLayer* m_pInfraLayer = nullptr;                 // ptr to Infrastructure Building Layer
@@ -313,7 +314,6 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //MapLayer *m_pManningMaskGrid = nullptr;            // ptr to Bates Model Mannings Coefficient Grid (value = -1 if not running Bates model in region)
       //MapLayer *m_pTidalBathyGrid = nullptr;             // ptr to Tidal Bathymetry Grid
 
-      MapLayer* m_pDuneLayer = nullptr;
 
       // Created grids for mapping flooding, erosion
       MapLayer* m_pFloodedGrid = nullptr;                   // ptr to Flooded Grid

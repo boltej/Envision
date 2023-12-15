@@ -592,7 +592,8 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
    if (m_logPerimeters)
       {
       CString PerimeterFName, dbfName;
-      PerimeterFName.Format(_T("%s%d_Perimeter_Run%03d.shp"), m_outputPath, gpFlamMapAP->processID, pEnvContext->runID);
+      //PerimeterFName.Format(_T("%s%d_Perimeter_Run%03d.shp"), m_outputPath, gpFlamMapAP->processID, pEnvContext->runID);
+      PerimeterFName.Format(_T("%sFirePerimeter_%s_Run%d.shp"), (LPCTSTR) m_outputPath, (LPCTSTR) pEnvContext->pScenario->m_name, pEnvContext->runID);
       int extLoc = PerimeterFName.ReverseFind('.');
       dbfName = PerimeterFName.Left(extLoc);
       dbfName += _T(".dbf");

@@ -632,7 +632,7 @@ class COCNHProcess : public EnvModelProcess
       //!
       static int m_colPrescribedFire10000;
       //!
-      static int m_colPrescribedFire2000;
+      static int m_colPrescribedFire1Km;
       //!
       static int m_colCondFlameLength270;
       //!

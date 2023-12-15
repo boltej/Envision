@@ -381,7 +381,7 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 	double iduArea, newX, newY, originalX, originalY;
 	int errorsFMS = 0, errorsFMP = 0, errorsMTT = 0, errorsIgnition = 0, offLandscapeIgnition = 0, retryCount = 0, flLoc = 0;
 	bool needToRetry = false;
-	CPerimeter* perim;
+	CPerimeter* perim = nullptr;
 	__int64 nCells = nRows * nCols;
 	int* burnMask = new int[nCells];
 	memset(burnMask, 0, nCells * sizeof(int));
@@ -663,7 +663,7 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 			// pMtt->GetFirePerimeter((char *)ArrivalTimeFName.GetString());
 			}
 		if (pMtt != NULL)
-			{
+			{	
 			delete(pMtt);
 			pMtt = NULL;
 			flameLenLayer = NULL;

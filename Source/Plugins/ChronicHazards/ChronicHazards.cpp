@@ -1032,10 +1032,10 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////m_pDuneLayer->SetColData(m_colDLEastingToeBPS, VData(0.0), true);
    CheckCol(m_pDuneLayer, m_colDLAddYearBPS, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLAddYearBPS, VData(0), true);
-   //CheckCol(m_pDuneLayer, m_colDLMaintYearBPS, "MAIN_YRBPS", TYPE_INT, CC_AUTOADD);
-   //m_pDuneLayer->SetColData(m_colDLMaintYearBPS, VData(0), true);
-   //CheckCol(m_pDuneLayer, m_colDLRemoveYearBPS, "REM_YR_BPS", TYPE_INT, CC_AUTOADD);
-   //m_pDuneLayer->SetColData(m_colDLRemoveYearBPS, VData(0), true);
+   CheckCol(m_pDuneLayer, m_colDLMaintYearBPS, "MAIN_YRBPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMaintYearBPS, VData(0), true);
+   CheckCol(m_pDuneLayer, m_colDLRemoveYearBPS, "REM_YR_BPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLRemoveYearBPS, VData(0), true);
    ////////
    ////////
    ////////// Hard Protection Structure Nourishment attributes
@@ -1076,39 +1076,39 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////m_pDuneLayer->SetColData(m_colDLNourishYearSPS, VData(0), true);
    ////////CheckCol(m_pDuneLayer, m_colDLNourishFreqSPS, "NOURFRQSPS", TYPE_INT, CC_AUTOADD);
    ////////
-   ////////// Costs of Protection Structures
-   ////////CheckCol(m_pDuneLayer, m_colDLCostBPS, "COST_BPS", TYPE_DOUBLE, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLCostBPS, VData(0.0), true);
-   ////////
-   ////////CheckCol(m_pDuneLayer, m_colDLCostMaintBPS, "MNTCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLCostMaintBPS, VData(0.0), true);
-   ////////
-   ////////CheckCol(m_pDuneLayer, m_colDLCostSPS, "COST_SPS", TYPE_DOUBLE, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLCostSPS, VData(0.0), true);
-   //////////CheckCol(m_pDuneLayer, m_colNoursihCostSPS, "NOURCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
-   //////////m_pDuneLayer->SetColData(m_colNourishCostSPS, VData(0.0), true);
-   //////////CheckCol(m_pDuneLayer, m_colRebuildCostSPS, "RBLDCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
-   //////////m_pDuneLayer->SetColData(m_colRebuildCostSPS, VData(0.0), true);
-   ////////
-   ////////// Height of Protection Structures
-   ////////CheckCol(m_pDuneLayer, m_colIDUHeightBPS, "HEIGHT_BPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colIDUHeightBPS, VData(0.0), true);
-   ////////CheckCol(m_pDuneLayer, m_colDLHeightSPS, "HEIGHT_SPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLHeightSPS, VData(0.0), true);
-   ////////
-   ////////// Length of Protection Structures
-   ////////CheckCol(m_pDuneLayer, m_colDLLengthBPS, "LENGTH_BPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLLengthBPS, VData(0.0), true);
-   ////////CheckCol(m_pDuneLayer, m_colDLLengthSPS, "LENGTH_SPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLLengthSPS, VData(0.0), true);
-   ////////
-   ////////// Width of Protection Structures
-   ////////CheckCol(m_pDuneLayer, m_colDLWidthBPS, "WIDTH_BPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLWidthBPS, VData(0.0), true);
-   ////////CheckCol(m_pDuneLayer, m_colDLWidthSPS, "WIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLWidthSPS, VData(0.0), true);
-   ////////CheckCol(m_pDuneLayer, m_colDLTopWidthSPS, "TOPWDTHSPS", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLTopWidthSPS, VData(0.0), true);
+   // Costs of Protection Structures
+   CheckCol(m_pDuneLayer, m_colDLCostBPS, "COST_BPS", TYPE_DOUBLE, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLCostBPS, VData(0.0), true);
+   
+   CheckCol(m_pDuneLayer, m_colDLCostMaintBPS, "MNTCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLCostMaintBPS, VData(0.0), true);
+   
+   CheckCol(m_pDuneLayer, m_colDLCostSPS, "COST_SPS", TYPE_DOUBLE, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLCostSPS, VData(0.0), true);
+   //CheckCol(m_pDuneLayer, m_colNoursihCostSPS, "NOURCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
+   //m_pDuneLayer->SetColData(m_colNourishCostSPS, VData(0.0), true);
+   //CheckCol(m_pDuneLayer, m_colRebuildCostSPS, "RBLDCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
+   //m_pDuneLayer->SetColData(m_colRebuildCostSPS, VData(0.0), true);
+   
+   // Height of Protection Structures
+   CheckCol(m_pDuneLayer, m_colDLHeightBPS, "HEIGHT_BPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLHeightBPS, VData(0.0), true);
+   CheckCol(m_pDuneLayer, m_colDLHeightSPS, "HEIGHT_SPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLHeightSPS, VData(0.0), true);
+   
+   // Length of Protection Structures
+   CheckCol(m_pDuneLayer, m_colDLLengthBPS, "LENGTH_BPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLLengthBPS, VData(0.0), true);
+   CheckCol(m_pDuneLayer, m_colDLLengthSPS, "LENGTH_SPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLLengthSPS, VData(0.0), true);
+   
+   // Width of Protection Structures
+   CheckCol(m_pDuneLayer, m_colDLWidthBPS, "WIDTH_BPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLWidthBPS, VData(0.0), true);
+   CheckCol(m_pDuneLayer, m_colDLWidthSPS, "WIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLWidthSPS, VData(0.0), true);
+   CheckCol(m_pDuneLayer, m_colDLTopWidthSPS, "TOPWDTHSPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLTopWidthSPS, VData(0.0), true);
    ////////
    ////////
    ////////// 1/0 Indication that Beachtype changed 
@@ -1530,7 +1530,8 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
       CString path;
       path.Format("%sPolicySummary_%s_Run%i.csv", (LPCTSTR)policySummaryPath, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
       fopen_s(&fpPolicySummary, path, "wt");
-      fputs("Year,Policy,Locator,Unit Cost,Total Cost, Avail Budget,Param1,Param2,PassCostConstraint", fpPolicySummary);
+      if ( fpPolicySummary != nullptr)
+         fputs("Year,Policy,Locator,Unit Cost,Total Cost, Avail Budget,Param1,Param2,PassCostConstraint", fpPolicySummary);
       }
 
    // reset the cumulative flood map
@@ -1910,6 +1911,7 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    // SFINCS function in the form of a CSV file
 
    // first, create a data obj for the CSV table
+   Report::StatusMsg("Setting up TWL Data");
    FDataObj twlData(8, 0);  // Cols:
    twlData.SetLabel(0, "Transect");
    twlData.SetLabel(1, "Northing");
@@ -1948,12 +1950,18 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    twlData.WriteAscii(twlFile, ',');
 
    // persistent version
+   Report::StatusMsg("Setting up TWL Data");
+
    twlFile.Format("%sTWL_%i.csv", outDir, pEnvContext->yearOfRun);
+
+   Report::StatusMsg(CString("Writing TWL Data to ")+twlFile);
    twlData.WriteAscii(twlFile, ',');
+
+   CString fdName;
+   fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
 
    if (this->m_usePriorGrids == 0)
       {
-
       // Get ready to call SFINCS Model
       // Create MATLAB data array factory
       matlab::data::ArrayFactory factory;
@@ -1963,6 +1971,7 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
          factory.createScalar<int>(0), // Advection
          factory.createScalar<int>(100), // Cellsize
          factory.createCharArray((LPCTSTR)m_sfincsHome),// sfincs home dir
+         factory.createCharArray((LPCTSTR)fdName) // sfincs home dir
          });
 
       // Create string buffer for standard output
@@ -1970,6 +1979,10 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
       std::shared_ptr<StringBuf> output = std::make_shared<StringBuf>();
 
       // Call MATLAB function and return result
+      CString msg;
+      msg.Format("Calling SFINCS_ENVISION(%s,0,100,%s,%s)", (LPCTSTR)twlFile, (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName);
+      Report::StatusMsg(msg);
+
       try {
          matlab::data::TypedArray<int> result = m_matlabPtr->feval(u"SFINCS_ENVISION", args, output);
          }
@@ -2000,30 +2013,13 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    if (m_pFloodedGrid != nullptr)
       m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
 
+
    CString outFile;
-   outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+   if (this->m_usePriorGrids)
+      outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+   else
+      outFile.Format("%s/Outputs/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName);
 
-   if (this->m_usePriorGrids == false)
-      {
-      CString sfincsFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
-      try {
-         std::filesystem::copy((LPCTSTR)sfincsFile, (LPCTSTR)outFile, std::filesystem::copy_options::overwrite_existing);
-         }
-      catch (const std::exception& ex) {
-         Report::LogError(ex.what());
-
-         //ex.stackTrace[0].fileName
-         //ex.stackTrace[0].lineNumber
-         // std::cout<<ex.what();
-         }
-      catch (const std::string& ex) {
-         Report::LogError(ex.c_str()); //std::cout << ex;
-         }
-      catch (...) {
-         //std::exception_ptr p = std::current_exception();
-         Report::LogError("Unspecified exception when running flood model");
-         }
-      }
 
    this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
 
@@ -5030,17 +5026,8 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
    //CString erodedGridFile;
    //CString eelgrassGridFile;
 
-   CString scenario = pEnvContext->pEnvModel->m_pScenario->m_name;
+   CString scenario = pEnvContext->pScenario->m_name;
    int run = pEnvContext->runID;
-
-   //int outputYear;
-   //
-   //outputYear = pEnvContext->currentYear;
-
-   /*if(pEnvContext->yearOfRun == 0)
-   outputYear = pEnvContext->currentYear;
-   else
-   outputYear = pEnvContext->currentYear + 1;*/
 
    if (pEnvContext->yearOfRun == 0)
       {
@@ -5055,9 +5042,9 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       {
       // Dune line layer naming
       CString duneFilename;
-      duneFilename.Format("%sDunes/Dunes_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
+      duneFilename.Format("%sDuneLine/DuneLine_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
 
-      CString msg("Exporting map layer: ");
+      CString msg("Exporting Dune Line map layer: ");
       msg += duneFilename;
       Report::Log(msg);
       m_pDuneLayer->SaveShapeFile(duneFilename, false, 0, 1);
@@ -5067,10 +5054,11 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       && (m_exportFloodMapInterval > 0 && (pEnvContext->yearOfRun % m_exportFloodMapInterval == 0)
          || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
       {
-      CString fldFile = m_sfincsHome + "/Outputs/Tillamook_Max_Flooding_Depths1.asc";
+      CString fdName;
+      fdName.Format("/Outputs/MaxFloodDepth_%s_Year%i_%i.asc", (LPCTSTR)scenario, outputYear, run);
+      CString fldFile = m_sfincsHome + fdName;
       CString outFile;
-      outFile.Format("%sFlooding/FloodDepths_%i_%s.asc", (LPCTSTR)PathManager::GetPath(PM_OUTPUT_DIR),
-         pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+      outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", outDir, outputYear, (LPCTSTR) scenario, run );
 
       // copy the file to the standard output locations
       std::ifstream  src(fldFile, std::ios::binary);
@@ -5124,7 +5112,7 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       {
       // Dune line layer naming
       CString bldgFilename;
-      bldgFilename.Format("%sBuildings/Bldgs_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
+      bldgFilename.Format("%sBldgs/Bldgs_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
 
       CString msg("Exporting map layer: ");
       msg += bldgFilename;
@@ -11599,8 +11587,9 @@ bool ChronicHazards::AddToPolicySummary(int year, int policyID, int locator, flo
       }
 
 
-   fprintf(::fpPolicySummary, "\n%i,%s,%i,%.2f,%i,%i,%f,%f,%i",
-      year, (LPCTSTR)policyName, locator, unitCost, int(cost), int(availBudget), param1, param2, passCostConstraint ? 1 : 0);
+   if ( fpPolicySummary != nullptr)
+      fprintf(::fpPolicySummary, "\n%i,%s,%i,%.2f,%i,%i,%f,%f,%i",
+         year, (LPCTSTR)policyName, locator, unitCost, int(cost), int(availBudget), param1, param2, passCostConstraint ? 1 : 0);
 
    return true;
    }

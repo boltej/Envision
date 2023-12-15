@@ -1,0 +1,61 @@
+{
+  "studyArea": "Tillamook",
+  "localStudyAreaPath": "D:/Envision/StudyAreas/OrCoast/Tillamook",
+  "iduXmlPath": "D:/Envision/StudyAreas/OrCoast",
+  "explorerStudyAreaPath": "//EnvWeb/Explorer/Topic/Tillamook",
+  "mapServerPath": "//EnvWeb/MapServer/apps/Tillamook",
+  "startYear": 2020,
+  "endYear": 2100,
+  "scenarios": [ "Baseline-High", "Realign-High-ChronicOnly", "Realign-High-AcuteOnly", "Realign-High-Both"],
+  "_scenarios": [ "Baseline-High", "Realign-High-ChronicOnly", "Realign-High-AcuteOnly", "Realign-High-Both" ],
+  "scenarioColors": {
+    "Baseline-High": "orange",
+    "Realign-High-ChronicOnly": "green",
+    "Realign-High-AcuteOnly": "red",
+    "Realign-High-Both": "blue"
+  },
+  "datasets": {
+    "IDU": {
+      "fieldDefs": [
+        [ "ZoneA", "int", "False", -99 ],
+        [ "ZoneB", "int", "False", -99 ],
+        [ "PopDens", "float", "False", 4046.9 ],
+        [ "FLD_ZONE", "int", "False", -99]
+        ]
+    },
+    "DuneLine": {
+      "fieldDefs": [
+        [ "DUNESLOPE", "int", "False", -99 ],
+        [ "BEACHTYPE", "int", "False", -99 ],
+        [ "DUNEWIDTH", "float", "False", 4046.9 ],
+        [ "BEACHWIDTH", "int", "False", -99],
+        [ "FLOODED", "int", "False", -99],
+        [ "AMT_FLOOD", "float", "False", -99],
+        [ "MAX_TWL", "float", "False", -99],
+        [ "EROSION", "float", "False", -99],
+        [ "E_KD", "float", "False", -99],
+        [ "E_HIST", "float", "False", -99],
+        [ "E_BRUUN", "float", "False", -99],
+        [ "AVGKD", "float", "False", -99],
+        [ "X_AVGKD", "float", "False", -99]
+        ]
+    },
+    "Bldgs": {
+      "fieldDefs": [
+        [ "age", "int", "False", -99],
+        [ "NDU", "int", "False", -99],
+        [ "NEWDU", "int", "False", -99],
+        [ "FLOODED", "int", "False", -99],
+        [ "ERODED", "int", "False", -99],
+        [ "REMOVE_YR", "int", "False", -99],
+        [ "SFESITE_YR", "int", "False", -99],
+        [ "BFE_YR", "int", "False", -99],
+        [ "SAFE_SITE", "int", "False", -99],
+        [ "BLDGVALUE", "float", "False", -99],
+        [ "BFE", "float", "False", -99],
+        [ "ERO_FREQ", "float", "False", -99],
+        [ "FLOOD_FREQ", "float", "False", -99]
+        ]
+    }
+  }
+}
