@@ -38,7 +38,7 @@
         [ "E_BRUUN", "float", "False", -99],
         [ "AVGKD", "float", "False", -99],
         [ "X_AVGKD", "float", "False", -99]
-        ]
+     ]
     },
     "Bldgs": {
       "fieldDefs": [
@@ -55,7 +55,12 @@
         [ "BFE", "float", "False", -99],
         [ "ERO_FREQ", "float", "False", -99],
         [ "FLOOD_FREQ", "float", "False", -99]
-        ]
+      ]
+    },
+    "Flooding": {
+      "fieldDefs": [
+        [ "FloodDepths", "float", "False", -99]
+      ]
     }
   }
 }

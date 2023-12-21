@@ -388,7 +388,7 @@ class COCNHProcess : public EnvModelProcess
       //! hardcoded entry in FlameLenDisturbHandler line 181: if ( disturb > 0 ) { newvariant = 1;...
       //! Used in COCNHProcessPre1::Run()
       bool UpdateDisturbanceValue(EnvContext* pContext, bool useAddDelta);
-
+     
       //! Load the fuelmodel lookup table from .csv file.
       //! The lookup table includes the relationship between a specific CTSS numerical code and
       //! and the corresponding fire related values such as fuel model, fire regime, ....

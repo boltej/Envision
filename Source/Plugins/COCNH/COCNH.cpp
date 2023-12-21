@@ -356,7 +356,7 @@ int COCNHProcess::m_colPotentialMXFire1000 = -1;
 int COCNHProcess::m_colFire2000 = -1;
 int COCNHProcess::m_colFire10000 = -1;
 int COCNHProcess::m_colPrescribedFire10000 = -1;
-int COCNHProcess::m_colPrescribedFire2000 = -1;
+int COCNHProcess::m_colPrescribedFire1Km = -1;
 int COCNHProcess::m_colCondFlameLength270 = -1;
 int COCNHProcess::m_colTreesPerHect500 = -1;
 int COCNHProcess::m_colStructure = -1;
@@ -864,7 +864,7 @@ bool COCNHProcessPre1::Run(EnvContext* pContext)
    pLayer->SetColData(m_colFire2000, VData(0), true);
    pLayer->SetColData(m_colFire10000, VData(0), true);
    pLayer->SetColData(m_colPrescribedFire10000, VData(0), true);
-   pLayer->SetColData(m_colPrescribedFire2000, VData(0), true);
+   pLayer->SetColData(m_colPrescribedFire1Km, VData(0), true);
    //pLayer->SetColData(m_colFireWise, VData(0), true);
    pLayer->SetColData(m_colVegTranType, VData(0), true);
    pLayer->SetColData(m_colFire500, VData(0), true);
@@ -998,7 +998,7 @@ bool COCNHProcessPre2::InitRun(EnvContext* pContext, bool useInitSeed)
    pLayer->SetColData(m_colFire2000, VData(0), true);
    pLayer->SetColData(m_colFire10000, VData(0), true);
    pLayer->SetColData(m_colPrescribedFire10000, VData(0), true);
-   pLayer->SetColData(m_colPrescribedFire2000, VData(0), true);
+   pLayer->SetColData(m_colPrescribedFire1Km, VData(0), true);
    pLayer->SetColData(m_colFireWise, VData(0), true);
    pLayer->SetColData(m_colVegTranType, VData(0), true);
    pLayer->SetColData(m_colFire500, VData(0), true);
@@ -1346,7 +1346,7 @@ bool COCNHProcess::DefineColumnNumbers(EnvContext* pContext)
    CheckCol(pLayer, m_colFire2000, "FIRE_2KM", TYPE_LONG, CC_AUTOADD);  // formerly FIRE5_2000",
    CheckCol(pLayer, m_colFire10000, "FIRE_10KM", TYPE_LONG, CC_AUTOADD);
    CheckCol(pLayer, m_colPrescribedFire10000, "PSFIRE_10K", TYPE_LONG, CC_AUTOADD); // prescribed fire within 10km, within 5 years"
-   CheckCol(pLayer, m_colPrescribedFire2000, "PRFIRE_2KM", TYPE_LONG, CC_AUTOADD);  // formerly PREF5_2000",
+   CheckCol(pLayer, m_colPrescribedFire1Km, "PRFIRE_1KM", TYPE_LONG, CC_AUTOADD);  // formerly PREF5_2000",
    CheckCol(pLayer, m_colCondFlameLength270, "CFL_270", TYPE_FLOAT, CC_AUTOADD);
    CheckCol(pLayer, m_colTreesPerHect500, "TPH_500", TYPE_FLOAT, CC_AUTOADD);
    CheckCol(pLayer, m_colStructure, "STRUCTURE", TYPE_INT, CC_AUTOADD);
@@ -1393,7 +1393,7 @@ bool COCNHProcess::DefineColumnNumbers(EnvContext* pContext)
    pLayer->SetColData(m_colFire2000, VData(0), true);
    pLayer->SetColData(m_colFire10000, VData(0), true);
    pLayer->SetColData(m_colPrescribedFire10000, VData(0), true);
-   pLayer->SetColData(m_colPrescribedFire2000, VData(0), true);
+   pLayer->SetColData(m_colPrescribedFire1Km, VData(0), true);
    pLayer->SetColData(m_colFireWise, VData(0), true);
    pLayer->SetColData(m_colFire500, VData(0), true);
    //pLayer->SetColData(m_colPlanAreaFr, VData(0), true);
@@ -3139,22 +3139,22 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
    // array size variables
-   const int expPolyDistShort = 750;
-   const int expPolyDistMedium = 750;
-   const int expPolyDistPreFireLong = 750;
-   const int expPolyDistLong = 1000;
-   const int expPolyDist500m = 750;
+   //const int nExpPolyDistShort = 750;
+   const int nExpPolyDist1000 = 750;
+   //const int nExpPolyDistPreFireShort = 750;
+   //const int nExpPolyDistLong = 1000;
+   //const int nExpPolyDist500m = 750;
 
    // neighbor idu vectors
-   int neighborsFireShort[expPolyDistShort];
-   //int neighborsFireMedium[expPolyDistMedium];
+   int neighborsFire1000[nExpPolyDist1000];
+   //int neighborsFireMedium[nExpPolyDistMedium];
    //int neighborsFireLong[expPolyDistLong];
-   //int neighborsPreFireLong[expPolyDistPreFireLong];
+   //int neighborsPreFireShort[nExpPolyDistPreFireShort];
    //int neighborsFire500m[expPolyDist500m];
 
    // counters for calculating averages
    int countFireShort = 0;
-   int countFireMedium = 0;
+   int countFire1000 = 0;
    int countFireLong = 0;
    int countPreFireLong = 0;
 
@@ -3162,10 +3162,10 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
    //distancesFireShort[expPolyDistShort],
    //distancesFireMedium[expPolyDistMedium],
    //distancesFireLong[expPolyDistLong],
-   //distandesPreFireLong[expPolyDistMedium],
+   //distancesPreFireLong[expPolyDistMedium],
    // TODO move definition and initialization
    float m_thresDistFireShort = 1000.0f;
-   float m_thresDistFireMedium = 2000.0f;
+   float m_thresDistFire1000 = 1000.0f;
    float m_thresDistFireLong = 10000.0f;
    float m_thresDistPreFireLong = 2000.0f;
    float m_thresDistFire500m = 500.0f;
@@ -3184,7 +3184,7 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
       int fLong = 0;
       int fPSFLong = 0;
       int f500m = 0;
-      int pFLong = 0;
+      int pf1000 = 0;  // prescribed fire, short distance (1KM)
       int fPotentialShort = 0;
       int fPotentialShortSR = 0;
       int fPotentialShortMX = 0;
@@ -3194,8 +3194,8 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
       //   Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
 
       Poly* pPoly = pLayer->GetPolygon(idu);
-      int countFShort = pLayer->GetNearbyPolys(pPoly, neighborsFireShort, NULL, expPolyDistShort, m_thresDistFireShort);
-      ////int countFMedium = pLayer->GetNearbyPolys(pPoly, neighborsFireMedium, NULL, expPolyDistMedium, m_thresDistFireMedium);
+      int countF1000 = pLayer->GetNearbyPolys(pPoly, neighborsFire1000, NULL, nExpPolyDist1000, m_thresDistFire1000);
+      //int countFMedium = pLayer->GetNearbyPolys(pPoly, neighborsFireMedium, NULL, nExpPolyDistMedium, m_thresDistFireMedium);
       ////int countFLong = pLayer->GetNearbyPolys(pPoly, neighborsFireLong, NULL, expPolyDistLong, m_thresDistFireLong);
       ////int countPreFLong = pLayer->GetNearbyPolys(pPoly, neighborsPreFireLong, NULL, expPolyDistPreFireLong, m_thresDistPreFireLong);
       ////int countF500m = pLayer->GetNearbyPolys(pPoly, neighborsFire500m, NULL, expPolyDist500m, m_thresDistFire500m);
@@ -3210,16 +3210,16 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
       if (nDU > 0)
          {
          // calculate average potential flame lenght within 1km
-         for (int i = 0; i < countFShort; i++)
+         for (int i = 0; i < countF1000; i++)
             {
             float potentialFlameLenth = 0.0f;
-            pLayer->GetData(neighborsFireShort[i], m_colPotentialFlameLen, potentialFlameLenth);
+            pLayer->GetData(neighborsFire1000[i], m_colPotentialFlameLen, potentialFlameLenth);
 
             sumPotentialFlameLength = sumPotentialFlameLength + potentialFlameLenth;
             }
 
-         if (countFShort > 0 && sumPotentialFlameLength > 0)
-            avePotentialFlameLength1000 = sumPotentialFlameLength / countFShort;
+         if (countF1000 > 0 && sumPotentialFlameLength > 0)
+            avePotentialFlameLength1000 = sumPotentialFlameLength / countF1000;
 
          // calculate value for FIRE5_500
          /////for (int i = 0; i < countF500m; i++)
@@ -3249,16 +3249,16 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
             fPotential500m = 1;
 
          // calculate value for FIRE5_1000
-         for (int i = 0; i < countFShort; i++)
+         for (int i = 0; i < countF1000; i++)
             {
             int tsf = -1;
             int dstrb = -1;
             int potentialDisturb = -1;
 
             //get values from idu file
-            pLayer->GetData(neighborsFireShort[i], m_colTSF, tsf);
-            pLayer->GetData(neighborsFireShort[i], m_colDisturb, dstrb);
-            pLayer->GetData(neighborsFireShort[i], m_colPdisturb, potentialDisturb);
+            pLayer->GetData(neighborsFire1000[i], m_colTSF, tsf);
+            pLayer->GetData(neighborsFire1000[i], m_colDisturb, dstrb);
+            pLayer->GetData(neighborsFire1000[i], m_colPdisturb, potentialDisturb);
             // TODO: check timing, pre or post defines upper limit (5 or 6)
             // only wildfire, no prescribed fire considered in utility model development
             if (dstrb >= SURFACE_FIRE && dstrb <= STAND_REPLACING_FIRE)
@@ -3344,43 +3344,42 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
          if (fPSFLong > 0)
             fPSFLong = 1;
 
-         // calculate value for PREF5_2000
-         ////for (int l = 0; l < countFMedium; l++)
-         ////   {
-         ////  
-         ////   int tsf = -1;
-         ////   int dstrb = -1;
-         ////   int tspf = -1;
-         ////
-         ////   //get values from idu file
-         ////   pLayer->GetData(neighborsPreFireLong[l], m_colTSPF, tspf);
-         ////   pLayer->GetData(neighborsPreFireLong[l], m_colTSF, tsf);
-         ////   pLayer->GetData(neighborsPreFireLong[l], m_colDisturb, dstrb);
-         ////
-         ////   // TODO: check timing, pre or post defines upper limit (5 or 6)
-         ////   // only wildfire, no prescribed fire considered in utility model development
-         ////   if ( ( dstrb >= PRESCRIBED_SURFACE_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE ) || ( tspf >= 0 && tspf <= 5 ) )
-         ////      pFLong++;
-         ////   }
+         // calculate value for Prescribed Fire within 1KM
+         for (int l = 0; l < countF1000; l++)
+            {
+            int tsf = -1;
+            int dstrb = -1;
+            int tspf = -1;
+         
+            //get values from idu file
+            pLayer->GetData(neighborsFire1000[l], m_colTSPF, tspf);
+            pLayer->GetData(neighborsFire1000[l], m_colTSF, tsf);
+            pLayer->GetData(neighborsFire1000[l], m_colDisturb, dstrb);
+         
+            // TODO: check timing, pre or post defines upper limit (5 or 6)
+            // only wildfire, no prescribed fire considered in utility model development
+            if ( ( dstrb >= PRESCRIBED_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE_2 ) || ( tspf >= 0 && tspf <= 10 ) )
+               pf1000++;
+            }
 
-         if (pFLong > 0)
-            pFLong = 1;
+         if (pf1000> 0)
+            pf1000 = 1;
 
          // vars for old IDU entries
 
-         UpdateIDU(pContext, idu, m_colFire500, f500m, SET_DATA);
-         UpdateIDU(pContext, idu, m_colFire1000, fShort, SET_DATA);
-         UpdateIDU(pContext, idu, m_colSRFire1000, fShortSR, SET_DATA);
-         UpdateIDU(pContext, idu, m_colMXFire1000, fShortMX, SET_DATA);
-         UpdateIDU(pContext, idu, m_colPotentialFire500, fPotential500m, SET_DATA);
-         UpdateIDU(pContext, idu, m_colPotentialFire1000, fPotentialShort, SET_DATA);
-         UpdateIDU(pContext, idu, m_colAvePotentialFlameLength1000, avePotentialFlameLength1000, SET_DATA);
-         UpdateIDU(pContext, idu, m_colPotentialSRFire1000, fPotentialShortSR, SET_DATA);
-         UpdateIDU(pContext, idu, m_colPotentialMXFire1000, fPotentialShortMX, SET_DATA);
-         UpdateIDU(pContext, idu, m_colFire2000, fMedium, SET_DATA);
-         UpdateIDU(pContext, idu, m_colFire10000, fLong, SET_DATA);
-         UpdateIDU(pContext, idu, m_colPrescribedFire10000, fPSFLong, SET_DATA);
-         UpdateIDU(pContext, idu, m_colPrescribedFire2000, pFLong, SET_DATA);
+         //UpdateIDU(pContext, idu, m_colFire500, f500m, ADD_DELTA);
+         UpdateIDU(pContext, idu, m_colFire1000, fShort, ADD_DELTA);
+         UpdateIDU(pContext, idu, m_colSRFire1000, fShortSR, ADD_DELTA);
+         UpdateIDU(pContext, idu, m_colMXFire1000, fShortMX, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colPotentialFire500, fPotential500m, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colPotentialFire1000, fPotentialShort, ADD_DELTA);
+         UpdateIDU(pContext, idu, m_colAvePotentialFlameLength1000, avePotentialFlameLength1000, ADD_DELTA);
+         UpdateIDU(pContext, idu, m_colPotentialSRFire1000, fPotentialShortSR, ADD_DELTA);
+         UpdateIDU(pContext, idu, m_colPotentialMXFire1000, fPotentialShortMX, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colFire2000, fMedium, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colFire10000, fLong, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colPrescribedFire10000, fPSFLong, ADD_DELTA);
+         UpdateIDU(pContext, idu, m_colPrescribedFire1Km, pf1000, ADD_DELTA);
          }
       }
 
@@ -3716,7 +3715,7 @@ bool COCNHProcess::CalculateFirewise(EnvContext* pContext)
    //      pLayer->GetData( idu, m_colFire500, fire5_500m );
    //      pLayer->GetData( idu, m_colFire10000, fire5_10km );
    //      pLayer->GetData( idu, m_colPrescribedFire10000, prescribedFire5_10km );
-   //      pLayer->GetData( idu, m_colPrescribedFire2000, prescribedFire5_2km );
+   //      pLayer->GetData( idu, m_colPrescribedFire1Km, prescribedFire5_2km );
    //      pLayer->GetData( idu, m_colAvePotentialFlameLength1000, avePotentialFlameLen1000ft );
    //      pLayer->GetData( idu, m_colTreesPerHect500, treePerHectare500m );
    //      

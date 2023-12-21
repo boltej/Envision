@@ -109,7 +109,7 @@ def GenerateInitReducedIDUs(fieldDefs, scenarios):
 
 ##################### Generate IDUInfo.json for web ################################
 
-def GenerateMapInfoJSon(datasetName, scenarios, layerType,defaultField):
+def GenerateMapInfoJSon(datasetName, scenarios,mapType,layerType,dynamic,defaultField):
     print("------------------------------------")
     print(f"Generating {datasetName}Info JSON from {datasetName}.XML ")
     print("------------------------------------")
@@ -130,14 +130,16 @@ def GenerateMapInfoJSon(datasetName, scenarios, layerType,defaultField):
     bounds = ds.total_bounds;  # returns (minx, miny, maxx, maxy)
     crs = ds.crs.to_string()
 
+    bounds4326 = ds.to_crs(crs=4326).total_bounds
+
     print(f"Loading Field definitions ({datasetName}.xml)...")
     #fieldInfos = pub.LoadIduXML(fields)
     fieldInfos = pub. LoadDatasetXML(f"{pub.iduXmlPath}/{datasetName}.xml", fields)
 
-    GenerateWebMapInfo(datasetName, scenarios, bounds,crs, layerType,defaultField)
+    GenerateWebMapInfo(datasetName, scenarios, bounds, bounds4326, crs, mapType, layerType,dynamic,defaultField)
     return
 
-def GenerateWebMapInfo(datasetName,scenarios,boundingBox,crs, layerType, defaultField):
+def GenerateWebMapInfo(datasetName,scenarios,boundingBox,boundingBox4326,crs, mapType, layerType, dynamic, defaultField):
     fieldDefs = pub.datasets[datasetName]['fieldDefs']
 
     fields = [f[0] for f in fieldDefs]   # extract list of field names
@@ -149,11 +151,13 @@ def GenerateWebMapInfo(datasetName,scenarios,boundingBox,crs, layerType, default
     mapInfo['studyArea'] = pub.studyArea
     mapInfo['scenarios'] = ','.join(scenarios)
     mapInfo['boundingBox'] = {"left":left, "bottom":bottom, "right":right, "top":top} 
+    (left,bottom,right,top) = boundingBox4326
+    mapInfo['boundingBox4326'] = {"left":left, "bottom":bottom, "right":right, "top":top} 
     mapInfo['crs'] = crs
     #mapInfo['image'] = {'width':rasterWidth, 'height':rasterHeight}
     mapInfo['startYear'] = pub.startYear
     mapInfo['endYear'] = pub.endYear
-    mapInfo['mapType'] = 'MapServerWMS'
+    mapInfo['mapType'] = mapType
     mapInfo['sourceURL'] = "http://envweb.bee.oregonstate.edu/MapServer/mapserv.exe?map=D:/MapServer/apps/{studyArea}/maps/{scenario}/{datasetName}/{year}_{run}.map"
     mapInfo['yearType'] = 'SingleYear'
     mapInfo['layerType'] = layerType
@@ -163,6 +167,7 @@ def GenerateWebMapInfo(datasetName,scenarios,boundingBox,crs, layerType, default
     mapInfo['default_color'] = "blue"
     mapInfo['default_field'] = defaultField
     mapInfo['weight'] = 2
+    mapInfo['dynamic'] = dynamic
 
     jFields = {}
     for field in fields:
@@ -611,10 +616,10 @@ def GenerateAllVectorTiles(scenarios, fieldDefs):
     return
 
 # generate a set of vector tiles representing the IDU polygons
-def GenIduIndexVectorTiles(genGeoJSON=True):
+def GenIduIndexVectorTiles(scenario, genGeoJSON):
     if genGeoJSON:
         print( "Loading IDU shape file...")
-        idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/IDU_reduced.shp',include_fields=['IDU_INDEX']) 
+        idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/IDU_Year{pub.startYear}_{scenario}_Run0_reduced.shp',include_fields=['IDU_INDEX']) 
     
         print( 'Generating GeoJson for IDU_reduced.shp'  )
         print('  Simplifying...')
@@ -644,8 +649,8 @@ def GenIduIndexVectorTiles(genGeoJSON=True):
          "--layer=IDU_INDEX "
          "--drop-densest-as-needed --extend-zooms-if-still-dropping "
          "--name=IDU_INDEX "
-        f"--output-to-directory=/mnt/d/Envision/StudyAreas/{studyArea}/Outputs/VectorTiles/IDU_INDEX "
-        f"/mnt/d/Envision/StudyAreas/{studyArea}/Outputs/GeoJson/IDU_INDEX.geojson"
+        f"--output-to-directory=/mnt/d/Envision/StudyAreas/OrCoast/{pub.studyArea}/Outputs/VectorTiles/IDU_INDEX "
+        f"/mnt/d/Envision/StudyAreas/OrCoast/{pub.studyArea}/Outputs/GeoJson/IDU_INDEX.geojson"
         )
 
     print( "  ", cmd)
@@ -1003,7 +1008,7 @@ def WriteDB(dbPath, db, scenario, year, geomOnly=False, deltaArrayOnly=False):
 
 
 
-def GenMapFiles(datasetName, scenarios, postFix=""):
+def GenMapFiles(datasetName, scenarios, geomType, postFix=""):
     print("---------------------------------------")
     print(" Running GenMapFiles() ----------------")
     print("---------------------------------------")
@@ -1019,7 +1024,7 @@ def GenMapFiles(datasetName, scenarios, postFix=""):
     bbox = None
     with open(f"{pub.explorerStudyAreaPath}/Outputs/DatasetInfo/{datasetName}Info.json", "r") as infile:
         mapInfo = json.load(infile)
-        bbox = mapInfo['boundingBox']  # = {"left":left, "bottom":bottom, "right":right, "top":top} 
+        bbox = mapInfo['boundingBox4326']  # = {"left":left, "bottom":bottom, "right":right, "top":top} 
  
     if datasetName == 'IDU':
         fieldInfos = pub.LoadIduXML(fields)
@@ -1034,12 +1039,11 @@ def GenMapFiles(datasetName, scenarios, postFix=""):
             mapFile =  f"{_mapServerPath}/{year}_0.map"
             f = open(mapFile,"wt")
 
-            #  # EXTENT {left} {bottom} {right} {top}
             f.write( f'''
 MAP
 	NAME "{pub.studyArea}_{datasetName}_{scenario}_{year}_0"
 	STATUS ON
-	SIZE 600 400
+	SIZE 800 600
 	#SYMBOLSET "../etc/symbols.txt"
 	EXTENT {bbox["left"]}  {bbox["bottom"]} {bbox["right"]} {bbox["top"]}
 	UNITS DD
@@ -1085,22 +1089,55 @@ OUTPUTFORMAT
   FORMATOPTION "STORAGE=memory"
 END
 ''' )
+
+            symbolPt = ''
+            if geomType == 'POINT':
+                symbolPt = 'SYMBOL "point"'
+                f.write("\n# Point symbol definition ---------------------------------------------\n")
+                f.write(f'''
+SYMBOL
+  NAME "point"
+  TYPE ELLIPSE
+  POINTS
+    16 16
+  END
+  FILLED TRUE
+END
+''')
+
+
+            '''
+
+# Start of layer definitions
+LAYER
+    NAME "FloodDepth"
+    TYPE RASTER
+    STATUS DEFAULT
+    DATA bluemarble.gif
+END
+'''
+
     
             f.write("\n# Start of LAYER DEFINITIONS ---------------------------------------------\n")
 
-            out = ""
+            ext = ""
+            if geomType == "RASTER":
+                ext = ".tif"
             for field in fields:
+                fieldID = field
+                if geomType == "RASTER":
+                    fieldID = 'pixel'
                 f.write( f'''
   LAYER
     NAME    {field}
-    DATA    "{datasetName}_{scenario}_{year}_0{postFix}.shp"
+    DATA    "{datasetName}_{scenario}_{year}_0{postFix}{ext}"
     STATUS  ON
-    TYPE    POLYGON
+    TYPE    {geomType}
     METADATA
       "wms_title"  "{datasetName}_{field}_{scenario}_{year}_0{postFix}"
     END
   
-    CLASSITEM  "{field}"
+    CLASSITEM  "[{fieldID}]"
     ''')
             
                 fieldInfo = fieldInfos[field]
@@ -1119,6 +1156,7 @@ END
         NAME "{label}"
         EXPRESSION "{value}"
         STYLE
+          {symbolPt}
           COLOR    {color}
         END
       END''')
@@ -1128,8 +1166,9 @@ END
                       f.write(f'''
       CLASS
         NAME "{label}"
-        EXPRESSION (([{field}] >= {minVal}) AND ([{field}] < {maxVal}))
+        EXPRESSION (([{fieldID}] >= {minVal}) AND ([{fieldID}] < {maxVal}))
         STYLE
+          {symbolPt}
           COLOR      {color}
         END
       END''')

@@ -82,6 +82,8 @@ const float FT3_PER_M3 = 35.29f;    // ft3/m3
 const float M3_PER_ACREFT = 1233.48f;
 const float ACREFT_PER_M3 = 0.0008107132f;
 const float M3_PER_GAL = 0.00378541178f;
+const float TBF_PER_M3 = 0.423776f;
+const float M3_PER_TBF = 2.35973f;
 const float MBF_PER_M3 = 0.000423776f;
 const float M3_PER_MBF = 2359.7372158f;
 
@@ -93,7 +95,6 @@ const float MG_PER_G = 1000.0f;    // mg/g
 const float MMOL_PER_MOL = 1000.0f;    // mmol per mol
 const float LB_PER_KG = 2.21f;    // lbs per kg
 const float LB_PER_TON = 2000.0f;    // lbs per ton
-
 
 //-- energy ---------------------------------------------------------
 const float N_PER_KN = 1000.0f;    // N per kN

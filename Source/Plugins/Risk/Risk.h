@@ -57,7 +57,9 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colFirewise = -1;
       int m_colTimberVol = -1;
 
-      float m_firewiseFactor = 0.5f;
+      float m_timberValueMBF = 10;  // value/THOUSAND BOARD FEET
+            
+      float m_firewiseReductionFactor = 0.15f;
       float m_flamelenThreshold = 0.01f;
 
       float m_maxDamagePotentialPerHa = 1000000;
@@ -95,7 +97,7 @@ class _EXPORT Risk : public  EnvEvaluator
 
       bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);
 
-      void GetLoss(MapLayer*, float flameLen, int lu, bool doTimber, float& lossFrac);
+      void GetLoss(MapLayer*, float flameLen, int lu, bool doTimber, int firewise, float& lossFrac);
       void ToPercentiles(std::vector<float>& values, std::vector<float>& pctiles);
    };
 

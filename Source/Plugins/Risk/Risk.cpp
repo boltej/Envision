@@ -148,23 +148,24 @@ bool Risk::Run(EnvContext* pEnvContext)
          // potential loss
          float pFlameLen = 0;
          pIDULayer->GetData(idu, this->m_colPFlameLen, pFlameLen);
-         GetLoss(pIDULayer, pFlameLen, lu, false, lossFrac);
+         GetLoss(pIDULayer, pFlameLen, lu, false, firewise, lossFrac );
          if (lossFrac > 0)
             {
-            potentialLossHousing = lossFrac * imprVal * (firewise > 0 ? this->m_firewiseFactor : 1);
-            totalPotentialLossHousing += potentialLossHousing;
-            lossAreaPotentialHousing += area;
-            totalPotentialLossFracHousing += (lossFrac * area);
-            totalPotentialLossHousesCount++;
+            potentialLossHousing = lossFrac * imprVal;
+               totalPotentialLossHousing += potentialLossHousing;
+               lossAreaPotentialHousing += area;
+               totalPotentialLossFracHousing += (lossFrac * area);
+               totalPotentialLossHousesCount++;
+            
             }
 
          // actual loss
          float flameLen = 0;
          pIDULayer->GetData(idu, this->m_colFlameLen, flameLen);
-         GetLoss(pIDULayer, flameLen, lu, false, lossFrac);
+         GetLoss(pIDULayer, flameLen, lu, false, firewise, lossFrac);
          if (lossFrac > 0)
             {
-            actualLossHousing = lossFrac * imprVal * (firewise > 0 ? this->m_firewiseFactor : 1);
+            actualLossHousing = lossFrac * imprVal;
             totalActualLossHousing += actualLossHousing;
             lossAreaActualHousing += area;
             totalActualLossFracHousing += (lossFrac * area);
@@ -191,10 +192,10 @@ bool Risk::Run(EnvContext* pEnvContext)
          // potential loss
          float pFlameLen = 0;
          pIDULayer->GetData(idu, this->m_colPFlameLen, pFlameLen);
-         GetLoss(pIDULayer, pFlameLen, lu, true, lossFrac);
+         GetLoss(pIDULayer, pFlameLen, lu, true, 0, lossFrac);
          if (lossFrac > 0)
             {
-            potentialLossTimber = lossFrac * timberVol * HA_PER_M2 * area * MBF_PER_M3 * 400000;  // $400/thousand BF
+            potentialLossTimber = lossFrac * timberVol * HA_PER_M2 * area * TBF_PER_M3 * this->m_timberValueMBF;  // $10/thousand BF
             totalPotentialLossTimber += potentialLossTimber;
             totalPotentialLossTimberVol += lossFrac * timberVol * HA_PER_M2 * area;
             lossAreaPotentialTimber += area;
@@ -204,11 +205,11 @@ bool Risk::Run(EnvContext* pEnvContext)
          // actual loss
          float flameLen = 0;
          pIDULayer->GetData(idu, this->m_colFlameLen, flameLen);
-         GetLoss(pIDULayer, flameLen, lu, true, lossFrac);
+         GetLoss(pIDULayer, flameLen, lu, true, 0, lossFrac);
          totalActualLossTimber += actualLossTimber;
          if (lossFrac > 0)
             {
-            actualLossTimber = lossFrac * timberVol * HA_PER_M2 * area * MBF_PER_M3 * 400000;
+            actualLossTimber = lossFrac * timberVol * HA_PER_M2 * area * TBF_PER_M3 * this->m_timberValueMBF;
             totalActualLossTimber += actualLossTimber;
             totalActualLossTimberVol += lossFrac * timberVol * HA_PER_M2 * area;
             lossAreaActualTimber += area;
@@ -365,7 +366,7 @@ void Risk::ToPercentiles(std::vector<float>& values, std::vector<float>& pctiles
 
 
 
-void Risk::GetLoss(MapLayer* pIDULayer, float flameLen, int lu, bool doTimber, float& loss)
+void Risk::GetLoss(MapLayer* pIDULayer, float flameLen, int lu, bool doTimber, int firewise, float& loss)
    {
    loss = 0;
 
@@ -402,6 +403,12 @@ void Risk::GetLoss(MapLayer* pIDULayer, float flameLen, int lu, bool doTimber, f
          {
          int row = this->m_luMapHousing[lu];
          loss = this->m_pLossTableHousing->GetAsFloat(col, row);
+
+         if (firewise > 0)
+            loss -= this->m_firewiseReductionFactor;
+
+         if (loss < 0)
+            loss = 0;
          }
       }
 
@@ -438,7 +445,7 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       { "query",                       TYPE_CSTRING,   &this->m_queryStr, true, 0 },
       { "potential_damage_max_per_ha", TYPE_FLOAT,     &this->m_maxDamagePotentialPerHa,   true,  0 },
       { "actual_damage_max_per_ha",    TYPE_FLOAT,     &this->m_maxDamageActualPerHa,   true,  0 },
-      { "firewise_factor",             TYPE_FLOAT,     &this->m_firewiseFactor, false, 0 },
+      { "firewise_reduction_factor",   TYPE_FLOAT,     &this->m_firewiseReductionFactor, false, 0 },
       { "flamelength_threshold",       TYPE_FLOAT,     &this->m_flamelenThreshold, false, 0 },
 
       { "housing_loss_table",          TYPE_CSTRING,   &this->m_lossTableFileHousing, false, 0 },
@@ -452,6 +459,7 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       { "timber_damage_col",           TYPE_CSTRING,   &damageFieldTimber,    true, 0 },
       { "timber_potential_damage_col", TYPE_CSTRING,   &potDamageFieldTimber, true, 0 },
       { "timber_damage_frac_col",      TYPE_CSTRING,   &damageFracFieldTimber,true, 0 },
+      { "timber_value_MBF",            TYPE_FLOAT,     &this->m_timberValueMBF, false, 0 },
       { NULL,                          TYPE_NULL,      NULL,              false, 0 }
       };
 

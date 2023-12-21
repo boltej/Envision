@@ -258,7 +258,9 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             if (!init && pFD->m_initialize < 0)
                continue;
 
+            // does this IDU pas the query?
             bool result = false;
+            
             if (pFD->m_pQuery == nullptr || (pFD->m_pQuery->Run(idu, result) && result == true))
                {
                // apply the map expression the the map layer
@@ -302,6 +304,16 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                            case FCOP_AREAWTMEAN:
                               pFD->m_value += value * area;
                               break;
+
+                           //case FCOP_MIN:
+                           //   if ( value < pFD->m_value )
+                           //      pFD->m_value = value;
+                           //   break;
+                           //
+                           //case FCOP_MAX:
+                           //   if (value > pFD->m_value)
+                           //      pFD->m_value = value;
+                           //   break;
 
                            default:
                               //case FCOP_SUM:
@@ -362,7 +374,7 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                   idu = m_iduArray[m];         // a random grab (if shuffled)
 
                bool result = false;
-               if (pFD->m_pQuery == nullptr || (pFD->m_pQuery->Run(idu, result) && result == true))
+               if (pFD->m_applyEverywhere || pFD->m_pQuery == nullptr || (pFD->m_pQuery->Run(idu, result) && result == true))
                   {
                   int groupAttr;
                   this->m_pMapLayer->GetData(idu, pFD->m_colGroupBy, groupAttr);
@@ -576,6 +588,8 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       FieldDef* pFD = new FieldDef(this);
       LPTSTR op = nullptr;
       LPTSTR type = nullptr;
+      LPTSTR apply = nullptr;
+
 
       XML_ATTR attrs[] = { // attr           type           address             isReq checkCol
                          { "name",           TYPE_CSTRING,  &pFD->m_name,           false, 0 },
@@ -589,6 +603,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "initialize",     TYPE_INT,      &pFD->m_initialize,     false, 0 },
                          { "groupby",        TYPE_CSTRING,  &pFD->m_groupBy,        false, 0 },
                          { "op",             TYPE_STRING,   &op,                    false, 0 },
+                         { "apply",          TYPE_STRING,   &apply,                 false, 0},
                          { "model_id",       TYPE_INT,      &pFD->m_modelID,        false, 0 },
                          { nullptr,          TYPE_NULL,     nullptr,             false, 0 } };
 
@@ -628,7 +643,9 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
                   pFD->m_operator = _op;
                   }
-               }                  
+               }
+
+            pFD->m_applyEverywhere = ((apply != nullptr ) ? true : false);
 
             pFD->Init();
             m_fields.Add(pFD);

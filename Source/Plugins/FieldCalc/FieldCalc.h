@@ -35,12 +35,20 @@ enum FC_OP {            //  Description                                         
 
    FCOP_LENWTMEAN = 4,   // for line features
 
-   FCOP_MEAN = 5    // "mean" - mean of the "value" expression,                  | always global extent |   yes   |
+   FCOP_MEAN = 5,        // "mean" - mean of the "value" expression,                  | always global extent |   yes   |
+   FCOP_MIN = 6,         // "mean" - mean of the "value" expression,                  | always global extent |   yes   |
+   FCOP_MAX = 7          // "mean" - mean of the "value" expression,                  | always global extent |   yes   |
+
+
+
                          // summed over the query area. If "use_delta" specified, the 
                          // query area is further restricted to those IDUs in which
                          // a change, specified by the useDelta list, occured
                          //VT_DELTA        = 6,   // "delta" - report change in field
                          //VT_FRACTION     = 7    // "fraction" - percetn change in field (0-100)
+
+
+
    };
 
 
@@ -92,6 +100,7 @@ class FieldDef
       CString   m_groupBy;   // field to aggregate by, if aggregration desired; otherwise empty
       int       m_colGroupBy = -1;   // corresponding column
       FC_OP     m_operator = FC_OP::FCOP_UNDEFINED;
+      bool      m_applyEverywhere = false;
 
       std::map<int,int> m_groupByIndexMap; // key=FN_ID, value=index in groupby arrays
       std::vector<float> m_groupByValues;
