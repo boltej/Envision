@@ -1028,8 +1028,8 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////// ****** Protection Structures ****** //
    ////////
    ////////// ****** Hard Protection Structures ****** //
-   ////////CheckCol(m_pDuneLayer, m_colDLEastingToeBPS, "EASTINGBPS", TYPE_DOUBLE, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLEastingToeBPS, VData(0.0), true);
+   CheckCol(m_pDuneLayer, m_colDLEastingToeBPS, "EASTINGBPS", TYPE_DOUBLE, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLEastingToeBPS, VData(0.0), true);
    CheckCol(m_pDuneLayer, m_colDLAddYearBPS, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLAddYearBPS, VData(0), true);
    CheckCol(m_pDuneLayer, m_colDLMaintYearBPS, "MAIN_YRBPS", TYPE_INT, CC_AUTOADD);
@@ -1113,7 +1113,8 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////
    ////////// 1/0 Indication that Beachtype changed 
    ////////// ??? track annually
-   ////////CheckCol(m_pDuneLayer, m_colDLTypeChange, "TYPECHANGE", TYPE_INT, CC_AUTOADD);
+   CheckCol(m_pDuneLayer, m_colDLTypeChange, "TYPECHANGE", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLTypeChange, VData(0), true);
    ////////
    /////////*CheckCol(m_pDuneLayer, m_colDLDuneWidthSPS, "DWIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
    ////////m_pDuneLayer->SetColData(m_colDLDuneWidthSPS, VData(0.0), true);*/
