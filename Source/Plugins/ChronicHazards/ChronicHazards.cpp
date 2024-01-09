@@ -955,10 +955,10 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    m_pDuneLayer->SetColData(m_colDLAmtFlooded, VData(0.0), true);
 
    ////////// Frequency of K&D erosion event or flooded event
-   ////////CheckCol(m_pDuneLayer, m_colDLDuneEroFreq, "ERO_FREQ", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDLDuneEroFreq, VData(0.0f), true);
-   ////////CheckCol(m_pDuneLayer, m_colDuneFloodFreq, "FLOOD_FREQ", TYPE_FLOAT, CC_AUTOADD);
-   ////////m_pDuneLayer->SetColData(m_colDuneFloodFreq, VData(0.0f), true);
+  CheckCol(m_pDuneLayer, m_colDLDuneEroFreq, "ERO_FREQ", TYPE_FLOAT, CC_AUTOADD);
+  m_pDuneLayer->SetColData(m_colDLDuneEroFreq, VData(0.0f), true);
+  CheckCol(m_pDuneLayer, m_colDLDuneFloodFreq, "FLOOD_FREQ", TYPE_FLOAT, CC_AUTOADD);
+  m_pDuneLayer->SetColData(m_colDLDuneFloodFreq, VData(0.0f), true);
    ////////
    ////////
    // ***** Impact Days ***** //
