@@ -182,6 +182,7 @@
     <Content Include="Envision\PSWCP.dll" />
     <Content Include="Envision\Reporter.dll" />
     <Content Include="Envision\Risk.dll" />
+    <Content Include="Envision\RuralDev.dll" />
     <Content Include="Envision\SNIP.dll" />
     <Content Include="Envision\SpatialAllocator.dll" />
     <Content Include="Envision\SSTM.dll" />

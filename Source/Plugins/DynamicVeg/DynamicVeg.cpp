@@ -830,50 +830,7 @@ bool DynamicVeg::ProbabilityTransition(EnvContext* pEnvContext, int idu)
    //generate a lookup key from current variables in the IDU layer for the prob lookup table
 
    // handle persrcribed fire the same as low-severty fire
-   int disturb = m_disturb;
-   switch (disturb)
-      {
-      case PRESCRIBED_FIRE:
-      case PRESCRIBED_FIRE_UNDERBURNING:
-      case PRESCRIBED_SURFACE_FIRE:
-      case PRESCRIBED_LOW_SEVERITY_FIRE:
-      case PRESCRIBED_HIGH_SEVERITY_FIRE:
-      case PRESCRIBED_STAND_REPLACING_FIRE:
-      case PRESCRIBED_FIRE_2:
-      case PRESCRIBED_FIRE_UNDERBURNING_2:
-      case PRESCRIBED_SURFACE_FIRE_2:
-      case PRESCRIBED_LOW_SEVERITY_FIRE_2:
-      case PRESCRIBED_HIGH_SEVERITY_FIRE_2:
-      case PRESCRIBED_STAND_REPLACING_FIRE_2:
-         disturb = 29;   // 29=Prescribed Fire in the co_prob_trans.csv file // SURFACE_FIRE;
-         break;
-
-      case MOWING_GRINDING:
-      case MOWING_GRINDING_2:
-         disturb = MOWING_GRINDING;
-         break;
-
-      case SALVAGE_HARVEST:
-      case SALVAGE_HARVEST_2:
-         disturb = SALVAGE_HARVEST;
-         break;
-
-      case THIN_FROM_BELOW:
-      case THIN_FROM_BELOW_2:
-         disturb = THIN_FROM_BELOW;
-         break;
-
-      case PARTIAL_HARVEST_LIGHT:
-      case PARTIAL_HARVEST_LIGHT_2:
-         disturb = PARTIAL_HARVEST;
-         break;
-
-      case PARTIAL_HARVEST_HIGH:
-      case PARTIAL_HARVEST_HIGH_2:
-         disturb = PARTIAL_HARVEST_HIGH;
-         break;
-      }
-
+   int disturb = GetAdjustedDisturb(m_disturb);
 
    m_probLookupKey.from = m_vegClass;
    m_probLookupKey.regen = m_regen;
@@ -1193,23 +1150,7 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabi
    m_determinIndexLookupKey.from = m_selected_to_trans; //spot in table where the to is now the from for new age class
 
    //generate a lookup key from current variables in the IDU layer for the prob lookup table
-   int disturb = m_disturb;
-   switch (disturb)
-      {
-      case PRESCRIBED_FIRE:
-      case PRESCRIBED_FIRE_UNDERBURNING:
-      case PRESCRIBED_SURFACE_FIRE:
-      case PRESCRIBED_LOW_SEVERITY_FIRE:
-      case PRESCRIBED_HIGH_SEVERITY_FIRE:
-      case PRESCRIBED_STAND_REPLACING_FIRE:
-      case PRESCRIBED_FIRE_2:
-      case PRESCRIBED_FIRE_UNDERBURNING_2:
-      case PRESCRIBED_SURFACE_FIRE_2:
-      case PRESCRIBED_LOW_SEVERITY_FIRE_2:
-      case PRESCRIBED_HIGH_SEVERITY_FIRE_2:
-      case PRESCRIBED_STAND_REPLACING_FIRE_2:
-         disturb = 29;   // 29=Prescribed Fire in the co_prob_trans.csv file // SURFACE_FIRE;
-      }
+   int disturb = GetAdjustedDisturb(m_disturb);
 
    m_probIndexLookupKey.from = m_vegClass; //transition "from" veg class
    m_probIndexLookupKey.to = m_selected_to_trans;
@@ -2538,4 +2479,58 @@ bool DynamicVeg::PvtSiteindex2DeltaArr(EnvContext* pEnvContext, int idu, int mc1
       }
 
    return true;
+   }
+
+
+int DynamicVeg::GetAdjustedDisturb(int disturb)
+   {
+   switch (disturb)
+      {
+      case PRESCRIBED_FIRE:
+      case PRESCRIBED_FIRE_UNDERBURNING:
+      case PRESCRIBED_SURFACE_FIRE:
+      case PRESCRIBED_LOW_SEVERITY_FIRE:
+      case PRESCRIBED_HIGH_SEVERITY_FIRE:
+      case PRESCRIBED_STAND_REPLACING_FIRE:
+      case PRESCRIBED_FIRE_2:
+      case PRESCRIBED_FIRE_UNDERBURNING_2:
+      case PRESCRIBED_SURFACE_FIRE_2:
+      case PRESCRIBED_LOW_SEVERITY_FIRE_2:
+      case PRESCRIBED_HIGH_SEVERITY_FIRE_2:
+      case PRESCRIBED_STAND_REPLACING_FIRE_2:
+         return 29;   // 29=Prescribed Fire in the co_prob_trans.csv file // SURFACE_FIRE;
+         
+      case MECHANICAL_THINNING:
+      case MECHANICAL_THINNING_2:
+         return MECHANICAL_THINNING;
+
+      case MOWING_GRINDING:
+      case MOWING_GRINDING_2:
+         return MOWING_GRINDING;
+    
+      case SALVAGE_HARVEST:
+      case SALVAGE_HARVEST_2:
+         return SALVAGE_HARVEST;
+         
+      case SUPRESSION:
+      case SUPRESSION_2:
+         return SUPRESSION;
+         
+      case THIN_FROM_BELOW:
+      case THIN_FROM_BELOW_2:
+         return THIN_FROM_BELOW;
+         
+      case PARTIAL_HARVEST_LIGHT:
+      case PARTIAL_HARVEST_LIGHT_2:
+         return PARTIAL_HARVEST;
+       
+      case PARTIAL_HARVEST_HIGH:
+      case PARTIAL_HARVEST_HIGH_2:
+         return PARTIAL_HARVEST_HIGH;
+
+      case EVEN_AGED_TREATMENT:
+      case EVEN_AGED_TREATMENT_2:
+         return EVEN_AGED_TREATMENT;
+      }
+   return disturb;
    }

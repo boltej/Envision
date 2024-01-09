@@ -1137,7 +1137,7 @@ END
       "wms_title"  "{datasetName}_{field}_{scenario}_{year}_0{postFix}"
     END
   
-    CLASSITEM  "[{fieldID}]"
+    CLASSITEM  "{fieldID}"
     ''')
             
                 fieldInfo = fieldInfos[field]

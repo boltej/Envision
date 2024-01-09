@@ -1678,9 +1678,11 @@ void SpatialAllocator::ScoreIduAllocations(EnvContext* pContext, bool useAddDelt
                   float newScore = pAlloc->m_iduScoreArray[idu].score;
                   UpdateIDU(pContext, idu, pAlloc->m_colScores, newScore, ADD_DELTA);
                   }
-
                }  // end of: for ( each allocation )
             }  // end of: if ( pAllocSet->m_inUse )
+
+            EnvApplyDeltaArray(pContext->pEnvModel);
+
          }  // end of: for ( each allocationSet )
       }  // end of:  for ( each IDU )
 

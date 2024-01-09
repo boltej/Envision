@@ -399,6 +399,7 @@ class DynamicVeg : public EnvModelProcess
       bool ProbabilityTransition(EnvContext* pEnvContext, int idu);
       bool DeterministicTransition(EnvContext* pEnvContext, int idu);
       bool DisturbanceTransition(EnvContext* pEnvContext, int idu);
+      int GetAdjustedDisturb(int);
 
       int ChooseProbTrans(double rand_num, float probability_sum, std::vector<std::pair<int, float> >* m_permute_prob_vec, std::vector< std::pair<int, float> >* m_original_final_probs);
 
