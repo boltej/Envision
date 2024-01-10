@@ -16,3 +16,5 @@ Source/SetupMSIX/Envision/AcuteHazards.dll
 Source/SetupMSIX/Envision/ChronicHazards.dll
 *.pdb
 *.dll
+*.pyc
+*.pyc

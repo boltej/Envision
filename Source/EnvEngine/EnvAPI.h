@@ -45,7 +45,7 @@ extern "C" {
 
    ENVAPI int       PASCAL EnvInitEngine(int initFlags);
    ENVAPI EnvModel* PASCAL EnvLoadProject(LPCTSTR envxFile, int initFlags);
-   ENVAPI int       PASCAL EnvRunScenario(EnvModel* pModel, int scenario, int runFlags);  // scenario is zero-based, -1=run all
+   ENVAPI int       PASCAL EnvRunScenario(EnvModel* pModel, int scenario, int multi);  // scenario is zero-based, -1=run all
    ENVAPI int       PASCAL EnvCloseProject(EnvModel* pModel, int closeFlags);  // scenario is zero-based, -1=run all
 
 

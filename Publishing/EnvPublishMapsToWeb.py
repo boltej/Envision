@@ -10,6 +10,7 @@ import xml.etree.ElementTree as ET
 import json
 from xml.dom import minidom
 import time
+import datatable as dt
 
 
 from sqlalchemy import create_engine
@@ -43,7 +44,10 @@ Steps:
 
 # not used
 def DeltaSummary( deltaFile ):
-    df = pd.read_csv(deltaFile)
+    
+    dt_df = dt.fread(deltaFile)
+    df = dt_df.to_pandas()
+    #df = pd.read_csv(deltaFile)
 
     # set up dictionary
     deltaColInfo = {}
@@ -82,8 +86,8 @@ def GenerateReducedDeltaArrays(scenarios, fieldDefs):
         print( "  ", cmd)
         subprocess.call(cmd)
         print()
-        os.makedirs(f'{pub.explorerStudyAreaPath}/Outputs/{scenario}/Run0', exist_ok = True)
-        shutil.copy(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_reduced.csv', f'{pub.explorerStudyAreaPath}/Outputs/{scenario}/Run0')
+        os.makedirs(f'{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run0', exist_ok = True)
+        shutil.copy(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_reduced.csv', f'{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run0')
 
     return
 
@@ -284,7 +288,7 @@ def GeneratePNGsFromIDUs(idus, iduRaster, iduLookup, field, fieldInfo, scenario,
     fieldRaster.write(blu,3)
     fieldRaster.close()
     print( f"  copying raster file {file} to server")
-    shutil.copy(file, f'{pub.explorerStudyAreaPath}/Outputs/{scenario}/Run0/RasterMaps')
+    shutil.copy(file, f'{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run0/RasterMaps')
 
     return
     '''
@@ -463,13 +467,18 @@ def GenerateAllDeltaGeoJsonMaps( scenarios, fieldDefs) :
         #fieldDefs = LoadIduXML(fieldList)
 
         print( "Loading Delta Array")
-        deltaArray = pd.read_csv( pub.localStudyAreaPath + f'/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
+    
+        deltaArray = dt.fread( pub.localStudyAreaPath + f'/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
+        deltaArray = deltaArray.to_pandas()
 
         year = pub.startYear-1
 
         # iterate though delta array, applying deltas.  On year boundaries, save the maps
-        for i, delta in deltaArray.iterrows():
-            dYear = delta['year']
+        #for i, delta in deltaArray.iterrows():
+        for delta in deltaArray.itertuples():
+            #dYear = delta['year']
+            #dYear = getattr(delta, 'year')
+            dYear = delta.year
 
             # new year?  save map before proceeding
             if dYear > year:
@@ -480,11 +489,17 @@ def GenerateAllDeltaGeoJsonMaps( scenarios, fieldDefs) :
                     year += 1
 
             # apply current delta to current map
-            #iduCol = delta['col']
-            iduField = delta['field']
-            dIdu = delta['idu']
-            dNewValue = delta['newValue']
+            #iduField = delta['field']
+            #dIdu = delta['idu']
+            #dNewValue = delta['newValue']
             #dType = delta['type']
+
+            #iduField = getattr(delta, 'field')
+            #dIdu = getattr(delta, 'idu')
+            #dNewValue = getattr(delta, 'newValue')
+            iduField = delta.field
+            dIdu =delta.idu
+            dNewValue = delta.newValue
 
             iduCol = idus.columns.get_loc(iduField)
             idus.iat[dIdu,iduCol] = dNewValue
@@ -587,7 +602,7 @@ def GenerateVectorTiles(field, type, scenario, year, oflag):
         print()
 
     src = f"d:/Envision/StudyAreas/{pub.studyArea}/Outputs/{scenario}/Run0/VectorTiles/{field}/{year}"
-    dest = f"//EnvWeb/Explorer/Topic/{pub.studyArea}/Outputs/{scenario}/Run0/VectorTiles/{field}/{year}"
+    dest = f"//EnvWeb/Explorer/Topic/{pub.studyArea}/Outputs/Scenarios/{scenario}/Run0/VectorTiles/{field}/{year}"
 
     if oflag==1:
         print("   Removing ", dest)
@@ -677,7 +692,9 @@ def GenIduVectorTiles(scenarios, parallel=False,doGeoJson=True,doTippe=True):
             idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/IDU_reduced.shp') 
 
             print("Loading Delta Array...")
-            deltaArray = pd.read_csv(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_reduced.csv')
+            #deltaArray = pd.read_csv(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_reduced.csv')
+            deltaArray = dt.fread( pub.localStudyAreaPath + f'/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
+            deltaArray = deltaArray.to_pandas()
 
             print(idus.crs)
             #print('  Simplifying...')
@@ -730,7 +747,7 @@ def GenIduVectorTiles(scenarios, parallel=False,doGeoJson=True,doTippe=True):
             # all vector tiles created, copy to server
             for year in range(pub.startYear, pub.endYear+1): 
                 src = f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles/IDU_reduced/{year}/"
-                dest = f"{pub.explorerStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles/IDU_reduced/{year}/"
+                dest = f"{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run0/VectorTiles/IDU_reduced/{year}/"
                 print("   Removing ", dest)
                 shutil.rmtree(dest, ignore_errors=True)
                 print("   Copying ", src)
@@ -925,7 +942,9 @@ def GenAnnualIDUReduced(scenarios, doSQL):
         print(idus.info())
 
         print( "Loading Delta Array")
-        deltaArray = pd.read_csv( f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv')
+        #deltaArray = pd.read_csv( f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv')
+        deltaArray = dt.fread(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
+        deltaArray = deltaArray.to_pandas()
 
         iduDBPath = f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}/IDU.sqlite"
         os.makedirs(f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}", exist_ok=True)
@@ -933,8 +952,11 @@ def GenAnnualIDUReduced(scenarios, doSQL):
         year = pub.startYear-1
 
         # iterate though delta array, applying deltas.  On year boundaries, save the maps
-        for i, delta in deltaArray.iterrows():
-            dYear = delta['year']
+        #for i, delta in deltaArray.iterrows():
+        for delta in deltaArray.itertuples():
+            #dYear = getattr(delta, 'year')
+            #dYear = delta['year']
+            dYear = delta.year
 
             # new year?  save raster before proceeding
             if dYear > year:
@@ -950,9 +972,16 @@ def GenAnnualIDUReduced(scenarios, doSQL):
                         WriteDB(iduDBPath, idus, scenario, year)
 
             # apply current delta to current map
-            iduField = delta['field']
-            dIdu = delta['idu']
-            dNewValue = delta['newValue']
+            #iduField = delta['field']
+            #dIdu = delta['idu']
+            #dNewValue = delta['newValue']
+            
+            #iduField = getattr(delta, 'field')
+            #dIdu = getattr(delta,'idu')
+            #dNewValue = getattr(delta, 'newValue')
+            iduField = delta.field
+            dIdu = delta.idu
+            dNewValue = delta.newValue
             
             iduCol = idus.columns.get_loc(iduField)
             idus.iat[dIdu,iduCol] = dNewValue

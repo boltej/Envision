@@ -66,7 +66,7 @@ int Convert(MapLayer *pLayer, LPCTSTR queryStr);
 int FixTopology( MapLayer *pLayer, LPCTSTR uniqueIdField, PCTSTR outfile );
 int AddField( MapLayer *pLayer,  LPCTSTR queryStr );
 int SetFieldsToSave(MapLayer *pLayer, LPCTSTR fieldSpec);
-int RunEnvision(LPCTSTR projectFile, int scenario);
+int RunEnvision(LPCTSTR projectFile, int scenario, int multi);
 int NNConvert(LPCTSTR csvFile);
 void WriteRecord(int srcIndex, CUIntArray& nObjects, FILE* fOut, FILE* fOutT);
 
@@ -127,10 +127,16 @@ int ProcessCmdLine( int argc, TCHAR *argv[] )
          {
          // get 'r' switch
          cmd = argv[2];
+         
          if (*cmd == '/' && cmd[1] == 'r')
             {
+            // multirun?
+            int multi = 0;
+            if (argc > 3)
+               multi = atoi(argv[3] + 3);
+
             int scn = atoi(cmd + 3);   // skip the ':'!
-            RunEnvision(argv[1], scn);
+            RunEnvision(argv[1], scn, multi);
             return 1;
             }
          else
@@ -802,7 +808,7 @@ void PrintUsage( void )
    }
 
 
-int RunEnvision(LPCTSTR projectFile, int scenario)
+int RunEnvision(LPCTSTR projectFile, int scenario, int multi)
    {
    std::cout << "Starting Command Line Envision Run..." << std::endl;
 
@@ -827,7 +833,7 @@ int RunEnvision(LPCTSTR projectFile, int scenario)
    RUNSCENARIOFN runFn = (RUNSCENARIOFN) ::GetProcAddress(hDLL, "EnvRunScenario");
    ASSERT(runFn != NULL);
    std::cout << "Running Scenario..." << std::endl;
-   runFn(pModel, scenario-1, 0 );   // note that scenario is one-based coming in, zero-based going out
+   runFn(pModel, scenario-1, multi );   // note that scenario is one-based coming in, zero-based going out
 
    CLOSEPROJECTFN closePrjFn = (CLOSEPROJECTFN) ::GetProcAddress(hDLL, "EnvCloseProject");
    ASSERT(closePrjFn != NULL);

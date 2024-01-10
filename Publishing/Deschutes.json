@@ -6,7 +6,7 @@
   "mapServerPath": "//EnvWeb/MapServer/apps/Deschutes",
   "startYear": 2020,
   "endYear": 2060,
-  "scenarios": ["FTW-FF-CanESM2", "FTW-FF-GFDL", "FTW-FF-INMCM", "FTW-FF-IPSL" ],
+  "scenarios": ["OHW-FF", "OHW-NoM","FTW-FF-CanESM2", "FTW-FF-GFDL", "FTW-FF-INMCM", "FTW-FF-IPSL", "FTW-NoM" ],
   "scenarios1": ["OHW-FF", "OHW-NoM", "FTW-FF", "FTW-NoM"],
   "scenarioColors": {
     "OHW-FF": "blue",

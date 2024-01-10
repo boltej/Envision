@@ -34,7 +34,7 @@ Copywrite 2012 - Oregon State University
 #include "DataManager.h"
 #include <iostream>
 #include <PathManager.h>
-void RunModel(EnvModel*);
+void RunModel(EnvModel*, int multi);
 
 
 #ifdef _DEBUG
@@ -86,7 +86,7 @@ int _PopupMsgProc(LPCTSTR msg, LPCTSTR hdr, REPORT_TYPE type, int flags, int ext
    return 0;
    }
 
-void RunModel(EnvModel* pModel)
+void RunModel(EnvModel* pModel, int multi)
    {
    if (pModel->m_runStatus == RS_RUNNING)
       {
@@ -99,10 +99,17 @@ void RunModel(EnvModel* pModel)
    if (pModel->m_areModelsInitialized == false)
       pModel->InitModels();
 
+   if (multi <= 0)
+      pModel->Run(0);      // don't randomize
+   else
+      {
+      pModel->m_iterationsToRun = multi;
+      pModel->RunMultiple();
+      }
 
    //try
    //   {
-   pModel->Run(0);      // don't randomize
+   //pModel->Run(0);      // don't randomize
    //   }
    //catch ( EnvFatalException & ex )
    //   {
@@ -195,7 +202,7 @@ extern "C" {
 
 
    // scenario is zero-based, -1=run all
-   int EnvRunScenario(EnvModel* pModel, int scenario, int runFlags)
+   int EnvRunScenario(EnvModel* pModel, int scenario, int multi)
       {
       AFX_MANAGE_STATE(AfxGetStaticModuleState());
 
@@ -216,7 +223,7 @@ extern "C" {
             {
             Scenario* pScenario = pScenarioManager->GetScenario(i);
             pModel->SetScenario(pScenario);
-            RunModel(pModel);
+            RunModel(pModel,multi);
             }
 
          pModel->SetScenario(NULL);
@@ -224,7 +231,7 @@ extern "C" {
       else   // a specific scenario specified
          {
          pModel->SetScenario(pScenarioManager->GetScenario(scenario));
-         RunModel(pModel);
+         RunModel(pModel,multi);
          }
       return 1;
       }     // note: scenario is zero-based, use -1 to run all scenarios

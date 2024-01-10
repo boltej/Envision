@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>/n:\envision\studyareas\Pugetsound\idu_neighbors.dbf</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>deschutes.envx /r:1 /m:5</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
     <LocalDebuggerWorkingDirectory>d:\envision\source\x64\debug</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>/n:\envision\studyareas\Pugetsound\idu_neighbors.csv</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>deschutes.envx /r:1 /m:5</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
   </PropertyGroup>
 </Project>
