@@ -3164,37 +3164,38 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
    //distancesFireLong[expPolyDistLong],
    //distancesPreFireLong[expPolyDistMedium],
    // TODO move definition and initialization
-   float m_thresDistFireShort = 1000.0f;
-   float m_thresDistFire1000 = 1000.0f;
-   float m_thresDistFireLong = 10000.0f;
-   float m_thresDistPreFireLong = 2000.0f;
-   float m_thresDistFire500m = 500.0f;
+   //float thresDistFireShort = 1000.0f;
+   //float thresDistFire1000 = 1000.0f;
+   //float thresDistFireLong = 10000.0f;
+   //float thresDistPreFireLong = 2000.0f;
+   //float thresDistFire500m = 500.0f;
+   float thresDist1000 = 1000.0f;
 
    // iterate through idu shapefile
    int idus = pLayer->GetPolygonCount();
 
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-      //for ( int idu=0; idu < idus; idu++)
       {
       // init counters
-      int fShort = 0;
-      int fShortSR = 0;
-      int fShortMX = 0;
-      int fMedium = 0;
-      int fLong = 0;
-      int fPSFLong = 0;
-      int f500m = 0;
+      //int fShort = 0;
+      //int fShortSR = 0;
+      //int fShortMX = 0;
+      //int fMedium = 0;
+      //int fLong = 0;
+      //int fPSFLong = 0;
+      //int f500m = 0;
       int pf1000 = 0;  // prescribed fire, short distance (1KM)
-      int fPotentialShort = 0;
-      int fPotentialShortSR = 0;
-      int fPotentialShortMX = 0;
-      int fPotential500m = 0;
+      //int fPotentialShort = 0;
+      //int fPotentialShortSR = 0;
+      //int fPotentialShortMX = 0;
+      //int fPotential500m = 0;
 
       //if (idu % 10000 == 0 )
       //   Report::Status_ii("Updating Fire Occurrences for IDU %i of %i", idu, idus);
 
       Poly* pPoly = pLayer->GetPolygon(idu);
-      int countF1000 = pLayer->GetNearbyPolys(pPoly, neighborsFire1000, NULL, nExpPolyDist1000, m_thresDistFire1000);
+      // get count, array of neighbors within 
+      int count1000 = pLayer->GetNearbyPolys(pPoly, neighborsFire1000, NULL, nExpPolyDist1000, 1000 /*m*/);
       //int countFMedium = pLayer->GetNearbyPolys(pPoly, neighborsFireMedium, NULL, nExpPolyDistMedium, m_thresDistFireMedium);
       ////int countFLong = pLayer->GetNearbyPolys(pPoly, neighborsFireLong, NULL, expPolyDistLong, m_thresDistFireLong);
       ////int countPreFLong = pLayer->GetNearbyPolys(pPoly, neighborsPreFireLong, NULL, expPolyDistPreFireLong, m_thresDistPreFireLong);
@@ -3207,19 +3208,19 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
       pLayer->GetData(idu, m_colNDU, nDU);
 
       // IDUs with dwellings owners only
-      if (nDU > 0)
+      //if (nDU > 0)
          {
          // calculate average potential flame lenght within 1km
-         for (int i = 0; i < countF1000; i++)
-            {
-            float potentialFlameLenth = 0.0f;
-            pLayer->GetData(neighborsFire1000[i], m_colPotentialFlameLen, potentialFlameLenth);
-
-            sumPotentialFlameLength = sumPotentialFlameLength + potentialFlameLenth;
-            }
-
-         if (countF1000 > 0 && sumPotentialFlameLength > 0)
-            avePotentialFlameLength1000 = sumPotentialFlameLength / countF1000;
+         //for (int i = 0; i < count1000; i++)
+         //   {
+         //   float potentialFlameLenth = 0.0f;
+         //   pLayer->GetData(neighborsFire1000[i], m_colPotentialFlameLen, potentialFlameLenth);
+         //
+         //   sumPotentialFlameLength = sumPotentialFlameLength + potentialFlameLenth;
+         //   }
+         //
+         //if (countF1000 > 0 && sumPotentialFlameLength > 0)
+         //   avePotentialFlameLength1000 = sumPotentialFlameLength / countF1000;
 
          // calculate value for FIRE5_500
          /////for (int i = 0; i < countF500m; i++)
@@ -3242,118 +3243,118 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
          /////      fPotential500m++;
          /////   }
 
-         if (f500m > 0)
-            f500m = 1;
-
-         if (fPotential500m > 0)
-            fPotential500m = 1;
-
-         // calculate value for FIRE5_1000
-         for (int i = 0; i < countF1000; i++)
-            {
-            int tsf = -1;
-            int dstrb = -1;
-            int potentialDisturb = -1;
-
-            //get values from idu file
-            pLayer->GetData(neighborsFire1000[i], m_colTSF, tsf);
-            pLayer->GetData(neighborsFire1000[i], m_colDisturb, dstrb);
-            pLayer->GetData(neighborsFire1000[i], m_colPdisturb, potentialDisturb);
-            // TODO: check timing, pre or post defines upper limit (5 or 6)
-            // only wildfire, no prescribed fire considered in utility model development
-            if (dstrb >= SURFACE_FIRE && dstrb <= STAND_REPLACING_FIRE)
-               fShort++;
-
-            if (potentialDisturb >= SURFACE_FIRE && potentialDisturb <= STAND_REPLACING_FIRE)
-               fPotentialShort++;
-
-            if (dstrb == STAND_REPLACING_FIRE) // || ( dstrb == -STAND_REPLACING_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
-               fShortSR++;
-
-            if (potentialDisturb == STAND_REPLACING_FIRE)
-               fPotentialShortSR++;
-
-            //mixed serverity fire in this project.
-            if (dstrb == LOW_SEVERITY_FIRE) // || ( dstrb == -LOW_SEVERITY_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
-               fShortMX++;
-
-            //mixed serverity fire in this project.
-            if (potentialDisturb == LOW_SEVERITY_FIRE)
-               fPotentialShortMX++;
-
-            }
-         if (fShort > 0)
-            fShort = 1;
-
-         if (fPotentialShort > 0)
-            fPotentialShort = 1;
-
-         if (fShortSR > 0)
-            fShortSR = 1;
-
-         if (fPotentialShortSR > 0)
-            fPotentialShortSR = 1;
-
-         if (fShortMX > 0)
-            fShortMX = 1;
-
-         if (fPotentialShortMX > 0)
-            fPotentialShortMX = 1;
-
-         // calculate value for FIRE5_2000
-         ////for (int j = 0; j < countFMedium; j++)
-         ////   {
-         ////   int tsf = -1, dstrb = -1;
-         ////
-         ////   //get values from idu file
-         ////   pLayer->GetData(neighborsFireMedium[j], m_colTSF, tsf);
-         ////   pLayer->GetData(neighborsFireMedium[j], m_colDisturb, dstrb);
-         ////   // TODO: check timing, pre or post defines upper limit (5 or 6)
-         ////   // only wildfire, no prescribed fire considered in utility model development
-         ////   if ( ( dstrb >= SURFACE_FIRE  && dstrb <= STAND_REPLACING_FIRE ) || ( tsf >= 0 && tsf <= 5 ) )
-         ////      fMedium++;
-         ////   }
-         if (fMedium > 0)
-            fMedium = 1;
-
-         // calculate value for FIR5_10000
-         ////for (int k = 0; k < countFLong; k++)
-         ////   {
-         ////              
-         ////   int tsf = -1;
-         ////   int dstrb = -1;
-         ////   int tspf = -1;
-         ////
-         ////   //get values from idu file
-         ////   pLayer->GetData(neighborsFireLong[k], m_colTSPF, tspf);
-         ////   pLayer->GetData(neighborsFireLong[k], m_colTSF, tsf);
-         ////   pLayer->GetData(neighborsFireLong[k], m_colDisturb, dstrb);
-         ////   
-         ////   // TODO: check timing, pre or post defines upper limit (5 or 6)
-         ////   // only wildfire, no prescribed fire considered in utility model development
-         ////   if ( ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE )  || ( tsf >= 0 && tsf <= 5 ) )
-         ////      fLong++;
-         ////
-         ////   if ( (dstrb >= PRESCRIBED_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE )  || ( tspf >= 0 && tspf <= 5 ) )
-         ////      fPSFLong++;
-         ////   }
-
-         if (fLong > 0)
-            fLong = 1;
-
-         if (fPSFLong > 0)
-            fPSFLong = 1;
+         /////if (f500m > 0)
+         /////   f500m = 1;
+         /////
+         /////if (fPotential500m > 0)
+         /////   fPotential500m = 1;
+         /////
+         /////// calculate value for FIRE5_1000
+         /////for (int i = 0; i < countF1000; i++)
+         /////   {
+         /////   int tsf = -1;
+         /////   int dstrb = -1;
+         /////   int potentialDisturb = -1;
+         /////
+         /////   //get values from idu file
+         /////   pLayer->GetData(neighborsFire1000[i], m_colTSF, tsf);
+         /////   pLayer->GetData(neighborsFire1000[i], m_colDisturb, dstrb);
+         /////   pLayer->GetData(neighborsFire1000[i], m_colPdisturb, potentialDisturb);
+         /////   // TODO: check timing, pre or post defines upper limit (5 or 6)
+         /////   // only wildfire, no prescribed fire considered in utility model development
+         /////   if (dstrb >= SURFACE_FIRE && dstrb <= STAND_REPLACING_FIRE)
+         /////      fShort++;
+         /////
+         /////   if (potentialDisturb >= SURFACE_FIRE && potentialDisturb <= STAND_REPLACING_FIRE)
+         /////      fPotentialShort++;
+         /////
+         /////   if (dstrb == STAND_REPLACING_FIRE) // || ( dstrb == -STAND_REPLACING_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
+         /////      fShortSR++;
+         /////
+         /////   if (potentialDisturb == STAND_REPLACING_FIRE)
+         /////      fPotentialShortSR++;
+         /////
+         /////   //mixed serverity fire in this project.
+         /////   if (dstrb == LOW_SEVERITY_FIRE) // || ( dstrb == -LOW_SEVERITY_FIRE  && ( tsf >= 0 && tsf <= 5 ) ) )
+         /////      fShortMX++;
+         /////
+         /////   //mixed serverity fire in this project.
+         /////   if (potentialDisturb == LOW_SEVERITY_FIRE)
+         /////      fPotentialShortMX++;
+         /////
+         /////   }
+         /////if (fShort > 0)
+         /////   fShort = 1;
+         /////
+         /////if (fPotentialShort > 0)
+         /////   fPotentialShort = 1;
+         /////
+         /////if (fShortSR > 0)
+         /////   fShortSR = 1;
+         /////
+         /////if (fPotentialShortSR > 0)
+         /////   fPotentialShortSR = 1;
+         /////
+         /////if (fShortMX > 0)
+         /////   fShortMX = 1;
+         /////
+         /////if (fPotentialShortMX > 0)
+         /////   fPotentialShortMX = 1;
+         /////
+         /////// calculate value for FIRE5_2000
+         /////for (int j = 0; j < countFMedium; j++)
+         /////   {
+         /////   int tsf = -1, dstrb = -1;
+         /////
+         /////   //get values from idu file
+         /////   pLayer->GetData(neighborsFireMedium[j], m_colTSF, tsf);
+         /////   pLayer->GetData(neighborsFireMedium[j], m_colDisturb, dstrb);
+         /////   // TODO: check timing, pre or post defines upper limit (5 or 6)
+         /////   // only wildfire, no prescribed fire considered in utility model development
+         /////   if ( ( dstrb >= SURFACE_FIRE  && dstrb <= STAND_REPLACING_FIRE ) || ( tsf >= 0 && tsf <= 5 ) )
+         /////      fMedium++;
+         /////   }
+         /////if (fMedium > 0)
+         /////   fMedium = 1;
+         /////
+         /////// calculate value for FIR5_10000
+         /////for (int k = 0; k < countFLong; k++)
+         /////   {
+         /////              
+         /////   int tsf = -1;
+         /////   int dstrb = -1;
+         /////   int tspf = -1;
+         /////
+         /////   //get values from idu file
+         /////   pLayer->GetData(neighborsFireLong[k], m_colTSPF, tspf);
+         /////   pLayer->GetData(neighborsFireLong[k], m_colTSF, tsf);
+         /////   pLayer->GetData(neighborsFireLong[k], m_colDisturb, dstrb);
+         /////   
+         /////   // TODO: check timing, pre or post defines upper limit (5 or 6)
+         /////   // only wildfire, no prescribed fire considered in utility model development
+         /////   if ( ( dstrb >= SURFACE_FIRE  &&  dstrb <= STAND_REPLACING_FIRE )  || ( tsf >= 0 && tsf <= 5 ) )
+         /////      fLong++;
+         /////
+         /////   if ( (dstrb >= PRESCRIBED_FIRE  &&  dstrb <= PRESCRIBED_STAND_REPLACING_FIRE )  || ( tspf >= 0 && tspf <= 5 ) )
+         /////      fPSFLong++;
+         /////   }
+         /////
+         /////if (fLong > 0)
+         /////   fLong = 1;
+         /////
+         /////if (fPSFLong > 0)
+         /////   fPSFLong = 1;
 
          // calculate value for Prescribed Fire within 1KM
-         for (int l = 0; l < countF1000; l++)
+         for (int l = 0; l < count1000; l++)
             {
-            int tsf = -1;
+            //int tsf = -1;
             int dstrb = -1;
             int tspf = -1;
          
             //get values from idu file
             pLayer->GetData(neighborsFire1000[l], m_colTSPF, tspf);
-            pLayer->GetData(neighborsFire1000[l], m_colTSF, tsf);
+            //pLayer->GetData(neighborsFire1000[l], m_colTSF, tsf);
             pLayer->GetData(neighborsFire1000[l], m_colDisturb, dstrb);
          
             // TODO: check timing, pre or post defines upper limit (5 or 6)
@@ -3362,20 +3363,17 @@ bool COCNHProcess::UpdateFireOccurrences(EnvContext* pContext)
                pf1000++;
             }
 
-         if (pf1000> 0)
-            pf1000 = 1;
-
          // vars for old IDU entries
 
          //UpdateIDU(pContext, idu, m_colFire500, f500m, ADD_DELTA);
-         UpdateIDU(pContext, idu, m_colFire1000, fShort, ADD_DELTA);
-         UpdateIDU(pContext, idu, m_colSRFire1000, fShortSR, ADD_DELTA);
-         UpdateIDU(pContext, idu, m_colMXFire1000, fShortMX, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colFire1000, fShort, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colSRFire1000, fShortSR, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colMXFire1000, fShortMX, ADD_DELTA);
          //UpdateIDU(pContext, idu, m_colPotentialFire500, fPotential500m, ADD_DELTA);
          //UpdateIDU(pContext, idu, m_colPotentialFire1000, fPotentialShort, ADD_DELTA);
-         UpdateIDU(pContext, idu, m_colAvePotentialFlameLength1000, avePotentialFlameLength1000, ADD_DELTA);
-         UpdateIDU(pContext, idu, m_colPotentialSRFire1000, fPotentialShortSR, ADD_DELTA);
-         UpdateIDU(pContext, idu, m_colPotentialMXFire1000, fPotentialShortMX, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colAvePotentialFlameLength1000, avePotentialFlameLength1000, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colPotentialSRFire1000, fPotentialShortSR, ADD_DELTA);
+         //UpdateIDU(pContext, idu, m_colPotentialMXFire1000, fPotentialShortMX, ADD_DELTA);
          //UpdateIDU(pContext, idu, m_colFire2000, fMedium, ADD_DELTA);
          //UpdateIDU(pContext, idu, m_colFire10000, fLong, ADD_DELTA);
          //UpdateIDU(pContext, idu, m_colPrescribedFire10000, fPSFLong, ADD_DELTA);
