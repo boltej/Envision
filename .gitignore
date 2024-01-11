@@ -18,3 +18,15 @@ Source/SetupMSIX/Envision/ChronicHazards.dll
 *.dll
 *.pyc
 *.pyc
+Publishing/__pycache__/EnvPublishCommon.cpython-311.pyc
+Publishing/__pycache__/EnvPublishMapsToWeb.cpython-311.pyc
+Publishing/__pycache__/EnvPublishMapsToWeb.cpython-37.pyc
+Source/SetupMSIX/Envision/AcuteHazards.dll
+Source/SetupMSIX/Envision/ChronicHazards.dll
+Source/SetupMSIX/Envision/COCNH.dll
+Source/SetupMSIX/Envision/CVA.dll
+Source/SetupMSIX/Envision/Developer.dll
+Source/SetupMSIX/Envision/DynamicVeg.dll
+Source/SetupMSIX/Envision/Economy.dll
+Source/SetupMSIX/Envision/EnvEngine.dll
+Source/SetupMSIX/Envision/FieldCalc.dll
