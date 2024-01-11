@@ -12,7 +12,6 @@ from xml.dom import minidom
 import time
 import datatable as dt
 
-
 from sqlalchemy import create_engine
 
 
