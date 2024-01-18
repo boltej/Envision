@@ -1953,7 +1953,7 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    // persistent version
    Report::StatusMsg("Setting up TWL Data");
 
-   twlFile.Format("%sTWL_%i.csv", outDir, pEnvContext->yearOfRun);
+   twlFile.Format("%sTWL_%i.csv", (LPCTSTR) outDir, pEnvContext->yearOfRun);
 
    Report::StatusMsg(CString("Writing TWL Data to ")+twlFile);
    twlData.WriteAscii(twlFile, ',');
@@ -1961,7 +1961,11 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    CString fdName;
    fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
 
-   if (this->m_usePriorGrids == 0)
+   CString outFile;
+   outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+   bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
+
+   if (this->m_usePriorGrids == 0 || priorGridExists == false)
       {
       // Get ready to call SFINCS Model
       // Create MATLAB data array factory
@@ -2014,13 +2018,10 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    if (m_pFloodedGrid != nullptr)
       m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
 
-
-   CString outFile;
-   if (this->m_usePriorGrids)
+   if (this->m_usePriorGrids && priorGridExists)
       outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
    else
       outFile.Format("%s/Outputs/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName);
-
 
    this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
 
