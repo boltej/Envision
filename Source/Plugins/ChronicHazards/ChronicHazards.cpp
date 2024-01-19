@@ -157,6 +157,13 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    // Check and store relevant columns (in IDU coverage)
    CheckCol(m_pIDULayer, m_colArea, "Area", TYPE_FLOAT, CC_MUST_EXIST);
 
+
+   CString  outDir(PathManager::GetPath(PM_OUTPUT_DIR));
+   std::filesystem::create_directory((LPCTSTR)(outDir + "Erosion"));
+   std::filesystem::create_directory((LPCTSTR)(outDir + "Flooding"));
+   std::filesystem::create_directory((LPCTSTR)(outDir + "Bldgs"));
+   std::filesystem::create_directory((LPCTSTR)(outDir + "DuneLine"));
+
    // initial submodels
    InitDuneModel(pEnvContext);  // checks DUNELINE coverage fields, populates DUNEINDEX, TRANS_ID;
    // associates SWAN transects and cross-shore profiles to shoreline pts
@@ -1964,6 +1971,13 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    CString outFile;
    outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
    bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
+
+   if (this->m_usePriorGrids == 0)
+      Report::Log_i("Flooding Model is running SFINCS for year %i", pEnvContext->currentYear);
+   else if (priorGridExists)
+      Report::Log_i("Flooding Model is using prior grid for year %i", pEnvContext->currentYear);
+   else
+      Report::Log_s("Flooding Model: Prior grid %s not found, running SFINCS instead", (LPCTSTR) outFile);
 
    if (this->m_usePriorGrids == 0 || priorGridExists == false)
       {
