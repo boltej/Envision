@@ -108,9 +108,17 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    // second, the directory of the envx file
    CPath envxPath( filename, epcTrim | epcSlashToBackslash );
    envxPath.RemoveFileSpec();
+
+   if (envxPath.GetLength() == 0)
+      {
+      TCHAR cwd[MAX_PATH] = { 0 };
+      _getcwd(cwd, MAX_PATH);
+      envxPath = cwd;
+      }
+
    PathManager::AddPath( envxPath, PM_PROJECT_DIR );
 
-   
+
    CString logFile( envxPath );
    logFile += "/EnvisionStartup.log";
    Report::OpenFile( logFile );

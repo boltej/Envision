@@ -41,6 +41,7 @@ PathManager::~PathManager(void)
 int PathManager::AddPath( LPCTSTR _path, int id /*=-9999*/ )
    {
    // clean up whatever is passed in
+
    CPath path( _path, epcTrim | epcSlashToBackslash );
 
    path.AddBackslash();

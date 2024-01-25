@@ -1,12 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <LocalDebuggerCommandArguments>deschutes.envx /r:1 /m:5</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>OrCoast-Tillamook.envx /r:1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
-    <LocalDebuggerWorkingDirectory>d:\envision\source\x64\debug</LocalDebuggerWorkingDirectory>
+    <LocalDebuggerWorkingDirectory>d:/envision/StudyAreas/OrCoast</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <LocalDebuggerCommandArguments>deschutes.envx /r:1 /m:5</LocalDebuggerCommandArguments>
+    <LocalDebuggerCommandArguments>OrCoast-Tillamook.envx /r:1</LocalDebuggerCommandArguments>
     <DebuggerFlavor>WindowsLocalDebugger</DebuggerFlavor>
+    <LocalDebuggerWorkingDirectory>d:/Envision/StudyAreas/OrCoast</LocalDebuggerWorkingDirectory>
   </PropertyGroup>
 </Project>

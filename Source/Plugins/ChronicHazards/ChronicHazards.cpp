@@ -124,6 +124,7 @@ ChronicHazards::~ChronicHazards(void)
 bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
    // read config files and set internal variables based on that
+   Report::Log_s("Loading input file %s", initStr);
    LoadXml(initStr);
 
    // get Map pointer
@@ -137,17 +138,21 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    m_pRandUniform = new RandUniform(0, m_pIDULayer->GetRecordCount(), 1);
 
    // Roads Layer
+   Report::LogInfo("Loading Roads coverage");
    m_pRoadLayer = m_pMap->GetLayer("Roads");
 
    // Buildings Layer
+   Report::LogInfo("Loading Buildings coverage");
    m_pBldgLayer = m_pMap->GetLayer("Buildings");
    if (m_pBldgLayer != nullptr)
       m_numBldgs = m_pBldgLayer->GetRowCount();
 
    // Infrastructure Layer
+   Report::LogInfo("Loading Infrastructure coverage");
    m_pInfraLayer = m_pMap->GetLayer("Infrastructure Locations");
 
    // Original Dune line layer
+   Report::LogInfo("Loading Dune Line coverage");
    m_pDuneLayer = m_pMap->GetLayer("Dune Points");
 
    // Tidal Bathymetry
@@ -159,32 +164,53 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
 
    CString  outDir(PathManager::GetPath(PM_OUTPUT_DIR));
+   Report::LogInfo("Creating additional outputs folders");
    std::filesystem::create_directory((LPCTSTR)(outDir + "Erosion"));
    std::filesystem::create_directory((LPCTSTR)(outDir + "Flooding"));
    std::filesystem::create_directory((LPCTSTR)(outDir + "Bldgs"));
    std::filesystem::create_directory((LPCTSTR)(outDir + "DuneLine"));
 
    // initial submodels
+   Report::LogInfo("Initializing Dune Model");
    InitDuneModel(pEnvContext);  // checks DUNELINE coverage fields, populates DUNEINDEX, TRANS_ID;
+
    // associates SWAN transects and cross-shore profiles to shoreline pts
+   Report::LogInfo("Loading TWL model");
    InitTWLModel(pEnvContext);
 
    if (m_runFlooding)
+      {
+      Report::LogInfo("Initializing Flooding model");
       InitFloodingModel(pEnvContext);
+      }
 
    if (m_runErosion)
+      {
+      Report::LogInfo("Initializing Erosion model");
       InitErosionModel(pEnvContext);
+      }
 
    if (m_runBuildings)
+      {
+      Report::LogInfo("Initializing Building model");
       InitBldgModel(pEnvContext);
+      }
 
    if (m_runInfrastructure)
+      {
+      Report::LogInfo("Initializing Infrastructure model");
       InitInfrastructureModel(pEnvContext);
+      }
 
    if (m_runPolicy)
+      {
+      Report::LogInfo("Initializing policy model");
       InitPolicyInfo(pEnvContext);
+      }
 
    // define input (scenario) variables
+   Report::LogInfo("Adding input/outpu variables");
+
    AddInputVar("Climate Scenario ID", m_climateScenarioID, "0=BaseSLR, 1=LowSLR, 2=MedSLR, 3=HighSLR, 4=WorstCaseSLR");
    //AddInputVar("Track Habitat", m_runEelgrassModel, "0=Off, 1=On");
 
@@ -1965,10 +1991,10 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    Report::StatusMsg(CString("Writing TWL Data to ")+twlFile);
    twlData.WriteAscii(twlFile, ',');
 
-   CString fdName;
+   CString fdName;  // this is the filename for SFINCS output
    fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
 
-   CString outFile;
+   CString outFile;  // this is the path to the flooding file in the Study Area "Outputs" folder for the current scenario
    outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
    bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
 
@@ -1990,7 +2016,8 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
          factory.createScalar<int>(0), // Advection
          factory.createScalar<int>(100), // Cellsize
          factory.createCharArray((LPCTSTR)m_sfincsHome),// sfincs home dir
-         factory.createCharArray((LPCTSTR)fdName) // sfincs home dir
+         factory.createCharArray((LPCTSTR)fdName), // sfincs home dir
+         factory.createCharArray((LPCTSTR)pEnvContext->pScenario->m_name) // sfincs home dir
          });
 
       // Create string buffer for standard output
@@ -2032,10 +2059,10 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    if (m_pFloodedGrid != nullptr)
       m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
 
-   if (this->m_usePriorGrids && priorGridExists)
+   if (this->m_usePriorGrids && priorGridExists)  // this is the version in the study area Outputs folder for the current scenario
       outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
    else
-      outFile.Format("%s/Outputs/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName);
+      outFile.Format("%s/Outputs/%s/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)pEnvContext->pScenario->m_name, (LPCTSTR)fdName);
 
    this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
 
@@ -5071,7 +5098,7 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
          || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
       {
       CString fdName;
-      fdName.Format("/Outputs/MaxFloodDepth_%s_Year%i_%i.asc", (LPCTSTR)scenario, outputYear, run);
+      fdName.Format("/Outputs/%s/MaxFloodDepth_%s_Year%i_%i.asc", (LPCTSTR)scenario, (LPCTSTR)scenario, outputYear, run);
       CString fldFile = m_sfincsHome + fdName;
       CString outFile;
       outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", outDir, outputYear, (LPCTSTR) scenario, run );

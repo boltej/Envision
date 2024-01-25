@@ -24,7 +24,7 @@ def LoadStudyAreaDef(_studyArea):
     global studyArea, localStudyAreaPath, iduXmlPath, explorerStudyAreaPath
     global mapServerPath, startYear, endYear, scenarios, scenarioColors 
 
-    with open(f'd:/Envision/Publishing/{_studyArea}.json') as f:
+    with open( _studyArea) as f: #f'd:/Envision/StudyAreas/{_studyArea}/Publishing/{_studyArea}.json') as f:
         d = json.load(f)
         
         studyArea = d['studyArea']
@@ -35,7 +35,7 @@ def LoadStudyAreaDef(_studyArea):
         startYear = d['startYear']
         endYear = d['endYear']
         scenarios=d['scenarios']
-        scenarioColors=d['scenarioColors']
+        #scenarioColors=d['scenarioColors']
 
         _datasets = d['datasets']
 
@@ -121,4 +121,22 @@ def GenIduIndexGeoJSON():
 
     idus.to_file(f'{localStudyAreaPath}/Outputs/GeoJson/IDU_INDEX_4326.geojson', driver="GeoJSON")  
 
+
+
+def LoadScenarioColors(xmlPath):
+    print("Loading scenario colors: ", xmlPath)
+
+    # create element tree object
+    tree = ET.parse(xmlPath)
+    
+    # get root element
+    root = tree.getroot()
+
+    scenarioColors = {}
+
+    for scenario in scenarios:
+        s = root.find( f".//scenario[@name='{scenario}']")  # 
+        scenarioColors[scenario] = s.get('color')
+
+    return scenarioColors
 
