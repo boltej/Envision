@@ -4958,7 +4958,12 @@ bool MapLayer::SaveGridFile(LPCTSTR filename) //, int maxLineLength )
    sprintf_s(buffer, 128, "CELLSIZE %f\n", width);  // assumes square cells
    fputs(buffer, fp);
 
-   sprintf_s(buffer, 128, "NODATA_VALUE %f\n", GetNoDataValue());
+   //sprintf_s(buffer, 128, "NODATA_VALUE %f\n", GetNoDataValue());
+   if (this->GetFieldType(0) == TYPE_FLOAT || this->GetFieldType(0) == TYPE_DOUBLE)
+      sprintf_s(buffer, 128, "NODATA_VALUE %.1f\n", GetNoDataValue());
+   else
+      sprintf_s(buffer, 128, "NODATA_VALUE %i\n", (int)GetNoDataValue());
+
    fputs(buffer, fp);
 
    //-- have header, proceed with grid data --//
