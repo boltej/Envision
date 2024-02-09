@@ -315,15 +315,7 @@ bool FlamMapAP::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       if (!ReadStaticFires())
          Report::Log(_T("Error reading static fires file, running normally"));
       }
-   if (m_outputEnvisionFirelists)
-      {
-      Report::LogInfo("Writing fire lists");
-      m_outputEnvisionFirelistName.Format("%s%d_EnvisionFireList.csv", (LPCTSTR) m_outputPath, gpFlamMapAP->processID);
-      m_outputEchoFirelistName.Format("%s%d_EchoFireList.csv", (LPCTSTR) m_outputPath, gpFlamMapAP->processID);	   //m_outputEnvisionFirelistName += _T(".csv");
-      FILE* envFireList = fopen(m_outputEnvisionFirelistName, "wt");
-      fprintf(envFireList, "Yr, Prob, Julian, BurnPer, WindSpeed, Azimuth, FMFile, IgnitionX, IgnitionY, Hectares, ERC, Original_Size, IgnitionFuel, IDU_HA_Burned, IDU_Proportion, FireID, Scenario, Run, ResultCode, FireID, EnvFire_ID, FIL1, FIL2, FIL3, FIL4, FIL5, FIL6, FIL7, FIL8, FIL9, FIL10, FIL11, FIL12, FIL13, FIL14, FIL15, FIL16, FIL17, FIL18, FIL19, FIL20\n");// Julian, WindSpeed, Azimuth, BurnPeriod, Hectares\n");
-      fclose(envFireList);
-      }
+
    if (m_logDeltaArrayUpdates)
       {
       Report::LogInfo("Logging flammap deltas");
@@ -529,8 +521,6 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
    CString msg;
    CString nameCStr;
    CString failureID(_T("FlamMapAP::InitRun Failed: "));
-   msg = "Entering FlamMapAP::InitRun";
-   Report::Log(msg);
    // Get the Scenario directory
    LPCTSTR scenarioName = NULL;
 
@@ -542,8 +532,15 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
    //Report::InfoMsg(_T("FlamMapAP::InitRun 010"));
    m_scenarioName = scenarioName;
 
-   msg = "InitRun searching for scenario";
-   Report::Log(msg);
+   if (m_outputEnvisionFirelists)
+      {
+      //Report::LogInfo("Writing fire lists");
+      m_outputEnvisionFirelistName.Format("%sEnvisionFireList_%s_%d.csv", (LPCTSTR)m_outputPath, scenarioName, pEnvContext->runID);
+      m_outputEchoFirelistName.Format("%s%d_EchoFireList.csv", (LPCTSTR)m_outputPath, gpFlamMapAP->processID);	   //m_outputEnvisionFirelistName += _T(".csv");
+      FILE* envFireList = fopen(m_outputEnvisionFirelistName, "wt");
+      fprintf(envFireList, "Yr, Prob, Julian, BurnPer, WindSpeed, Azimuth, FMFile, IgnitionX, IgnitionY, Hectares, ERC, Original_Size, IgnitionFuel, IDU_HA_Burned, IDU_Proportion, FireID, Scenario, Run, ResultCode, FireID, EnvFire_ID, FIL1, FIL2, FIL3, FIL4, FIL5, FIL6, FIL7, FIL8, FIL9, FIL10, FIL11, FIL12, FIL13, FIL14, FIL15, FIL16, FIL17, FIL18, FIL19, FIL20\n");// Julian, WindSpeed, Azimuth, BurnPeriod, Hectares\n");
+      fclose(envFireList);
+      }
 
    // jpb - change this to be random selected within a specified scenario
    FMScenario* pScenario = NULL;

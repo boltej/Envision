@@ -9,7 +9,7 @@
   <Identity
     Name="EnvisionMSIX"
     Publisher="CN=Oregon State University, O=Oregon State University, S=Oregon, C=US"
-    Version="9.1.13.0" />
+    Version="9.1.16.0" />
 
   <Properties>
     <DisplayName>Envision</DisplayName>

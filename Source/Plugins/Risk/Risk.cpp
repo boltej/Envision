@@ -241,7 +241,7 @@ bool Risk::Run(EnvContext* pEnvContext)
 
       float iduRiskPotential = potLossPerHaMovAvg / this->m_maxDamagePotentialPerHa;
       float iduRiskActual = actLossPerHaMovAvg / this->m_maxDamageActualPerHa;
-      float iduRisk = 0.5f * iduRiskPotential + 0.5f * iduRiskActual;
+      float iduRisk = 0.07f * iduRiskPotential + 0.93f * iduRiskActual;
 
       this->UpdateIDU(pEnvContext, idu, this->m_colRisk, iduRisk, ADD_DELTA);
 
