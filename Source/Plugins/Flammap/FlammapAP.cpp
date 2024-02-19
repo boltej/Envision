@@ -599,10 +599,14 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
 
    // FireYearRunner runs a years worth of fires every timestep
    if (m_pFireYearRunner != NULL)
+      {
       delete m_pFireYearRunner;
+      m_pFireYearRunner = NULL;
+      }
 
    if (m_logPerimeters)
       {
+      Report::LogInfo("Setting up perimeter logging");
       CString PerimeterFName, dbfName;
       //PerimeterFName.Format(_T("%s%d_Perimeter_Run%03d.shp"), m_outputPath, gpFlamMapAP->processID, pEnvContext->runID);
       PerimeterFName.Format(_T("%sFirePerimeter_%s_Run%d.shp"), (LPCTSTR) m_outputPath, (LPCTSTR) pEnvContext->pScenario->m_name, pEnvContext->runID);
@@ -651,12 +655,17 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
             }
          }
       }
-   m_pFireYearRunner = new FireYearRunner(pEnvContext);
 
+   Report::LogInfo("Creating Fire Year Runner");
+
+   m_pFireYearRunner = new FireYearRunner(pEnvContext);
    FailAndReturnOnBadStatus(m_runStatus, failureID, "Failed to initialize FireYearRunner");
+   Report::LogInfo("Successfully created Fire Year Runner");
 
    // intialize output variables
    this->m_maxFlameLen = this->m_meanFlameLen = this->m_burnedAreaHa = this->m_cumBurnedAreaHa = 0;
+
+   Report::LogInfo("Flammap run initialization complete");
 
    return TRUE;
    } // bool FlamMapAP::InitRun( EnvContext *pEnvContext )

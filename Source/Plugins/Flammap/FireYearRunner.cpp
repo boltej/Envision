@@ -70,7 +70,10 @@ FireYearRunner::FireYearRunner(EnvContext* pEnvContext)
 
 	//if (!gpFlamMapAP->m_staticFires)
 	if (gpFlamMapAP->m_staticFires.size() == 0)
+		{
+		Report::Log_s("Initializing firelist for %s", gpFlamMapAP->m_scenarioFiresFName);
 		m_firesList.Init(gpFlamMapAP->m_scenarioFiresFName);
+		}
 
 	// Make sure the run hasn't gone bad somewhere else
 	if (gpFlamMapAP->m_runStatus < 0)
@@ -78,6 +81,7 @@ FireYearRunner::FireYearRunner(EnvContext* pEnvContext)
 
 	CString igGenIntFName;
 
+	Report::LogInfo("Initializing ignition generator");
 	m_pIgnitGenerator = new IgnitGenerator(m_pEnvContext);
 
 	//m_pYrFlameLens = new float[gpFlamMapAP->m_rows * gpFlamMapAP->m_cols];

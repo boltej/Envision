@@ -3577,7 +3577,8 @@ int SNIPModel::PopulateActorProfiles(MapLayer* pIDULayer)
          {
          int profileID = 0;
          pIDULayer->GetData(idu, this->m_colIDUProfileID, profileID);
-         pIDULayer->SetData(idu, this->m_colIDUProfileID, -profileID);
+         if ( profileID > 0)
+            pIDULayer->SetData(idu, this->m_colIDUProfileID, -profileID);
          }
       }
    /*
