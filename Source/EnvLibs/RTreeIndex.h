@@ -11,7 +11,12 @@
 
 typedef RTree<int, REAL, 2> IndexTree;
 
-struct IDU_DIST { int idu; float distance; };
+struct IDU_DIST 
+    { 
+    int idu; 
+    float distance; 
+    IDU_DIST(int _idu, float _distance) : idu(_idu), distance(_distance) {}
+    };
 
 class LIBSAPI  RTreeIndex
    {

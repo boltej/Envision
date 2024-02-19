@@ -138,7 +138,7 @@ FlamMapAP::FlamMapAP(void)
    , m_foliarMoistureContent(100)
    , m_outputEnvisionFirelists(0)
    , m_outputEnvisionFirelistName("")
-   , m_outputEchoFirelistName("")
+   //, m_outputEchoFirelistName("")
    , m_outputDeltaArrayUpdatesName("")
    , m_pFiresListRand(NULL)
    , m_pFiresRand(NULL)
@@ -536,7 +536,7 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
       {
       //Report::LogInfo("Writing fire lists");
       m_outputEnvisionFirelistName.Format("%sEnvisionFireList_%s_%d.csv", (LPCTSTR)m_outputPath, scenarioName, pEnvContext->runID);
-      m_outputEchoFirelistName.Format("%s%d_EchoFireList.csv", (LPCTSTR)m_outputPath, gpFlamMapAP->processID);	   //m_outputEnvisionFirelistName += _T(".csv");
+      //m_outputEchoFirelistName.Format("%s%d_EchoFireList.csv", (LPCTSTR)m_outputPath, gpFlamMapAP->processID);	   //m_outputEnvisionFirelistName += _T(".csv");
       FILE* envFireList = fopen(m_outputEnvisionFirelistName, "wt");
       fprintf(envFireList, "Yr, Prob, Julian, BurnPer, WindSpeed, Azimuth, FMFile, IgnitionX, IgnitionY, Hectares, ERC, Original_Size, IgnitionFuel, IDU_HA_Burned, IDU_Proportion, FireID, Scenario, Run, ResultCode, FireID, EnvFire_ID, FIL1, FIL2, FIL3, FIL4, FIL5, FIL6, FIL7, FIL8, FIL9, FIL10, FIL11, FIL12, FIL13, FIL14, FIL15, FIL16, FIL17, FIL18, FIL19, FIL20\n");// Julian, WindSpeed, Azimuth, BurnPeriod, Hectares\n");
       fclose(envFireList);

@@ -117,7 +117,7 @@
       <PrecompiledHeaderFile>EnvLibs.h</PrecompiledHeaderFile>
       <MinimalRebuild />
       <AdditionalUsingDirectories>./;</AdditionalUsingDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -163,7 +163,7 @@
       <PrecompiledHeaderFile>EnvLibs.h</PrecompiledHeaderFile>
       <MinimalRebuild />
       <AdditionalUsingDirectories>./;</AdditionalUsingDirectories>
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp17</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
