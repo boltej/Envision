@@ -365,11 +365,11 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 		}
 
 	FILE* envFireList = NULL;
-	FILE* echoFiresList = NULL;
+	//FILE* echoFiresList = NULL;
 	if (gpFlamMapAP->m_outputEnvisionFirelists)
 		{
 		envFireList = fopen(gpFlamMapAP->m_outputEnvisionFirelistName, "a+t");
-		echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
+		//echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
 		}
 
 	msg.Format(_T("Starting fires for year %d (%d), running %d fires"), year, pEnvContext->currentYear, firesToDo);
@@ -492,8 +492,8 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 						fprintf(envFireList, ", 0.000000");
 
 					fprintf(envFireList, "\n");
-					if (echoFiresList)
-						fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
+					//if (echoFiresList)
+					//	fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
 					}
 				delete pMtt;
 				pMtt = NULL;
@@ -533,10 +533,10 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 						fprintf(envFireList, ", 0.000000");
 					fprintf(envFireList, "\n");
 					}
-				if (echoFiresList)
-					{
-					fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
-					}
+				//if (echoFiresList)
+				//	{
+				//	fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
+				//	}
 				delete pMtt;
 				pMtt = NULL;
 
@@ -646,10 +646,10 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 			for (flLoc = 0; flLoc < 20; flLoc++)
 				fprintf(envFireList, ", %f", fireArray[n].FIL[flLoc]);
 			fprintf(envFireList, "\n");
-			if (echoFiresList)
-				{
-				fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
-				}
+			//if (echoFiresList)
+			//	{
+			//	fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
+			//	}
 			}
 		//end added for firesizelists
 		if (gpFlamMapAP->m_logPerimeters)
@@ -702,8 +702,8 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 		delete[] burnMask;
 	if (envFireList)
 		fclose(envFireList);
-	if (echoFiresList)
-		fclose(echoFiresList);
+	//if (echoFiresList)
+	//	fclose(echoFiresList);
 	if (gpFlamMapAP->m_logAnnualFlameLengths != 0)
 		{//dump year's flame length to an ascii grid
 		AnnualFlameLengthName.Format(_T("%s%d_Run_%03d_Flamelength_Year%04d_.asc"), gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year + 1);
