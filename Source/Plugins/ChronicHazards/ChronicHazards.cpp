@@ -133,7 +133,7 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
 
    ////////////////
-   this->m_pFloodedGrid = m_pMap->AddGridLayer("d:/Envision/StudyAreas/OrCoast/Tillamook/Outputs/Baseline-High/Run0/Flooding/Flooding_Year2021_Baseline-High_Run0.asc", DO_TYPE::DOT_FLOAT);
+   this->m_pFloodedGrid = m_pMap->AddGridLayer("/Envision/StudyAreas/OrCoast/Tillamook/Outputs/Baseline-High/Run0/Flooding/Flooding_Year2021_Baseline-High_Run0.asc", DO_TYPE::DOT_FLOAT);
 
 
    CString m;
