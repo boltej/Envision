@@ -5083,6 +5083,11 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       && (m_exportDuneMapInterval > 0 && (pEnvContext->yearOfRun % m_exportDuneMapInterval == 0)
          || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
       {
+      CString path;
+      path.Format("%sDuneLine", outDir);
+      _mkdir((LPCTSTR)path);
+
+
       // Dune line layer naming
       CString duneFilename;
       duneFilename.Format("%sDuneLine/DuneLine_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
@@ -5097,6 +5102,10 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       && (m_exportFloodMapInterval > 0 && (pEnvContext->yearOfRun % m_exportFloodMapInterval == 0)
          || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
       {
+      CString path;
+      path.Format("%sFlooding", outDir);
+      _mkdir((LPCTSTR)path);
+
       CString fdName;
       fdName.Format("/Outputs/%s/MaxFloodDepth_%s_Year%i_%i.asc", (LPCTSTR)scenario, (LPCTSTR)scenario, outputYear, run);
       CString fldFile = m_sfincsHome + fdName;
@@ -5153,6 +5162,10 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       && (m_exportBldgMapInterval > 0 && (pEnvContext->yearOfRun % m_exportBldgMapInterval == 0)
          || (pEnvContext->endYear == pEnvContext->currentYear + 1)))
       {
+      CString path;
+      path.Format("%sBldgs", outDir);
+      _mkdir((LPCTSTR)path);
+
       // Dune line layer naming
       CString bldgFilename;
       bldgFilename.Format("%sBldgs/Bldgs_Year%i_%s_Run%i.shp", outDir, outputYear, scenario, run);
