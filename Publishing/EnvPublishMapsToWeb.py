@@ -12,6 +12,7 @@ import datatable as dt
 
 from sqlalchemy import create_engine
 
+from simpledbf import Dbf5
 
 import EnvPublishCommon as pub
 
@@ -26,7 +27,7 @@ Inputs: 1) Initial IDU coverage
 Steps:
 1) Run envision, saving delta array 
 2) use DeltaExtractor to extract deltas of interest, one deltaarray for each attribute of interest
-      e.g. deltaExtractor deltaArray_{scenario}_Run0.csv DeltaArray_{scenario}_LULC_A.csv LULC_A    <- repeat for each attribute
+      e.g. deltaExtractor deltaArray_{scenario}_Run{run}.csv DeltaArray_{scenario}_LULC_A.csv LULC_A    <- repeat for each attribute
 3) run the GenerateDeltaMaps python script to generate rasters for each year for each attribute, e.g. RMap_LULC_A_{scenario}_Run0.png
 4) write resulting rasters to the explorer web site
      
@@ -68,42 +69,43 @@ def DeltaSummary( deltaFile ):
 
 
 ##################### Create Reduced Delta Array ################################
-def GenerateReducedDeltaArrays(scenarios, fieldDefs):
-    print("---------------------------------------")
-    print(" Generating Reduced DeltaArray --------")
-    print("---------------------------------------")
-    fields = [f[0] for f in fieldDefs]   # extract list of field names
-    _fields = ",".join(fields)
-    for scenario in scenarios:
-        # extract deltas for this field
-        print(f"Subsetting delta array using fields ", _fields)
+def GenerateReducedDeltaArrays(fieldDefs, scenarios, runs ):
+    for run in runs:
+        print("---------------------------------------")
+        print(" Generating Reduced DeltaArray for Run", run)
+        print("---------------------------------------")
+        fields = [f[0] for f in fieldDefs]   # extract list of field names
+        _fields = ",".join(fields)
+        for scenario in scenarios:
+            # extract deltas for this field
+            print(f"Subsetting delta array using fields ", _fields)
         
-        cmd = f"d:/Envision/Source/x64/Release/deltaExtractor {pub.localStudyAreaPath}/Outputs/{scenario}/Run0/deltaArray_{scenario}_Run0.csv {pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_reduced.csv {_fields}"
-        print( "  ", cmd)
-        subprocess.call(cmd)
-        print()
-        os.makedirs(f'{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run0', exist_ok = True)
-        shutil.copy(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_reduced.csv', f'{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run0')
+            cmd = f"d:/Envision/Source/x64/Release/deltaExtractor {pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/deltaArray_{scenario}_Run{run}.csv {pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/DeltaArray_{scenario}_reduced.csv {_fields}"
+            print( "  ", cmd)
+            subprocess.call(cmd)
+            print()
+            os.makedirs(f'{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run{run}', exist_ok = True)
+            shutil.copy(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/DeltaArray_{scenario}_reduced.csv', f'{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run{run}')
 
     return
 
-def GenerateInitReducedIDUs(fieldDefs, scenarios):
-    print("--------------------------------")
-    print("Generating Reduced Inital IDUs ")
-    print("--------------------------------")
-    for scenario in scenarios:
-        fields = [f[0] for f in fieldDefs]   # extract list of field names
-        fields.append('IDU_INDEX')
-        print( "Loading IDU shape file...")
-        #idus = gpd.read_file(f'{pub.localStudyAreaPath}/idu.shp', include_fields=fields)
-        idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/IDU_Year{pub.startYear}_{scenario}_Run0.shp', include_fields=fields)
-        idus.to_crs(epsg=4326, inplace=True)
+def GenerateInitReducedIDUs(fieldDefs, scenarios, runs):
+    for run in runs:
+        print("------------------------------------------")
+        print("Generating Reduced Inital IDUs for Run ", run)
+        print("------------------------------------------")
+        for scenario in scenarios:
+            fields = [f[0] for f in fieldDefs]   # extract list of field names
+            fields.append('IDU_INDEX')
+            print( "Loading IDU shape file...")
+            #idus = gpd.read_file(f'{pub.localStudyAreaPath}/idu.shp', include_fields=fields)
+            idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/IDU_Year{pub.startYear}_{scenario}_Run{run}.shp', include_fields=fields)
+            idus.to_crs(epsg=4326, inplace=True)
 
-        outPath = f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/IDU_Year{pub.startYear}_{scenario}_Run0_reduced.shp'
-        print('     Saving to ' + outPath)
-        idus.to_file(outPath, driver ='ESRI Shapefile')
+            outPath = f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/IDU_Year{pub.startYear}_{scenario}_Run{run}_reduced.shp'
+            print('     Saving to ' + outPath)
+            idus.to_file(outPath, driver ='ESRI Shapefile')
 
-        #svrPath = f'//EnvWeb/MapServer/apps/{studyArea}/maps/{scenario}/{year}' 
     return
 
 
@@ -120,13 +122,13 @@ def GenerateMapInfoJSon(datasetName, scenarios,mapType,layerType,dynamic,default
     _fields = fields.copy()
     _fields.append(f'{datasetName}_INDEX')
 
+    # for IDUs, only need to look at a single run
     if datasetName == 'IDU':
         ds = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/{scenarios[0]}/Run0/{datasetName}_Year{pub.startYear}_{scenarios[0]}_Run0_reduced.shp',
                               include_fields=_fields)
     else:
         ds = gpd.read_file(f'{pub.localStudyAreaPath}/{datasetName}.shp', include_fields=_fields)
-        #ds = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/{scenarios[0]}/Run0/{datasetName}_Year{pub.startYear}_{scenarios[0]}_Run0.shp',
-        #                      include_fields=_fields)
+
     bounds = ds.total_bounds;  # returns (minx, miny, maxx, maxy)
     crs = ds.crs.to_string()
 
@@ -444,7 +446,7 @@ def GenerateAllDeltaRasterMaps(scenarios, fieldDefs, cellSize):
 
 ############ GEOJSON ##################
 
-def GenerateAllDeltaGeoJsonMaps( scenarios, fieldDefs) :
+def GenerateAllDeltaGeoJsonMaps( scenarios, fieldDefs, run) :
     fields  = [f[0] for f in fieldDefs]
 
     print( "Generating GeoJSON maps - Loading reduced IDU shape file...")
@@ -455,7 +457,7 @@ def GenerateAllDeltaGeoJsonMaps( scenarios, fieldDefs) :
 
     for scenario in scenarios:
         # change cwd to scenario ouputs folder
-        os.chdir(pub.localStudyAreaPath + f'/Outputs/{scenario}/Run0') #
+        os.chdir(pub.localStudyAreaPath + f'/Outputs/{scenario}/Run{run}') #
 
         #CreateFieldDeltaArray(scenario, fieldList)
 
@@ -464,7 +466,7 @@ def GenerateAllDeltaGeoJsonMaps( scenarios, fieldDefs) :
 
         print( "Loading Delta Array")
     
-        deltaArray = dt.fread( pub.localStudyAreaPath + f'/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
+        deltaArray = dt.fread( pub.localStudyAreaPath + f'/Outputs/{scenario}/Run{run}/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
         deltaArray = deltaArray.to_pandas()
 
         year = pub.startYear-1
@@ -507,7 +509,7 @@ def GenerateAllDeltaGeoJsonMaps( scenarios, fieldDefs) :
 
     return
 
-def GenGeoJsonMap(idus, fieldDef, scenario, year, filter=None, dissolve=False):
+def GenGeoJsonMap(idus, fieldDef, scenario, run, year, filter=None, dissolve=False):
     field = fieldDef[0]
     type = fieldDef[1]
     recast = fieldDef[2]
@@ -540,7 +542,7 @@ def GenGeoJsonMap(idus, fieldDef, scenario, year, filter=None, dissolve=False):
     #print('     Reprojecting...')
     #_idus.to_crs(epsg=4326, inplace=True)
 
-    outPath = f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/GeoJson/Map_{field}_{scenario}_{year}.geojson'
+    outPath = f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/GeoJson/Map_{field}_{scenario}_{year}.geojson'
     print('     Saving to ' + outPath)
     _idus.to_file(outPath, driver='GeoJSON')
 
@@ -577,28 +579,28 @@ def GenLegend(field):
         outFile.close()
 '''
 
-def GenerateVectorTiles(field, type, scenario, year, oflag):    
+def GenerateVectorTiles(field, type, scenario, run, year, oflag):    
     _type = f'{type}'[8:-2] 
 
     if oflag == 0:
         print(f"  Starting process for {field}, {scenario}, {year}")
     if oflag==1:
-        print(f"   Setting current working directory to d:{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles")
-    os.chdir(f'd:{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles')
+        print(f"   Setting current working directory to d:{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/VectorTiles")
+    os.chdir(f'd:{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/VectorTiles')
 
     if oflag==1:
-        print (f"   Checking output folder {pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles/{field}/{year}")
-    os.makedirs(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles/{field}/{year}', mode = 0o777, exist_ok = True)
+        print (f"   Checking output folder {pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/VectorTiles/{field}/{year}")
+    os.makedirs(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/VectorTiles/{field}/{year}', mode = 0o777, exist_ok = True)
 
-    cmd = f"wsl.exe ~/tippecanoe/tippecanoe -Q -pC --attribute-type={field}:{_type} -z14 -Z0 -f --layer={field} --drop-densest-as-needed --extend-zooms-if-still-dropping --name={field} --output-to-directory=/mnt/d/Envision/StudyAreas/{studyArea}/Outputs/{scenario}/Run0/VectorTiles/{field}/{year} /mnt/d{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/GeoJson/Map_{field}_{scenario}_{year}.geojson"
+    cmd = f"wsl.exe ~/tippecanoe/tippecanoe -Q -pC --attribute-type={field}:{_type} -z14 -Z0 -f --layer={field} --drop-densest-as-needed --extend-zooms-if-still-dropping --name={field} --output-to-directory=/mnt/d/Envision/StudyAreas/{studyArea}/Outputs/{scenario}/Run{run}/VectorTiles/{field}/{year} /mnt/d{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/GeoJson/Map_{field}_{scenario}_{year}.geojson"
     if oflag==1:
         print( "  ", cmd)
     subprocess.call(cmd)
     if oflag==1:
         print()
 
-    src = f"d:/Envision/StudyAreas/{pub.studyArea}/Outputs/{scenario}/Run0/VectorTiles/{field}/{year}"
-    dest = f"//EnvWeb/Explorer/Topic/{pub.studyArea}/Outputs/Scenarios/{scenario}/Run0/VectorTiles/{field}/{year}"
+    src = f"d:/Envision/StudyAreas/{pub.studyArea}/Outputs/{scenario}/Run{run}/VectorTiles/{field}/{year}"
+    dest = f"//Eng-EnvWeb/Explorer/Topic/{pub.studyArea}/Outputs/Scenarios/{scenario}/Run{run}/VectorTiles/{field}/{year}"
 
     if oflag==1:
         print("   Removing ", dest)
@@ -614,23 +616,24 @@ def GenerateVectorTiles(field, type, scenario, year, oflag):
 
 #from multiprocessing import Pool
  
-def GenerateAllVectorTiles(scenarios, fieldDefs):
-    for year in range(pub.startYear, pub.endYear+1):
-        for scenario in scenarios:
-            #args = []
-            #for field in fieldDefs:
-            #    args.append((field[0], field[1], scenario, year,0))
-            #pool = Pool(len(args))
-            #pool.map(GenerateVectorTiles, args)
-            for field in fieldDefs:
-                GenerateVectorTiles(field[0],field[1], scenario, year, 1)
+def GenerateAllVectorTiles(scenarios, runs, fieldDefs):
+    for run in runs:
+        for year in range(pub.startYear, pub.endYear+1):
+            for scenario in scenarios:
+                #args = []
+                #for field in fieldDefs:
+                #    args.append((field[0], field[1], scenario, year,0))
+                #pool = Pool(len(args))
+                #pool.map(GenerateVectorTiles, args)
+                for field in fieldDefs:
+                    GenerateVectorTiles(field[0],field[1], scenario, run, year, 1)
     return
 
 # generate a set of vector tiles representing the IDU polygons
-def GenIduIndexVectorTiles(scenario, genGeoJSON):
+def GenIduIndexVectorTiles(scenario, run, genGeoJSON):
     if genGeoJSON:
         print( "Loading IDU shape file...")
-        idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/IDU_Year{pub.startYear}_{scenario}_Run0_reduced.shp',include_fields=['IDU_INDEX']) 
+        idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/IDU_Year{pub.startYear}_{scenario}_Run{run}_reduced.shp',include_fields=['IDU_INDEX']) 
     
         print( 'Generating GeoJson for IDU_reduced.shp'  )
         print('  Simplifying...')
@@ -680,77 +683,77 @@ def GenIduIndexVectorTiles(scenario, genGeoJSON):
 
 
 # generate a set of vector tiles representing the IDU polygons
-def GenIduVectorTiles(scenarios, parallel=False,doGeoJson=True,doTippe=True):
-    for scenario in scenarios:
-        #oGeoJson = True
-        if doGeoJson:
-            print( "Loading reduced IDU shape file...")
-            idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/IDU_reduced.shp') 
+def GenIduVectorTiles(scenarios, runs, parallel=False,doGeoJson=True,doTippe=True):
+    for run in runs:
+        for scenario in scenarios:
+            #oGeoJson = True
+            if doGeoJson:
+                print( "Loading reduced IDU shape file...")
+                idus = gpd.read_file(f'{pub.localStudyAreaPath}/Outputs/IDU_reduced.shp') 
 
-            print("Loading Delta Array...")
-            #deltaArray = pd.read_csv(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_reduced.csv')
-            deltaArray = dt.fread( pub.localStudyAreaPath + f'/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
-            deltaArray = deltaArray.to_pandas()
+                print("Loading Delta Array...")
+                deltaArray = dt.fread( pub.localStudyAreaPath + f'/Outputs/{scenario}/Run{run}/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
+                deltaArray = deltaArray.to_pandas()
 
-            print(idus.crs)
-            #print('  Simplifying...')
-            #idus['geometry'] = idus.simplify(10, preserve_topology=True)
-            #print('  Reprojecting to 4326...')
-            #idus.to_crs(epsg=4326, inplace=True)
+                print(idus.crs)
+                #print('  Simplifying...')
+                #idus['geometry'] = idus.simplify(10, preserve_topology=True)
+                #print('  Reprojecting to 4326...')
+                #idus.to_crs(epsg=4326, inplace=True)
 
-            year = pub.startYear-1
+                year = pub.startYear-1
 
-            # iterate though delta array, applying deltas.  On year boundaries, save the maps
-            for i, delta in deltaArray.iterrows():
-                dYear = delta['year']
+                # iterate though delta array, applying deltas.  On year boundaries, save the maps
+                for i, delta in deltaArray.iterrows():
+                    dYear = delta['year']
 
-            # new year?  save as geojson before proceeding
-            if dYear > year:
-                while (year < dYear): # in case deltaarry is missing years
-                    print( f'Processing IDU for year {year+1}')
-                    #GenerateIduVectorTileFromIDUs(idus, scenario, year+1)
-                    _GenerateIduGeoJson(idus, scenario, year+1)   #VectorTileFromIDUs(idus, scenario, year+1)
-                    year += 1
+                # new year?  save as geojson before proceeding
+                if dYear > year:
+                    while (year < dYear): # in case deltaarry is missing years
+                        print( f'Processing IDU for year {year+1}')
+                        #GenerateIduVectorTileFromIDUs(idus, scenario, year+1)
+                        _GenerateIduGeoJson(idus, scenario, year+1)   #VectorTileFromIDUs(idus, scenario, year+1)
+                        year += 1
 
-            # apply current delta to current map
-            #dCol = delta['col']
-            iduField = delta['field']
-            dIdu = delta['idu']
-            dNewValue = delta['newValue']
-            #dType = delta['type']
-            
-            iduCol = idus.columns.get_loc(iduField)
-            idus.iat[dIdu,iduCol] = dNewValue
+                # apply current delta to current map
+                #dCol = delta['col']
+                iduField = delta['field']
+                dIdu = delta['idu']
+                dNewValue = delta['newValue']
+                #dType = delta['type']
 
-            # done with years, write final year
-            print(f"Creating Final year {year} GeoJSON")
-            #GenerateIduVectorTileFromIDUs(idus, scenario, year+1)
-            _GenerateIduGeoJson(idus, scenario, year+1)
+                iduCol = idus.columns.get_loc(iduField)
+                idus.iat[dIdu,iduCol] = dNewValue
 
-        # GeoJson is generated, now run tippecanoe to convert to vector tiles
-        #doTippe = True
-        if doTippe:
-            pids = []
-            for year in range(pub.startYear, pub.endYear+1): 
-                # generate an IDU vector tile for teh current year (based on previously generated geojson)
-                pid = _GenerateIduVectorTileFromGeoJson(scenario, year, parallel)
-                if parallel:
-                    pids.append(pid)
+                # done with years, write final year
+                print(f"Creating Final year {year} GeoJSON")
+                #GenerateIduVectorTileFromIDUs(idus, scenario, year+1)
+                _GenerateIduGeoJson(idus, scenario, year+1)
 
-            for pid in pids:
-                pid.wait()
-            
-            # all vector tiles created, copy to server
-            for year in range(pub.startYear, pub.endYear+1): 
-                src = f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles/IDU_reduced/{year}/"
-                dest = f"{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run0/VectorTiles/IDU_reduced/{year}/"
-                print("   Removing ", dest)
-                shutil.rmtree(dest, ignore_errors=True)
-                print("   Copying ", src)
-                #os.makedirs(dest,exist_ok=True)
-                shutil.copytree(src, dest)  #, dirs_exist_ok=True)
-                #shutil.move(src, dest)  #, dirs_exist_ok=True)
-                print()
+            # GeoJson is generated, now run tippecanoe to convert to vector tiles
+            #doTippe = True
+            if doTippe:
+                pids = []
+                for year in range(pub.startYear, pub.endYear+1): 
+                    # generate an IDU vector tile for teh current year (based on previously generated geojson)
+                    pid = _GenerateIduVectorTileFromGeoJson(scenario, year, parallel)
+                    if parallel:
+                        pids.append(pid)
+
+                for pid in pids:
+                    pid.wait()
+
+                # all vector tiles created, copy to server
+                for year in range(pub.startYear, pub.endYear+1): 
+                    src = f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/VectorTiles/IDU_reduced/{year}/"
+                    dest = f"{pub.explorerStudyAreaPath}/Outputs/Scenarios/{scenario}/Run{run}/VectorTiles/IDU_reduced/{year}/"
+                    print("   Removing ", dest)
+                    shutil.rmtree(dest, ignore_errors=True)
+                    print("   Copying ", src)
+                    #os.makedirs(dest,exist_ok=True)
+                    shutil.copytree(src, dest)  #, dirs_exist_ok=True)
+                    #shutil.move(src, dest)  #, dirs_exist_ok=True)
+                    print()
     return
 
 '''
@@ -802,8 +805,8 @@ def _GenerateIduGeoJson(idus, scenario, year):
     idus.to_file(outPath, driver='GeoJSON')
 
 
-def _GenerateIduVectorTileFromGeoJson(scenario, year,parallel):
-    outDir = f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles/IDU_reduced/{year}/"
+def _GenerateIduVectorTileFromGeoJson(scenario, run, year,parallel):
+    outDir = f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/VectorTiles/IDU_reduced/{year}/"
     print("   Making output directory ", outDir)
     os.makedirs(outDir,exist_ok=True)
     
@@ -818,7 +821,7 @@ def _GenerateIduVectorTileFromGeoJson(scenario, year,parallel):
         f"--layer=IDU_reduced_{year}_{scenario} "
          "--drop-densest-as-needed --extend-zooms-if-still-dropping "
         f"--name=IDU_reduced_{year}_{scenario} "
-        f"--output-to-directory=/mnt/d/Envision/StudyAreas/{studyArea}/Outputs/{scenario}/Run0/VectorTiles/IDU_reduced/{year} "
+        f"--output-to-directory=/mnt/d/Envision/StudyAreas/{pub.studyArea}/Outputs/{scenario}/Run{run}/VectorTiles/IDU_reduced/{year} "
         f"/mnt/d{pub.localStudyAreaPath}/Outputs/GeoJson/IDU_reduced_{year}_{scenario}.geojson"
         )
     print( "  ", cmd)
@@ -829,8 +832,8 @@ def _GenerateIduVectorTileFromGeoJson(scenario, year,parallel):
         subprocess.call(cmd)
         return 1
 
-def _GenerateIduIndexVectorTileFromGeoJson(scenario, year,parallel):
-    outDir = f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/VectorTiles/IDU_reduced/{year}/"
+def _GenerateIduIndexVectorTileFromGeoJson(scenario,run, year,parallel):
+    outDir = f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/VectorTiles/IDU_reduced/{year}/"
     print("   Making output directory ", outDir)
     os.makedirs(outDir,exist_ok=True)
     
@@ -845,7 +848,7 @@ def _GenerateIduIndexVectorTileFromGeoJson(scenario, year,parallel):
         f"--layer=IDU_reduced_{year}_{scenario} "
          "--drop-densest-as-needed --extend-zooms-if-still-dropping "
         f"--name=IDU_reduced_{year}_{scenario} "
-        f"--output-to-directory=/mnt/d/Envision/StudyAreas/{pub.studyArea}/Outputs/{scenario}/Run0/VectorTiles/IDU_reduced/{year} "
+        f"--output-to-directory=/mnt/d/Envision/StudyAreas/{pub.studyArea}/Outputs/{scenario}/Run{run}/VectorTiles/IDU_reduced/{year} "
         f"/mnt/d{pub.localStudyAreaPath}/Outputs/GeoJson/IDU_reduced_{year}_{scenario}.geojson"
         )
     print( "  ", cmd)
@@ -923,83 +926,73 @@ Create, for each scenario, a set of "reduced" IDUs that are:
 1) Copied to the map server
 2) copied to the scenario's SQLite database
 '''
-def GenAnnualIDUReduced(scenarios, doSQL):
-    print("---------------------------------------")
-    print(" Running GenAnnualIDUReduced() --------")
-    print("---------------------------------------")
-    #engine = create_engine('sqlite://', echo=False)
+def GenAnnualIDUReduced(scenarios, runs, doSQL):
+    for run in runs:
+        print("---------------------------------------")
+        print(" Running GenAnnualIDUReduced() for Run", run)
+        print("---------------------------------------")
+        #engine = create_engine('sqlite://', echo=False)
 
-    for scenario in scenarios:
+        for scenario in scenarios:
 
-        path = f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/IDU_Year{pub.startYear}_{scenario}_Run0_reduced.shp'
-        print( "Loading ", path)
-        idus = gpd.read_file(path)
+            path = f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/IDU_Year{pub.startYear}_{scenario}_Run{run}_reduced.shp'
+            print( "Loading ", path)
+            idus = gpd.read_file(path)
+            #idus = Dbf5(f"{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/IDU_Year{pub.startYear}_{scenario}_Run{run}_reduced.dbf") 
+            #idus = idus.to_dataframe()  # convert to pandas dataframe
 
-        print(idus.info())
+            print( "Loading Delta Array")
+            deltaArray = dt.fread(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run{run}/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
+            deltaArray = deltaArray.to_pandas()
 
-        print( "Loading Delta Array")
-        #deltaArray = pd.read_csv( f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv')
-        deltaArray = dt.fread(f'{pub.localStudyAreaPath}/Outputs/{scenario}/Run0/DeltaArray_{scenario}_Reduced.csv') # NOTE, using reduced list
-        deltaArray = deltaArray.to_pandas()
+            iduDBPath = f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}/IDU.sqlite"
+            os.makedirs(f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}", exist_ok=True)
 
-        iduDBPath = f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}/IDU.sqlite"
-        os.makedirs(f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}", exist_ok=True)
+            year = pub.startYear-1
 
-        year = pub.startYear-1
+            # iterate though delta array, applying deltas.  On year boundaries, save the maps
+            for delta in deltaArray.itertuples():
+                dYear = delta.year
 
-        # iterate though delta array, applying deltas.  On year boundaries, save the maps
-        #for i, delta in deltaArray.iterrows():
-        for delta in deltaArray.itertuples():
-            #dYear = getattr(delta, 'year')
-            #dYear = delta['year']
-            dYear = delta.year
+                # new year?  save raster before proceeding
+                if dYear > year:
+                    while (year < dYear): # in case deltaarry is missing years
+                        year += 1
+                        print( f'Generating Reduced IDUs for year {year}')
+                        # make sure folder exsts
+                        _mapServerPath = f"{pub.mapServerPath}/maps/{scenario}/IDU/{year}"
+                        os.makedirs(_mapServerPath, exist_ok=True)
+                        idus.to_file(f"{_mapServerPath}/IDU_{scenario}_{year}_{run}_reduced.shp")
+                        if doSQL:
+                            print( f'Generating IDU table for year {year}')
+                            WriteDB(iduDBPath, idus, scenario, run, year)
 
-            # new year?  save raster before proceeding
-            if dYear > year:
-                while (year < dYear): # in case deltaarry is missing years
-                    year += 1
-                    print( f'Generating Reduced IDUs for year {year}')
-                    # make sure folder exsts
-                    _mapServerPath = f"{pub.mapServerPath}/maps/{scenario}/IDU/{year}"
-                    os.makedirs(_mapServerPath, exist_ok=True)
-                    idus.to_file(f"{_mapServerPath}/IDU_{scenario}_{year}_0_reduced.shp")
-                    if doSQL:
-                        print( f'Generating IDU table for year {year}')
-                        WriteDB(iduDBPath, idus, scenario, year)
 
-            # apply current delta to current map
-            #iduField = delta['field']
-            #dIdu = delta['idu']
-            #dNewValue = delta['newValue']
-            
-            #iduField = getattr(delta, 'field')
-            #dIdu = getattr(delta,'idu')
-            #dNewValue = getattr(delta, 'newValue')
-            iduField = delta.field
-            dIdu = delta.idu
-            dNewValue = delta.newValue
-            
-            iduCol = idus.columns.get_loc(iduField)
-            idus.iat[dIdu,iduCol] = dNewValue
+                iduField = delta.field
+                dIdu = delta.idu
+                dNewValue = delta.newValue
 
-        # done with years, write final year
-        print("Creating Final year IDUs")
-        _mapServerPath = f"{pub.mapServerPath}/maps/{scenario}/IDU/{year+1}"
-        os.makedirs(_mapServerPath, exist_ok=True)
-        idus.to_file(f"{_mapServerPath}/IDU_{scenario}_{year+1}_0_reduced.shp")
+                iduCol = idus.columns.get_loc(iduField)
+                idus.iat[dIdu,iduCol] = dNewValue
 
-        if doSQL:
-            print( f'Saving IDU table for year {year+1} to {iduDBPath}')
-            WriteDB(iduDBPath, idus, scenario, year+1)
-            print( f'Saving DeltaArray table to {iduDBPath}')
-            WriteDB(iduDBPath, deltaArray, scenario, year+1, deltaArrayOnly=True)
-            print( f'Saving IDU geometry to {iduDBPath}')
-            WriteDB(iduDBPath, idus, scenario, year+1, geomOnly=True)
+            # done with years, write final year
+            print("Creating Final year IDUs")
+            _mapServerPath = f"{pub.mapServerPath}/maps/{scenario}/IDU/{year+1}"
+            os.makedirs(_mapServerPath, exist_ok=True)
+            idus.to_file(f"{_mapServerPath}/IDU_{scenario}_{year+1}_{run}_reduced.shp")
+
+            if doSQL:
+                print( f'Saving IDU table for year {year+1} to {iduDBPath}')
+                WriteDB(iduDBPath, idus, scenario, run, year+1)
+                print( f'Saving DeltaArray table to {iduDBPath}')
+                WriteDB(iduDBPath, deltaArray, scenario, run, year+1, deltaArrayOnly=True)
+                print( f'Saving IDU geometry to {iduDBPath}')
+                WriteDB(iduDBPath, idus, scenario, run, year+1, geomOnly=True)
 
     return
 
 
-def WriteDB(dbPath, db, scenario, year, geomOnly=False, deltaArrayOnly=False):
+def WriteDB(dbPath, db, scenario, run, year, geomOnly=False, deltaArrayOnly=False):
     success = False
     while success == False:
         try:
@@ -1017,12 +1010,12 @@ def WriteDB(dbPath, db, scenario, year, geomOnly=False, deltaArrayOnly=False):
                     c = connection.cursor()
 
                     if deltaArrayOnly == True:
-                        db.to_sql(name=f'Deltas_{scenario}_0', con=connection, if_exists='replace', index=False)
+                        db.to_sql(name=f'Deltas_{scenario}_{run}', con=connection, if_exists='replace', index=False)
                     #elif geomOnly == True:
                         #geom = db['geometry'].astype('str')
                         #geom.to_sql(name=f'IDU_geometry', con=connection, if_exists='replace', index=True, index_label='ROWINDEX')
                     else:
-                        db.drop(columns='geometry').to_sql(name=f'IDU_{scenario}_{year}_0', con=connection, if_exists='replace', index=True, index_label="ROWINDEX")
+                        db.drop(columns='geometry').to_sql(name=f'IDU_{scenario}_{year}_{run}', con=connection, if_exists='replace', index=True, index_label="ROWINDEX")
 
                     connection.commit()
             success=True
@@ -1032,41 +1025,74 @@ def WriteDB(dbPath, db, scenario, year, geomOnly=False, deltaArrayOnly=False):
             time.sleep(3)
 
 
+# not part of core functions
+def WriteDBIdus(scenarios, runs):
+    for run in runs:
+        print("---------------------------------------")
+        print(" Running WriteDBIdus() for Run", run)
+        print("---------------------------------------")
+        #engine = create_engine('sqlite://', echo=False)
 
-def GenMapFiles(datasetName, scenarios, geomType, postFix=""):
-    print("---------------------------------------")
-    print(" Running GenMapFiles() ----------------")
-    print("---------------------------------------")
-    fieldDefs = pub.datasets[datasetName]["fieldDefs"]
+        for scenario in scenarios:
+            iduDBPath = f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}/IDU.sqlite"
+            os.makedirs(f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}", exist_ok=True)
 
-    fields = [f[0] for f in fieldDefs]   # extract list of field names
+            for year in range(pub.startYear, pub.endYear+1):
+                path = f'{pub.mapServerPath}/maps/{scenario}/IDU/{year}/IDU_{scenario}_{year}_{run}_reduced.dbf'
+                
+                if os.path.exists(path):
+                    print( "Loading ", path)
 
-    print(f"Loading Field definitions ({datasetName}.xml)...")
+                    idus = Dbf5(path)
+                    idus = idus.to_dataframe()  # convert to pandas dataframe
+
+                    with closing(sqlite3.connect(iduDBPath)) as connection:
+                        with closing(connection.cursor()) as cursor:
+                            c = connection.cursor()
+                            idus.to_sql(name=f'IDU_{scenario}_{year}_{run}', con=connection, if_exists='replace', index=True, index_label="ROWINDEX")
+                else:
+                    print("Files not found:", path)
+    return
 
 
-    # get a boundiong box for the datasets
-   
-    bbox = None
-    with open(f"{pub.explorerStudyAreaPath}/Outputs/DatasetInfo/{datasetName}Info.json", "r") as infile:
-        mapInfo = json.load(infile)
-        bbox = mapInfo['boundingBox4326']  # = {"left":left, "bottom":bottom, "right":right, "top":top} 
- 
-    if datasetName == 'IDU':
-        fieldInfos = pub.LoadIduXML(fields)
-    else:
-        fieldInfos = pub.LoadDatasetXML(f"{pub.iduXmlPath}/{datasetName}.xml", fields) # assumes {ds}.xml in same folder as idu.xml
 
-    for scenario in scenarios:
-        for year in range(pub.startYear,pub.endYear+1):
-            print(f"processing {scenario}, year {year}")
-            _mapServerPath = f"{pub.mapServerPath}/maps/{scenario}/{datasetName}"
-            os.makedirs(_mapServerPath, exist_ok=True)
-            mapFile =  f"{_mapServerPath}/{year}_0.map"
-            f = open(mapFile,"wt")
 
-            f.write( f'''
+
+def GenMapFiles(datasetName, scenarios, runs, geomType, postFix=""):
+    for run in runs:
+        print("---------------------------------------")
+        print(" Running GenMapFiles() ----------------")
+        print("---------------------------------------")
+        fieldDefs = pub.datasets[datasetName]["fieldDefs"]
+    
+        fields = [f[0] for f in fieldDefs]   # extract list of field names
+    
+        print(f"Loading Field definitions ({datasetName}.xml)...")
+    
+    
+        # get a boundiong box for the datasets
+    
+        bbox = None
+        with open(f"{pub.explorerStudyAreaPath}/Outputs/DatasetInfo/{datasetName}Info.json", "r") as infile:
+            mapInfo = json.load(infile)
+            bbox = mapInfo['boundingBox4326']  # = {"left":left, "bottom":bottom, "right":right, "top":top} 
+    
+        if datasetName == 'IDU':
+            fieldInfos = pub.LoadIduXML(fields)
+        else:
+            fieldInfos = pub.LoadDatasetXML(f"{pub.iduXmlPath}/{datasetName}.xml", fields) # assumes {ds}.xml in same folder as idu.xml
+    
+        for scenario in scenarios:
+            print(f"  Processing {scenario}, Run {run}")
+            for year in range(pub.startYear,pub.endYear+1):
+                _mapServerPath = f"{pub.mapServerPath}/maps/{scenario}/{datasetName}"
+                os.makedirs(_mapServerPath, exist_ok=True)
+                mapFile =  f"{_mapServerPath}/{year}_{run}.map"
+                f = open(mapFile,"wt")
+    
+                f.write( f'''
 MAP
-	NAME "{pub.studyArea}_{datasetName}_{scenario}_{year}_0"
+	NAME "{pub.studyArea}_{datasetName}_{scenario}_{year}_{run}"
 	STATUS ON
 	SIZE 800 600
 	#SYMBOLSET "../etc/symbols.txt"
@@ -1083,9 +1109,9 @@ WEB
   IMAGEPATH "D:/MapServer/tmp/ms_tmp/" 
   IMAGEURL "/ms_tmp/"
   METADATA
-    "wms_title"   			"{pub.studyArea}_{datasetName}_{scenario}_{year}_0"
+    "wms_title"   			"{pub.studyArea}_{datasetName}_{scenario}_{year}_{run}"
     "wms_abstract"      	"Envision map server, powered by MS4W (https:/ms4w.com/)."      
-    "wms_onlineresource" 	"http://envweb.bee.oregonstate.edu/MapServer//mapserv.exe?map=D:/MapServer/apps/{pub.studyArea}/maps/{scenario}/{datasetName}/{year}_0.map"
+    "wms_onlineresource" 	"http://envweb.bee.oregonstate.edu/MapServer//mapserv.exe?map=D:/MapServer/apps/{pub.studyArea}/maps/{scenario}/{datasetName}/{year}_{run}.map"
     "wms_service_onlineresource" "https://gatewaygeomatics.com/"    
     "wms_contactperson"		"John Bolte" 
     "wms_contactorganization" "Oregon State University"
@@ -1115,11 +1141,11 @@ OUTPUTFORMAT
 END
 ''' )
 
-            symbolPt = ''
-            if geomType == 'POINT':
-                symbolPt = 'SYMBOL "point"'
-                f.write("\n# Point symbol definition ---------------------------------------------\n")
-                f.write(f'''
+                symbolPt = ''
+                if geomType == 'POINT':
+                    symbolPt = 'SYMBOL "point"'
+                    f.write("\n# Point symbol definition ---------------------------------------------\n")
+                    f.write(f'''
 SYMBOL
   NAME "point"
   TYPE ELLIPSE
@@ -1129,9 +1155,7 @@ SYMBOL
   FILLED TRUE
 END
 ''')
-
-
-            '''
+                '''
 
 # Start of layer definitions
 LAYER
@@ -1143,40 +1167,40 @@ END
 '''
 
     
-            f.write("\n# Start of LAYER DEFINITIONS ---------------------------------------------\n")
+                f.write("\n# Start of LAYER DEFINITIONS ---------------------------------------------\n")
 
-            ext = ""
-            if geomType == "RASTER":
-                ext = ".tif"
-            for field in fields:
-                fieldID = field
+                ext = ""
                 if geomType == "RASTER":
-                    fieldID = 'pixel'
-                f.write( f'''
+                    ext = ".tif"
+                for field in fields:
+                    fieldID = field
+                    if geomType == "RASTER":
+                        fieldID = 'pixel'
+                    f.write( f'''
   LAYER
     NAME    {field}
-    DATA    "{datasetName}_{scenario}_{year}_0{postFix}{ext}"
+    DATA    "{datasetName}_{scenario}_{year}_{run}{postFix}{ext}"
     STATUS  ON
     TYPE    {geomType}
     METADATA
-      "wms_title"  "{datasetName}_{field}_{scenario}_{year}_0{postFix}"
+      "wms_title"  "{datasetName}_{field}_{scenario}_{year}_{run}{postFix}"
     END
   
     CLASSITEM  "{fieldID}"
     ''')
             
-                fieldInfo = fieldInfos[field]
-                #datatype = fieldInfo.get('datatype')
-                mfiType = fieldInfo.get('mfiType')
+                    fieldInfo = fieldInfos[field]
+                    #datatype = fieldInfo.get('datatype')
+                    mfiType = fieldInfo.get('mfiType')
 
-                attrs = fieldInfo.findall('attributes/attr')
-                for attr in attrs:
-                    color = attr.get('color').lstrip('(').rstrip(')').replace(","," ")
-                    label = attr.get('label')
+                    attrs = fieldInfo.findall('attributes/attr')
+                    for attr in attrs:
+                        color = attr.get('color').lstrip('(').rstrip(')').replace(","," ")
+                        label = attr.get('label')
 
-                    if mfiType == '1':  # categorical
-                        value = attr.get('value')
-                        f.write(f'''
+                        if mfiType == '1':  # categorical
+                            value = attr.get('value')
+                            f.write(f'''
       CLASS
         NAME "{label}"
         EXPRESSION "{value}"
@@ -1185,10 +1209,10 @@ END
           COLOR    {color}
         END
       END''')
-                    else:  # continuous
-                      minVal = attr.get('minVal')
-                      maxVal = attr.get('maxVal')
-                      f.write(f'''
+                        else:  # continuous
+                          minVal = attr.get('minVal')
+                          maxVal = attr.get('maxVal')
+                          f.write(f'''
       CLASS
         NAME "{label}"
         EXPRESSION (([{fieldID}] >= {minVal}) AND ([{fieldID}] < {maxVal}))
@@ -1198,10 +1222,10 @@ END
         END
       END''')
                   
-                f.write('\nEND\n')
+                    f.write('\nEND\n')
     
-            f.write('END')
-            f.close()
+                f.write('END')
+                f.close()
     return
 
 

@@ -70,7 +70,10 @@ FireYearRunner::FireYearRunner(EnvContext* pEnvContext)
 
 	//if (!gpFlamMapAP->m_staticFires)
 	if (gpFlamMapAP->m_staticFires.size() == 0)
+		{
+		Report::Log_s("Initializing firelist for %s", gpFlamMapAP->m_scenarioFiresFName);
 		m_firesList.Init(gpFlamMapAP->m_scenarioFiresFName);
+		}
 
 	// Make sure the run hasn't gone bad somewhere else
 	if (gpFlamMapAP->m_runStatus < 0)
@@ -78,6 +81,7 @@ FireYearRunner::FireYearRunner(EnvContext* pEnvContext)
 
 	CString igGenIntFName;
 
+	Report::LogInfo("Initializing ignition generator");
 	m_pIgnitGenerator = new IgnitGenerator(m_pEnvContext);
 
 	//m_pYrFlameLens = new float[gpFlamMapAP->m_rows * gpFlamMapAP->m_cols];
@@ -138,7 +142,6 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 	CString tmpStr;
 
 	int fireCnt = 0;
-	//int year = pEnvContext->currentYear;
 	int year = pEnvContext->yearOfRun;
 	//int numOmpProcs = omp_get_num_procs();
 
@@ -148,8 +151,6 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 	// reset this year's flame lengths
 	for (int i = 0; i < (nRows * nCols); i++)
 		{
-		//m_pYrFlameLens[i] = 0.0;
-		//m_pFireNums[i] = 0;
 		m_yrFlameLens.at(i) = 0.0;
 		m_fireNums.at(i) = 0;
 		}
@@ -192,7 +193,7 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 		ret = tFlamMap.SetFuelMoistureFile((char*)(LPCTSTR)gpFlamMapAP->m_strStaticFMS);
 		if (ret != 1)
 			{
-			msg.Format("Error loading static FMS file %s\n\t%s", gpFlamMapAP->m_strStaticFMS, tFlamMap.CommandFileError(ret));
+			msg.Format("Error loading static FMS file %s\n\t%s", (LPCTSTR) gpFlamMapAP->m_strStaticFMS, tFlamMap.CommandFileError(ret));
 			Report::ErrorMsg(msg);
 			}
 		else
@@ -214,20 +215,25 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 				}
 
 			// output Potential Flame length and Crown Fire activity layers
-			CString pflName;
-			pflName.Format("%s%d_FlameLength_%03d_%04d.asc", gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
-			tFlamMap.WriteOutputLayerToDisk(FLAMELENGTH, (char*)pflName.GetString());
+			if (gpFlamMapAP->m_logPotentialFlameLengths)
+				{
+				CString pflName;
+				pflName.Format("%s%d_FlameLength_%03d_%04d.asc", (LPCTSTR) gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
+				tFlamMap.WriteOutputLayerToDisk(FLAMELENGTH, (char*)pflName.GetString());
+			
+				CString msg;
+				msg.Format("Writing potential flame length grid to %s", (LPCTSTR)pflName);
+				Report::StatusMsg(msg);
+				}
 
-			CString msg;
-			msg.Format("Writing potential flame length grid to %s", (LPCTSTR)pflName);
-			Report::StatusMsg(msg);
-
-			CString cfName;
-			cfName.Format("%s%d_CrownFire_%03d_%04d.asc", gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
-			tFlamMap.WriteOutputLayerToDisk(CROWNSTATE, (char*)cfName.GetString());
-			msg.Format("Writing crown fire grid to %s", (LPCTSTR)cfName);
-			Report::StatusMsg(msg);
-
+			if (gpFlamMapAP->m_logCrownFires)
+				{
+				CString cfName;
+				cfName.Format("%s%d_CrownFire_%03d_%04d.asc", (LPCTSTR)gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
+				tFlamMap.WriteOutputLayerToDisk(CROWNSTATE, (char*)cfName.GetString());
+				msg.Format("Writing crown fire grid to %s", (LPCTSTR)cfName);
+				Report::StatusMsg(msg);
+				}
 			// reload potential flame length as ASCII grids 
 
 			MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
@@ -361,11 +367,11 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 		}
 
 	FILE* envFireList = NULL;
-	FILE* echoFiresList = NULL;
+	//FILE* echoFiresList = NULL;
 	if (gpFlamMapAP->m_outputEnvisionFirelists)
 		{
 		envFireList = fopen(gpFlamMapAP->m_outputEnvisionFirelistName, "a+t");
-		echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
+		//echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
 		}
 
 	msg.Format(_T("Starting fires for year %d (%d), running %d fires"), year, pEnvContext->currentYear, firesToDo);
@@ -488,8 +494,8 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 						fprintf(envFireList, ", 0.000000");
 
 					fprintf(envFireList, "\n");
-					if (echoFiresList)
-						fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
+					//if (echoFiresList)
+					//	fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
 					}
 				delete pMtt;
 				pMtt = NULL;
@@ -529,10 +535,10 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 						fprintf(envFireList, ", 0.000000");
 					fprintf(envFireList, "\n");
 					}
-				if (echoFiresList)
-					{
-					fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
-					}
+				//if (echoFiresList)
+				//	{
+				//	fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
+				//	}
 				delete pMtt;
 				pMtt = NULL;
 
@@ -642,10 +648,10 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 			for (flLoc = 0; flLoc < 20; flLoc++)
 				fprintf(envFireList, ", %f", fireArray[n].FIL[flLoc]);
 			fprintf(envFireList, "\n");
-			if (echoFiresList)
-				{
-				fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
-				}
+			//if (echoFiresList)
+			//	{
+			//	fprintf(echoFiresList, "%s, %d\n", fireArray[n].GetRecord(), fireArray[n].GetEnvisionFireID());
+			//	}
 			}
 		//end added for firesizelists
 		if (gpFlamMapAP->m_logPerimeters)
@@ -698,8 +704,8 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 		delete[] burnMask;
 	if (envFireList)
 		fclose(envFireList);
-	if (echoFiresList)
-		fclose(echoFiresList);
+	//if (echoFiresList)
+	//	fclose(echoFiresList);
 	if (gpFlamMapAP->m_logAnnualFlameLengths != 0)
 		{//dump year's flame length to an ascii grid
 		AnnualFlameLengthName.Format(_T("%s%d_Run_%03d_Flamelength_Year%04d_.asc"), gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year + 1);

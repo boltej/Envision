@@ -64,12 +64,18 @@ void FiresList::Init(const char* _initFName)
       return;
       }
 
+   CString _msg;
+   _msg.Format("Read %i records from %s", records, initFName);
+   Report::LogInfo(_msg);
+
    //TCHAR fmsBase[MAX_PATH];      // NOTE: this assumes fms files are in the same director as the firelist!!!
    //lstrcpy( fmsBase, initFName );
    //char *p = _tcsrchr( fmsBase, '\\');
    //p++;
    //*p = 0;
    TCHAR fmsBase[MAX_PATH];
+   Report::Log_s("Setting fuel moisture path to %s", (LPCTSTR) gpFlamMapAP->m_fmsPath);
+
    lstrcpy(fmsBase, gpFlamMapAP->m_fmsPath);   // this will be termainted with a '\'
 
    int colYr = -1;
@@ -86,6 +92,8 @@ void FiresList::Init(const char* _initFName)
    int colIgnitionY = -1;
    int colFireID = -1;
    int fireNum = 1;
+   Report::LogInfo("Checking FMS columns");
+
    if (DoesColExist(initFName, data, colYr, "Yr") == false)   return;
    if (DoesColExist(initFName, data, colProb, "Prob") == false)   return;
    if (DoesColExist(initFName, data, colJulian, "Julian") == false)   return;
@@ -106,18 +114,26 @@ void FiresList::Init(const char* _initFName)
    //if ( DoesColExist( initFName, data, colIgnitionX     , "IgnitionX"    ) == false )   return;
    //if ( DoesColExist( initFName, data, colIgnitionY     , "IgnitionY"    ) == false )   return;
    m_headerString = "";
+   Report::LogInfo("Checking headers");
+
    for (int tc = 0; tc < data.GetColCount(); tc++)
       {
       if (tc > 0)
          m_headerString += ",";
       m_headerString += data.GetLabel(tc);
       }
-   FILE* echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
-   fprintf(echoFiresList, "%s, EnvFire_ID\n", (LPCTSTR)m_headerString);
-   fclose(echoFiresList);
 
+   // turned off the following to solve Max's problemx
+   ///Report::Log_s("Opening fire list echo file %s", (LPCTSTR) gpFlamMapAP->m_outputEchoFirelistName);
+   ///FILE* echoFiresList = fopen(gpFlamMapAP->m_outputEchoFirelistName, "a+t");
+   ///fprintf(echoFiresList, "%s, EnvFire_ID\n", (LPCTSTR)m_headerString);
+   ///fclose(echoFiresList);
+
+   Report::Log("Interpreting data rows");
    for (int row = 0; row < data.GetRowCount(); row++)
       {
+      //Report::Log_i("Interpreting data row %i", row);
+
       float monteCarloProb = (float)gpFlamMapAP->m_pFiresRand->RandValue(0, 1);
 
       int     yr;
@@ -187,7 +203,7 @@ void FiresList::Init(const char* _initFName)
 
 
    CString msg;
-   msg.Format("Loaded %i fires from firelist file '%s'", data.GetRowCount(), initFName);
+   msg.Format("Loaded %i fires from firelist file '%s'", data.GetRowCount(), (LPCTSTR) initFName);
    Report::Log(msg);
    /// OLD CODE BELOW
    //int tmp = (int) Fires.size();

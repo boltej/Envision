@@ -3577,7 +3577,8 @@ int SNIPModel::PopulateActorProfiles(MapLayer* pIDULayer)
          {
          int profileID = 0;
          pIDULayer->GetData(idu, this->m_colIDUProfileID, profileID);
-         pIDULayer->SetData(idu, this->m_colIDUProfileID, -profileID);
+         if ( profileID > 0)
+            pIDULayer->SetData(idu, this->m_colIDUProfileID, -profileID);
          }
       }
    /*
@@ -4260,7 +4261,7 @@ bool SNIP::InitRun(EnvContext* pEnvContext, bool)
    for (int i = 0; i < this->GetLayerCount(); i++)
       {
       SNLayer* pLayer = GetLayer(i);
-      //pLayer->Init();
+      pLayer->m_pSNIPModel->m_pOutputData->ClearRows();
       }
 
    return true;

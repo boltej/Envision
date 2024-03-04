@@ -925,29 +925,30 @@ bool COCNHProcessPre2::InitRun(EnvContext* pContext, bool useInitSeed)
       int colTSH = m_initialLandscpAttribs.GetCol("TSH");
       int colTSPH = m_initialLandscpAttribs.GetCol("TSPH");
 
-      for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
-         {
-         //restore disturb and "time since" attributes to reset for replicate runs
-         m_initialLandscpAttribs.Get(colDisturb, idu, disturb);
-         m_initialLandscpAttribs.Get(colTSD, idu, tsd);
-         m_initialLandscpAttribs.Get(colTSF, idu, tsf);
-         m_initialLandscpAttribs.Get(colTSPF, idu, tspf);
-         m_initialLandscpAttribs.Get(colTST, idu, tst);
-         m_initialLandscpAttribs.Get(colTIV, idu, tiv);
-         m_initialLandscpAttribs.Get(colTSTH, idu, tsth);
-         m_initialLandscpAttribs.Get(colTSH, idu, tsh);
-         m_initialLandscpAttribs.Get(colTSPH, idu, tsph);
-
-         pLayer->SetData(idu, m_colDisturb, disturb);
-         pLayer->SetData(idu, m_colTSD, tsd);
-         pLayer->SetData(idu, m_colTSF, tsf);
-         pLayer->SetData(idu, m_colTSPF, tspf);
-         pLayer->SetData(idu, m_colTST, tst);
-         pLayer->SetData(idu, m_colTimeInVariant, tiv);
-         pLayer->SetData(idu, m_colTSTH, tsth);
-         pLayer->SetData(idu, m_colTSH, tsh);
-         pLayer->SetData(idu, m_colTSPH, tsph);
-         }
+      // note: no longer iitial IDUs, assumes these are set in teh initial IDU coverage
+      //for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
+      //   {
+      //   //restore disturb and "time since" attributes to reset for replicate runs
+      //   m_initialLandscpAttribs.Get(colDisturb, idu, disturb);
+      //   m_initialLandscpAttribs.Get(colTSD, idu, tsd);
+      //   m_initialLandscpAttribs.Get(colTSF, idu, tsf);
+      //   m_initialLandscpAttribs.Get(colTSPF, idu, tspf);
+      //   m_initialLandscpAttribs.Get(colTST, idu, tst);
+      //   m_initialLandscpAttribs.Get(colTIV, idu, tiv);
+      //   m_initialLandscpAttribs.Get(colTSTH, idu, tsth);
+      //   m_initialLandscpAttribs.Get(colTSH, idu, tsh);
+      //   m_initialLandscpAttribs.Get(colTSPH, idu, tsph);
+      //
+      //   pLayer->SetData(idu, m_colDisturb, disturb);
+      //   pLayer->SetData(idu, m_colTSD, tsd);
+      //   pLayer->SetData(idu, m_colTSF, tsf);
+      //   pLayer->SetData(idu, m_colTSPF, tspf);
+      //   pLayer->SetData(idu, m_colTST, tst);
+      //   pLayer->SetData(idu, m_colTimeInVariant, tiv);
+      //   pLayer->SetData(idu, m_colTSTH, tsth);
+      //   pLayer->SetData(idu, m_colTSH, tsh);
+      //   pLayer->SetData(idu, m_colTSPH, tsph);
+      //   }
       }
 
    // write data from lookup table to idu table for update

@@ -106,7 +106,7 @@ class FlamMapAP : public EnvModelProcess
       CString m_flamMapSrcDir;
       CString m_scenarioLCPFNameRoot;  // LCPGenerator
       CString m_outputEnvisionFirelistName;
-      CString m_outputEchoFirelistName;
+      //CString m_outputEchoFirelistName;
       CString m_outputDeltaArrayUpdatesName;
 
       bool LoadPolyGridLookup(MapLayer* pIDULayer);

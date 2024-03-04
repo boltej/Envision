@@ -17,14 +17,15 @@ mapServerPath = ''
 startYear = 0
 endYear = 0
 scenarios=[]
+runs=[]
 scenarioColors= {}
 datasets = {}
 
 def LoadStudyAreaDef(_studyArea):
     global studyArea, localStudyAreaPath, iduXmlPath, explorerStudyAreaPath
-    global mapServerPath, startYear, endYear, scenarios, scenarioColors 
+    global mapServerPath, startYear, endYear, scenarios, runs, scenarioColors 
 
-    with open( _studyArea) as f: #f'd:/Envision/StudyAreas/{_studyArea}/Publishing/{_studyArea}.json') as f:
+    with open( _studyArea) as f: #f'd:/Envision/StudyAreas/{_studyArea}/{_studyArea}.json') as f:
         d = json.load(f)
         
         studyArea = d['studyArea']
@@ -35,7 +36,8 @@ def LoadStudyAreaDef(_studyArea):
         startYear = d['startYear']
         endYear = d['endYear']
         scenarios=d['scenarios']
-        #scenarioColors=d['scenarioColors']
+        runs = d['runs']
+        scenarioColors=d['scenarioColors']
 
         _datasets = d['datasets']
 

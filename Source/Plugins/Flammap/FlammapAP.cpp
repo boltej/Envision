@@ -138,7 +138,7 @@ FlamMapAP::FlamMapAP(void)
    , m_foliarMoistureContent(100)
    , m_outputEnvisionFirelists(0)
    , m_outputEnvisionFirelistName("")
-   , m_outputEchoFirelistName("")
+   //, m_outputEchoFirelistName("")
    , m_outputDeltaArrayUpdatesName("")
    , m_pFiresListRand(NULL)
    , m_pFiresRand(NULL)
@@ -160,6 +160,8 @@ FlamMapAP::FlamMapAP(void)
    , m_staticWindSpeed(-1)
    , m_staticWindDir(-1)
    , m_logFlameLengths(0)
+   , m_logPotentialFlameLengths(1)
+   , m_logCrownFires(0)
    , m_logAnnualFlameLengths(0)
    , m_logArrivalTimes(0)
    , m_logPerimeters(0)
@@ -315,15 +317,7 @@ bool FlamMapAP::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       if (!ReadStaticFires())
          Report::Log(_T("Error reading static fires file, running normally"));
       }
-   if (m_outputEnvisionFirelists)
-      {
-      Report::LogInfo("Writing fire lists");
-      m_outputEnvisionFirelistName.Format("%s%d_EnvisionFireList.csv", (LPCTSTR) m_outputPath, gpFlamMapAP->processID);
-      m_outputEchoFirelistName.Format("%s%d_EchoFireList.csv", (LPCTSTR) m_outputPath, gpFlamMapAP->processID);	   //m_outputEnvisionFirelistName += _T(".csv");
-      FILE* envFireList = fopen(m_outputEnvisionFirelistName, "wt");
-      fprintf(envFireList, "Yr, Prob, Julian, BurnPer, WindSpeed, Azimuth, FMFile, IgnitionX, IgnitionY, Hectares, ERC, Original_Size, IgnitionFuel, IDU_HA_Burned, IDU_Proportion, FireID, Scenario, Run, ResultCode, FireID, EnvFire_ID, FIL1, FIL2, FIL3, FIL4, FIL5, FIL6, FIL7, FIL8, FIL9, FIL10, FIL11, FIL12, FIL13, FIL14, FIL15, FIL16, FIL17, FIL18, FIL19, FIL20\n");// Julian, WindSpeed, Azimuth, BurnPeriod, Hectares\n");
-      fclose(envFireList);
-      }
+
    if (m_logDeltaArrayUpdates)
       {
       Report::LogInfo("Logging flammap deltas");
@@ -529,8 +523,6 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
    CString msg;
    CString nameCStr;
    CString failureID(_T("FlamMapAP::InitRun Failed: "));
-   msg = "Entering FlamMapAP::InitRun";
-   Report::Log(msg);
    // Get the Scenario directory
    LPCTSTR scenarioName = NULL;
 
@@ -542,8 +534,15 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
    //Report::InfoMsg(_T("FlamMapAP::InitRun 010"));
    m_scenarioName = scenarioName;
 
-   msg = "InitRun searching for scenario";
-   Report::Log(msg);
+   if (m_outputEnvisionFirelists)
+      {
+      //Report::LogInfo("Writing fire lists");
+      m_outputEnvisionFirelistName.Format("%sEnvisionFireList_%s_%d.csv", (LPCTSTR)m_outputPath, scenarioName, pEnvContext->runID);
+      //m_outputEchoFirelistName.Format("%s%d_EchoFireList.csv", (LPCTSTR)m_outputPath, gpFlamMapAP->processID);	   //m_outputEnvisionFirelistName += _T(".csv");
+      FILE* envFireList = fopen(m_outputEnvisionFirelistName, "wt");
+      fprintf(envFireList, "Yr, Prob, Julian, BurnPer, WindSpeed, Azimuth, FMFile, IgnitionX, IgnitionY, Hectares, ERC, Original_Size, IgnitionFuel, IDU_HA_Burned, IDU_Proportion, FireID, Scenario, Run, ResultCode, FireID, EnvFire_ID, FIL1, FIL2, FIL3, FIL4, FIL5, FIL6, FIL7, FIL8, FIL9, FIL10, FIL11, FIL12, FIL13, FIL14, FIL15, FIL16, FIL17, FIL18, FIL19, FIL20\n");// Julian, WindSpeed, Azimuth, BurnPeriod, Hectares\n");
+      fclose(envFireList);
+      }
 
    // jpb - change this to be random selected within a specified scenario
    FMScenario* pScenario = NULL;
@@ -602,10 +601,14 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
 
    // FireYearRunner runs a years worth of fires every timestep
    if (m_pFireYearRunner != NULL)
+      {
       delete m_pFireYearRunner;
+      m_pFireYearRunner = NULL;
+      }
 
    if (m_logPerimeters)
       {
+      Report::LogInfo("Setting up perimeter logging");
       CString PerimeterFName, dbfName;
       //PerimeterFName.Format(_T("%s%d_Perimeter_Run%03d.shp"), m_outputPath, gpFlamMapAP->processID, pEnvContext->runID);
       PerimeterFName.Format(_T("%sFirePerimeter_%s_Run%d.shp"), (LPCTSTR) m_outputPath, (LPCTSTR) pEnvContext->pScenario->m_name, pEnvContext->runID);
@@ -654,12 +657,17 @@ bool FlamMapAP::InitRun(EnvContext* pEnvContext, bool useInitSeed)
             }
          }
       }
-   m_pFireYearRunner = new FireYearRunner(pEnvContext);
 
+   Report::LogInfo("Creating Fire Year Runner");
+
+   m_pFireYearRunner = new FireYearRunner(pEnvContext);
    FailAndReturnOnBadStatus(m_runStatus, failureID, "Failed to initialize FireYearRunner");
+   Report::LogInfo("Successfully created Fire Year Runner");
 
    // intialize output variables
    this->m_maxFlameLen = this->m_meanFlameLen = this->m_burnedAreaHa = this->m_cumBurnedAreaHa = 0;
+
+   Report::LogInfo("Flammap run initialization complete");
 
    return TRUE;
    } // bool FlamMapAP::InitRun( EnvContext *pEnvContext )
@@ -752,6 +760,9 @@ bool FlamMapAP::LoadXml(LPCTSTR filename, MapLayer* pLayer)
 
       // use this instead
       { "polyGridFileName",            TYPE_CSTRING, &m_polyGridFName,           true,  0 },  // uses paths
+
+      { "logPotentialFlameLengths", TYPE_INT, &m_logPotFlameLengths, false, 0 },
+      { "logCrownFires",            TYPE_INT, &m_logCrownFires, false, 0 },
 
      { "logFlameLengths", TYPE_INT, &m_logFlameLengths, false, 0 },
      { "logArrivalTimes", TYPE_INT, &m_logArrivalTimes, false, 0 },

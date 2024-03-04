@@ -4276,7 +4276,7 @@ int MapLayer::LoadGridAscii(LPCTSTR filename, DO_TYPE type, int maxLineWidth/*=-
       m_pMap->Notify(NT_LOADGRIDROW, row, 0);
 
       fgets(buffer, maxLineWidth, fp);
-      char *next;
+      char *next=nullptr;
 
       char *p = strtok_s(buffer, " \n", &next);
 
