@@ -965,16 +965,9 @@ def GenAnnualIDUReduced(scenarios, runs, doSQL):
                         idus.to_file(f"{_mapServerPath}/IDU_{scenario}_{year}_{run}_reduced.shp")
                         if doSQL:
                             print( f'Generating IDU table for year {year}')
-                            WriteDB(iduDBPath, idus, run, scenario, year)
+                            WriteDB(iduDBPath, idus, scenario, run, year)
 
-                # apply current delta to current map
-                #iduField = delta['field']
-                #dIdu = delta['idu']
-                #dNewValue = delta['newValue']
 
-                #iduField = getattr(delta, 'field')
-                #dIdu = getattr(delta,'idu')
-                #dNewValue = getattr(delta, 'newValue')
                 iduField = delta.field
                 dIdu = delta.idu
                 dNewValue = delta.newValue
@@ -1030,6 +1023,38 @@ def WriteDB(dbPath, db, scenario, run, year, geomOnly=False, deltaArrayOnly=Fals
         except Exception as ex:
             print(str(ex))
             time.sleep(3)
+
+
+# not part of core functions
+def WriteDBIdus(scenarios, runs):
+    for run in runs:
+        print("---------------------------------------")
+        print(" Running WriteDBIdus() for Run", run)
+        print("---------------------------------------")
+        #engine = create_engine('sqlite://', echo=False)
+
+        for scenario in scenarios:
+            iduDBPath = f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}/IDU.sqlite"
+            os.makedirs(f"{pub.explorerStudyAreaPath}/Outputs/SQLiteDBs/{scenario}", exist_ok=True)
+
+            for year in range(pub.startYear, pub.endYear+1):
+                path = f'{pub.mapServerPath}/maps/{scenario}/IDU/{year}/IDU_{scenario}_{year}_{run}_reduced.dbf'
+                
+                if os.path.exists(path):
+                    print( "Loading ", path)
+
+                    idus = Dbf5(path)
+                    idus = idus.to_dataframe()  # convert to pandas dataframe
+
+                    with closing(sqlite3.connect(iduDBPath)) as connection:
+                        with closing(connection.cursor()) as cursor:
+                            c = connection.cursor()
+                            idus.to_sql(name=f'IDU_{scenario}_{year}_{run}', con=connection, if_exists='replace', index=True, index_label="ROWINDEX")
+                else:
+                    print("Files not found:", path)
+    return
+
+
 
 
 

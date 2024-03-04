@@ -160,6 +160,8 @@ FlamMapAP::FlamMapAP(void)
    , m_staticWindSpeed(-1)
    , m_staticWindDir(-1)
    , m_logFlameLengths(0)
+   , m_logPotentialFlameLengths(1)
+   , m_logCrownFires(0)
    , m_logAnnualFlameLengths(0)
    , m_logArrivalTimes(0)
    , m_logPerimeters(0)
@@ -758,6 +760,9 @@ bool FlamMapAP::LoadXml(LPCTSTR filename, MapLayer* pLayer)
 
       // use this instead
       { "polyGridFileName",            TYPE_CSTRING, &m_polyGridFName,           true,  0 },  // uses paths
+
+      { "logPotentialFlameLengths", TYPE_INT, &m_logPotFlameLengths, false, 0 },
+      { "logCrownFires",            TYPE_INT, &m_logCrownFires, false, 0 },
 
      { "logFlameLengths", TYPE_INT, &m_logFlameLengths, false, 0 },
      { "logArrivalTimes", TYPE_INT, &m_logArrivalTimes, false, 0 },

@@ -142,7 +142,6 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 	CString tmpStr;
 
 	int fireCnt = 0;
-	//int year = pEnvContext->currentYear;
 	int year = pEnvContext->yearOfRun;
 	//int numOmpProcs = omp_get_num_procs();
 
@@ -152,8 +151,6 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 	// reset this year's flame lengths
 	for (int i = 0; i < (nRows * nCols); i++)
 		{
-		//m_pYrFlameLens[i] = 0.0;
-		//m_pFireNums[i] = 0;
 		m_yrFlameLens.at(i) = 0.0;
 		m_fireNums.at(i) = 0;
 		}
@@ -196,7 +193,7 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 		ret = tFlamMap.SetFuelMoistureFile((char*)(LPCTSTR)gpFlamMapAP->m_strStaticFMS);
 		if (ret != 1)
 			{
-			msg.Format("Error loading static FMS file %s\n\t%s", gpFlamMapAP->m_strStaticFMS, tFlamMap.CommandFileError(ret));
+			msg.Format("Error loading static FMS file %s\n\t%s", (LPCTSTR) gpFlamMapAP->m_strStaticFMS, tFlamMap.CommandFileError(ret));
 			Report::ErrorMsg(msg);
 			}
 		else
@@ -218,20 +215,25 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 				}
 
 			// output Potential Flame length and Crown Fire activity layers
-			CString pflName;
-			pflName.Format("%s%d_FlameLength_%03d_%04d.asc", gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
-			tFlamMap.WriteOutputLayerToDisk(FLAMELENGTH, (char*)pflName.GetString());
+			if (gpFlamMapAP->m_logPotentialFlameLengths)
+				{
+				CString pflName;
+				pflName.Format("%s%d_FlameLength_%03d_%04d.asc", (LPCTSTR) gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
+				tFlamMap.WriteOutputLayerToDisk(FLAMELENGTH, (char*)pflName.GetString());
+			
+				CString msg;
+				msg.Format("Writing potential flame length grid to %s", (LPCTSTR)pflName);
+				Report::StatusMsg(msg);
+				}
 
-			CString msg;
-			msg.Format("Writing potential flame length grid to %s", (LPCTSTR)pflName);
-			Report::StatusMsg(msg);
-
-			CString cfName;
-			cfName.Format("%s%d_CrownFire_%03d_%04d.asc", gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
-			tFlamMap.WriteOutputLayerToDisk(CROWNSTATE, (char*)cfName.GetString());
-			msg.Format("Writing crown fire grid to %s", (LPCTSTR)cfName);
-			Report::StatusMsg(msg);
-
+			if (gpFlamMapAP->m_logCrownFires)
+				{
+				CString cfName;
+				cfName.Format("%s%d_CrownFire_%03d_%04d.asc", (LPCTSTR)gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
+				tFlamMap.WriteOutputLayerToDisk(CROWNSTATE, (char*)cfName.GetString());
+				msg.Format("Writing crown fire grid to %s", (LPCTSTR)cfName);
+				Report::StatusMsg(msg);
+				}
 			// reload potential flame length as ASCII grids 
 
 			MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
