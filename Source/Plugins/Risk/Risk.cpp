@@ -81,6 +81,8 @@ bool Risk::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
       iduMovingWindowsActualLoss[idu]->Clear();
       }
 
+   m_pOutputData->ClearRows();
+   
    return true; // Run(pEnvContext);
    }
 
