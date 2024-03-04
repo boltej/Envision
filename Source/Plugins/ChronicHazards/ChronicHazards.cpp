@@ -133,27 +133,27 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
 
    ////////////////
-   this->m_pFloodedGrid = m_pMap->AddGridLayer("d:/Envision/StudyAreas/OrCoast/Tillamook/Outputs/Baseline-High/Run0/Flooding/Flooding_Year2021_Baseline-High_Run0.asc", DO_TYPE::DOT_FLOAT);
-
-
-   CString m;
-   float nod = m_pFloodedGrid->GetNoDataValue();
-   m.Format("No Data: %f", nod);
-   Report::LogInfo(m);
-   int rows = m_pFloodedGrid->GetRowCount();
-   int cols = m_pFloodedGrid->GetColCount();
-   for (int c = 0; c < cols; c++)
-      for (int r = 0; r < rows; r++)
-         {
-         float v = 0;
-         m_pFloodedGrid->GetData(r, c, v);
-
-         if (v > nod + 1)
-            {
-            m.Format("%i, %i, %f", r, c, v);
-            Report::LogInfo(m);
-            }
-         }
+   //this->m_pFloodedGrid = m_pMap->AddGridLayer("/Envision/StudyAreas/OrCoast/Tillamook/Outputs/Baseline-High/Run0/Flooding/Flooding_Year2021_Baseline-High_Run0.asc", DO_TYPE::DOT_FLOAT);
+   //
+   //
+   //CString m;
+   //float nod = m_pFloodedGrid->GetNoDataValue();
+   //m.Format("No Data: %f", nod);
+   //Report::LogInfo(m);
+   //int rows = m_pFloodedGrid->GetRowCount();
+   //int cols = m_pFloodedGrid->GetColCount();
+   //for (int c = 0; c < cols; c++)
+   //   for (int r = 0; r < rows; r++)
+   //      {
+   //      float v = 0;
+   //      m_pFloodedGrid->GetData(r, c, v);
+   //
+   //      if (v > nod + 1)
+   //         {
+   //         m.Format("%i, %i, %f", r, c, v);
+   //         Report::LogInfo(m);
+   //         }
+   //      }
 
    ///////////////
 
