@@ -215,8 +215,8 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 				}
 
 			// output Potential Flame length and Crown Fire activity layers
-			if (gpFlamMapAP->m_logPotentialFlameLengths)
-				{
+			//if (gpFlamMapAP->m_logPotentialFlameLengths)
+			//	{
 				CString pflName;
 				pflName.Format("%s%d_FlameLength_%03d_%04d.asc", (LPCTSTR) gpFlamMapAP->m_outputPath, gpFlamMapAP->processID, pEnvContext->runID, year);
 				tFlamMap.WriteOutputLayerToDisk(FLAMELENGTH, (char*)pflName.GetString());
@@ -224,7 +224,7 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 				CString msg;
 				msg.Format("Writing potential flame length grid to %s", (LPCTSTR)pflName);
 				Report::StatusMsg(msg);
-				}
+			//	}
 
 			if (gpFlamMapAP->m_logCrownFires)
 				{
@@ -239,7 +239,7 @@ int FireYearRunner::RunFireYear(EnvContext* pEnvContext, PolyGridLookups* pPolyG
 			MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
 			Map* pMap = pLayer->GetMapPtr();
 
-			msg.Format("Adding potential flame length grid %s to Envision", (LPCTSTR)pflName);
+			msg.Format("Adding potential flame length grid %s to Envision", (LPCTSTR) pflName);
 			Report::StatusMsg(msg);
 			MapLayer* pGrid = pMap->AddGridLayer(pflName, DOT_FLOAT, -1, 10, BCF_RED_INCR);
 

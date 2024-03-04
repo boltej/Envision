@@ -761,7 +761,7 @@ bool FlamMapAP::LoadXml(LPCTSTR filename, MapLayer* pLayer)
       // use this instead
       { "polyGridFileName",            TYPE_CSTRING, &m_polyGridFName,           true,  0 },  // uses paths
 
-      { "logPotentialFlameLengths", TYPE_INT, &m_logPotFlameLengths, false, 0 },
+      //{ "logPotentialFlameLengths", TYPE_INT, &m_logPotFlameLengths, false, 0 },
       { "logCrownFires",            TYPE_INT, &m_logCrownFires, false, 0 },
 
      { "logFlameLengths", TYPE_INT, &m_logFlameLengths, false, 0 },
