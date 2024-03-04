@@ -128,6 +128,9 @@ class FlamMapAP : public EnvModelProcess
 
       CString m_polyGridFName;
 
+      ///int     m_logPotentialFlameLengths;
+      int     m_logCrownFires;
+
       int     m_logFlameLengths;
       int     m_logAnnualFlameLengths;
       int     m_logArrivalTimes;
