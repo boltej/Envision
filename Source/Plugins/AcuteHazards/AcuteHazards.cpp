@@ -604,6 +604,19 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
 bool AcuteHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    {
    // reset annual output variables
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+
+   pIDULayer->SetColData(m_colIduRepairYrs, VData(-1), true);
+   pIDULayer->SetColData(m_colIduBldgStatus, VData(0), true);
+   pIDULayer->SetColData(m_colIduRepairCost, VData(0.0f), true);
+   pIDULayer->SetColData(m_colIduHabitable, VData(1), true);
+   pIDULayer->SetColData(m_colIduBldgDamage, VData(0), true);
+   pIDULayer->SetColData(m_colIduBldgDamageEq, VData(0), true);
+   pIDULayer->SetColData(m_colIduBldgDamageTsu, VData(0), true);
+   pIDULayer->SetColData(m_colIduCasualties, VData(0), true);
+   pIDULayer->SetColData(m_colIduInjuries, VData(0), true);
+   pIDULayer->SetColData(m_colIduFatalities, VData(0), true);
+
    m_nUninhabitableStructures = 0;
    m_nDamaged2 = 0;
    m_nDamaged3 = 0;
