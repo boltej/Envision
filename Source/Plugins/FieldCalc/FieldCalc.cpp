@@ -321,7 +321,11 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
                               pFD->m_value += value;
                               break;
                            }
-                        this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
+
+                        if (init)
+                           this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, SET_DATA);
+                        else
+                           this->UpdateIDU(pEnvContext, idu, pFD->m_col, value, pFD->m_useDelta ? ADD_DELTA : SET_DATA);
                         }
 
                      pFD->m_count++;
@@ -397,7 +401,8 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
          }
 
       // apply delta array
-      pEnvContext->pEnvModel->ApplyDeltaArray((MapLayer*)pEnvContext->pMapLayer);
+      if (!init)
+         pEnvContext->pEnvModel->ApplyDeltaArray((MapLayer*)pEnvContext->pMapLayer);
 
       // compute variances over IDUs
       for (int idu = 0; idu < iduCount; idu++)

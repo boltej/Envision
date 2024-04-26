@@ -41,6 +41,9 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colActualLossPerHa = -1;
       int m_colRisk = -1;
 
+      int m_colActualExpHousingLoss = -1;
+      int m_colPotentialExpHousingLoss = -1;
+
       int m_colDamageHousing = -1;
       int m_colPotentialDamageHousing = -1;
       int m_colDamageFracHousing = -1;
@@ -52,7 +55,7 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colLookupHousing = -1;
       int m_colLookupTimber = -1;
 
-      //int m_colNDU = -1;
+      int m_colNDU = -1;
       int m_colImprVal = -1;
       int m_colFirewise = -1;
       int m_colTimberVol = -1;
