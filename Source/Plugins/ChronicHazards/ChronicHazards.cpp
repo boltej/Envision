@@ -770,6 +770,11 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
    CheckCol(m_pIDULayer, m_colIDURemoveBldgYr, "REMBLDGYR", TYPE_INT, CC_AUTOADD);
    m_pIDULayer->SetColData(m_colIDURemoveBldgYr, VData(0), true);
 
+
+   CheckCol(m_pIDULayer, m_colIDUPropInd, "prop_ind", TYPE_STRING, CC_AUTOADD);
+   CheckCol(m_pIDULayer, m_colIDUImprValue, "impr_value", TYPE_INT, CC_AUTOADD);
+
+
    ////////CheckCol(m_pIDULayer, m_colEasementYear, "EASEMNT_YR", TYPE_INT, CC_AUTOADD);
    ////////m_pIDULayer->SetColData(m_colEasementYear, VData(0.0f), true);
 
@@ -9408,6 +9413,8 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
                   // IDU layer  - write year removed, remove population, and insure safe site flag not set
                   m_pIDULayer->m_readOnly = false;
                   m_pIDULayer->SetData(idu, m_colIDURemoveBldgYr, pEnvContext->currentYear);
+                  m_pIDULayer->SetData(idu, m_colIDUPropInd, "VACANT");
+                  m_pIDULayer->SetData(idu, m_colIDUImprValue, 0);
                   m_pIDULayer->SetData(idu, m_colIDUPopDensity, 0);
                   m_pIDULayer->SetData(idu, m_colIDUSafeSite, 0);
 

@@ -662,7 +662,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colIDUTsunamiHazardZone = -1;
       //int m_colIDUType = -1;
       //int m_colIDUValue = -1;
-
+      int m_colIDUPropInd = -1;
+      int m_colIDUImprValue = -1;
 
       // Dune Line coverage columns      
       //int  m_colDLA = -1;
