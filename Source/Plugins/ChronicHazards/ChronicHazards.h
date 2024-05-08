@@ -449,8 +449,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_nourishFactor = 5;
       int m_nourishFreq = 5;
       int m_nourishPercentage = 20;
-
-
+      
       // Infrastructure variables
       int m_numBldgs = 0;
       int m_findSafeSiteCell = 0;
@@ -623,6 +622,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colBldgSafeSiteYr = -1;
       //int m_colBldgTsunamiHZ = -1;
       int m_colBldgValue = -1;
+      int m_colBldgResAge = -1;
       //int m_colNumBldgs = -1;
 
 

@@ -666,15 +666,35 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
 
       //CheckCol(m_pBldgLayer, m_colBldgCityCode, "CITY_CODE", TYPE_INT, CC_AUTOADD);
       CheckCol(m_pBldgLayer, m_colBldgValue, "BLDGVALUE", TYPE_INT, CC_MUST_EXIST);
+      
+      CheckCol(m_pBldgLayer, m_colBldgResAge, "ResAge", TYPE_STRING, CC_AUTOADD);
+      m_pBldgLayer->SetColData(m_colBldgFloodFreq, VData(0.0f), true);
+
 
       // build polygrid lookup
       Report::StatusMsg("Building polypoint mapper IDUBuildings.ppm");
       CString iduBldgFile = ppmDir + "IDUBuildings.ppm";
       m_pIduBuildingLkUp = new PolyPointMapper(m_pIDULayer, m_pBldgLayer, iduBldgFile);  // creates map if file note found, otherwse, just loads it
-      //   m_pIduBuildingLkup->BuildIndex();
+      m_pIduBuildingLkUp->BuildIndex();
 
+
+      ///////////////////////
+      int numBldgs = 0;
+      int colIDUResAge = m_pIDULayer->GetFieldCol("ResAge");
+      for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
+      {
+         CArray< int, int > bldgIndices;
+         numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
+         for (int i = 0; i < bldgIndices.GetSize(); i++)
+            {
+            CString resAge;
+            m_pIDULayer->GetData(m, colIDUResAge, resAge);
+            m_pBldgLayer->SetData(bldgIndices[i], m_colBldgResAge, resAge);
+            }
       }
-
+      Report::Log_i("Indexed %i buildings to the IDUs", numBldgs);
+      ///////////////////////
+      }
 
    if (m_pErodedGrid != nullptr)
       {
@@ -770,10 +790,8 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
    CheckCol(m_pIDULayer, m_colIDURemoveBldgYr, "REMBLDGYR", TYPE_INT, CC_AUTOADD);
    m_pIDULayer->SetColData(m_colIDURemoveBldgYr, VData(0), true);
 
-
-   CheckCol(m_pIDULayer, m_colIDUPropInd, "prop_ind", TYPE_STRING, CC_AUTOADD);
-   CheckCol(m_pIDULayer, m_colIDUImprValue, "impr_value", TYPE_INT, CC_AUTOADD);
-
+   CheckCol(m_pIDULayer, m_colIDUPropInd, "prop_ind", TYPE_STRING, CC_MUST_EXIST);
+   CheckCol(m_pIDULayer, m_colIDUImprValue, "impr_value", TYPE_INT, CC_MUST_EXIST);
 
    ////////CheckCol(m_pIDULayer, m_colEasementYear, "EASEMNT_YR", TYPE_INT, CC_AUTOADD);
    ////////m_pIDULayer->SetColData(m_colEasementYear, VData(0.0f), true);
@@ -2884,7 +2902,7 @@ int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext)
    int run = pEnvContext->runID;
 
    CString simulationPath;
-   simulationPath.Format("%s\\Climate_Scenarios\\%s\\Simulation_{run}\\DailyData_%s", (LPCTSTR)m_twlInputPath,
+   simulationPath.Format("%s\\Climate_Scenarios\\%s\\Simulation_%i\\DailyData_%s", (LPCTSTR)m_twlInputPath,
       (LPCTSTR)m_climateScenarioStr, run, (LPCTSTR)m_climateScenarioStr);
 
    m_maxTransect = 1389;// TODO: remove this hard coding
@@ -5329,7 +5347,7 @@ bool ChronicHazards::FindProtectedBldgs()
       int tsunami_hz = -1;
 
       // Get IDU index of building if an associated IDUs are in Tsunamic Hazard Zone
-      int sz = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices);
+      int sz = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices); // WRONG!!!!! idu, not bldgs???
       for (int i = 0; i < sz; i++)
          {
          m_pIDULayer->GetData(iduIndices[0], m_colIDUTsunamiHazardZone, tsunami_hz);
