@@ -327,9 +327,9 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       PolyGridMapper* m_pRoadErodedGridLkUp = nullptr;         // provides mapping between roads layer and eroded grid
       PolyGridMapper* m_pIduFloodedGridLkUp = nullptr;         // provides mapping between IDU layer and flooded grid
       PolyGridMapper* m_pRoadFloodedGridLkUp = nullptr;         // provides mapping between roads layer and flooded grid
-      //PolyPointMapper* m_pBldgFloodedGridLkUp = nullptr;      // provides mapping between bldg layer and flooded grid
-      //PolyPointMapper* m_pInfraFloodedGridLkUp = nullptr;      // provides mapping between bldg layer and flooded grid
-      PolyGridMapper* m_pIduErodedGridLkUp = nullptr;
+      //PolyGridMapper* m_pBldgFloodedGridLkUp = nullptr;      // provides mapping between bldg layer and flooded grid
+      //PolyGridMapper* m_pInfraFloodedGridLkUp = nullptr;      // provides mapping between bldg layer and flooded grid
+      //PolyGridMapper* m_pIduErodedGridLkUp = nullptr;
       PolyPointMapper* m_pIduBuildingLkUp = nullptr;         // provides mapping between IDU layer, building (point) layer
       PolyPointMapper* m_pIduInfraLkUp = nullptr;   // provides mapping between IDU layer, infrastructure (point) layer
 
@@ -603,8 +603,13 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int m_colIDUSafeSiteYear = -1;
       int m_colIDUSafestSiteCol = -1;
       int m_colIDUSafestSiteRow = -1;
+      int m_colIDUResAge = -1;
+      int m_colIDUResIncome = -1;
+      int m_colIDUEconClass = -1;
+      int m_colIDUCensusType = -1;
 
-      //int m_colIDUPopulation = -1;
+
+      //int m_colIDUPopulation = -1;c
 
       int m_colBldgBFE = -1;
       int m_colBldgBFEYr = -1;
@@ -623,14 +628,12 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int m_colBldgTsunamiHZ = -1;
       int m_colBldgValue = -1;
       int m_colBldgResAge = -1;
-      //int m_colNumBldgs = -1;
-
-
+      int m_colBldgResIncome = -1;
+      int m_colBldgEconClass = -1;
+      int m_colBldgCensusType = -1;
 
       //-- dune model columns --//
       int  m_colDLBeachType = -1;
-
-
 
 
 
@@ -834,6 +837,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colInfraDuneIndex = -1;
       int m_colInfraEroded = -1;
       int m_colInfraFlooded = -1;
+      int m_colInfraFloodFreq = -1;
       int m_colInfraFloodYr = -1;
       int m_colInfraValue = -1;
 
@@ -943,8 +947,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //float m_flood[ 8 ][ 8 ] = { 0 };
 
       void ComputeBuildingStatistics();
-      void ComputeFloodedIDUStatistics();
-      void ComputeIDUStatistics();
+      void ComputeIDUStatistics(EnvContext*);
       void TallyCostStatistics(int currentYear);
       void TallyDuneStatistics(int currentYear);
       void TallyRoadStatistics();  // obsolete
@@ -986,7 +989,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       // Returns true if construction of protection structure is triggered
       // Both Construction of Hard and Soft Protection Structures use this method to determine extent of construction
-      bool CalculateImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& minToePoint, MapLayer::Iterator& minDistPoint, MapLayer::Iterator& maxTWLPoint);
+      bool CalculateDuneImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& minToePoint, MapLayer::Iterator& minDistPoint, MapLayer::Iterator& maxTWLPoint);
 
       // Returns true to trigger an SPS rebuild
       bool CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint);

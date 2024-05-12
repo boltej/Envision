@@ -15,10 +15,10 @@
 
 #ifdef _DEBUG
 #undef _DEBUG
-#include <python.h>
+#include "C:/Program Files/Python312/include/Python.h"
 #define _DEBUG
 #else
-#include <python.h>
+#include <Python.h>
 #endif
 
 
@@ -631,7 +631,6 @@ bool AcuteHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    m_nFunctionalBldgs = 0;
    m_pctFunctionalBldgs = 0;
  
-   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
    int idus = pIDULayer->GetRowCount();
    for (int idu = 0; idu < idus; idu++)
       {
@@ -761,8 +760,52 @@ sys.stdout = StdoutCatcher()");
 
    return true;
    }
+/*
+bool AcuteHazards::InitPython()
+   {
+   Report::Log("Acute Hazards:  Initializing embedded Python interpreter...");
 
+   char cwd[512];
+   _getcwd(cwd, 512);
 
+   CString _path(PathManager::GetPath(PM_PROJECT_DIR));
+   _path += "Hazus";
+   _chdir(_path);
+
+   // launch a python instance and run the model
+   Py_SetProgramName(L"Envision");  // argv[0]
+
+   wchar_t path[512];
+
+   int cx = swprintf(path, 512, L"%hs/DLLs;%hs/Lib;%hs/Lib/site-packages",
+      (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath);
+
+   Py_SetPath(path);
+
+   PyImport_AppendInittab("redirection", PyInit_redirection);
+
+   Py_Initialize();
+
+   //CString code;
+   //code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
+   int retVal = PyRun_SimpleString("import sys");
+   //retVal = PyRun_SimpleString(code);
+
+   // add Python function for redirecting output on the Python side
+   retVal = PyRun_SimpleString("\
+import redirection\n\
+import sys\n\
+class StdoutCatcher:\n\
+    def write(self, stuff):\n\
+        redirection.stdoutredirect(stuff)\n\
+sys.stdout = StdoutCatcher()");
+   /////////////
+
+   Report::Log("Acute Hazards: Python initialization complete...");
+
+   return true;
+   }
+*/
 
 // Update is called during Run() processing.
 // For any events that are in AHS_POST_EVENT status,

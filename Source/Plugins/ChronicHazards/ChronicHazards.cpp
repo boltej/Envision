@@ -101,14 +101,12 @@ ChronicHazards::ChronicHazards(void)
 
 ChronicHazards::~ChronicHazards(void)
    {
-   if (m_pIduErodedGridLkUp != nullptr) delete m_pIduErodedGridLkUp;
+   //if (m_pIduErodedGridLkUp != nullptr) delete m_pIduErodedGridLkUp;
    if (m_pIduBuildingLkUp != nullptr) delete m_pIduBuildingLkUp;
    if (m_pIduInfraLkUp != nullptr) delete m_pIduInfraLkUp;
 
    if (m_pIduFloodedGridLkUp != nullptr) delete m_pIduFloodedGridLkUp;
    if (m_pRoadFloodedGridLkUp != nullptr) delete m_pRoadFloodedGridLkUp;
-   //if (m_pBldgFloodedGridLkUp != nullptr) delete m_pBldgFloodedGridLkUp;
-   //if (m_pInfraFloodedGridLkUp != nullptr) delete m_pInfraFloodedGridLkup;
 
 
    //if (m_pTransectLUT != nullptr) delete m_pTransectLUT;
@@ -668,10 +666,23 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
       CheckCol(m_pBldgLayer, m_colBldgValue, "BLDGVALUE", TYPE_INT, CC_MUST_EXIST);
       
       CheckCol(m_pBldgLayer, m_colBldgResAge, "ResAge", TYPE_STRING, CC_AUTOADD);
-      m_pBldgLayer->SetColData(m_colBldgFloodFreq, VData(0.0f), true);
+      m_pBldgLayer->SetColData(m_colBldgResAge, VData(""), true);
 
+      CheckCol(m_pBldgLayer, m_colBldgResIncome, "ResIncom", TYPE_STRING, CC_AUTOADD);
+      m_pBldgLayer->SetColData(m_colBldgResIncome, VData(""), true);
 
-      // build polygrid lookup
+      CheckCol(m_pBldgLayer, m_colBldgEconClass, "EconClass", TYPE_INT, CC_AUTOADD);
+      m_pBldgLayer->SetColData(m_colBldgEconClass, VData(0), true);
+
+      CheckCol(m_pBldgLayer, m_colBldgCensusType, "CensusType", TYPE_STRING, CC_AUTOADD);
+      m_pBldgLayer->SetColData(m_colBldgCensusType, VData(""), true);
+
+      CheckCol(m_pIDULayer, m_colIDUResAge, "ResAge", TYPE_STRING, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colIDUResIncome, "ResIncom", TYPE_STRING, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colIDUEconClass, "EconClass", TYPE_INT, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colIDUCensusType, "CensusType", TYPE_STRING, CC_MUST_EXIST);
+
+            // build polygrid lookup
       Report::StatusMsg("Building polypoint mapper IDUBuildings.ppm");
       CString iduBldgFile = ppmDir + "IDUBuildings.ppm";
       m_pIduBuildingLkUp = new PolyPointMapper(m_pIDULayer, m_pBldgLayer, iduBldgFile);  // creates map if file note found, otherwse, just loads it
@@ -680,18 +691,30 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
 
       ///////////////////////
       int numBldgs = 0;
-      int colIDUResAge = m_pIDULayer->GetFieldCol("ResAge");
+
       for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
-      {
+         {
          CArray< int, int > bldgIndices;
          numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
          for (int i = 0; i < bldgIndices.GetSize(); i++)
             {
             CString resAge;
-            m_pIDULayer->GetData(m, colIDUResAge, resAge);
+            m_pIDULayer->GetData(m, m_colIDUResAge, resAge);
             m_pBldgLayer->SetData(bldgIndices[i], m_colBldgResAge, resAge);
+         
+            CString resIncome;
+            m_pIDULayer->GetData(m, m_colIDUResIncome, resIncome);
+            m_pBldgLayer->SetData(bldgIndices[i], m_colBldgResIncome, resIncome);
+
+            int econClass;
+            m_pIDULayer->GetData(m, m_colIDUEconClass, econClass);
+            m_pBldgLayer->SetData(bldgIndices[i], m_colBldgEconClass, econClass);
+            
+            CString censusType;
+            m_pIDULayer->GetData(m, m_colIDUCensusType, censusType);
+            m_pBldgLayer->SetData(bldgIndices[i], m_colBldgCensusType, censusType);
             }
-      }
+         }
       Report::Log_i("Indexed %i buildings to the IDUs", numBldgs);
       ///////////////////////
       }
@@ -701,29 +724,29 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
       //  Load from file if found, otherwise create PolyGridMap for IDUs based upon cell sizes of the Erosion Grid Layer
       Report::StatusMsg("Building polygrid lookup IDUGridLkup.pgm");
       CString IDUPglFile = ppmDir + "IDUErodedGridLkup.pgm";
-      m_pIduErodedGridLkUp = new PolyGridMapper(m_pIDULayer, m_pErodedGrid, 1, IDUPglFile);
-
-      // Check built lookup matches grid 
-      int numRows = m_pErodedGrid->GetRowCount();
-      int numCols = m_pErodedGrid->GetColCount();
-
-      if ((m_pIduErodedGridLkUp->GetNumGridCols() != numCols) || (m_pIduErodedGridLkUp->GetNumGridRows() != numRows))
-         Report::ErrorMsg("ChronicHazards: IDU/Eroded Grid Lookup row or column mismatch, rebuild (delete) polygrid lookup");
-      else if (m_pIduErodedGridLkUp->GetNumPolys() != m_pIDULayer->GetPolygonCount())
-         Report::ErrorMsg("ChronicHazards: IDU/Eroded Grid Lookup IDU count mismatch, rebuild (delete) polygrid lookup");
-
-      if (m_pRoadLayer != nullptr)
-         {
-         // Load from file if found, otherwise create PolyGridMap for Roads based upon cell sizes of the Elevation Layer
-         CString roadsPglFile = ppmDir + "RoadErodedGridLkup.pgm";
-         m_pRoadErodedGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pErodedGrid, 1, roadsPglFile);
-
-         // Check built lookup matches grid
-         if ((m_pRoadErodedGridLkUp->GetNumGridCols() != numCols) || (m_pRoadErodedGridLkUp->GetNumGridRows() != numRows))
-            Report::ErrorMsg("ChronicHazards: Road Grid Lookup row or column mismatch, rebuild (delete) polygrid lookup");
-         /*else if (pRoadErodedGridLkUp->GetNumPolys() != m_pRoadLayer->GetPolygonCount())
-         Report::ErrorMsg("ChronicHazards: Road Grid Lookup road count mismatch, rebuild lookup");*/
-         }
+      //m_pIduErodedGridLkUp = new PolyGridMapper(m_pIDULayer, m_pErodedGrid, 1, IDUPglFile);
+      //
+      //// Check built lookup matches grid 
+      //int numRows = m_pErodedGrid->GetRowCount();
+      //int numCols = m_pErodedGrid->GetColCount();
+      //
+      //if ((m_pIduErodedGridLkUp->GetNumGridCols() != numCols) || (m_pIduErodedGridLkUp->GetNumGridRows() != numRows))
+      //   Report::ErrorMsg("ChronicHazards: IDU/Eroded Grid Lookup row or column mismatch, rebuild (delete) polygrid lookup");
+      //else if (m_pIduErodedGridLkUp->GetNumPolys() != m_pIDULayer->GetPolygonCount())
+      //   Report::ErrorMsg("ChronicHazards: IDU/Eroded Grid Lookup IDU count mismatch, rebuild (delete) polygrid lookup");
+      //
+      //if (m_pRoadLayer != nullptr)
+      //   {
+      //   // Load from file if found, otherwise create PolyGridMap for Roads based upon cell sizes of the Elevation Layer
+      //   CString roadsPglFile = ppmDir + "RoadErodedGridLkup.pgm";
+      //   m_pRoadErodedGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pErodedGrid, 1, roadsPglFile);
+      //
+      //   // Check built lookup matches grid
+      //   if ((m_pRoadErodedGridLkUp->GetNumGridCols() != numCols) || (m_pRoadErodedGridLkUp->GetNumGridRows() != numRows))
+      //      Report::ErrorMsg("ChronicHazards: Road Grid Lookup row or column mismatch, rebuild (delete) polygrid lookup");
+      //   /*else if (pRoadErodedGridLkUp->GetNumPolys() != m_pRoadLayer->GetPolygonCount())
+      //   Report::ErrorMsg("ChronicHazards: Road Grid Lookup road count mismatch, rebuild lookup");*/
+      //   }
       }
 
    return true;
@@ -815,6 +838,8 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
       m_pInfraLayer->SetColData(m_colInfraDuneIndex, VData(-1), true);
       CheckCol(m_pInfraLayer, m_colInfraFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
       m_pInfraLayer->SetColData(m_colInfraFlooded, VData(0), true);
+      CheckCol(m_pBldgLayer, m_colInfraFloodFreq, "FLOOD_FREQ", TYPE_FLOAT, CC_AUTOADD);
+      m_pBldgLayer->SetColData(m_colInfraFloodFreq, VData(0.0f), true);
       CheckCol(m_pInfraLayer, m_colInfraEroded, "ERODED", TYPE_INT, CC_AUTOADD);
       m_pInfraLayer->SetColData(m_colInfraEroded, VData(0), true);
       CheckCol(m_pInfraLayer, m_colInfraBFE, "BFE", TYPE_FLOAT, CC_AUTOADD);
@@ -853,33 +878,34 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
          int safestSiteRow = -1;
          int safestSiteCol = -1;
 
-         int numCells = m_pIduErodedGridLkUp->GetGridPtCntForPoly(idu);
-
-         if (numCells != 0)
-            {
-            ROW_COL* indices = new ROW_COL[numCells];
-            float* values = new float[numCells];
-
-            m_pIduErodedGridLkUp->GetGridPtNdxsForPoly(idu, indices);
-
-            for (int i = 0; i < numCells; i++)
-               {
-               float value = 0.0f;
-               m_pErodedGrid->GetData(indices[i].row, indices[i].col, value);
-               if (value > maxElevation)
-                  {
-                  maxElevation = value;
-                  safestSiteRow = indices[i].row;
-                  safestSiteCol = indices[i].col;
-                  }
-               }
-            delete[] indices;
-            delete[] values;
-            }
-
-         m_pIDULayer->SetData(idu, m_colIDUMaxElevation, maxElevation);
-         m_pIDULayer->SetData(idu, m_colIDUSafestSiteRow, safestSiteRow);
-         m_pIDULayer->SetData(idu, m_colIDUSafestSiteCol, safestSiteCol);
+         /* NO MORE ERODED GRID?) */
+         //int numCells = m_pIduErodedGridLkUp->GetGridPtCntForPoly(idu);
+         //
+         //if (numCells != 0)
+         //   {
+         //   ROW_COL* indices = new ROW_COL[numCells];
+         //   float* values = new float[numCells];
+         //
+         //   m_pIduErodedGridLkUp->GetGridPtNdxsForPoly(idu, indices);
+         //
+         //   for (int i = 0; i < numCells; i++)
+         //      {
+         //      float value = 0.0f;
+         //      m_pErodedGrid->GetData(indices[i].row, indices[i].col, value);
+         //      if (value > maxElevation)
+         //         {
+         //         maxElevation = value;
+         //         safestSiteRow = indices[i].row;
+         //         safestSiteCol = indices[i].col;
+         //         }
+         //      }
+         //   delete[] indices;
+         //   delete[] values;
+         //   }
+         //
+         //m_pIDULayer->SetData(idu, m_colIDUMaxElevation, maxElevation);
+         //m_pIDULayer->SetData(idu, m_colIDUSafestSiteRow, safestSiteRow);
+         //m_pIDULayer->SetData(idu, m_colIDUSafestSiteCol, safestSiteCol);
          }
       }
 
@@ -1681,7 +1707,9 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    //   RunEelgrassModel(pEnvContext);
 
    if (m_runFlooding)
-      RunFloodingModel(pEnvContext);
+      RunFloodingModel(pEnvContext);  // runs model and CalculateFloodImpacts(pEnvContext); // updates flood-related moving averages
+
+   ComputeIDUStatistics(pEnvContext);
 
    if (m_runBuildings)
       {
@@ -2038,14 +2066,14 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
 
    twlFile.Format("%sTWL_%i.csv", (LPCTSTR) outDir, pEnvContext->yearOfRun);
 
-   Report::StatusMsg(CString("Writing TWL Data to ")+twlFile);
+   Report::LogInfo(CString("Writing TWL Data to ")+twlFile);
    twlData.WriteAscii(twlFile, ',');
 
    CString fdName;  // this is the filename for SFINCS output
    fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
 
    CString outFile;  // this is the path to the flooding file in the Study Area "Outputs" folder for the current scenario
-   outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+   outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
    bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
 
    if (this->m_usePriorGrids == 0)
@@ -2105,17 +2133,19 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
    // load grid
    Map* pMap = m_pDuneLayer->GetMapPtr();
 
-   Report::StatusMsg("Loading flooded depth grid");
    if (m_pFloodedGrid != nullptr)
       m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
 
    if (this->m_usePriorGrids && priorGridExists)  // this is the version in the study area Outputs folder for the current scenario
-      outFile.Format("%sFlooding/Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
+      outFile.Format("%sFlooding\\Flooding_Year%i_%s.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name);
    else
       outFile.Format("%s/Outputs/%s/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)pEnvContext->pScenario->m_name, (LPCTSTR)fdName);
 
+   Report::LogInfo(CString("Loading flooded depth grid ") + outFile);
+
    this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
 
+   Report::LogInfo("Calculating Flood Impacts");
    CalculateFloodImpacts(pEnvContext);
 
    // update timings
@@ -2166,7 +2196,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
          Report::ErrorMsg("ChronicHazards: Road Grid Lookup row or column mismatch, rebuild (delete) polygrid lookup");
       }
 
-   // make sure IDU/Flooded Grid lookup is available
+   // MOVE???? make sure IDU/Flooded Grid lookup is available
    if (m_pIduFloodedGridLkUp == nullptr)
       {
       Report::StatusMsg("Building polygrid lookup IDUGridLkup.pgm");
@@ -2182,16 +2212,6 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
       else if (m_pIduFloodedGridLkUp->GetNumPolys() != m_pIDULayer->GetPolygonCount())
          Report::ErrorMsg("ChronicHazards: IDU Grid Lookup IDU count mismatch, rebuild (delete) polygrid lookup");
       }
-
-   // make sure Bldg/Flooded Grid lookup is available
-   //if (m_pBldgFloodedGridLkUp == nullptr)
-   //   {
-   //   Report::StatusMsg("Building polypoint mapper IDUBuildings.ppm");
-   //   CString bldgPglFile = ppmDir + "IDUBuildings.ppm";
-   //   m_pIduBuildingLkUp = new PolyPointMapper(m_pFloodedGrid, m_pBldgLayer, bldgPglFile);  // creates map if file note found, otherwse, just loads it
-   //
-   //   }
-
 
    // road impacts
 
@@ -2275,56 +2295,84 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
       m_floodedRailroadMiles *= MI_PER_M;
       }
 
-   // road metrics complete.  next, infrastructure
-   if (m_runInfrastructure && m_pInfraLayer != nullptr)
+   // road metrics complete.  next, buildings
+   if (this->m_runBuildings && m_pBldgLayer != nullptr)
       {
-      /************************   Calculate Flooded Infrastructure Statistics ************************/
+      m_floodedBldgCount = 0;
+
+      /************************   Calculate Flooded Building Statistics ************************/
       int numRows = m_pFloodedGrid->GetRowCount();
       int numCols = m_pFloodedGrid->GetColCount();
-
-      for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
+      // iterate through buildings, determeind if the bulding is ona flooded cell
+      for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
          {
          REAL xCoord = 0.0;
          REAL yCoord = 0.0;
-
          float flooded = 0.0f;
 
-         int startRow = -1;
-         int startCol = -1;
+         int row = -1;
+         int col = -1;
+         //bool isDeveloped = (duCount > 0) ? true : false;
+         m_pBldgLayer->GetPointCoords(bldg, xCoord, yCoord);
+         m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
 
-         int infraIndex = -1;
-         m_pInfraLayer->GetData(infra, m_colInfraDuneIndex, infraIndex);
+         m_pFloodedGrid->GetData(row, col, flooded);
+         bool isFlooded = (flooded > 0.0f) ? true : false;
 
-         int duCount = 0;
-         /*m_pInfraLayer->GetData(point, m_colInfraCount, duCount);*/
+         MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldg);
+         if (isFlooded)
+            {
+            m_floodedBldgCount++;
+            floodMovingWindow->AddValue(1);
+            }
+         else
+            floodMovingWindow->AddValue(0);
+         
+         m_pBldgLayer->SetData(bldg, m_colBldgFlooded, flooded);
+         m_pBldgLayer->SetData(bldg, m_colBldgFloodFreq, floodMovingWindow->GetFreqValue());
+         }
+      } // end of:  if (m_runBuilding && m_pBldgLayer != nullptr)
 
+
+   // buildings metrics complete.  next, infrastructure
+   if (this->m_runInfrastructure && m_pInfraLayer != nullptr)
+   {
+      m_floodedBldgCount = 0;
+
+      /************************   Calculate Flooded Building Statistics ************************/
+      int numRows = m_pFloodedGrid->GetRowCount();
+      int numCols = m_pFloodedGrid->GetColCount();
+      // iterate through buildings, determeind if the bulding is ona flooded cell
+      for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
+      {
+         REAL xCoord = 0.0;
+         REAL yCoord = 0.0;
+         float flooded = 0.0f;
+
+         int row = -1;
+         int col = -1;
          //bool isDeveloped = (duCount > 0) ? true : false;
          m_pInfraLayer->GetPointCoords(infra, xCoord, yCoord);
-         m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
+         m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
+
+         m_pFloodedGrid->GetData(row, col, flooded);
+         bool isFlooded = (flooded > 0.0f) ? true : false;
 
          MovingWindow* floodMovingWindow = m_floodInfraFreqArray.GetAt(infra);
-
-         // within grid ?
-         if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
-            {
-            m_pFloodedGrid->GetData(startRow, startCol, flooded);
-            bool isFlooded = (flooded > 0.0f) ? true : false;
-
-            if (isFlooded)
-               {
-               /*if (isDeveloped)
-               m_floodedInfraCount += duCount;
-               else*/
-               m_floodedInfraCount++;
-               floodMovingWindow->AddValue(1);
-
-               m_pInfraLayer->SetData(infra, m_colInfraFlooded, flooded);
-               }
-            }
+         if (isFlooded)
+         {
+            m_floodedBldgCount++;
+            floodMovingWindow->AddValue(1);
          }
-      } // end of:  if (m_runInfrastructure && m_pInfraLayer != nullptr)
+         else
+            floodMovingWindow->AddValue(0);
 
-    // road metrics complete.  next, infrastructure
+         m_pInfraLayer->SetData(infra, m_colInfraFlooded, flooded);
+         m_pInfraLayer->SetData(infra, m_colInfraFloodFreq, floodMovingWindow->GetFreqValue());
+      }
+   } // end of:  if (m_runInfra && m_pInfraLayer != nullptr)
+
+   // infra metrics complete.  next, dunes
    if (m_pDuneLayer != nullptr)
       {
       int numRows = m_pFloodedGrid->GetRowCount();
@@ -2513,30 +2561,42 @@ bool ChronicHazards::RunEelgrassModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
    {
-   // Get new IDUBuildingsLkUp every year !
-   m_pIduBuildingLkUp->BuildIndex();
+   // Get new IDUBuildingsLkUp every year ! (Don't need to do this since we aren't adding/subtracting records)
+   //m_pIduBuildingLkUp->BuildIndex();
 
-   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
+
+   //////////////////////////////// TEMP
+   int numBldgs = 0;
+   for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
       {
-      //Associate new buildings with communities
-      // get Buildings in this IDU
-      CArray< int, int > ptArray;
-
-      //int iduCityCode = 0;
-      //m_pIDULayer->GetData(idu, m_colIDUCityCode, iduCityCode);
-
-      int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, ptArray);
-
-      for (int i = 0; i < numBldgs; i++)
-         {
-         int bldgIndex = ptArray[i];
-
-         /*int bldgCityCode = 0;
-         m_pBldgLayer->GetData(ptArray[i], m_colBldgCityCode, bldgCityCode);*/
-
-         //m_pBldgLayer->SetData(bldgIndex, m_colBldgCityCode, iduCityCode);
-         } // end each new building
+      CArray< int, int > bldgIndices;
+      numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
       }
+   Report::Log_i("RunPolicyManagement: Indexed %i buildings to the IDUs", numBldgs);
+   ///////////////////////
+   
+
+//   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
+//      {
+//      //Associate new buildings with communities
+//      // get Buildings in this IDU
+//      CArray< int, int > ptArray;
+//
+//      //int iduCityCode = 0;
+//      //m_pIDULayer->GetData(idu, m_colIDUCityCode, iduCityCode);
+//
+//      int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, ptArray);
+//
+//      for (int i = 0; i < numBldgs; i++)
+//         {
+//         int bldgIndex = ptArray[i];
+//
+//         /*int bldgCityCode = 0;
+//         m_pBldgLayer->GetData(ptArray[i], m_colBldgCityCode, bldgCityCode);*/
+//
+//         //m_pBldgLayer->SetData(bldgIndex, m_colBldgCityCode, iduCityCode);
+//         } // end each new building
+//      }
 
 
    FindProtectedBldgs();   // working for buildings, not infrastructure
@@ -4231,7 +4291,7 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
    // m_pErodedGrid->Show();
    m_pErodedGrid->Hide();
 
-   ComputeIDUStatistics();
+   //ComputeIDUStatistics();
 
 
 
@@ -4765,104 +4825,103 @@ bool ChronicHazards::UpdateDuneErosionStats(int point, float R_inf_KD)
 
 
 
-void ChronicHazards::ComputeFloodedIDUStatistics()
-   {
-   m_pIDULayer->m_readOnly = false;
 
-   if (m_pFloodedGrid != nullptr)
+void ChronicHazards::ComputeIDUStatistics(EnvContext* pEnvContext)
+{
+   // does teh following:
+   // 1) computes IDU-level flood stats (floodfrac, movingAvgFlood impacts) if flooding model run
+   // 2) computes IDU-level erosion stats if erosion model run
+
+   if (this->m_runFlooding && m_pFloodedGrid != nullptr)
       {
+      Report::LogInfo("Computing IDU Flood statistics");
       int numRows = m_pFloodedGrid->GetRowCount();
       int numCols = m_pFloodedGrid->GetColCount();
 
-      for (int idu = 0; idu < m_pIduErodedGridLkUp->GetNumPolys(); idu++)
+      // for each idu in the flooded grid, see what fraction is if actually flooded
+      for (int idu = 0; idu < m_pIduFloodedGridLkUp->GetNumPolys(); idu++)
          {
          float fracFlooded = 0.0;
-         int count = m_pIduErodedGridLkUp->GetGridPtCntForPoly(idu);
+         int count = m_pIduFloodedGridLkUp->GetGridPtCntForPoly(idu);
 
          if (count > 0)
             {
             ROW_COL* indexes = new ROW_COL[count];
             float* values = new float[count];
 
-            m_pIduErodedGridLkUp->GetGridPtNdxsForPoly(idu, indexes);
-            m_pIduErodedGridLkUp->GetGridPtProportionsForPoly(idu, values);
+            m_pIduFloodedGridLkUp->GetGridPtNdxsForPoly(idu, indexes);
+            m_pIduFloodedGridLkUp->GetGridPtProportionsForPoly(idu, values);
 
             for (int i = 0; i < count; i++)
                {
-
                int startRow = indexes[i].row;
                int startCol = indexes[i].col;
 
                if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
                   {
-
                   float flooded = 0.0;
                   m_pFloodedGrid->GetData(startRow, startCol, flooded);
 
                   bool isFlooded = (flooded > 0.0f) ? true : false;
 
                   if (isFlooded)
-                     {
                      fracFlooded += values[i];
-                     }
                   }
-               }
+               }  // end of: for each grid cell in the IDU
 
-            m_pIDULayer->SetData(idu, m_colIDUFracFlooded, fracFlooded);
+            this->UpdateIDU(pEnvContext, idu, m_colIDUFracFlooded, fracFlooded, ADD_DELTA);
 
             delete[] indexes;
             delete[] values;
-            }
-         }
+            }   // end of: if ( count > 0 )
+         }  // end of: if IDU is in the flooded grid
       }
-   m_pIDULayer->m_readOnly = true;
-
-   }  // end ComputeFloodedIDUStatistics
-
-void ChronicHazards::ComputeIDUStatistics()
-   {
-   ASSERT(m_pErodedGrid != nullptr);
-   m_pIDULayer->m_readOnly = false;
-   int numRows = m_pErodedGrid->GetRowCount();
-   int numCols = m_pErodedGrid->GetColCount();
+   else
+      Report::LogInfo("Missing Flooded Grid - Flooded IDU statistics will not be calculated");
 
 
-   // Lookup IDUs associated with ErodedGrid and set IDU attributes accordingly
-   for (int row = 0; row < numRows; row++)
+   if (this->m_runErosion && m_pErodedGrid != nullptr)
       {
-      for (int col = 0; col < numCols; col++)
+      m_pIDULayer->m_readOnly = false;
+      int numRows = m_pErodedGrid->GetRowCount();
+      int numCols = m_pErodedGrid->GetColCount();
+
+      // Lookup IDUs associated with ErodedGrid and set IDU attributes accordingly
+      for (int row = 0; row < numRows; row++)
          {
-         int eroded = 0;
-         int noBuildings = 0;
-
-         int size = m_pIduErodedGridLkUp->GetPolyCntForGridPt(row, col);
-
-         m_pErodedGrid->GetData(row, col, (int)eroded);
-         bool isIDUEroded = (eroded == 2) ? true : false;
-
-         if (isIDUEroded)
+         for (int col = 0; col < numCols; col++)
             {
-            // m_pBuildingGrid->GetData(row, col, buildings);
+            //int eroded = 0;
+            //int noBuildings = 0;
+            //
+            //int size = m_pIduErodedGridLkUp->GetPolyCntForGridPt(row, col);
+            //
+            //m_pErodedGrid->GetData(row, col, (int)eroded);
+            //bool isIDUEroded = (eroded == 2) ? true : false;
+            //
+            //if (isIDUEroded)
+            //{
+            //   // m_pBuildingGrid->GetData(row, col, buildings);
+            //
+            //   int* polyIndexs = new int[size];
+            //   int polyCount = m_pIduErodedGridLkUp->GetPolyNdxsForGridPt(row, col, polyIndexs);
+            //   float* polyFractionalArea = new float[polyCount];
+            //
+            //   m_pIduErodedGridLkUp->GetPolyProportionsForGridPt(row, col, polyFractionalArea);
+            //   for (int idu = 0; idu < polyCount; idu++)
+            //   {
+            //      m_pIDULayer->SetData(polyIndexs[idu], m_colIDUEroded, eroded);
+            //      m_pIDULayer->SetData(polyIndexs[idu], m_colIDUPopDensity, 0);  // zero out the population for eroded IDUs
+            //   }
+            //   delete[] polyIndexs;
+            //   delete[] polyFractionalArea;
+            //}
 
-            int* polyIndexs = new int[size];
-            int polyCount = m_pIduErodedGridLkUp->GetPolyNdxsForGridPt(row, col, polyIndexs);
-            float* polyFractionalArea = new float[polyCount];
-
-            m_pIduErodedGridLkUp->GetPolyProportionsForGridPt(row, col, polyFractionalArea);
-            for (int idu = 0; idu < polyCount; idu++)
-               {
-               m_pIDULayer->SetData(polyIndexs[idu], m_colIDUEroded, eroded);
-               m_pIDULayer->SetData(polyIndexs[idu], m_colIDUPopDensity, 0);  // zero out the population for eroded IDUs
-               }
-            delete[] polyIndexs;
-            delete[] polyFractionalArea;
-            }
-
-         } //end columns of grid
-      } // end rows of 
-
-   m_pIDULayer->m_readOnly = true;
+            } //end columns of grid
+         } // end rows of 
+      }
    }
+
 
 void ChronicHazards::TallyRoadStatistics()
    {
@@ -5814,7 +5873,7 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
 
 
 
-bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& minToePoint, MapLayer::Iterator& minDistPoint, MapLayer::Iterator& maxTWLPoint)
+bool ChronicHazards::CalculateDuneImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& minToePoint, MapLayer::Iterator& minDistPoint, MapLayer::Iterator& maxTWLPoint)
    {
    int duneBldgIndex = -1;
    m_pDuneLayer->GetData(startPoint, m_colDLDuneBldgIndex, duneBldgIndex);
@@ -5926,7 +5985,7 @@ bool ChronicHazards::CalculateImpactExtent(MapLayer::Iterator startPoint, MapLay
 
    return construct;
 
-   } // end CalculateImpactExtent
+   } // end CalculateDuneImpactExtent
 
 bool ChronicHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint)
    {
@@ -6160,7 +6219,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
       //MapLayer::Iterator endPoint = point;
       //MapLayer::Iterator maxPoint = point;
       //MapLayer::Iterator minPoint = point;
-      //bool construct = CalculateImpactExtent(point, endPoint, minPoint, maxPoint);
+      //bool construct = CalculateDuneImpactExtent(point, endPoint, minPoint, maxPoint);
 
       int duneBldgIndex = -1;
       m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);  // is ther a building protected by this dune?
@@ -6618,7 +6677,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
       //// Determine the extent of the protection structure as well as the dune pt with the
       //// maximum overtopping, the dune pt with the minumum dune toe elevation and 
       //// the dune pt closest to the protected building
-      //bool construct = CalculateImpactExtent(point, endPoint, minToePoint, minDistPoint, maxTWLPoint);
+      //bool construct = CalculateDuneImpactExtent(point, endPoint, minToePoint, minDistPoint, maxTWLPoint);
 
       int duneBldgIndex = -1;
       m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
@@ -9330,17 +9389,35 @@ void ChronicHazards::RaiseInfrastructure(EnvContext* pEnvContext)
 
 void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
    {
-   bool buildIndex = false;
-   int numBldgsRemoved = 0;
+   ////////////////////////////////////
+   int _numBldgs = 0;
+   for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
+   {
+      CArray< int, int > bldgIndices;
+      _numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
+   }
+   Report::Log_i("REMOVEBLDGSFROMHAZARDZONE: Indexed %i buildings to the IDUs", _numBldgs);
+   ////////////////////////////////////
 
-   int recordCount = m_pIDULayer->GetRecordCount();
-   ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
+
+
+   bool buildIndex = false;
+   int numBldgsTotal = 0;
+   int numBldgsRemoved = 0;
+   int numBldgsQualifying = 0;
+
+   int nIDUs = m_pIDULayer->GetRecordCount();
+   ShuffleArray< UINT >(m_shuffleArray.GetData(), nIDUs, m_pRandUniform);
+
+   float meanFloodFreq = 0;
+   int   nMeanFloodFreq = 0;
 
    // Relocate existing homes/buildings from hazard zone (100-yr flood plain)
-   for (int m = 0; m < recordCount; m++)
+   for (int m = 0; m < nIDUs; m++)
       {
       int idu = m_shuffleArray[m];
-
+      idu = m; ////////////////////////////////////// TEMP /////////////////////////////////////
+ 
       int one100YrFloodHZ = 0;
 
       CArray< int, int > bldgIndices;
@@ -9358,7 +9435,10 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
 
       // get Buildings in this IDU
       int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+      numBldgsTotal += numBldgs;
 
+      // look through all BUILDINGs to see if any are triggered for relcation
+      // based on flood frequency
       for (int i = 0; i < numBldgs; i++)
          {
          int yr = 0;
@@ -9371,6 +9451,9 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
          MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
          float floodFreq = floodMovingWindow->GetFreqValue();
 
+         nMeanFloodFreq++;
+         meanFloodFreq += floodFreq;
+
          // try this ??????  (wrong???)
          //m_pBldgLayer->GetData(bldgIndex, m_colBldgFlooded, floodFreq);
 
@@ -9381,8 +9464,9 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
             {
             m_pBldgLayer->GetData(bldgIndex, m_colBldgRemoveYr, yr);
 
-            if (yr == 0)
+            if (yr == 0)      // hasn't be relocated yet
                {
+               numBldgsQualifying++;
                // Determine cost of a section along the SPS
                // Cost units : $ per cubic meter
                float value = 0;
@@ -9429,12 +9513,11 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
                      m_pBldgLayer->GetData(bldgIndex, m_colBldgNEWDU, --bldgNewDu);
 
                   // IDU layer  - write year removed, remove population, and insure safe site flag not set
-                  m_pIDULayer->m_readOnly = false;
-                  m_pIDULayer->SetData(idu, m_colIDURemoveBldgYr, pEnvContext->currentYear);
-                  m_pIDULayer->SetData(idu, m_colIDUPropInd, "VACANT");
-                  m_pIDULayer->SetData(idu, m_colIDUImprValue, 0);
-                  m_pIDULayer->SetData(idu, m_colIDUPopDensity, 0);
-                  m_pIDULayer->SetData(idu, m_colIDUSafeSite, 0);
+                  UpdateIDU(pEnvContext, idu, m_colIDURemoveBldgYr, pEnvContext->currentYear, ADD_DELTA);
+                  UpdateIDU(pEnvContext, idu, m_colIDUPropInd, "VACANT", ADD_DELTA);
+                  UpdateIDU(pEnvContext, idu, m_colIDUImprValue, 0, ADD_DELTA);
+                  UpdateIDU(pEnvContext, idu, m_colIDUPopDensity, 0, ADD_DELTA);
+                  UpdateIDU(pEnvContext, idu, m_colIDUSafeSite, 0, ADD_DELTA);
 
                   if (ndu > 0)
                      m_pIDULayer->SetData(idu, m_colIDUNDU, --ndu);
@@ -9453,8 +9536,12 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
          } // end each buildings
       } // end each IDU
 
-      Report::Log_i("Removed %i buildings from hazardous areas", numBldgsRemoved);
+      CString msg;
+      msg.Format("Of %i total buildings, removed % i of %i qualifying buildings from hazardous areas", numBldgsTotal, numBldgsRemoved, numBldgsQualifying);
+      Report::LogInfo(msg);
 
+      msg.Format("Mean Flood Freq = %f, count = %i", meanFloodFreq / nMeanFloodFreq, nMeanFloodFreq);
+      Report::LogInfo(msg);
    } // end RemoveFromHazardZone
 
 
@@ -9630,7 +9717,6 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       { "simulation_count",      TYPE_INT,     &m_simulationCount,              true,    0 },
       { "inlet_factor",          TYPE_FLOAT,   &m_inletFactor,                  true,    0 },
       { "twl_period",            TYPE_INT,     &m_windowLengthTWL,              true,    0 },
-      { "flood_hazard_period",   TYPE_INT,     &m_windowLengthFloodHzrd,        true,    0 },
       { "bfe_count",             TYPE_INT,     &m_bfeCount,                     true,    0 },
       { "safe_site_count",       TYPE_INT,     &m_ssiteCount,                   true,    0 },
       //{ "maxFloodArea",          TYPE_FLOAT,   &m_maxArea,                      true,    0 },
@@ -9696,9 +9782,10 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       LPTSTR sfincsHome = nullptr, floodDir = nullptr;
       int usePriorGrids = 0;
       XML_ATTR floodAttrs[] = {
-         // attr             type          address          isReq  
-         { "sfincs_home",     TYPE_STRING,  &sfincsHome,    true,    0 },
-         { "use_prior_grids", TYPE_INT,     &usePriorGrids, false,   0 },
+         // attr                  type          address          isReq  
+         { "sfincs_home",         TYPE_STRING,  &sfincsHome,    true,    0 },
+         { "use_prior_grids",     TYPE_INT,     &usePriorGrids, false,   0 },
+         { "flood_hazard_period", TYPE_INT,     &m_windowLengthFloodHzrd, true, 0 },
          { nullptr,          TYPE_NULL,    nullptr,       false,   0 } };
 
       if (TiXmlGetAttributes(pXmlFlooding, floodAttrs, filename) == false)
