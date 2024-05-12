@@ -846,6 +846,10 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
       m_pInfraLayer->SetColData(m_colInfraBFE, VData(0.0), true);
       CheckCol(m_pInfraLayer, m_colInfraBFEYr, "BFE_YR", TYPE_INT, CC_AUTOADD);
       m_pInfraLayer->SetColData(m_colInfraBFEYr, VData(0), true);
+      CheckCol(m_pInfraLayer, m_colInfraRemoveYr, "REMOVE_YR", TYPE_INT, CC_AUTOADD);
+      m_pInfraLayer->SetColData(m_colInfraRemoveYr, VData(0), true);
+
+
       CheckCol(m_pInfraLayer, m_colInfraFloodYr, "FLOOD_YR", TYPE_INT, CC_AUTOADD);
       m_pInfraLayer->SetColData(m_colInfraFloodYr, VData(0), true);
       CheckCol(m_pInfraLayer, m_colInfraValue, "InfraValue", TYPE_FLOAT, CC_MUST_EXIST);
@@ -1709,8 +1713,6 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    if (m_runFlooding)
       RunFloodingModel(pEnvContext);  // runs model and CalculateFloodImpacts(pEnvContext); // updates flood-related moving averages
 
-   ComputeIDUStatistics(pEnvContext);
-
    if (m_runBuildings)
       {
       Report::Log_i("Running building submodel for year% i", pEnvContext->currentYear);
@@ -1730,6 +1732,8 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    //m_avgOceanShoresAccess /= (m_numOceanShoresPts / 100.0f);
    //m_avgWestportAccess /= (m_numWestportPts / 100.0f);
    //m_avgJettyAccess /= (m_numJettyPts / 100.0f);
+   
+   ComputeIDUStatistics(pEnvContext);
 
 
    // Run Scenario dependent policies
@@ -2295,48 +2299,11 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
       m_floodedRailroadMiles *= MI_PER_M;
       }
 
-   // road metrics complete.  next, buildings
-   if (this->m_runBuildings && m_pBldgLayer != nullptr)
-      {
-      m_floodedBldgCount = 0;
-
-      /************************   Calculate Flooded Building Statistics ************************/
-      int numRows = m_pFloodedGrid->GetRowCount();
-      int numCols = m_pFloodedGrid->GetColCount();
-      // iterate through buildings, determeind if the bulding is ona flooded cell
-      for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
-         {
-         REAL xCoord = 0.0;
-         REAL yCoord = 0.0;
-         float flooded = 0.0f;
-
-         int row = -1;
-         int col = -1;
-         //bool isDeveloped = (duCount > 0) ? true : false;
-         m_pBldgLayer->GetPointCoords(bldg, xCoord, yCoord);
-         m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
-
-         m_pFloodedGrid->GetData(row, col, flooded);
-         bool isFlooded = (flooded > 0.0f) ? true : false;
-
-         MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldg);
-         if (isFlooded)
-            {
-            m_floodedBldgCount++;
-            floodMovingWindow->AddValue(1);
-            }
-         else
-            floodMovingWindow->AddValue(0);
-         
-         m_pBldgLayer->SetData(bldg, m_colBldgFlooded, flooded);
-         m_pBldgLayer->SetData(bldg, m_colBldgFloodFreq, floodMovingWindow->GetFreqValue());
-         }
-      } // end of:  if (m_runBuilding && m_pBldgLayer != nullptr)
 
 
    // buildings metrics complete.  next, infrastructure
    if (this->m_runInfrastructure && m_pInfraLayer != nullptr)
-   {
+      {
       m_floodedBldgCount = 0;
 
       /************************   Calculate Flooded Building Statistics ************************/
@@ -2344,7 +2311,7 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
       int numCols = m_pFloodedGrid->GetColCount();
       // iterate through buildings, determeind if the bulding is ona flooded cell
       for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
-      {
+         {
          REAL xCoord = 0.0;
          REAL yCoord = 0.0;
          float flooded = 0.0f;
@@ -2360,10 +2327,10 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
 
          MovingWindow* floodMovingWindow = m_floodInfraFreqArray.GetAt(infra);
          if (isFlooded)
-         {
+            {
             m_floodedBldgCount++;
             floodMovingWindow->AddValue(1);
-         }
+            }
          else
             floodMovingWindow->AddValue(0);
 
@@ -4328,14 +4295,14 @@ void ChronicHazards::ComputeBuildingStatistics()
 
       MovingWindow* floodFreqMovingWindow = new MovingWindow(m_windowLengthFloodHzrd);
       m_floodBldgFreqArray.Add(floodFreqMovingWindow);
-
       } // end add MovingWindows for new buildings
 
     // update building stats related to flooding
-   if (m_pFloodedGrid != nullptr)
+   if (this->m_runBuildings && m_pBldgLayer != nullptr && m_pFloodedGrid != nullptr)
       {
       int numRows = m_pFloodedGrid->GetRowCount();
       int numCols = m_pFloodedGrid->GetColCount();
+      m_floodedBldgCount = 0;
 
       for (MapLayer::Iterator bldgIndex = m_pBldgLayer->Begin(); bldgIndex < m_pBldgLayer->End(); bldgIndex++)
          {
@@ -4343,228 +4310,42 @@ void ChronicHazards::ComputeBuildingStatistics()
 
          REAL xCoord = 0.0;
          REAL yCoord = 0.0;
-
          float flooded = 0.0f;
-
-         int startRow = -1;
-         int startCol = -1;
-
-         // is there actually a dwelling unit on this site?
-         int duCount = 0;
-         m_pBldgLayer->GetData(bldgIndex, m_colBldgNDU, duCount);
-         bool isDeveloped = (duCount > 0) ? true : false;
+         int row = -1;
+         int col = -1;
 
          // get the location of the building point and corresponding cell on the flooded grid
          m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
-         m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
+         m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
 
          // is the building located within the flooding grid ?
-         if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
+         if ((row >= 0 && row < numRows) && (col >= 0 && col < numCols))
             {
-            //// Determine if building has been eroded by Bruun erosion
-            //for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
-            //{
-            //   int duneBldgIndex = -1;
-            //   m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
-
-            //   CArray<int, int> iduIndices;
-
-            //   if (bldg == duneBldgIndex)
-            //   {
-            //      double xDunePt = 0.0f;
-            //      double yDunePt = 0.0f;
-            //      m_pDuneLayer->GetPointCoords(point, xDunePt, yDunePt);
-            //      if (xDunePt >= xCoord)
-            //      {
-            //         m_pBldgLayer->SetData(bldg, m_colBldgEroded, 1);
-
-            //         int sz = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices);
-            //         for (int i = 0; i < sz; i++)
-            //         {
-            //            int iduIndex = iduIndices[ 0 ];
-            //            /*m_pIDULayer->SetData(iduIndex, m_colIDUPopDensity, 0);
-            //            m_pIDULayer->SetData(iduIndex, m_colPopCap, 0);
-            //            m_pIDULayer->SetData(iduIndex, m_colPopulation, 0);
-            //            m_pIDULayer->SetData(iduIndex, m_colLandValue, 0);
-            //            m_pIDULayer->SetData(iduIndex, m_colImpValue, 0);*/
-            //         }
-            //      }
-            //   }
-            //} // end DuneLine iterate
-
-            m_pFloodedGrid->GetData(startRow, startCol, flooded);
+            m_pFloodedGrid->GetData(row, col, flooded);
             bool isFlooded = (flooded > 0.00001f) ? true : false;
             int removeYr = 0;
             m_pBldgLayer->GetData(bldgIndex, m_colBldgRemoveYr, removeYr);
 
             if (isFlooded && removeYr == 0)
                {
-               if (isDeveloped)
-                  m_floodedBldgCount += duCount;
-               else
-                  m_floodedBldgCount++;
-
-               m_pBldgLayer->SetData(bldgIndex, m_colBldgFlooded, 1);
+               // is there actually a dwelling unit on this site?
+               int duCount = 0;
+               m_pBldgLayer->GetData(bldgIndex, m_colBldgNDU, duCount);
+               m_floodedBldgCount += duCount;
                floodMovingWindow->AddValue(1.0f);
-               float floodFreq = floodMovingWindow->GetFreqValue();
-               m_pBldgLayer->SetData(bldgIndex, m_colBldgFloodFreq, floodFreq);
                }
+            else
+               floodMovingWindow->AddValue(0.0f);
+
+            float floodFreq = floodMovingWindow->GetFreqValue();
+            m_pBldgLayer->SetData(bldgIndex, m_colBldgFloodFreq, floodFreq);
+            m_pBldgLayer->SetData(bldgIndex, m_colBldgFlooded, isFlooded ? 1 : 0);
+
             }
          }
       } // end FloodedGrid
 
       // building erosion statistics
-   /*
-      if (m_pBldgLayer != nullptr)
-        {
-        for (MapLayer::Iterator bldgIndex = m_pBldgLayer->Begin(); bldgIndex < m_pBldgLayer->End(); bldgIndex++)
-          {
-          MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(bldgIndex);
-          //   ptrArrayIndex++;
-          REAL xCoord = 0.0;
-          REAL yCoord = 0.0;
-          int eroded = 0;
-          int erodedBldg = 0;
-          int startRow = -1;
-          int startCol = -1;
-          int duCount = 0;
-          m_pBldgLayer->GetData(bldgIndex, m_colBldgNDU, duCount);
-          bool isDeveloped = (duCount > 0) ? true : false;
-
-          // need to get all bldg from column before
-          //m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
-          CArray<int,int> idus;
-          m_pIduBuildingLkUp->GetPolysFromPointIndex(bldgIndex, idus);
-
-          // has building previously eroded by chronic erosion?
-          m_pBldgLayer->GetData(bldgIndex, m_colBldgEroded, erodedBldg);
-
-          // it has, so reset event eroded buildings //??????
-          if (erodedBldg > 0)
-            m_pBldgLayer->SetData(bldgIndex, m_colBldgEroded, 0);
-
-         //
-
-
-
-
-
-
-
-
-
-   //         // within grid ?
-   //         if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
-   //            {
-   //            m_pErodedGrid->GetData(startRow, startCol, (int)eroded);
-   //
-   //            bool isEventEroded = (eroded == 1) ? true : false;
-   //            bool isChronicEroded = (eroded == 2) ? true : false;
-        for ( int i=0; i < idus.GetSize(); i++)
-          {
-          // Determine if building has been eroded by event erosion
-          // Tally buildings eroded by total erosion
-          int removeYr = 0;
-          m_pBldgLayer->GetData(bldgIndex, m_colBldgRemoveYr, removeYr);
-          if (isEventEroded && removeYr == 0)
-            {
-            float eroFreq = 0.0f;
-            eroMovingWindow->AddValue(1.0f);
-            m_pBldgLayer->SetData(bldgIndex, m_colBldgEroded, 1);
-            m_pBldgLayer->GetData(bldgIndex, m_colBldgEroFreq, eroFreq);
-            m_pBldgLayer->SetData(bldgIndex, m_colBldgEroFreq, ++eroFreq);
-            if (isDeveloped)
-               m_erodedBldgCount += duCount;
-            else
-               m_erodedBldgCount++;
-            }
-          //if (isChronicEroded && removeYr == 0)
-          //      {
-          //      m_pBldgLayer->SetData(bldg, m_colBldgEroded, 2);
-          //      //   m_noBldgsEroded++;
-          //      }
-            }
-          }
-        }
-   */
-   // deprecated? - no longer using eroded grids
-      // if Building is eroded it is flagged and removed from future counts
-   if (m_pErodedGrid != nullptr)
-      {
-      int numRows = m_pErodedGrid->GetRowCount();
-      int numCols = m_pErodedGrid->GetColCount();
-
-      for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
-         {
-         MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(bldg);
-         //   ptrArrayIndex++;
-
-         REAL xCoord = 0.0;
-         REAL yCoord = 0.0;
-
-         int eroded = 0;
-         int erodedBldg = 0;
-
-         int startRow = -1;
-         int startCol = -1;
-
-         int duCount = 0;
-         m_pBldgLayer->GetData(bldg, m_colBldgNDU, duCount);
-
-         bool isDeveloped = (duCount > 0) ? true : false;
-
-         // need to get all bldg from column before
-         m_pBldgLayer->GetPointCoords(bldg, xCoord, yCoord);
-         m_pErodedGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
-
-         // has building previously eroded by chronic erosion
-         m_pBldgLayer->GetData(bldg, m_colBldgEroded, erodedBldg);
-
-         // reset event eroded buildings
-         if (erodedBldg > 0)
-            m_pBldgLayer->SetData(bldg, m_colBldgEroded, 0);
-
-         // within grid ?
-         if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
-            {
-            m_pErodedGrid->GetData(startRow, startCol, (int)eroded);
-
-            bool isEventEroded = (eroded == 1) ? true : false;
-            bool isChronicEroded = (eroded == 2) ? true : false;
-
-            // Determine if building has been eroded by event erosion 
-            // Tally buildings eroded by total erosion 
-            int removeYr = 0;
-            m_pBldgLayer->GetData(bldg, m_colBldgRemoveYr, removeYr);
-            if (isEventEroded && removeYr == 0)
-               {
-               float eroFreq = 0.0f;
-               eroMovingWindow->AddValue(1.0f);
-               m_pBldgLayer->SetData(bldg, m_colBldgEroded, 1);
-               //   m_pBldgLayer->GetData(bldg, m_colBldgEroFreq, eroFreq);
-               //   m_pBldgLayer->SetData(bldg, m_colBldgEroFreq, ++eroFreq);
-               //   if (isDeveloped)
-               //      m_erodedBldgCount += duCount;
-               //   else
-               //      m_erodedBldgCount++;
-               }
-
-            if (isChronicEroded && removeYr == 0)
-               {
-               m_pBldgLayer->SetData(bldg, m_colBldgEroded, 2);
-               //   m_noBldgsEroded++;
-               }
-
-            //if (isBldgEroded)
-            //{
-            //   /*if (isDeveloped)
-            //      m_erodedBldgCount += duCount;
-            //   else
-            //      m_erodedBldgCount++;*/
-            //}
-            }
-         }
-      } // end erodedGrid
    } // end ComputeBuildingStatistics
 
 
@@ -5082,14 +4863,78 @@ void ChronicHazards::TallyRoadStatistics()
 
 void ChronicHazards::ComputeInfraStatistics()
    {
-   if (m_pInfraLayer == nullptr)
+   // this function does the following:
+   // 1) creates a new MovingWindow for erosion and flooding for each NEW infrastructure 
+   //    and adds them to their respective collections
+   // 2) for flooding, operates on the flooding grid to determine if the building has
+   //    experienced flooding this year.  if so, updates the bldg point to indicate
+   //    it has experienced flooding and set the building's flood frequency value
+   // 3) for erosions, 
+   
+   // determine how many new buildings were added
+   //int numNewBldgs = m_pInfraLayer->GetRowCount() - m_numBldgs;
+   //m_numBldgs += numNewBldgs;
+
+   // create moving windows for new buildings
+   ///for (int i = 0; i < numNewBldgs; i++)
+   ///{
+   ///   MovingWindow* eroFreqMovingWindow = new MovingWindow(m_windowLengthEroHzrd);
+   ///   m_eroBldgFreqArray.Add(eroFreqMovingWindow);
+   ///
+   ///   MovingWindow* floodFreqMovingWindow = new MovingWindow(m_windowLengthFloodHzrd);
+   ///   m_floodBldgFreqArray.Add(floodFreqMovingWindow);
+   ///   } // end add MovingWindows for new buildings
+
+    // update building stats related to flooding
+   if (this->m_runInfrastructure && m_pInfraLayer != nullptr && m_pFloodedGrid != nullptr)
       {
-      Report::LogWarning("Missing Infrastructure Grid - Infrastructure Stats wil not be reported!");
-      return;
-      }
+      int numRows = m_pFloodedGrid->GetRowCount();
+      int numCols = m_pFloodedGrid->GetColCount();
+      m_floodedInfraCount = 0;
 
-   /************************   Calculate Eroded Infrastructure Statistics ************************/
+      for (MapLayer::Iterator infraIndex = m_pInfraLayer->Begin(); infraIndex < m_pInfraLayer->End(); infraIndex++)
+         {
+         MovingWindow* floodMovingWindow = m_floodInfraFreqArray.GetAt(infraIndex);
 
+         REAL xCoord = 0.0;
+         REAL yCoord = 0.0;
+         float flooded = 0.0f;
+         int row = -1;
+         int col = -1;
+
+         // get the location of the building point and corresponding cell on the flooded grid
+         m_pInfraLayer->GetPointCoords(infraIndex, xCoord, yCoord);
+         m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
+
+         // is the building located within the flooding grid ?
+         if ((row >= 0 && row < numRows) && (col >= 0 && col < numCols))
+            {
+            m_pFloodedGrid->GetData(row, col, flooded);
+            bool isFlooded = (flooded > 0.00001f) ? true : false;
+            int removeYr = 0;
+            m_pInfraLayer->GetData(infraIndex, m_colInfraRemoveYr, removeYr);
+
+            if (isFlooded && removeYr == 0)
+               {
+               // is there actually a dwelling unit on this site?
+               m_floodedBldgCount += 1;
+               floodMovingWindow->AddValue(1.0f);
+               }
+            else
+               floodMovingWindow->AddValue(0.0f);
+
+            float floodFreq = floodMovingWindow->GetFreqValue();
+            m_pInfraLayer->SetData(infraIndex, m_colInfraFloodFreq, floodFreq);
+            m_pInfraLayer->SetData(infraIndex, m_colInfraFlooded, isFlooded ? 1 : 0);
+
+            }
+         }
+      } // end FloodedGrid
+
+
+
+     /************************   Calculate Eroded Infrastructure Statistics ************************/
+   /*
    if (m_pErodedGrid != nullptr)
       {
       int numRows = m_pErodedGrid->GetRowCount();
@@ -5157,7 +5002,7 @@ void ChronicHazards::ComputeInfraStatistics()
             } // end DuneLine iterate
 
          }
-      }
+      } */
    }
 
 void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)

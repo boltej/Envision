@@ -840,6 +840,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colInfraFloodFreq = -1;
       int m_colInfraFloodYr = -1;
       int m_colInfraValue = -1;
+      int m_colInfraRemoveYr = -1;
 
       CString  m_polyGridFilename;
       CString  m_roadGridFilename;
