@@ -2225,6 +2225,18 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
    // Count of area of grid cells in flooded grid that are flooded to determine area flooded
    double floodedArea = 0.0f; // grid cells that are flooded multiplied by the number of grid cells
 
+   // basic flooding stats first
+
+
+
+
+
+
+
+
+
+
+
    // flooded road stats first
    if (this->m_runFlooding && m_pRoadLayer != nullptr)
       {
@@ -3234,6 +3246,17 @@ bool ChronicHazards::ResetAnnualVariables()
    ////////////////
    m_meanTWL = 0.0f;
    m_floodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
+   m_floodedAreaSqMiles = 0.0;
+
+   m_floodedRailroadMiles = 0.0;
+   m_floodedRoad = 0.0;
+   m_floodedRoadMiles = 0.0;
+   m_floodedBldgCount = 0;
+
+   m_erodedRoad = 0.0;
+   m_erodedRoadMiles = 0.0;
+   m_erodedBldgCount = 0;
+
    ////////////////                              //m_maxTWL = 0.0f;
    ////////////////
    ////////////////                              // Hard Protection Metrics
@@ -3276,16 +3299,6 @@ bool ChronicHazards::ResetAnnualVariables()
    //////////////////m_intertidalArea = 0.0;
    //////////////////m_intertidalAreaSqMiles = 0.0;
    ////////////////
-   ////////////////m_erodedRoad = 0.0;
-   ////////////////m_erodedRoadMiles = 0.0;
-   ////////////////m_floodedArea = 0.0;
-   ////////////////m_floodedAreaSqMiles = 0.0;
-   ////////////////m_floodedRailroadMiles = 0.0;
-   ////////////////m_floodedRoad = 0.0;
-   ////////////////m_floodedRoadMiles = 0.0;
-   ////////////////
-   ////////////////// m_erodedBldgCount = 0;
-   ////////////////// m_floodedBldgCount = 0;
 
    return true;
    }
@@ -4608,10 +4621,15 @@ bool ChronicHazards::UpdateDuneErosionStats(int point, float R_inf_KD)
 
 
 void ChronicHazards::ComputeIDUStatistics(EnvContext* pEnvContext)
-{
-   // does teh following:
-   // 1) computes IDU-level flood stats (floodfrac, movingAvgFlood impacts) if flooding model run
+   {
+   // does the following:
+   // 1) computes IDU-level flood stats (floodfrac, movingAvgFlood impacts) 
+   //    and the total flooded area stats if flooding model run
    // 2) computes IDU-level erosion stats if erosion model run
+
+   this->m_floodedArea = 0;
+   this->m_floodedAreaSqMiles = 0;
+   const float FLOOD_THRESHOLD = 0.001f; // m
 
    if (this->m_runFlooding && m_pFloodedGrid != nullptr)
       {
@@ -4625,6 +4643,7 @@ void ChronicHazards::ComputeIDUStatistics(EnvContext* pEnvContext)
          float fracFlooded = 0.0;
          int count = m_pIduFloodedGridLkUp->GetGridPtCntForPoly(idu);
 
+         // see if were there any flooded grid cells in this IDU?
          if (count > 0)
             {
             ROW_COL* indexes = new ROW_COL[count];
@@ -4635,28 +4654,38 @@ void ChronicHazards::ComputeIDUStatistics(EnvContext* pEnvContext)
 
             for (int i = 0; i < count; i++)
                {
-               int startRow = indexes[i].row;
-               int startCol = indexes[i].col;
+               int row = indexes[i].row;
+               int col = indexes[i].col;
 
-               if ((startRow >= 0 && startRow < numRows) && (startCol >= 0 && startCol < numCols))
+               // make shure we are on the flooded grid
+               if ((row >= 0 && row < numRows) && (col >= 0 && col < numCols))
                   {
                   float flooded = 0.0;
-                  m_pFloodedGrid->GetData(startRow, startCol, flooded);
+                  m_pFloodedGrid->GetData(row, col, flooded);
 
-                  bool isFlooded = (flooded > 0.0f) ? true : false;
-
-                  if (isFlooded)
+                  if (flooded > FLOOD_THRESHOLD)
                      fracFlooded += values[i];
                   }
                }  // end of: for each grid cell in the IDU
 
-            this->UpdateIDU(pEnvContext, idu, m_colIDUFracFlooded, fracFlooded, ADD_DELTA);
-
             delete[] indexes;
             delete[] values;
-            }   // end of: if ( count > 0 )
+            }  // end of: if (count > 0)
+
+         this->UpdateIDU(pEnvContext, idu, m_colIDUFracFlooded, fracFlooded, ADD_DELTA);
+         if (fracFlooded > FLOOD_THRESHOLD)
+            {
+            float iduArea = 0.0f;
+            m_pIDULayer->GetData(idu, this->m_colArea, iduArea);
+            this->m_floodedArea += iduArea;
+            }
+         
+         else // no flooded cells in this IDU
+            { }
+         
          }  // end of: if IDU is in the flooded grid
-      }
+      this->m_floodedAreaSqMiles = this->m_floodedArea * MI2_PER_M2;
+      }  // end of: (m_runBuildings)
    else
       Report::LogInfo("Missing Flooded Grid - Flooded IDU statistics will not be calculated");
 
@@ -9248,14 +9277,16 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
 
    bool buildIndex = false;
    int numBldgsTotal = 0;
-   int numBldgsRemoved = 0;
    int numBldgsQualifying = 0;
 
+   m_noBldgsRemovedFromHazardZone = 0;
+  
    int nIDUs = m_pIDULayer->GetRecordCount();
    ShuffleArray< UINT >(m_shuffleArray.GetData(), nIDUs, m_pRandUniform);
 
    float meanFloodFreq = 0;
    int   nMeanFloodFreq = 0;
+   int   nQualifiersAlreadyMoved = 0;
 
    // Relocate existing homes/buildings from hazard zone (100-yr flood plain)
    for (int m = 0; m < nIDUs; m++)
@@ -9282,7 +9313,7 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
       int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
       numBldgsTotal += numBldgs;
 
-      // look through all BUILDINGs to see if any are triggered for relcation
+      // look through all BUILDINGs in this IDU to see if any are triggered for relcation
       // based on flood frequency
       for (int i = 0; i < numBldgs; i++)
          {
@@ -9309,7 +9340,10 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
             {
             m_pBldgLayer->GetData(bldgIndex, m_colBldgRemoveYr, yr);
 
-            if (yr == 0)      // hasn't be relocated yet
+            if (yr > 0)
+               nQualifiersAlreadyMoved++;
+            
+            else // if (yr == 0)      // hasn't be relocated yet
                {
                numBldgsQualifying++;
                // Determine cost of a section along the SPS
@@ -9334,12 +9368,11 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
                   pi.IncurCost(cost);
 
                   // track remove building count
-                  numBldgsRemoved++;
                   m_noBldgsRemovedFromHazardZone++;
 
                   // write year and remove building in building layer
                   m_pBldgLayer->SetData(bldgIndex, m_colBldgRemoveYr, pEnvContext->currentYear);
-                  //m_pBldgLayer->SetData(ptrArrayIndex, m_colBldgFloodHZ, 0);
+
                   floodMovingWindow->Clear();
 
                   // remove from layer
@@ -9382,7 +9415,10 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
       } // end each IDU
 
       CString msg;
-      msg.Format("Of %i total buildings, removed % i of %i qualifying buildings from hazardous areas", numBldgsTotal, numBldgsRemoved, numBldgsQualifying);
+      msg.Format("Of %i total buildings, removed % i of %i qualifying buildings from hazardous areas", numBldgsTotal, this->m_noBldgsRemovedFromHazardZone, numBldgsQualifying);
+      Report::LogInfo(msg);
+
+      msg.Format("%i qualifying buildings already removed", nQualifiersAlreadyMoved);
       Report::LogInfo(msg);
 
       msg.Format("Mean Flood Freq = %f, count = %i", meanFloodFreq / nMeanFloodFreq, nMeanFloodFreq);
