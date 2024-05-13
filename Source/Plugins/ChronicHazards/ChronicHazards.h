@@ -510,7 +510,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_ssiteCount = 0;
 
 
-      int m_noBldgsRemovedFromHazardZone = 0;
+      //int m_nBldgsRemovedFromHazardZone = 0;
+      int m_nQualifiedBldgsInHazardZone = 0;
       int m_numCntyNourishProjects = 0;
       int m_numCtnyNourishPrjts = 0;
       float m_avgAccess = 0;
