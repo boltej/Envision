@@ -1678,6 +1678,9 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
       numDunePts = m_pDuneLayer->GetRowCount();
       }
 
+   // remove buildings if called for from previous policy step 
+   UpdatePolicyResponse(pEnvContext);
+
    // Reset annual duneline attributes
    ResetAnnualVariables();      // reset annual variables for hte start of a new year
    //ResetAnnualBudget();      // reset budget allocations for the year
@@ -4286,25 +4289,28 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
    }
 
 
-void ChronicHazards::ComputeBuildingStatistics()
+void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
    {
-   // this function does the following:
-   // 1) creates a new MovingWindow for erosion and flooding for each NEW building 
-   //    and adds them to their respective collections
-   // 2) for flooding, operates on the flooding grid to determine if the building has
-   //    experienced flooding this year.  if so, updates the bldg point to indicate
-   //    it has experienced flooding and set the building's flood frequency value
-   // 3) for erosions, 
-
-
    // update buildings removed from prior step
    for (int idu = 0; idu < m_pIDULayer->GetRecordCount(); idu++)
       {
       int removeYr = 0;
       m_pIDULayer->GetData(idu, m_colIDURemoveBldgYr, removeYr);
 
-      if (removeYr > 0)
+      if (removeYr == -2) // scheduled for removal?  then remove it from IDUs and Buildings
          {
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDURemoveBldgYr, pEnvContext->currentYear, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNDU, 0, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNEWDU, 0, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUPopDensity, 0, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUSafeSite, 0, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUImprValue, 0, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUPropInd, "VACANT", ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUResAge, "", ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUResIncome, "", ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUEconClass, -1, ADD_DELTA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUCensusType, "", ADD_DELTA);
+
          // get Buildings in this IDU
          CArray< int, int > bldgIndices;
          int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
@@ -4325,6 +4331,20 @@ void ChronicHazards::ComputeBuildingStatistics()
             }
          }  // end of: if removeYr > 0
       }  // end of: for each IDU
+
+
+   }
+
+
+void ChronicHazards::ComputeBuildingStatistics()
+   {
+   // this function does the following:
+   // 1) creates a new MovingWindow for erosion and flooding for each NEW building 
+   //    and adds them to their respective collections
+   // 2) for flooding, operates on the flooding grid to determine if the building has
+   //    experienced flooding this year.  if so, updates the bldg point to indicate
+   //    it has experienced flooding and set the building's flood frequency value
+   // 3) for erosions, 
 
    // determine how many new buildings were added
    int numNewBldgs = m_pBldgLayer->GetRowCount() - m_numBldgs;

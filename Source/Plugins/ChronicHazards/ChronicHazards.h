@@ -610,34 +610,6 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colIDUCensusType = -1;
 
 
-      //int m_colIDUPopulation = -1;c
-
-      int m_colBldgBFE = -1;
-      int m_colBldgBFEYr = -1;
-      //int m_colBldgCityCode = -1;
-      int m_colBldgEroded = -1;
-      int m_colBldgEroFreq = -1;
-      int m_colBldgFloodFreq = -1;
-      int m_colBldgFlooded = -1;
-      //int m_colBldgFloodYr = -1;
-      int m_colBldgIDUIndex = -1;
-      int m_colBldgNDU = -1;
-      int m_colBldgNEWDU = -1;
-      int m_colBldgRemoveYr = -1;
-      int m_colBldgSafeSite = -1;
-      int m_colBldgSafeSiteYr = -1;
-      //int m_colBldgTsunamiHZ = -1;
-      int m_colBldgValue = -1;
-      int m_colBldgResAge = -1;
-      int m_colBldgResIncome = -1;
-      int m_colBldgEconClass = -1;
-      int m_colBldgCensusType = -1;
-
-      //-- dune model columns --//
-      int  m_colDLBeachType = -1;
-
-
-
       int m_colIDUBaseFloodElevation = -1;
       //int m_colIDUBeachfront = -1;
       //int m_colIDUCPolicy = -1;
@@ -668,6 +640,37 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int m_colIDUValue = -1;
       int m_colIDUPropInd = -1;
       int m_colIDUImprValue = -1;
+
+      //int m_colIDUPopulation = -1;
+
+
+
+
+      int m_colBldgBFE = -1;
+      int m_colBldgBFEYr = -1;
+      //int m_colBldgCityCode = -1;
+      int m_colBldgEroded = -1;
+      int m_colBldgEroFreq = -1;
+      int m_colBldgFloodFreq = -1;
+      int m_colBldgFlooded = -1;
+      //int m_colBldgFloodYr = -1;
+      int m_colBldgIDUIndex = -1;
+      int m_colBldgNDU = -1;
+      int m_colBldgNEWDU = -1;
+      int m_colBldgRemoveYr = -1;
+      int m_colBldgSafeSite = -1;
+      int m_colBldgSafeSiteYr = -1;
+      //int m_colBldgTsunamiHZ = -1;
+      int m_colBldgValue = -1;
+      int m_colBldgResAge = -1;
+      int m_colBldgResIncome = -1;
+      int m_colBldgEconClass = -1;
+      int m_colBldgCensusType = -1;
+
+      //-- dune model columns --//
+      int  m_colDLBeachType = -1;
+
+
 
       // Dune Line coverage columns      
       //int  m_colDLA = -1;
@@ -947,6 +950,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //};*/
 
       //float m_flood[ 8 ][ 8 ] = { 0 };
+
+      void UpdatePolicyResponse(EnvContext* pEnvContext);
 
       void ComputeBuildingStatistics();
       void ComputeIDUStatistics(EnvContext*);
