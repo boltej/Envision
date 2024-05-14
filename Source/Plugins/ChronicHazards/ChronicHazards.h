@@ -1035,7 +1035,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       void ConstructOnSafestSite(EnvContext* pEnvContext, bool inFloodPlain);
       void RaiseOrRelocateBldgToSafestSite(EnvContext* pEnvContext);
       void RaiseInfrastructure(EnvContext* pEnvContext);
-      void RemoveBldgFromHazardZone(EnvContext* pEnvContext);
+      void CheckHazardTriggers(EnvContext* pEnvContext);
       void RemoveInfraFromHazardZone(EnvContext* pEnvContext);
       void RemoveFromSafestSite();
 

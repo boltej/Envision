@@ -2617,7 +2617,7 @@ bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
 
    // Remove homes from hazard zone if desired policy REALIGN
    if (m_runRemoveBldgFromHazardZonePolicy && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
-      RemoveBldgFromHazardZone(pEnvContext);
+      CheckHazardTriggers(pEnvContext);
 
    // REALIGN
    if (m_runRemoveInfraFromHazardZonePolicy && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
@@ -4292,6 +4292,9 @@ float ChronicHazards::GenerateErosionMap(int& erodedCount)
 void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
    {
    // update buildings removed from prior step
+   int nIDUsMoved = 0;
+   int nBuildingsMoved = 0;
+
    for (int idu = 0; idu < m_pIDULayer->GetRecordCount(); idu++)
       {
       int removeYr = 0;
@@ -4299,17 +4302,21 @@ void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
 
       if (removeYr == -2) // scheduled for removal?  then remove it from IDUs and Buildings
          {
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDURemoveBldgYr, pEnvContext->currentYear, ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNDU, 0, ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNEWDU, 0, ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUPopDensity, 0, ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUSafeSite, 0, ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUImprValue, 0, ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUPropInd, "VACANT", ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUResAge, "", ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUResIncome, "", ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUEconClass, -1, ADD_DELTA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUCensusType, "", ADD_DELTA);
+         // NOTE:  Need to set data because the IDUs are examined later in this process
+         //        when checking for qualifying IDUs 
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDURemoveBldgYr, pEnvContext->currentYear, ADD_DELTA | SET_DATA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNDU, 0, ADD_DELTA | SET_DATA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNEWDU, 0, ADD_DELTA | SET_DATA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUPopDensity, 0, ADD_DELTA | SET_DATA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUSafeSite, 0, ADD_DELTA | SET_DATA);
+         //leave these to allow for reporting
+         // this->UpdateIDU(pEnvContext, idu, this->m_colIDUImprValue, 0, ADD_DELTA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUPropInd, "VACANT", ADD_DELTA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUResAge, "", ADD_DELTA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUResIncome, "", ADD_DELTA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUEconClass, -1, ADD_DELTA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUCensusType, "", ADD_DELTA);
+         nIDUsMoved++;
 
          // get Buildings in this IDU
          CArray< int, int > bldgIndices;
@@ -4323,16 +4330,19 @@ void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
             m_pBldgLayer->SetData(bldgIndex, this->m_colBldgRemoveYr, removeYr);
             m_pBldgLayer->SetData(bldgIndex, this->m_colBldgNDU, 0);
             m_pBldgLayer->SetData(bldgIndex, this->m_colBldgNEWDU, 0);
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgValue, 0);
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgResAge, "");
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgResIncome, "");
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgEconClass, -1);
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgCensusType, "");
+            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgValue, 0);
+            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgResAge, "");
+            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgResIncome, "");
+            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgEconClass, -1);
+            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgCensusType, "");
+            nBuildingsMoved++;
             }
          }  // end of: if removeYr > 0
       }  // end of: for each IDU
 
-
+   CString msg;
+   msg.Format("Relocating %i buildings in %i IDUs", nBuildingsMoved, nIDUsMoved);
+   Report::LogInfo(msg);
    }
 
 
@@ -9315,7 +9325,7 @@ void ChronicHazards::RaiseInfrastructure(EnvContext* pEnvContext)
 
 
 
-void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
+void ChronicHazards::CheckHazardTriggers(EnvContext* pEnvContext)
    {
    int numBldgsTotal = 0;
    this->m_nQualifiedBldgsInHazardZone = 0;
@@ -9331,57 +9341,57 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
    for (int idu = 0; idu < nIDUs; idu++)
       {
       int removeYear;
-      m_pIDULayer->GetData(idu,this->m_colIDURemoveBldgYr, removeYear);
-      if (removeYear > 0)
-         continue;
-
-      // get floodzone status
-      // int one100YrFloodHZ = 0;
-      //m_pIDULayer->GetData(idu, m_colIDUFloodZoneCode, one100YrFloodHZ);
-      //bool is100YrFloodHazardZone = (one100YrFloodHZ == FHZ_ONEHUNDREDYR) ? true : false;
-
-      // get building count in this idu
-      int ndu = 0;
-      m_pIDULayer->GetData(idu, m_colIDUNDU, ndu);
-      int newDu = 0;
-      m_pIDULayer->GetData(idu, m_colIDUNEWDU, newDu);
-
-      // get Buildings in this IDU
-      CArray< int, int > bldgIndices;
-      int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
-      numBldgsTotal += numBldgs;
-
-      // look through all BUILDINGs in this IDU to see if any are triggered for relcation
-      // based on flood frequency
-      for (int i = 0; i < numBldgs; i++)
+      m_pIDULayer->GetData(idu, this->m_colIDURemoveBldgYr, removeYear);
+      if (removeYear <= 0)  // hasn't been moved yet?
          {
-         // get point location associated with building
-         int bldgIndex = bldgIndices[i];
-         float floodFreq = 0;
-         int isFlooded = 0;
-         m_pBldgLayer->GetData(bldgIndex, m_colBldgFloodFreq, floodFreq);
-         m_pBldgLayer->GetData(bldgIndex, m_colBldgFlooded, isFlooded);
+         // get floodzone status
+         // int one100YrFloodHZ = 0;
+         //m_pIDULayer->GetData(idu, m_colIDUFloodZoneCode, one100YrFloodHZ);
+         //bool is100YrFloodHazardZone = (one100YrFloodHZ == FHZ_ONEHUNDREDYR) ? true : false;
 
-         if (isFlooded > 0)
-            floodedBldgs++;
+         // get building count in this idu
+         int ndu = 0;
+         m_pIDULayer->GetData(idu, m_colIDUNDU, ndu);
+         int newDu = 0;
+         m_pIDULayer->GetData(idu, m_colIDUNEWDU, newDu);
 
-         nMeanFloodFreq++;
-         meanFloodFreq += floodFreq;
-         // qualify for removal if triggers are met
-         // hasn't been moved yet, is it impacted?
-         //if (floodFreq >= (1.0f / m_windowLengthFloodHzrd)) // && is100YrFloodHazardZone)
-         if (floodFreq >= 0.1) // && is100YrFloodHazardZone)
+         // get Buildings in this IDU
+         CArray< int, int > bldgIndices;
+         int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+         numBldgsTotal += numBldgs;
+
+         // look through all BUILDINGs in this IDU to see if any are triggered for relcation
+         // based on flood frequency
+         for (int i = 0; i < numBldgs; i++)
             {
-            this->m_nQualifiedBldgsInHazardZone++;
-            UpdateIDU(pEnvContext, idu, m_colIDURemoveBldgYr, -1, ADD_DELTA);  // signal thzt this is elgible to be removed
-            break;
-            }
-         else
-            {
-            UpdateIDU(pEnvContext, idu, m_colIDURemoveBldgYr, 0, ADD_DELTA);
-            }
-         }  //end of : for each bldg in IDU
-      }  // 
+            // get point location associated with building
+            int bldgIndex = bldgIndices[i];
+            float floodFreq = 0;
+            int isFlooded = 0;
+            m_pBldgLayer->GetData(bldgIndex, m_colBldgFloodFreq, floodFreq);
+            m_pBldgLayer->GetData(bldgIndex, m_colBldgFlooded, isFlooded);
+
+            if (isFlooded > 0)
+               floodedBldgs++;
+
+            nMeanFloodFreq++;
+            meanFloodFreq += floodFreq;
+            // qualify for removal if triggers are met
+            if (floodFreq >= (1.0f / m_windowLengthFloodHzrd)) // && is100YrFloodHazardZone)
+               {
+               this->m_nQualifiedBldgsInHazardZone++;
+               UpdateIDU(pEnvContext, idu, m_colIDURemoveBldgYr, -1, ADD_DELTA);  // signal that this is elgible to be removed
+               break;
+               }
+            else
+               {
+               ASSERT(removeYear <= 0);
+               UpdateIDU(pEnvContext, idu, m_colIDURemoveBldgYr, 0, ADD_DELTA);
+               break;
+               }
+            }  //end of : for each bldg in IDU
+         }  //
+      }  
 
    CString msg;
    msg.Format("%i of %i buildings  qualify for removal from hazardous areas (%i were flooded)",
