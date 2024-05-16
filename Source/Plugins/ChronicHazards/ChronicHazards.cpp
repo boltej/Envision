@@ -681,6 +681,7 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
       CheckCol(m_pIDULayer, m_colIDUResIncome, "ResIncom", TYPE_STRING, CC_MUST_EXIST);
       CheckCol(m_pIDULayer, m_colIDUEconClass, "EconClass", TYPE_INT, CC_MUST_EXIST);
       CheckCol(m_pIDULayer, m_colIDUCensusType, "CensusType", TYPE_STRING, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colIDURemovedPop, "RemovedPop", TYPE_FLOAT, CC_AUTOADD);
 
             // build polygrid lookup
       Report::StatusMsg("Building polypoint mapper IDUBuildings.ppm");
@@ -1745,7 +1746,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
 
    //TallyCostStatistics(pEnvContext->currentYear);
    TallyDuneStatistics(pEnvContext->currentYear);
-   TallyRoadStatistics();
+   //TallyRoadStatistics();
 
    //  m_pMap->ChangeDrawOrder(m_pDuneLayer, DO_BOTTOM);
    m_pMap->ChangeDrawOrder(m_pDuneLayer, DO_BOTTOM);
@@ -1805,9 +1806,19 @@ bool ChronicHazards::RunTWLModel(EnvContext* pEnvContext)
 
 bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
    {
+   /*
+   Run erosion model.  For erodable beach types, 
+   1) calculate three sources of erosion - K&D (within year), bruun, historic
+   
+   */
+
    ASSERT(m_pDuneLayer != nullptr);
 
    Report::Log_i("Running erosion submodel for year %i", pEnvContext->currentYear);
+
+   // ASSUMES Points are arrays noth to south in dune coverage
+   this->m_erodedArea = 0;
+   REAL duneDeltaY = m_pDuneLayer->GetPolygon(0)->GetVertex(0).y - m_pDuneLayer->GetPolygon(1)->GetVertex(0).y;
 
    for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
@@ -1979,39 +1990,16 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             Poly* pPoly = m_pDuneLayer->GetPolygon(point);
             pPoly->Translate(float(dx), 0);
 
+            this->m_erodedArea += float(dx * duneDeltaY);
 
             // update Moving Windows for IDPY, avg/max twl, kd;  beachAccess (An,Sp,Su,Fa/Wi)
             // This assumes impact days have already been calculated by TWL model
             UpdateDuneErosionStats(point, (float)R_inf_KD);
-
             }  // end of: dx > 0
          }
-      ///// MOVE TO PolicyManagement!!!  ???
-      /////else if (beachType == BchT_RIPRAP_BACKED)
-      /////   {
-      /////   float BPSCost;
-      /////   m_pDuneLayer->GetData(point, m_colDLCostBPS, BPSCost);
-      /////   m_maintCostBPS += BPSCost * m_costs.BPSMaint;
-      /////   }
-
-      //float Ero = (float)R_inf_KD;      
-
-
-
       } // end erosion calculation
-
-
-
-
    return true;
    } // end dune line points
-
-    // Add this when needed
-      //int erodedCount = 0;
-      //GenerateErosionMap(erodedCount);
-
-   //   return true;
-   //}
 
 
 bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
@@ -4302,15 +4290,22 @@ void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
 
       if (removeYr == -2) // scheduled for removal?  then remove it from IDUs and Buildings
          {
+         float popDens = 0, area = 0;
+         m_pIDULayer->GetData(idu, m_colIDUPopDensity, popDens);
+         m_pIDULayer->GetData(idu, m_colArea, area);
+         float removedPop = popDens * area;
+         
          // NOTE:  Need to set data because the IDUs are examined later in this process
          //        when checking for qualifying IDUs 
          this->UpdateIDU(pEnvContext, idu, this->m_colIDURemoveBldgYr, pEnvContext->currentYear, ADD_DELTA | SET_DATA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNDU, 0, ADD_DELTA | SET_DATA);
-         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNEWDU, 0, ADD_DELTA | SET_DATA);
          this->UpdateIDU(pEnvContext, idu, this->m_colIDUPopDensity, 0, ADD_DELTA | SET_DATA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDURemovedPop, removedPop, ADD_DELTA | SET_DATA);
          this->UpdateIDU(pEnvContext, idu, this->m_colIDUSafeSite, 0, ADD_DELTA | SET_DATA);
+
          //leave these to allow for reporting
-         // this->UpdateIDU(pEnvContext, idu, this->m_colIDUImprValue, 0, ADD_DELTA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUNDU, 0, ADD_DELTA | SET_DATA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUNEWDU, 0, ADD_DELTA | SET_DATA);
+         //this->UpdateIDU(pEnvContext, idu, this->m_colIDUImprValue, 0, ADD_DELTA);
          //this->UpdateIDU(pEnvContext, idu, this->m_colIDUPropInd, "VACANT", ADD_DELTA);
          //this->UpdateIDU(pEnvContext, idu, this->m_colIDUResAge, "", ADD_DELTA);
          //this->UpdateIDU(pEnvContext, idu, this->m_colIDUResIncome, "", ADD_DELTA);
@@ -4328,13 +4323,6 @@ void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
             ASSERT(bldgIndex < m_pBldgLayer->GetPolygonCount());
 
             m_pBldgLayer->SetData(bldgIndex, this->m_colBldgRemoveYr, removeYr);
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgNDU, 0);
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgNEWDU, 0);
-            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgValue, 0);
-            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgResAge, "");
-            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgResIncome, "");
-            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgEconClass, -1);
-            //m_pBldgLayer->SetData(bldgIndex, this->m_colBldgCensusType, "");
             nBuildingsMoved++;
             }
          }  // end of: if removeYr > 0
@@ -4413,12 +4401,61 @@ void ChronicHazards::ComputeBuildingStatistics()
             float floodFreq = floodMovingWindow->GetFreqValue();
             m_pBldgLayer->SetData(bldgIndex, m_colBldgFloodFreq, floodFreq);
             m_pBldgLayer->SetData(bldgIndex, m_colBldgFlooded, isFlooded ? 1 : 0);
-
             }
          }
       } // end FloodedGrid
 
-      // building erosion statistics
+   // building erosion statistics
+   if (this->m_runErosion && m_pDuneLayer != nullptr)
+      {
+      Report::LogInfo("Computing IDU Erosion statistics");
+      this->m_erodedBldgCount = 0;
+
+      int nDunePts = m_pDuneLayer->GetPolygonCount();
+      double startDuneLat = m_pDuneLayer->GetPolygon(0)->GetVertex(0).y;
+      double endDuneLat = m_pDuneLayer->GetPolygon(nDunePts - 1)->GetVertex(0).y;
+      double duneDelta = (endDuneLat - startDuneLat) / nDunePts;
+
+      // basic strategy - iterate through building points, find associate dune point, check positions
+      int nBldgs = m_pBldgLayer->GetRecordCount();
+      for (int bldg = 0; bldg < nBldgs; bldg++)
+         {
+         Poly* pBldg = m_pBldgLayer->GetPolygon(bldg);
+         int removeYr = 0;
+         m_pBldgLayer->GetData(bldg, m_colBldgRemoveYr, removeYr);
+
+         if ( removeYr <= 0)  // hasn't been removed?
+            {
+            REAL lat = pBldg->GetVertex(0).y;
+            int dunePt = int(nDunePts * (startDuneLat - (lat + duneDelta / 2)) / (startDuneLat - endDuneLat));
+            if (dunePt >= 0 && dunePt < nDunePts)
+               {
+               Poly* pDune = m_pDuneLayer->GetPolygon(dunePt);
+
+               // has the dune eroded landward enought to intersect the building 
+               REAL duneLong = pDune->GetVertex(0).x;
+               REAL bldgLong = pBldg->GetVertex(0).x;
+
+               MovingWindow* eroMovingWindow = m_eroBldgFreqArray[bldg];
+
+               bool eroded = false;
+               if (bldgLong < duneLong)  // bldg eroded?
+                  {
+                  eroded = true;
+                  this->m_erodedBldgCount++;
+                  }
+
+               m_pBldgLayer->SetData(bldg, this->m_colBldgEroded, eroded ? 1 : 0);
+               eroMovingWindow->AddValue(eroded ? 1.0f : 0.0f);
+               float eroFreq = eroMovingWindow->GetFreqValue();
+               m_pBldgLayer->SetData(bldg, m_colBldgEroFreq, eroFreq);
+               }
+            }
+         }  // end of: if IDU is in the flooded grid
+      Report::Log_i("Eroded Building Count = %i", int(this->m_erodedBldgCount));
+      }  // end of: (m_runBuildings)
+   else
+      Report::LogInfo("Eroded Bldg stats not computed");
    } // end ComputeBuildingStatistics
 
 
@@ -4752,204 +4789,6 @@ void ChronicHazards::ComputeIDUStatistics(EnvContext* pEnvContext)
       Report::LogInfo("Missing Flooded Grid - Flooded IDU statistics will not be calculated");
 
 
-   if (this->m_runErosion && m_pErodedGrid != nullptr)
-      {
-      m_pIDULayer->m_readOnly = false;
-      int numRows = m_pErodedGrid->GetRowCount();
-      int numCols = m_pErodedGrid->GetColCount();
-
-      // Lookup IDUs associated with ErodedGrid and set IDU attributes accordingly
-      for (int row = 0; row < numRows; row++)
-         {
-         for (int col = 0; col < numCols; col++)
-            {
-            //int eroded = 0;
-            //int noBuildings = 0;
-            //
-            //int size = m_pIduErodedGridLkUp->GetPolyCntForGridPt(row, col);
-            //
-            //m_pErodedGrid->GetData(row, col, (int)eroded);
-            //bool isIDUEroded = (eroded == 2) ? true : false;
-            //
-            //if (isIDUEroded)
-            //{
-            //   // m_pBuildingGrid->GetData(row, col, buildings);
-            //
-            //   int* polyIndexs = new int[size];
-            //   int polyCount = m_pIduErodedGridLkUp->GetPolyNdxsForGridPt(row, col, polyIndexs);
-            //   float* polyFractionalArea = new float[polyCount];
-            //
-            //   m_pIduErodedGridLkUp->GetPolyProportionsForGridPt(row, col, polyFractionalArea);
-            //   for (int idu = 0; idu < polyCount; idu++)
-            //   {
-            //      m_pIDULayer->SetData(polyIndexs[idu], m_colIDUEroded, eroded);
-            //      m_pIDULayer->SetData(polyIndexs[idu], m_colIDUPopDensity, 0);  // zero out the population for eroded IDUs
-            //   }
-            //   delete[] polyIndexs;
-            //   delete[] polyFractionalArea;
-            //}
-
-            } //end columns of grid
-         } // end rows of 
-      }
-   }
-
-
-void ChronicHazards::TallyRoadStatistics()
-   {
-   if (m_runInfrastructure)
-      {
-      if (m_pRoadLayer != nullptr)
-         {
-         /************************   Calculate Flooded Road Statistics ************************/
-
-         if (m_pFloodedGrid != nullptr)
-            {
-            int numRows = m_pFloodedGrid->GetRowCount();
-            int numCols = m_pFloodedGrid->GetColCount();
-
-            float noDataValue = m_pFloodedGrid->GetNoDataValue();
-
-            for (int row = 0; row < numRows; row++)
-               {
-               for (int col = 0; col < numCols; col++)
-                  {
-
-                  int polyCount = m_pRoadFloodedGridLkUp->GetPolyCntForGridPt(row, col);
-
-                  /*if (polyCount > 0)
-                  {*/
-                  int* indices = new int[polyCount];
-                  int count = m_pRoadFloodedGridLkUp->GetPolyNdxsForGridPt(row, col, indices);
-
-                  /*if (count > 0)
-                  {*/
-                  for (int i = 0; i < polyCount; i++)
-                     {
-                     REAL xCenter = 0.0;
-                     REAL yCenter = 0.0;
-
-                     COORD2d ll;
-                     COORD2d ur;
-                     m_pFloodedGrid->GetGridCellRect(row, col, ll, ur);
-
-
-                     m_pFloodedGrid->GetGridCellCenter(row, col, xCenter, yCenter);
-                     REAL xMin0 = xCenter - (m_elevCellWidth / 2.0);
-                     REAL yMin0 = yCenter - (m_elevCellHeight / 2.0);
-                     REAL xMax0 = xCenter + (m_elevCellWidth / 2.0);
-                     REAL yMax0 = yCenter + (m_elevCellHeight / 2.0);
-
-                     int roadType = -1;
-                     Poly* pPoly = m_pRoadLayer->GetPolygon(indices[i]);
-                     //m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
-
-                     float flooded = 0.0f;
-                     m_pFloodedGrid->GetData(row, col, flooded);
-                     bool isFlooded = (flooded > 0.0f) ? true : false;
-
-                     if (isFlooded && flooded != noDataValue)
-                        {
-                        //if (roadType != 6)
-                        //   {
-                        //   if (roadType == 7)
-                        //      {
-                        //      double lengthOfRailroad = 0.0;
-                        //      lengthOfRailroad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), xMin0, yMin0, xMax0, yMax0);
-                        //      m_floodedRailroadMiles += float(lengthOfRailroad);
-                        //      m_pRoadLayer->SetData(indices[i], m_colRoadFlooded, 1);
-                        //
-                        //      }
-                        //   else if (roadType != 5)
-                        //      {
-                        double lengthOfRoad = 0.0;
-                        lengthOfRoad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), ll.x, ll.y, ur.x, ur.y);
-                        /*if (lengthOfRoad > 0 && m_debugOn)
-                        {
-                        CString thisMsg;
-                        thisMsg.Format("Grid Cell: row=%i,  col==%i, xMin0=%7.3f,yMin0=%7.3f,xMax0=%7.3f,yMax0=%7.3f,",row,col,xMin0,yMin0,xMax0,yMax0);
-                        Report::Log(thisMsg);
-                        }*/
-                        m_floodedRoad += float(lengthOfRoad);
-                        m_pRoadLayer->SetData(indices[i], m_colRoadFlooded, 1);
-
-                        //      }
-                        //   }
-                        }
-                     }
-                  delete[] indices;
-                  }
-               }
-            }
-         // meters to miles: m *0.00062137 = miles
-         m_floodedRoadMiles = m_floodedRoad * MI_PER_M;
-         m_floodedRailroadMiles *= MI_PER_M;
-
-
-         /************************   Calculate Eroded Road Statistics ************************/
-
-         if (m_pErodedGrid != nullptr)
-            {
-            int numRows = m_pErodedGrid->GetRowCount();
-            int numCols = m_pErodedGrid->GetColCount();
-
-            for (int row = 0; row < numRows; row++)
-               {
-               for (int col = 0; col < numCols; col++)
-                  {
-                  int eroded = 0;
-                  m_pErodedGrid->GetData(row, col, (int)eroded);
-                  bool isEroded = (eroded == 2) ? true : false;
-
-                  if (isEroded)
-                     {
-                     int polyCount = m_pRoadFloodedGridLkUp->GetPolyCntForGridPt(row, col);
-
-                     if (polyCount > 0)
-                        {
-                        int* indices = new int[polyCount];
-                        int count = m_pRoadFloodedGridLkUp->GetPolyNdxsForGridPt(row, col, indices);
-
-                        double lengthOfRoad = 0.0;
-                        //   double lengthOfRailroad = 0.0;
-
-                        REAL xCenter = 0.0;
-                        REAL yCenter = 0.0;
-
-                        m_pErodedGrid->GetGridCellCenter(row, col, xCenter, yCenter);
-                        REAL xMin0 = xCenter - (m_elevCellWidth / 2.0);
-                        REAL yMin0 = yCenter - (m_elevCellHeight / 2.0);
-                        REAL xMax0 = xCenter + (m_elevCellWidth / 2.0);
-                        REAL yMax0 = yCenter + (m_elevCellHeight / 2.0);
-
-                        for (int i = 0; i < polyCount; i++)
-                           {
-                           int roadType = -1;
-                           Poly* pPoly = m_pRoadLayer->GetPolygon(indices[i]);
-                           //m_pRoadLayer->GetData(indices[i], m_colRoadType, roadType);
-
-                           /*   if (roadType == 7)
-                           {
-                           lengthOfRailroad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), xMin0, yMin0, xMax0, yMax0);
-                           m_erodedRailroad += float(lengthOfRailroad);
-                           }
-                           else
-                           {*/
-                           lengthOfRoad = DistancePolyLineInRect(pPoly->m_vertexArray.GetData(), pPoly->GetVertexCount(), xMin0, yMin0, xMax0, yMax0);
-                           m_erodedRoad += float(lengthOfRoad);
-                           //   }
-                           }
-                        delete[] indices;
-                        }
-                     }
-                  }
-               }
-            }
-         // meters to miles: m *0.00062137 = miles
-         m_erodedRoadMiles = m_erodedRoad * MI_PER_M;
-         //   m_erodedRailroadMiles = m_erodedRailroad * MI_PER_M;
-         }  // end RoadLayer exists
-      }
    }
 
 void ChronicHazards::ComputeInfraStatistics()

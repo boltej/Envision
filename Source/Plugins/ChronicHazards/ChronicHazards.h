@@ -436,6 +436,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
 
       // erosion variables
+      float m_erodedArea = 0;
       float m_erodedRoad = 0;
       float m_erodedRoadMiles = 0;
       int m_windowLengthEroHzrd = 5;
@@ -595,6 +596,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int m_colIDUZone = -1;
       //int m_colIDUPopCap = -1;
       int m_colIDUPopDensity = -1;
+      int m_colIDURemovedPop = -1;
       int m_colIDUNDU = -1;
       int m_colIDUNEWDU = -1;
       int m_colIDUMaxElevation = -1;
