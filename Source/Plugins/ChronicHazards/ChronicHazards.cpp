@@ -683,7 +683,7 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
       CheckCol(m_pIDULayer, m_colIDUCensusType, "CensusType", TYPE_STRING, CC_MUST_EXIST);
       CheckCol(m_pIDULayer, m_colIDURemovedPop, "RemovedPop", TYPE_FLOAT, CC_AUTOADD);
 
-            // build polygrid lookup
+      // build polygrid lookup
       Report::StatusMsg("Building polypoint mapper IDUBuildings.ppm");
       CString iduBldgFile = ppmDir + "IDUBuildings.ppm";
       m_pIduBuildingLkUp = new PolyPointMapper(m_pIDULayer, m_pBldgLayer, iduBldgFile);  // creates map if file note found, otherwse, just loads it
@@ -716,6 +716,7 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
             m_pBldgLayer->SetData(bldgIndices[i], m_colBldgCensusType, censusType);
             }
          }
+
       Report::Log_i("Indexed %i buildings to the IDUs", numBldgs);
       ///////////////////////
       }
@@ -4322,7 +4323,7 @@ void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
             int bldgIndex = bldgIndices[i];
             ASSERT(bldgIndex < m_pBldgLayer->GetPolygonCount());
 
-            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgRemoveYr, removeYr);
+            m_pBldgLayer->SetData(bldgIndex, this->m_colBldgRemoveYr, pEnvContext->currentYear);
             nBuildingsMoved++;
             }
          }  // end of: if removeYr > 0

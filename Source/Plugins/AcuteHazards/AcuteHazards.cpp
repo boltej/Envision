@@ -98,6 +98,26 @@ bool AHEvent::Run(EnvContext *pEnvContext)
    MapLayer *pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
    pIDULayer->SaveDataDB(this->m_envOutputPath, NULL );   // save entire IDU as DBF.  
 
+
+   //////////////////////////////////////////////////////////////////
+   // count buildings
+   int totNDUs = 0;
+   int colNDU = pIDULayer->GetFieldCol("NDU");
+   int colRemoved = pIDULayer->GetFieldCol("REMOVED");
+
+   for (int i = 0; i < pIDULayer->GetRowCount(); i++)
+      {
+      int nDUs = 0;
+      int removed = 0;
+      pIDULayer->GetData(i, colNDU, nDUs);
+      pIDULayer->GetData(i, colRemoved, removed);
+
+      if (removed <= 0)
+         totNDUs += nDUs;
+      }
+
+   Report::Log_i("Acute Hazards NDUs=%i", totNDUs);
+
    char cwd[512];
    _getcwd(cwd, 512);
 
@@ -831,7 +851,12 @@ bool AcuteHazards::Update(EnvContext *pEnvContext)
       float imprValue = 0;
       pIDULayer->GetData(idu, m_colIduImprValue, imprValue);
 
-      if (imprValue > 10000)
+      int _removed = 0;
+      pIDULayer->GetData(idu, m_colIduRemoved, _removed);
+      if (_removed > 0)
+         removed += 1; // _removed;
+
+      if (imprValue > 10000 && removed <= 0)
          {
          int damage = 0;
          pIDULayer->GetData(idu, m_colIduBldgDamage, damage);
