@@ -107,6 +107,8 @@ class _EXPORT AcuteHazards : public EnvModelProcess
 
    protected:
       // we'll add model code here as needed
+
+      void UpdateBldgType(EnvContext*);
       bool InitPython();
       bool Update(EnvContext *pEnvContext);
 
@@ -121,19 +123,20 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       RandNormal m_randNormal;
       RandUniform m_randUniform;
 
-      int m_colIduImprValue;     // IMPR_VALUE
-      int m_colIduRepairYrs;     // REPAIR_YRS   - years rquired to repair building, or -1 if not being restored
-      int m_colIduBldgStatus;    // BLDGSTATUS  - 0=normal, 1=being restored, 2=uninhabitable
-      int m_colIduRepairCost;    // REPAIRCOST  - multiples of $1000
-      int m_colIduHabitable;     // HABITABLE    - 0 means building is not habitable and 1 means it can be used
-      int m_colIduBldgDamage;    // BLDGDAMAGE  - combined damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
-      int m_colIduBldgDamageEq;  // BLDGDMGEQ  - earthquake damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
-      int m_colIduBldgDamageTsu; // BLDGDMGTS  - tsunami damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
-      int m_colIduRemoved;       // REMOVED - buildings removed
+      int m_colBldgType = -1;
+      int m_colIduImprValue = -1;     // IMPR_VALUE
+      int m_colIduRepairYrs = -1;     // REPAIR_YRS   - years rquired to repair building, or -1 if not being restored
+      int m_colIduBldgStatus = -1;    // BLDGSTATUS  - 0=normal, 1=being restored, 2=uninhabitable
+      int m_colIduRepairCost = -1;    // REPAIRCOST  - multiples of $1000
+      int m_colIduHabitable = -1;     // HABITABLE    - 0 means building is not habitable and 1 means it can be used
+      int m_colIduBldgDamage = -1;    // BLDGDAMAGE  - combined damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
+      int m_colIduBldgDamageEq = -1;  // BLDGDMGEQ  - earthquake damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
+      int m_colIduBldgDamageTsu = -1; // BLDGDMGTS  - tsunami damage_state - 1 means no damage; 2 - slight damage; 3 - moderate damage; 4 - extensive damage; and 5 is complete damage.
+      int m_colIduRemoved = -1;       // REMOVED - buildings removed
       //int m_colBldRestYr;   // BD_REST_YR
-      int m_colIduCasualties;
-      int m_colIduInjuries;
-      int m_colIduFatalities;
+      int m_colIduCasualties = -1;
+      int m_colIduInjuries = -1;
+      int m_colIduFatalities = -1;
 
       // exposed outputs
       //float m_annualRepairCosts;

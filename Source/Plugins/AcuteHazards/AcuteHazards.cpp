@@ -572,6 +572,7 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->CheckCol(pIDULayer, m_colIduCasualties, "CASUALTIES",  TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduInjuries,   "INJURIES",    TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduFatalities, "FATALITIES",  TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colBldgType,      "BLDGTYPE", TYPE_INT, CC_AUTOADD);
 
    // initialize column info
    pIDULayer->SetColData(m_colIduRepairYrs, VData(-1), true);
@@ -615,6 +616,10 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("Casualties", m_numCasualities, "" );
    this->AddOutputVar("Fatalities", m_numFatalities, "" );
    this->AddOutputVar("Injuries", m_numInjuries, "" );
+
+
+
+   UpdateBldgType();
 
    InitPython();
 
@@ -733,6 +738,253 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
       }
      
    return TRUE;
+   }
+
+
+
+void AcuteHazards::UpdateBldgType( EnvContext *pEnvContext)
+   {
+   MapLayer* pIDULayer = (MapLayer*) pEnvContext->pMapLayer;
+   CString propInd, landUse;
+   int bedrooms = 0;
+
+   int colPropInd = pIDULayer->GetFieldCol("prop_ind");
+   int colLandUse = pIDULayer->GetFieldCol("landuse");
+   int colBedrooms = pIDULayer->GetFieldCol("bedrooms");
+   int bldgType = 0;
+   int floors = 1;
+
+   // iterate through map, computing report values
+   for (MapLayer::Iterator idu = pIDULayer->Begin(); idu < pIDULayer->End(); idu++)
+      {
+      pIDULayer->GetData(idu, colPropInd, propInd);
+      pIDULayer->GetData(idu, colLandUse, landUse);
+      pIDULayer->GetData(idu, colBedrooms, bedrooms);
+
+      int bldgType = 0;
+      int floors = 0;
+
+      if ( propInd == "AGRICULTURAL" )
+         {
+         if ( landUse == "FARMS")
+            { bldgType = 1; floors = 1; }
+         else if ( landUse == "FOREST")
+            { bldgType = 1; floors = 1; }
+         else if (landUse = "FISHERIES")
+            { bldgType = 1; floors = 1; }
+         else if (landUse = "FIELD & SEED")
+            { bldgType = 1; floors = 1; }
+         }
+
+      else if (propInd == "SINGLE FAMILY RESIDENCE")
+         {
+         if (bedrooms >= 4)
+            { bldgType = 2; floors = 2; }
+         else
+            { bldgType = 1; floors = 1; }
+         }
+
+      else if (propInd == "APARTMENT")
+         {
+         if (bedrooms >= 4)
+            { bldgType = 2; floors = 2; }
+         else
+            { bldgType = 1; floors = 1; }
+         }
+         
+      else if (propInd == "MOBILE HOME PARK")
+         { bldgType = 1; floors = 1; }
+
+      else if (propInd == "PARKING")
+         { bldgType = 3; floors = 4; }   //  assuming that parking structures are concrete buildings
+
+      else if (propInd == "AMUSEMENT-RECREATION")
+         { bldgType = 6; floors = 4; }   //  assuming that AMUSEMENT - RECREATION buildings are steel moment frame buildings
+
+      else if (propInd == "COMMERCIAL BUILDING")
+         { bldgType = 3; floors = 3; }
+
+      else if (propInd == "COMMERCIAL CONDOMINIUM")
+         { bldgType = 3; floors = 4; }
+
+      else if (landUse == "CONDOMINIUM PROJECT")
+         { bldgType = 3; floors = 4; }
+
+      else if (propInd == "APARTMENT")
+         {
+         if (bedrooms >= 4)
+            { bldgType = 2; floors = 2; }
+         else
+            { bldgType = 1; floors = 1; }
+         }
+
+      else if (propInd == "DUPLEX")
+         { bldgType = 2; floors = 2; }
+
+      else if (propInd == "FINANCIAL INSTITUTION")
+         { bldgType = 5; floors = 2; }
+
+      else if (propInd == "HOTEL, MOTEL")
+         {
+         if (landUse == "HOTEL")
+            { bldgType = 3; floors = 5; }
+         else if (landUse == "MOTEL")
+            { bldgType = 2; floors = 2; }
+         else
+            { bldgType = 2; floors = 2; }
+         }
+
+      else if (propInd == "INDUSTRIAL")
+         { bldgType = 6; floors = 1; }
+
+      else if (propInd == "INDUSTRIAL HEAVY")
+         { bldgType = 6; floors = 1; }
+
+      else if (propInd == "OFFICE BUILDING")
+         { bldgType = 5; floors = 3; }
+
+      else if (propInd == "RELIGIOUS")
+         { bldgType = 4; floors = 3; }
+
+      else if (propInd == "RETAIL")
+         {
+         if (landUse == "FOOD STORES")
+            { bldgType = 5; floors = 1; }
+         else if (landUse == "SHOPPING CENTER")
+            { bldgType = 6; floors = 3; }
+         else if (landUse == "SUPERMARKET")
+            { bldgType = 6; floors = 1; }
+         else if (landUse == "STORE BUILDING")
+            { bldgType = 5; floors = 1; }
+         else if (landUse == "AUTO SALES")
+            { bldgType = 6; floors = 3; }
+         else
+            { bldgType = 5; floors = 3; }
+         }
+
+      else if (propInd == "SERVICE")
+         {
+         if (landUse == "SCHOOL")
+            { bldgType = 4; floors = 3; }
+         else if (landUse == "PUBLIC SCHOOL")
+            { bldgType = 6; floors = 3; }
+         else if (landUse == "BAR")
+            { bldgType = 6; floors = 1; }
+         else if (landUse == "RESTAURANT BUILDING")
+            { bldgType = 5; floors = 1; }
+         else if (landUse == "NIGHTCLUB")
+            { bldgType = 6; floors = 3; }
+         else if (landUse == "LAUNDROMAT")
+            { bldgType = 6; floors = 3; }
+         else if (landUse == "FAST FOOD FRANCHISE")
+            { bldgType = 6; floors = 3; }
+         else if (landUse == "AUTO REPAIR")
+            { bldgType = 6; floors = 3; }
+         else if (landUse == "CARWASH")
+            { bldgType = 6; floors = 3;}
+         else if (landUse == "FUNERAL HOME")
+            { bldgType = 6; floors = 3;}
+         else if (landUse == "SERVICE STATION")
+            { bldgType = 6; floors = 3;}
+         else
+            { bldgType = 4; floors = 3; }
+         }
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'SCHOOL'))[0]
+      self.IDU_Data[ind, 4] = 4 # C2
+      self.IDU_Data[ind, 5] = 3
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'PUBLIC SCHOOL'))[0]
+      self.IDU_Data[ind, 4] = 4 # C2
+      self.IDU_Data[ind, 5] = 3
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'BAR'))[0]
+      self.IDU_Data[ind, 4] = 5 # C3
+      self.IDU_Data[ind, 5] = 2
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'RESTAURANT BUILDING'))[0]
+      self.IDU_Data[ind, 4] = 5 # C3
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'NIGHTCLUB'))[0]
+      self.IDU_Data[ind, 4] = 5 # C3
+      self.IDU_Data[ind, 5] = 2
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'LAUNDROMAT'))[0]
+      self.IDU_Data[ind, 4] = 6 # S1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'FAST FOOD FRANCHISE'))[0]
+      self.IDU_Data[ind, 4] = 5 # C3
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'AUTO REPAIR'))[0]
+      self.IDU_Data[ind, 4] = 3 # C1
+      self.IDU_Data[ind, 5] = 2
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'CARWASH'))[0]
+      self.IDU_Data[ind, 4] = 6 # S1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'FUNERAL HOME'))[0]
+      self.IDU_Data[ind, 4] = 2 # W2
+      self.IDU_Data[ind, 5] = 2
+
+      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'SERVICE STATION'))[0]
+      self.IDU_Data[ind, 4] = 3 # C1
+      self.IDU_Data[ind, 5] = 3
+
+      ind = np.where(self.frame['landuse'] == 'STATE PROPERTY')[0]
+      self.IDU_Data[ind, 4] = 3 # C1	# assuming state property is C1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['landuse'] == 'MUNICIPAL PROPERTY')[0]
+      self.IDU_Data[ind, 4] = 3 # C1	# assuming MUNICIPAL property is C1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['landuse'] == 'COUNTY PROPERTY')[0]
+      self.IDU_Data[ind, 4] = 3 # C1	# assuming MUNICIPAL property is C1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['prop_ind'] == 'TRANSPORT')[0]
+      self.IDU_Data[ind, 4] = 6 # assuming warehouse
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['landuse'] == 'COMMERCIAL (NEC)')[0]
+      self.IDU_Data[ind, 4] = 6 # assuming warehouse
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['prop_ind'] == 'UTILITIES')[0]
+      self.IDU_Data[ind, 4] = 6 # assuming warehouse
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['prop_ind'] == 'WAREHOUSE')[0]
+      self.IDU_Data[ind, 4] = 6 # S1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['landuse'] == 'MISC BUILDING')[0]
+      self.IDU_Data[ind, 4] = 3 # C1	# assuming misc buildin is C1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['landuse'] == 'MIXED COMPLEX')[0]
+      self.IDU_Data[ind, 4] = 4
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['landuse'] == 'EASEMENT')[0]
+      self.IDU_Data[ind, 4] = 1
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['landuse'] == 'LEASED LAND/BLDG')[0]
+      self.IDU_Data[ind, 4] = 3
+      self.IDU_Data[ind, 5] = 1
+
+      ind = np.where(self.frame['impr_value'] <= 10000)	# assuming IDUs with 'impr_value' greater than 10000 are buildings
+      self.IDU_Data[ind, 4] = 0
+      self.IDU_Data[ind, 5] = 0
+
+      ind = np.where(self.frame['REMOVED'] > 0)	# check for IDUs that have been removed
+      self.IDU_Data[ind, 4] = 0
+      self.IDU_Data[ind, 5] = 0
    }
 
 
@@ -856,7 +1108,7 @@ bool AcuteHazards::Update(EnvContext *pEnvContext)
       if (_removed > 0)
          removed += 1; // _removed;
 
-      if (imprValue > 10000 && removed <= 0)
+      if (imprValue > 10000 && _removed <= 0)
          {
          int damage = 0;
          pIDULayer->GetData(idu, m_colIduBldgDamage, damage);
