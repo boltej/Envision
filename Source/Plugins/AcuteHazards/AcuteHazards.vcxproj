@@ -100,8 +100,8 @@
       <SubSystem>Windows</SubSystem>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>c:\Python311\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;python311.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\Python38\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;python38.lib;</AdditionalDependencies>
       <IgnoreSpecificDefaultLibraries>
       </IgnoreSpecificDefaultLibraries>
     </Link>
@@ -205,8 +205,8 @@
       <OptimizeReferences>true</OptimizeReferences>
       <ModuleDefinitionFile>
       </ModuleDefinitionFile>
-      <AdditionalLibraryDirectories>c:\Python311\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;python311.lib;</AdditionalDependencies>
+      <AdditionalLibraryDirectories>D:\Python38\Libs;$(SolutionDir)$(PlatformName)\$(ConfigurationName)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>EnvLibs.lib;EnvEngine.lib;python38.lib;</AdditionalDependencies>
     </Link>
     <Midl>
       <MkTypLibCompatible>false</MkTypLibCompatible>
