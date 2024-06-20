@@ -89,6 +89,7 @@ SCENARIO_VAR::SCENARIO_VAR( AppVar *pAppVar )
 , pVar( pAppVar )
 , type( TYPE_NULL )   // always a PTR type
 , defaultValue( pAppVar->GetValue() )
+, ramp(1.0f)
 , paramLocation( 0 )
 , paramScale( 0 )
 , paramShape( 0 )
@@ -450,7 +451,7 @@ void Scenario::Initialize()
    }
 
 
-int Scenario::SetScenarioVars( int runFlag )
+int Scenario::SetScenarioVars( RUNFLAG runFlag )
    {
    // runFlag:  0 = set scenario variables, no randomization (uses paramLocation)
    //           1 = set scenario variable, using randomization if variable is defined as random
@@ -721,6 +722,8 @@ int Scenario::SetScenarioVars( int runFlag )
                      this->m_pScenarioManager->m_pEnvModel->AddExpr(pAppVar->m_name, expr); // and in expression evaluator
                   else
                      pAppVar->m_pMapExpr->SetExpression(expr);
+
+                  pAppVar->m_ramp = vi.ramp;
                   }
                else
                   {
@@ -1037,6 +1040,7 @@ int ScenarioManager::LoadXml( TiXmlNode *pScenarios, bool appendToExisting )
             const char *vtype = NULL;
             int    inUse          = 1;
             float  value          = 0.0f;
+            LPCTSTR ramp = nullptr;
             float  paramScale     = 0.0f;
             float  paramLocation  = 0.0f;
             float  paramShape     = 0.0f;
@@ -1048,6 +1052,7 @@ int ScenarioManager::LoadXml( TiXmlNode *pScenarios, bool appendToExisting )
                { "distType",      TYPE_STRING,   &distType,      false,   0 },
                { "inUse",         TYPE_INT,      &inUse,         true,    0 },
                { "value",         TYPE_FLOAT,    &value,         false,   0 },
+               { "ramp",          TYPE_STRING,   &ramp,          false,   0 },
                { "paramScale",    TYPE_FLOAT,    &paramScale,    false,   0 },
                { "paramLocation", TYPE_FLOAT,    &paramLocation, false,   0 },
                { "paramShape",    TYPE_FLOAT,    &paramShape,    false,   0 },
@@ -1069,6 +1074,27 @@ int ScenarioManager::LoadXml( TiXmlNode *pScenarios, bool appendToExisting )
             else
                {
                pInfo->inUse = inUse ? true : false;
+
+               // intepret ramp string
+               if (ramp != nullptr)
+                  {
+                  float _ramp = 0.0f;
+                  if (ramp[0] == '%') // percentage modifer?
+                     {
+                     float rampCumPct = (float)atof(ramp + 1);
+                     // this is intepreted as the overal percent change 
+                     // over the course of a run
+                     float annualIncr = (value * rampCumPct / 100) / m_pEnvModel->m_yearsToRun;
+                     _ramp = annualIncr;
+                     }
+                  else
+                     {
+                     float annualIncr = (float)atof(ramp);
+                     _ramp = annualIncr;
+                     }
+
+                  pInfo->ramp = _ramp;
+                  }
 
                if (::isdigit(vtype[0]))
                   {

@@ -100,7 +100,7 @@ void RunModel(EnvModel* pModel, int multi)
       pModel->InitModels();
 
    if (multi <= 0)
-      pModel->Run(0);      // don't randomize
+      pModel->Run(SET_NO_RANDOMIZATION);      // don't randomize
    else
       {
       pModel->m_iterationsToRun = multi;
@@ -109,7 +109,7 @@ void RunModel(EnvModel* pModel, int multi)
 
    //try
    //   {
-   //pModel->Run(0);      // don't randomize
+   //pModel->Run(SET_NO_RANDOMIZATION);      // don't randomize
    //   }
    //catch ( EnvFatalException & ex )
    //   {

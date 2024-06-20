@@ -224,7 +224,7 @@ class LIBSAPI BudgetItem
       void  Reset(bool);  // called at the start of each time step - updates value, reset currentValue=0, increments cumulative
       void  ResetCumulative(void) { m_cumulativeCosts = 0; }
       bool  DoesCostExceedBudget(float increment);
-      bool  ApplyCostItem(CostItem* pConstraint, int idu, float area, bool useInitCost);
+      float ApplyCostItem(CostItem* pConstraint, int idu, float area, bool useInitCost);
 
       //SpatialAllocator* m_pSA;
 

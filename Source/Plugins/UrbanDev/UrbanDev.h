@@ -439,6 +439,7 @@ protected:
    int m_colPopDensInit = -1;      // initial population density
    int m_colImpervious = -1;
    int m_colUgaPop = -1;
+   int m_colUpzoned = -1;
 
    // methods
    int UgAddExpandWhen( UgScenario *pScenario, UgExpandWhen *pExpandWhen);

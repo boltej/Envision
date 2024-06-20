@@ -254,10 +254,10 @@ class ENVAPI DataManager
       VDataObj* CalculatePolicyByActorArea(int run = -1);  // returns a newed FDataObj
       VDataObj* CalculatePolicyByActorCount(int run = -1);  // returns a newed IDataObj
 
-      //FDataObj *CalculateLulcTransTable( int run=-1, int level = 1, int year = -1, bool areaBasis = true, bool includeAlps = true );  // returns a newed FDataObj
+      FDataObj *CalculateLulcTransTable( int run=-1, int level = 1, int year = -1, bool areaBasis = true, bool includeAlps = true );  // returns a newed FDataObj
       //FDataObj *CalculateTrendsWeightedByLulcA( int trendCol, double scaler = 1.0, AREA_FACTOR af=AF_IGNORE, int run=-1, bool includeTotal=true );
       FDataObj* CalculateScenarioParametersFreq(int multiRun);
-      FDataObj* CalculateScenarioVulnerability(int multiRun);
+      //FDataObj* CalculateScenarioVulnerability(int multiRun);
       //FDataObj *CalculateDecadalLUStatusVariance( int intMultiRun );
       FDataObj* CalculateFreqTable(FDataObj* pSourceData, int binCount, bool ignoreFirstCol = true);
       //VDataObj *CalculateEvalScoresByLulcA( int year, int run=-1 );

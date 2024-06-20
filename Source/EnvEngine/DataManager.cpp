@@ -2934,149 +2934,149 @@ VDataObj* DataManager::CalculatePolicyByActorCount(int run /* = -1 */)
 // The data object will have a column and row for each lucl class
 // ---------------------------------------------------------------------------------------------------------------
 
-//FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 1*/, int year /*= -1*/, bool areaBasis /*= true*/, bool includeAlps /*= true*/ )
-//   {
-//   int         lulcCount   = m_pEnvModel->m_lulcTree.GetNodeCount( level );
-//   bool        errorInLulc = false;
-//   DeltaArray *pDeltaArray = GetDeltaArray( run );
-//
-//   if ( pDeltaArray == NULL )
-//      return NULL;
-//
-//   CMap< int, int, int, int > lulcMap;
-//
-//   ASSERT( pDeltaArray != NULL );
-//   ASSERT( lulcCount > 0 );
-//
-//   FDataObj *pData = new FDataObj( lulcCount, lulcCount, U_UNDEFINED );
-//   pData->SetName( "Lulc Transition Table" );
-//
-//   int lulcCol;
-//   switch ( level )
-//      {
-//      case 1:
-//         lulcCol = m_pEnvModel->m_colLulcA;
-//         break;
-//      case 2:
-//         lulcCol = m_pEnvModel->m_colLulcB;
-//         break;
-//      case 3:
-//         lulcCol = m_pEnvModel->m_colLulcC;
-//         break;
-//      case 4:
-//         lulcCol = m_pEnvModel->m_colLulcD;
-//         break;
-//      default:
-//         ASSERT(0);
-//      }
-//
-//   LulcNode *pNode = m_pEnvModel->m_lulcTree.GetRootNode();
-//   int index = 0;
-//   while ( pNode != NULL )
-//      {
-//      if ( level == pNode->GetNodeLevel() )
-//         {
-//         CString label;
-//         label.Format( "(%i) %s ", pNode->m_id, (PCTSTR) pNode->m_name );
-//         pData->SetLabel( index, label );
-//         lulcMap.SetAt( pNode->m_id, index );
-//         index++;
-//         }
-//
-//      pNode = m_pEnvModel->m_lulcTree.GetNextNode();
-//      }
-//
-//   ASSERT( index == lulcCount );
-//
-//   // initilize all cells to zero 
-//   for ( int col=0; col<lulcCount; col++ )
-//      {
-//      for ( int row=0; row<lulcCount; row++ )
-//         pData->Set(col,row,0.0f);
-//      }
-//
-//   // set map to initial conditions
-//   UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer );
-//   
-//   // populate transition table cells
-//   INT_PTR from;
-//   INT_PTR to;
-//
-//   if ( year == -1 ) // meaning throughout the run
-//      {
-//      from = 0;
-//      to   = pDeltaArray->GetCount();
-//      }
-//   else  // meaning for a specific year
-//      {
-//      pDeltaArray->GetIndexRangeFromYear( year, from, to );
-//      if ( from != 0 )
-//         m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray, 0, from-1 );   // roll map forward to just prior to given year
-//      }
-//
-//   // iterate through the specified year(s) delta's
-//   for ( INT_PTR i=from; i<to; i++ )
-//      {
-//      DELTA &delta = pDeltaArray->GetAt(i);
-//      m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray, i, i );
-//
-//      if ( delta.col == lulcCol )
-//         {
-//         int fromLulc;
-//         int toLulc;
-//         bool ok; 
-//         ok = delta.oldValue.GetAsInt( fromLulc );
-//         ASSERT(ok);
-//         ok = delta.newValue.GetAsInt( toLulc );
-//         ASSERT(ok);
-//
-//         if ( fromLulc != toLulc )  // ignore redundant changes
-//            {
-//            int row;
-//            int col;
-//            bool ok1 = lulcMap.Lookup( fromLulc, row );
-//            bool ok2 = lulcMap.Lookup( toLulc, col );
-//            if ( ok1 && ok2 )
-//               {
-//               //if ( !( ( includeAlps == FALSE ) && ( delta.type == DT_SUCCESSION ) ) )
-//               //   {
-//                  float v = pData->GetAsFloat( col, row );
-//                  if ( areaBasis )
-//                     {
-//                     float area;
-//                     bool ok = this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, area );
-//                     ASSERT( ok );
-//                     v += area;
-//                     }
-//                  else
-//                     {
-//                     v += 1.0f;
-//                     }
-//                  pData->Set(col, row, v);
-//               //   }
-//               }
-//            else if ( errorInLulc == false )
-//               {
-//               errorInLulc = true;
-//               CString msg;
-//               msg.Format( "Calculating Lulc Transition Table for run %i, idu %i, year %i, level %i.  Undefined LULC value - From: %i  To: %i... Ignoring",
-//                     run, delta.cell, year, level, fromLulc, toLulc );
-//               Report::Log( msg );
-//               }
-//            }
-//         }
-//      }  // end of: for ( i < from; i < to; i++ )
-//
-//   // done interating through delta for this year, roll map back and reset to initial conditions
-//   UINT_PTR _firstUnapplied = pDeltaArray->GetFirstUnapplied( this->m_pEnvModel->m_pIDULayer );
-//
-//   if ( _firstUnapplied > 0 )
-//      m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray, _firstUnapplied-1 );
-//
-//   m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied-1 );      // return map to it's starting state
-//
-//   return pData;
-//   } */
+FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 1*/, int year /*= -1*/, bool areaBasis /*= true*/, bool includeAlps /*= true*/ )
+   {
+   int         lulcCount   = m_pEnvModel->m_lulcTree.GetNodeCount( level );
+   bool        errorInLulc = false;
+   DeltaArray *pDeltaArray = GetDeltaArray( run );
+
+   if ( pDeltaArray == NULL )
+      return NULL;
+
+   CMap< int, int, int, int > lulcMap;
+
+   ASSERT( pDeltaArray != NULL );
+   ASSERT( lulcCount > 0 );
+
+   FDataObj *pData = new FDataObj( lulcCount, lulcCount, U_UNDEFINED );
+   pData->SetName( "Lulc Transition Table" );
+
+   int lulcCol;
+   switch ( level )
+      {
+      case 1:
+         lulcCol = m_pEnvModel->m_colLulcA;
+         break;
+      case 2:
+         lulcCol = m_pEnvModel->m_colLulcB;
+         break;
+      case 3:
+         lulcCol = m_pEnvModel->m_colLulcC;
+         break;
+      case 4:
+         lulcCol = m_pEnvModel->m_colLulcD;
+         break;
+      default:
+         ASSERT(0);
+      }
+
+   LulcNode *pNode = m_pEnvModel->m_lulcTree.GetRootNode();
+   int index = 0;
+   while ( pNode != NULL )
+      {
+      if ( level == pNode->GetNodeLevel() )
+         {
+         CString label;
+         label.Format( "(%i) %s ", pNode->m_id, (PCTSTR) pNode->m_name );
+         pData->SetLabel( index, label );
+         lulcMap.SetAt( pNode->m_id, index );
+         index++;
+         }
+
+      pNode = m_pEnvModel->m_lulcTree.GetNextNode();
+      }
+
+   ASSERT( index == lulcCount );
+
+   // initilize all cells to zero 
+   for ( int col=0; col<lulcCount; col++ )
+      {
+      for ( int row=0; row<lulcCount; row++ )
+         pData->Set(col,row,0.0f);
+      }
+
+   // set map to initial conditions
+   UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer );
+   
+   // populate transition table cells
+   INT_PTR from;
+   INT_PTR to;
+
+   if ( year == -1 ) // meaning throughout the run
+      {
+      from = 0;
+      to   = pDeltaArray->GetCount();
+      }
+   else  // meaning for a specific year
+      {
+      pDeltaArray->GetIndexRangeFromYear( year, from, to );
+      if ( from != 0 )
+         m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray, 0, from-1 );   // roll map forward to just prior to given year
+      }
+
+   // iterate through the specified year(s) delta's
+   for ( INT_PTR i=from; i<to; i++ )
+      {
+      DELTA &delta = pDeltaArray->GetAt(i);
+      m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray, i, i );
+
+      if ( delta.col == lulcCol )
+         {
+         int fromLulc;
+         int toLulc;
+         bool ok; 
+         ok = delta.oldValue.GetAsInt( fromLulc );
+         ASSERT(ok);
+         ok = delta.newValue.GetAsInt( toLulc );
+         ASSERT(ok);
+
+         if ( fromLulc != toLulc )  // ignore redundant changes
+            {
+            int row;
+            int col;
+            bool ok1 = lulcMap.Lookup( fromLulc, row );
+            bool ok2 = lulcMap.Lookup( toLulc, col );
+            if ( ok1 && ok2 )
+               {
+               //if ( !( ( includeAlps == FALSE ) && ( delta.type == DT_SUCCESSION ) ) )
+               //   {
+                  float v = pData->GetAsFloat( col, row );
+                  if ( areaBasis )
+                     {
+                     float area;
+                     bool ok = this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, area );
+                     ASSERT( ok );
+                     v += area;
+                     }
+                  else
+                     {
+                     v += 1.0f;
+                     }
+                  pData->Set(col, row, v);
+               //   }
+               }
+            else if ( errorInLulc == false )
+               {
+               errorInLulc = true;
+               CString msg;
+               msg.Format( "Calculating Lulc Transition Table for run %i, idu %i, year %i, level %i.  Undefined LULC value - From: %i  To: %i... Ignoring",
+                     run, delta.cell, year, level, fromLulc, toLulc );
+               Report::Log( msg );
+               }
+            }
+         }
+      }  // end of: for ( i < from; i < to; i++ )
+
+   // done interating through delta for this year, roll map back and reset to initial conditions
+   UINT_PTR _firstUnapplied = pDeltaArray->GetFirstUnapplied( this->m_pEnvModel->m_pIDULayer );
+
+   if ( _firstUnapplied > 0 )
+      m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray, _firstUnapplied-1 );
+
+   m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied-1 );      // return map to it's starting state
+
+   return pData;
+   }
 
 
 FDataObj* DataManager::CalculateScenarioParametersFreq(int multiRun /*= -1 */)
@@ -3888,6 +3888,14 @@ bool DataManager::ExportRunData(LPCTSTR _path, int run /*=-1*/)   /// Note: run 
       delete pData;
       }
 
+   pData = this->CalculateLulcTransTable();
+   if (pData)
+      {
+      filename.Format("LULC_Trans_Table_%s_Run%i.csv", (LPCTSTR)scname, scrun + m_pEnvModel->m_startRunNumber);
+      ExportDataObject(pData, exportPath, filename);
+      delete pData;
+      }
+
    return true;
    }
 
@@ -4090,7 +4098,7 @@ int DataManager::ImportMultiRunData(LPCTSTR path, int multirun /* =-1 */)
    // position should now point to the start of the scenario name
    Scenario* pScenario = m_pEnvModel->m_pScenarioManager->GetScenario(scenario + position);
    ASSERT(pScenario != NULL);
-   pScenario->SetScenarioVars(true);
+   pScenario->SetScenarioVars(SET_WITH_RANDOMIZATION);
 
    // find index of scenario used in multi run for UI setup and scenario configuration 
    int runScenario = -1;

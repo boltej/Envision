@@ -40,8 +40,13 @@ bool ENVAPI NormalizeWeights( float &w0, float &w1, float &w2, float &w3, float 
 
 enum VTYPE { V_UNKNOWN=0, V_SYSTEM=1, V_META=2, V_MODEL=4, V_AP=8, V_APPVAR=16 }; // must be powers of 2
 
-const int  V_ALL  (int( V_META | V_MODEL | V_AP | V_APPVAR | V_SYSTEM));
+const int  V_ALL = (int(V_META | V_MODEL | V_AP | V_APPVAR | V_SYSTEM));
 
+enum RUNFLAG { SET_NO_RANDOMIZATION = 0, SET_WITH_RANDOMIZATION = 1, SET_EXCEPT_NO_SENSITIVITY };
+// runFlag:  0 = set scenario variables, no randomization (uses paramLocation)
+//           1 = set scenario variable, using randomization if variable is defined as random
+//          -1 = set scenario variable EXCEPT any whose "useInSensitivity" flags are 
+//               set to -1, no randomization
 
 // SCENARIO_VAR's describe scenario variables.  They include
 // a pointer to an underlying variable tht depends on its type.
@@ -59,6 +64,7 @@ public:
    MODEL_DISTR distType;
    Rand *pRand;      // random number generator
    VData defaultValue;
+   float ramp = 0;   // annual increment from base value
    VData paramLocation; // Note: also stores ID for policies, values for consts
    VData paramScale;
    VData paramShape;
@@ -214,7 +220,7 @@ public:
    int    m_runCount;          // how many times has this scenario been run?
 
    void Initialize();
-   int  SetScenarioVars( int runFlag );   // see envModel.cpp for runFlag definition
+   int  SetScenarioVars( RUNFLAG runFlag );   // see envModel.cpp for runFlag definition
 
    int GetScenarioVarCount( int type=V_ALL, bool inUseOnly=false );
    SCENARIO_VAR &GetScenarioVar( int i ) { return m_scenarioVarArray[ i ]; }

@@ -1840,7 +1840,7 @@ void CEnvDoc::RunModel()
 
    //try
    //   {
-   m_model.Run( 0 );      // don't randomize
+   m_model.Run(SET_NO_RANDOMIZATION);      // don't randomize
    //   }
    //catch ( EnvFatalException & ex )
    //   {

@@ -221,14 +221,14 @@ bool BudgetItem::DoesCostExceedBudget(float costIncrement)
 
 // ApplyCostItem() applies a given CostItem to this BudgetItem,
 // subtracting the specified cost from the global pool 
-bool BudgetItem::ApplyCostItem(CostItem* pCostItem, int idu, float area, bool useInitCost)
+float BudgetItem::ApplyCostItem(CostItem* pCostItem, int idu, float area, bool useInitCost)
    {
    bool ok = true;
 
    switch (m_type)
       {
       case BT_UNKNOWN:
-         return false;
+         return 0;
 
       case BT_RESOURCE_LIMIT:
          {
@@ -241,11 +241,11 @@ bool BudgetItem::ApplyCostItem(CostItem* pCostItem, int idu, float area, bool us
             ok = pCostItem->GetMaintenanceCost(idu, area, cost);
 
          if (!ok)
-            return false;
+            return 0;
 
          // generating a return?  Then ignore
          if (cost <= 0 && this->m_addReturnsToBudget == false)
-            return true;
+            return 0;
 
          if (useInitCost)
             {
@@ -268,19 +268,19 @@ bool BudgetItem::ApplyCostItem(CostItem* pCostItem, int idu, float area, bool us
       case BT_MAX_AREA:
          m_costs += area;
          m_cumulativeCosts += area;
-         return true;
+         return area;
 
       case BT_MAX_COUNT:
          m_costs += 1;
          m_cumulativeCosts++;
-         return true;
+         return 1;
 
       default:
          ASSERT(0);
-         return false;
+         return 0;
       }
 
-   return false;
+   return 0;
    }
 
 

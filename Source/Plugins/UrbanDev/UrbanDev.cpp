@@ -1495,7 +1495,7 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
    TiXmlElement* pXmlUGAExpansions = pXmlRoot->FirstChildElement(_T("uga_growth"));
    if (pXmlUGAExpansions != NULL)
       {
-      LPTSTR method = LPTSTR("nearest"), ugaCol = LPTSTR("UGA"), popCapCol = NULL, availCapCol = NULL, zoneCol = NULL, distCol = NULL,
+      LPTSTR method = LPTSTR("nearest"), ugaCol = LPTSTR("UGA"), upzoned = LPTSTR("UPZONED"), popCapCol = NULL, availCapCol = NULL, zoneCol = NULL, distCol = NULL,
          urbanPopAvailCol = NULL, nearUgaCol = NULL, priorityCol = NULL, eventCol = NULL, imperviousCol = NULL, ugaPopCol = NULL;
 
       XML_ATTR uxAttrs[] = {
@@ -1512,6 +1512,7 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
          { "event_col",      TYPE_STRING, &eventCol,      false,  CC_AUTOADD | TYPE_LONG },
          { "impervious_col", TYPE_STRING, &imperviousCol, false,  CC_AUTOADD | TYPE_FLOAT },
          { "uga_pop_col",    TYPE_STRING, &ugaPopCol,     false,  CC_AUTOADD | TYPE_FLOAT },
+         { "upzoned",        TYPE_STRING, &upzoned,       false,  CC_AUTOADD | TYPE_INT },
          { NULL,             TYPE_NULL,   NULL,           false,   0 } };
 
       ok = TiXmlGetAttributes(pXmlUGAExpansions, uxAttrs, filename, pLayer);
@@ -1532,6 +1533,9 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
       this->m_colUgEvent = pLayer->GetFieldCol(eventCol);
       this->m_colUgNearUga = pLayer->GetFieldCol(nearUgaCol);
       this->m_colUgNearDist = pLayer->GetFieldCol(distCol);
+      this->m_colUpzoned = pLayer->GetFieldCol(upzoned);
+
+      pLayer->SetColData(this->m_colUpzoned, 0, true);
 
       // optional fields
       if (priorityCol)
@@ -2474,6 +2478,10 @@ bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContex
          // update the kernel IDU
          UpdateIDU(pContext, idu, m_colUgEvent, pUGA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
          UpdateIDU(pContext, idu, m_colZone, newZone, ADD_DELTA);
+
+         if (this->m_colUpzoned >= 0)
+            UpdateIDU(pContext, idu, m_colUpzoned, 1, ADD_DELTA);
+
          float area = 0;
          pIDULayer->GetData(idu, m_colArea, area);
          addedPop += popDelta * area;

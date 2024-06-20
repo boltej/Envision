@@ -316,7 +316,7 @@ void Sandbox::CalculateGoalScores(EnvPolicy* pPolicy, bool* useMetagoalArray /*=
 
    // Step 2 - run autonomous processes
    ASSERT(m_pScenario != NULL);
-   m_pScenario->SetScenarioVars(false);
+   m_pScenario->SetScenarioVars(SET_WITH_RANDOMIZATION);
    //InitRun();     // sets m_resetInfo.doReset = false, set it to true here by default
    m_runStatus = RS_RUNNING;
 
@@ -446,7 +446,7 @@ void Sandbox::CalculateGoalScores(CArray<EnvPolicy*>& schedPolicy, EnvPolicy* pP
    ApplyDeltaArray(gpCellLayer);   // for any policy applications
    // Step 2 - run autonomous processes
    ASSERT(m_pScenario != NULL);
-   m_pScenario->SetScenarioVars(false);
+   m_pScenario->SetScenarioVars(SET_NO_RANDOMIZATION);
    m_runStatus = RS_RUNNING;
 
    gpMain->SetRunProgressRange(0, m_yearsToRun);

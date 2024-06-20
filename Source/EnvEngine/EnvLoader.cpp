@@ -55,10 +55,10 @@ using namespace nsPath;
 
 
 EnvLoader::EnvLoader( void )
-: m_pMap( NULL )
-, m_pIDULayer( NULL )
-, m_pEnvModel( NULL )
-, m_pQueryEngine( NULL )
+: m_pMap( nullptr )
+, m_pIDULayer( nullptr )
+, m_pEnvModel( nullptr )
+, m_pQueryEngine( nullptr )
    {
    }
 
@@ -69,19 +69,19 @@ EnvLoader::~EnvLoader()
    }
 
 
-int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MAPPROC mapFn/*=NULL*/ )
+int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MAPPROC mapFn/*=nullptr*/ )
    {
    //AFX_MANAGE_STATE(AfxGetStaticModuleState());
    m_pMap    = pMap;
    m_pEnvModel  = pEnvModel;
    
-   ASSERT( m_pMap      != NULL );
-   ASSERT( m_pEnvModel != NULL );
+   ASSERT( m_pMap      != nullptr );
+   ASSERT( m_pEnvModel != nullptr );
 
    //???Check
-   //Report::errorMsgProc  = NULL; // ErrorReportProc;
-   //Report::statusMsgProc = NULL; // StatusMsgProc;
-   //Report::reportFlag    = NULL; // ERF_CALLBACK;      // disable onscreen messageboxes while loading
+   //Report::errorMsgProc  = nullptr; // ErrorReportProc;
+   //Report::statusMsgProc = nullptr; // StatusMsgProc;
+   //Report::reportFlag    = nullptr; // ERF_CALLBACK;      // disable onscreen messageboxes while loading
 
      //???Check
    //Clear();
@@ -93,7 +93,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    // first, ENVISION.EXE executable directory
    TCHAR _path[ MAX_PATH ] = {0};  // e.g. _path = "D:\Envision\src\x64\Debug\Envision.exe"
    _path[0] = NULL;
-   int count = GetModuleFileName( NULL, _path, MAX_PATH );
+   int count = GetModuleFileName( nullptr, _path, MAX_PATH );
 
    if ( count == 0 )
       return -1;
@@ -124,7 +124,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    Report::OpenFile( logFile );
 
    // third, the IDU path - this is determined below
-   LPCTSTR paths = NULL;
+   LPCTSTR paths = nullptr;
 
    bool cellLayerInitialized = false;
    //TCHAR actorInitArgs[ 128 ];
@@ -150,13 +150,13 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    TiXmlElement *pXmlRoot = doc.RootElement();
 
    double ver = 0;
-   LPCTSTR exportBmpCol = NULL;
+   LPCTSTR exportBmpCol = nullptr;
    int logMsgLevel = 0;
     
    pXmlRoot->Attribute( "ver", &ver );
    
    TiXmlElement *pXmlSettings = pXmlRoot->FirstChildElement( _T("settings") );
-   if ( pXmlSettings == NULL )
+   if ( pXmlSettings == nullptr )
       Report::ErrorMsg( _T("Error finding <settings> section reading project file" ) );
    else
       {
@@ -189,11 +189,11 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
       int collectPolicyData = 1;
       int discardMultiRunDeltas = 0;
       int startRunNumber = 0;
-      LPCTSTR fieldInfoFiles       = NULL;
-      LPCTSTR exportBmpCols        = NULL;
-      LPCTSTR exportDeltaFieldList = NULL;
-      LPCTSTR constraints          = NULL; 
-      LPCTSTR _mapUnits            = NULL;
+      LPCTSTR fieldInfoFiles       = nullptr;
+      LPCTSTR exportBmpCols        = nullptr;
+      LPCTSTR exportDeltaFieldList = nullptr;
+      LPCTSTR constraints          = nullptr; 
+      LPCTSTR _mapUnits            = nullptr;
 
       XML_ATTR attrs[] = 
          { // attr                             type        address                  isReq checkCol
@@ -249,7 +249,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          return -2;
 
       //???Check
-      //if ( constraints != NULL )
+      //if ( constraints != nullptr )
       //   this->m_constraintArray.Add( constraints );  // NEEDS WORK!!!!!! - multiple constraints, check quer
          
       m_pEnvModel->m_shuffleActorIDUs = shuffleActorPolys ? true : false;
@@ -297,7 +297,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
       m_pEnvModel->m_exportDeltas  = exportDeltas > 0 ? true : false;
       m_pEnvModel->m_discardMultiRunDeltas = discardMultiRunDeltas ? true : false;
 
-      if ( exportDeltaFieldList != NULL )
+      if ( exportDeltaFieldList != nullptr )
          m_pEnvModel->m_exportDeltaFields;
 
       m_pEnvModel->m_collectPolicyData = collectPolicyData;
@@ -338,10 +338,10 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          TCHAR *fiFile = _tcstok_s( buffer, _T(",\n"), &next );
 
          //???Check
-         //while ( fiFile != NULL )
+         //while ( fiFile != nullptr )
          //   {
          //   m_fieldInfoFileArray.Add( fiFile );
-         //   fiFile = _tcstok_s( NULL, _T( ",\n" ), &next );
+         //   fiFile = _tcstok_s( nullptr, _T( ",\n" ), &next );
          //   }
          }
 #endif
@@ -349,19 +349,19 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          Report::ErrorMsg("Invalid actorInitialization flag in .envx file - must be 0-4");
 
       m_pEnvModel->m_pActorManager->m_actorInitMethod = (ACTOR_INIT_METHOD) aim;
-      }  // end of: else ( pSettings != NULL )
+      }  // end of: else ( pSettings != nullptr )
 
    // next - layers
    TiXmlElement *pXmlLayers = pXmlRoot->FirstChildElement( _T("layers") );
 
-   if ( pXmlLayers == NULL )
+   if ( pXmlLayers == nullptr )
       Report::ErrorMsg( _T("Error finding <layers> section reading project file" ) );
    else
       {
       // iterate through layers
       TiXmlElement *pXmlLayer = pXmlLayers->FirstChildElement( _T("layer") );
 
-      while ( pXmlLayer != NULL )
+      while ( pXmlLayer != nullptr )
          {
          int type = -1;
          int data = 1;
@@ -373,7 +373,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          LPCTSTR color = _T("140,140,140");    // lt gray
          LPCTSTR labelColor = _T("255,255,255");     // white
          LPCTSTR labelFont="Arial";
-         LPCTSTR name=NULL, path=NULL, initField=NULL, overlayFields=NULL, fieldInfoFile=NULL, labelField=NULL, labelQuery=NULL;
+         LPCTSTR name=nullptr, path=nullptr, initField=nullptr, overlayFields=nullptr, fieldInfoFile=nullptr, labelField=nullptr, labelQuery=nullptr;
 
          XML_ATTR layerAttrs[] = 
             { // attr                 type        address                    isReq checkCol
@@ -413,7 +413,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             }
          
          bool loadFieldInfo = true;
-         if ( fieldInfoFile != NULL && fieldInfoFile[ 0 ] != '\0' )
+         if ( fieldInfoFile != nullptr && fieldInfoFile[ 0 ] != '\0' )
             loadFieldInfo = false;
          
          int layerIndex = LoadLayer( m_pMap, name, path, (AML_TYPE) type, red, green, blue, 0, records, initField, overlayFields, loadFieldInfo, expandLegend ? true : false, output );
@@ -452,7 +452,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             msg.Format("Created Spatial Index (RTree) in %.2f seconds",(float) duration);
             Report::LogInfo(msg);
 
-            if ( m_pEnvModel->m_spatialIndexDistance > 0 && m_pIDULayer->LoadSpatialIndex( NULL, (float) m_pEnvModel->m_spatialIndexDistance ) < 0 )
+            if ( m_pEnvModel->m_spatialIndexDistance > 0 && m_pIDULayer->LoadSpatialIndex( nullptr, (float) m_pEnvModel->m_spatialIndexDistance ) < 0 )
                {
 #ifdef BUILD_ENVISION
                SpatialIndexDlg dlg;
@@ -463,12 +463,12 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
                   m_pEnvModel->m_spatialIndexDistance = dlg.m_maxDistance;
 #endif
                Report::LogInfo("Starting Spatial Index Build");
-               if ( mapFn != NULL )
+               if ( mapFn != nullptr )
                   m_pIDULayer->m_pMap->InstallNotifyHandler(mapFn, (LONG_PTR)this);
 
-               m_pIDULayer->CreateSpatialIndex(NULL, 10000, (float) m_pEnvModel->m_spatialIndexDistance, SIM_NEAREST);
+               m_pIDULayer->CreateSpatialIndex(nullptr, 10000, (float) m_pEnvModel->m_spatialIndexDistance, SIM_NEAREST);
 
-               if( mapFn != NULL )
+               if( mapFn != nullptr )
                   m_pIDULayer->m_pMap->RemoveNotifyHandler(mapFn, (LONG_PTR)this);
 
                Report::LogInfo("Saving Spatial Index...");
@@ -515,7 +515,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
          MapLayer *pMapLayer = pMap->GetLayer( layerIndex );
 
          // take care of labels stuff
-         if ( labelField != NULL )
+         if ( labelField != nullptr )
             {
             int labelCol = pMapLayer->GetFieldCol( labelField );
 
@@ -542,21 +542,21 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
                pMapLayer->ShowLabels();
 
-               if ( labelQuery != NULL )
+               if ( labelQuery != nullptr )
                   pMapLayer->m_labelQueryStr = labelQuery;
                }
             }
 
-         if ( fieldInfoFile != NULL && fieldInfoFile[ 0 ] != NULL )
+         if ( fieldInfoFile != nullptr && fieldInfoFile[ 0 ] != NULL )
             pMapLayer->LoadFieldInfoXml( fieldInfoFile, layerIndex == 0 );
          
          // look for any join tables defined for this layer
          TiXmlElement *pXmlJoinTable = pXmlLayer->FirstChildElement( _T("join_table") );
-         while ( pXmlJoinTable != NULL )
+         while ( pXmlJoinTable != nullptr )
             {
-            LPTSTR path      = NULL;
-            LPTSTR layerCol  = NULL;
-            LPTSTR joinCol   = NULL;
+            LPTSTR path      = nullptr;
+            LPTSTR layerCol  = nullptr;
+            LPTSTR joinCol   = nullptr;
             XML_ATTR joinAttrs[] = {
                // attr         type           address   isReq  checkCol
                { "path",       TYPE_STRING,  &path,     true,   0 },
@@ -619,7 +619,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
       // done loading layer, load background if defined
       //<layers bkgr='\Envision\StudyAreas\WW2100\transformed_warped_ww2100.tif' left='' top='' right='' bottom=''>
-      LPTSTR bkgrPath=NULL, left=NULL, top=NULL, right=NULL, bottom=NULL, prjFile=NULL;
+      LPTSTR bkgrPath=nullptr, left=nullptr, top=nullptr, right=nullptr, bottom=nullptr, prjFile=nullptr;
       // any additional layers info provided?
 	   XML_ATTR layersAttrs[] = {
          // attr         type           address   isReq  checkCol
@@ -634,7 +634,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
       ok = TiXmlGetAttributes( pXmlLayers, layersAttrs, filename );
       if ( ok )
          {
-         if ( bkgrPath != NULL )
+         if ( bkgrPath != nullptr )
             {
             REAL _left, _top, _right, _bottom;
             m_pIDULayer->GetExtents( _left, _right, _bottom, _top );
@@ -665,7 +665,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
       }
 
    // IDU loaded, so process path setting if anything defined
-   if ( paths != NULL )
+   if ( paths != nullptr )
       {
       m_pEnvModel->m_searchPaths = paths;
 
@@ -675,10 +675,10 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
       // parse the path, adding as you go.
       LPTSTR next;
       TCHAR *token = _tcstok_s( buffer, _T(",;|"), &next );
-      while ( token != NULL )
+      while ( token != nullptr )
          {
          PathManager::AddPath( token );
-         token = _tcstok_s( NULL, _T( ",;|" ), &next );
+         token = _tcstok_s( nullptr, _T( ",;|" ), &next );
          }
 
       delete [] buffer;
@@ -704,12 +704,12 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 #ifdef BUILD_ENVISION
    // visualizers
    TiXmlElement *pVisualizers = pXmlRoot->FirstChildElement( _T("visualizers") );
-   if ( pVisualizers != NULL )
+   if ( pVisualizers != nullptr )
       {
       // iterate through layers
       TiXmlElement *pViz = pVisualizers->FirstChildElement( _T("visualizer") );
 
-      while ( pViz != NULL )
+      while ( pViz != nullptr )
          {
          LPCTSTR name     = pViz->Attribute( _T("name") );
          LPCTSTR path     = pViz->Attribute( _T("path") );
@@ -740,18 +740,19 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
    // next - app vars
    TiXmlElement *pXmlAppVars = pXmlRoot->FirstChildElement( _T("app_vars") );
-   if ( pXmlAppVars != NULL )
+   if ( pXmlAppVars != nullptr )
       {
       // iterate through layers
       TiXmlElement *pXmlAppVar = (TiXmlElement*) pXmlAppVars->FirstChildElement( _T("app_var") );
 
-      while ( pXmlAppVar != NULL )
+      while ( pXmlAppVar != nullptr )
          {
-         LPCTSTR name  = NULL;
-         LPCTSTR desc  = NULL;
-         LPCTSTR value = NULL;
-         LPCTSTR col = NULL;
+         LPCTSTR name  = nullptr;
+         LPCTSTR desc  = nullptr;
+         LPCTSTR value = nullptr;
+         LPCTSTR col = nullptr;
          int timing = 3;
+         LPCTSTR ramp = nullptr;
 
          XML_ATTR appVarAttrs[] = 
             { // attr          type        address    isReq checkCol
@@ -760,19 +761,14 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             { "value",       TYPE_STRING,   &value,    true,  0 },
             { "fieldname",   TYPE_STRING,   &col,      false,  CC_AUTOADD },
             { "timing",      TYPE_INT,      &timing,   false,  0 },
+            { "ramp",        TYPE_STRING,   &ramp,     false,  0 },
             { NULL,          TYPE_NULL,     NULL,      false,  0 } };
   
          bool ok = TiXmlGetAttributes( pXmlAppVar, appVarAttrs, filename, m_pIDULayer );
 
-         if ( name == NULL )
+         if ( name == nullptr )
             {
-            CString msg;
-            //if ( name != NULL )
-            //   msg.Format( _T("Error reading <app_var> '%s': missing value attribute" ), name );
-            //else
-               msg = _T("Error reading <app_var>: missing name attribute" );
-
-            Report::ErrorMsg( msg );
+            Report::ErrorMsg(_T("Error reading <app_var>: missing name attribute"));
             }
          else
             {
@@ -780,7 +776,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
             pVar->m_avType = AVT_APP;
             
-            //if ( value != NULL && value[ 0 ] != NULL )      // note: timing = 1 until set below
+            //if ( value != nullptr && value[ 0 ] != nullptr )      // note: timing = 1 until set below
             //   pVar->Evaluate();
 
             pVar->m_timing = timing;
@@ -788,24 +784,46 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             if ( pVar->m_timing == -1 ) // hack for now
                pVar->SetValue( VData( (float) atof( value ) ) );
 
+            // intepret ramp string
+            if (ramp != nullptr)
+               {
+               float _ramp = 0.0f;
+               if (ramp[0] == '%') // percentage modifer?
+                  {
+                  float _value = (float)atof(value);
+                  float rampCumPct = (float)atof(ramp + 1);
+                  // this is intepreted as the overal percent change 
+                  // over the course of a run
+                  float annualIncr = (_value * rampCumPct / 100) / m_pEnvModel->m_yearsToRun;
+                  _ramp = annualIncr;
+                  }
+               else
+                  {
+                  float annualIncr = (float)atof(ramp);
+                  _ramp = annualIncr;
+                  }
+
+               pVar->m_ramp = _ramp;
+               }
+
             m_pEnvModel->AddAppVar( pVar, true );    // create and evaluate using map expression evaluator
             }
 
          pXmlAppVar = pXmlAppVar->NextSiblingElement( _T("app_var" ) );
          }
-      }  // end of: if ( pAppVars != NULL )
+      }  // end of: if ( pAppVars != nullptr )
 
 
    // next - autonomous processes
    TiXmlElement *pXmlModels = pXmlRoot->FirstChildElement( _T("models") );
-   if ( pXmlModels == NULL )
+   if ( pXmlModels == nullptr )
       Report::ErrorMsg( _T("Error finding <models> section reading project file" ) );
    else
       {
       // iterate through layers
       TiXmlElement *pXmlModel = pXmlModels->FirstChildElement( _T("model") );
  
-      while ( pXmlModel != NULL )
+      while ( pXmlModel != nullptr )
          {
          int id = 0;
          int use = 1;
@@ -873,14 +891,14 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
 	// next - evaluators
 	TiXmlElement *pXmlEvaluators = pXmlRoot->FirstChildElement(_T("evaluators"));
-   if (pXmlEvaluators == NULL)
+   if (pXmlEvaluators == nullptr)
       ; //  Report::ErrorMsg(_T("Error finding <evaluators> section reading project file"));
 	else
 		{
 		// iterate through layers
 		TiXmlElement *pXmlEvaluator = pXmlEvaluators->FirstChildElement(_T("evaluator"));
 
-		while (pXmlEvaluator != NULL)
+		while (pXmlEvaluator != nullptr)
 			{
 			int id = 0;
 			int use = 1;
@@ -916,7 +934,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             { _T("imageURL"),          TYPE_CSTRING,  &imageURL,           false,   0 },
             { NULL,                    TYPE_NULL,     NULL,                false,   0 } };
 
-         ok = TiXmlGetAttributes(pXmlEvaluator, attrs, filename, NULL);
+         ok = TiXmlGetAttributes(pXmlEvaluator, attrs, filename, nullptr);
          if (!ok)
             {
             CString msg;
@@ -952,20 +970,20 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
 	// next - metagoals
    TiXmlElement *pXmlMetagoals = pXmlRoot->FirstChildElement( _T("metagoals") );
-   if ( pXmlMetagoals == NULL )
+   if ( pXmlMetagoals == nullptr )
       Report::ErrorMsg( _T("Error finding <metagoals> section reading project file" ) );
    else
       {
       // iterate through layers
       TiXmlElement *pXmlMetagoal = pXmlMetagoals->FirstChildElement( _T("metagoal") );
  
-      while ( pXmlMetagoal != NULL )
+      while ( pXmlMetagoal != nullptr )
          {
          int decisionUse = 1;
          LPCTSTR name = pXmlMetagoal->Attribute( _T("name") );
          LPCTSTR model = pXmlMetagoal->Attribute( _T("model") );
          pXmlMetagoal->Attribute( _T("decision_use"), &decisionUse );
-         EnvEvaluator *pModel = NULL;
+         EnvEvaluator *pModel = nullptr;
 
          if ( decisionUse <= 0 || decisionUse > 3 )
             {
@@ -978,11 +996,11 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
          if ( decisionUse & DU_ALTRUISM )
             {
-            if ( model == NULL )  // look for corresponding model
+            if ( model == nullptr )  // look for corresponding model
                model = name;
 
             pModel = m_pEnvModel->FindEvaluatorInfo( model );
-            if ( pModel == NULL )
+            if ( pModel == nullptr )
                {
                CString msg( _T( "Error finding evalative model <") );
                msg += model;
@@ -1013,11 +1031,11 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    m_pEnvModel->InitModels();     // EnvContext gets set up here
 
    // basic setting loaded, take care of everything else
-   if ( m_pIDULayer == NULL )
+   if ( m_pIDULayer == nullptr )
       return -4;
    
    // fixup exportBmpCol is needed
-   //if ( exportBmpCol != NULL )
+   //if ( exportBmpCol != nullptr )
    //   this->m_exportBmpCol = m_pIDULayer->GetFieldCol( exportBmpCol );    
 
    //for ( int i=0; i < m_fieldInfoFileArray.GetSize(); i++ )
@@ -1025,7 +1043,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
    //   CString msg( "Loading Field Information File: " );
    //   msg += m_fieldInfoFileArray[ i ];
    //   Report::StatusMsg( msg );
-   //   LoadFieldInfoXml( NULL, m_fieldInfoFileArray[ i ] );
+   //   LoadFieldInfoXml( nullptr, m_fieldInfoFileArray[ i ] );
    //   }
 
    Report::StatusMsg( "Finished loading Field Information - Reconciling data types..." );
@@ -1066,11 +1084,11 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 #ifdef BUILD_ENVISION
 
    TiXmlElement *pXmlViews = pXmlRoot->FirstChildElement( _T("views") );
-   if ( pXmlViews != NULL )
+   if ( pXmlViews != nullptr )
       {
       TiXmlElement *pXmlPage = pXmlViews->FirstChildElement( _T("page") );
 
-      while ( pXmlPage != NULL )
+      while ( pXmlPage != nullptr )
          {
          LPTSTR name;
          XML_ATTR pageAttrs[] = {
@@ -1091,9 +1109,9 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             RtViewPage *pPage = gpView->m_viewPanel.AddPage( name );
             TiXmlElement *pXmlElement = pXmlPage->FirstChildElement( _T("element") );
       
-            while ( pXmlElement != NULL )
+            while ( pXmlElement != nullptr )
                {
-               LPTSTR name=NULL, type=NULL, col=NULL;
+               LPTSTR name=nullptr, type=nullptr, col=nullptr;
                int left=0, top=0, right=0, bottom=0;
 
                XML_ATTR elemAttrs[] = {
@@ -1115,7 +1133,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
                   if ( *type == 'v' )
                      t = RTVT_VISUALIZER;
 
-                  RtViewWnd *pView = NULL;
+                  RtViewWnd *pView = nullptr;
                   CRect rect( left, top, right, bottom );
                   switch( t )
                      {
@@ -1139,7 +1157,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
          pXmlPage = pXmlPage->NextSiblingElement( _T("page") );
          }
-      }  // end of: if ( pXmlView != NULL );
+      }  // end of: if ( pXmlView != nullptr );
 
 #endif
 
@@ -1147,15 +1165,15 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
    // next, Zooms
    TiXmlElement *pXmlZooms = pXmlRoot->FirstChildElement( _T("zooms") );
-   if ( pXmlZooms != NULL )
+   if ( pXmlZooms != nullptr )
       {
       LPCTSTR defaultZoom = pXmlZooms->Attribute( "default" );
       
       TiXmlElement *pXmlZoom = pXmlZooms->FirstChildElement( _T("zoom") );
 
-      while ( pXmlZoom != NULL )
+      while ( pXmlZoom != nullptr )
          {
-         LPTSTR name = NULL;
+         LPTSTR name = nullptr;
 
          float xMin, yMin, xMax, yMax;
 
@@ -1180,7 +1198,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             // process page
             int index = gpView->AddZoom( name, xMin, yMin, xMax, yMax );
 
-            if ( defaultZoom != NULL && lstrcmp( defaultZoom, name ) == 0 )
+            if ( defaultZoom != nullptr && lstrcmp( defaultZoom, name ) == 0 )
                {
                gpView->m_pDefaultZoom = gpView->GetZoomInfo( index );
                gpView->SetZoom( index );
@@ -1189,17 +1207,17 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
          pXmlZoom = pXmlZoom->NextSiblingElement( _T("zoom") );
          }
-      }  // end of: if ( pXmlZoom != NULL );
+      }  // end of: if ( pXmlZoom != nullptr );
 #endif
 
    // next, probes
    /*
    TiXmlNode *pXmlProbes = pXmlRoot->FirstChild( _T("probes") );
-   if ( pXmlProbes != NULL )
+   if ( pXmlProbes != nullptr )
       {
       TiXmlNode *pXmlProbe = pXmlProbes->FirstChild( "probe" );
 
-      while ( pXmlProbe != NULL )
+      while ( pXmlProbe != nullptr )
          {
          LPCTSTR type;
          int id;
@@ -1221,7 +1239,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
             {
             EnvPolicy *pPolicy = m_pPolicyManager->GetPolicyFromID( id );
 
-            if ( pPolicy == NULL )
+            if ( pPolicy == nullptr )
                {
                CString msg; 
                msg.Format( _T("Unable to probe policy '%i' reading %s - this probe will be ignored"),
@@ -1315,13 +1333,13 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
    // postrun commands
    TiXmlElement *pXmlPostRun = pXmlRoot->FirstChildElement( _T("postrun") );
-   if ( pXmlPostRun != NULL )
+   if ( pXmlPostRun != nullptr )
       {
       TiXmlElement *pXmlCmd = pXmlPostRun->FirstChildElement( _T("cmd") );
 
-      while ( pXmlCmd != NULL )
+      while ( pXmlCmd != nullptr )
          {
-         LPTSTR cmd = NULL;
+         LPTSTR cmd = nullptr;
 
          XML_ATTR cmdAttrs[] = {
             // attr      type          address    isReq  checkCol
@@ -1342,7 +1360,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
          pXmlCmd = pXmlCmd->NextSiblingElement( _T("cmd") );
          }
-      }  // end of: if ( pXmlPostRun != NULL );
+      }  // end of: if ( pXmlPostRun != nullptr );
 
    // reset output path to correct directory for output
    // output directory (e.g. "C:\Envision\MyStudyArea\MyIDU\Outputs\<scenarioName>\" )
@@ -1353,7 +1371,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 
    // make sure directory exists
 #ifndef NO_MFC
-   SHCreateDirectoryEx( NULL, outputPath, NULL );
+   SHCreateDirectoryEx( nullptr, outputPath, nullptr );
 #else
          mkdir(outputPath,S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 #endif
@@ -1395,7 +1413,7 @@ int EnvLoader::LoadProject( LPCTSTR filename, Map *pMap, EnvModel *pEnvModel, MA
 int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type,  int red, int green, int blue, int extraCols, int records, LPCTSTR initField, LPCTSTR overlayFields, bool loadFieldInfo, bool expandLegend, int output )
    {
    m_pMap = pMap;
-   ASSERT ( m_pMap != NULL );
+   ASSERT ( m_pMap != nullptr );
    int layerIndex = m_pMap->GetLayerCount();
 
    // if first map, add extra cols for models
@@ -1404,7 +1422,7 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
    // note: ExtraCols will be set to not save by default
    MapLayer *pLayer = AddMapLayer( path, type, extraCols, records, loadFieldInfo, expandLegend, output );
 
-   if ( pLayer != NULL )      // map successfully added?
+   if ( pLayer != nullptr )      // map successfully added?
       {
       // add in any other relevent information
       pLayer->m_name = name;
@@ -1415,7 +1433,7 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
          if ( pLayer->GetActiveField() < 0 )
             pLayer->SetActiveField( 0 );
 
-         ASSERT( pLayer->m_pDbTable != NULL );
+         ASSERT( pLayer->m_pDbTable != nullptr );
          }
 
       CString msg( "Success loaded map layer: " );
@@ -1423,7 +1441,7 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
       Report::Log( msg );
 
       // is an overlay layer is defined, set it up
-      if ( overlayFields != NULL )
+      if ( overlayFields != nullptr )
          {
          pLayer->m_overlayFields = overlayFields;
          /*
@@ -1444,7 +1462,7 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
             else
                {
                MapLayer *pOverlay = pMap->CreatePointOverlay( pLayer, overlayCol ); 
-               if ( pOverlay == NULL )
+               if ( pOverlay == nullptr )
                   {
                   CString msg( "Unable to create Overlay layer [" );
                   msg += overlay;
@@ -1495,15 +1513,15 @@ int EnvLoader::LoadLayer( Map *pMap, LPCTSTR name, LPCTSTR path, AML_TYPE type, 
 MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, int records, bool loadFieldInfo, bool expandLegend, int output )
    {
    // add the layer to the map
-   ASSERT( m_pMap != NULL );
-   if ( m_pMap == NULL )
-      return NULL;
+   ASSERT( m_pMap != nullptr );
+   if ( m_pMap == nullptr )
+      return nullptr;
 
   // VData::m_useWideChar = false;
 // ESRI DBF strings are often double byte...kbv 02/09/2010
    VData::SetUseWideChar( true );
 
-   MapLayer *pLayer = NULL;
+   MapLayer *pLayer = nullptr;
 
    CString path;
    PathManager::FindPath( _path, path );
@@ -1534,7 +1552,7 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
          {
          pLayer = m_pMap->AddShapeLayer( path, records ? true : false, extraCols, records );
          
-         if ( pLayer != NULL && loadFieldInfo )
+         if ( pLayer != nullptr && loadFieldInfo )
             {
             // add a field info file if one exists
             nsPath::CPath fiPath( path );
@@ -1557,7 +1575,7 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
          break;
       }
 
-   if ( pLayer != NULL )
+   if ( pLayer != nullptr )
       {
       pLayer->m_expandLegend = expandLegend;
       pLayer->m_output = output;
@@ -1566,7 +1584,7 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
       msg.Format( "Loaded layer %s: %i (%i) columns, %i rows", (PCTSTR) path, pLayer->GetColCount(), pLayer->m_pData->GetColCount(), pLayer->GetRowCount() );
       Report::Log( msg );
       }
-   else  // pLayer = NULL
+   else  // pLayer = nullptr
       {
       CString msg( "Unable to load Map Layer " );
       msg += path;
@@ -1576,9 +1594,9 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
 
       if ( gpView->MessageBox( msg, "Layer Not Found", MB_YESNO ) == IDYES )
          {
-         char *cwd = _getcwd( NULL, 0 );
+         char *cwd = _getcwd( nullptr, 0 );
 
-         CFileDialog dlg( TRUE, NULL, path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
+         CFileDialog dlg( TRUE, nullptr, path, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT,
                "Shape files|*.shp|Grid Files|*.grd|Grid Files|*.flt|Grid Files|*.asc|All files|*.*||");
 
          if ( dlg.DoModal() == IDOK )
@@ -1594,7 +1612,7 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
          free( cwd );
          }
 #endif
-      }  // end of: if ( pLayer == NULL )
+      }  // end of: if ( pLayer == nullptr )
 
 
    m_pMap->m_name = path;
@@ -1606,7 +1624,7 @@ MapLayer *EnvLoader::AddMapLayer( LPCTSTR _path, AML_TYPE type, int extraCols, i
 bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCTSTR description, LPCTSTR imageURL, int id, int use, int showInResults, LPCTSTR initInfo, LPCTSTR dependencyNames)
    {
    HINSTANCE hDLL = LOAD_LIBRARY(path);
-   if (hDLL == NULL)
+   if (hDLL == nullptr)
       {
       CString msg("Unable to find ");
       msg += path;
@@ -1656,7 +1674,7 @@ bool EnvLoader::LoadEvaluator(EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, L
 bool EnvLoader::LoadModel( EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCTSTR description, LPCTSTR imageURL, int id, int use, int timing, LPCTSTR initInfo, LPCTSTR dependencyNames)
    {
    HINSTANCE hDLL = LOAD_LIBRARY( path ); 
-   if ( hDLL == NULL )
+   if ( hDLL == nullptr )
       {
       CString msg( "Unable to find " );
       msg += path;
@@ -1709,7 +1727,7 @@ bool EnvLoader::LoadModel( EnvModel *pEnvModel, LPCTSTR name, LPCTSTR path, LPCT
 bool EnvLoader::LoadExtension( LPCTSTR name, LPCTSTR path, LPCTSTR description, LPCTSTR imageURL, int modelID, int use, int showInResults, int decisionUse, int useCol, LPCTSTR fieldname, LPCTSTR initInfo, float gain, float offset )
    {/*
    HINSTANCE hDLL = LOAD_LIBRARY( path ); 
-   if ( hDLL == NULL )
+   if ( hDLL == nullptr )
       {
       CString msg( "Unable to find " );
       msg += path;
@@ -1758,7 +1776,7 @@ bool EnvLoader::LoadExtension( LPCTSTR name, LPCTSTR path, LPCTSTR description, 
 bool EnvLoader::LoadVisualizer(LPCTSTR name, LPCTSTR path, LPCTSTR description, LPCTSTR imageURL, int use, int type, int vizID, LPCTSTR initInfo)
    {/*
    HINSTANCE hDLL = LOAD_LIBRARY( path ); 
-   if ( hDLL == NULL )
+   if ( hDLL == nullptr )
       {
       CString msg( "Unable to find " );
       msg += path;
@@ -1806,11 +1824,11 @@ void EnvLoader::SetDependencies( void )
          // parse buffer
          // Establish string and get the first token:
          LPTSTR modelName = _tcstok_s( buffer, _T(" ,;"), &nextToken ); // C4996
-         while( modelName != NULL )
+         while( modelName != nullptr )
             {
             EnvEvaluator *pDependency = m_pEnvModel->FindEvaluatorInfo( modelName );
 
-            if ( pDependency == NULL )
+            if ( pDependency == nullptr )
                {
                CString msg;
                msg.Format( _T("Unable to find dependency <%s> specified for model %s"), modelName, (LPCTSTR) pInfo->m_name );
@@ -1819,7 +1837,7 @@ void EnvLoader::SetDependencies( void )
             else
                tempArray.Add( pInfo );
 
-            modelName = _tcstok_s( NULL, _T(" ,;"), &nextToken );
+            modelName = _tcstok_s( nullptr, _T(" ,;"), &nextToken );
             }
          }
 
@@ -1845,11 +1863,11 @@ void EnvLoader::SetDependencies( void )
          // parse buffer
          // Establish string and get the first token:
          LPTSTR apName = _tcstok_s( buffer, _T(" ,;"), &nextToken ); // C4996
-         while( apName != NULL )
+         while( apName != nullptr )
             {
             EnvModelProcess *pDependency = m_pEnvModel->FindModelProcessInfo( apName );
 
-            if ( pDependency == NULL )
+            if ( pDependency == nullptr )
                {
                CString msg;
                msg.Format( _T("Unable to find dependency <%s> specified for autonomous process %s"), apName, (LPCTSTR) pInfo->m_name );
@@ -1858,7 +1876,7 @@ void EnvLoader::SetDependencies( void )
             else
                tempArray.Add( pInfo );
 
-            apName = _tcstok_s( NULL, _T(" ,;"), &nextToken );
+            apName = _tcstok_s( nullptr, _T(" ,;"), &nextToken );
             }
          }
 
@@ -1893,11 +1911,11 @@ void EnvLoader::InitVisualizers()
       {
       ENV_VISUALIZER *pInfo = m_pEnvModel->GetVisualizerInfo( i );
 
-      if ( pInfo->m_use && pInfo->initFn != NULL )
+      if ( pInfo->m_use && pInfo->initFn != nullptr )
          {
          INITFN initFn = pInfo->initFn;
 
-         if ( initFn != NULL )
+         if ( initFn != nullptr )
             {
             CString msg = "Initializing ";
             msg += pInfo->m_name;
@@ -1925,7 +1943,7 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
 
    // handle GDAL path
    size_t requiredSize;
-   _tgetenv_s(&requiredSize, NULL, 0, "PATH");
+   _tgetenv_s(&requiredSize, nullptr, 0, "PATH");
 
    // Get the value of the PATH environment variable.
    TCHAR *path = new TCHAR[requiredSize + 256];
@@ -1941,7 +1959,7 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
    
    TCHAR exePath[MAX_PATH] = { 0 };  // e.g. _path = "D:\Envision\src\x64\Debug\Envision.exe"
    exePath[0] = NULL;
-   int count = GetModuleFileName(NULL, exePath, MAX_PATH);  // c:\users\boltej\winapps
+   int count = GetModuleFileName(nullptr, exePath, MAX_PATH);  // c:\users\boltej\winapps
 
    if (count == 0)
       return -1;
@@ -1972,7 +1990,7 @@ int EnvLoader::AddGDALPath(LPCTSTR envPath)
       Report::LogInfo("Envision is running as a Desktop Windows Application");
 
    // set GDAL path if needed
-   if (isWinApp == false && _tcsstr(path, "GDAL") == NULL)    // no GDAL in path?
+   if (isWinApp == false && _tcsstr(path, "GDAL") == nullptr)    // no GDAL in path?
       {
       CString gdalPath;
       if (_envRootPath.Find("Debug") >= 0 || _envRootPath.Find("Release") >= 0) // developer machine?

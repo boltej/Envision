@@ -40,7 +40,7 @@ EnvModel:Run()
 
 class AcuteHazards;
 
-enum AH_STATUS { AHS_PRE_EVENT, AHS_POST_EVENT};
+enum AH_STATUS { AHS_PRE_EVENT, AHS_POST_EVENT };
 
 
 class AHEvent
@@ -59,8 +59,8 @@ class AHEvent
       //CString m_pyTransModulePath;
       //CString m_pyTransModuleName;
       //CString m_pyTransFunction;
-      
-      AcuteHazards *m_pAHModel;
+
+      AcuteHazards* m_pAHModel;
 
       int m_use;          // scenario variable
 
@@ -69,7 +69,7 @@ class AHEvent
       VDataObj m_earthquakeData;  // results table
       VDataObj m_tsunamiData;  // results table
 
-      AHEvent() 
+      AHEvent()
          : m_year(-1)
          , m_status(AHS_PRE_EVENT)
          , m_pAHModel(nullptr)
@@ -77,8 +77,8 @@ class AHEvent
          , m_earthquakeData(U_UNDEFINED)
          , m_tsunamiData(U_UNDEFINED) {}
 
-      bool Run(EnvContext *pEnvContext);
-      bool Propagate(EnvContext *pEnvContext);
+      bool Run(EnvContext* pEnvContext);
+      bool Propagate(EnvContext* pEnvContext);
    };
 
 
@@ -101,22 +101,22 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       ~AcuteHazards(void);
 
       // override API Methods
-      bool Init(EnvContext *pEnvContext, LPCTSTR initStr);
-      bool InitRun(EnvContext *pEnvContext, bool useInitialSeed);
-      bool Run(EnvContext *pContext);
+      bool Init(EnvContext* pEnvContext, LPCTSTR initStr);
+      bool InitRun(EnvContext* pEnvContext, bool useInitialSeed);
+      bool Run(EnvContext* pContext);
 
    protected:
       // we'll add model code here as needed
 
-      void UpdateBldgType(EnvContext*);
+      void UpdateBldgType(EnvContext*, bool useDelta);
       bool InitPython();
-      bool Update(EnvContext *pEnvContext);
+      bool Update(EnvContext* pEnvContext);
 
       bool LoadXml(EnvContext*, LPCTSTR filename);
 
       // member data (from XML)
       CString m_pythonPath;
-            
+
       PtrArray<AHEvent> m_events;
 
       RandLogNormal m_randLogNormal;

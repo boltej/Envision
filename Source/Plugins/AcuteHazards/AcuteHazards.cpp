@@ -12,14 +12,19 @@
 #include <EnvConstants.h>
 
 #include <direct.h>
-
 #ifdef _DEBUG
 #undef _DEBUG
-#include "C:/Program Files/Python312/include/Python.h"
+#include <python.h>
 #define _DEBUG
 #else
 #include <Python.h>
 #endif
+
+
+
+
+
+
 
 
 #ifdef _DEBUG
@@ -27,7 +32,7 @@
 #endif
 
 
-extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new AcuteHazards; }
+extern "C" _EXPORT EnvExtension * Factory(EnvContext*) { return (EnvExtension*) new AcuteHazards; }
 
 void CaptureException();
 
@@ -37,9 +42,9 @@ void CaptureException();
 
 // C function extending python for capturing stdout from python
 // = spam_system in docs
-static PyObject *Redirection_stdoutredirect(PyObject *self, PyObject *args)
+static PyObject* Redirection_stdoutredirect(PyObject* self, PyObject* args)
    {
-   const char *str;
+   const char* str;
    if (!PyArg_ParseTuple(args, "s", &str))
       return NULL;
 
@@ -82,7 +87,7 @@ PyMODINIT_FUNC PyInit_redirection(void)
 
 
 
-bool AHEvent::Run(EnvContext *pEnvContext)
+bool AHEvent::Run(EnvContext* pEnvContext)
    {
    // basic idea: run an earthquake and tsunami model for this event.
    // Steps include:
@@ -95,8 +100,8 @@ bool AHEvent::Run(EnvContext *pEnvContext)
    //   5) clean up python references
 
    // save the data
-   MapLayer *pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-   pIDULayer->SaveDataDB(this->m_envOutputPath, NULL );   // save entire IDU as DBF.  
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+   pIDULayer->SaveDataDB(this->m_envOutputPath, NULL);   // save entire IDU as DBF.  
 
 
    //////////////////////////////////////////////////////////////////
@@ -123,7 +128,7 @@ bool AHEvent::Run(EnvContext *pEnvContext)
 
    CString path = PathManager::GetPath(PM_PROJECT_DIR);
    path += "Hazus";
-   _chdir((LPCTSTR) path);
+   _chdir((LPCTSTR)path);
    //_chdir("/Envision/StudyAreas/OrCoast/Hazus");
 
    // add hazus path to system path
@@ -132,9 +137,9 @@ bool AHEvent::Run(EnvContext *pEnvContext)
    int retVal = PyRun_SimpleString(code);
 
    // load model python code 
-   PyObject *pName = PyUnicode_DecodeFSDefault((LPCTSTR)this->m_pyModuleName);   // "e.g. "test1" (no .py)
-   PyObject *pModule = NULL;
-   
+   PyObject* pName = PyUnicode_DecodeFSDefault((LPCTSTR)this->m_pyModuleName);   // "e.g. "test1" (no .py)
+   PyObject* pModule = NULL;
+
    try
       {
       pModule = PyImport_Import(pName);
@@ -150,7 +155,7 @@ bool AHEvent::Run(EnvContext *pEnvContext)
       }
 
    Py_DECREF(pName);
-   
+
    if (pModule == nullptr)
       CaptureException();
 
@@ -160,17 +165,17 @@ bool AHEvent::Run(EnvContext *pEnvContext)
       CString msg("Acute Hazards:  Running Python module ");
       msg += this->m_pyModuleName;
       Report::Log(msg);
-      
+
       // pDict is a borrowed reference 
-      PyObject *pDict = PyModule_GetDict(pModule);
+      PyObject* pDict = PyModule_GetDict(pModule);
       //pFunc is also a borrowed reference
-      PyObject *pFunc = PyObject_GetAttrString(pModule, (LPCTSTR)this->m_pyFunction);
+      PyObject* pFunc = PyObject_GetAttrString(pModule, (LPCTSTR)this->m_pyFunction);
       if (pFunc && PyCallable_Check(pFunc))
          {
-         PyObject* pEqScenario    = PyUnicode_FromString((LPCTSTR)this->m_earthquakeScenario);
-         PyObject* pTsuScenario   = PyUnicode_FromString((LPCTSTR)this->m_tsunamiScenario);
-         PyObject* pInDBFPath     = PyUnicode_FromString((LPCTSTR)this->m_envOutputPath);
-         PyObject* pOutEqCSVPath  = PyUnicode_FromString((LPCTSTR)this->m_earthquakeInputPath);
+         PyObject* pEqScenario = PyUnicode_FromString((LPCTSTR)this->m_earthquakeScenario);
+         PyObject* pTsuScenario = PyUnicode_FromString((LPCTSTR)this->m_tsunamiScenario);
+         PyObject* pInDBFPath = PyUnicode_FromString((LPCTSTR)this->m_envOutputPath);
+         PyObject* pOutEqCSVPath = PyUnicode_FromString((LPCTSTR)this->m_earthquakeInputPath);
          PyObject* pOutTsuCSVPath = PyUnicode_FromString((LPCTSTR)this->m_tsunamiInputPath);
 
          // call the python entry point
@@ -199,8 +204,8 @@ bool AHEvent::Run(EnvContext *pEnvContext)
 
          Py_DECREF(pEqScenario);
          Py_DECREF(pTsuScenario);
-         Py_DECREF(pInDBFPath  );
-         Py_DECREF(pOutEqCSVPath );
+         Py_DECREF(pInDBFPath);
+         Py_DECREF(pOutEqCSVPath);
          Py_DECREF(pOutTsuCSVPath);
          }
       else
@@ -219,14 +224,14 @@ bool AHEvent::Run(EnvContext *pEnvContext)
    _getcwd(cwd, 512);
 
    _chdir(cwd);
-   
+
    return true;
    }
 
 // Propagate() is called ONCE when the event first runs.
 // It uses the Hazus Data returns from the model run and
 // and translates it into the IDUs in Envision
-bool AHEvent::Propagate(EnvContext *pEnvContext)
+bool AHEvent::Propagate(EnvContext* pEnvContext)
    {
    //---------------------
    // Building Damage
@@ -256,7 +261,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
    // find the CSV column associated with each statistic type
    for (int i = 0; i < eqColInfos.GetSize(); i++)
       {
-      HazDataColInfo *pInfo =  eqColInfos[i];
+      HazDataColInfo* pInfo = eqColInfos[i];
       pInfo->col = this->m_earthquakeData.GetCol(pInfo->field);
       ASSERT(pInfo->col >= 0);
       }
@@ -318,7 +323,7 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       // was the building damaged? Then set repair time in IDUs
       if (damageIndex > 0)
          {
-         float timeToRepair=0;
+         float timeToRepair = 0;
          if (damageIndexEq > damageIndexTsu)
             timeToRepair = m_earthquakeData.GetAsFloat(eqColInfos[HMI_REP_TIME]->col, idu);
          else
@@ -345,13 +350,13 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
             //float repairCost = impValue * repCostFrac / 1000000.0f;  // M$, since that's what the budget is
             float repCostM = repCost / 1000000.0f;  // M$, since that's what the budget is
             m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairCost, repCostM, ADD_DELTA);
-            } 
-         
+            }
+
          // habitable
-         float randVal = (float) m_pAHModel->m_randUniform.RandValue();   // 0-1
+         float randVal = (float)m_pAHModel->m_randUniform.RandValue();   // 0-1
          float pHab = m_earthquakeData.GetAsFloat(eqColInfos[HMI_HABITABLE]->col, idu);
 
-         int habitable = (randVal >= pHab) ? 0 : 1;    
+         int habitable = (randVal >= pHab) ? 0 : 1;
          m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduHabitable, habitable, ADD_DELTA);
          }  // end of: if ( damageIndex > 0 )
 
@@ -368,11 +373,11 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
       //
       //m_pAHModel->m_numCasTotal += casTotal;
       float injuriesEQ = m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASFTLY]->col, idu);  // people
-      float fatalitiesEQ= m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASINJY]->col, idu);
+      float fatalitiesEQ = m_earthquakeData.GetAsFloat(eqColInfos[HMI_CASINJY]->col, idu);
       float injuriesTSU = m_tsunamiData.GetAsFloat(tsuColInfos[HMI_CASFTLY]->col, idu);  // people
       float fatalitiesTSU = m_tsunamiData.GetAsFloat(tsuColInfos[HMI_CASINJY]->col, idu);
       float injuries = injuriesEQ + injuriesTSU;
-      float fatalities= fatalitiesEQ + fatalitiesTSU;
+      float fatalities = fatalitiesEQ + fatalitiesTSU;
 
       m_pAHModel->m_numInjuries += injuries;
       m_pAHModel->m_numFatalities += fatalities;
@@ -380,135 +385,135 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
 
       m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduInjuries, injuries, ADD_DELTA);
       m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduFatalities, fatalities, ADD_DELTA);
-      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduCasualties, injuries+fatalities, ADD_DELTA);
+      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduCasualties, injuries + fatalities, ADD_DELTA);
       }  // end of: for each IDU
 
    return true;
 
 
-/////   //---------------------
-/////   // Earthquake first
-/////   //---------------------
-/////   // grab input file generated from damage model (csv)
-/////   Report::Log("Acute Hazards: reading building damage parameter file");
-/////   this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
-/////
-/////   // pull out needed columns
-/////   PtrArray<HazDataColInfo> eqColInfos;
-/////   eqColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
-/////   eqColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
-/////   eqColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
-/////   eqColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
-/////   eqColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
-/////   eqColInfos.Add(new HazDataColInfo{ "DS",  -1 });
-/////
-/////   // find the CSV column associated with each statistic type
-/////   for (int i = 0; i < eqColInfos.GetSize(); i++)
-/////      {
-/////      HazDataColInfo *pInfo =  eqColInfos[i];
-/////
-/////      pInfo->col = this->m_earthquakeData.GetCol(pInfo->field);
-/////      ASSERT(pInfo->col >= 0);
-/////      }
-/////
-/////   //---------------------
-/////   // Repeat for TSUNAMI
-/////   //---------------------
-/////
-/////   Report::Log("Acute Hazards: reading building damage parameter file");
-/////   this->m_tsunamiData.ReadAscii(this->m_tsunamiInputPath, ',', 0);
-/////
-/////   // pull out needed columns
-/////   PtrArray<HazDataColInfo> tsuColInfos;
-/////   tsuColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
-/////   tsuColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
-/////   tsuColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
-/////   tsuColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
-/////   tsuColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
-/////   tsuColInfos.Add(new HazDataColInfo{ "DS",  -1 });
-/////
-/////   // find the CSV column associated with each statistic type
-/////   for (int i = 0; i < tsuColInfos.GetSize(); i++)
-/////      {
-/////      HazDataColInfo* pInfo = tsuColInfos[i];
-/////
-/////      pInfo->col = this->m_tsunamiData.GetCol(pInfo->field);
-/////      ASSERT(pInfo->col >= 0);
-/////      }
-/////
-/////   // iterate through IDUs, populating data on hazard states as needed
-/////   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-/////   int idus = pIDULayer->GetRowCount();
-/////   ASSERT(idus == m_earthquakeData.GetRowCount());
-/////   ASSERT(idus == m_tsunamiData.GetRowCount());
-/////
-/////   enum HAZARD_METRIC_INDEX { HMI_P_DS0, HMI_REP_TIME_MU0, HMI_REP_TIME_STD0, HMI_REP_COST_DR0, HMI_HAB_0, HMI_DS };
-/////   int currentYear = pEnvContext->currentYear;
-/////
-/////   // we'll start with damage state
-/////   for (int idu = 0; idu < idus; idu++)
-/////      {
-/////      int damageIndexEq = (int) m_earthquakeData.Get(eqColInfos[HMI_DS]->col, idu);
-/////      int damageIndexTsu = (int) m_tsunamiData.Get(tsuColInfos[HMI_DS]->col, idu);
-/////      damageIndexTsu--;  // TEMPORARY
-/////      int damageIndex = max(damageIndexEq, damageIndexTsu);
-/////      if (damageIndexEq == damageIndexTsu && damageIndex < 4)
-/////         damageIndex++;
-/////
-/////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageEq, damageIndexEq, ADD_DELTA);
-/////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageTsu, damageIndexTsu, ADD_DELTA);
-/////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamage, damageIndex, ADD_DELTA);
-/////
-/////      // was the building damaged? Then set repair time in IDUs
-/////      if (damageIndex > 0)
-/////         {
-/////         float mean=0, std = 0,timeToRepair=0;
-/////         if (damageIndexEq > damageIndexTsu)
-/////            {
-/////            mean = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
-/////            std = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
-/////            }
-/////         else
-/////            {
-/////            mean = m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
-/////            std =  m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
-/////            }
-/////
-/////         timeToRepair = (float)m_pAHModel->m_randLogNormal.RandValue(mean, std);  // TEMPORARY
-/////         int yearsToRepair = int(timeToRepair / 365);
-/////         //yearsToRepair++;    // round up
-/////         // for time to restore, we populate the following fields:
-/////         // IDU field "REPAIR_YRS" (int) - put the year the building will be restored
-/////         // IDU field "BLDG_STATUS" (int) - put the year the building status (0=normal, 1=being restored, 2=uninhabitable)
-/////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairYrs, yearsToRepair, ADD_DELTA);
-/////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgStatus, 1, ADD_DELTA);
-/////
-/////         // repair costs
-/////         float repCostFrac = m_earthquakeData.Get(eqColInfos[HMI_REP_COST_DR0]->col + damageIndex, idu);
-/////
-/////         ASSERT(repCostFrac > 0);
-/////         if (repCostFrac > 0)
-/////            {
-/////            ASSERT(repCostFrac < 1);
-/////            // for time to restore, we populate the following fields:
-/////            // IDU field "BD_REPAIR" (float) - cost of any repair ($1000's of $)
-/////            float impValue = 0;
-/////            pIDULayer->GetData(idu, m_pAHModel->m_colIduImprValue, impValue);
-/////            float repairCost = impValue * repCostFrac / 1000000.0f;  // M$, since that's what the budget is
-/////            m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairCost, repairCost, ADD_DELTA);
-/////            } 
-/////         
-/////         // habitable
-/////         float randVal = (float) m_pAHModel->m_randUniform.RandValue();
-/////         float pHab = m_earthquakeData.Get(eqColInfos[HMI_HAB_0]->col + damageIndex, idu);
-/////
-/////         int habitable = (randVal >= pHab) ? 0 : 1;    
-/////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduHabitable, habitable, ADD_DELTA);
-/////         }  // end of: if ( damageIndex > 0 )
-/////
-/////      }  // end of: for each IDU
-/////   
-/////   return true;
+   /////   //---------------------
+   /////   // Earthquake first
+   /////   //---------------------
+   /////   // grab input file generated from damage model (csv)
+   /////   Report::Log("Acute Hazards: reading building damage parameter file");
+   /////   this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
+   /////
+   /////   // pull out needed columns
+   /////   PtrArray<HazDataColInfo> eqColInfos;
+   /////   eqColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
+   /////   eqColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
+   /////   eqColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
+   /////   eqColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
+   /////   eqColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
+   /////   eqColInfos.Add(new HazDataColInfo{ "DS",  -1 });
+   /////
+   /////   // find the CSV column associated with each statistic type
+   /////   for (int i = 0; i < eqColInfos.GetSize(); i++)
+   /////      {
+   /////      HazDataColInfo *pInfo =  eqColInfos[i];
+   /////
+   /////      pInfo->col = this->m_earthquakeData.GetCol(pInfo->field);
+   /////      ASSERT(pInfo->col >= 0);
+   /////      }
+   /////
+   /////   //---------------------
+   /////   // Repeat for TSUNAMI
+   /////   //---------------------
+   /////
+   /////   Report::Log("Acute Hazards: reading building damage parameter file");
+   /////   this->m_tsunamiData.ReadAscii(this->m_tsunamiInputPath, ',', 0);
+   /////
+   /////   // pull out needed columns
+   /////   PtrArray<HazDataColInfo> tsuColInfos;
+   /////   tsuColInfos.Add(new HazDataColInfo{ "P_DS_0", -1 });
+   /////   tsuColInfos.Add(new HazDataColInfo{ "rep_time_mu_0", -1 });
+   /////   tsuColInfos.Add(new HazDataColInfo{ "rep_time_std_0", -1 });
+   /////   tsuColInfos.Add(new HazDataColInfo{ "rep_cost_DR_0",  -1 });
+   /////   tsuColInfos.Add(new HazDataColInfo{ "hab_0",  -1 });
+   /////   tsuColInfos.Add(new HazDataColInfo{ "DS",  -1 });
+   /////
+   /////   // find the CSV column associated with each statistic type
+   /////   for (int i = 0; i < tsuColInfos.GetSize(); i++)
+   /////      {
+   /////      HazDataColInfo* pInfo = tsuColInfos[i];
+   /////
+   /////      pInfo->col = this->m_tsunamiData.GetCol(pInfo->field);
+   /////      ASSERT(pInfo->col >= 0);
+   /////      }
+   /////
+   /////   // iterate through IDUs, populating data on hazard states as needed
+   /////   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+   /////   int idus = pIDULayer->GetRowCount();
+   /////   ASSERT(idus == m_earthquakeData.GetRowCount());
+   /////   ASSERT(idus == m_tsunamiData.GetRowCount());
+   /////
+   /////   enum HAZARD_METRIC_INDEX { HMI_P_DS0, HMI_REP_TIME_MU0, HMI_REP_TIME_STD0, HMI_REP_COST_DR0, HMI_HAB_0, HMI_DS };
+   /////   int currentYear = pEnvContext->currentYear;
+   /////
+   /////   // we'll start with damage state
+   /////   for (int idu = 0; idu < idus; idu++)
+   /////      {
+   /////      int damageIndexEq = (int) m_earthquakeData.Get(eqColInfos[HMI_DS]->col, idu);
+   /////      int damageIndexTsu = (int) m_tsunamiData.Get(tsuColInfos[HMI_DS]->col, idu);
+   /////      damageIndexTsu--;  // TEMPORARY
+   /////      int damageIndex = max(damageIndexEq, damageIndexTsu);
+   /////      if (damageIndexEq == damageIndexTsu && damageIndex < 4)
+   /////         damageIndex++;
+   /////
+   /////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageEq, damageIndexEq, ADD_DELTA);
+   /////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageTsu, damageIndexTsu, ADD_DELTA);
+   /////      m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamage, damageIndex, ADD_DELTA);
+   /////
+   /////      // was the building damaged? Then set repair time in IDUs
+   /////      if (damageIndex > 0)
+   /////         {
+   /////         float mean=0, std = 0,timeToRepair=0;
+   /////         if (damageIndexEq > damageIndexTsu)
+   /////            {
+   /////            mean = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
+   /////            std = m_earthquakeData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
+   /////            }
+   /////         else
+   /////            {
+   /////            mean = m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_MU0]->col + damageIndex, idu);
+   /////            std =  m_tsunamiData.Get(eqColInfos[HMI_REP_TIME_STD0]->col + damageIndex, idu);
+   /////            }
+   /////
+   /////         timeToRepair = (float)m_pAHModel->m_randLogNormal.RandValue(mean, std);  // TEMPORARY
+   /////         int yearsToRepair = int(timeToRepair / 365);
+   /////         //yearsToRepair++;    // round up
+   /////         // for time to restore, we populate the following fields:
+   /////         // IDU field "REPAIR_YRS" (int) - put the year the building will be restored
+   /////         // IDU field "BLDG_STATUS" (int) - put the year the building status (0=normal, 1=being restored, 2=uninhabitable)
+   /////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairYrs, yearsToRepair, ADD_DELTA);
+   /////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgStatus, 1, ADD_DELTA);
+   /////
+   /////         // repair costs
+   /////         float repCostFrac = m_earthquakeData.Get(eqColInfos[HMI_REP_COST_DR0]->col + damageIndex, idu);
+   /////
+   /////         ASSERT(repCostFrac > 0);
+   /////         if (repCostFrac > 0)
+   /////            {
+   /////            ASSERT(repCostFrac < 1);
+   /////            // for time to restore, we populate the following fields:
+   /////            // IDU field "BD_REPAIR" (float) - cost of any repair ($1000's of $)
+   /////            float impValue = 0;
+   /////            pIDULayer->GetData(idu, m_pAHModel->m_colIduImprValue, impValue);
+   /////            float repairCost = impValue * repCostFrac / 1000000.0f;  // M$, since that's what the budget is
+   /////            m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduRepairCost, repairCost, ADD_DELTA);
+   /////            } 
+   /////         
+   /////         // habitable
+   /////         float randVal = (float) m_pAHModel->m_randUniform.RandValue();
+   /////         float pHab = m_earthquakeData.Get(eqColInfos[HMI_HAB_0]->col + damageIndex, idu);
+   /////
+   /////         int habitable = (randVal >= pHab) ? 0 : 1;    
+   /////         m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduHabitable, habitable, ADD_DELTA);
+   /////         }  // end of: if ( damageIndex > 0 )
+   /////
+   /////      }  // end of: for each IDU
+   /////   
+   /////   return true;
    }
 
 
@@ -517,31 +522,31 @@ bool AHEvent::Propagate(EnvContext *pEnvContext)
 ///////////////////////////////////////////////////////
 
 AcuteHazards::AcuteHazards(void)
-      : m_randLogNormal(1, 1, 0)
-      , m_randNormal(1, 1, 0)
-      , m_randUniform(0.0, 1.0, 0)
-      , m_colIduRepairYrs(-1)
-      , m_colIduBldgStatus(-1)
-      , m_colIduRepairCost(-1)
-      , m_colIduHabitable(-1)
-      , m_colIduBldgDamage(-1)
-      , m_colIduBldgDamageEq(-1)
-      , m_colIduBldgDamageTsu(-1)
-      , m_colIduImprValue(-1)
-      //, m_annualRepairCosts(0)
-      , m_nUninhabitableStructures(0)
-      , m_nDamaged(0)
-      , m_nDamaged2(0)
-      , m_nDamaged3(0)
-      , m_nDamaged4(0)
-      , m_nDamaged5(0)
-      , m_bldgsRepaired(0)
-      , m_bldgsBeingRepaired(0)
-      , m_totalBldgs(0)
-      , m_nInhabitableStructures(0)
-      , m_pctInhabitableStructures(0)
-      , m_nFunctionalBldgs(0)
-      , m_pctFunctionalBldgs(0)
+   : m_randLogNormal(1, 1, 0)
+   , m_randNormal(1, 1, 0)
+   , m_randUniform(0.0, 1.0, 0)
+   , m_colIduRepairYrs(-1)
+   , m_colIduBldgStatus(-1)
+   , m_colIduRepairCost(-1)
+   , m_colIduHabitable(-1)
+   , m_colIduBldgDamage(-1)
+   , m_colIduBldgDamageEq(-1)
+   , m_colIduBldgDamageTsu(-1)
+   , m_colIduImprValue(-1)
+   //, m_annualRepairCosts(0)
+   , m_nUninhabitableStructures(0)
+   , m_nDamaged(0)
+   , m_nDamaged2(0)
+   , m_nDamaged3(0)
+   , m_nDamaged4(0)
+   , m_nDamaged5(0)
+   , m_bldgsRepaired(0)
+   , m_bldgsBeingRepaired(0)
+   , m_totalBldgs(0)
+   , m_nInhabitableStructures(0)
+   , m_pctInhabitableStructures(0)
+   , m_nFunctionalBldgs(0)
+   , m_pctFunctionalBldgs(0)
    { }
 
 AcuteHazards::~AcuteHazards(void)
@@ -551,28 +556,28 @@ AcuteHazards::~AcuteHazards(void)
    }
 
 // override API Methods
-bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
+bool AcuteHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
    bool ok = LoadXml(pEnvContext, initStr);
    if (!ok)
       return FALSE;
 
-   MapLayer *pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
    // make sure necesary columns exist
-   this->CheckCol(pIDULayer, m_colIduImprValue,  "IMPR_VALUE", TYPE_INT,   CC_MUST_EXIST);
-   this->CheckCol(pIDULayer, m_colIduRepairYrs,  "REPAIR_YRS", TYPE_INT,   CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colIduBldgStatus, "BLDGSTATUS", TYPE_INT,   CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduImprValue, "IMPR_VALUE", TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(pIDULayer, m_colIduRepairYrs, "REPAIR_YRS", TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduBldgStatus, "BLDGSTATUS", TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduRepairCost, "REPAIRCOST", TYPE_FLOAT, CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colIduHabitable,  "HABITABLE",  TYPE_INT,   CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colIduBldgDamage, "BLDGDAMAGE", TYPE_INT,   CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduHabitable, "HABITABLE", TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduBldgDamage, "BLDGDAMAGE", TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduBldgDamageEq, "BLDGDMGEQ", TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduBldgDamageTsu, "BLDGDMGTS", TYPE_INT, CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colIduRemoved,    "REMOVED",     TYPE_INT, CC_MUST_EXIST);
-   this->CheckCol(pIDULayer, m_colIduCasualties, "CASUALTIES",  TYPE_INT, CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colIduInjuries,   "INJURIES",    TYPE_INT, CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colIduFatalities, "FATALITIES",  TYPE_INT, CC_AUTOADD);
-   this->CheckCol(pIDULayer, m_colBldgType,      "BLDGTYPE", TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduRemoved, "REMOVED", TYPE_INT, CC_MUST_EXIST);
+   this->CheckCol(pIDULayer, m_colIduCasualties, "CASUALTIES", TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduInjuries, "INJURIES", TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colIduFatalities, "FATALITIES", TYPE_INT, CC_AUTOADD);
+   this->CheckCol(pIDULayer, m_colBldgType, "BLDGTYPE", TYPE_INT, CC_AUTOADD);
 
    // initialize column info
    pIDULayer->SetColData(m_colIduRepairYrs, VData(-1), true);
@@ -590,7 +595,7 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    // add input variables
    for (int i = 0; i < m_events.GetSize(); i++)
       {
-      AHEvent *pEvent = m_events[i];
+      AHEvent* pEvent = m_events[i];
       CString label = pEvent->m_name + "_use";
       this->AddInputVar((LPCTSTR)label, pEvent->m_use, "");
 
@@ -613,20 +618,18 @@ bool AcuteHazards::Init(EnvContext *pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("Bldgs Repaired", m_bldgsRepaired, "");
    this->AddOutputVar("Bldgs Being Repaired", m_bldgsBeingRepaired, "");
    // life safety
-   this->AddOutputVar("Casualties", m_numCasualities, "" );
-   this->AddOutputVar("Fatalities", m_numFatalities, "" );
-   this->AddOutputVar("Injuries", m_numInjuries, "" );
+   this->AddOutputVar("Casualties", m_numCasualities, "");
+   this->AddOutputVar("Fatalities", m_numFatalities, "");
+   this->AddOutputVar("Injuries", m_numInjuries, "");
 
-
-
-   UpdateBldgType();
+   UpdateBldgType(pEnvContext, false);
 
    InitPython();
 
    return TRUE;
    }
 
-bool AcuteHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
+bool AcuteHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    {
    // reset annual output variables
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
@@ -655,13 +658,13 @@ bool AcuteHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    m_totalBldgs = 0;
    m_nFunctionalBldgs = 0;
    m_pctFunctionalBldgs = 0;
- 
+
    int idus = pIDULayer->GetRowCount();
    for (int idu = 0; idu < idus; idu++)
       {
       float imprValue = 0;
       pIDULayer->GetData(idu, m_colIduImprValue, imprValue);
-      
+
       if (imprValue > 10000)
          m_totalBldgs++;
 
@@ -670,7 +673,7 @@ bool AcuteHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
       m_nFunctionalBldgs = m_totalBldgs;
       m_pctFunctionalBldgs = 1.0f;
       }
- 
+
    // run any scheduled events
    for (int i = 0; i < m_events.GetSize(); i++)
       m_events[i]->m_status = AHS_PRE_EVENT;
@@ -678,13 +681,13 @@ bool AcuteHazards::InitRun(EnvContext *pEnvContext, bool useInitialSeed)
    return TRUE;
    }
 
-bool AcuteHazards::Run(EnvContext *pEnvContext)
+bool AcuteHazards::Run(EnvContext* pEnvContext)
    {
    int currentYear = pEnvContext->currentYear;
-   
+
    // reset annual output variables
    m_nUninhabitableStructures = 0;
-   m_nDamaged  = 0;
+   m_nDamaged = 0;
    m_nDamaged2 = 0;
    m_nDamaged3 = 0;
    m_nDamaged4 = 0;
@@ -713,7 +716,7 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
    m_pctInhabitableStructures = 1.0f;
    m_nFunctionalBldgs = m_totalBldgs;
    m_pctFunctionalBldgs = 1.0f;
-   
+
    // update results from any prior events if needed
    for (int i = 0; i < m_events.GetSize(); i++)
       {
@@ -723,8 +726,8 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
          Update(pEnvContext);
          break;
          }
-      }   
-   
+      }
+
    // run any events that are scheduled for this year
    for (int i = 0; i < m_events.GetSize(); i++)
       {
@@ -736,21 +739,28 @@ bool AcuteHazards::Run(EnvContext *pEnvContext)
          pEvent->Run(pEnvContext);
          }
       }
-     
+
    return TRUE;
    }
 
 
 
-void AcuteHazards::UpdateBldgType( EnvContext *pEnvContext)
+void AcuteHazards::UpdateBldgType(EnvContext* pEnvContext, bool useDelta)
    {
-   MapLayer* pIDULayer = (MapLayer*) pEnvContext->pMapLayer;
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
    CString propInd, landUse;
    int bedrooms = 0;
+   int imprVal = 0;
+   int removed = 0;
 
    int colPropInd = pIDULayer->GetFieldCol("prop_ind");
    int colLandUse = pIDULayer->GetFieldCol("landuse");
    int colBedrooms = pIDULayer->GetFieldCol("bedrooms");
+   int colImprVal = pIDULayer->GetFieldCol("impr_value");
+   int colRemoved = pIDULayer->GetFieldCol("REMOVED");
+   int colBldgType = pIDULayer->GetFieldCol("BldgType");
+
+
    int bldgType = 0;
    int floors = 1;
 
@@ -760,279 +770,295 @@ void AcuteHazards::UpdateBldgType( EnvContext *pEnvContext)
       pIDULayer->GetData(idu, colPropInd, propInd);
       pIDULayer->GetData(idu, colLandUse, landUse);
       pIDULayer->GetData(idu, colBedrooms, bedrooms);
+      pIDULayer->GetData(idu, colImprVal, imprVal);
+      pIDULayer->GetData(idu, colRemoved, removed);
 
       int bldgType = 0;
       int floors = 0;
 
-      if ( propInd == "AGRICULTURAL" )
+      if (propInd == "AGRICULTURAL")
          {
-         if ( landUse == "FARMS")
-            { bldgType = 1; floors = 1; }
-         else if ( landUse == "FOREST")
-            { bldgType = 1; floors = 1; }
+         if (landUse == "FARMS")
+            {
+            bldgType = 1; floors = 1;
+            }
+         else if (landUse == "FOREST")
+            {
+            bldgType = 1; floors = 1;
+            }
          else if (landUse = "FISHERIES")
-            { bldgType = 1; floors = 1; }
+            {
+            bldgType = 1; floors = 1;
+            }
          else if (landUse = "FIELD & SEED")
-            { bldgType = 1; floors = 1; }
+            {
+            bldgType = 1; floors = 1;
+            }
          }
 
       else if (propInd == "SINGLE FAMILY RESIDENCE")
          {
          if (bedrooms >= 4)
-            { bldgType = 2; floors = 2; }
+            {
+            bldgType = 2; floors = 2;
+            }
          else
-            { bldgType = 1; floors = 1; }
+            {
+            bldgType = 1; floors = 1;
+            }
          }
 
       else if (propInd == "APARTMENT")
          {
          if (bedrooms >= 4)
-            { bldgType = 2; floors = 2; }
+            {
+            bldgType = 2; floors = 2;
+            }
          else
-            { bldgType = 1; floors = 1; }
+            {
+            bldgType = 1; floors = 1;
+            }
          }
-         
+
       else if (propInd == "MOBILE HOME PARK")
-         { bldgType = 1; floors = 1; }
+         {
+         bldgType = 1; floors = 1;
+         }
 
       else if (propInd == "PARKING")
-         { bldgType = 3; floors = 4; }   //  assuming that parking structures are concrete buildings
+         {
+         bldgType = 3; floors = 4;
+         }   //  assuming that parking structures are concrete buildings
 
       else if (propInd == "AMUSEMENT-RECREATION")
-         { bldgType = 6; floors = 4; }   //  assuming that AMUSEMENT - RECREATION buildings are steel moment frame buildings
+         {
+         bldgType = 6; floors = 4;
+         }   //  assuming that AMUSEMENT - RECREATION buildings are steel moment frame buildings
 
       else if (propInd == "COMMERCIAL BUILDING")
-         { bldgType = 3; floors = 3; }
+         {
+         bldgType = 3; floors = 3;
+         }
 
       else if (propInd == "COMMERCIAL CONDOMINIUM")
-         { bldgType = 3; floors = 4; }
+         {
+         bldgType = 3; floors = 4;
+         }
 
       else if (landUse == "CONDOMINIUM PROJECT")
-         { bldgType = 3; floors = 4; }
+         {
+         bldgType = 3; floors = 4;
+         }
 
       else if (propInd == "APARTMENT")
          {
          if (bedrooms >= 4)
-            { bldgType = 2; floors = 2; }
+            {
+            bldgType = 2; floors = 2;
+            }
          else
-            { bldgType = 1; floors = 1; }
+            {
+            bldgType = 1; floors = 1;
+            }
          }
 
       else if (propInd == "DUPLEX")
-         { bldgType = 2; floors = 2; }
+         {
+         bldgType = 2; floors = 2;
+         }
 
       else if (propInd == "FINANCIAL INSTITUTION")
-         { bldgType = 5; floors = 2; }
+         {
+         bldgType = 5; floors = 2;
+         }
 
       else if (propInd == "HOTEL, MOTEL")
          {
          if (landUse == "HOTEL")
-            { bldgType = 3; floors = 5; }
+            {
+            bldgType = 3; floors = 5;
+            }
          else if (landUse == "MOTEL")
-            { bldgType = 2; floors = 2; }
+            {
+            bldgType = 2; floors = 2;
+            }
          else
-            { bldgType = 2; floors = 2; }
+            {
+            bldgType = 2; floors = 2;
+            }
          }
 
       else if (propInd == "INDUSTRIAL")
-         { bldgType = 6; floors = 1; }
+         {
+         bldgType = 6; floors = 1;
+         }
 
       else if (propInd == "INDUSTRIAL HEAVY")
-         { bldgType = 6; floors = 1; }
+         {
+         bldgType = 6; floors = 1;
+         }
 
       else if (propInd == "OFFICE BUILDING")
-         { bldgType = 5; floors = 3; }
+         {
+         bldgType = 5; floors = 3;
+         }
 
       else if (propInd == "RELIGIOUS")
-         { bldgType = 4; floors = 3; }
+         {
+         bldgType = 4; floors = 3;
+         }
 
       else if (propInd == "RETAIL")
          {
          if (landUse == "FOOD STORES")
-            { bldgType = 5; floors = 1; }
+            {
+            bldgType = 5; floors = 1;
+            }
          else if (landUse == "SHOPPING CENTER")
-            { bldgType = 6; floors = 3; }
+            {
+            bldgType = 6; floors = 3;
+            }
          else if (landUse == "SUPERMARKET")
-            { bldgType = 6; floors = 1; }
+            {
+            bldgType = 6; floors = 1;
+            }
          else if (landUse == "STORE BUILDING")
-            { bldgType = 5; floors = 1; }
+            {
+            bldgType = 5; floors = 1;
+            }
          else if (landUse == "AUTO SALES")
-            { bldgType = 6; floors = 3; }
+            {
+            bldgType = 6; floors = 3;
+            }
          else
-            { bldgType = 5; floors = 3; }
+            {
+            bldgType = 5; floors = 3;
+            }
          }
 
       else if (propInd == "SERVICE")
          {
          if (landUse == "SCHOOL")
-            { bldgType = 4; floors = 3; }
+            {
+            bldgType = 4; floors = 3;
+            }
          else if (landUse == "PUBLIC SCHOOL")
-            { bldgType = 6; floors = 3; }
+            {
+            bldgType = 4; floors = 3;
+            }
          else if (landUse == "BAR")
-            { bldgType = 6; floors = 1; }
+            {
+            bldgType = 5; floors = 2;
+            }
          else if (landUse == "RESTAURANT BUILDING")
-            { bldgType = 5; floors = 1; }
+            {
+            bldgType = 5; floors = 1;
+            }
          else if (landUse == "NIGHTCLUB")
-            { bldgType = 6; floors = 3; }
+            {
+            bldgType = 5; floors = 2;
+            }
          else if (landUse == "LAUNDROMAT")
-            { bldgType = 6; floors = 3; }
+            {
+            bldgType = 6; floors = 1;
+            }
          else if (landUse == "FAST FOOD FRANCHISE")
-            { bldgType = 6; floors = 3; }
+            {
+            bldgType = 5; floors = 1;
+            }
          else if (landUse == "AUTO REPAIR")
-            { bldgType = 6; floors = 3; }
+            {
+            bldgType = 3; floors = 2;
+            }
          else if (landUse == "CARWASH")
-            { bldgType = 6; floors = 3;}
+            {
+            bldgType = 6; floors = 1;
+            }
          else if (landUse == "FUNERAL HOME")
-            { bldgType = 6; floors = 3;}
+            {
+            bldgType = 2; floors = 2;
+            }
          else if (landUse == "SERVICE STATION")
-            { bldgType = 6; floors = 3;}
+            {
+            bldgType = 3; floors = 3;
+            }
          else
-            { bldgType = 4; floors = 3; }
+            {
+            bldgType = 4; floors = 3;
+            }
          }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'SCHOOL'))[0]
-      self.IDU_Data[ind, 4] = 4 # C2
-      self.IDU_Data[ind, 5] = 3
+      else if (landUse == "STATE PROPERTY")
+         {
+         bldgType = 3; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'PUBLIC SCHOOL'))[0]
-      self.IDU_Data[ind, 4] = 4 # C2
-      self.IDU_Data[ind, 5] = 3
+      else if (landUse == "MUNICIPAL PROPERTY")
+         {
+         bldgType = 3; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'BAR'))[0]
-      self.IDU_Data[ind, 4] = 5 # C3
-      self.IDU_Data[ind, 5] = 2
+      else if (landUse == "COUNTY PROPERTY")
+         {
+         bldgType = 3; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'RESTAURANT BUILDING'))[0]
-      self.IDU_Data[ind, 4] = 5 # C3
-      self.IDU_Data[ind, 5] = 1
+      else if (propInd == "TRANSPORT")
+         {
+         bldgType = 6; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'NIGHTCLUB'))[0]
-      self.IDU_Data[ind, 4] = 5 # C3
-      self.IDU_Data[ind, 5] = 2
+      else if (landUse == "COMMERCIAL (NEC)")
+         {
+         bldgType = 6; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'LAUNDROMAT'))[0]
-      self.IDU_Data[ind, 4] = 6 # S1
-      self.IDU_Data[ind, 5] = 1
+      else if (propInd == "UTILITIES")
+         {
+         bldgType = 6; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'FAST FOOD FRANCHISE'))[0]
-      self.IDU_Data[ind, 4] = 5 # C3
-      self.IDU_Data[ind, 5] = 1
+      else if (propInd == "WAREHOUSE")
+         {
+         bldgType = 6; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'AUTO REPAIR'))[0]
-      self.IDU_Data[ind, 4] = 3 # C1
-      self.IDU_Data[ind, 5] = 2
+      else if (landUse == "MISC BUILDING")
+         {
+         bldgType = 3; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'CARWASH'))[0]
-      self.IDU_Data[ind, 4] = 6 # S1
-      self.IDU_Data[ind, 5] = 1
+      else if (landUse == "MIXED COMPLEX")
+         {
+         bldgType = 4; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'FUNERAL HOME'))[0]
-      self.IDU_Data[ind, 4] = 2 # W2
-      self.IDU_Data[ind, 5] = 2
+      else if (landUse == "EASEMENT")
+         {
+         bldgType = 1; floors = 1;
+         }
 
-      ind = np.where((self.frame['prop_ind'] == 'SERVICE') & (self.frame['landuse'] == 'SERVICE STATION'))[0]
-      self.IDU_Data[ind, 4] = 3 # C1
-      self.IDU_Data[ind, 5] = 3
+      else if (landUse == "LEASED LAND/BLDG")
+         {
+         bldgType = 3; floors = 1;
+         }
 
-      ind = np.where(self.frame['landuse'] == 'STATE PROPERTY')[0]
-      self.IDU_Data[ind, 4] = 3 # C1	# assuming state property is C1
-      self.IDU_Data[ind, 5] = 1
+      if (imprVal <= 10000)
+         {
+         bldgType = 0; floors = 0;
+         }
 
-      ind = np.where(self.frame['landuse'] == 'MUNICIPAL PROPERTY')[0]
-      self.IDU_Data[ind, 4] = 3 # C1	# assuming MUNICIPAL property is C1
-      self.IDU_Data[ind, 5] = 1
+      if (removed > 0)
+         {
+         bldgType = 0; floors = 0;
+         }
 
-      ind = np.where(self.frame['landuse'] == 'COUNTY PROPERTY')[0]
-      self.IDU_Data[ind, 4] = 3 # C1	# assuming MUNICIPAL property is C1
-      self.IDU_Data[ind, 5] = 1
 
-      ind = np.where(self.frame['prop_ind'] == 'TRANSPORT')[0]
-      self.IDU_Data[ind, 4] = 6 # assuming warehouse
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['landuse'] == 'COMMERCIAL (NEC)')[0]
-      self.IDU_Data[ind, 4] = 6 # assuming warehouse
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['prop_ind'] == 'UTILITIES')[0]
-      self.IDU_Data[ind, 4] = 6 # assuming warehouse
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['prop_ind'] == 'WAREHOUSE')[0]
-      self.IDU_Data[ind, 4] = 6 # S1
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['landuse'] == 'MISC BUILDING')[0]
-      self.IDU_Data[ind, 4] = 3 # C1	# assuming misc buildin is C1
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['landuse'] == 'MIXED COMPLEX')[0]
-      self.IDU_Data[ind, 4] = 4
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['landuse'] == 'EASEMENT')[0]
-      self.IDU_Data[ind, 4] = 1
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['landuse'] == 'LEASED LAND/BLDG')[0]
-      self.IDU_Data[ind, 4] = 3
-      self.IDU_Data[ind, 5] = 1
-
-      ind = np.where(self.frame['impr_value'] <= 10000)	# assuming IDUs with 'impr_value' greater than 10000 are buildings
-      self.IDU_Data[ind, 4] = 0
-      self.IDU_Data[ind, 5] = 0
-
-      ind = np.where(self.frame['REMOVED'] > 0)	# check for IDUs that have been removed
-      self.IDU_Data[ind, 4] = 0
-      self.IDU_Data[ind, 5] = 0
+      UpdateIDU(pEnvContext, idu, colBldgType, bldgType, useDelta ? ADD_DELTA : SET_DATA);
+      }  // end of: for each IDU
    }
 
 
-bool AcuteHazards::InitPython()
-   {
-   Report::Log("Acute Hazards:  Initializing embedded Python interpreter...");
-
-   char cwd[512];
-   _getcwd(cwd, 512);
-
-   CString _path(PathManager::GetPath(PM_PROJECT_DIR) );
-   _path += "Hazus";
-   _chdir(_path);
-
-   // launch a python instance and run the model
-   Py_SetProgramName(L"Envision");  // argv[0]
-
-   wchar_t path[512];
-
-   int cx = swprintf(path, 512, L"%hs/DLLs;%hs/Lib;%hs/Lib/site-packages",
-      (LPCTSTR) m_pythonPath, (LPCTSTR) m_pythonPath, (LPCTSTR) m_pythonPath);
-
-   Py_SetPath(path);
-
-   PyImport_AppendInittab("redirection", PyInit_redirection);
-
-   Py_Initialize();
-
-   //CString code;
-   //code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
-   int retVal = PyRun_SimpleString("import sys");
-   //retVal = PyRun_SimpleString(code);
-
-   // add Python function for redirecting output on the Python side
-   retVal = PyRun_SimpleString("\
-import redirection\n\
-import sys\n\
-class StdoutCatcher:\n\
-    def write(self, stuff):\n\
-        redirection.stdoutredirect(stuff)\n\
-sys.stdout = StdoutCatcher()");
-   /////////////
-
-   Report::Log("Acute Hazards: Python initialization complete...");
-
-   return true;
-   }
-/*
 bool AcuteHazards::InitPython()
    {
    Report::Log("Acute Hazards:  Initializing embedded Python interpreter...");
@@ -1045,10 +1071,9 @@ bool AcuteHazards::InitPython()
    _chdir(_path);
 
    // launch a python instance and run the model
-   Py_SetProgramName(L"Envision");  // argv[0]
+   Py_SetProgramName(L"Envision");  // argv[0]  deprecated
 
    wchar_t path[512];
-
    int cx = swprintf(path, 512, L"%hs/DLLs;%hs/Lib;%hs/Lib/site-packages",
       (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath, (LPCTSTR)m_pythonPath);
 
@@ -1071,7 +1096,88 @@ class StdoutCatcher:\n\
     def write(self, stuff):\n\
         redirection.stdoutredirect(stuff)\n\
 sys.stdout = StdoutCatcher()");
+
+   Report::Log("Acute Hazards: Python initialization complete...");
+
+   return true;
+   }
+
+
+
+/*
+bool AcuteHazards::InitPython()
+   {
+   Report::Log("Acute Hazards:  Initializing embedded Python interpreter...");
+
+   char cwd[512];
+   _getcwd(cwd, 512);
+
+   CString _path(PathManager::GetPath(PM_PROJECT_DIR));
+   _path += "Hazus";
+   _chdir(_path);
+
+   // launch a python instance and run the model
+   Py_SetProgramName(L"Envision");  // argv[0]  deprecated
+
+   ////////
+   //wchar_t path[512];
+   //int cx = swprintf(path, 512, L"%hs/DLLs;%hs/Lib;%hs/Lib/site-packages",
+   //   (LPCTSTR) m_pythonPath, (LPCTSTR) m_pythonPath, (LPCTSTR) m_pythonPath);
+   //
+   //Py_SetPath(path);
+//
+//   PyImport_AppendInittab("redirection", PyInit_redirection);
+//
+//   Py_Initialize();
+//
+//   //CString code;
+//   //code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
+//   int retVal = PyRun_SimpleString("import sys");
+//   //retVal = PyRun_SimpleString(code);
+//
+//   // add Python function for redirecting output on the Python side
+//   retVal = PyRun_SimpleString("\
+//import redirection\n\
+//import sys\n\
+//class StdoutCatcher:\n\
+//    def write(self, stuff):\n\
+//        redirection.stdoutredirect(stuff)\n\
+//sys.stdout = StdoutCatcher()");
    /////////////
+
+
+   ///// NEW
+   PyConfig config;
+   PyStatus status;
+   PyConfig_InitPythonConfig(&config);
+   config.isolated = 1;
+   config.buffered_stdio = 0;
+   status = PyConfig_SetBytesString(&config, &config.program_name, "Envision");
+   if (PyStatus_Exception(status))
+      {
+      PyConfig_Clear(&config);
+      Py_ExitStatusException(status);
+      return false;
+      }
+
+   PyImport_AppendInittab("redirection", PyInit_redirection);
+
+   status = Py_InitializeFromConfig(&config);
+   if (PyStatus_Exception(status))
+      {
+      PyConfig_Clear(&config);
+      Py_ExitStatusException(status);
+      return false;
+      }
+
+   int retVal = PyRun_SimpleString("\
+import sys\n\
+import redirection\n\
+import sys\n\
+class StdoutCatcher:\n\
+    def write(self, stuff):\n\
+        redirection.stdoutredirect(stuff)\n\
+sys.stdout = StdoutCatcher()");
 
    Report::Log("Acute Hazards: Python initialization complete...");
 
@@ -1079,17 +1185,19 @@ sys.stdout = StdoutCatcher()");
    }
 */
 
+
+
 // Update is called during Run() processing.
 // For any events that are in AHS_POST_EVENT status,
 // do any needed update of IDUs recovering from that event 
 // Notes: 
 //  1) Any building tagged for repair will have "BLDG_DAMAGE" set to a negative value
 
-bool AcuteHazards::Update(EnvContext *pEnvContext)
+bool AcuteHazards::Update(EnvContext* pEnvContext)
    {
    // basic idea is to loop through IDUs', applying any post-event
    // changes to the landscape, e.g. habitability, recovery period, etc.
-   MapLayer *pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+   MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
    //int idus = this->m_earthquakeData.GetRowCount();
    int idus = pIDULayer->GetRowCount();
@@ -1152,7 +1260,7 @@ bool AcuteHazards::Update(EnvContext *pEnvContext)
          pIDULayer->GetData(idu, m_colIduHabitable, habitable);
          if (habitable == 0)
             m_nUninhabitableStructures++;
-   
+
          int _removed = 0;
          pIDULayer->GetData(idu, m_colIduRemoved, _removed);
          if (_removed > 0)
@@ -1165,7 +1273,7 @@ bool AcuteHazards::Update(EnvContext *pEnvContext)
 
    m_totalBldgs += removed;
    m_nInhabitableStructures = m_totalBldgs - m_nUninhabitableStructures;
-   m_pctInhabitableStructures = float(m_nInhabitableStructures)/m_totalBldgs;
+   m_pctInhabitableStructures = float(m_nInhabitableStructures) / m_totalBldgs;
    m_nFunctionalBldgs = m_totalBldgs - m_nDamaged;
    m_pctFunctionalBldgs = float(m_nDamaged) / m_totalBldgs;
 
@@ -1173,7 +1281,7 @@ bool AcuteHazards::Update(EnvContext *pEnvContext)
    }
 
 
-bool AcuteHazards::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
+bool AcuteHazards::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    {
    // have xml string, start parsing
    TiXmlDocument doc;
@@ -1186,7 +1294,7 @@ bool AcuteHazards::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       }
 
    // start interating through the nodes
-   TiXmlElement *pXmlRoot = doc.RootElement();  // <acute_hazards>
+   TiXmlElement* pXmlRoot = doc.RootElement();  // <acute_hazards>
    CString codePath;
 
    XML_ATTR attrs[] = {
@@ -1195,7 +1303,7 @@ bool AcuteHazards::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       { NULL,           TYPE_NULL,     NULL,               false, 0 } };
    ok = TiXmlGetAttributes(pXmlRoot, attrs, filename, NULL);
 
-   TiXmlElement *pXmlEvent = pXmlRoot->FirstChildElement("event");
+   TiXmlElement* pXmlEvent = pXmlRoot->FirstChildElement("event");
    if (pXmlEvent == NULL)
       {
       CString msg("Acute Hazards: no <event>'s defined");
@@ -1206,7 +1314,7 @@ bool AcuteHazards::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
    while (pXmlEvent != NULL)
       {
-      AHEvent *pEvent = new AHEvent;
+      AHEvent* pEvent = new AHEvent;
 
       CString pyModulePath;
 
@@ -1254,14 +1362,14 @@ bool AcuteHazards::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
 void CaptureException()
    {
-   PyObject *exc_type = NULL, *exc_value = NULL, *exc_tb = NULL;
+   PyObject* exc_type = NULL, * exc_value = NULL, * exc_tb = NULL;
    PyErr_Fetch(&exc_type, &exc_value, &exc_tb);
    PyObject* str_exc_type = PyObject_Repr(exc_type); //Now a unicode object
    PyObject* pyStr = PyUnicode_AsEncodedString(str_exc_type, "utf-8", "Error ~");
-   const char *msg = PyBytes_AS_STRING(pyStr);
+   const char* msg = PyBytes_AS_STRING(pyStr);
 
    Report::LogError(msg);
-   
+
    Py_XDECREF(str_exc_type);
    Py_XDECREF(pyStr);
 

@@ -236,6 +236,8 @@ public:
    AVTYPE   m_avType; // AVT_UNDEFINED, AVT_OUTPUT, AVT_SCORE, AVT_RAWSCORE, AVT_APP
    CString  m_expr;
    int      m_timing;    // 1=prerun, 2=postrun, 3=both, default=1;
+   float    m_ramp = 1;  // annual multiplier
+
    int      m_useInSensitivity;
    VData    m_saValue;     // perturbation value used in sensitivity analyses
 
@@ -535,7 +537,7 @@ class ENVAPI EnvModel
       // main execution entry points
       int   RunMultiple( void );
       int   RunSensitivityAnalysis( void );
-      int   Run( int runFlag );
+      int   Run( RUNFLAG runFlag );
       bool  Reset( void ); 
 
       bool  m_continueToRunMultiple;  // quick hack to support stopping a multiple run

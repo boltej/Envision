@@ -1803,8 +1803,8 @@ FlowModel::FlowModel()
    AddInputVar(_T("Climate Station Runs"), m_climateStationRuns, _T("true if the model will be run using multiple climate files"));
    AddInputVar(_T("Run From File"), m_runFromFile, _T("true if the model will be run multiple times based on external file"));
 
-   AddOutputVar(_T("Date of Max Snow"), m_dateMaxSWE, _T("DOY of Max Snow"));
-   AddOutputVar(_T("Volume Max Snow (cubic meters)"), m_volumeMaxSWE, _T("Volume Max Snow (m3)"));
+   //   AddOutputVar(_T("Date of Max Snow"), m_dateMaxSWE, _T("DOY of Max Snow"));
+    //  AddOutputVar(_T("Volume Max Snow (cubic meters)"), m_volumeMaxSWE, _T("Volume Max Snow (m3)"));
    }
 
 
@@ -2304,7 +2304,7 @@ bool FlowModel::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
             pEnvContext->yearOfRun = j;
 
-            Run(pEnvContext);
+            //           Run(pEnvContext);
             }
 
          UpdateMonteCarloOutput(pEnvContext, i);
@@ -3482,7 +3482,8 @@ bool FlowModel::Run(EnvContext* pEnvContext)
    // Main within-year FLOW simulation loop starts here
    //-------------------------------------------------------
   // m_stopTime = (m_currentTime + TIME_TOLERANCE);
-   while ((m_currentTime + TIME_TOLERANCE) < m_stopTime)
+   // while ((m_currentTime + TIME_TOLERANCE) < m_stopTime)
+   while ((m_currentTime + TIME_TOLERANCE) < 1)
       {
       int dayOfYear = int(fmod(m_timeInRun, 365));  // zero based day of year
       int _year = 0;

@@ -1209,7 +1209,7 @@ int EnvModel::RunMultiple()
 
    for (int i = 0; i < m_iterationsToRun; i++)
       {
-      Run(1);   // 1=randomize scenario variables.  This increments m_currentRun
+      Run(SET_WITH_RANDOMIZATION);   // 1=randomize scenario variables.  This increments m_currentRun
 
       if (m_pDataManager)
          m_pDataManager->CollectMultiRunData(i);
@@ -1255,7 +1255,7 @@ int EnvModel::RunMultiple()
 //                            set to -1, no randomization
 //------------------------------------------------------------------------
 
-int EnvModel::Run(int runFlag)
+int EnvModel::Run(RUNFLAG runFlag)
    {
    TRACE("Entered EnvModel::Run()\n");
 
@@ -1363,7 +1363,7 @@ int EnvModel::Run(int runFlag)
             m_pMapExprEngine->SetCurrentTime((float)this->m_currentYear);
 
          // update global AppVars (of type AVT_APP, using pre- timing flag)
-         UpdateAppVars(-1, 0, 1);
+         UpdateAppVars(-1, 0, 1);          // global only, don't apply to coverage, timing=1 or 3
          StoreAppVarsToCoverage(1, true);  // for any idu-based variables, update cell coverage
          ApplyDeltaArray(m_pIDULayer);     // apply any generated deltas
 
@@ -1425,7 +1425,7 @@ int EnvModel::Run(int runFlag)
             }
 
          // post update of app vars
-         UpdateAppVars(-1, 0, 2);
+         UpdateAppVars(-1, 0, 2);          // global only, don't apply to coverage, timing=2 or 3
          StoreAppVarsToCoverage(2, true);  // for any idu-based variables, update cell coverage
          ApplyDeltaArray(m_pIDULayer);     // apply any generated deltas
 
@@ -1725,7 +1725,8 @@ void EnvModel::ApplyMandatoryPolicies()
    for (UINT i = 0; i < iduCount; i++)
       {
       UINT idu = idus[i];
-      UpdateAppVars(idu, 0, 3);  // perhaps second arg should be 1?  as is, only updates AppVar, not coverage
+      UpdateAppVars(idu, 0, 3);     // for this IDU, don't apply to coverage, timing=1, 2 or 3
+      // perhaps second arg should be 1?  as is, only updates AppVar, not coverage
 
       // collect relevant policies for this IDU.  Policies that do not pass any associated constraints will be excluded 
       int mandatoryCount = CollectRelevantPolicies(idu, m_currentYear, PT_MANDATORY, policyScoreArray);  // should apply constraints
@@ -3250,7 +3251,7 @@ void EnvModel::InitRun()
 
       ASSERT(m_pScenario != NULL);
       m_envContext.pScenario = m_pScenario;
-      m_pScenario->SetScenarioVars(1);
+      m_pScenario->SetScenarioVars(SET_WITH_RANDOMIZATION);
 
 
 
@@ -5476,6 +5477,11 @@ bool EnvModel::UpdateAppVars(int idu, int applyToCoverage, int timing)
             float result;
             EvaluateExpr(pVar->m_pMapExpr, false, result); // don't use query (not supported for app vars)
 
+            //does it have a temporal ramp?  if so, apply
+            if (pVar->m_ramp != 0.0f)
+               result += pVar->m_ramp * this->m_envContext.yearOfRun;
+
+
             // get the value from the expression and store it with the appvar
             pVar->SetValue(VData(result));   // this stores a floating point value in the AppVar
 
@@ -5488,7 +5494,7 @@ bool EnvModel::UpdateAppVars(int idu, int applyToCoverage, int timing)
                   m_pIDULayer->SetData(idu, pVar->GetCol(), result);
                }
             }
-         }
+         }  // end of: if pVar->m_pMapExpr != NULL
       }  // end of: i < GetAppVarCount()
 
    return true;
