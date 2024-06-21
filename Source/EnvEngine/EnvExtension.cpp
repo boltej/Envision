@@ -200,8 +200,10 @@ MODEL_VAR *EnvExtension::FindOutputVar(LPCTSTR name)
 INT_PTR EnvExtension::AddDelta( EnvContext *pContext, int idu, int col, VData newValue )
    {
    // valid AddDelta ptr?  (NULL means add delta clled during Init() )
-   if ( pContext->ptrAddDelta != NULL )
-      return pContext->ptrAddDelta( pContext->pEnvModel, idu, col, pContext->currentYear, newValue, pContext->handle );
+   if (pContext->ptrAddDelta != NULL)
+      {
+      return pContext->ptrAddDelta(pContext->pEnvModel, idu, col, pContext->currentYear, newValue, pContext->handle);
+      }
    else
       {
       MapLayer *pMapLayer = (MapLayer*) pContext->pMapLayer;

@@ -54,10 +54,6 @@ bool FieldDef::Init()
    //if (this->m_field.IsEmpty() == false)
    //   m_pFieldCalculator->CheckCol(m_pFieldCalculator->m_pMapLayer, this->m_colVariance, this->m_varianceField, TYPE_FLOAT, CC_AUTOADD | this->m_type);
 
-   LPTSTR query = nullptr;
-   if (m_queryStr.IsEmpty() == false)
-      query = (LPTSTR)(LPCTSTR)m_queryStr;
-
    m_pMapExpr = m_pFieldCalculator->m_pMapExprEngine->AddExpr(m_name, m_mapExprStr); // , m_queryStr);
    bool ok = m_pFieldCalculator->m_pMapExprEngine->Compile(m_pMapExpr);
 
@@ -73,6 +69,8 @@ bool FieldDef::Init()
 
    if (this->m_queryStr.IsEmpty() == false)
       this->m_pQuery = m_pFieldCalculator->m_pQueryEngine->ParseQuery(this->m_queryStr, 0, this->m_name); //      m_pMapExpr->GetQuery();
+   else
+      this->m_pQuery = nullptr;
 
    if (IsGroupBy())
       {
