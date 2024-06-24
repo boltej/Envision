@@ -389,20 +389,22 @@ void Risk::GetLoss(MapLayer* pIDULayer, float flameLen, int lu, bool doTimber, i
          col = 3;
       else if (flameLen < 2)
          col = 4;
-      else if (flameLen < 4)
+      else if (flameLen < 3)
          col = 5;
-      else if (flameLen < 5)
+      else if (flameLen < 4)
          col = 6;
-      else if (flameLen < 6)
+      else if (flameLen < 5)
          col = 7;
-      else if (flameLen < 7)
+      else if (flameLen < 6)
          col = 8;
-      else if (flameLen < 8)
+      else if (flameLen < 7)
          col = 9;
-      else if (flameLen < 12)
+      else if (flameLen < 8)
          col = 10;
-      else
+      else if (flameLen < 12)
          col = 11;
+      else
+         col = 12;
 
       if (doTimber)
          {
