@@ -157,11 +157,11 @@ bool Risk::Run(EnvContext* pEnvContext)
          if (lossFrac > 0)
             {
             potentialLossHousing = lossFrac * imprVal;
-               totalPotentialLossHousing += potentialLossHousing;
-               lossAreaPotentialHousing += area;
-               totalPotentialLossFracHousing += (lossFrac * area);
-               totalPotentialLossHousesCount += nDU;
-               expectedPotentialLossHousesCount = nDU * lossFrac;
+            totalPotentialLossHousing += potentialLossHousing;
+            lossAreaPotentialHousing += area;
+            totalPotentialLossFracHousing += (lossFrac * area);
+            totalPotentialLossHousesCount += nDU;
+            expectedPotentialLossHousesCount = nDU * lossFrac;
             }
 
          // actual loss

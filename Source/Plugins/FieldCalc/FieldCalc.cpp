@@ -59,7 +59,7 @@ bool FieldDef::Init()
 
    if (!ok)
       {
-      CString msg("FieldCalc: Unable to compile map expression ");
+      CString msg("Unable to compile map expression ");
       msg += m_mapExprStr;
       msg += " for <field_def> '";
       msg += m_name;
@@ -480,7 +480,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
    if (result < 0)
       {
-      CString msg("Field Calculator: Unable to find input file ");
+      CString msg("Unable to find input file ");
       msg += filename;
       Report::ErrorMsg(msg);
       return false;
@@ -495,7 +495,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       return false;
       }
 
-   CString msg("  Field Calculator: Loading input file ");
+   CString msg("Loading input file ");
    msg += path;
    Report::Log(msg);
 
@@ -520,7 +520,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
 
    if (m_colArea < 0)
       {
-      CString msg("Field Calculator: unable to find AREA field in input file");
+      CString msg("Unable to find AREA field in input file");
       msg += filename;
       Report::ErrorMsg(msg);
       return false;
