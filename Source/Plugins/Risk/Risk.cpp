@@ -250,7 +250,7 @@ bool Risk::Run(EnvContext* pEnvContext)
 
       float iduRiskPotential = potLossPerHaMovAvg / this->m_maxDamagePotentialPerHa;
       float iduRiskActual = actLossPerHaMovAvg / this->m_maxDamageActualPerHa;
-      float iduRisk = 0.07f * iduRiskPotential + 0.93f * iduRiskActual;
+      float iduRisk = this->m_potentialWt * iduRiskPotential + (1.0f-this->m_potentialWt) * iduRiskActual;
 
       this->UpdateIDU(pEnvContext, idu, this->m_colRisk, iduRisk, ADD_DELTA);
 
@@ -268,7 +268,7 @@ bool Risk::Run(EnvContext* pEnvContext)
 
    float riskPotential = (m_movingWindowPotentialLoss.GetAvgValue() / (totalArea * HA_PER_M2)) / this->m_maxDamagePotentialPerHa;
    float riskActual = (m_movingWindowActualLoss.GetAvgValue() / (totalArea * HA_PER_M2)) / this->m_maxDamageActualPerHa;
-   float risk = (0.5f * riskPotential) + (0.5f * riskActual);
+   float risk = (this->m_potentialWt * riskPotential) + ((1.0f-this->m_potentialWt) * riskActual);
 
    CArray<float, float> data;
    data.Add((float)pEnvContext->currentYear);
@@ -460,6 +460,7 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       { "actual_damage_max_per_ha",    TYPE_FLOAT,     &this->m_maxDamageActualPerHa,   true,  0 },
       { "firewise_reduction_factor",   TYPE_FLOAT,     &this->m_firewiseReductionFactor, false, 0 },
       { "flamelength_threshold",       TYPE_FLOAT,     &this->m_flamelenThreshold, false, 0 },
+      { "potential_weight",            TYPE_FLOAT,     &this->m_potentialWt, false, 0 },
 
       { "housing_loss_table",          TYPE_CSTRING,   &this->m_lossTableFileHousing, false, 0 },
       { "housing_lookup",              TYPE_CSTRING,   &lookupFieldHousing, true,0 },

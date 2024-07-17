@@ -60,6 +60,7 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colFirewise = -1;
       int m_colTimberVol = -1;
 
+      float m_potentialWt = 0.07f;
       float m_timberValueMBF = 10;  // value/THOUSAND BOARD FEET
             
       float m_firewiseReductionFactor = 0.15f;

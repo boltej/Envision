@@ -170,7 +170,7 @@ bool RuralDev::InitRAs(EnvContext* pContext)
 bool RuralDev::InitRun( EnvContext *pContext, bool useInitialSeed )
    {
    ASSERT(this->m_colAvailCap >= 0);
-
+   this->m_pRuralData->ClearRows();
    // get the current growth scenario
    m_pCurrentScenario = this->FindScenarioFromID(m_currScenarioID);
 

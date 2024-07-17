@@ -368,7 +368,7 @@ protected:
 
    float GetImperviousFromZone(int zone);
 
-   void UpdateUGAPops(EnvContext* pContext);
+   void UpdateUGAPops(EnvContext* pContext, int flags); // flags are passed to UpdateIDU()
 
 
 

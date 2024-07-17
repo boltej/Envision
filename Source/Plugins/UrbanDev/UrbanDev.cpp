@@ -251,7 +251,7 @@ bool UrbanDev::Init(EnvContext* pContext, LPCTSTR initStr)
    ///////   }
       /////////////////////////
    InitOutput();
-   UpdateUGAPops(pContext);
+   UpdateUGAPops(pContext, SET_DATA);
    return TRUE;
    }
 
@@ -289,6 +289,8 @@ bool UrbanDev::InitRun(EnvContext* pContext, bool useInitialSeed)
    {
    m_nDUData.ClearRows();
    m_newDUData.ClearRows();
+   m_pUgData->ClearRows();
+
    ASSERT(this->m_colUrbanPopAvail >= 0);
 
    // get the current growth scenario
@@ -422,7 +424,7 @@ bool UrbanDev::InitRun(EnvContext* pContext, bool useInitialSeed)
       UgUpdateUGAStats(pContext, true);
       }
 
-   UpdateUGAPops(pContext);
+   UpdateUGAPops(pContext, SET_DATA);
 
    return TRUE;
    }
@@ -479,7 +481,7 @@ bool UrbanDev::Run(EnvContext* pContext)
       UgUpdateUGAStats(pContext, false);
       }  // end of: if ( m_expandUGAs )
 
-   UpdateUGAPops(pContext);
+   UpdateUGAPops(pContext, ADD_DELTA);
 
    CollectOutput(pContext->currentYear);
 
@@ -2791,6 +2793,7 @@ bool UrbanDev::UgPrioritizeUgAreas(EnvContext* pContext)
    int resOrCommMultiplier = 2;
    bool doingRes = true;
 
+   // NOTE: THIS ONLY RUNS DURING INIT() AND INITRUN()
    // iterate through the IDU layer, looking for appropriate expansion polys
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
@@ -3084,16 +3087,25 @@ void UrbanDev::UgUpdateImperiousFromZone(EnvContext* pContext)
       }  // end of: for each IDU
    }
 
-void UrbanDev::UpdateUGAPops(EnvContext* pContext)
+void UrbanDev::UpdateUGAPops(EnvContext* pContext, int flags )
    {
    if (m_colUgaPop < 0)
       return;
 
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
 
-   bool readOnly = pLayer->m_readOnly;
-   pLayer->m_readOnly = false;
-   pLayer->SetColData(m_colUgaPop, VData(0.0f), true);
+   if (flags & SET_DATA)
+      {
+      bool readOnly = pLayer->m_readOnly;
+      pLayer->m_readOnly = false;
+      pLayer->SetColData(m_colUgaPop, VData(0.0f), true);
+      pLayer->m_readOnly = readOnly;
+      }
+   //else if ( flags & ADD_DELTA)
+   //   {
+   //   for (int i = 0; i < pLayer->GetRecordCount(); i++)
+   //      UpdateIDU(pContext, i, m_colUgaPop, 0, ADD_DELTA);
+   //   }
 
    for (int i = 0; i < m_ugaArray.GetSize(); i++)
       {
@@ -3101,10 +3113,9 @@ void UrbanDev::UpdateUGAPops(EnvContext* pContext)
       for (int j = 0; j < pUGA->m_iduArray.GetSize(); j++)
          {
          int idu = pUGA->m_iduArray[j];
-         pLayer->SetData(idu, m_colUgaPop, pUGA->m_currentPopulation);
+         UpdateIDU(pContext, idu, m_colUgaPop, pUGA->m_currentPopulation, flags);
          }
       }
-   pLayer->m_readOnly = readOnly;
    }
 
 
