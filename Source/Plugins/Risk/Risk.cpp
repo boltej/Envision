@@ -20,7 +20,7 @@ bool Risk::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
-   m_pOutputData = new FDataObj(20, 0);
+   m_pOutputData = new FDataObj(22, 0);
    int col = 0;
    m_pOutputData->SetName(this->m_name);
    m_pOutputData->SetLabel(col++, "Time");
@@ -28,6 +28,9 @@ bool Risk::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    m_pOutputData->SetLabel(col++, "Potential Loss-Housing ($)");
    m_pOutputData->SetLabel(col++, "Actual Loss-Timber ($)");
    m_pOutputData->SetLabel(col++, "Potential Loss-Timber ($)");
+
+   m_pOutputData->SetLabel(col++, "Actual Expected Loss-Housing (#)");
+   m_pOutputData->SetLabel(col++, "Potential Expected Loss-Housing (#)");
 
    m_pOutputData->SetLabel(col++, "Actual Loss-Houses Impacted (#)");
    m_pOutputData->SetLabel(col++, "Potential Loss-Houses Impacted (#)");
@@ -98,8 +101,10 @@ bool Risk::Run(EnvContext* pEnvContext)
 
    float totalActualLossHousesCount = 0;
    float expectedActualLossHousesCount = 0;
+   float totalActualExpectedLossHousesCount = 0;
    float totalPotentialLossHousesCount = 0;
    float expectedPotentialLossHousesCount = 0;
+   float totalPotentialExpectedLossHousesCount = 0;
 
    float totalPotentialLossTimberVol = 0;
    float totalActualLossTimberVol = 0;
@@ -162,6 +167,7 @@ bool Risk::Run(EnvContext* pEnvContext)
             totalPotentialLossFracHousing += (lossFrac * area);
             totalPotentialLossHousesCount += nDU;
             expectedPotentialLossHousesCount = nDU * lossFrac;
+            totalPotentialExpectedLossHousesCount += expectedPotentialLossHousesCount;
             }
 
          // actual loss
@@ -176,6 +182,7 @@ bool Risk::Run(EnvContext* pEnvContext)
             totalActualLossFracHousing += (lossFrac * area);
             totalActualLossHousesCount += nDU;
             expectedActualLossHousesCount = nDU * lossFrac;
+            totalActualExpectedLossHousesCount += expectedActualLossHousesCount;
             }
          }
 
@@ -275,9 +282,11 @@ bool Risk::Run(EnvContext* pEnvContext)
 
    data.Add((float)totalActualLossHousing);
    data.Add((float)totalPotentialLossHousing);
-
    data.Add((float)totalActualLossTimber);
    data.Add((float)totalPotentialLossTimber);
+
+   data.Add((float)totalActualExpectedLossHousesCount);
+   data.Add((float)totalPotentialExpectedLossHousesCount);
 
    data.Add((float)totalActualLossHousesCount);
    data.Add((float)totalPotentialLossHousesCount);

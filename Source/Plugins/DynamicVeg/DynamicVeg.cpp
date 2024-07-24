@@ -1108,12 +1108,15 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabi
 
    int new_timeInAgeClass = 0;
 
-
    MapLayer* pLayer = (MapLayer*)pEnvContext->pMapLayer;
 
    vector<int>* probmapindex = 0;
-
    vector<int>* determmapindex = 0;
+   std::map<DeterminIndexKeyClass, int, DeterminIndexClassComp> badDeterminIndexMap;
+   std::map<ProbIndexKeyclass, int, ProbIndexClassComp> badProbIndexMap;
+
+   std::map<ProbKeyclass, int> probmap;
+
 
    if (!probabilistic_flag && !deterministic_flag && m_vegClass >= 2000000 && pEnvContext->id == 2) //no probabilistic or deterministic transition
       {
@@ -1169,42 +1172,53 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabi
 
       m_determinIndexLookupKey.pvt = m_selected_pvtto_trans;
 
-      //getting index into deterministic file for the line that was transitioned to (now the from). for new age value
+      // getting index into deterministic file for the line that was transitioned to (now the from). for new age value
       determmapindex = &m_determinIndexMap[m_determinIndexLookupKey];
 
-      //ASSERT(determmapindex != NULL);
-
-      if (determmapindex == NULL)
+      if (determmapindex == NULL)   // no entry defined for this combo of from/regen
          {
-         bool alreadySeen = false;
+         // add to the bad lookup map
+         if (badDeterminIndexMap.contains(DeterminIndexKeyClass(m_determinIndexLookupKey)))
+            {
+            int count = badDeterminIndexMap[m_determinIndexLookupKey];
+            badDeterminIndexMap[m_determinIndexLookupKey] = ++count;
+            }
+         else
+            badDeterminIndexMap[m_determinIndexLookupKey] = 1;
 
-         msg.Format("%i %i %i %i %i %i\n", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
 
-         int list_length = (int)m_badDeterminVegTransClasses.GetSize();
-         int max_list_length = 1000;
-         if (0 < list_length && list_length < max_list_length)
-            for (int i = 0; i < list_length; i++)
-               {
-
-               if (m_badDeterminVegTransClasses[i] == msg)
-                  {
-                  alreadySeen = true;
-                  break;
-                  }
-               }
-
-         if (!alreadySeen && list_length < max_list_length)
-            m_badDeterminVegTransClasses.Add(msg);
+         //bool alreadySeen = false;
+         //
+         //msg.Format("%i %i %i %i %i %i\n", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
+         //
+         //int list_length = (int)m_badDeterminVegTransClasses.GetSize();
+         //int max_list_length = 1000;
+         //if (0 < list_length && list_length < max_list_length)
+         //   for (int i = 0; i < list_length; i++)
+         //      {
+         //      if (m_badDeterminVegTransClasses[i] == msg)
+         //         {
+         //         alreadySeen = true;
+         //         break;
+         //         }
+         //      }
+         //
+         //if (!alreadySeen && list_length < max_list_length)
+         //   {
+         //   m_badDeterminVegTransClasses.Add(msg);
+         //   
+         //   //badDeterminIndexMap.insert()
+         //   }
          }
 
       int startage_col = m_deterministic_inputtable.GetCol("STARTAGE");
 
       if (determmapindex->size() == 0)
          {
-         CString msg;
-         msg.Format("No transitions (1) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
-            m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
-         Report::LogWarning(msg);
+         //CString msg;
+         //msg.Format("No transitions (1) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
+         //   m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
+         //Report::LogWarning(msg);
          }
       else
          {
@@ -1242,13 +1256,22 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabi
 
    if (m_selected_to_trans >= 1000000 && probabilistic_flag) //Probabilistic transition.  1000000 is the minimun VEGCLASS id number
       {
-
       probmapindex = &m_probIndexMap[m_probIndexLookupKey];//getting index into prob file for the line that transition was select from, for age info etc..   
 
-      if (probmapindex->size() > 0) //probability transitions exist for this destination state class
+      if (probmapindex == NULL)
+         {
+         // add to the bad lookup map
+         if (badProbIndexMap.contains(ProbIndexKeyclass(m_probIndexLookupKey)))
+            {
+            int count = badProbIndexMap[m_probIndexLookupKey];
+            badProbIndexMap[m_probIndexLookupKey] = ++count;
+            }
+         else
+            badProbIndexMap[m_probIndexLookupKey] = 1;
+         }
 
-         {//ASSERT(probmapindex->at(0) <= 5791);
-
+      if (probmapindex != NULL && probmapindex->size() > 0) //probability transitions exist for this destination state class
+         {
          int minage_col = m_inputtable.GetCol("MINAGE");
          int maxage_col = m_inputtable.GetCol("MAXAGE");
          int tsd_col = m_inputtable.GetCol("TSD");
@@ -1273,45 +1296,55 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabi
 
          determmapindex = &m_determinIndexMap[m_determinIndexLookupKey];
 
-         ASSERT(determmapindex != NULL);
-
          if (determmapindex == NULL)
             {
-            bool alreadySeen = false;
+            // add to the bad lookup map
+            if (badDeterminIndexMap.contains(DeterminIndexKeyClass(m_determinIndexLookupKey)))
+               {
+               int count = badDeterminIndexMap[m_determinIndexLookupKey];
+               badDeterminIndexMap[m_determinIndexLookupKey] = ++count;
+               }
+            else
+               badDeterminIndexMap[m_determinIndexLookupKey] = 1;
 
-            msg.Format("%i %i %i %i %i %i\n", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
-
-            int list_length = (int)m_badDeterminVegTransClasses.GetSize();
-            int max_list_length = 1000;
-            if (0 < list_length && list_length < max_list_length)
-               for (int i = 0; i < list_length; i++)
-                  {
-                  if (m_badDeterminVegTransClasses[i] == msg)
-                     {
-                     alreadySeen = true;
-                     break;
-                     }
-                  }
-
-            if (!alreadySeen && list_length < max_list_length)
-               m_badDeterminVegTransClasses.Add(msg);
+            //bool alreadySeen = false;
+            //
+            //msg.Format("%i %i %i %i %i %i\n", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
+            //
+            //int list_length = (int)m_badDeterminVegTransClasses.GetSize();
+            //int max_list_length = 1000;
+            //if (0 < list_length && list_length < max_list_length)
+            //   for (int i = 0; i < list_length; i++)
+            //      {
+            //      if (m_badDeterminVegTransClasses[i] == msg)
+            //         {
+            //         alreadySeen = true;
+            //         break;
+            //         }
+            //      }
+            //
+            //if (!alreadySeen && list_length < max_list_length)
+            //   m_badDeterminVegTransClasses.Add(msg);
             }
 
          // Gets the line in the look up tables for the proper transition so age and tsd can be set 
          int startage_col = m_deterministic_inputtable.GetCol("STARTAGE");
          int endage_col = m_deterministic_inputtable.GetCol("ENDAGE");
 
-         if (determmapindex->size() == 0)
+         if (determmapindex != NULL)
             {
-            CString msg;
-            msg.Format("No transitions (2) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
-               m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
-            Report::LogError(msg);
-            }
-         else
-            {
-            m_deterministic_inputtable.Get(startage_col, determmapindex->at(0), startage);
-            m_deterministic_inputtable.Get(endage_col, determmapindex->at(0), endage);
+            if (determmapindex->size() == 0)
+               {
+               //CString msg;
+               //msg.Format("No transitions (2) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
+               //   m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
+               //Report::LogError(msg);
+               }
+            else
+               {
+               m_deterministic_inputtable.Get(startage_col, determmapindex->at(0), startage);
+               m_deterministic_inputtable.Get(endage_col, determmapindex->at(0), endage);
+               }
             }
          }
       else //there are no probability transitions for this state class. set properties with some values from deteministic lookup table, others are defaults
@@ -1322,41 +1355,52 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabi
 
          if (determmapindex == NULL)
             {
-            bool alreadySeen = false;
-
-            msg.Format("%i %i %i %i %i %i\n", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
-
-            int list_length = (int)m_badDeterminVegTransClasses.GetSize();
-            int max_list_length = 1000;
-            if (0 < list_length && list_length < max_list_length)
-               for (int i = 0; i < list_length; i++)
-                  {
-
-                  if (m_badDeterminVegTransClasses[i] == msg)
-                     {
-                     alreadySeen = true;
-                     break;
-                     }
-                  }
-
-            if (!alreadySeen && list_length < max_list_length)
-               m_badDeterminVegTransClasses.Add(msg);
+            // add to the bad lookup map
+            if (badDeterminIndexMap.contains(DeterminIndexKeyClass(m_determinIndexLookupKey)))
+               {
+               int count = badDeterminIndexMap[m_determinIndexLookupKey];
+               badDeterminIndexMap[m_determinIndexLookupKey] = ++count;
+               }
+            else
+               badDeterminIndexMap[m_determinIndexLookupKey] = 1;
+            //bool alreadySeen = false;
+            //
+            //msg.Format("%i %i %i %i %i %i\n", m_selected_to_trans, m_disturb, m_regen, m_si, m_pvt, m_region);
+            //
+            //int list_length = (int)m_badDeterminVegTransClasses.GetSize();
+            //int max_list_length = 1000;
+            //if (0 < list_length && list_length < max_list_length)
+            //   for (int i = 0; i < list_length; i++)
+            //      {
+            //
+            //      if (m_badDeterminVegTransClasses[i] == msg)
+            //         {
+            //         alreadySeen = true;
+            //         break;
+            //         }
+            //      }
+            //
+            //if (!alreadySeen && list_length < max_list_length)
+            //   m_badDeterminVegTransClasses.Add(msg);
             }
 
          int startage_col = m_deterministic_inputtable.GetCol("STARTAGE");
          int endage_col = m_deterministic_inputtable.GetCol("ENDAGE");
 
-         if (determmapindex->size() == 0)
+         if (determmapindex != NULL)
             {
-            CString msg;
-            msg.Format("No transitions (3) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
-               m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
-            Report::LogError(msg);
-            }
-         else
-            {
-            m_deterministic_inputtable.Get(startage_col, determmapindex->at(0), startage);
-            m_deterministic_inputtable.Get(endage_col, determmapindex->at(0), endage);
+            if (determmapindex->size() == 0)
+               {
+               CString msg;
+               msg.Format("No transitions (3) defined for deterministic lookup .csv file: vegclass=%i disturb=%i (%i) regen=%i si=%i pvt=%i region=%i",
+                  m_selected_to_trans, disturb, m_disturb, m_regen, m_si, m_pvt, m_region);
+               Report::LogError(msg);
+               }
+            else
+               {
+               m_deterministic_inputtable.Get(startage_col, determmapindex->at(0), startage);
+               m_deterministic_inputtable.Get(endage_col, determmapindex->at(0), endage);
+               }
             }
 
          mintsd = 0;
@@ -1551,6 +1595,36 @@ bool DynamicVeg::UpdateIDUVegInfo(EnvContext* pEnvContext, int idu, bool probabi
 
       }   //end if probabilistic      
 
+
+
+   if (badDeterminIndexMap.size() > 0)
+      {
+      Report::Log("Missing the following Deterministic Lookups:");
+      for (auto iter = badDeterminIndexMap.begin(); iter != badDeterminIndexMap.end(); ++iter) 
+         {
+         int count = iter->second;
+         auto key = iter->first;
+
+         CString msg;
+         msg.Format(" FROM: %i, PVT: %i, Region: %i (%i occurances)", key.from, key.pvt, key.region, count );
+         Report::Log(msg);
+         }
+      }
+
+   if (badProbIndexMap.size() > 0)
+      {
+      Report::Log("Missing the following Probabilistic Lookups:");
+      for (auto iter = badProbIndexMap.begin(); iter != badProbIndexMap.end(); ++iter)
+         {
+         int count = iter->second;
+         auto key = iter->first;
+
+         CString msg;
+         msg.Format(" FROM: %i, TO: %i, DISTURB: %i, PVT: %i, Region: %i,  (%i occurances)", key.from, key.to, key.disturb, key.pvt, key.region, count);
+         Report::Log(msg);
+         }
+      }
+      
    return (true);
 
    }

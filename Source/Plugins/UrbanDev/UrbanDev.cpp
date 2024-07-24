@@ -49,7 +49,7 @@ int CompareNDU(const void* elem0, const void* elem1);
 struct NDU_SORT { float fracNDU; int idu; int duAreaIndex; /*int prevNDU; int newDU;*/ };
 
 
-int UgScenario::GetResZone(ZONE& zone)
+int UgScenario::GetResZone(int idu, ZONE& zone)
    {
    int zones = (int)m_resZones.size();
 
@@ -60,16 +60,44 @@ int UgScenario::GetResZone(ZONE& zone)
       return 0;
       }
 
-   float rn = (float)randUnif.RandValue(0, 1);
-   float rnSoFar = 0;
+   // more than one zone defined, see which pass constraints
+   std::vector<int> zis;
 
    for (int i = 0; i < zones; i++)
       {
-      rnSoFar += m_resZones[i].probability;
+      ZONE& zone = m_resZones[i];
+      bool pass = true;
+      if (zone.pConstraintQuery != nullptr)
+         {
+         bool ok = zone.pConstraintQuery->Run(idu, pass);
+         if (!ok)
+            pass = false;
+         }
+      
+      if (pass)
+         zis.push_back(i);      
+      }
+
+   ASSERT(zis.size() > 0);
+   if (zis.size() == 1)
+      {
+      zone = m_resZones[zis[0]];
+      return zis[0];
+      }
+
+   // pick one
+   float rn = (float)randUnif.RandValue(0, 1);
+   float rnSoFar = 0;
+
+   for (int i = 0; i < zis.size(); i++)
+      {
+      int j = zis[i];
+      
+      rnSoFar += m_resZones[j].probability;
 
       if (rnSoFar >= rn) {
-         zone = m_resZones[i];
-         return i;
+         zone = m_resZones[j];
+         return j;
          }
       }
 
@@ -2113,6 +2141,9 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
 
    float maxExpandArea = pUGA->m_currentArea * this->m_pCurrentUgScenario->m_maxExpandFraction;
 
+   std::map<int, int> zoneCountMap;
+   std::map<int, int> zoneRejectMap;
+
    for (int i = pUGA->m_nextResPriority; i < pUGA->m_priorityListRes.GetSize(); i++)
       {
       pUGA->m_nextResPriority++;
@@ -2143,8 +2174,10 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       // has this idu already been annexed?  Then skip it
       if (uga > 0)
          continue;
+
+      // get the zone to be applied.
       ZONE resZone;
-      int zindex = m_pCurrentUgScenario->GetResZone(resZone);
+      int zindex = m_pCurrentUgScenario->GetResZone(pPriority->idu, resZone);
       if (zindex < 0 || resZone.zone < 0)
          continue;
 
@@ -2154,7 +2187,18 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
          bool result = false;
          bool ok = resZone.pConstraintQuery->Run(pPriority->idu, result);
          if (result == false || ok == false)
+            {
+            // add zone counter to map
+            if (zoneRejectMap.contains(resZone.zone))
+               {
+               int count = zoneRejectMap.at(resZone.zone);
+               zoneRejectMap[resZone.zone] = count + 1;
+               }
+            else
+               zoneRejectMap[resZone.zone] = 1;
+
             continue;   // move down the list
+            }
          }
 
       // expand to nearby IDUs
@@ -2241,6 +2285,17 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
             ///
             //UpdateIDU(pContext, expandArray[j], m_colPopCap, m_pCurrentUgScenario->m_zoneRes, ADD_DELTA);
             ///
+
+            // add zone counter to map
+            if (zoneCountMap.contains(resZone.zone))
+               {
+               int count = zoneCountMap.at(resZone.zone);
+               zoneCountMap[resZone.zone] = count + 1;
+               }
+            else
+               zoneCountMap[resZone.zone] = 1;
+
+            // update impervious
             if (m_colImpervious >= 0)
                {
                float impFrac = GetImperviousFromZone(resZone.zone);
@@ -2343,6 +2398,19 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
    commAreaSoFar *= ACRE_PER_M2;
    //resExpArea *= ACRE_PER_M2;
    float pctExpand = (resAreaSoFar + commAreaSoFar) / startingArea;
+
+   Report::Log("  During Urban Expansion:");
+   for (auto iter = zoneCountMap.begin(); iter != zoneCountMap.end(); ++iter) {
+      CString msg;
+      msg.Format("    %i IDUs converted to Zone %i ", iter->second, iter->first);
+      Report::Log(msg);
+      }
+
+   for (auto iter = zoneRejectMap.begin(); iter != zoneRejectMap.end(); ++iter) {
+      CString msg;
+      msg.Format("    %i IDUs for Zone %i where rejected by constraints", iter->second, iter->first);
+      Report::Log(msg);
+      }
 
    if (totalAreaAc == 0)
       {

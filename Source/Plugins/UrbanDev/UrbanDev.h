@@ -251,7 +251,7 @@ class UgUpzoneWhen : public UgTrigger
 
 struct ZONE {
    int zone=-1;
-   float probability = 1;
+   float probability = 100; // converted to 1.0 in LoadXML
    //CString constraint;
    Query* pConstraintQuery = nullptr;
 
@@ -302,7 +302,7 @@ public:
    PtrArray< UgExpandWhen > m_uxExpandArray;
    PtrArray< UgUpzoneWhen > m_uxUpzoneArray;
 
-   int GetResZone(ZONE &);
+   int GetResZone(int idu, ZONE &);
    };
 
 
