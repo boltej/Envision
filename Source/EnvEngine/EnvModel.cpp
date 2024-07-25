@@ -1352,6 +1352,7 @@ int EnvModel::Run(RUNFLAG runFlag)
          m_envContext.currentYear = m_currentYear;
          m_envContext.yearOfRun = m_currentYear - m_startYear;
 
+         Report::Log("---------------------------------------------------------------");
          msg.Format("Starting Year %i, scenario: %s (Run %i)", m_currentYear, (LPCTSTR) m_pScenario->m_name, this->m_currentRun + this->m_startRunNumber + 1);
          Report::Log("---------------------------------------------------------------");
          Report::Log(msg);
