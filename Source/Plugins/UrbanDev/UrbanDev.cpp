@@ -416,10 +416,27 @@ bool UrbanDev::InitRun(EnvContext* pContext, bool useInitialSeed)
       for (int i = 0; i < this->m_ugaArray.GetSize(); i++)
          {
          UGA* pUGA = this->m_ugaArray[i];
-         pUGA->m_commExpArea = 0;
+        
          pUGA->m_resExpArea = 0;
+         pUGA->m_commExpArea = 0;
          pUGA->m_totalExpArea = 0;
-         pUGA->m_impervious = 0;
+         pUGA->m_currentArea = 0;
+         pUGA->m_currentResArea = 0;
+         pUGA->m_currentCommArea = 0;
+         pUGA->m_currentPopulation = 0;
+         pUGA->m_newPopulation = 0;    
+         pUGA->m_popIncr = 0;
+         pUGA->m_capacity = 0;
+         //pUGA->m_availCapacity = 0; ?
+         //pUGA->m_pctAvailCap = 0; ?? 
+         pUGA->m_avgAllowedDensity = 0;
+         pUGA->m_avgActualDensity = 0; 
+         pUGA->m_impervious = 0;       
+
+         //??????????
+         pUGA->m_nextResPriority = 0;  
+         pUGA->m_nextCommPriority = 0;
+         pUGA->m_currentEvent = 0;
          }
 
       if (m_colImpervious >= 0)
@@ -439,15 +456,6 @@ bool UrbanDev::InitRun(EnvContext* pContext, bool useInitialSeed)
 
       pUGA->m_upzoneCriteria.resize(m_pCurrentUgScenario->m_uxUpzoneArray.GetSize());
       std::fill(pUGA->m_upzoneCriteria.begin(), pUGA->m_upzoneCriteria.end(), -1);
-
-      if (this->m_expandUGAs)
-         {
-         pUGA->m_commExpArea = 0;
-         pUGA->m_resExpArea = 0;
-         pUGA->m_totalExpArea = 0;
-         pUGA->m_totalExpArea = 0;
-         pUGA->m_impervious = 0;
-         }
 
       UgUpdateUGAStats(pContext, true);
       }
@@ -2144,6 +2152,17 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
    std::map<int, int> zoneCountMap;
    std::map<int, int> zoneRejectMap;
 
+   int nPassingIDUs = 0;
+   int nRejectedConstraintNotMet = 0;
+   int nConsideredCount = 0;
+   int nNoZoneFound = 0;
+   if (pUGA->m_nextResPriority >= pUGA->m_priorityListRes.GetSize())
+      {
+      CString msg;
+      msg.Format("  %s: No remaining residential expansion area", (LPCTSTR)pUGA->m_name);
+      Report::Log(msg);
+      }
+
    for (int i = pUGA->m_nextResPriority; i < pUGA->m_priorityListRes.GetSize(); i++)
       {
       pUGA->m_nextResPriority++;
@@ -2152,16 +2171,16 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       if (resAreaSoFar > maxExpandArea)
          {
          CString msg;
-         msg.Format("%s - Expansion terminated because max area (%i) criterion was met", (LPCTSTR)pUGA->m_name, (int)maxExpandArea);
-         Report::StatusMsg(msg);
+         msg.Format("  %s - Expansion terminated because max area (%i) criterion was met", (LPCTSTR)pUGA->m_name, (int)maxExpandArea);
+         Report::Log(msg);
          break;  // all done
          }
 
       if (resDemandSoFar >= resExpDemand)
          {
          CString msg;
-         msg.Format("%s - Expansion terminated because demand (%i) was met", (LPCTSTR)pUGA->m_name, (int)resExpDemand);
-         Report::StatusMsg(msg);
+         msg.Format("  %s - Expansion terminated because demand (%i) was met", (LPCTSTR)pUGA->m_name, (int)resExpDemand);
+         Report::Log(msg);
          break;  // all done
          }
 
@@ -2175,11 +2194,13 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       if (uga > 0)
          continue;
 
+      nConsideredCount++;
+
       // get the zone to be applied.
       ZONE resZone;
-      int zindex = m_pCurrentUgScenario->GetResZone(pPriority->idu, resZone);
-      if (zindex < 0 || resZone.zone < 0)
-         continue;
+       int zindex = m_pCurrentUgScenario->GetResZone(pPriority->idu, resZone);
+       if (zindex < 0 || resZone.zone < 0)
+          { nNoZoneFound++; continue; }
 
       // does this IDU pass the rezZone query?
       if (resZone.pConstraintQuery != nullptr)
@@ -2188,6 +2209,8 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
          bool ok = resZone.pConstraintQuery->Run(pPriority->idu, result);
          if (result == false || ok == false)
             {
+            nRejectedConstraintNotMet++;
+
             // add zone counter to map
             if (zoneRejectMap.contains(resZone.zone))
                {
@@ -2219,8 +2242,8 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       float remainingDemand = resExpDemand - resDemandSoFar;
 
       CString m;
-      m.Format("%s: Annexing %.0f of %.0f capacity units", pUGA->m_name, resDemandSoFar, resExpDemand);
-      Report::StatusMsg(m);
+      m.Format("  %s: Annexing %.0f of %.0f capacity units", pUGA->m_name, resDemandSoFar, resExpDemand);
+      Report::Log(m);
 
       float expand = pIDULayer->GetExpandPolysFromQuery(pPriority->idu, m_pCurrentUgScenario->m_pResQuery, this->m_colUrbanPopAvail, /*colPopAvail*/
          remainingDemand, expandArray); // # of people
@@ -2233,12 +2256,13 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       resAreaSoFar += area;
       pUGA->m_resExpArea += area;
       pUGA->m_totalExpArea += area;
+      nPassingIDUs += 1 + (int) expandArray.GetSize();
 
       if (resAreaSoFar > maxExpandArea)
          {
          CString msg;
-         msg.Format("%s - Expansion terminated because max area (%i) criterion was met", (LPCTSTR)pUGA->m_name, (int)maxExpandArea);
-         Report::StatusMsg(msg);
+         msg.Format("  %s - Expansion terminated because max area (%i) criterion was met", (LPCTSTR)pUGA->m_name, (int)maxExpandArea);
+         Report::Log(msg);
          break;
          }
 
@@ -2249,8 +2273,8 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
       if (resDemandSoFar >= resExpDemand)
          {
          CString msg;
-         msg.Format("%s - Expansion terminated because demand (%i) was met", (LPCTSTR)pUGA->m_name, (int)resExpDemand);
-         Report::StatusMsg(msg);
+         msg.Format("  %s - Expansion terminated because demand (%i) was met", (LPCTSTR)pUGA->m_name, (int)resExpDemand);
+         Report::Log(msg);
          break;  // all done
          }
 
@@ -2328,6 +2352,14 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
 
    float commExpArea = resAreaSoFar / m_pCurrentUgScenario->m_resCommRatio;
    float commAreaSoFar = 0;
+
+   if (pUGA->m_nextCommPriority >= pUGA->m_priorityListComm.GetSize())
+      {
+      CString msg;
+      msg.Format("  %s: No remaining commercial expansion area", (LPCTSTR)pUGA->m_name);
+      Report::Log(msg);
+      }
+
    for (int i = pUGA->m_nextCommPriority; i < pUGA->m_priorityListComm.GetSize(); i++)
       {
       pUGA->m_nextCommPriority++;
@@ -2415,8 +2447,12 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
    if (totalAreaAc == 0)
       {
       CString msg;
-      msg.Format("%s Expansion Event Failed (%i), Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Area Added: %.0f acres (%.0f of prior UGA Area) (%.0f Residential, %.0f Commercial), Event:%i, Available Capacity (frac): %.2f",
+      msg.Format("  %s Expansion Event Failed (%i), Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Area Added: %.0f acres (%.0f of prior UGA Area) (%.0f Residential, %.0f Commercial), Event:%i, Available Capacity (frac): %.2f",
          pUGA->m_name, pContext->currentYear, (LPCTSTR)pExpand->m_name, resExpDemand, resDemandSoFar, resDemandSoFar * 100 / resExpDemand, totalAreaAc, pctExpand, resAreaSoFar, commAreaSoFar, pUGA->m_currentEvent + 1, pUGA->m_pctAvailCap);
+      Report::LogWarning(msg);
+
+      msg.Format("    Considered %i IDUs: %i Passed, %i had no assignable zone, %i didn't meet constraint",
+         nConsideredCount, nPassingIDUs, nNoZoneFound, nRejectedConstraintNotMet);      
       Report::LogWarning(msg);
       }
    else

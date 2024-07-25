@@ -63,6 +63,7 @@
       <ShowIncludes>false</ShowIncludes>
       <UseFullPaths>false</UseFullPaths>
       <MinimalRebuild />
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
@@ -84,7 +85,7 @@
       <AdditionalIncludeDirectories>..\..\EnvLibs;..\..\EnvEngine;</AdditionalIncludeDirectories>
       <UseFullPaths>false</UseFullPaths>
       <MinimalRebuild />
-      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <LanguageStandard>stdcpp20</LanguageStandard>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>
