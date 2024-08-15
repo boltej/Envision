@@ -4124,15 +4124,18 @@ int COCNHProcessPost2::CalcHarvestBiomass(EnvContext* pContext, bool useAddDelta
                   sawTimberHarvVol = availableRH;// m3   
                   timberHarvVol = sawTimberHarvVol + (m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable1);// m3               
                   break;
+               
                case PARTIAL_HARVEST:
                   sawTimberHarvVol = availablePH;// m3
                   timberHarvVol = sawTimberHarvVol + (m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable3);// m3
                   break;
+
                case THIN_FROM_BELOW:
                case THIN_FROM_BELOW_2:
                   sawTimberHarvVol = availableTFB;// m3
                   timberHarvVol = sawTimberHarvVol + (m_priorLiveVolume_3_25IDUArray[idu] * m_percentPreTransStructAvailable55);// m3
                   break;
+
                case PARTIAL_HARVEST_HIGH:
                case PARTIAL_HARVEST_HIGH_2:
                   sawTimberHarvVol = availablePHH;// m3

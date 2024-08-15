@@ -14,8 +14,10 @@ class _EXPORT Risk : public  EnvEvaluator
    {
    public:
       Risk() : EnvEvaluator()
-         , m_movingWindowPotentialLoss(5)
-         , m_movingWindowActualLoss(5)
+         , m_movingWindowHousingPotentialLoss(5)
+         , m_movingWindowHousingActualLoss(5)
+         , m_movingWindowTimberPotentialLoss(5)
+         , m_movingWindowTimberActualLoss(5)
          {}
 
       ~Risk() { if (m_pOutputData) delete m_pOutputData; }
@@ -44,13 +46,13 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colActualExpHousingLoss = -1;
       int m_colPotentialExpHousingLoss = -1;
 
-      int m_colDamageHousing = -1;
-      int m_colPotentialDamageHousing = -1;
-      int m_colDamageFracHousing = -1;
+      int m_colLossHousing = -1;
+      int m_colPotentialLossHousing = -1;
+      int m_colLossFracHousing = -1;
 
-      int m_colDamageTimber = -1;
-      int m_colPotentialDamageTimber = -1;
-      int m_colDamageFracTimber = -1;
+      int m_colLossTimber = -1;
+      int m_colPotentialLossTimber = -1;
+      int m_colLossFracTimber = -1;
 
       int m_colLookupHousing = -1;
       int m_colLookupTimber = -1;
@@ -66,8 +68,13 @@ class _EXPORT Risk : public  EnvEvaluator
       float m_firewiseReductionFactor = 0.15f;
       float m_flamelenThreshold = 0.01f;
 
-      float m_maxDamagePotentialPerHa = 1000000;
-      float m_maxDamageActualPerHa = 1000000;
+      //float m_maxLossPotentialPerHa = 1000000;
+      //float m_maxLossActualPerHa = 1000000;
+
+      float m_maxTimberLossPotential = 100000;
+      float m_maxTimberLossActual = 100000;
+      float m_maxHousingLossPotential = 100000;
+      float m_maxHousingLossActual = 100000;
 
       CString m_queryStr;
       Query* pQuery = nullptr;
@@ -82,20 +89,15 @@ class _EXPORT Risk : public  EnvEvaluator
 
       FDataObj* m_pOutputData = nullptr;
 
-      //MovingWindow m_movingWindowActualHousingLoss;
-      //MovingWindow m_movingWindowActualTimberLoss;
+      MovingWindow m_movingWindowHousingPotentialLoss;
+      MovingWindow m_movingWindowHousingActualLoss;
+      MovingWindow m_movingWindowTimberPotentialLoss;
+      MovingWindow m_movingWindowTimberActualLoss;
 
-      //MovingWindow m_movingWindowPotentialHousingLoss;
-      //MovingWindow m_movingWindowPotentialTimberLoss;
-
-      MovingWindow m_movingWindowPotentialLoss;
-      MovingWindow m_movingWindowActualLoss;
-      //MovingWindow m_movingWindowCombinedRisk;
-
-
-      PtrArray<MovingWindow> iduMovingWindowsPotentialLoss;
-      PtrArray<MovingWindow> iduMovingWindowsActualLoss;
-
+      PtrArray<MovingWindow> iduMovingWindowsHousingPotentialLoss;
+      PtrArray<MovingWindow> iduMovingWindowsHousingActualLoss;
+      PtrArray<MovingWindow> iduMovingWindowsTimberPotentialLoss;
+      PtrArray<MovingWindow> iduMovingWindowsTimberActualLoss;
 
       // Methods 
 
