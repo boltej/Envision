@@ -550,12 +550,17 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
          TYPE type = TYPE_INT;
          if (_count == 2)
             {
-            switch (_tolower(token[1][0]))
+            TCHAR _type = (char) token[1][0];
+
+            switch(_type)
                {
                case 'f':   type = TYPE_FLOAT;   break;
                case 'd':   type = TYPE_DOUBLE;  break;
                case 's':   type = TYPE_STRING;  break;
+               case 'i':   type = TYPE_INT;     break;
                case 'l':   type = TYPE_LONG;    break;
+               default:
+                  Report::LogWarning("Bad type specified for FieldCalc field");
                }
             }
          this->CheckCol(m_pMapLayer, col, token[0], type, CC_AUTOADD);

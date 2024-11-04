@@ -42,6 +42,7 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colPotentialLossPerHa = -1;
       int m_colActualLossPerHa = -1;
       int m_colRisk = -1;
+      int m_colRiskSignal = -1;
 
       int m_colActualExpHousingLoss = -1;
       int m_colPotentialExpHousingLoss = -1;
@@ -62,9 +63,14 @@ class _EXPORT Risk : public  EnvEvaluator
       int m_colFirewise = -1;
       int m_colTimberVol = -1;
 
+      float m_medianHomeValue = 0;
       float m_potentialWt = 0.07f;
       float m_timberValueMBF = 10;  // value/THOUSAND BOARD FEET
-            
+      
+      float m_b = 0.7f; // midpoint of logistic curve
+      float m_c = 12;   // steepness of logistic curve
+
+
       float m_firewiseReductionFactor = 0.15f;
       float m_flamelenThreshold = 0.01f;
 
@@ -75,6 +81,11 @@ class _EXPORT Risk : public  EnvEvaluator
       float m_maxTimberLossActual = 100000;
       float m_maxHousingLossPotential = 100000;
       float m_maxHousingLossActual = 100000;
+
+      float m_minTimberLossPotential = 0;
+      float m_minTimberLossActual = 0;
+      float m_minHousingLossPotential = 0;
+      float m_minHousingLossActual = 0;
 
       CString m_queryStr;
       Query* pQuery = nullptr;

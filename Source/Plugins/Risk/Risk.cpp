@@ -9,7 +9,6 @@
 #include <Report.h>
 #include <tixml.h>
 #include <PathManager.h>
-
 #include <algorithm>
 
 bool Risk::Init(EnvContext* pEnvContext, LPCTSTR initStr)
@@ -156,7 +155,7 @@ bool Risk::Run(EnvContext* pEnvContext)
       int nDU = 0;
       pIDULayer->GetData(idu, this->m_colNDU, nDU);
 
-      float imprVal = nDU * 200000.0f;  // hard coded
+      float imprVal = nDU * this->m_medianHomeValue;
       //pIDULayer->GetData(idu, this->m_colImprVal, imprVal);
 
       float potentialLossHousing = 0, actualLossHousing = 0;
@@ -276,22 +275,28 @@ bool Risk::Run(EnvContext* pEnvContext)
       this->UpdateIDU(pEnvContext, idu, this->m_colPotentialLossPerHa, potLossPerHaMovAvg, ADD_DELTA);
       this->UpdateIDU(pEnvContext, idu, this->m_colActualLossPerHa, actLossPerHaMovAvg, ADD_DELTA);
 
-
-      //float iduRiskPotential = potLossPerHaMovAvg / this->m_maxLossPotentialPerHa;
-      //float iduRiskActual = actLossPerHaMovAvg / this->m_maxLossActualPerHa;
-      //float iduRisk = this->m_potentialWt * iduRiskPotential + (1.0f-this->m_potentialWt) * iduRiskActual;
-      float iduMaxTimberLossActual = this->m_maxTimberLossActual * area / totalArea;
       float iduMaxTimberLossPotential = this->m_maxTimberLossPotential * area / totalArea;
-      float iduMaxHousingLossActual = this->m_maxHousingLossActual * area / totalArea;
       float iduMaxHousingLossPotential = this->m_maxHousingLossPotential * area / totalArea;
+      float iduMinTimberLossPotential = this->m_minTimberLossPotential * area / totalArea;
+      float iduMinHousingLossPotential = this->m_minHousingLossPotential * area / totalArea;
 
-      float iduRisk = 
-         ((this->m_potentialWt *
-            ((std::min<float>(potentialLossTimber, iduMaxTimberLossPotential) / iduMaxTimberLossPotential)
-               + (std::min<float>(potentialLossHousing, iduMaxHousingLossPotential) / iduMaxHousingLossPotential)))
-            + ((1 - this->m_potentialWt) *
-               ((std::min<float>(actualLossTimber, iduMaxTimberLossActual) / iduMaxTimberLossActual)
-                  + (std::min<float>(actualLossHousing, iduMaxHousingLossActual) / iduMaxHousingLossActual)))
+      //float movAvgPotentialLossTimber = iduMovingWindowsTimberPotentialLoss[idu]->GetAvgValue();
+      //float movAvgPotentialLossHousing = iduMovingWindowsHousingPotentialLoss[idu]->GetAvgValue();
+
+      //float maPLT = std::min<float>(movAvgPotentialLossTimber,  iduMaxTimberLossPotential);
+      //float maPLH = std::min<float>(movAvgPotentialLossHousing, iduMaxHousingLossPotential);
+      // [0,1]
+      //float iduRisk =
+      //      (((maPLT - iduMinTimberLossPotential) / (iduMaxTimberLossPotential - iduMinTimberLossPotential))
+      //      + ((maPLH - iduMinHousingLossPotential) / (iduMaxHousingLossPotential - iduMinHousingLossPotential))
+      //      ) / 2.0f;
+
+      float PLT = std::min<float>(potentialLossTimber,  iduMaxTimberLossPotential);
+      float PLH = std::min<float>(potentialLossHousing, iduMaxHousingLossPotential);
+      // [0,1]
+      float iduRisk =
+            (((PLT - iduMinTimberLossPotential) / (iduMaxTimberLossPotential - iduMinTimberLossPotential))
+            + ((PLH - iduMinHousingLossPotential) / (iduMaxHousingLossPotential - iduMinHousingLossPotential))
             ) / 2.0f;
 
       this->UpdateIDU(pEnvContext, idu, this->m_colRisk, iduRisk, ADD_DELTA);
@@ -301,7 +306,6 @@ bool Risk::Run(EnvContext* pEnvContext)
 
       if (actualLossPerHa > maxActualLossPerHa)
          maxActualLossPerHa = actualLossPerHa;
-
       }  // end of : for each idu
 
    m_movingWindowHousingPotentialLoss.AddValue(totalPotentialLossHousing);
@@ -321,16 +325,25 @@ bool Risk::Run(EnvContext* pEnvContext)
    float totalActualLosses = totalActualLossHousing + totalActualLossTimber;
    float totalPotentialLosses = totalPotentialLossHousing + totalPotentialLossTimber;
 
+   float movAvgActualLossTimber = m_movingWindowTimberActualLoss.GetAvgValue();
+   float movAvgPotentialLossTimber = m_movingWindowTimberPotentialLoss.GetAvgValue();
+   float movAvgActualLossHousing = m_movingWindowHousingActualLoss.GetAvgValue();
+   float movAvgPotentialLossHousing = m_movingWindowHousingPotentialLoss.GetAvgValue();
+
+   float maPLT = std::min<float>(movAvgPotentialLossTimber, this->m_maxTimberLossPotential);
+   float maALT = std::min<float>(movAvgActualLossTimber, this->m_maxTimberLossActual);
+   float maPLH = std::min<float>(movAvgPotentialLossHousing, this->m_maxHousingLossPotential);
+   float maALH = std::min<float>(movAvgActualLossHousing, this->m_maxHousingLossActual);
+
    // [0,1]
    float risk =
       ((this->m_potentialWt *
-         ((std::min<float>(totalPotentialLossTimber, this->m_maxTimberLossPotential) / this->m_maxTimberLossPotential)
-            + (std::min<float>(totalPotentialLossHousing, this->m_maxHousingLossPotential) / this->m_maxHousingLossPotential)))
-         + ((1 - this->m_potentialWt) *
-            ((std::min<float>(totalActualLossTimber, this->m_maxTimberLossActual) / this->m_maxTimberLossActual)
-               + (std::min<float>(totalActualLossHousing, this->m_maxHousingLossActual) / this->m_maxHousingLossActual)))
-         ) / 2.0f;
-
+         ((( maPLT - this->m_minTimberLossPotential) / (this->m_maxTimberLossPotential-this->m_minTimberLossPotential))
+            + (maPLH - this->m_minHousingLossPotential) / (this->m_maxHousingLossPotential-this->m_minHousingLossPotential)))
+      + ((1 - this->m_potentialWt) *
+            (((maALT - this->m_minTimberLossActual) / (this->m_maxTimberLossActual - this->m_minTimberLossActual))
+            + (maALH - this->m_minHousingLossActual) / (this->m_maxHousingLossActual - this->m_minHousingLossActual)))
+      ) / 2.0f;
    // Landscape signal(-3, 3) = (Fire risk * 6) - 3
 
 
@@ -357,18 +370,33 @@ bool Risk::Run(EnvContext* pEnvContext)
    data.Add(lossAreaActualTimber > 0 ? (float)totalActualLossFracTimber / lossAreaActualTimber : 0);
    data.Add(lossAreaPotentialTimber > 0 ? (float)totalPotentialLossFracTimber / lossAreaPotentialTimber : 0);
 
-   data.Add(m_movingWindowHousingActualLoss.GetAvgValue());
-   data.Add(m_movingWindowHousingPotentialLoss.GetAvgValue());
-   data.Add(m_movingWindowTimberActualLoss.GetAvgValue());
-   data.Add(m_movingWindowTimberPotentialLoss.GetAvgValue());
-   data.Add(m_movingWindowHousingActualLoss.GetAvgValue() + m_movingWindowTimberActualLoss.GetAvgValue());
-   data.Add(m_movingWindowHousingPotentialLoss.GetAvgValue() + m_movingWindowTimberPotentialLoss.GetAvgValue());
-
+   data.Add(movAvgActualLossHousing);
+   data.Add(movAvgPotentialLossHousing);
+   data.Add(movAvgActualLossTimber);
+   data.Add(movAvgPotentialLossTimber);
+   data.Add(movAvgActualLossHousing + movAvgActualLossTimber);
+   data.Add(movAvgPotentialLossHousing + movAvgPotentialLossTimber);
+   
    data.Add(risk);
 
    this->m_pOutputData->AppendRow(data);
 
-   pEnvContext->rawScore = risk;
+   // add barts warping of risk signal
+
+   // Apply the logarithmic transformation
+
+   float epsilon = 4.54e-5;  // pow(e,-10)
+   float lnRisk = (float) log(risk + epsilon);
+
+   // Normalize the log_value to the range [0, 1]
+   float lnMin = -10;  // float(log(epsilon));
+   float lnMax = 0;
+   float normalized_lnRisk = (lnRisk - lnMin) / (lnMax - lnMin);
+
+   // Apply logistic normalization 
+   risk = 1 / (1 + exp(-this->m_c * (normalized_lnRisk - this->m_b)));
+
+   pEnvContext->rawScore = risk;   // [0-1]
    pEnvContext->score = risk;  // [0-1]
    pEnvContext->score *= 6;   // [0,6]
    pEnvContext->score -= 3;   // [-3,3]
@@ -382,6 +410,12 @@ bool Risk::Run(EnvContext* pEnvContext)
 
    msg.Format("Max Loss: Max PotentialLossPerHa=%f, Max ActualPotentialLossPerHa=%f", maxPotentialLossPerHa, maxActualLossPerHa);
    Report::LogInfo(msg);
+
+   if (this->m_colRiskSignal >= 0)
+      {
+      for (MapLayer::Iterator idu = pIDULayer->Begin(); idu < pIDULayer->End(); idu++)
+         this->UpdateIDU(pEnvContext, idu, this->m_colRiskSignal, risk, ADD_DELTA);
+      }
 
    Report::StatusMsg("Calculating Loss Percentiles...");
 
@@ -439,9 +473,6 @@ void Risk::ToPercentiles(std::vector<float>& values, std::vector<float>& pctiles
       pctiles[i] = (count * 100.0f) / (n - 1);
       }
    }
-
-
-
 
 void Risk::GetLoss(MapLayer* pIDULayer, float flameLen, int lu, bool doTimber, int firewise, float& loss)
    {
@@ -511,7 +542,7 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    // start interating through the nodes
    TiXmlElement* pXmlRoot = doc.RootElement();  // <risk>
 
-   CString flamelenField, pflamelenField, riskField, potLossPerHaField, actLossPerHaField, lossFieldHousing, potLossFieldHousing,
+   CString flamelenField, pflamelenField, riskField, riskSignalField, potLossPerHaField, actLossPerHaField, lossFieldHousing, potLossFieldHousing,
       lossFracFieldHousing, lossFieldTimber, potLossFieldTimber, lossFracFieldTimber, lookupFieldHousing, 
       lookupFieldTimber, actExpHousingLoss, potExpHousingLoss;
 
@@ -520,14 +551,24 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       { "flamelen_col",                TYPE_CSTRING,   &flamelenField,  true, 0},
       { "pflamelen_col",               TYPE_CSTRING,   &pflamelenField, true, 0},
       { "risk_col",                    TYPE_CSTRING,   &riskField,      true, 0 },
+      { "risk_signal_col",             TYPE_CSTRING,   &riskSignalField, false, 0 },
       { "potential_loss_col",          TYPE_CSTRING,   &potLossPerHaField,   true, 0 },
       { "actual_loss_col",             TYPE_CSTRING,   &actLossPerHaField,   true, 0 },
       { "query",                       TYPE_CSTRING,   &this->m_queryStr, true, 0 },
+      { "median_home_value",           TYPE_FLOAT,     &this->m_medianHomeValue, true,  0 },  // totals for the study area
 
       { "timber_potential_loss_max",   TYPE_FLOAT,     &this->m_maxTimberLossPotential,  true,  0 },  // totals for the study area
       { "timber_actual_loss_max",      TYPE_FLOAT,     &this->m_maxTimberLossActual,     true,  0 },
       { "housing_potential_loss_max",  TYPE_FLOAT,     &this->m_maxHousingLossPotential, true,  0 },
       { "housing_actual_loss_max",     TYPE_FLOAT,     &this->m_maxHousingLossActual,    true,  0 },
+
+      { "timber_potential_loss_min",   TYPE_FLOAT,     &this->m_minTimberLossPotential,  true,  0 },  // totals for the study area
+      { "timber_actual_loss_min",      TYPE_FLOAT,     &this->m_minTimberLossActual,     true,  0 },
+      { "housing_potential_loss_min",  TYPE_FLOAT,     &this->m_minHousingLossPotential, true,  0 },
+      { "housing_actual_loss_min",     TYPE_FLOAT,     &this->m_minHousingLossActual,    true,  0 },
+
+      { "b",                           TYPE_FLOAT,     &this->m_b,    false,  0 },
+      { "c",                           TYPE_FLOAT,     &this->m_c,    false,  0 },
 
       { "firewise_reduction_factor",   TYPE_FLOAT,     &this->m_firewiseReductionFactor, false, 0 },
       { "flamelength_threshold",       TYPE_FLOAT,     &this->m_flamelenThreshold, false, 0 },
@@ -558,6 +599,8 @@ bool Risk::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
       this->CheckCol(pMapLayer, this->m_colPotentialLossPerHa, potLossPerHaField, TYPE_FLOAT, CC_AUTOADD | TYPE_FLOAT);
       this->CheckCol(pMapLayer, this->m_colActualLossPerHa, actLossPerHaField, TYPE_FLOAT, CC_AUTOADD | TYPE_FLOAT);
       this->CheckCol(pMapLayer, this->m_colRisk, riskField, TYPE_FLOAT, CC_AUTOADD | TYPE_FLOAT);
+      if ( riskSignalField.IsEmpty() == false)
+         this->CheckCol(pMapLayer, this->m_colRiskSignal, riskSignalField, TYPE_FLOAT, CC_AUTOADD | TYPE_FLOAT);
 
       this->CheckCol(pMapLayer, this->m_colActualExpHousingLoss, actExpHousingLoss,  TYPE_FLOAT, CC_AUTOADD);
       this->CheckCol(pMapLayer, this->m_colPotentialExpHousingLoss, potExpHousingLoss, TYPE_FLOAT, CC_AUTOADD);

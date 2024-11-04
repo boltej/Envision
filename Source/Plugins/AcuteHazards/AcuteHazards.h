@@ -34,7 +34,7 @@ EnvModel:Run()
 // Note that we want to override the parent methods
 // for Init, InitRun, and Run.
 
-#include <python.h>
+//#include <python.h>
 
 #define _EXPORT __declspec( dllexport )
 

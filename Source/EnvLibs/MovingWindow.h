@@ -23,6 +23,7 @@ Copywrite 2012 - Oregon State University
 #include <float.h>
 
 
+
 class LIBSAPI MovingWindow
 {
 public:   
@@ -40,8 +41,8 @@ public:
    bool Clear();
       
 protected:
-   int m_windowLength;
-   float *m_values;
-
+   int m_windowLength = 5;
+   int m_currentLength = 0;
+   float *m_values = nullptr;
 };
 

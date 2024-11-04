@@ -173,6 +173,8 @@ int Stratifiable::ParseFieldSpec(LPCTSTR stratifyBy, MapLayer* pLayer)
             m_stratifiedAttrs.Add(fa.value);
          else if (pInfo->mfiType == MFIT_QUANTITYBINS)
             m_stratifiedAttrs.Add(VData(fa.maxVal));      // for quantity bins, use max value of bin
+
+         m_stratifiedAreas.Add(0);
          }
       }
 
@@ -189,6 +191,9 @@ int Stratifiable::ParseFieldSpec(LPCTSTR stratifyBy, MapLayer* pLayer)
          m_stratifiedLabels.Add(fa->label);
       else
          m_stratifiedLabels.Add("<Undefined>");
+
+      m_stratifiedAreas.Add(0);
+
 
       m_attrMap.SetAt(attrIndex, i);
       }
@@ -494,7 +499,7 @@ bool Reporter::Run(EnvContext* pEnvContext)
          }  // end of:  for each IDU
 
       // fix up values as needed
-      if (totalArea > 0)
+      //if (totalArea > 0)
          {
          NormalizeOutputs(m_outputArray, pLayer, totalArea);
 
@@ -559,6 +564,7 @@ void Reporter::ResetOutputs(PtrArray< Output >& outputArray)
 
       if (pOutput->m_use)
          {
+         pOutput->m_count = 0;
          pOutput->m_value = 0;
          pOutput->m_cumValue = 0;
          pOutput->m_queryArea = 0;
@@ -571,11 +577,12 @@ void Reporter::ResetOutputs(PtrArray< Output >& outputArray)
          for (int j = 0; j < (int)pOutput->m_stratifiedValues.GetSize(); j++)
             {
             pOutput->m_stratifiedValues[j] = 0;
+            pOutput->m_stratifiedAreas[j] = 0;
 
             if (pOutput->m_varType == VT_MIN)
-               pOutput->m_stratifiedValues[j] = LONG_MAX;
+               pOutput->m_stratifiedValues[j] = (float) LONG_MAX;
             else if (pOutput->m_varType == VT_MAX)
-               pOutput->m_stratifiedValues[j] = LONG_MIN;
+               pOutput->m_stratifiedValues[j] = (float) LONG_MIN;
             }
          }
       }
@@ -656,6 +663,8 @@ void Reporter::EvaluateOutputs(PtrArray < Output >& outputArray, MapLayer* pLaye
 
                   if (found && index >= 0)
                      {
+                     pOutput->m_stratifiedAreas[index] += area;
+
                      switch (pOutput->m_varType)
                         {
                         case VT_PCT_AREA:
@@ -704,7 +713,8 @@ void Reporter::NormalizeOutputs(PtrArray < Output >& outputArray, MapLayer* pLay
          switch (pOutput->m_varType)
             {
             case VT_PCT_AREA:
-               pOutput->m_value *= pOutput->m_queryArea / totalArea;
+               if ( totalArea > 0 )
+                  pOutput->m_value *= pOutput->m_queryArea / totalArea;
                break;
 
             case VT_SUM_AREA:
@@ -721,8 +731,11 @@ void Reporter::NormalizeOutputs(PtrArray < Output >& outputArray, MapLayer* pLay
                break;
 
             case VT_MEAN:
+               {
+               int count = pOutput->m_pMapLayer->GetRowCount();
                if (pOutput->m_count > 0)
                   pOutput->m_value /= pOutput->m_count;
+               }
                break;
 
             case VT_MIN:
@@ -738,7 +751,7 @@ void Reporter::NormalizeOutputs(PtrArray < Output >& outputArray, MapLayer* pLay
                switch (pOutput->m_varType)
                   {
                   case VT_PCT_AREA:
-                     pOutput->m_stratifiedValues[i] *= pOutput->m_queryArea / totalArea;
+                     pOutput->m_stratifiedValues[i] *= pOutput->m_stratifiedAreas[i] / pOutput->m_queryArea;
                      break;
 
                   case VT_SUM_AREA:
@@ -748,7 +761,10 @@ void Reporter::NormalizeOutputs(PtrArray < Output >& outputArray, MapLayer* pLay
                   case VT_LENWTMEAN:
                   case VT_MEAN:
                      if (pOutput->m_queryArea > 0)
-                        pOutput->m_stratifiedValues[i] /= pOutput->m_queryArea;  // normalize to query area
+                        {
+                        float _queryArea = 0;                        
+                        pOutput->m_stratifiedValues[i] /= pOutput->m_stratifiedAreas[i];  // normalize to query area
+                        }
                      break;
 
                   case VT_MIN:
@@ -877,6 +893,7 @@ void Reporter::CollectOutput(EnvContext* pContext)
             rowData[col++] = pOutput->m_stratifiedAttrs[k];
             rowData[col++] = pOutput->m_stratifiedLabels[k];
             rowData[col++] = pOutput->m_stratifiedValues[k];
+            //rowData[col++] = pOutput->m_stratifiedAreas[k];
             pOutput->m_pPivotData->AppendRow(rowData);
             }
          }  // end of: if ( useSummaries)

@@ -152,6 +152,7 @@ class Stratifiable
       FDataObj* m_pStratifyData;   // defined if m_stratifyField specified - each col is a summarize-by attr
       // this are exposed as output variables
 
+      CArray< float, float > m_stratifiedAreas;
       CArray< float, float > m_stratifiedValues;
       CArray< VData, VData& > m_stratifiedAttrs;   // ints or strings that are values to track
       CStringArray m_stratifiedLabels;

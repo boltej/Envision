@@ -256,11 +256,7 @@ SNNode* SNLayer::FindNode(LPCTSTR name)
 
 bool SNLayer::RemoveNode(SNNode* pNode)
    {
-   // remove from node array
-   //m_nodes.Remove(pNode);  // also deletes node
-   delete pNode;
-   std::erase(m_nodes, pNode);
-
+   // to remove a node, remove the ptr to it from 1) m_nodeMap, and 2) m_nodes array, and delete any up and downstream edges
    // remove from nodeMap
    for (std::map<std::string, SNNode*>::iterator it = m_nodeMap.begin(); it != m_nodeMap.end();)
       {
@@ -272,39 +268,212 @@ bool SNLayer::RemoveNode(SNNode* pNode)
       else
          it++;
       }
-   // remove any edges that point from/to this node.
-   for (int i = 0; i < (int)m_edges.size(); i++)
+
+   // remove from nodeArray
+   auto it = std::find(m_nodes.begin(), m_nodes.end(), pNode);
+   if (it != m_nodes.end())
+      m_nodes.erase(it);
+   else
+      ASSERT(0);
+
+   // remove incoming/outgoing edges
+   //for (auto edge : pNode->m_inEdges)
+   for (int i = 0; i < pNode->m_inEdges.size(); i++)
       {
-      SNEdge* pEdge = m_edges[i];
-      if (pEdge->m_pFromNode == pNode)
-         {
-         //m_edges.Remove(pEdge);
-         std::erase(m_edges, pEdge);
-         for (int j = 0; j < (int)pEdge->m_pFromNode->m_outEdges.size(); j++)
-            if (pEdge->m_pFromNode->m_outEdges[j] == pEdge)
-               {
-               std::erase(pEdge->m_pFromNode->m_outEdges, pEdge);
-               break;
-               }
-
-         for (int j = 0; j < (int)pEdge->m_pToNode->m_inEdges.size(); j++)
-            if (pEdge->m_pToNode->m_inEdges[j] == pEdge)
-               {
-               std::erase(pEdge->m_pToNode->m_inEdges, pEdge); // .RemoveAt(j);
-               break;
-               }
-
-         i--;
-         }
+      SNEdge* pEdge = pNode->m_inEdges[i];
+      RemoveEdge(pEdge);  // removes from edges, removes from up/down nodes, deletes
       }
 
+   //for (auto edge : pNode->m_outEdges)
+   for (int i = 0; i < pNode->m_outEdges.size(); i++)
+      {
+      SNEdge* pEdge = pNode->m_outEdges[i];
+      RemoveEdge(pEdge);
+      }
+
+   delete pNode;
    return true;
    }
 
 
+   bool SNLayer::RemoveEdge(SNEdge* pEdge)
+      {
+      // clean up any upstrem connections
+      if (pEdge->m_pFromNode != nullptr && pEdge->m_pFromNode->m_outEdges.size() > 0)
+         {
+         auto it = std::find(pEdge->m_pFromNode->m_outEdges.begin(), pEdge->m_pFromNode->m_outEdges.end(), pEdge);
+
+         // If element is found found, erase it
+         if (it != pEdge->m_pFromNode->m_outEdges.end())
+            pEdge->m_pFromNode->m_outEdges.erase(it);
+         else
+            ASSERT(0);
+         }
+
+      // downstream
+      if (pEdge->m_pToNode != nullptr && pEdge->m_pToNode->m_inEdges.size() > 0)
+         {
+         auto it = std::find(pEdge->m_pToNode->m_inEdges.begin(), pEdge->m_pToNode->m_inEdges.end(), pEdge);
+
+         // If element is found found, erase it
+         if (it != pEdge->m_pToNode->m_inEdges.end())
+            pEdge->m_pToNode->m_inEdges.erase(it);
+         else
+            ASSERT(0);
+         }
+
+      // Remove the element from the list of edges
+      auto it = std::find(this->m_edges.begin(), this->m_edges.end(), pEdge);
+
+      // If edge is found found, erase it from the m_edge array
+      if (it != this->m_edges.end())
+         this->m_edges.erase(it);
+      else
+         ASSERT(0);
+
+      // delete the edge
+      delete pEdge;
+      return true;
+      }
+
+
+int SNLayer::ReduceBy(float factor)
+   {
+   // iterate through the non-input nodes, randomly knocking out non-input node
+   // and associated edges.  Assure that at least ONE inpput edge is preserved
+
+   bool inputEdgeSaved = false;
+   int nNodesRemoved = 0;
+   int nEdgesRemoved = 0;
+   int nStartEdges = this->m_edges.size();
+
+   int assessors = 0, engagers = 0, inputs = 0, las = 0, nets = 0, unknowns = 0;
+
+   // iterate though all nodes, randomly eliminating them and associated edges
+   for (auto node : this->m_nodes)
+      {
+      switch (node->m_nodeType)
+         {
+         case SNIP_NODETYPE::NT_ASSESSOR: assessors++;   break;
+         case SNIP_NODETYPE::NT_ENGAGER:  engagers++;   break;
+         case SNIP_NODETYPE::NT_INPUT_SIGNAL: inputs++;   break;
+         case SNIP_NODETYPE::NT_LANDSCAPE_ACTOR: las++;   break;
+         case SNIP_NODETYPE::NT_NETWORK_ACTOR: nets++;   break;
+         case SNIP_NODETYPE::NT_UNKNOWN:
+         default:
+            unknowns++; break;
+         }
+      }
+
+   for (auto edge : this->m_edges)
+      {
+      SNNode *pSource = edge->Source();
+      SNNode *pTarget = edge->Target() ;
+
+      bool removeEdge = true;
+      if (pSource && pSource->m_nodeType == NT_INPUT_SIGNAL && pSource->m_outEdges.size() <= 1)
+         removeEdge = false;
+      if (pTarget && pTarget->m_nodeType == NT_LANDSCAPE_ACTOR && pTarget->m_inEdges.size() <= 1)
+         removeEdge = false;
+
+      if (removeEdge)
+         {
+         float rand = (float)SNIPModel::m_randShuffle.RandValue();  // [0,1]
+         if (rand <= factor)
+            {
+            this->RemoveEdge(edge);
+            nEdgesRemoved++;
+            }
+         }
+      }
+   /*
+   for (auto node : this->m_nodes)
+      {
+      switch(node->m_nodeType)
+         {
+         case NT_INPUT_SIGNAL:
+         case NT_LANDSCAPE_ACTOR:
+            break;
+
+         default:
+            {
+            bool considerForDeletion = true;
+            // if we haven't saved a network node with an upstream connection to an input
+            // check if this has an upstream input edge.
+            // if it contains an upstream input, don't consider for removal
+            if (inputEdgeSaved == false)
+               {
+               for (auto inEdge : node->m_inEdges)
+                  {
+                  // does this node connect to an upstream input node?
+                  if (inEdge->Source()->IsInputSignal())
+                     {
+                     considerForDeletion = false;
+                     inputEdgeSaved = true;
+                     break;
+                     }
+                  }
+               }
+     
+            if (considerForDeletion)
+               {
+               float rand = (float)SNIPModel::m_randShuffle.RandValue();  // [0,1]
+               if (rand <= factor)
+                  {
+                  this->RemoveNode(node);
+                  nNodesRemoved++;
+                  }
+               }
+            break;
+            }  // end of default (network nodes)
+         }  // end of switch(nodeType)
+      }  // end of: for each node
+      */
+
+   // did we orphan any nodes?  If so, remove them as well
+   int nNodesOrphaned = 0;
+   for (auto node : this->m_nodes)
+      {
+      if (node->m_inEdges.size() == 0 && node->m_outEdges.size() == 0)
+         {
+         RemoveNode(node);
+         nNodesOrphaned++;
+         }
+      }
+
+   CString msg;
+   msg.Format("  Removed %i edges, %i nodes, %i orphaned nodes", nEdgesRemoved, nNodesRemoved, nNodesOrphaned);
+   Report::Log(msg);
+   
+   int _assessors = 0, _engagers = 0, _inputs = 0, _las = 0, _nets = 0, _unknowns = 0;
+   for (auto node : this->m_nodes)
+      {
+      switch (node->m_nodeType)
+         {
+         case SNIP_NODETYPE::NT_ASSESSOR: _assessors++;   break;
+         case SNIP_NODETYPE::NT_ENGAGER:  _engagers++;   break;
+         case SNIP_NODETYPE::NT_INPUT_SIGNAL: _inputs++;   break;
+         case SNIP_NODETYPE::NT_LANDSCAPE_ACTOR: _las++;   break;
+         case SNIP_NODETYPE::NT_NETWORK_ACTOR: _nets++;   break;
+         case SNIP_NODETYPE::NT_UNKNOWN:
+         default:
+            _unknowns++; break;
+         }
+      }
+
+   msg.Format("  %i->%i Inputs, %i->%i Assessors, %i->%i Network actors, %i->%i Engagers, %i->%i LAs, %i->%i Unknown, %i->%i edges",
+      inputs, _inputs, assessors, _assessors, nets, _nets, engagers, _engagers, las, _las, unknowns, _unknowns, nStartEdges, this->m_edges.size());
+   Report::Log(msg);
+
+   return (int) this->m_nodes.size();
+   }
+
+
+
+
+
 bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
    {
-
    SNIPModel* pSNIPModel = this->m_pSNIPModel;
 
    // declare output file stream :
@@ -325,7 +494,6 @@ bool SNLayer::ExportNetworkJSON(LPCTSTR path, LPCTSTR data /*=nullptr*/)
          out << "\"" << pSNIPModel->m_traitsLabels[i] << "\",";
       }
    out << "],\n";
-
 
    out << "    \"settings\": {\n";
    out << "      \"autogenerate_landscape_signals\": {\n";
@@ -1337,6 +1505,7 @@ SNEdge* SNIPModel::BuildEdge(SNNode* pFromNode, SNNode* pToNode, int transTime, 
    pEdge->m_name = pFromNode->m_name + "->" + pToNode->m_name;
    pEdge->m_transTime = transTime;
    pEdge->m_trust = trust;
+   pEdge->m_trust0 = trust;
    pEdge->m_edgeType = ET_NETWORK;
 
    if (pFromNode->IsInputSignal())
@@ -4262,6 +4431,12 @@ bool SNIP::InitRun(EnvContext* pEnvContext, bool)
       {
       SNLayer* pLayer = GetLayer(i);
       pLayer->m_pSNIPModel->m_pOutputData->ClearRows();
+
+      for (auto edge : pLayer->m_edges)
+         {
+         edge->m_trust = edge->m_trust0;
+         edge->m_activeCycles = 0;
+         }
       }
 
    return true;
@@ -4338,15 +4513,125 @@ bool SNIP::Run(EnvContext* pEnvContext)
 
             path.Format("%sSNIP_%s_Year%i_%s_Run%i.json", (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
             pLayer->ExportNetworkJSON(path);
+            Report::Log_s("Exporting SNIP network to %s", (LPCTSTR)path);
+
+
+
+
+            /////////////////////////////////////////////////////////////////////////////////////////// temp
+            /*
+            int nLANodes = pLayer->GetNodeCount(SNIP_NODETYPE::NT_LANDSCAPE_ACTOR);
+            int nNodes = pLayer->GetNodeCount()-nLANodes-1;
+            RunTest(pEnvContext, pLayer, nNodes, pScenario->m_name, outpath);
+
+            pLayer->m_pSNIPModel->ReduceBy(0.5f);
+            nNodes = pLayer->GetNodeCount() - nLANodes - 1;
+            RunTest(pEnvContext, pLayer, nNodes, pScenario->m_name, outpath);
+
+            pLayer->m_pSNIPModel->ReduceBy(0.5f);
+            nNodes = pLayer->GetNodeCount() - nLANodes - 1;
+            RunTest(pEnvContext, pLayer, nNodes, pScenario->m_name, outpath);
+
+            pLayer->m_pSNIPModel->ReduceBy(0.5f);
+            nNodes = pLayer->GetNodeCount() - nLANodes - 1;
+            RunTest(pEnvContext, pLayer, nNodes, pScenario->m_name, outpath);
+
+            pLayer->m_pSNIPModel->ReduceBy(0.5f);
+            nNodes = pLayer->GetNodeCount() - nLANodes - 1;
+            RunTest(pEnvContext, pLayer, nNodes, pScenario->m_name, outpath);
+
+            pLayer->m_pSNIPModel->ReduceBy(0.5f);
+            nNodes = pLayer->GetNodeCount() - nLANodes - 1;
+            RunTest(pEnvContext, pLayer, nNodes, pScenario->m_name, outpath);
+            */
             }
+
          }
-      }
+      }  // for each layer
 
    CollectData(pEnvContext);
 
    return true;
    }
 
+
+int SNIP::RunTest(EnvContext *pEnvContext, SNLayer* pLayer, int nNodes, LPCTSTR scenario, LPCTSTR outpath)
+   {
+   float k = pLayer->m_pSNIPModel->m_k;
+   EnvEvaluator* pEval = pLayer->m_pSNIPModel->m_pEvaluator;
+   pLayer->m_pSNIPModel->m_pEvaluator = nullptr;
+   CString path;
+
+   for (int i = 0; i <= 10; i++)
+      {
+      pLayer->m_pSNIPModel->m_k = 0.1f * i;
+      pLayer->m_pSNIPModel->RunSimulation(true, false);
+      path.Format("%sSNIPTEST_%s_Year%i_%s_Run%i_%i_baseline_%i.json", 
+         (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, scenario, pEnvContext->runID, i, nNodes);
+      pLayer->ExportNetworkJSON(path);
+      }
+
+   pLayer->m_pSNIPModel->m_nodeReactivityMax = 2.5f;   ///  1.25
+   for (int i = 0; i <= 10; i++)
+      {
+      pLayer->m_pSNIPModel->m_k = 0.1f * i;
+      pLayer->m_pSNIPModel->RunSimulation(true, false);
+      path.Format("%sSNIPTEST_%s_Year%i_%s_Run%i_%i_MNR25_%i.json",
+         (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, scenario, pEnvContext->runID, i, nNodes);
+      pLayer->ExportNetworkJSON(path);
+      }
+   pLayer->m_pSNIPModel->m_nodeReactivityMax = 1.25f;   ///  1.25
+
+   pLayer->m_pSNIPModel->m_transEffMax = 2.4f;   ///  1.2
+   for (int i = 0; i <= 10; i++)
+      {
+      pLayer->m_pSNIPModel->m_k = 0.1f * i;
+      pLayer->m_pSNIPModel->RunSimulation(true, false);
+      path.Format("%sSNIPTEST_%s_Year%i_%s_Run%i_%i_MTE24_%i.json", 
+         (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, scenario, pEnvContext->runID, i, nNodes);
+      pLayer->ExportNetworkJSON(path);
+      }
+
+   pLayer->m_pSNIPModel->m_nodeReactivityMax = 2.5f;   ///  1.25
+   for (int i = 0; i <= 10; i++)
+      {
+      pLayer->m_pSNIPModel->m_k = 0.1f * i;
+      pLayer->m_pSNIPModel->RunSimulation(true, false);
+      path.Format("%sSNIPTEST_%s_Year%i_%s_Run%i_%i_MNR25_MTE24_%i.json",
+         (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, scenario, pEnvContext->runID, i, nNodes);
+      pLayer->ExportNetworkJSON(path);
+      }
+
+   pLayer->m_pSNIPModel->m_nodeReactivityMax = 5.0f;   ///  1.25
+   pLayer->m_pSNIPModel->m_transEffMax = 4.8f;   ///  1.2
+   for (int i = 0; i <= 10; i++)
+      {
+      pLayer->m_pSNIPModel->m_k = 0.1f * i;
+      pLayer->m_pSNIPModel->RunSimulation(true, false);
+      path.Format("%sSNIPTEST_%s_Year%i_%s_Run%i_%i_MNR50_MTE48_%i.json",
+         (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, scenario, pEnvContext->runID, i, nNodes);
+      pLayer->ExportNetworkJSON(path);
+      }
+
+   pLayer->m_pSNIPModel->m_nodeReactivityMax = 10.0f;   ///  1.25
+   pLayer->m_pSNIPModel->m_transEffMax = 9.6f;   ///  1.2
+   for (int i = 0; i <= 10; i++)
+      {
+      pLayer->m_pSNIPModel->m_k = 0.1f * i;
+      pLayer->m_pSNIPModel->RunSimulation(true, false);
+      path.Format("%sSNIPTEST_%s_Year%i_%s_Run%i_%i_MNR100_MTE96_%i.json",
+         (LPCTSTR)outpath, pLayer->m_name.c_str(), pEnvContext->currentYear, scenario, pEnvContext->runID, i, nNodes);
+      pLayer->ExportNetworkJSON(path);
+      }
+
+
+   pLayer->m_pSNIPModel->m_k = k;
+   pLayer->m_pSNIPModel->m_pEvaluator = pEval;
+   pLayer->m_pSNIPModel->m_nodeReactivityMax = 1.25f;   ///  1.25
+   pLayer->m_pSNIPModel->m_transEffMax = 1.2f;   ///  1.2
+   ///////////////
+   return 1;
+   }
 
 
 bool SNIP::CollectData(EnvContext* pEnvContext)
@@ -4431,8 +4716,6 @@ bool SNIP::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
             pLayer->m_name = name;
 
          pLayer->m_pSNIPModel->m_initTrustMultiplier = initTrustMultiplier;
-
-
 
          if (path != nullptr)
             ok = pLayer->m_pSNIPModel->LoadSnipNetwork(path, false);  // ignore landscape actor nodes

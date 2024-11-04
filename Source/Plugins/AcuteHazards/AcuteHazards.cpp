@@ -11,17 +11,10 @@
 #include <PathManager.h>
 #include <EnvConstants.h>
 
+#include <iostream>
+
+
 #include <direct.h>
-#ifdef _DEBUG
-#undef _DEBUG
-#include <python.h>
-#define _DEBUG
-#else
-#include <Python.h>
-#endif
-
-
-
 
 
 
@@ -40,6 +33,7 @@ void CaptureException();
 
 
 
+/*
 // C function extending python for capturing stdout from python
 // = spam_system in docs
 static PyObject* Redirection_stdoutredirect(PyObject* self, PyObject* args)
@@ -73,9 +67,9 @@ static PyMethodDef RedirectionMethods[] = {
 static struct PyModuleDef redirectionmodule =
    {
    PyModuleDef_HEAD_INIT,
-   "redirecton", /* name of module */
-   "stdout redirection helper", /* module documentation, may be NULL */
-   -1,          /* size of per-interpreter state of the module, or -1 if the module keeps state in global variables. */
+   "redirecton", // name of module 
+   "stdout redirection helper", // module documentation, may be NULL
+   -1,          // size of per-interpreter state of the module, or -1 if the module keeps state in global variables.
    RedirectionMethods
    };
 
@@ -85,7 +79,7 @@ PyMODINIT_FUNC PyInit_redirection(void)
    return PyModule_Create(&redirectionmodule);
    }
 
-
+*/
 
 bool AHEvent::Run(EnvContext* pEnvContext)
    {
@@ -121,7 +115,7 @@ bool AHEvent::Run(EnvContext* pEnvContext)
          totNDUs += nDUs;
       }
 
-   Report::Log_i("Acute Hazards NDUs=%i", totNDUs);
+   Report::Log_i("Acute Hazards Removed NDUs=%i", totNDUs);
 
    char cwd[512];
    _getcwd(cwd, 512);
@@ -129,92 +123,193 @@ bool AHEvent::Run(EnvContext* pEnvContext)
    CString path = PathManager::GetPath(PM_PROJECT_DIR);
    path += "Hazus";
    _chdir((LPCTSTR)path);
-   //_chdir("/Envision/StudyAreas/OrCoast/Hazus");
+   
+   ////////////////////
+   /*
+   STARTUPINFO si;
+   PROCESS_INFORMATION pi;
+
+   ZeroMemory(&si, sizeof(si));
+   si.cb = sizeof(si);
+   ZeroMemory(&pi, sizeof(pi));
+
+   
+      // Start the child process. 
+      if (!CreateProcess(NULL,   // No module name (use command line)
+         argv[1],        // Command line
+         NULL,           // Process handle not inheritable
+         NULL,           // Thread handle not inheritable
+         FALSE,          // Set handle inheritance to FALSE
+         0,              // No creation flags
+         NULL,           // Use parent's environment block
+         NULL,           // Use parent's starting directory 
+         &si,            // Pointer to STARTUPINFO structure
+         &pi)           // Pointer to PROCESS_INFORMATION structure
+         )
+         {
+         printf("CreateProcess failed (%d).\n", GetLastError());
+         return;
+         }
+
+      // Wait until child process exits.
+      WaitForSingleObject(pi.hProcess, INFINITE);
+
+      // Close process and thread handles. 
+      CloseHandle(pi.hProcess);
+      CloseHandle(pi.hThread);
+      }
+
+      */
+
+   // Create a pipe for the child process's STDOUT.
+   HANDLE hReadPipe, hWritePipe;
+   SECURITY_ATTRIBUTES saAttr;
+   saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
+   saAttr.bInheritHandle = TRUE; // Allow the pipe handles to be inherited.
+   saAttr.lpSecurityDescriptor = NULL;
+
+   if (!CreatePipe(&hReadPipe, &hWritePipe, &saAttr, 0)) {
+      std::cerr << "Error creating pipe." << std::endl;
+      return "";
+      }
+
+   // Set the write handle to be inherited by the child process.
+   SetHandleInformation(hReadPipe, HANDLE_FLAG_INHERIT, 0);
+
+   // Set up the startup information structure.
+   STARTUPINFOA si;
+   ZeroMemory(&si, sizeof(si));
+   si.cb = sizeof(si);
+   si.hStdOutput = hWritePipe; // Redirect STDOUT to the write end of the pipe.
+   si.hStdError = hWritePipe;   // Redirect STDERR to the write end of the pipe.
+   si.dwFlags |= STARTF_USESTDHANDLES | STARTF_USESHOWWINDOW;
+   si.wShowWindow = SW_HIDE;
+
+   // Create the child process.
+   PROCESS_INFORMATION pi;
+   ZeroMemory(&pi, sizeof(pi));
+   string command = this->m_pAHModel->m_pythonPath + "/python.exe " + this->m_pyModulePath + this->m_pyModuleName + ".py";
+
+   if (!CreateProcessA(NULL,
+         const_cast<char*>(command.c_str()),
+         NULL, NULL, TRUE, 0, NULL, NULL, &si, &pi)) 
+      {
+      Report::LogError("Error creating python process");
+      CloseHandle(hWritePipe);
+      CloseHandle(hReadPipe);
+      return false;
+      }
+
+   // Close the write end of the pipe since we don't need it in the parent process.
+   CloseHandle(hWritePipe);
+
+   // Read the output from the pipe.
+   std::string output;
+   char buffer[128];
+   DWORD bytesRead;
+   while (ReadFile(hReadPipe, buffer, sizeof(buffer) - 1, &bytesRead, NULL) && bytesRead > 0) {
+      buffer[bytesRead] = '\0'; // Null-terminate the buffer.
+      output += buffer;
+      Report::LogInfo(buffer);
+      }
+
+   //Report::LogInfo(output.c_str());
+
+   // Close the read end of the pipe.
+   CloseHandle(hReadPipe);
+
+   // Wait for the child process to finish.
+   WaitForSingleObject(pi.hProcess, INFINITE);
+
+   // Close process and thread handles.
+   CloseHandle(pi.hProcess);
+   CloseHandle(pi.hThread);
+
 
    // add hazus path to system path
-   CString code;
-   code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
-   int retVal = PyRun_SimpleString(code);
+   ///////CString code;
+   ///////code.Format("sys.path.append('%s')", (LPCTSTR)this->m_pyModulePath);
+   ///////int retVal = PyRun_SimpleString(code);
 
    // load model python code 
-   PyObject* pName = PyUnicode_DecodeFSDefault((LPCTSTR)this->m_pyModuleName);   // "e.g. "test1" (no .py)
-   PyObject* pModule = NULL;
+   ///////PyObject* pName = PyUnicode_DecodeFSDefault((LPCTSTR)this->m_pyModuleName);   // "e.g. "test1" (no .py)
+   ///////PyObject* pModule = NULL;
+   ///////
+   ///////try
+   ///////   {
+   ///////   pModule = PyImport_Import(pName);
+   ///////   }
+   ///////catch (...)
+   ///////   {
+   ///////   CString msg("Acute Hazards: Unable to load Python module ");
+   ///////   msg += this->m_pyModulePath;
+   ///////   msg += ":";
+   ///////   msg += this->m_pyModuleName;
+   ///////   Report::LogWarning(msg);
+   ///////   CaptureException();
+   ///////   }
+   ///////
+   ///////Py_DECREF(pName);
 
-   try
-      {
-      pModule = PyImport_Import(pName);
-      }
-   catch (...)
-      {
-      CString msg("Acute Hazards: Unable to load Python module ");
-      msg += this->m_pyModulePath;
-      msg += ":";
-      msg += this->m_pyModuleName;
-      Report::LogWarning(msg);
-      CaptureException();
-      }
+   //////if (pModule == nullptr)
+   //////   CaptureException();
 
-   Py_DECREF(pName);
-
-   if (pModule == nullptr)
-      CaptureException();
-
-   else
-      {
-      // if successful loading code, run the model
-      CString msg("Acute Hazards:  Running Python module ");
-      msg += this->m_pyModuleName;
-      Report::Log(msg);
-
-      // pDict is a borrowed reference 
-      PyObject* pDict = PyModule_GetDict(pModule);
-      //pFunc is also a borrowed reference
-      PyObject* pFunc = PyObject_GetAttrString(pModule, (LPCTSTR)this->m_pyFunction);
-      if (pFunc && PyCallable_Check(pFunc))
-         {
-         PyObject* pEqScenario = PyUnicode_FromString((LPCTSTR)this->m_earthquakeScenario);
-         PyObject* pTsuScenario = PyUnicode_FromString((LPCTSTR)this->m_tsunamiScenario);
-         PyObject* pInDBFPath = PyUnicode_FromString((LPCTSTR)this->m_envOutputPath);
-         PyObject* pOutEqCSVPath = PyUnicode_FromString((LPCTSTR)this->m_earthquakeInputPath);
-         PyObject* pOutTsuCSVPath = PyUnicode_FromString((LPCTSTR)this->m_tsunamiInputPath);
-
-         // call the python entry point
-         PyObject* pRetVal = PyObject_CallFunctionObjArgs(pFunc, pEqScenario, pTsuScenario, NULL);
-
-         if (pRetVal != NULL)
-            {
-            CString msg("Acute Hazards: Python module ");
-            msg += this->m_pyModulePath;
-            msg += ":";
-            msg += this->m_pyModuleName;
-            msg += " executed successfully";
-            Report::LogInfo(msg);
-
-            Py_DECREF(pRetVal);
-            }
-         else
-            {
-            CString msg("Acute Hazards: Unable to execute Python module ");
-            msg += this->m_pyModulePath;
-            msg += this->m_pyModuleName;
-            Report::LogWarning(msg);
-
-            CaptureException();
-            }
-
-         Py_DECREF(pEqScenario);
-         Py_DECREF(pTsuScenario);
-         Py_DECREF(pInDBFPath);
-         Py_DECREF(pOutEqCSVPath);
-         Py_DECREF(pOutTsuCSVPath);
-         }
-      else
-         {
-         PyErr_Print();
-         }
-
-      Py_DECREF(pModule);
-      }
+   ////// else
+   ///////{
+   ///////// if successful loading code, run the model
+   ///////CString msg("Acute Hazards:  Running Python module ");
+   ///////msg += this->m_pyModuleName;
+   ///////Report::Log(msg);
+   ///////
+   ///////// pDict is a borrowed reference 
+   ///////PyObject* pDict = PyModule_GetDict(pModule);
+   /////////pFunc is also a borrowed reference
+   ///////PyObject* pFunc = PyObject_GetAttrString(pModule, (LPCTSTR)this->m_pyFunction);
+   ///////if (pFunc && PyCallable_Check(pFunc))
+   ///////   {
+   ///////   PyObject* pEqScenario = PyUnicode_FromString((LPCTSTR)this->m_earthquakeScenario);
+   ///////   PyObject* pTsuScenario = PyUnicode_FromString((LPCTSTR)this->m_tsunamiScenario);
+   ///////   PyObject* pInDBFPath = PyUnicode_FromString((LPCTSTR)this->m_envOutputPath);
+   ///////   PyObject* pOutEqCSVPath = PyUnicode_FromString((LPCTSTR)this->m_earthquakeInputPath);
+   ///////   PyObject* pOutTsuCSVPath = PyUnicode_FromString((LPCTSTR)this->m_tsunamiInputPath);
+   ///////
+   ///////   // call the python entry point
+   ///////   PyObject* pRetVal = PyObject_CallFunctionObjArgs(pFunc, pEqScenario, pTsuScenario, NULL);
+   ///////
+   ///////   if (pRetVal != NULL)
+   ///////      {
+   ///////      CString msg("Acute Hazards: Python module ");
+   ///////      msg += this->m_pyModulePath;
+   ///////      msg += ":";
+   ///////      msg += this->m_pyModuleName;
+   ///////      msg += " executed successfully";
+   ///////      Report::LogInfo(msg);
+   ///////
+   ///////      Py_DECREF(pRetVal);
+   ///////      }
+   ///////   else
+   ///////      {
+   ///////      CString msg("Acute Hazards: Unable to execute Python module ");
+   ///////      msg += this->m_pyModulePath;
+   ///////      msg += this->m_pyModuleName;
+   ///////      Report::LogWarning(msg);
+   ///////
+   ///////      CaptureException();
+   ///////      }
+   ///////
+   ///////   Py_DECREF(pEqScenario);
+   ///////   Py_DECREF(pTsuScenario);
+   ///////   Py_DECREF(pInDBFPath);
+   ///////   Py_DECREF(pOutEqCSVPath);
+   ///////   Py_DECREF(pOutTsuCSVPath);
+   ///////   }
+   ///////else
+   ///////   {
+   ///////   PyErr_Print();
+   ///////   }
+   ///////
+   ///////Py_DECREF(pModule);
+   ///////}
 
    // propagate event outcomes to IDU's
    this->Propagate(pEnvContext);
@@ -552,7 +647,7 @@ AcuteHazards::AcuteHazards(void)
 AcuteHazards::~AcuteHazards(void)
    {
    // Clean up
-   Py_Finalize();   // clean up python instance
+   //Py_Finalize();   // clean up python instance
    }
 
 // override API Methods
@@ -1061,6 +1156,7 @@ void AcuteHazards::UpdateBldgType(EnvContext* pEnvContext, bool useDelta)
 
 bool AcuteHazards::InitPython()
    {
+   /*
    Report::Log("Acute Hazards:  Initializing embedded Python interpreter...");
 
    char cwd[512];
@@ -1098,7 +1194,7 @@ class StdoutCatcher:\n\
 sys.stdout = StdoutCatcher()");
 
    Report::Log("Acute Hazards: Python initialization complete...");
-
+   */
    return true;
    }
 
@@ -1359,7 +1455,7 @@ bool AcuteHazards::LoadXml(EnvContext* pEnvContext, LPCTSTR filename)
    return true;
    }
 
-
+/*
 void CaptureException()
    {
    PyObject* exc_type = NULL, * exc_value = NULL, * exc_tb = NULL;
@@ -1377,3 +1473,4 @@ void CaptureException()
    Py_XDECREF(exc_value);
    Py_XDECREF(exc_tb);
    }
+   */

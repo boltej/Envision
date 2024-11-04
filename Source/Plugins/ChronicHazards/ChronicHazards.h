@@ -411,7 +411,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       // TWL variables
       int m_climateScenarioID = 0;                  // 0=BaseSLR = 0; 1=LowSLR = 0; 2=MedSLR = 0; 3=HighSLR
-      float m_meanTWL = 0;
+      float m_meanAnnualTWL = 0;
+      float m_maxAnnualTWL = 0;
       int m_windowLengthTWL = 0;
       int m_numTransects = 0;
       int m_numDays = -1;
@@ -437,6 +438,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       // erosion variables
       float m_erodedArea = 0;
+      float m_erodedAreaSqMiles = 0;
       float m_erodedRoad = 0;
       float m_erodedRoadMiles = 0;
       int m_windowLengthEroHzrd = 5;
@@ -523,11 +525,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_exportBldgMapInterval = -1;
       ///// int m_runEelgrassModel = 0;            // Run Eelgrass Model: 0=Off; 1=On
       ///// int m_runSpatialBayTWL = 0;             // Run Spatially varying TWLs in Bay: 0=Off; 1=On
-      int m_writeDailyBouyData = 0;
-
-
-
-
+      bool m_writeDailyBouyData = false;
+      bool m_writeDailyRBFData = false;
 
       int m_eroCount = 0;
 
@@ -583,9 +582,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
 
       // output data objs
-      //FDataObj *m_pTWLData
-
-
+      FDataObj* m_pTWLDataTemp = nullptr;
 
 
       // IDU coverage columns
@@ -895,6 +892,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
 
       // InitRun()
+      bool GenerateDailyRBFOutputs(LPCTSTR simulationPath, VDataObj& buoyDataObj);
       bool LoadDailyRBFOutputs(LPCTSTR simulationPath);
 
 
@@ -909,6 +907,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       double CalculateCelerity2(float waterLevel, float wavePeriod, double& n);
       void CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvContext);
       int MaxYearlyTWL(EnvContext* pEnvContext);
+
+      void CalculateTWL(EnvContext* pEnvContext);
 
 
       //void CalculateYrMaxTWLAtShoreline(EnvContext* pEnvContext);

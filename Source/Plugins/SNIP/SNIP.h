@@ -388,10 +388,11 @@ class SNEdge : public SNNetElement, public TraitContainer
       float m_signalStrength; // : 0,   // [-1,1]
       float m_signalTraits;   // : signalTraits,  // traits vector for current signal, or null if inactive
       float m_transEff;       // : transEff,
-      float m_trust;          // only used in Trust subbmodel
+      float m_trust = 0;      // only used in Trust subbmodel
+      float m_trust0 = 0;     // original value
       float m_transEffSender; // : 0,
       float m_transEffSignal; // : 0,
-      int m_transTime;      // : transTime,
+      int m_transTime;        // : transTime,
       int m_activeCycles;     // : 0,
       SNIP_STATE m_state;     // : STATE_ACTIVE,
       float m_influence;      // : 0,
@@ -457,7 +458,7 @@ class SNLayer
       vector<SNEdge*> m_edges;
 
    protected:
-      map< std::string, SNNode* > m_nodeMap;
+      map< std::string, SNNode* > m_nodeMap;   // key=name, value=ptr to node
 
       int m_nextNodeIndex = 0;
       int m_nextEdgeIndex = 0;
@@ -483,6 +484,9 @@ class SNLayer
       int GetNodeCount(SNIP_NODETYPE type) { int count = 0; for (int i = 0; i < GetNodeCount(); i++) if (m_nodes[i]->m_nodeType == type) count++; return count; }
       int GetOutputNodeCount(void) { return m_outputNodeCount; }
       bool RemoveNode(SNNode* pNode);
+      bool RemoveEdge(SNEdge* pEdge);
+
+      int ReduceBy(float factor);  // 0-1
 
       void GetInteriorNodes(std::vector<SNNode* >& out);		//
       void GetInteriorNodes(bool active, std::vector< SNNode* >& out);
@@ -661,6 +665,11 @@ class SNIPModel
       SNEdge* GetEdge(int i) { return m_pSNLayer->GetEdge(i); }
       SNNode* GetNode(int i) { return m_pSNLayer->GetNode(i); }
 
+      int ReduceBy(float factor) {
+         int nodeCount=this->m_pSNLayer->ReduceBy(factor);
+         this->UpdateNetworkStats();
+         return nodeCount;
+         }
 
       // stats
       int GetMaxDegree(bool);
@@ -707,7 +716,7 @@ class _EXPORT SNIP : public  EnvModelProcess
       SNLayer* GetLayer(int i) { return m_layerArray[i]; }
       int      GetLayerCount(void) { return (int)m_layerArray.size(); }
       bool     CollectData(EnvContext*);
-
+      int      RunTest(EnvContext*, SNLayer*, int nNodes, LPCTSTR scenario, LPCTSTR outPath);
 
    protected:
       bool LoadXml(EnvContext* pEnvContext, LPCTSTR filename);

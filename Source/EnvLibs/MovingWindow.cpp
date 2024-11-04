@@ -25,6 +25,7 @@ Copywrite 2012 - Oregon State University
 
 MovingWindow::MovingWindow( int windowLength ) 
 : m_windowLength( windowLength )
+, m_currentLength(0)
 , m_values( NULL )
    {
    ASSERT( windowLength > 0 );
@@ -43,12 +44,15 @@ MovingWindow::~MovingWindow( void )
    }
 
 void MovingWindow::AddValue( float value )  // push on back, pop front
-      {
-      for ( int i=0; i < m_windowLength-1; i++ ) 
-         m_values[ i ] = m_values[ i+1 ]; 
-      
-      m_values[ m_windowLength-1 ] = value;
-      }
+   {
+   for ( int i=0; i < m_windowLength-1; i++ ) 
+      m_values[ i ] = m_values[ i+1 ]; 
+   
+   if (m_currentLength < m_windowLength)
+      m_currentLength++;
+
+   m_values[ m_windowLength-1 ] = value;
+   }
 
 
 // Get the average value within a window
@@ -58,7 +62,7 @@ float MovingWindow::GetAvgValue( void )
    for (int i=0; i < m_windowLength; i++ ) 
       value += m_values[ i ]; 
    
-   return value / m_windowLength; 
+   return value / m_currentLength; 
    }
 
 // Get the largest value within a window

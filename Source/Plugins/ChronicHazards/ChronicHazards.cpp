@@ -62,6 +62,7 @@ Copywrite 2012 - Oregon State University
 #include <fstream>
 #include <filesystem>
 
+
 // new version
 
 
@@ -84,8 +85,6 @@ FILE* fpPolicySummary = nullptr;
 
 TWLDATAFILE ChronicHazards::m_datafile;
 COSTS ChronicHazards::m_costs;
-
-
 
 //=====================================================================================================
 // ChronicHazards
@@ -116,6 +115,9 @@ ChronicHazards::~ChronicHazards(void)
    //if (m_pBayLUT != nullptr) delete m_pBayLUT;
 
    if (m_pRandUniform != nullptr) delete m_pRandUniform;
+
+   if (m_pTWLDataTemp != nullptr)
+      delete m_pTWLDataTemp;
    }
 
 
@@ -187,14 +189,6 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    // Check and store relevant columns (in IDU coverage)
    CheckCol(m_pIDULayer, m_colArea, "Area", TYPE_FLOAT, CC_MUST_EXIST);
 
-
-   CString  outDir(PathManager::GetPath(PM_OUTPUT_DIR));
-   Report::LogInfo("Creating additional outputs folders");
-   std::filesystem::create_directory((LPCTSTR)(outDir + "Erosion"));
-   std::filesystem::create_directory((LPCTSTR)(outDir + "Flooding"));
-   std::filesystem::create_directory((LPCTSTR)(outDir + "Bldgs"));
-   std::filesystem::create_directory((LPCTSTR)(outDir + "DuneLine"));
-
    // initial submodels
    Report::LogInfo("Initializing Dune Model");
    InitDuneModel(pEnvContext);  // checks DUNELINE coverage fields, populates DUNEINDEX, TRANS_ID;
@@ -234,7 +228,7 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       }
 
    // define input (scenario) variables
-   Report::LogInfo("Adding input/outpu variables");
+   Report::LogInfo("Adding input/outpu5 variables");
 
    AddInputVar("Climate Scenario ID", m_climateScenarioID, "0=BaseSLR, 1=LowSLR, 2=MedSLR, 3=HighSLR, 4=WorstCaseSLR");
    //AddInputVar("Track Habitat", m_runEelgrassModel, "0=Off, 1=On");
@@ -252,6 +246,8 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    AddInputVar(_T("Run Buildings Model"), m_runBuildings, "0=Off, 1=On");
    AddInputVar(_T("Run Infrastructure Model"), m_runInfrastructure, "0=Off, 1=On");
    AddInputVar(_T("Run Policy Model"), m_runPolicy, "0=Off, 1=On");
+   AddInputVar(_T("Run TWL Model"), m_runTWL, "0=Off, 1=On");
+
 
    //AddInputVar(_T("Construct on Safest Site"), m_runConstructSafestPolicy, "0=Off, 1=On");
    AddInputVar(_T("Remove Bldg From Hazard Zone"), m_runRemoveBldgFromHazardZonePolicy, "0=Off, 1=On");
@@ -294,7 +290,8 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
 
    // Setup outputs for annual statistics
-   this->AddOutputVar("Mean TWL (m)", m_meanTWL, "");
+   this->AddOutputVar("Mean TWL (m)", m_meanAnnualTWL, "");
+   this->AddOutputVar("Max TWL (m)", m_maxAnnualTWL, "");
    this->AddOutputVar("% Beach Accessibility", m_avgAccess, "");
    //   this->AddOutputVar("Number of Buildings Eroded", m_noBldgsEroded, "");
 
@@ -309,6 +306,8 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    if (m_runErosion) //Flags && CH_MODEL_EROSION)
       {
+      this->AddOutputVar("Eroded Area (sq meter)", m_erodedArea, "");
+      this->AddOutputVar("Eroded Area (sq miles)", m_erodedAreaSqMiles, "");
       this->AddOutputVar("Eroded Road (m)", m_erodedRoad, "");
       this->AddOutputVar("Eroded Road (miles)", m_erodedRoadMiles, "");
       }
@@ -365,6 +364,45 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    //  //m_nourishCostBPS = 0;
    //  //m_nourishVolumeBPS = 0;
    //  //m_randIndex += 1; // add to xml, only want when we are running probabalistically
+
+   m_pTWLDataTemp = new FDataObj(32, 0);
+
+   m_pTWLDataTemp->SetName("TWL Data");
+
+   int col = 0;
+
+   m_pTWLDataTemp->SetLabel(col++, "Day");
+   m_pTWLDataTemp->SetLabel(col++, "swl");
+   m_pTWLDataTemp->SetLabel(col++, "duneIndex");
+   m_pTWLDataTemp->SetLabel(col++, "transID");
+   m_pTWLDataTemp->SetLabel(col++, "profileID");
+   m_pTWLDataTemp->SetLabel(col++, "duneToe");
+   m_pTWLDataTemp->SetLabel(col++, "gammaRough");
+   m_pTWLDataTemp->SetLabel(col++, "tanb1");
+   m_pTWLDataTemp->SetLabel(col++, "beachType");
+   m_pTWLDataTemp->SetLabel(col++, "duneCrest");
+   m_pTWLDataTemp->SetLabel(col++, "eastingToe");
+   m_pTWLDataTemp->SetLabel(col++, "shorelineAngle");
+   m_pTWLDataTemp->SetLabel(col++, "beachWidth");
+   m_pTWLDataTemp->SetLabel(col++, "bruunSlope");
+   m_pTWLDataTemp->SetLabel(col++, "waveHeight");
+   m_pTWLDataTemp->SetLabel(col++, "wavePeriod");
+   m_pTWLDataTemp->SetLabel(col++, "waveDirection");
+   m_pTWLDataTemp->SetLabel(col++, "waterDepth");
+   m_pTWLDataTemp->SetLabel(col++, "L0");
+   m_pTWLDataTemp->SetLabel(col++, "setup");
+   m_pTWLDataTemp->SetLabel(col++, "incidentSwash");
+   m_pTWLDataTemp->SetLabel(col++, "infragravitySwash");
+   m_pTWLDataTemp->SetLabel(col++, "r2Runup");
+   m_pTWLDataTemp->SetLabel(col++, "stockdonTWL");
+   m_pTWLDataTemp->SetLabel(col++, "C");
+   m_pTWLDataTemp->SetLabel(col++, "ks");
+   m_pTWLDataTemp->SetLabel(col++, "hdeep");
+   m_pTWLDataTemp->SetLabel(col++, "DWL2");
+   m_pTWLDataTemp->SetLabel(col++, "HMO");
+   m_pTWLDataTemp->SetLabel(col++, "isOvertopped");
+   m_pTWLDataTemp->SetLabel(col++, "dailyTWL");
+   m_pTWLDataTemp->SetLabel(col++, "dailyTWLFlood");
 
    return TRUE;
    }
@@ -1500,7 +1538,7 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    switch (m_climateScenarioID)
       {
       case 0:
-         m_climateScenarioStr = "Base";
+         m_climateScenarioStr = "Baseline";
          break;
       case 1:
          m_climateScenarioStr = "Low";
@@ -1515,9 +1553,16 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
          m_climateScenarioStr = "Extreme";
          break;
       default:
-         m_climateScenarioStr = "Base";
+         m_climateScenarioStr = "Baseline";
          break;
       }
+
+   CString  outDir(PathManager::GetPath(PM_OUTPUT_DIR));
+   Report::LogInfo("Creating additional outputs folders");
+   std::filesystem::create_directory((LPCTSTR)(outDir + "Erosion"));
+   std::filesystem::create_directory((LPCTSTR)(outDir + "Flooding"));
+   std::filesystem::create_directory((LPCTSTR)(outDir + "Bldgs"));
+   std::filesystem::create_directory((LPCTSTR)(outDir + "DuneLine"));
 
    CString climateScenarioPath = "Climate_Scenarios\\" + m_climateScenarioStr + "\\";
    CString slrDataFile;
@@ -1548,16 +1593,17 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
    // Change the simulation number from 1 to generated number to randomize ****HERE****
    CString simulationPath;
-   simulationPath.Format("%sSimulation_%i", climateScenarioPath, 0);
+   simulationPath.Format("%sSimulation_%i", (LPCTSTR) climateScenarioPath, 0);
    //   simulationPath.Format("%sSimulation_%i", climateScenarioPath, m_randIndex);
 
    // get the offhore buoy files for this this climate scenario
    CString buoyFile;
-   buoyFile.Format("%s\\BuoyData_%s.csv", simulationPath, m_climateScenarioStr);
+   buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
    PathManager::FindPath(buoyFile, fullPath);
 
    //TODO: set m_inputinHourlydata through Envision
-   m_inputinHourlydata = DATA_HOURLY; // You should set it to DATA_DAILY if input is daily data
+   //m_inputinHourlydata = DATA_HOURLY; // You should set it to DATA_DAILY if input is daily data
+   m_inputinHourlydata = DATA_DAILY; // You should set it to DATA_DAILY if input is daily data
 
    if (m_inputinHourlydata == DATA_HOURLY)
       {
@@ -1592,6 +1638,28 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
       cols = m_buoyObsData.GetColCount();*/
       }
 
+   // generate daily RBF output files for 100 streams.
+   // Only need to run this once when new offshore (buoy) SLR streams become available
+   if (this->m_writeDailyRBFData)
+      {
+      for (int i = 1; i < 100; i++)
+         {
+         simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, i);
+
+         // get the offhore buoy files for this this climate scenario
+         CString buoyFile;
+         buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
+         PathManager::FindPath(buoyFile, fullPath);
+
+         // Read daily buoy observations/simulations for the entire Envision time period
+
+         VDataObj buoyObsData;
+         m_numDays = buoyObsData.ReadAscii(fullPath);
+         GenerateDailyRBFOutputs(simulationPath, buoyObsData);
+         }
+
+      this->m_writeDailyRBFData = false;
+      }
 
    LoadDailyRBFOutputs(simulationPath);
    //WriteDailyData(fullPath);
@@ -1684,10 +1752,11 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    UpdatePolicyResponse(pEnvContext);
 
    // Reset annual duneline attributes
-   ResetAnnualVariables();      // reset annual variables for hte start of a new year
+   ResetAnnualVariables();      // reset annual variables for the start of a new year
    //ResetAnnualBudget();      // reset budget allocations for the year
 
-   RunTWLModel(pEnvContext);   // this populates yr max twl and associated cols, and computes impact days
+   if ( m_runTWL)
+      RunTWLModel(pEnvContext);   // this populates yr max twl and associated cols, and computes impact days
 
    // start = clock();
    ///////   CalculateErosionExtents(pEnvContext);
@@ -1696,15 +1765,13 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
 
    // At this point, annual calculations and summaries are finished (Maximum yearly TWL and impact days) for each shoreline location
    // Next calculate chronic and event based erosion extents for each shoreline location
-   int VertexCount = 0;
-   float percentArmored = 0;
-   INT_PTR ptrArrayIndex = 0;
+   //int VertexCount = 0;
+   //float percentArmored = 0;
+   //INT_PTR ptrArrayIndex = 0;
 
    if (m_runErosion)
       RunErosionModel(pEnvContext);
    /******************** Run Scenario Policy to construct on safest site before tallying statistics  ********************/
-
-   m_meanTWL /= numDunePts;
 
    // Scenarios indicate policy for new buildings to be constructed on the safest site
    /*bool runConstructSafestPolicy = (m_runConstructSafestPolicy == 1) ? true : false;
@@ -1999,6 +2066,9 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             }  // end of: dx > 0
          }
       } // end erosion calculation
+
+   this->m_erodedAreaSqMiles = this->m_erodedArea * MI2_PER_M2;
+
    return true;
    } // end dune line points
 
@@ -2534,8 +2604,6 @@ bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
    {
    // Get new IDUBuildingsLkUp every year ! (Don't need to do this since we aren't adding/subtracting records)
    //m_pIduBuildingLkUp->BuildIndex();
-
-
    //////////////////////////////// TEMP
    int numBldgs = 0;
    for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
@@ -2545,9 +2613,7 @@ bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
       }
    Report::Log_i("RunPolicyManagement: Indexed %i buildings to the IDUs", numBldgs);
    ///////////////////////
-   
-
-//   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
+   //   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
 //      {
 //      //Associate new buildings with communities
 //      // get Buildings in this IDU
@@ -2568,7 +2634,6 @@ bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
 //         //m_pBldgLayer->SetData(bldgIndex, m_colBldgCityCode, iduCityCode);
 //         } // end each new building
 //      }
-
 
    FindProtectedBldgs();   // working for buildings, not infrastructure
 
@@ -2635,6 +2700,7 @@ bool ChronicHazards::LoadRBFs()
 
    m_randIndex = m_simulationCount;
 
+   // if the RBF file exists, read it; otherwise, generate it 
    CPath _rbfPath(rbfPath);
    bool writeRBFfile = true;
    if (_rbfPath.Exists())
@@ -3056,33 +3122,134 @@ int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext)
    }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-
-
-
-bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
+bool ChronicHazards::GenerateDailyRBFOutputs(LPCTSTR simulationPath, VDataObj &buoyObsData)
    {
    // This function generates a set of daily interpolated (from offshore buoy data) the nearshore wave environment.
    // It does so by either (depending on the m_writeDailyBuoyObs:
    //    1) generating a series of data objects by running the RBF interpolator, storing results in a set of time-series
    //       data objects. one per transect, containing daily data
    //    2) reading in a set of pre-defined daily RBF outputs CSV 
+   // 
+   //    simulationPath = simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, 0)
    // if randomize, reread in
    //  m_dailyRBFOutputArray.Clear();
-   this->m_dailyRBFOutputArray.Clear();
-
    const int outputCount = 8;
    double outputs[outputCount];
 
    // load daily RBF outputs for this year from the time series folder.
    CString timeSeriesFolder, fullPath;
-   timeSeriesFolder.Format("%s\\DailyData_%s", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
-   PathManager::FindPath(timeSeriesFolder, fullPath);
+   PathManager::FindPath(simulationPath, fullPath);
+   timeSeriesFolder.Format("%s\\RBFOutput_%s", (LPCTSTR)fullPath, (LPCTSTR)m_climateScenarioStr);
+   std::filesystem::create_directory((LPCTSTR)timeSeriesFolder);
+   // note: timeSeriesFolder is like: 
+   // D:\Envision\StudyAreas\OrCoast\Tillamook\TWL_Inputs\Climate_Scenarios\High\Simulation_0\RBFOutput_High
 
    //m_minTransect = 0;
    //m_maxTransect = m_numTransects - 1;
 
    // ??? Need to update to get correct transects?
-   for (int i = m_minTransect; i <= m_maxTransect; i++)
+   for (int transectID = m_minTransect; transectID <= m_maxTransect; transectID++)
+      {
+      bool success = true;
+      FDataObj* pDailyRBFOutput = new FDataObj;
+      pDailyRBFOutput->SetSize(outputCount, m_numDays);
+
+      CString timeSeriesFile;
+      timeSeriesFile.Format(_T("%s\\DailyData_%i.csv"), timeSeriesFolder, transectID);     //series of SWAN lookup tables
+
+      // if we are writing this data, that means we have to generate it from the RBFs
+      CString msg;
+      msg.Format("Generating RBF Output %i of %i, file: %s", transectID - m_minTransect, m_maxTransect - m_minTransect,
+                  timeSeriesFile);
+      Report::StatusMsg(msg);
+
+      // create a data obj for buoy observations, rows=day of year
+      pDailyRBFOutput->SetLabel(0, "Height_L");
+      pDailyRBFOutput->SetLabel(1, "Height_H");
+      pDailyRBFOutput->SetLabel(2, "Period_L");
+      pDailyRBFOutput->SetLabel(3, "Period_H");
+      pDailyRBFOutput->SetLabel(4, "Direction_L");
+      pDailyRBFOutput->SetLabel(5, "Direction_H");
+      pDailyRBFOutput->SetLabel(6, "Depth_L");
+      pDailyRBFOutput->SetLabel(7, "Depth_H");
+
+      // the lookup table contains the RBF for a given transect
+      LookupTable* pLUT = m_swanLookupTableArray.GetAt(transectID - m_minTransect);   // zero-based
+
+      // for each day over the SIMULATION PERIOD (not year), get the buoy observations 
+      // and run the RBF with them
+      for (int row = 0; row < m_numDays; row++)
+         {
+         float height, period, direction, swl;
+
+         buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_HEIGHT_HS, row, height);
+         buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_PERIOD_Tp, row, period);
+         buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_DIRECTION_Dir, row, direction);
+         buoyObsData.Get(BUOY_OBSERVATION_DATA::WATER_LEVEL_WL, row, swl);   // NOT USED???
+
+         int count = pLUT->m_rbf.GetAt(height, period, direction, outputs);  // 'outputs' is an array of 
+         ASSERT(count == outputCount);
+
+         // added this because rbf isn't doing well with small ( < 1) values
+         // for wave heights; later this becomes a problem with a negative wave height
+         if (outputs[HEIGHT_L] < 0.0f)
+            outputs[HEIGHT_L] = 0.0f;
+
+         if (outputs[HEIGHT_H] < 0.0f)
+            outputs[HEIGHT_H] = 0.0f;
+
+         // store the buoy data in the data object for this day
+         pDailyRBFOutput->Set(0, row, (float)outputs[HEIGHT_L]);
+         pDailyRBFOutput->Set(1, row, (float)outputs[HEIGHT_H]);
+         pDailyRBFOutput->Set(2, row, (float)outputs[PERIOD_L]);
+         pDailyRBFOutput->Set(3, row, (float)outputs[PERIOD_H]);
+         pDailyRBFOutput->Set(4, row, (float)outputs[DIRECTION_L]);
+         pDailyRBFOutput->Set(5, row, (float)outputs[DIRECTION_H]);
+         pDailyRBFOutput->Set(6, row, (float)outputs[DEPTH_L]);
+         pDailyRBFOutput->Set(7, row, (float)outputs[DEPTH_H]);
+         }
+
+      // dataobj populated, write to file
+      pDailyRBFOutput->WriteAscii(timeSeriesFile);
+      delete pDailyRBFOutput;
+      }
+
+   CString msg;
+   msg.Format("Processed Daily RBF input files for generating TWLs for %i transects", (int)m_dailyRBFOutputArray.GetSize());
+   Report::Log(msg);
+   //m_randIndex += 1; // add to xml, only want when we are running probabalistically
+
+   return true;
+
+   }
+
+bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
+   {
+   // This function generates a set of daily interpolated (from offshore buoy data) the nearshore wave environment.
+   // It does so by reading in a set of pre-defined daily RBF output CSV's
+   // for the SLR scenario and simulation number indicated in the simulationPath,
+   // one CSV file for each transect that have the RBF-generated TWL generation 
+   // paramaters previousy computed (by GenerateDailyRBFOutputs()).  These are 
+   // stored in an array of DataObjs
+   // 
+   // simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, 0)
+   //
+   this->m_dailyRBFOutputArray.Clear();
+
+   const int outputCount = 8;
+   //double outputs[outputCount];
+
+   // load daily RBF outputs for this year from the time series folder.
+   CString timeSeriesFolder, fullPath;
+   PathManager::FindPath(simulationPath, fullPath);
+   timeSeriesFolder.Format("%s\\RBFOutput_%s", (LPCTSTR)fullPath, (LPCTSTR)m_climateScenarioStr);
+   std::filesystem::create_directory((LPCTSTR) timeSeriesFolder);
+
+   //m_minTransect = 0;
+   //m_maxTransect = m_numTransects - 1;
+
+   // ??? Need to update to get correct transects?
+   for (int transectID = m_minTransect; transectID <= m_maxTransect; transectID++)
       {
       bool success = true;
       FDataObj* pDailyRBFOutput = new FDataObj;
@@ -3094,81 +3261,20 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
       // folder = path + folder;
 
       CString timeSeriesFile;
-      timeSeriesFile.Format(_T("%s%s\\DailyData_%i.csv"), m_twlInputPath, timeSeriesFolder, i);     //series of SWAN lookup tables
+      timeSeriesFile.Format(_T("%s\\DailyData_%i.csv"), timeSeriesFolder, transectID);     //series of SWAN lookup tables
 
-      // if we are writing this data, that means we have to generate it from the RBFs
-      // otherwise, we can just read it from files stored in the climate scenario/daily data folder
-      int(m_writeDailyBouyData) = 0;
-      if (m_writeDailyBouyData)
+      if (transectID % 10 == 0)
          {
          CString msg;
-         msg.Format("Generating RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
+         msg.Format("Reading RBF Output %i of %i, file: %s", transectID - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
          Report::StatusMsg(msg);
-
-         // create a data obj for buoy observations, rows=day of year
-         pDailyRBFOutput->SetLabel(0, "Height_L");
-         pDailyRBFOutput->SetLabel(1, "Height_H");
-         pDailyRBFOutput->SetLabel(2, "Period_L");
-         pDailyRBFOutput->SetLabel(3, "Period_H");
-         pDailyRBFOutput->SetLabel(4, "Direction_L");
-         pDailyRBFOutput->SetLabel(5, "Direction_H");
-         pDailyRBFOutput->SetLabel(6, "Depth_L");
-         pDailyRBFOutput->SetLabel(7, "Depth_H");
-
-         // the lookup table contains the RBF for a given transect
-         LookupTable* pLUT = m_swanLookupTableArray.GetAt(i - m_minTransect);   // zero-based
-
-         // for each day over the SIMULATION PERIOD (not year), get the buoy observations 
-         // and run the RBF with them
-         for (int row = 0; row < m_numDays; row++)
-            {
-            float height, period, direction, swl;
-
-            m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_HEIGHT_HS, row, height);
-            m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_PERIOD_Tp, row, period);
-            m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WAVE_DIRECTION_Dir, row, direction);
-            m_buoyObsData.Get(BUOY_OBSERVATION_DATA::WATER_LEVEL_WL, row, swl);   // NOT USED???
-
-            int count = pLUT->m_rbf.GetAt(height, period, direction, outputs);
-            ASSERT(count == outputCount);
-
-            // added this because rbf isn't doing well with small ( < 1) values
-            // for wave heights; later this becomes a problem with a negative wave height
-            if (outputs[HEIGHT_L] < 0.0f)
-               outputs[HEIGHT_L] = 0.0f;
-
-            if (outputs[HEIGHT_H] < 0.0f)
-               outputs[HEIGHT_H] = 0.0f;
-
-            // store the buoy data in the data object for this day
-            pDailyRBFOutput->Set(0, row, (float)outputs[HEIGHT_L]);
-            pDailyRBFOutput->Set(1, row, (float)outputs[HEIGHT_H]);
-            pDailyRBFOutput->Set(2, row, (float)outputs[PERIOD_L]);
-            pDailyRBFOutput->Set(3, row, (float)outputs[PERIOD_H]);
-            pDailyRBFOutput->Set(4, row, (float)outputs[DIRECTION_L]);
-            pDailyRBFOutput->Set(5, row, (float)outputs[DIRECTION_H]);
-            pDailyRBFOutput->Set(6, row, (float)outputs[DEPTH_L]);
-            pDailyRBFOutput->Set(7, row, (float)outputs[DEPTH_H]);
-            }
-
-         // dataobj populated, write to file
-         pDailyRBFOutput->WriteAscii(timeSeriesFile);
-         }
-      else // writeDailyBuoyData != 0, so read the data from file
-         {
-         if (i % 10 == 0)
-            {
-            CString msg;
-            msg.Format("Reading RBF Output %i of %i, file: %s", i - m_minTransect, m_maxTransect - m_minTransect, timeSeriesFile);
-            Report::StatusMsg(msg);
-            }
-
-         int numRows = pDailyRBFOutput->ReadAscii(timeSeriesFile);
-
-         if (numRows < 0)
-            success = false;
          }
 
+      int numRows = pDailyRBFOutput->ReadAscii(timeSeriesFile);
+
+      if (numRows < 0)
+         success = false;
+      
       if (success)
          this->m_dailyRBFOutputArray.Add(pDailyRBFOutput);
       else
@@ -3236,7 +3342,8 @@ bool ChronicHazards::ResetAnnualVariables()
    ////////////////
    ////////////////// Reset annual County Wide variables to zero
    ////////////////
-   m_meanTWL = 0.0f;
+   m_meanAnnualTWL = 0.0f;
+   m_maxAnnualTWL = 0.0f;
    m_floodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
    m_floodedAreaSqMiles = 0.0;
 
@@ -3245,6 +3352,8 @@ bool ChronicHazards::ResetAnnualVariables()
    m_floodedRoadMiles = 0.0;
    m_floodedBldgCount = 0;
 
+   m_erodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
+   m_erodedAreaSqMiles = 0.0;
    m_erodedRoad = 0.0;
    m_erodedRoadMiles = 0.0;
    m_erodedBldgCount = 0;
@@ -5154,9 +5263,15 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
    } // end ExportMapLayers(EnvContext *pEnvContext)
 
 
-     // Determine if
+// Determine if
 bool ChronicHazards::FindProtectedBldgs()
    {
+   if (m_pBldgLayer == nullptr)
+      {
+      Report::LogError("No building coverage when finding protected buildings");
+      return false;
+      }
+
    // For each building get it's IDU
    // Then find the set of dunePts within the Northing extents of that IDU
    // Finally assign the closest building to those dunePts
@@ -5182,17 +5297,24 @@ bool ChronicHazards::FindProtectedBldgs()
       int tsunami_hz = -1;
 
       // Get IDU index of building if an associated IDUs are in Tsunamic Hazard Zone
-      int sz = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices); // WRONG!!!!! idu, not bldgs???
-      for (int i = 0; i < sz; i++)
+      int iduCount = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices);
+      //for (int i= 0; i < sz; i+
+      if ( iduCount > 0 )
          {
-         m_pIDULayer->GetData(iduIndices[0], m_colIDUTsunamiHazardZone, tsunami_hz);
+         int _iduIndex = iduIndices[0];
+         m_pIDULayer->GetData(_iduIndex, m_colIDUTsunamiHazardZone, tsunami_hz);
          bool isTsunamiHzrd = (tsunami_hz == 1) ? true : false;
          if (isTsunamiHzrd)
-            iduIndex = iduIndices[0];
+            iduIndex = _iduIndex;
          }
 
       // only set idu index if building is in tsunami zone; otherwise, -1
       m_pBldgLayer->SetData(bldg, m_colBldgIDUIndex, iduIndex);
+
+      // next, we are going to look across the horizontal band defined by the top and bottom of the 
+      // associated IDU locate the dune that is horizontally aligned with idu
+
+      ///  WHY NOT JUST GET CLOSEST DUNE PT?
 
       double northingTop = 0.0;
       double northingBtm = 0.0;
@@ -5257,90 +5379,93 @@ bool ChronicHazards::FindProtectedBldgs()
       }
 
    // repeat for infrastructure?
-   // 
-   //for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
-   //{
-   //   double xinfra = 0.0;
-   //   double yinfra = 0.0;
-   //   m_pInfraLayer->GetPointCoords(infra, xinfra, yinfra);
+   
+   if ( m_pInfraLayer == nullptr)
+      {
+      Report::LogError("No infrastructure coverage when finding protected infrastructure");
+      return false;
+      }
 
-   //   CArray<int, int> iduIndices;
-   //   int iduIndex = -1;
-   //   int tsunami_hz = -1;
+   for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
+   {
+      double xinfra = 0.0;
+      double yinfra = 0.0;
+      m_pInfraLayer->GetPointCoords(infra, xinfra, yinfra);
 
-   //   // Get IDU of building if in Tsunamic Hazard Zone
-   //   int sz = m_pIduBuildingLkUp->GetPolysFromPointIndex(infra, iduIndices);
-   //   for (int i = 0; i < sz; i++)
-   //   {
-   //      m_pIDULayer->GetData(iduIndices[ 0 ], m_colTsunamiHazardZone, tsunami_hz);
-   //      bool isTsunamiHzrd = (tsunami_hz == 1) ? true : false;
-   //      if (isTsunamiHzrd)
-   //         iduIndex = iduIndices[ 0 ];
-   //   }
+      CArray<int, int> iduIndices;
+      int iduIndex = -1;
+      int tsunami_hz = -1;
 
-   //   m_pInfraLayer->SetData(infra, m_colInfraIDUIndex, iduIndex);
+      // Get IDU of building if in Tsunamic Hazard Zone
+      int iduCount = m_pIduInfraLkUp->GetPolysFromPointIndex(infra, iduIndices);
+      //for (int i = 0; i < sz; i++)
+      if ( iduCount > 0 )
+         {
+         int _iduIndex = iduIndices[0];
+         m_pIDULayer->GetData(_iduIndex, m_colIDUTsunamiHazardZone, tsunami_hz);
+         bool isTsunamiHzrd = (tsunami_hz == 1) ? true : false;
+         if (isTsunamiHzrd)
+            iduIndex = _iduIndex;
+         }
 
-   //   double northingTop = 0.0;
-   //   double northingBtm = 0.0;
+      //m_pInfraLayer->SetData(infra, m_colInfraIDUIndex, iduIndex);
+      double northingTop = 0.0;
+      double northingBtm = 0.0;
 
-   //   if (iduIndex != -1)
-   //   {
-   //      m_pIDULayer->GetData(iduIndex, m_colIDUNorthingTop, northingTop);
-   //      m_pIDULayer->GetData(iduIndex, m_colIDUNorthingBottom, northingBtm);
-   //   }
+      if (iduIndex != -1)
+         {
+         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingTop, northingTop);
+         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingBottom, northingBtm);
+         }
 
-   //   // Determine what building Dune Pts are protecting 
-   //   for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
-   //   {
-   //      int beachType = -1;
-   //      m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
+      // Determine what building Dune Pts are protecting 
+      for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
+         {
+         int beachType = -1;
+         m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
 
-   //      int tst = dunePt;
+         int tst = dunePt;
 
-   //      // only assign 
-   //      if (beachType != BchT_BAY && beachType != BchT_RIVER && beachType != BchT_UNDEFINED)
-   //      {
-   //         double northing = 0.0;
-   //         m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
+         // only assign 
+         if (beachType != BchT_BAY && beachType != BchT_RIVER && beachType != BchT_UNDEFINED)
+            {
+            double northing = 0.0;
+            m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
 
-   //         int duneIndex = -1;
-   //         m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
+            int duneIndex = -1;
+            m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
 
-   //         double xDunePt = 0.0;
-   //         double yDunePt = 0.0;
-   //         m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+            double xDunePt = 0.0;
+            double yDunePt = 0.0;
+            m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
 
-   //         if (northing < northingTop && northing > northingBtm)
-   //         {
-   //            float distance = sqrt((xinfra - xDunePt) * (xinfra - xDunePt) + (yinfra - yDunePt) * (yinfra - yDunePt));
-
-   //            int infraIndex = -1;
-   //            m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraIndex, infraIndex);
-
-   //            if (infraIndex == -1)
-   //            {
-   //               m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
-   //               m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
-   //            }
-   //            else
-   //            {
-   //               float distanceBtwn = 0.0DLf;
-   //               m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraDist, distanceBtwn);
-   //               if (distance < distanceBtwn)
-   //               {
-   //                  m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
-   //                  m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
-   //               }
-   //            }
-   //         }
-
-   //      }
-   //   }
-   //}
-
+            if (northing < northingTop && northing > northingBtm)
+               {
+               //float distance = sqrt((xinfra - xDunePt) * (xinfra - xDunePt) + (yinfra - yDunePt) * (yinfra - yDunePt));
+               //int infraIndex = -1;
+               //m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraIndex, infraIndex);
+               //
+               //if (infraIndex == -1)
+               //   {
+               //   m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
+               //   m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
+               //   }
+               //else
+               //   {
+               //   float distanceBtwn = 0.0f;
+               //   m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraDist, distanceBtwn);
+               //   if (distance < distanceBtwn)
+               //      {
+               //      m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
+               //      m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
+               //      }
+               //   }
+               }
+            }
+         }
+      }
 
    return true;
-
    }
 
 bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
@@ -5442,7 +5567,6 @@ bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
    //   // ?? want to put both bldgIndex and iduIndex in the dune coverage
    //   m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldgIndex);
    //}s
-
 
    // Find closest building to dune pt
    if (m_pInfraLayer == nullptr)
@@ -7746,8 +7870,8 @@ void ChronicHazards::MaintainBPS(int currentYear)
       int addedBPSYear;
       m_pDuneLayer->GetData(endPoint, m_colDLAddYearBPS, addedBPSYear);
 
-      if (addedBPSYear == 2010)
-         lastMaintYear = 2010;
+      if (addedBPSYear == 2020)
+         lastMaintYear = 2020;
 
       int yrsSinceMaintained = currentYear - lastMaintYear;
 
@@ -7951,7 +8075,7 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
 
       // When did we last increase the height of the structure? 
       int maintFreq = 0;
-      int lastMaintYear = 2010;
+      int lastMaintYear = 2020;
       int builtYear = 0;
 
       /*   if (isBPS)
@@ -8314,9 +8438,9 @@ void ChronicHazards::NourishSPS(int currentYear)
                   // determine change in sea level rise from previous year
                   float prevslr = 0.0f;
                   float slr = 0.0f;
-                  int year = currentYear - 2010;
+                  int year = currentYear - 2020;
                   m_slrData.Get(0, year, slr);
-                  if (currentYear > 2010)
+                  if (currentYear > 2020)
                      m_slrData.Get(0, year - 1, prevslr);
 
                   // determine how much to widen beach 
@@ -8426,8 +8550,8 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
       int addBPSYear = 0;
       m_pDuneLayer->GetData(point, m_colDLAddYearBPS, addBPSYear);
 
-      if (addBPSYear == 2010)
-         lastNourishYear = 2010;
+      if (addBPSYear == 2020)
+         lastNourishYear = 2020;
 
       int yrsSinceNourished = currentYear - lastNourishYear;
 
@@ -8457,10 +8581,10 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                   // determine change in sea level rise from previous year
                   float prevslr = 0.0f;
                   float slr = 0.0f;
-                  int year = currentYear - 2010;
+                  int year = currentYear - 2020;
 
                   m_slrData.Get(0, year, slr);
-                  if (currentYear > 2010)
+                  if (currentYear > 2020)
                      m_slrData.Get(0, year - 1, prevslr);
 
                   // determine how much to widen beach 
@@ -9573,7 +9697,8 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       // 
       //{ "debug",                 TYPE_INT,     &m_debug,                        true,    0 },
       { "transect_points",       TYPE_CSTRING, &m_transectLayer,                true,    0 },
-      { "write_daily_buoy_data", TYPE_INT,     &m_writeDailyBouyData,           true,    0 },
+      { "write_daily_buoy_data", TYPE_BOOL,    &m_writeDailyBouyData,           true,    0 },
+      { "write_daily_rbf_data",  TYPE_BOOL,    &m_writeDailyRBFData,            false,   0 },
       { "find_safe_site",        TYPE_INT,     &m_findSafeSiteCell,             true,    0 },
       { "twl_input_dir",         TYPE_STRING,  &twlInputDir,                    true,    0 },
       { "simulation_count",      TYPE_INT,     &m_simulationCount,              true,    0 },
@@ -10799,25 +10924,489 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
       */
 
 
+////void ChronicHazards::CalculateTWL(EnvContext* pEnvContext, float swl, float lowSLW, int beachType,
+////   float duneToe, float gammaRough, float tanb1, float duneCrest, float eastingToe, float shorelineAngle,
+////   float beachwidth, float bruunSlope, int transIndex)
+////   {
+////   // Get the Still Water Level for that day (in NAVD88 vertical datum) from the deep water time series
+////   // Get the low Still Water Level for that day ( in NVAVD88 vertical datum ) from the deep water time series
+////   // 
+////   // 
+////   // iterate through each day of the year
+////   CString msg;
+////   for (int doy = 0; doy < 365; doy++)
+////      {
+////      if (doy % 5 == 0)
+////         {
+////         msg.Format("Calculating TWLs for day %i", doy);
+////         Report::StatusMsg(msg);
+////         }
+////
+////      // tide range for that day based upon still water level
+////      float wlratio = (swl - (-1.5f)) / (4.5f + 1.5f);
+////
+////      float maxTWLforPeriod = 0;
+////      float maxErosionforPeriod = 0;
+////
+////      float meanPeakHeight = 0;
+////      float meanPeakPeriod = 0;
+////      float meanPeakDirection = 0;
+////      float meanPeakWaterLevel = 0;
+////
+////      float meanTWL = 0;
+////
+////      float S_comp = 0.0f;
+////      float EPR = 0.0f;
+////
+////      float dailyTWL = 0.0f;
+////      float dailyTWL_Flood = 0.0f;
+////      float L = 0.0f;
+////
+////      // get wave conditions at intermediate depth, 20m contour from the RBF interpolations
+////      float radPeakHeightL = 0.0, radPeakHeightH = 0.0f, radPeakPeriodL = 0.0f, radPeakPeriodH = 0.0f;
+////      float radPeakDirectionL = 0.0f, radPeakDirectionH = 0.0f, radPeakWaterDepthL = 0.0f, radPeakWaterDepthH = 0.0f;
+////
+////      int row = (pEnvContext->yearOfRun * 365) + doy;
+////
+////      FDataObj* pRBFOutputData = m_dailyRBFOutputArray.GetAt(transIndex);   // zero-based
+////      pRBFOutputData->Get(0, row, radPeakHeightL);
+////      pRBFOutputData->Get(1, row, radPeakHeightH);
+////      pRBFOutputData->Get(2, row, radPeakPeriodL);
+////      pRBFOutputData->Get(3, row, radPeakPeriodH);
+////      pRBFOutputData->Get(4, row, radPeakDirectionL);
+////      pRBFOutputData->Get(5, row, radPeakDirectionH);
+////      pRBFOutputData->Get(6, row, radPeakWaterDepthL);
+////      pRBFOutputData->Get(7, row, radPeakWaterDepthH);
+////
+////      float waveHeight = radPeakHeightL + wlratio * (radPeakHeightH - radPeakHeightL);
+////      float wavePeriod = radPeakPeriodL + wlratio * (radPeakPeriodH - radPeakPeriodL);
+////      float waveDirection = radPeakDirectionL + wlratio * (radPeakDirectionH - radPeakDirectionL);
+////      float waterDepth = radPeakWaterDepthL + wlratio * (radPeakWaterDepthH - radPeakWaterDepthL);
+////
+////      // Linearly back shoal transformed waves from 20m/30m contour to deep water
+////      float L0 = 0;     // Deepwater wave length (m)
+////      float setup = 0;  // wave setup height
+////      float infragravitySwash = 0;
+////      float incidentSwash = 0;
+////      float r2Runup = 0;    // wave induced runup
+////      float stockdonTWL = 0;
+////      ComputeStockdon(swl, waveHeight, wavePeriod, waveDirection, &L0, &setup, &incidentSwash, &infragravitySwash, &r2Runup, &stockdonTWL);
+////
+////      // account for linear shoaling process to get equivalent deepwater conditions
+////      // Deepwater celerity 
+////      float Co = L0 / wavePeriod;
+////      float n = 0.0f;
+////      float C = CalculateCelerity(waterDepth, wavePeriod, n);
+////
+////      double ks = (sqrt(1.0f / (2.0f * n) * Co / C));
+////      float Hdeep = waveHeight / (sqrt(1.0f / (2.0f * n) * Co / C));
+////
+////      // Determine the Dynamic Water Level 2%
+////      // note : dailyTWL - dunetoe1
+////      //float DWL2 = swl + 1.1f * (eta + STK_IG / 2.0f) - duneToe;
+////      float DWL2 = stockdonTWL - duneToe;   /// ???? Check with Peter
+////
+////      // significant wave height at structure toe calculated using a breaker index of 0.78
+////      if (DWL2 < 0)
+////         DWL2 = 0;
+////
+////      float Hmo = DWL2 * 0.78f;
+////
+////      // If the depth limited breaker height is larger than the offshore conditions, then the latter will be used.
+////      if (Hmo > Hdeep)
+////         Hmo = Hdeep;
+////
+////      // Irribarren number
+////      /*   float IbarrenNumber = localBarrierSlope / (sqrt(Hmo / L));
+////      if (IbarrenNumber < 0.3)
+////      R2 = 0.043 * sqrt(Hdeep*L0);
+////      else if (IbarrenNumber > 1.25)
+////      R2 = 0.73 * sqrt(Hdeep*L0);*/
+////
+////      // Check for overtopping/flooding  at physical dunecrest location
+////      //  if ((1.1f*eta + swl) >= duneCrest)
+////      /*  double eastingDC = 0.0f;
+////      double northingDC = 0.0f;
+////      int rowDC = -1;
+////      int colDC = -1;
+////      m_pDuneLayer->GetData(dunePt, m_colDLEastingCrest, eastingDC);
+////      m_pDuneLayer->GetData(dunePt, m_colNorthingCrest, northingDC);
+////      m_pElevationGrid->GetGridCellFromCoord(eastingDC, northingDC, rowDC, colDC);
+////      m_pElevationGrid->GetData(rowDC, colDC, duneCrest);*/
+////
+////      bool isOvertopped = false;
+////      if ((swl + 1.1f * setup) >= duneCrest)  // ignores swash, stillwater + setup only
+////         isOvertopped = true;
+////
+////      // if beach type is inlet,  twl = still water level + proportion of the deep water wave height (SWH)
+////      if (beachType == BchT_BAY)
+////         {
+////         dailyTWL = swl + (m_inletFactor * Hdeep);
+////         duneCrest = (float)MHW;
+////         }
+////      else if (beachType == BchT_SANDY_DUNE_BACKED ||
+////         beachType == BchT_SANDY_BLUFF_CLIFF_BACKED ||
+////         beachType == BchT_SANDY_BURIED_RIPRAP_BACKED) // || Hmo < 0)
+////         {
+////         // Limit flooding to swl + setup for dune backed beaches (no swash)
+////         dailyTWL_Flood = swl + 1.1f * (setup + infragravitySwash / 2.0f);   // TWL-incident band swash
+////         dailyTWL = stockdonTWL;
+////         }
+////
+////      // Use Local/TAW Combination to calculate TWL for all other defined beachtypes
+////      else if (beachType == BchT_SANDY_RIPRAP_BACKED ||
+////         beachType == BchT_MIXED_SEDIMENT_DUNE_BACKED ||
+////         beachType == BchT_MIXED_SEDIMENT_BLUFF_BACKED ||
+////         beachType == BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED ||
+////         beachType == BchT_SANDY_COBBLEGRAVEL_BERM_BACKED ||
+////         beachType == BchT_SANDY_WOODY_DEBRIS_BACKED ||
+////         beachType == BchT_JETTY ||
+////         beachType == BchT_ROCKY_CLIFF_HEADLAND)
+////         {
+////         // Use Local/TAW Combination to calculate TWL (insted of stockdon) for all other defined beachtypes 
+////         //    else if (beachType != BchT_UNDEFINED || beachType != BchT_RIVER )
+////         double xTop = 0.0;
+////         double xBottom = 0.0;
+////
+////         // local barrier slope / structure slope
+////         double slope_TAW_local = 0.0;
+////
+////         double slope_TAW_local_2 = 0.0;
+////
+////         // local runup on barriers
+////         double runup_TAW_local = 0.0;
+////
+////         //breaker parameter
+////         //float Ibarren_local = 0.0f;
+////
+////         // structure height
+////         float height = duneCrest - duneToe;
+////
+////         // Wave direction(Eqn D.4.5-38)
+////         // determine influence factor for oblique wave attack
+////         float beta = abs(waveDirection - shorelineAngle);
+////         float gammaBeta = 1.0f - 0.0033f * beta;
+////         if (beta >= 80.0f)
+////            gammaBeta = 1.0f - 0.0033f * 80.0f;
+////
+////         /* if (yBerm < 0.6f)
+////         yBerm = 0.6f;
+////         if (yBerm > 1.0f)
+////         yBerm = 1.0f;*/
+////
+////         //***** TAW Approach With Local Structure Slope (Swash slope) *****//
+////
+////         //***** Compute the slope of where the swash acts *****//
+////
+////         // The slope will be computed between where the twl level is computed using the Stockdon Runup (twl = swl + R2%) and the
+////         // level of the where twl = static setup + swl.
+////
+////         // If we have raised the height of the BPS, we can no longer use the cross-shore profiles. Check if we have maintained
+////         int firstMaintYear = 0;
+////         //    m_pDuneLayer->GetData(dunePt, m_colBPSMaintYear, maintYear);
+////         //    int maintFreqInterval = pEnvContext->currentYear - maintYear;
+////         firstMaintYear = pEnvContext->startYear + m_maintFreqBPS;
+////
+////         // structure (barrier/bluff) is not flooded
+////         if (!isOvertopped)
+////            {
+////            //    float y1temp = 0.0f;
+////
+////            // STK_TWL = swl + StockdonR2
+////            float y1temp = 0.0f;
+////            double yTop = stockdonTWL;
+////
+////            // If STK_TWL overtops the structue then use the top of the structure 
+////            // (minus 1cm for interpolation purposes, see curveintersect)
+////            if (yTop > duneCrest)
+////               yTop = duneCrest - 0.01;
+////
+////            // The bottom part of the slope is given by Static Setup (STK) + swl
+////            double yBottom = swl + 1.1f * setup;
+////
+////            // Also need new slope when dune erodes and backshore(foredusne) beach slope changes
+////            // Slope not changing for bluff backed beaches
+////            //         if ( (profileID != prevProfileIndex || duneCrest != prevDuneCrest || tanb1 != prevTanb1 ) && (beachType != BT_RIPRAP_BACKED || maintYear < 2011))// Slope not changing for bluff backed
+////            //        if ( ( tanb1 != prevTanb1 ) && (beachType != BchT_RIPRAP_BACKED )) // || maintYear < 2011))// Slope not changing for bluff backed
+////            //    {
+////
+////            // calculate slope of swash where bluff or barrier exists
+////            // this is needed to determine the wave runup on a barrier
+////            // do not use cross shore profile when the dune is dynamically changing (e.g. RIP RAP built or maintained)
+////
+////            // profileID != prevProfileIndex eq to statement TnumRef != prevTNummRef
+////
+////            if (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear) //(maintFreq >= m_maintFreqBPS))
+////               {
+////               DDataObj* pBATH = m_BathyDataArray.GetAt(profileIndex);   // zero-based
+////
+////               int length = (int)pBATH->GetRowCount();
+////
+////               double* yt;
+////               double* yb;
+////               double* xtemp;
+////               double* xotemp;
+////
+////               yt = new double[length];
+////               memset(yt, 0, length * sizeof(double));
+////               yb = new double[length];
+////               memset(yb, 0, length * sizeof(double));
+////               xtemp = new double[length];
+////               memset(xtemp, 0, length * sizeof(double));
+////               xotemp = new double[length];
+////               memset(xotemp, 0, length * sizeof(double));
+////
+////               for (int ii = 0; ii < length; ii++)
+////                  {
+////                  pBATH->Get(0, ii, y1temp);
+////                  pBATH->Get(1, ii, xtemp[ii]);
+////                  yt[ii] = y1temp - yTop;
+////                  yb[ii] = y1temp - yBottom;
+////                  }
+////
+////               // interpolate results
+////               Mminvinterp(xtemp, yt, xotemp, length);
+////
+////               // xTop (Location of stockdonTWL)
+////               xTop = Maximum(xotemp, length);
+////
+////               Mminvinterp(xtemp, yb, xotemp, length);
+////
+////               xBottom = Maximum(xotemp, length);
+////               delete[] xotemp;
+////               delete[] yb;
+////               delete[] yt;
+////               delete[] xtemp;
+////
+////               // Compute slope where the swash acts
+////               slope_TAW_local = (yTop - yBottom) / abs(xTop - xBottom);
+////               int tempbreak = 10;
+////               /////if (m_debugOn)
+////               /////   {
+////               /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 0);
+////               /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+////               /////   m_pDuneLayer->SetData(dunePt, m_colSTKTWL, STK_TWL);
+////               /////   }
+////               }
+////            // RIP RAP has been constructed with a standard 2:1 slope
+////            // cannot use cross shore profile for site
+////            else
+////               {
+////               // the water is swashing on the structure
+////               // assume TAW slope equal to BPS slope
+////               if (yBottom > duneToe)
+////                  {
+////                  slope_TAW_local = m_slopeBPS;
+////                  /////if (m_debugOn)
+////                  /////   {
+////                  /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 1);
+////                  /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+////                  /////   }
+////                  }
+////
+////               // the water is swashing on the beach
+////               // assume TAW slope equal to beach slope
+////               if (yTop < duneToe)
+////                  {
+////                  slope_TAW_local = tanb1;
+////                  /////if (m_debugOn)
+////                  /////   {
+////                  /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 2);
+////                  /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+////                  /////   }
+////                  }
+////
+////               // the water is swashing on both the structure and the beach
+////               // compute the composite slope using the known width of where the swash acts and the slopes 
+////
+////               // width weighted average of beach and structure slopes where swash acts
+////               //////  // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
+////               //////  //  where structureWidth = height / structureSlope 
+////               else
+////                  {
+////                  //// Compute slope where swash acts
+////                  double xTopWidth = yTop / m_slopeBPS;
+////                  double xBtmWidth = yBottom / tanb1;
+////                  //xTop = eastingToe + yTop / BPSslope;
+////                  //xBottom = eastingToe - yBottom / tanb1;
+////                  //  double slope_TAW_local_new = (tanb1 * xBtmWidth + BPSslope * xTopWidth) / (xTop - xBottom);
+////                  slope_TAW_local = (tanb1 * xBtmWidth + m_slopeBPS * xTopWidth) / (xTopWidth + xBtmWidth);
+////                  ////if (m_debugOn)
+////                  ////   {
+////                  ////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 3);
+////                  ////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+////                  ////   }
+////
+////                  /*xBottom = yBottom / tanb1;
+////                  xTop = yTop / m_slopeBPS;
+////                  slope_TAW_local_2 = ((beachwidth - xBottom)*tanb1 + xTop*m_slopeBPS) / (beachwidth + (height / m_slopeBPS));*/
+////                  int tempbreak = 10;
+////                  }
+////               }
+////            }  //end of:  if ( ! overtopped )
+////          // If setup + swl is greater than the structure crest then the
+////          // composite slope will be used. This corresponds to an overtopped case.
+////
+////          // BPS structure is flooded not maintained 
+////         else if (isOvertopped && (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear))
+////            //       else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq <= m_maintFreqBPS ) ) )
+////            {
+////            if (S_comp > 0)
+////               {
+////               slope_TAW_local = S_comp;
+////               //if (m_debugOn)
+////               //   {
+////               //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 4);
+////               //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+////               //   }
+////               }
+////            else
+////               {
+////               slope_TAW_local = tanb1;
+////               //if (m_debugOn)
+////               //   {
+////               //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 5);
+////               //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+////               //   }
+////               }
+////            }
+////         // compute the composite slope using the known width of the structure+beach and the slopes 
+////         //    else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq >= m_maintFreqBPS) ) )
+////         else if (isOvertopped && (beachType == BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear > firstMaintYear))
+////            {
+////            // width weighted average of beach and structure slopes
+////            // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
+////            //  where structureWidth = height / structureSlope 
+////            slope_TAW_local = (tanb1 * beachwidth + height) / ((height / m_slopeBPS) + beachwidth);
+////            //if (m_debugOn)
+////            //   {
+////            //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 6);
+////            //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+////            //   }
+////            }
+////
+////         //check to make sure the slope does not exceed the structure slope
+////         if (isNan<double>(slope_TAW_local))
+////            slope_TAW_local = 0.3;
+////
+////         if (slope_TAW_local > 0.5)
+////            slope_TAW_local = 0.5;
+////
+////         //////////// RUNUP EQUATION - DETERMINISTIC APPROACH (includes +1STDEV factor of safety) ////////////
+////         // The following are calculations for dynamic coastline
+////
+////         // Mean Wave Period 
+////         double Tm = wavePeriod / 1.1;
+////
+////         // Deep water wave length for the DIM method to be applied in the presence of structures/barriers.
+////         double L = (G * (Tm * Tm)) / (2.0 * PI);
+////
+////         //breaker parameter
+////
+////         // Irribarren number based on 2ND slope estimate - Eqn D.4.5-8
+////         double Ibarren_local = 0;
+////         if (Hmo > 0)
+////            Ibarren_local = slope_TAW_local / (sqrt(Hmo / L));
+////
+////         ////Berm factor always equal to 1
+////         float gammaBerm = 1.0f;
+////
+////         double limit = gammaBerm * Ibarren_local;
+////
+////         // if the roughness reduction factor is unknown,
+////         // use an the average roughness reduction factor for shoreline backed by rip-rap 
+////         if (gammaRough > 99 || gammaRough < 0)
+////            {
+////            gammaRough = 0.55f;
+////            switch (beachType)
+////               {
+////               case BchT_MIXED_SEDIMENT_DUNE_BACKED:
+////               case BchT_MIXED_SEDIMENT_BLUFF_BACKED:
+////                  gammaRough = 0.8f; // (similar to Till110 and 111 on page 129 of report)
+////                  break;
+////
+////               case BchT_SANDY_RIPRAP_BACKED:
+////               case BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED:
+////               case BchT_SANDY_COBBLEGRAVEL_BERM_BACKED:
+////               case BchT_JETTY:
+////               case BchT_ROCKY_CLIFF_HEADLAND:    // we probably do not need to compute runup at all on these beach types
+////                  gammaRough = 0.55f;
+////                  break;
+////
+////               case BchT_SANDY_WOODY_DEBRIS_BACKED:
+////                  gammaRough = 0.75f;
+////                  break;
+////               }
+////            }
+////
+////         if (gammaRough < 0.1)
+////            gammaRough = this->m_minBPSRoughness;
+////
+////         if (limit > 0.0f && limit < 1.8f)
+////            runup_TAW_local = Hmo * 1.75f * gammaRough * gammaBeta * gammaBerm * Ibarren_local;
+////         else if (limit >= 1.8f)
+////            runup_TAW_local = Hmo * gammaRough * gammaBeta * (4.3f - (1.6f / sqrt(Ibarren_local)));
+////
+////         if (runup_TAW_local == 0)
+////            runup_TAW_local = stockdonTWL;
+////
+////         // COMBINE RUNUP VALUES TO CALCULATE COMBINED TWL //
+////
+////         // Wave Runup consists of setup and swash (barrier runup)
+////         double structureR2 = (runup_TAW_local + 1.1f * setup);
+////         //r2Runup = (float)structureR2;
+////
+////         dailyTWL = swl + (float)structureR2;
+////         }  // end of: else if (beachType == BchT_RIPRAP_BACKED ||
+////            //                  beachType == BchT_DUNE_BLUFF_BACKED ||
+////            //                  beachType == BchT_CLIFF_BACKED ||
+////            //                  beachType == BchT_WOODY_DEBRIS_BACKED ||
+////            //                  beachType == BchT_WOODY_BLUFF_BACKED ||
+////            //                  beachType == BchT_ROCKY_HEADLAND)
+////
+////        // check for dune hours
+////        // collision regime (dune erosion expected
+////
+////
+////      yearlyAvgTWL += dailyTWL / 364.0f;
+////      
+////      meanTWL += dailyTWL;
+////      
+////      // if this TWL is the highest yet so far this year for this location, remember it
+////      if (dailyTWL > yearlyMaxTWL)
+////         yearlyMaxTWL = dailyTWL;
+////      } // end of: for each doy
+////
+////   } // end CalculateYrMaxTWL
 
-      // Determines Yearly Maximum TWL based upon daily TWL calculations at each Dune point
+
+
+
+
+
+// Determines Yearly Maximum TWL based upon daily TWL calculations at each Dune point
 void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvContext)
    {
-   if (m_pDuneLayer != nullptr)
-      m_pDuneLayer->m_readOnly = false;
+   if (m_pDuneLayer == nullptr)
+      return;
+
+   m_pDuneLayer->m_readOnly = false;
 
    // iterate through each day of the year, getting 
    Report::Log_i("Calculating Impact Days for year %i", pEnvContext->currentYear);
 
    // iterate through each day of the year
    CString msg;
+   this->m_meanAnnualTWL = 0;
+   this->m_maxAnnualTWL = 0;
    for (int doy = 0; doy < 365; doy++)
       {
-      if (doy % 5 == 0)
+      if (doy % 10 == 0)
          {
          msg.Format("Calculating impacts days for Day %i for %i shoreline points", doy, m_pDuneLayer->GetRecordCount());
          Report::StatusMsg(msg);
          }
+
       int row = (pEnvContext->yearOfRun * 365) + doy;
 
       // Get the Still Water Level for that day (in NAVD88 vertical datum) from the deep water time series
@@ -10840,8 +11429,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
       float meanPeakDirection = 0;
       float meanPeakWaterLevel = 0;
 
-      this->m_meanTWL = 0;
-
+      
       // for this day, iterate though Dune toe points, calculating TWL and associated variables as we go.
       //#pragma omp parallel for
       for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
@@ -11195,7 +11783,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                      /*xBottom = yBottom / tanb1;
                      xTop = yTop / m_slopeBPS;
                      slope_TAW_local_2 = ((beachwidth - xBottom)*tanb1 + xTop*m_slopeBPS) / (beachwidth + (height / m_slopeBPS));*/
-                     int tempbreak = 10;
+                     //int tempbreak = 10;
                      }
                   }
                }  //end of:  if ( ! overtopped )
@@ -11393,35 +11981,31 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                }
             }
 
-         // get current Maximum TWL for the current dune point from coverage
-         float yearlyMaxTWL = 0.0f;
-         m_pDuneLayer->GetData(dunePt, m_colDLYrMaxTWL, yearlyMaxTWL);
-
          // store the yearly average TWL
-         float yearlyAvgTWL = 0.0f;
-         m_pDuneLayer->GetData(dunePt, m_colDLYrAvgTWL, yearlyAvgTWL);
-
-         yearlyAvgTWL += dailyTWL / 364.0f;
-         m_pDuneLayer->SetData(dunePt, m_colDLYrAvgTWL, yearlyAvgTWL);
-
+         //float yearlyAvgTWL = 0.0f;
+         //m_pDuneLayer->GetData(dunePt, m_colDLYrAvgTWL, yearlyAvgTWL);
+         //yearlyAvgTWL += dailyTWL / 365;
+         //m_pDuneLayer->SetData(dunePt, m_colDLYrAvgTWL, yearlyAvgTWL);
+         m_pDuneLayer->AddData(dunePt, m_colDLYrAvgTWL, dailyTWL/365);
          //m_maxTWLArray.Set(duneIndex, row, dailyTWL);
 
          // store the yearly average SWL
-         m_pDuneLayer->AddData(dunePt, m_colDLYrAvgSWL, swl / 364.0f);
+         m_pDuneLayer->AddData(dunePt, m_colDLYrAvgSWL, swl / 365);
 
          // store the yearly average low SWL
-         m_pDuneLayer->AddData(dunePt, m_colDLYrAvgLowSWL, lowSWL / 364.0f);
+         m_pDuneLayer->AddData(dunePt, m_colDLYrAvgLowSWL, lowSWL / 365);
 
          float yearlyMaxSWL = 0.0f;
          m_pDuneLayer->GetData(dunePt, m_colDLYrMaxSWL, yearlyMaxSWL);
-
-         this->m_meanTWL += dailyTWL;
 
          // set variables when Maximum yearly TWL
          if (swl > yearlyMaxSWL)
             m_pDuneLayer->SetData(dunePt, m_colDLYrMaxSWL, swl);
 
          // if this TWL is the highest yet so far this year for this location, remember it
+         // get current Maximum TWL for the current dune point from coverage
+         float yearlyMaxTWL = 0.0f;
+         m_pDuneLayer->GetData(dunePt, m_colDLYrMaxTWL, yearlyMaxTWL);
          if (dailyTWL > yearlyMaxTWL)
             {
             m_pDuneLayer->SetData(dunePt, m_colDLYrFMaxTWL, dailyTWL_Flood);  // flooding (use for flood model handoff)
@@ -11433,7 +12017,6 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             m_pDuneLayer->SetData(dunePt, m_colDLWHeight, waveHeight);
             m_pDuneLayer->SetData(dunePt, m_colDLWDirection, waveDirection);
             m_pDuneLayer->SetData(dunePt, m_colDLYrMaxDoy, doy);
-            ////      m_pDuneLayer->SetData(dunePt, m_colYrMaxSWL, swl);
             m_pDuneLayer->SetData(dunePt, m_colDLYrMaxSetup, setup);
             m_pDuneLayer->SetData(dunePt, m_colDLYrMaxIGSwash, infragravitySwash);
             m_pDuneLayer->SetData(dunePt, m_colDLYrMaxIncSwash, incidentSwash);
@@ -11442,50 +12025,70 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             float stockdonSwash = sqrt(infragravitySwash * infragravitySwash + incidentSwash * incidentSwash) / 2.0f;
             m_pDuneLayer->SetData(dunePt, m_colDLYrMaxSwash, stockdonSwash);
 
-
-            /*if (dailyTWL_2 > duneCrest && (beachType != BchT_BAY || beachType != BchT_RIVER || beachType != BchT_UNDEFINED))
-            {
-            m_pDuneLayer->SetData(dunePt, m_colFlooded, 1);
-            m_pDuneLayer->SetData(dunePt, m_colAmtFlooded, (dailyTWL - duneCrest));
-            }*/
-
-            if (dailyTWL > duneCrest && (beachType != BchT_BAY || beachType != BchT_RIVER || beachType != BchT_UNDEFINED))
+            if (dailyTWL > duneCrest && (beachType != BchT_BAY && beachType != BchT_RIVER && beachType != BchT_UNDEFINED))
                {
                m_pDuneLayer->SetData(dunePt, m_colDLFlooded, 1);
                m_pDuneLayer->SetData(dunePt, m_colDLAmtFlooded, (dailyTWL - duneCrest));
                }
-
-            //    m_pDuneLayer->SetData(dunePt, m_colDLTranSlope, slope_TAW_local)
-
-            /*SetUpArray[ duneIndex ] = eta;
-            IGArray[ duneIndex ] = STK_IG;
-            wlArray[ duneIndex ] = swl;
-            stkTWLArray[ duneIndex ] = STK_TWL;*/
             }
 
-         /*  if (ftwl > maxFTWLforPeriod)
-         {
-         periodMaxTWL = row;
-         tranIndexMaxTWL = tranIndex;
-         maxTWLforPeriod = twl;
-         }
 
-         if (ftwl > m_maxFTWL)
-         {
-         periodMaxTWL = row;
-         tranIndexMaxTWL = tranIndex;
-         m_maxTWL = twl;
-         }*/
+         ///////////////////////////////////////
+         if (dunePt == 1000)
+            {
+            std::vector<float> data;            
+            data.push_back((float) doy);
+            data.push_back(swl);
+            data.push_back((float)duneIndex);
+            data.push_back((float)transID);
+            data.push_back((float)profileID);
+            data.push_back(duneToe);
+            data.push_back(gammaRough);
+            data.push_back(tanb1);
+            data.push_back((float)beachType);
+            data.push_back(duneCrest);
+            data.push_back((float)eastingToe);
+            data.push_back(shorelineAngle);
+            data.push_back(beachwidth);
+            data.push_back((float)bruunSlope);
+            data.push_back(waveHeight);
+            data.push_back(wavePeriod);
+            data.push_back(waveDirection);
+            data.push_back(waterDepth);
+            data.push_back(L0);
+            data.push_back(setup);
+            data.push_back(incidentSwash);
+            data.push_back(infragravitySwash);
+            data.push_back(r2Runup);
+            data.push_back(stockdonTWL);
+            data.push_back(C);
+            data.push_back((float)ks);
+            data.push_back(Hdeep);
+            data.push_back(DWL2);
+            data.push_back(Hmo);
+            data.push_back(isOvertopped);
+            data.push_back(dailyTWL);
+            data.push_back(dailyTWL_Flood);
+            m_pTWLDataTemp->AppendRow(data.data(), (int) data.size());
+            }
+         //////////////////////////////////////
 
-         /* prevProfileIndex = profileID;
-         prevTranIndex = tranIndex;
-         prevTanb1 = tanb1;
-         prevDuneCrest = duneCrest;*/
+         if ( dailyTWL > this->m_maxAnnualTWL)
+            this->m_maxAnnualTWL = dailyTWL;
 
+         this->m_meanAnnualTWL += dailyTWL;
          }  // end of: for each dune point in dune line
       } // end of: for each doy
 
-   this->m_meanTWL /= (365 * m_pDuneLayer->GetRowCount());
+   this->m_meanAnnualTWL /= (365 * m_pDuneLayer->GetRowCount());
+
+
+   //////////////////////////////
+   CString path;
+   path.Format("d:/Envision/StudyAreas/OrCoast/Tillamook/Outputs/twl_debug_%i_%s.csv", pEnvContext->yearOfRun, (LPCTSTR) pEnvContext->pScenario->m_name );
+   m_pTWLDataTemp->WriteAscii((LPCTSTR) path, ',');
+   //////////////////////////////
+
 
 
    // fix up map classifications
@@ -11910,7 +12513,7 @@ double  ChronicHazards::KDmodel(int point)
    if (R_inf_KD < 0)
       R_inf_KD = 0;
 
-   // Restrict maximum yearly event-based erosion
+   // Restrict maximum yearly event-based "erosion"
    if (R_inf_KD > 25)
       R_inf_KD = 25;
 
@@ -12055,7 +12658,7 @@ double ChronicHazards::SCRmodel(int point)
 //   else
 //   m_pDuneLayer->GetData(point, m_colMvMaxTWL, yrMaxTWL);*/
 
-//   m_meanTWL += yrMaxTWL;
+//   m_meanAnnualTWL += yrMaxTWL;
 
 //   // SWH at yearly Maximum TWL   
 //   m_pDuneLayer->GetData(point, m_colDLHdeep, Hdeep);
