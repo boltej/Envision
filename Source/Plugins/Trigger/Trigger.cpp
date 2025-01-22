@@ -283,7 +283,11 @@ bool TriggerProcess::LoadXml( LPCTSTR filename, const MapLayer *pLayer )
    return true;
    }
 
-   
+bool TriggerProcess::InitRun(EnvContext* pContext)
+   {
+   return Run(pContext);
+   }
+
 bool TriggerProcess::Run( EnvContext *pContext )
    {
    // Basic idea:
@@ -291,8 +295,17 @@ bool TriggerProcess::Run( EnvContext *pContext )
    const MapLayer *pLayer = pContext->pMapLayer;
                         
    //bool ok = pTrigger->Evaluate();
-   
    int triggerCount = (int) this->m_triggerArray.GetSize();
+   Report::Log_i("Processing %i triggers", triggerCount);
+
+   for (int j = 0; j < triggerCount; j++)
+      {
+      Trigger* pTrigger = this->m_triggerArray[j];
+      pTrigger->m_appliedArea = 0;
+      pTrigger->m_appliedCount = 0;
+      pTrigger->m_changedCount = 0;
+      }
+
    for ( MapLayer::Iterator idu = pLayer->Begin(); idu != pLayer->End(); idu++ )
       {
       for ( int j=0; j < triggerCount; j++ )
@@ -305,6 +318,17 @@ bool TriggerProcess::Run( EnvContext *pContext )
          bool useThisTrigger = true;
          if ( pTrigger->m_pQuery != NULL )
             {
+            //if (idu == 181071)
+            //   {
+            //   int colPopDens = pLayer->GetFieldCol("PopDens");
+            //   int colZone = pLayer->GetFieldCol("ZONEAGGID");
+            //   float popDens = 0;
+            //   int zone = 0;
+            //   pLayer->GetData(idu, colPopDens, popDens);
+            //   pLayer->GetData(idu, colZone, zone);
+            //   ASSERT(false);
+            //   }
+
             bool result;
             bool ok = pTrigger->m_pQuery->Run( idu, result );
             if ( ! ok || ! result )
@@ -328,21 +352,44 @@ bool TriggerProcess::Run( EnvContext *pContext )
                     break;
                 }
 
-            if ( j < pTrigger->m_outcomeArray.GetSize() )
+            if ( i < pTrigger->m_outcomeArray.GetSize() )
                {
                TriggerProcessCollection::UpdateVariables( idu ); // for parser
                bool ok = pOutcome->Evaluate();
 
-               if ( ok )
-                  pContext->ptrAddDelta( pContext->pEnvModel, idu, pOutcome->m_colTarget, 
-                           pContext->currentYear, pOutcome->m_value, pContext->handle );
+               float area = 0;
+               pLayer->GetData(idu, m_colArea, area);
+               pTrigger->m_appliedArea += area;
+               pTrigger->m_appliedCount++;
+
+               if (ok)
+                  {
+                  float prevValue = 0;
+                  pLayer->GetData(idu, pOutcome->m_colTarget, prevValue);
+                  if (fabs(prevValue - pOutcome->m_value) > 0.0000001f)
+                     {
+                     pContext->ptrAddDelta(pContext->pEnvModel, idu, pOutcome->m_colTarget,
+                        pContext->currentYear, pOutcome->m_value, (int) pContext->handle);
+
+                     pTrigger->m_changedCount++;
+                     }
+                  }
                }
-         
             break;   // move on to next IDU
             }  // end of: if ( useThisTrigger )
          }  // end of: for( j < triggerCount )
       }  // end of:  for ( idu < iduCount )
     
+   // generate report
+   for (int j = 0; j < triggerCount; j++)
+      {
+      Trigger* pTrigger = this->m_triggerArray[j];
+      CString msg;
+      msg.Format("Trigger %s - Applied Count: %i, Changed Count: %i, Applied Area: %.1f ha", pTrigger->m_name,
+         pTrigger->m_appliedCount, pTrigger->m_changedCount, pTrigger->m_appliedArea/10000);
+      Report::LogInfo((LPCTSTR) msg);
+      }
+
    return true;
    }
    
@@ -399,6 +446,8 @@ bool TriggerProcessCollection::Init( EnvContext *pEnvContext, LPCTSTR  initStr /
    if ( ! ok )
       return FALSE;
 
+   pProcess->m_colArea = pLayer->GetFieldCol("AREA");
+
    this->m_triggerProcessArray.Add( pProcess );
 
    // expose input variable
@@ -416,11 +465,19 @@ bool TriggerProcessCollection::Init( EnvContext *pEnvContext, LPCTSTR  initStr /
    return TRUE;
    }
    
+bool TriggerProcessCollection::InitRun(EnvContext* pEnvContext, bool)
+   {
+   int index;
+   TriggerProcess* pProcess = GetTriggerProcessFromID(pEnvContext->id, &index);
+   ASSERT(pProcess != NULL);
+
+   bool ok = pProcess->InitRun(pEnvContext);
+
+   return ok ? TRUE : FALSE;
+   }
 
 bool TriggerProcessCollection::Run( EnvContext *pEnvContext )
    {
-   const MapLayer *pLayer = pEnvContext->pMapLayer;
- 
    int index;
    TriggerProcess *pProcess = GetTriggerProcessFromID( pEnvContext->id, &index );
    ASSERT( pProcess != NULL );

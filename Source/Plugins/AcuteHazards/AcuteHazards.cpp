@@ -9,16 +9,13 @@
 #include <tixml.h>
 #include <Path.h>
 #include <PathManager.h>
+#include <Scenario.h>
 #include <EnvConstants.h>
 
 #include <iostream>
-
+#include <filesystem>
 
 #include <direct.h>
-
-
-
-
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -95,7 +92,14 @@ bool AHEvent::Run(EnvContext* pEnvContext)
 
    // save the data
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-   pIDULayer->SaveDataDB(this->m_envOutputPath, NULL);   // save entire IDU as DBF.  
+
+   std::filesystem::create_directory((LPCTSTR)(this->m_envOutputPath));
+
+   CString filename;
+   filename.Format("%s/IDU_Hazards_%s_%i_%i.dbf", (LPCTSTR)this->m_envOutputPath, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID, pEnvContext->currentYear);
+
+   pIDULayer->SaveDataDB(filename, NULL);   // save entire IDU as DBF.  
+   Report::Log_s("Saving IDU Hazus data to %s", this->m_envOutputPath);
 
 
    //////////////////////////////////////////////////////////////////
@@ -120,10 +124,13 @@ bool AHEvent::Run(EnvContext* pEnvContext)
    char cwd[512];
    _getcwd(cwd, 512);
 
+
    CString path = PathManager::GetPath(PM_PROJECT_DIR);
    path += "Hazus";
+    
    _chdir((LPCTSTR)path);
-   
+  
+
    ////////////////////
    /*
    STARTUPINFO si;
@@ -188,7 +195,9 @@ bool AHEvent::Run(EnvContext* pEnvContext)
    // Create the child process.
    PROCESS_INFORMATION pi;
    ZeroMemory(&pi, sizeof(pi));
-   string command = this->m_pAHModel->m_pythonPath + "/python.exe " + this->m_pyModulePath + this->m_pyModuleName + ".py";
+   CString args;
+   args.Format("%s %i %i", pEnvContext->pScenario->m_name, pEnvContext->runID, pEnvContext->currentYear);
+   string command = this->m_pAHModel->m_pythonPath + "/python.exe " + this->m_pyModulePath + this->m_pyModuleName + ".py " + (LPCTSTR) args;
 
    if (!CreateProcessA(NULL,
          const_cast<char*>(command.c_str()),
@@ -335,7 +344,11 @@ bool AHEvent::Propagate(EnvContext* pEnvContext)
    CString msg("Acute Hazards: reading building damage parameter file ");
    msg += this->m_earthquakeInputPath;
    Report::Log(msg);
-   int rows = this->m_earthquakeData.ReadAscii(this->m_earthquakeInputPath, ',', 0);
+
+   CString path;
+   path.Format("%s/EQ_%s_building_damage_%s_%i.csv", this->m_earthquakeInputPath,
+      this->m_earthquakeScenario, pEnvContext->pScenario->m_name, pEnvContext->runID);
+   int rows = this->m_earthquakeData.ReadAscii(path, ',', 0);
 
    ///////
    ///this->m_earthquakeData.WriteAscii("/Envision/studyAreas/OrCoast/Hazus/output/EQ_M90_building_damage_test.csv");
@@ -367,7 +380,13 @@ bool AHEvent::Propagate(EnvContext* pEnvContext)
 
    msg = "Acute Hazards: reading tsunami damage parameter file ";
    msg += this->m_tsunamiInputPath;
-   this->m_tsunamiData.ReadAscii(this->m_tsunamiInputPath, ',', 0);
+
+   //tsunami_input = "/Envision/studyAreas/OrCoast/Hazus/output/TSU_L1_MaxMF_building_damage.csv"
+
+   path.Format("%s/TSU_%s_building_damage_%s_%i.csv", this->m_tsunamiInputPath,
+      this->m_tsunamiScenario, pEnvContext->pScenario->m_name, pEnvContext->runID);
+
+   this->m_tsunamiData.ReadAscii(path, ',', 0);
 
    // pull out needed columns
    PtrArray<HazDataColInfo> tsuColInfos;
@@ -473,6 +492,15 @@ bool AHEvent::Propagate(EnvContext* pEnvContext)
       float fatalitiesTSU = m_tsunamiData.GetAsFloat(tsuColInfos[HMI_CASINJY]->col, idu);
       float injuries = injuriesEQ + injuriesTSU;
       float fatalities = fatalitiesEQ + fatalitiesTSU;
+
+      m_pAHModel->m_numInjuriesEQ += injuriesEQ;
+      m_pAHModel->m_numFatalitiesEQ += fatalitiesEQ;
+      m_pAHModel->m_numCasualitiesEQ += (injuriesEQ + fatalitiesEQ);
+
+      m_pAHModel->m_numInjuriesTSU += injuriesTSU;
+      m_pAHModel->m_numFatalitiesTSU += fatalitiesTSU;
+      m_pAHModel->m_numCasualitiesTSU += (injuriesTSU + fatalitiesTSU);
+
 
       m_pAHModel->m_numInjuries += injuries;
       m_pAHModel->m_numFatalities += fatalities;
@@ -630,13 +658,13 @@ AcuteHazards::AcuteHazards(void)
    , m_colIduImprValue(-1)
    //, m_annualRepairCosts(0)
    , m_nUninhabitableStructures(0)
-   , m_nDamaged(0)
-   , m_nDamaged2(0)
-   , m_nDamaged3(0)
-   , m_nDamaged4(0)
-   , m_nDamaged5(0)
-   , m_bldgsRepaired(0)
-   , m_bldgsBeingRepaired(0)
+   , m_nIDUsDamaged(0)
+   , m_nIDUsDamaged1(0)
+   , m_nIDUsDamaged2(0)
+   , m_nIDUsDamaged3(0)
+   , m_nIDUsDamaged4(0)
+   , m_nIDUsRepaired(0)
+   , m_nIDUsBeingRepaired(0)
    , m_totalBldgs(0)
    , m_nInhabitableStructures(0)
    , m_pctInhabitableStructures(0)
@@ -660,6 +688,7 @@ bool AcuteHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
 
    // make sure necesary columns exist
+   this->CheckCol(pIDULayer, m_colIduNDUs, "NDU", TYPE_INT, CC_MUST_EXIST);
    this->CheckCol(pIDULayer, m_colIduImprValue, "IMPR_VALUE", TYPE_INT, CC_MUST_EXIST);
    this->CheckCol(pIDULayer, m_colIduRepairYrs, "REPAIR_YRS", TYPE_INT, CC_AUTOADD);
    this->CheckCol(pIDULayer, m_colIduBldgStatus, "BLDGSTATUS", TYPE_INT, CC_AUTOADD);
@@ -705,17 +734,40 @@ bool AcuteHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    this->AddOutputVar("Functional Bldgs (count)", m_nFunctionalBldgs, "");
    this->AddOutputVar("Functional Bldgs (pct)", m_pctFunctionalBldgs, "");
    this->AddOutputVar("Uninhabitable Structures", m_nUninhabitableStructures, "");
-   this->AddOutputVar("Bldgs with Slight Damage", m_nDamaged2, "");
-   this->AddOutputVar("Bldgs with Moderate Damage", m_nDamaged3, "");
-   this->AddOutputVar("Bldgs with Extensive Damage", m_nDamaged4, "");
-   this->AddOutputVar("Bldgs with Complete Damage", m_nDamaged5, "");
-   this->AddOutputVar("Total No. Bldgs Damaged", m_nDamaged, "");
-   this->AddOutputVar("Bldgs Repaired", m_bldgsRepaired, "");
-   this->AddOutputVar("Bldgs Being Repaired", m_bldgsBeingRepaired, "");
+   //this->AddOutputVar("NDUs with Slight Damage", m_nDUsDamaged1, "");
+   //this->AddOutputVar("NDUs with Moderate Damage", m_nDUsDamaged2, "");
+   //this->AddOutputVar("NDUs with Extensive Damage", m_nDUsDamaged3, "");
+   //this->AddOutputVar("NDUs with Complete Damage", m_nDUsDamaged4, "");
+
+   this->AddOutputVar("IDUs with Slight Damage", m_nIDUsDamaged1, "");
+   this->AddOutputVar("IDUs with Moderate Damage", m_nIDUsDamaged2, "");
+   this->AddOutputVar("IDUs with Extensive Damage", m_nIDUsDamaged3, "");
+   this->AddOutputVar("IDUs with Complete Damage", m_nIDUsDamaged4, "");
+
+   //this->AddOutputVar("Total No. Bldgs Damaged", m_nDUsDamaged, "");
+   //this->AddOutputVar("Total No. Bldgs Damaged/Repaired", m_nDUsDamagedAndRepaired, "");
+   //this->AddOutputVar("Bldgs Repaired", m_nDUsRepaired, "");
+   //this->AddOutputVar("Bldgs Being Repaired", m_nDUsBeingRepaired, "");
+   
+   this->AddOutputVar("Total No. IDUs Damaged", m_nIDUsDamaged, "");
+   this->AddOutputVar("Total No. IDUs Damaged/Repaired", m_nIDUsDamagedAndRepaired, "");
+   this->AddOutputVar("IDUs Repaired", m_nIDUsRepaired, "");
+   this->AddOutputVar("IDUs Being Repaired", m_nIDUsBeingRepaired, "");
+
    // life safety
-   this->AddOutputVar("Casualties", m_numCasualities, "");
-   this->AddOutputVar("Fatalities", m_numFatalities, "");
-   this->AddOutputVar("Injuries", m_numInjuries, "");
+
+   this->AddOutputVar("Casualties (EQ)", m_numCasualitiesEQ, "");
+   this->AddOutputVar("Fatalities (EQ)", m_numFatalitiesEQ, "");
+   this->AddOutputVar("Injuries (EQ)", m_numInjuriesEQ, "");
+
+   this->AddOutputVar("Casualties (TSU)", m_numCasualitiesTSU, "");
+   this->AddOutputVar("Fatalities (TSU)", m_numFatalitiesTSU, "");
+   this->AddOutputVar("Injuries (TSU)", m_numInjuriesTSU, "");
+
+
+   this->AddOutputVar("Casualties (Total)", m_numCasualities, "");
+   this->AddOutputVar("Fatalities (Total)", m_numFatalities, "");
+   this->AddOutputVar("Injuries (Total)", m_numInjuries, "");
 
    UpdateBldgType(pEnvContext, false);
 
@@ -741,18 +793,41 @@ bool AcuteHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    pIDULayer->SetColData(m_colIduFatalities, VData(0), true);
 
    m_nUninhabitableStructures = 0;
-   m_nDamaged2 = 0;
-   m_nDamaged3 = 0;
-   m_nDamaged4 = 0;
-   m_nDamaged5 = 0;
-   m_nDamaged = 0;
-   m_bldgsRepaired = 0;
-   m_bldgsBeingRepaired = 0;
+   //m_nDUsDamaged1 = 0;
+   //m_nDUsDamaged2 = 0;
+   //m_nDUsDamaged3 = 0;
+   //m_nDUsDamaged4 = 0;
+   //m_nDUsDamaged = 0;
+   //m_nDUsDamagedAndRepaired = 0;
+   //m_nDUsRepaired = 0;
+   //m_nDUsBeingRepaired = 0;
+
+   m_nIDUsDamaged1 = 0;
+   m_nIDUsDamaged2 = 0;
+   m_nIDUsDamaged3 = 0;
+   m_nIDUsDamaged4 = 0;
+   m_nIDUsDamaged = 0;
+   m_nIDUsDamagedAndRepaired = 0;
+   m_nIDUsRepaired = 0;
+   m_nIDUsBeingRepaired = 0;
+
    m_nInhabitableStructures = 0;
    m_pctInhabitableStructures = 0;
    m_totalBldgs = 0;
    m_nFunctionalBldgs = 0;
    m_pctFunctionalBldgs = 0;
+   
+   m_numInjuriesEQ = 0;
+   m_numFatalitiesEQ = 0;
+   m_numCasualitiesEQ = 0;
+
+   m_numInjuriesTSU = 0;
+   m_numFatalitiesTSU = 0;
+   m_numCasualitiesTSU = 0;
+
+   m_numInjuries = 0; 
+   m_numFatalities = 0;
+   m_numCasualities = 0;
 
    int idus = pIDULayer->GetRowCount();
    for (int idu = 0; idu < idus; idu++)
@@ -782,13 +857,26 @@ bool AcuteHazards::Run(EnvContext* pEnvContext)
 
    // reset annual output variables
    m_nUninhabitableStructures = 0;
-   m_nDamaged = 0;
-   m_nDamaged2 = 0;
-   m_nDamaged3 = 0;
-   m_nDamaged4 = 0;
-   m_nDamaged5 = 0;
-   m_bldgsRepaired = 0;
-   m_bldgsBeingRepaired = 0;
+   //m_nDUsDamaged = 0;
+   //m_nDUsDamaged1 = 0;
+   //m_nDUsDamaged2 = 0;
+   //m_nDUsDamaged3 = 0;
+   //m_nDUsDamaged4 = 0;
+   //m_nDUsDamagedAndRepaired = 0;
+   //m_nDUsRepaired = 0;
+   //m_nDUsBeingRepaired = 0;
+
+   m_nIDUsDamaged = 0;
+   m_nIDUsDamaged1 = 0;
+   m_nIDUsDamaged2 = 0;
+   m_nIDUsDamaged3 = 0;
+   m_nIDUsDamaged4 = 0;
+   m_nIDUsDamagedAndRepaired = 0;
+   m_nIDUsRepaired = 0;
+   m_nIDUsBeingRepaired = 0;
+
+
+
    m_nInhabitableStructures = 0;
    m_pctInhabitableStructures = 0;
    m_totalBldgs = 0;
@@ -1317,12 +1405,15 @@ bool AcuteHazards::Update(EnvContext* pEnvContext)
          int damage = 0;
          pIDULayer->GetData(idu, m_colIduBldgDamage, damage);
 
+         int nDUs = 0;
+         pIDULayer->GetData(idu, m_colIduNDUs, nDUs);
+
          switch (damage)
             {
-            case 1:  m_nDamaged2++; break;
-            case 2:  m_nDamaged3++; break;
-            case 3:  m_nDamaged4++; break;
-            case 4:  m_nDamaged5++; break;
+            case 1:  m_nIDUsDamaged1++; /*m_nDUsDamaged1 += nDUs;*/ break;
+            case 2:  m_nIDUsDamaged2++; /*m_nDUsDamaged2 += nDUs;*/ break;
+            case 3:  m_nIDUsDamaged3++; /*m_nDUsDamaged3 += nDUs;*/ break;
+            case 4:  m_nIDUsDamaged4++; /*m_nDUsDamaged4 += nDUs;*/ break;
             }
 
          // if the damage is negative, we are actively repairing it,
@@ -1338,12 +1429,14 @@ bool AcuteHazards::Update(EnvContext* pEnvContext)
 
             if (repairYears > 0)
                {
-               m_bldgsBeingRepaired++;
+               m_nIDUsBeingRepaired++;
+               m_nIDUsBeingRepaired += nDUs;
                UpdateIDU(pEnvContext, idu, m_colIduRepairYrs, repairYears - 1, ADD_DELTA);
                }
             else  // building is repaired, so indicate that in the IDUs
                {
-               m_bldgsRepaired++;
+               m_nIDUsRepaired++;
+               //m_nDUsRepaired += nDUs;
                UpdateIDU(pEnvContext, idu, m_colIduRepairYrs, -1, ADD_DELTA);
                UpdateIDU(pEnvContext, idu, m_colIduRepairCost, 0.0f, ADD_DELTA);
                UpdateIDU(pEnvContext, idu, m_colIduBldgStatus, 0, ADD_DELTA);
@@ -1365,13 +1458,15 @@ bool AcuteHazards::Update(EnvContext* pEnvContext)
       }  // end of: for each idu
 
    // summary stats
-   m_nDamaged = m_nDamaged2 + m_nDamaged3 + m_nDamaged4 + m_nDamaged5;
-
+   m_nIDUsDamaged = m_nIDUsDamaged1 + m_nIDUsDamaged2 + m_nIDUsDamaged3 + m_nIDUsDamaged4;
+   //m_nDUsDamaged = m_nDUsDamaged1 + m_nDUsDamaged2 + m_nDUsDamaged3 + m_nDUsDamaged4;
    m_totalBldgs += removed;
+   m_nIDUsDamagedAndRepaired = m_nIDUsDamaged + m_nIDUsRepaired + m_nIDUsBeingRepaired;
+   //m_nDUsDamagedAndRepaired = m_nDUsDamaged + m_nDUsRepaired + m_nDUsBeingRepaired;
    m_nInhabitableStructures = m_totalBldgs - m_nUninhabitableStructures;
    m_pctInhabitableStructures = float(m_nInhabitableStructures) / m_totalBldgs;
-   m_nFunctionalBldgs = m_totalBldgs - m_nDamaged;
-   m_pctFunctionalBldgs = float(m_nDamaged) / m_totalBldgs;
+   m_nFunctionalBldgs = m_totalBldgs - m_nIDUsDamaged;
+   m_pctFunctionalBldgs = float(m_nIDUsDamaged) / m_totalBldgs;
 
    return true;
    }

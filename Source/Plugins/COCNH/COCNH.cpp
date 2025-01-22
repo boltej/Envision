@@ -1565,7 +1565,8 @@ bool COCNHProcess::UpdateFuelModel(EnvContext* pContext, bool useAddDelta)
 
          // column name: VARIANT (Note: if this is updated, also set time in variant to 0
 
-         if (UpdateIDU(pContext, idu, m_colVariant, variant, useAddDelta ? ADD_DELTA : SET_DATA))
+         UpdateIDU(pContext, idu, m_colVariant, variant, useAddDelta ? ADD_DELTA : SET_DATA);
+         if (useAddDelta)
             UpdateIDU(pContext, idu, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA);
 
          // column name: FUELMODEL

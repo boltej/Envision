@@ -69,6 +69,11 @@ public:
    Query  *m_pQuery;
    bool    m_use;    // exposed as scenario variable
    
+   float m_queryArea = 0;
+   float m_appliedArea = 0;
+   float m_changedCount = 0;
+   int m_appliedCount = 0;
+   
    Trigger() :  m_pQuery( NULL ), m_use( true ) { }
    ~Trigger();
 
@@ -86,13 +91,15 @@ public:
   ~TriggerProcess();
 
    bool LoadXml( LPCTSTR filename, const MapLayer *pLayer );
-   bool Run    ( EnvContext *pContext );
+   bool InitRun(EnvContext*);
+   bool Run(EnvContext* pContext);
    //bool UpdateVariables( int idu );     // sets parservars
 
 
 public:
    int m_processID;     // model id specified in envx file
    CString m_filename;  // input file name
+   int m_colArea = -1;
 
 protected:
    CArray< Trigger*, Trigger* > m_triggerArray;
@@ -108,7 +115,7 @@ public:
       
    // overrides
    bool Init   ( EnvContext *pContext, LPCTSTR initStr /*xml input file*/ );
-   bool InitRun( EnvContext *pContext, bool ) { return TRUE; }
+   bool InitRun(EnvContext* pContext, bool);
    bool Run    ( EnvContext *pContext );   
   
    TriggerProcess *GetTriggerProcessFromID( int id, int *index=NULL );

@@ -480,7 +480,7 @@ bool ChronicHazards::InitFloodingModel(EnvContext* pEnvContext)
    //   m_pTidalBathyGrid->Hide();
 
    // change to MUST_EXIST
-   //CheckCol(m_pIDULayer, m_colIDUBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);
+   CheckCol(m_pIDULayer, m_colIDUBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);
    /////CheckCol(m_pIDULayer, m_colIDUFloodZone, "FLD_ZONE", TYPE_STRING, CC_AUTOADD);
    //CheckCol(m_pIDULayer, m_colIDUFloodZoneCode, "FLD_HZ", TYPE_INT, CC_MUST_EXIST);
    /////CheckCol(m_pIDULayer, m_colLandValue, "LANDVALUE", TYPE_LONG, CC_MUST_EXIST);
@@ -1192,10 +1192,10 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////
    ////////
    ////////// Hard Protection Structure Nourishment attributes
-   //////CheckCol(m_pDuneLayer, m_colDLNourishVolBPS, "NOURVOLBPS", TYPE_FLOAT, CC_AUTOADD);
-   //////CheckCol(m_pDuneLayer, m_colDLNourishYearBPS, "NOURYRBPS", TYPE_INT, CC_AUTOADD);
-   //////m_pDuneLayer->SetColData(m_colDLNourishYearBPS, VData(0), true);
-   //////CheckCol(m_pDuneLayer, m_colDLNourishFreqBPS, "NOURFRQBPS", TYPE_INT, CC_AUTOADD);
+   CheckCol(m_pDuneLayer, m_colDLNourishVolBPS, "NOURVOLBPS", TYPE_FLOAT, CC_AUTOADD);
+   CheckCol(m_pDuneLayer, m_colDLNourishYearBPS, "NOURYRBPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLNourishYearBPS, VData(0), true);
+   CheckCol(m_pDuneLayer, m_colDLNourishFreqBPS, "NOURFRQBPS", TYPE_INT, CC_AUTOADD);
    ////////
    ////////
    ////////// ****** Soft Protection Structures ****** //
@@ -1487,46 +1487,44 @@ bool ChronicHazards::InitPolicyInfo(EnvContext* pEnvContext)
    m_policyInfoArray[PI_RAISE_INFRASTRUCTURE].Init(_T("Raise Infrastructure"), (int)PI_RAISE_INFRASTRUCTURE, &m_runRaiseInfrastructurePolicy, true);
 
    // make an output data object to store results
-   //int cols = 1 + ((PI_COUNT + 1) * 7);
-   //m_policyCostData.SetName("Policy Cost Metrics");
-   //m_policyCostData.SetSize(cols, 0);
-   //m_policyCostData.SetLabel(0, _T("Time"));
-   //int col = 1;
-   //for (int i = 0; i <= PI_COUNT; i++)
-   //   {
-   //   CString base;
-   //   if (i < PI_COUNT)
-   //      {
-   //      PolicyInfo &pi = m_policyInfoArray[i];
-   //      base = pi.m_label;
-   //      }
-   //   else
-   //      base = "Total";
-   //
-   //   CString label;
-   //   label = base + ".Starting Budget";
-   //   m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   //
-   //   label = base + ".Year End Budget";
-   //   m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   //
-   //   label = base + ".Budget Spent";
-   //   m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   //
-   //   label = base + ".Unmet Demand";
-   //   m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   //
-   //   label = base + ".Mov Avg Unmet Demand";
-   //   m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   //
-   //   label = base + ".Mov Avg Budget Spent";
-   //   m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   //
-   //   label = base + ".Alloc Frac";
-   //   m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   //   }
-
-
+   int cols = 1 + ((PI_COUNT + 1) * 7);
+   m_policyCostData.SetName("Policy Cost Metrics");
+   m_policyCostData.SetSize(cols, 0);
+   m_policyCostData.SetLabel(0, _T("Time"));
+   int col = 1;
+   for (int i = 0; i <= PI_COUNT; i++)
+      {
+      CString base;
+      if (i < PI_COUNT)
+         {
+         PolicyInfo &pi = m_policyInfoArray[i];
+         base = pi.m_label;
+         }
+      else
+         base = "Total";
+   
+      CString label;
+      label = base + ".Starting Budget";
+      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+   
+      label = base + ".Year End Budget";
+      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+   
+      label = base + ".Budget Spent";
+      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+   
+      label = base + ".Unmet Demand";
+      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+   
+      label = base + ".Mov Avg Unmet Demand";
+      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+   
+      label = base + ".Mov Avg Budget Spent";
+      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+   
+      label = base + ".Alloc Frac";
+      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+      }
 
    return true;
    }
@@ -1566,7 +1564,7 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
    CString climateScenarioPath = "Climate_Scenarios\\" + m_climateScenarioStr + "\\";
    CString slrDataFile;
-   slrDataFile.Format("%s%s_slr.csv", climateScenarioPath, m_climateScenarioStr);
+   slrDataFile.Format("%s%s_slr.csv", (LPCTSTR) climateScenarioPath, (LPCTSTR) m_climateScenarioStr);
 
    CString fullPath;
    PathManager::FindPath(slrDataFile, fullPath);
@@ -1585,15 +1583,16 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
 
    srand(static_cast<unsigned int>(time(nullptr)));
 
-   /* if(m_randomize)
-   {
-   extension.Format("_%i.csv", m_randIndex);
-   buoyFile += extension;
-   }*/
-
    // Change the simulation number from 1 to generated number to randomize ****HERE****
+   int simIndex = 0;
+   if (m_simulationIndex < 0)
+      simIndex = pEnvContext->runID;
+   else
+      simIndex = m_simulationIndex;
+
+
    CString simulationPath;
-   simulationPath.Format("%sSimulation_%i", (LPCTSTR) climateScenarioPath, 0);
+   simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, simIndex);
    //   simulationPath.Format("%sSimulation_%i", climateScenarioPath, m_randIndex);
 
    // get the offhore buoy files for this this climate scenario
@@ -1642,7 +1641,7 @@ bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
    // Only need to run this once when new offshore (buoy) SLR streams become available
    if (this->m_writeDailyRBFData)
       {
-      for (int i = 1; i < 100; i++)
+      for (int i = 0; i < 100; i++)
          {
          simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, i);
 
@@ -1899,7 +1898,8 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
       double R_SCR_hist = 0;  // historic shoreline change rate
 
       // Do NOT calculate erosion for beachtypes of Undefined (0), Bay (10) , River (11) , Rocky Headland (12) ,& JETTY (14)
-      if ((beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int)BchT_SANDY_WOODY_DEBRIS_BACKED) || beachType == BchT_SANDY_BURIED_RIPRAP_BACKED)
+      if ((beachType >= (int)BchT_SANDY_DUNE_BACKED && beachType <= (int)BchT_SANDY_WOODY_DEBRIS_BACKED && beachType != BchT_SANDY_RIPRAP_BACKED)
+         || beachType == BchT_SANDY_BURIED_RIPRAP_BACKED)
          {
          if (beachType == BchT_SANDY_DUNE_BACKED || beachType == BchT_MIXED_SEDIMENT_DUNE_BACKED)
             R_inf_KD = KDmodel(point);
@@ -2123,14 +2123,17 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
       twlData.AppendRow(data, 8);
       }
 
-   CString twlFile(m_sfincsHome); // = PathManager::GetPath(PM_IDU_DIR);
-   twlFile += "/TWL.csv";
+   CString _twlFile(m_sfincsHome); // = PathManager::GetPath(PM_IDU_DIR);
+   std::filesystem::create_directory((LPCTSTR)(_twlFile + "\\TWL"));
+   CString twlFile;
+   twlFile.Format("%s/TWL/TWL_%s_%i.csv", _twlFile, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
    twlData.WriteAscii(twlFile, ',');
 
    // persistent version
    Report::StatusMsg("Setting up TWL Data");
 
-   twlFile.Format("%sTWL_%i.csv", (LPCTSTR) outDir, pEnvContext->yearOfRun);
+   std::filesystem::create_directory((LPCTSTR)(outDir + "TWL"));
+   twlFile.Format("%sTWL/TWL_%s_%i.csv", (LPCTSTR) outDir, (LPCTSTR) pEnvContext->pScenario->m_name, pEnvContext->yearOfRun);
 
    Report::LogInfo(CString("Writing TWL Data to ")+twlFile);
    twlData.WriteAscii(twlFile, ',');
@@ -2158,10 +2161,11 @@ bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
       std::vector<matlab::data::Array> args({
          factory.createCharArray((LPCTSTR)twlFile),// TWL_dir   
          factory.createScalar<int>(0), // Advection
-         factory.createScalar<int>(100), // Cellsize
+         factory.createScalar<int>(m_cellSize), // Cellsize
          factory.createCharArray((LPCTSTR)m_sfincsHome),// sfincs home dir
          factory.createCharArray((LPCTSTR)fdName), // sfincs home dir
-         factory.createCharArray((LPCTSTR)pEnvContext->pScenario->m_name) // sfincs home dir
+         factory.createCharArray((LPCTSTR)pEnvContext->pScenario->m_name), // scenario name
+         factory.createScalar<int>(pEnvContext->runID) // Advection
          });
 
       // Create string buffer for standard output
@@ -2697,8 +2701,6 @@ bool ChronicHazards::LoadRBFs()
    FILE* fpRBF = nullptr;
 
    CString rbfPath = m_twlInputPath + "SWAN_RBF_Params.rbf";
-
-   m_randIndex = m_simulationCount;
 
    // if the RBF file exists, read it; otherwise, generate it 
    CPath _rbfPath(rbfPath);
@@ -5984,127 +5986,128 @@ int ChronicHazards::GetNextBldgIndex(MapLayer::Iterator pt)
 // uncomment beachwidth narrowing and eastingToe translation to build seaward
 // question of how much beach narrows and toe translates based upon geometry:  if every toe moves different distances
 // dependent upon the beachslope use ConstructBPS
-void ChronicHazards::ConstructBPS1(int currentYear)
-   {
-   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
-      {
-      int duneBldgIndex = -1;
-      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
-
-      if (duneBldgIndex != -1)
-         {
-         MapLayer::Iterator endPoint = point;
-         MapLayer::Iterator maxPoint = point;
-
-         MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
-         float eroFreq = eroMovingWindow->GetFreqValue();
-         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
-
-         // find the extent of the BPS as well as location of maximum TWL within that extent
-         // doublely needs maximum overtopping and minimum duneToe
-         bool constructBPS = CalculateBPSExtent(point, endPoint, maxPoint);  // note: the points are all the same
-
-         if (constructBPS)
-            {
-            m_noConstructedBPS += 1;
-
-            // Retrieve the maxmum TWL within the designated window
-            MovingWindow* twlMovingWindow = m_TWLArray.GetAt(maxPoint);
-            float newCrest = twlMovingWindow->GetMaxValue();
-
-            float duneToe = 0.0f;
-            float duneCrest = 0.0f;
-            float beachWidth = 0.0f;
-            REAL eastingToe = 0.0;
-            float tanb = 0.0f;
-
-            // get dune locations/geometries
-            m_pDuneLayer->GetData(maxPoint, m_colDLDuneToe, duneToe);
-            m_pDuneLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
-            m_pDuneLayer->GetData(maxPoint, m_colDLEastingToe, eastingToe);
-            m_pDuneLayer->GetData(maxPoint, m_colDLBeachWidth, beachWidth);
-            m_pDuneLayer->GetData(maxPoint, m_colDLTranSlope, tanb);
-
-            float height = newCrest - duneToe;
-
-            // This is an engineering limit and also prevents the BPS from blocking the viewscape
-            if (height > m_maxBPSHeight)
-               {
-               height = m_maxBPSHeight;
-               newCrest = duneToe + height;
-               }
-
-            // There is a minimum height for construction
-            if (height < m_minBPSHeight)
-               {
-               height = m_minBPSHeight;
-               newCrest = duneToe + height;
-               }
-
-            // dune height not reduced
-            if (newCrest < duneCrest)
-               newCrest = duneCrest;
-
-            float BPSHeight = newCrest - duneToe;
-
-            // for debugging 
-            //////if (m_debugOn)
-            //////   {
-            //////   //  TODO:::Still using old version, uncomment beachwidth reduction and easting toe translation after decision
-            //////   double newEastingToe = (BPSHeight + (tanb - m_slopeBPS) * eastingToe) / (tanb - m_slopeBPS);
-            //////   double deltaX = eastingToe - newEastingToe;
-            //////   double deltaX2 = BPSHeight / m_slopeBPS;
-            //////   m_pDuneLayer->SetData(point, m_colNewEasting, newEastingToe);
-            //////   m_pDuneLayer->SetData(point, m_colBWidth, deltaX2);
-            //////   m_pDuneLayer->SetData(point, m_colDeltaX, deltaX);
-            //////   /* eastingToe = newEastingToe;
-            //////   beachWidth -= deltaX;*/
-            //////   }
-
-            REAL eastingCrest = eastingToe + BPSHeight / m_slopeBPS;
-
-            // determine length of BPS structure, runs along IDU
-            REAL yTop = 0.0;
-            REAL yBtm = 0.0;
-            REAL xCoord = 0.0;
-            m_pDuneLayer->GetPointCoords(endPoint, xCoord, yTop);
-            m_pDuneLayer->GetPointCoords(point, xCoord, yBtm);
-
-            float BPSLength = float(yTop - yBtm);
-
-            float BPSCost = BPSHeight * m_costs.BPS * BPSLength;
-            m_constructCostBPS += BPSCost;
-
-            // construct BPS by changing beachtype to RIP RAP BACKED
-            for (MapLayer::Iterator pt = point; pt < endPoint; pt++, point++)
-               {
-               // all dune points of a BPS have the same characteristics
-               m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_SANDY_RIPRAP_BACKED);
-               //m_pDuneLayer->SetData(pt, m_colDLTypeChange, 1);
-               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-               m_pDuneLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
-               m_pDuneLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
-               m_pDuneLayer->SetData(pt, m_colDLCostBPS, BPSCost);
-               m_pDuneLayer->SetData(pt, m_colDLLengthBPS, BPSLength);
-               float width = (float)(eastingCrest - eastingToe);
-               m_pDuneLayer->SetData(pt, m_colDLWidthBPS, width);
-
-               m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-               m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
-               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-               //      m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
-
-               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
-               if (pPoly->GetVertexCount() > 0)
-                  {
-                  pPoly->m_vertexArray[0].x = eastingToe;
-                  pPoly->InitLogicalPoints(m_pMap);
-                  }
-               }
-            }
-         }
-      }
-   }
+///*
+//void ChronicHazards::ConstructBPS1(int currentYear)
+//   {
+//   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
+//      {
+//      int duneBldgIndex = -1;
+//      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
+//
+//      if (duneBldgIndex != -1)
+//         {
+//         MapLayer::Iterator endPoint = point;
+//         MapLayer::Iterator maxPoint = point;
+//
+//         MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
+//         float eroFreq = eroMovingWindow->GetFreqValue();
+//         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
+//
+//         // find the extent of the BPS as well as location of maximum TWL within that extent
+//         // doublely needs maximum overtopping and minimum duneToe
+//         bool constructBPS = CalculateBPSExtent(point, endPoint, maxPoint);  // note: the points are all the same
+//
+//         if (constructBPS)
+//            {
+//            m_noConstructedBPS += 1;
+//
+//            // Retrieve the maxmum TWL within the designated window
+//            MovingWindow* twlMovingWindow = m_TWLArray.GetAt(maxPoint);
+//            float newCrest = twlMovingWindow->GetMaxValue();
+//
+//            float duneToe = 0.0f;
+//            float duneCrest = 0.0f;
+//            float beachWidth = 0.0f;
+//            REAL eastingToe = 0.0;
+//            float tanb = 0.0f;
+//
+//            // get dune locations/geometries
+//            m_pDuneLayer->GetData(maxPoint, m_colDLDuneToe, duneToe);
+//            m_pDuneLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
+//            m_pDuneLayer->GetData(maxPoint, m_colDLEastingToe, eastingToe);
+//            m_pDuneLayer->GetData(maxPoint, m_colDLBeachWidth, beachWidth);
+//            m_pDuneLayer->GetData(maxPoint, m_colDLTranSlope, tanb);
+//
+//            float height = newCrest - duneToe;
+//
+//            // This is an engineering limit and also prevents the BPS from blocking the viewscape
+//            if (height > m_maxBPSHeight)
+//               {
+//               height = m_maxBPSHeight;
+//               newCrest = duneToe + height;
+//               }
+//
+//            // There is a minimum height for construction
+//            if (height < m_minBPSHeight)
+//               {
+//               height = m_minBPSHeight;
+//               newCrest = duneToe + height;
+//               }
+//
+//            // dune height not reduced
+//            if (newCrest < duneCrest)
+//               newCrest = duneCrest;
+//
+//            float BPSHeight = newCrest - duneToe;
+//
+//            // for debugging 
+//            //////if (m_debugOn)
+//            //////   {
+//            //////   //  TODO:::Still using old version, uncomment beachwidth reduction and easting toe translation after decision
+//            //////   double newEastingToe = (BPSHeight + (tanb - m_slopeBPS) * eastingToe) / (tanb - m_slopeBPS);
+//            //////   double deltaX = eastingToe - newEastingToe;
+//            //////   double deltaX2 = BPSHeight / m_slopeBPS;
+//            //////   m_pDuneLayer->SetData(point, m_colNewEasting, newEastingToe);
+//            //////   m_pDuneLayer->SetData(point, m_colBWidth, deltaX2);
+//            //////   m_pDuneLayer->SetData(point, m_colDeltaX, deltaX);
+//            //////   /* eastingToe = newEastingToe;
+//            //////   beachWidth -= deltaX;*/
+//            //////   }
+//
+//            REAL eastingCrest = eastingToe + BPSHeight / m_slopeBPS;
+//
+//            // determine length of BPS structure, runs along IDU
+//            REAL yTop = 0.0;
+//            REAL yBtm = 0.0;
+//            REAL xCoord = 0.0;
+//            m_pDuneLayer->GetPointCoords(endPoint, xCoord, yTop);
+//            m_pDuneLayer->GetPointCoords(point, xCoord, yBtm);
+//
+//            float BPSLength = float(yTop - yBtm);
+//
+//            float BPSCost = BPSHeight * m_costs.BPS * BPSLength;
+//            m_constructCostBPS += BPSCost;
+//
+//            // construct BPS by changing beachtype to RIP RAP BACKED
+//            for (MapLayer::Iterator pt = point; pt < endPoint; pt++, point++)
+//               {
+//               // all dune points of a BPS have the same characteristics
+//               m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_SANDY_RIPRAP_BACKED);
+//               //m_pDuneLayer->SetData(pt, m_colDLTypeChange, 1);
+//               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+//               m_pDuneLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
+//               m_pDuneLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
+//               m_pDuneLayer->SetData(pt, m_colDLCostBPS, BPSCost);
+//               m_pDuneLayer->SetData(pt, m_colDLLengthBPS, BPSLength);
+//               float width = (float)(eastingCrest - eastingToe);
+//               m_pDuneLayer->SetData(pt, m_colDLWidthBPS, width);
+//
+//               m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
+//               m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
+//               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+//               //      m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
+//
+//               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
+//               if (pPoly->GetVertexCount() > 0)
+//                  {
+//                  pPoly->m_vertexArray[0].x = eastingToe;
+//                  pPoly->InitLogicalPoints(m_pMap);
+//                  }
+//               }
+//            }
+//         }
+//      }
+//   } */
 
 void ChronicHazards::ConstructBPS(int currentYear)
    {
@@ -9701,7 +9704,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       { "write_daily_rbf_data",  TYPE_BOOL,    &m_writeDailyRBFData,            false,   0 },
       { "find_safe_site",        TYPE_INT,     &m_findSafeSiteCell,             true,    0 },
       { "twl_input_dir",         TYPE_STRING,  &twlInputDir,                    true,    0 },
-      { "simulation_count",      TYPE_INT,     &m_simulationCount,              true,    0 },
+      { "simulation_index",      TYPE_INT,     &m_simulationIndex,              true,    0 },
       { "inlet_factor",          TYPE_FLOAT,   &m_inletFactor,                  true,    0 },
       { "twl_period",            TYPE_INT,     &m_windowLengthTWL,              true,    0 },
       { "bfe_count",             TYPE_INT,     &m_bfeCount,                     true,    0 },
@@ -9772,6 +9775,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
          // attr                  type          address          isReq  
          { "sfincs_home",         TYPE_STRING,  &sfincsHome,    true,    0 },
          { "use_prior_grids",     TYPE_INT,     &usePriorGrids, false,   0 },
+         { "cell_size",           TYPE_INT,     &m_cellSize,  false,   0 },
          { "flood_hazard_period", TYPE_INT,     &m_windowLengthFloodHzrd, true, 0 },
          { nullptr,          TYPE_NULL,    nullptr,       false,   0 } };
 
@@ -12084,9 +12088,9 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
 
    //////////////////////////////
-   CString path;
-   path.Format("d:/Envision/StudyAreas/OrCoast/Tillamook/Outputs/twl_debug_%i_%s.csv", pEnvContext->yearOfRun, (LPCTSTR) pEnvContext->pScenario->m_name );
-   m_pTWLDataTemp->WriteAscii((LPCTSTR) path, ',');
+   //CString path;
+   //path.Format("d:/Envision/StudyAreas/OrCoast/Tillamook/Outputs/twl_debug_%i_%s.csv", pEnvContext->yearOfRun, (LPCTSTR) pEnvContext->pScenario->m_name );
+   //m_pTWLDataTemp->WriteAscii((LPCTSTR) path, ',');
    //////////////////////////////
 
 
@@ -12559,7 +12563,7 @@ double ChronicHazards::Bruunmodel(int point, int yearOfRun)
    }
 
 
-double ChronicHazards::SCRmodel(int point)
+double ChronicHazards::SCRmodel(int point) 
    {
    double R_SCR_hist = 0.0f;
    double shorelineChangeRate = 0.0f;

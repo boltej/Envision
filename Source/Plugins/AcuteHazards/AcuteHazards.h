@@ -137,24 +137,35 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       int m_colIduCasualties = -1;
       int m_colIduInjuries = -1;
       int m_colIduFatalities = -1;
+      int m_colIduNDUs = -1;
 
       // exposed outputs
       //float m_annualRepairCosts;
 
-      int m_nUninhabitableStructures;
-      int m_nDamaged;
-      int m_nDamaged2;
-      int m_nDamaged3;
-      int m_nDamaged4;
-      int m_nDamaged5;
-      int m_bldgsRepaired;
-      int m_bldgsBeingRepaired;
+      int m_nUninhabitableStructures = 0;
+      //int m_nDUsDamaged = 0;
+      //int m_nDUsDamaged1 = 0;
+      //int m_nDUsDamaged2 = 0;
+      //int m_nDUsDamaged3 = 0;
+      //int m_nDUsDamaged4 = 0;
+      //int m_nDUsDamagedAndRepaired = 0;
+      //int m_nDUsRepaired = 0;
+      //int m_nDUsBeingRepaired = 0;
 
-      int m_nInhabitableStructures;
-      float m_pctInhabitableStructures;
-      int m_totalBldgs;
-      int m_nFunctionalBldgs;
-      float m_pctFunctionalBldgs;
+      int m_nIDUsDamaged = 0;
+      int m_nIDUsDamaged1 = 0;
+      int m_nIDUsDamaged2 = 0;
+      int m_nIDUsDamaged3 = 0;
+      int m_nIDUsDamaged4 = 0;
+      int m_nIDUsDamagedAndRepaired = 0;
+      int m_nIDUsRepaired = 0;
+      int m_nIDUsBeingRepaired = 0;
+
+      int m_nInhabitableStructures = 0;
+      float m_pctInhabitableStructures = 0;
+      int m_totalBldgs = 0;
+      int m_nFunctionalBldgs = 0;
+      float m_pctFunctionalBldgs = 0;
 
       // life safety
       //float m_numCasSev1;
@@ -162,6 +173,14 @@ class _EXPORT AcuteHazards : public EnvModelProcess
       //float m_numCasSev3;
       //float m_numCasSev4;
       //float m_numCasTotal;
+
+
+      float m_numCasualitiesEQ = 0;   //Casualties (EQ)",   "");
+      float m_numFatalitiesEQ = 0;    //Fatalities (EQ)",  "");
+      float m_numInjuriesEQ = 0;      //Injuries (EQ)",    );
+      float m_numCasualitiesTSU = 0;  //Casualties (TSU)", , "");
+      float m_numFatalitiesTSU = 0;   //Fatalities (TSU)",  "");
+      float m_numInjuriesTSU = 0;     //Injuries (TSU)",   ");
       float m_numCasualities = 0;
       float m_numFatalities = 0;
       float m_numInjuries = 0;

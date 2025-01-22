@@ -417,9 +417,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_numTransects = 0;
       int m_numDays = -1;
       int m_numYears = -1;
-      int m_randIndex = 0;
-      int m_simulationCount = 0;
-
+      int m_simulationIndex = 0;  // used to specify SLR index to use
+                                  // -1 = use runID
       // flooding variables
       int m_usePriorGrids = 0;
       float m_floodedArea = 0;
@@ -428,6 +427,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_floodedRoad = 0;
       float m_floodedRoadMiles = 0;
       int m_windowLengthFloodHzrd = 5;
+      int m_cellSize = 100;
       REAL m_elevCellWidth = -1;                        // cell Width (m) in DEM, Flooded, Eroded grid
       REAL m_elevCellHeight = -1;                        // cell Height (m) in DEM, Flooded, Eroded grid
       float m_ManningCoeff = 0.25f;

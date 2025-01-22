@@ -286,8 +286,13 @@ bool Target::Init( EnvContext *pEnvContext )
 
    // calculates total value for capacities, populated IDUs 
 
-   if (this->m_pQuery != nullptr)
-      m_pQueryEngine->SelectQuery(this->m_pQuery, true);
+   if (this->m_pQuery != nullptr) 
+      {
+      int count = m_pQueryEngine->SelectQuery(this->m_pQuery, true);
+      CString msg;
+      msg.Format("Target %s had %i qualifying IDUs", this->m_name, count);
+      Report::LogInfo(msg);
+      }
 
    PopulateCapacity( pEnvContext, false );
 
@@ -658,6 +663,13 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
       for ( MapLayer::Iterator _idu=pLayer->Begin(iteratorType); _idu < pLayer->End(iteratorType); _idu++ )
          {
          int idu = (int)_idu;
+
+         // TEMPORAY
+         //CString _msg;
+         //_msg.Format("Processing IDU %i\n", idu);
+         //TRACE(_msg);
+         //ASSERT(idu != 70866);
+
          if ( m_colPctAvailCapacity >= 0 )
             {
             float pctAvailCapacity = 0;
@@ -665,11 +677,14 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
             // only compute capacities if greater than 0 
             if ((m_availCapacityArray[idu] > LONG_MIN) && (m_capacityArray[idu] > 0.0f))
                {
+               ASSERT(m_capacityArray[idu] > 0);
                pctAvailCapacity = m_availCapacityArray[idu] / m_capacityArray[idu];
 
                if (pctAvailCapacity < 0)
                   pctAvailCapacity = 0;
-               }
+               ASSERT(std::isnan(pctAvailCapacity) == false);
+               ASSERT(std::isinf(pctAvailCapacity) == false);
+              }
 
             float curPctAvailCapacity;
             pLayer->GetData(idu, m_colPctAvailCapacity, curPctAvailCapacity );
@@ -715,7 +730,10 @@ void Target::PopulateCapacity( EnvContext *pEnvContext, bool useAddDelta )
    //   m_totalAvailCapacity
    //   m_totalModifiedAvailCapacity
    //   m_totalOverCapacity
-   m_totalPercentAvailable = (m_totalAvailCapacity/m_totalCapacity)*100;
+   if (m_totalCapacity > 0)
+      m_totalPercentAvailable = (m_totalAvailCapacity / m_totalCapacity) * 100;
+   else
+      m_totalPercentAvailable = 0;
 
    //if (this->m_pQuery != nullptr)
    //   ((MapLayer*)pLayer)->ClearSelection();
