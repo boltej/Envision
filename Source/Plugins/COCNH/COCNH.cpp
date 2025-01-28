@@ -1450,6 +1450,7 @@ bool COCNHProcess::UpdateFuelModel(EnvContext* pContext, bool useAddDelta)
       ASSERT(pvt >= 0);
       ASSERT(variant >= 0);
       ASSERT(region >= 0);
+      int startVariant = variant;
 
       //bool isDeveloped = vegClass < 1500000 ? true : false;
       //if (isDeveloped)
@@ -1567,8 +1568,14 @@ bool COCNHProcess::UpdateFuelModel(EnvContext* pContext, bool useAddDelta)
 
          UpdateIDU(pContext, idu, m_colVariant, variant, useAddDelta ? ADD_DELTA : SET_DATA);
          if (useAddDelta)
-            UpdateIDU(pContext, idu, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA);
-
+            {
+            if (startVariant != variant)
+               {
+               if (idu == 92770)
+                  ASSERT(0);
+               UpdateIDU(pContext, idu, m_colTimeInVariant, 0, useAddDelta ? ADD_DELTA : SET_DATA);
+               }
+            }
          // column name: FUELMODEL
          if (lcpFuelModel == 0) // pathological case
             {
@@ -1643,6 +1650,8 @@ bool COCNHProcess::UpdateTimeInVariant(EnvContext* pContext)
       pLayer->GetData(idu, m_colTimeInVariant, timeInVariant);
       if (timeInVariant >= 0)
          timeInVariant++;
+      if (idu == 92770)
+         ASSERT(0);
 
       UpdateIDU(pContext, idu, m_colTimeInVariant, timeInVariant, ADD_DELTA);
       }

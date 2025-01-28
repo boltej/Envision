@@ -6422,7 +6422,7 @@ void ChronicHazards::ConstructBPS(int currentYear)
             bpsLength = 0;
 
          // check cost against budget
-         float cost = bpsAvgHeight * m_costs.BPS * bpsLength;
+         float cost = m_costs.BPS * bpsLength;   // # * bpsAvgHeight;
 
          bool passCostConstraint = true;
 
