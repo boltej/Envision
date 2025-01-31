@@ -60,14 +60,15 @@ using std::ostringstream;
 FDataObj* DataObjMatrix::GetDataObj(int run, int year)
    {
    if (run >= this->GetSize())
-      return NULL;
+      return nullptr;
 
    DataObjArray* pDOA = this->GetAt(year);
 
-   ASSERT(pDOA != NULL);
+   if (pDOA == nullptr)
+      return nullptr;
 
    if (year >= pDOA->GetSize())
-      return NULL;
+      return nullptr;
 
    return (FDataObj*)pDOA->GetAt(year);
    }
@@ -75,6 +76,9 @@ FDataObj* DataObjMatrix::GetDataObj(int run, int year)
 
 bool DataObjMatrix::SetDataObj(int run, int year, FDataObj* pDataObj)
    {
+   if (pDataObj == nullptr)
+      return false;  
+
    // do we need to add a run? (a row)
    if (run >= this->GetSize())
       {
@@ -84,7 +88,7 @@ bool DataObjMatrix::SetDataObj(int run, int year, FDataObj* pDataObj)
 
    // do we need to add a new year?
    DataObjArray* pDOA = this->GetAt(run);
-   ASSERT(pDOA != NULL);
+   ASSERT(pDOA != nullptr);
 
    if (year >= pDOA->GetSize())
       {
@@ -93,7 +97,7 @@ bool DataObjMatrix::SetDataObj(int run, int year, FDataObj* pDataObj)
       }
    else
       {
-      ASSERT(pDOA->GetAt(year) != NULL);
+      ASSERT(pDOA->GetAt(year) != nullptr);
       delete pDOA->GetAt(year);
       pDOA->SetAt(year, new FDataObj(*pDataObj));
       }
@@ -106,25 +110,25 @@ DataManager::DataManager(EnvModel* pModel)
    : m_pEnvModel(pModel)
    , m_collectActorData(false)
    , m_collectLandscapeScoreData(true)
-   , m_pDeltaArray(NULL)
+   , m_pDeltaArray(nullptr)
    , multiRunDecadalMapsModulus(0)
-   , m_modelDataObjMatrices(NULL)
+   , m_modelDataObjMatrices(nullptr)
    {
    for (int i = 0; i < DT_LAST; i++)
-      m_currentDataObjs[i] = NULL;
+      m_currentDataObjs[i] = nullptr;
    }
 
 DataManager::~DataManager(void)
    {
    RemoveAllData();
 
-   m_pEnvModel = NULL;
+   m_pEnvModel = nullptr;
    }
 
 
 DataObj* DataManager::GetDataObj(DM_TYPE type, int run /*=-1*/)
    {
-   DataObj* pData = NULL;
+   DataObj* pData = nullptr;
    if (run < 0)
       pData = m_currentDataObjs[type];
    else
@@ -136,13 +140,16 @@ DataObj* DataManager::GetDataObj(DM_TYPE type, int run /*=-1*/)
 
 DataObj* DataManager::GetMultiRunDataObj(DM_MULTITYPE type, int run /*=-1*/)
    {
+   if (this->m_collectMultiRunOutput== false)
+      return nullptr;
+
    int _type = (int)type;
    if (run < 0)
       return m_currentMultiRunDataObjs[_type];
-   else
-      {
+   else if (this - m_collectMultiRunOutput)
       return m_multiRunDataObjs[_type].GetAt(run);
-      }
+   else
+      return nullptr;
    }
 
 
@@ -152,7 +159,7 @@ bool DataManager::SubsetData(DM_TYPE type, int run, int col, int start, int end,
    {
    DataObj* pData = GetDataObj(type, run);
 
-   if (pData == NULL)
+   if (pData == nullptr)
       return false;
 
    data.RemoveAll();
@@ -169,42 +176,45 @@ void DataManager::RemoveAllData(void)
    {
    // NOTE: DataObjs are removed by the DataObjArray destructor
    for (int i = 0; i < m_deltaArrayArray.GetSize(); i++)
-      if (m_deltaArrayArray[i] != NULL)
+      if (m_deltaArrayArray[i] != nullptr)
          delete m_deltaArrayArray[i];
 
    m_deltaArrayArray.RemoveAll();
-   m_pDeltaArray = NULL;
+   m_pDeltaArray = nullptr;
 
    for (int i = 0; i < DT_LAST; i++)
       {
-      m_currentDataObjs[i] = NULL;
+      m_currentDataObjs[i] = nullptr;
       m_dataObjs[i].RemoveAllData();
       }
 
    for (int i = 0; i < DT_MULTI_LAST; i++)
       {
-      m_currentMultiRunDataObjs[i] = NULL;
-      m_multiRunDataObjs[i].RemoveAllData();
+      if (this->m_collectMultiRunOutput)
+         {
+         m_currentMultiRunDataObjs[i] = nullptr;
+         m_multiRunDataObjs[i].RemoveAllData();
+         }
       }
 
    m_runInfoArray.RemoveAll();
    m_multirunInfoArray.RemoveAll();
 
-   if (m_modelDataObjMatrices != NULL)
+   if (this->m_collectMultiRunOutput && m_modelDataObjMatrices != nullptr)
       {
       for (int i = 0; i < this->m_pEnvModel->GetResultsCount(); i++)
-         if (m_modelDataObjMatrices[i] != NULL)
+         if (m_modelDataObjMatrices[i] != nullptr)
             delete m_modelDataObjMatrices[i];
 
       delete[] m_modelDataObjMatrices;
-      m_modelDataObjMatrices = NULL;
+      m_modelDataObjMatrices = nullptr;
       }
    }
 
 
-bool DataManager::CreateDataObjects()
+bool DataManager::CreateDataObjects() 
    {
-   if (m_pEnvModel == NULL)
+   if (m_pEnvModel == nullptr)
       return false;
 
    int rows = m_pEnvModel->m_yearsToRun + 1;  // +1 for initial data
@@ -267,13 +277,13 @@ bool DataManager::CreateDataObjects()
 
          if (pInfo->m_use)
             {
-            MODEL_VAR* modelVarArray = NULL;
+            MODEL_VAR* modelVarArray = nullptr;
             int varCount = pInfo->OutputVar(pInfo->m_id, &modelVarArray);
 
             for (int j = 0; j < varCount; j++)
                {
                MODEL_VAR& mv = modelVarArray[j];
-               if (mv.pVar != NULL)
+               if (mv.pVar != nullptr)
                   {
                   CString label(pInfo->m_name);
                   label += ".";
@@ -290,13 +300,13 @@ bool DataManager::CreateDataObjects()
          EnvEvaluator* pInfo = this->m_pEnvModel->GetEvaluatorInfo(i);
          if (pInfo->m_use)
             {
-            MODEL_VAR* modelVarArray = NULL;
+            MODEL_VAR* modelVarArray = nullptr;
             int varCount = pInfo->OutputVar(pInfo->m_id, &modelVarArray);
 
             for (int j = 0; j < varCount; j++)
                {
                MODEL_VAR& mv = modelVarArray[j];
-               if (mv.pVar != NULL)
+               if (mv.pVar != nullptr)
                   {
                   CString label(pInfo->m_name);
                   label += ".";
@@ -324,11 +334,11 @@ bool DataManager::CreateDataObjects()
    //  needed DataObjMatrices are allocated during CollectData();
    Report::StatusMsg("Creating data objects...Model data objects");
 
-   if (m_modelDataObjMatrices == NULL)
+   if (m_modelDataObjMatrices == nullptr)
       m_modelDataObjMatrices = new DataObjMatrix * [resultsCount];
 
    for (int i = 0; i < resultsCount; i++)
-      m_modelDataObjMatrices[i] = NULL;
+      m_modelDataObjMatrices[i] = nullptr;
 
    //----------- average actor values -----------------
    if (m_collectActorData)
@@ -500,8 +510,8 @@ bool DataManager::CreateDataObjects()
    m_dataObjs[DT_POLICY_STATS].Add(pPolicyStatsData);
    /*
    //----- social network -----------------------------
-   FDataObj *pSocialNetworkData = NULL;
-   if ( m_pEnvModel->m_pSocialNetwork != NULL )
+   FDataObj *pSocialNetworkData = nullptr;
+   if ( m_pEnvModel->m_pSocialNetwork != nullptr )
       {
       int layerCount  = m_pEnvModel->m_pSocialNetwork->GetLayerCount();
       int metricCount = m_pEnvModel->m_pSocialNetwork->GetMetricCount();
@@ -543,7 +553,7 @@ void DataManager::SetDataSize(int rows)
          {
          DataObj* pData = m_currentDataObjs[(DM_TYPE)i];
 
-         if (pData != NULL)
+         if (pData != nullptr)
             {
             if (pData->GetRowCount() != rows)
                {
@@ -561,7 +571,7 @@ bool DataManager::AppendRows(int rows)
       {
       DataObj* pData = m_currentDataObjs[(DM_TYPE)i];
 
-      if (pData != NULL)
+      if (pData != nullptr)
          pData->AppendRows(rows);
       }
 
@@ -583,7 +593,7 @@ bool DataManager::CollectData(int yearOfRun)
 
    // scaled
    FDataObj* pEvalScoresData = (FDataObj*)m_currentDataObjs[DT_EVAL_SCORES];
-   if (pEvalScoresData != NULL)
+   if (pEvalScoresData != nullptr)
       {
       pEvalScoresData->Set(0, row, (float)currentYear); // yearOfRun );
       for (int i = 0; i < resultsCount; i++)
@@ -595,7 +605,7 @@ bool DataManager::CollectData(int yearOfRun)
 
    // raw scores
    FDataObj* pRawScoresData = (FDataObj*)m_currentDataObjs[DT_EVAL_RAWSCORES];
-   if (pRawScoresData != NULL)
+   if (pRawScoresData != nullptr)
       {
       pRawScoresData->Set(0, row, (float)currentYear); //yearOfRun );
       for (int i = 0; i < resultsCount; i++)
@@ -621,7 +631,7 @@ bool DataManager::CollectData(int yearOfRun)
    if (totalOutputCount > 0)
       {
       VDataObj* m_pModelOutputsData = (VDataObj*)m_currentDataObjs[DT_MODEL_OUTPUTS];
-      ASSERT(m_pModelOutputsData != NULL);
+      ASSERT(m_pModelOutputsData != nullptr);
       m_pModelOutputsData->Set(0, row, (float)currentYear); // yearOfRun );
 
       int col = 1;
@@ -630,14 +640,14 @@ bool DataManager::CollectData(int yearOfRun)
          EnvModelProcess* pInfo = this->m_pEnvModel->GetModelProcessInfo(i);
          if (pInfo->m_use)
             {
-            MODEL_VAR* modelVarArray = NULL;
+            MODEL_VAR* modelVarArray = nullptr;
             int varCount = pInfo->OutputVar(pInfo->m_id, &modelVarArray);
 
             for (int j = 0; j < varCount; j++)
                {
                MODEL_VAR& mv = modelVarArray[j];
                //VData v( mv.pVar, mv.type );
-               if (mv.pVar != NULL)
+               if (mv.pVar != nullptr)
                   {
                   m_pModelOutputsData->Set(col, row, VData(mv.pVar, mv.type, false));  // convert to non-ptr type
                   col++;
@@ -651,14 +661,14 @@ bool DataManager::CollectData(int yearOfRun)
          EnvEvaluator* pInfo = this->m_pEnvModel->GetEvaluatorInfo(i);
          if (pInfo->m_use)
             {
-            MODEL_VAR* modelVarArray = NULL;
+            MODEL_VAR* modelVarArray = nullptr;
             int varCount = pInfo->OutputVar(pInfo->m_id, &modelVarArray);
 
             for (int j = 0; j < varCount; j++)
                {
                MODEL_VAR& mv = modelVarArray[j];
                //VData v( mv.pVar, mv.type );
-               if (mv.pVar != NULL)
+               if (mv.pVar != nullptr)
                   {
                   m_pModelOutputsData->Set(col, row, VData(mv.pVar, mv.type, false));
                   col++;
@@ -685,17 +695,17 @@ bool DataManager::CollectData(int yearOfRun)
    // note: DataObjMatrix is a matrix of FDataObj ptrs (representing DataObjs from one eval model)
    //       Each DataObjMatrix row is a run, each col is a point in time
    //       m_modelDataObjs is an array of DataObjectMatrices, one for each eval model that generates results
-   ASSERT(m_modelDataObjMatrices != NULL);
+   ASSERT(m_modelDataObjMatrices != nullptr);
    for (int i = 0; i < resultsCount; i++)
       {
       int modelIndex = this->m_pEnvModel->GetEvaluatorIndexFromResultsIndex(i);
 
       EnvEvaluator* m_pModelInfo = m_pEnvModel->GetEvaluatorInfo(modelIndex);
 
-      if (m_pModelInfo->m_pDataObj != NULL)
+      if (m_pModelInfo->m_pDataObj != nullptr)
          {
-         DataObjMatrix* pDOM = NULL;
-         if (m_modelDataObjMatrices[i] == NULL)
+         DataObjMatrix* pDOM = nullptr;
+         if (m_modelDataObjMatrices[i] == nullptr)
             {
             pDOM = new DataObjMatrix;
             m_modelDataObjMatrices[i] = pDOM;
@@ -706,7 +716,7 @@ bool DataManager::CollectData(int yearOfRun)
          // the row of this DOM corresponds to the current run.  the column corresponds to the current year.
          int run = m_pEnvModel->m_currentRun;
          pDOM->SetDataObj(run, yearOfRun, m_pModelInfo->m_pDataObj);
-         }  // end of: id ( pDataObj != NULL )
+         }  // end of: id ( pDataObj != nullptr )
       }
 
 
@@ -715,7 +725,7 @@ bool DataManager::CollectData(int yearOfRun)
    FDataObj* pActorWtData = (FDataObj*)m_currentDataObjs[DT_ACTOR_WTS];
    ActorManager* pActorManager = m_pEnvModel->m_pActorManager;
 
-   if (pActorWtData != NULL)
+   if (pActorWtData != nullptr)
       {
       int actorCount = pActorManager->GetActorCount();
       int groupCount = pActorManager->GetActorGroupCount();
@@ -765,11 +775,11 @@ bool DataManager::CollectData(int yearOfRun)
 
          delete[] wts;
          }  // end of: if ( actorCount > 0 )
-      }  // end of: if ( pActorWtsData != NULL )
+      }  // end of: if ( pActorWtsData != nullptr )
 
 
    FDataObj* pActorCountData = (FDataObj*)m_currentDataObjs[DT_ACTOR_COUNTS];
-   if (pActorCountData != NULL)
+   if (pActorCountData != nullptr)
       {
       int groupCount = pActorManager->GetActorGroupCount();
       int actorCount = pActorManager->GetActorCount();
@@ -798,14 +808,14 @@ bool DataManager::CollectData(int yearOfRun)
          }
 
       delete[] counts;
-      }  // end of: if ( pActorWtsData != NULL )
+      }  // end of: if ( pActorWtsData != nullptr )
 
 
    // policy application summary (only collect and end of run)
    if (yearOfRun == m_pEnvModel->m_endYear - m_pEnvModel->m_startYear)
       {
       VDataObj* pPolicySummaryData = (VDataObj*)m_currentDataObjs[DT_POLICY_SUMMARY];
-      ASSERT(pPolicySummaryData != NULL);
+      ASSERT(pPolicySummaryData != nullptr);
 
       for (int j = 0; j < m_pEnvModel->m_pPolicyManager->GetPolicyCount(); j++)
          {
@@ -837,7 +847,7 @@ bool DataManager::CollectData(int yearOfRun)
 
    // global constraints
    FDataObj* pGlobalConstraintsData = (FDataObj*)m_currentDataObjs[DT_GLOBAL_CONSTRAINTS];
-   if (pGlobalConstraintsData != NULL)
+   if (pGlobalConstraintsData != nullptr)
       {
       pGlobalConstraintsData->Set(0, row, currentYear); // yearOfRun );
       int gcCount = m_pEnvModel->m_pPolicyManager->GetGlobalConstraintCount();
@@ -855,7 +865,7 @@ bool DataManager::CollectData(int yearOfRun)
 
    // policy stats
    FDataObj* pPolicyStatsData = (FDataObj*)m_currentDataObjs[DT_POLICY_STATS];
-   if (pPolicyStatsData != NULL)
+   if (pPolicyStatsData != nullptr)
       {
       pPolicyStatsData->Set(0, row, (float)currentYear); // yearOfRun );
       int policyCount = m_pEnvModel->m_pPolicyManager->GetPolicyCount();
@@ -873,26 +883,7 @@ bool DataManager::CollectData(int yearOfRun)
          pPolicyStatsData->Set(col++, row, pPolicy->m_noOutcomeCount);
          }
       }
-   /*
-   FDataObj *pSocialNetworkData = (FDataObj*) m_currentDataObjs[ DT_SOCIAL_NETWORK ];
-   if ( pSocialNetworkData != NULL  )
-      {
-      pSocialNetworkData->Set( 0, row, (float) currentYear );  // yearOfRun );
-
-      int layerCount  = m_pEnvModel->m_pSocialNetwork->GetLayerCount();
-      int metricCount = m_pEnvModel->m_pSocialNetwork->GetMetricCount();
-
-      int col = 1;
-      for ( int layer=0; layer < layerCount; layer++ )
-         {
-         for ( int i=0; i < metricCount; i++ )
-            {
-            float value = m_pEnvModel->m_pSocialNetwork->GetMetricValue( layer, i );
-            pSocialNetworkData->Set( col++, row, value );
-            }
-         }
-      }
-    */
+  
    return true;
    }
 
@@ -917,7 +908,7 @@ void DataManager::EndRun(bool discardDeltaArray)
    if (totalOutputCount > 0)
       {
       VDataObj* m_pModelOutputsData = (VDataObj*)m_currentDataObjs[DT_MODEL_OUTPUTS];
-      ASSERT(m_pModelOutputsData != NULL);
+      ASSERT(m_pModelOutputsData != nullptr);
       //m_pModelOutputsData->Set( 0, row, (float) yearOfRun );
 
       int col = 1;
@@ -926,7 +917,7 @@ void DataManager::EndRun(bool discardDeltaArray)
          EnvModelProcess* pInfo = this->m_pEnvModel->GetModelProcessInfo(i);
          if (pInfo->m_use)
             {
-            MODEL_VAR* modelVarArray = NULL;
+            MODEL_VAR* modelVarArray = nullptr;
             int varCount = pInfo->OutputVar(pInfo->m_id, &modelVarArray);
 
             for (int j = 0; j < varCount; j++)
@@ -938,12 +929,12 @@ void DataManager::EndRun(bool discardDeltaArray)
                if (mv.type == TYPE_PDATAOBJ)
                   {
                   // get the original data obj ptr (stored in the m_pModelOutputsData)
-                  DataObj* pData = NULL;
+                  DataObj* pData = nullptr;
                   m_pModelOutputsData->Get(col, 0, pData);
 
-                  DataObj* pDataCopy = NULL;
+                  DataObj* pDataCopy = nullptr;
 
-                  ASSERT(pData != NULL);
+                  ASSERT(pData != nullptr);
                   switch (pData->GetDOType())
                      {
                      case DOT_FLOAT:
@@ -968,7 +959,7 @@ void DataManager::EndRun(bool discardDeltaArray)
                      break;
                      }
 
-                  if (pDataCopy != NULL)
+                  if (pDataCopy != nullptr)
                      {
                      // update all the ptr records in the m_pModelOutputsData for this
                      m_modelOutputDataObjArray.Add(pDataCopy);
@@ -982,7 +973,7 @@ void DataManager::EndRun(bool discardDeltaArray)
 
                //VData v( mv.pVar, mv.type );
                //m_pModelOutputsData->Set( col, row, VData( mv.pVar, mv.type, false ) );  // convert to non-ptr type
-               if (mv.pVar != NULL)
+               if (mv.pVar != nullptr)
                   col++;
                }  // end of: for ( j < varCount )
             }
@@ -993,7 +984,7 @@ void DataManager::EndRun(bool discardDeltaArray)
          EnvEvaluator* pInfo = this->m_pEnvModel->GetEvaluatorInfo(i);
          if (pInfo->m_use)
             {
-            MODEL_VAR* modelVarArray = NULL;
+            MODEL_VAR* modelVarArray = nullptr;
             int varCount = pInfo->OutputVar(pInfo->m_id, &modelVarArray);
 
             for (int j = 0; j < varCount; j++)
@@ -1005,12 +996,12 @@ void DataManager::EndRun(bool discardDeltaArray)
                if (mv.type == TYPE_PDATAOBJ)
                   {
                   // get the original data obj ptr (stored in the m_pModelOutputsData)
-                  DataObj* pData = NULL;
+                  DataObj* pData = nullptr;
                   m_pModelOutputsData->Get(col, 0, pData);
 
-                  DataObj* pDataCopy = NULL;
+                  DataObj* pDataCopy = nullptr;
 
-                  ASSERT(pData != NULL);
+                  ASSERT(pData != nullptr);
                   switch (pData->GetDOType())
                      {
                      case DOT_FLOAT:
@@ -1035,7 +1026,7 @@ void DataManager::EndRun(bool discardDeltaArray)
                      break;
                      }
 
-                  if (pDataCopy != NULL)
+                  if (pDataCopy != nullptr)
                      {
                      m_modelOutputDataObjArray.Add(pDataCopy);
 
@@ -1047,7 +1038,7 @@ void DataManager::EndRun(bool discardDeltaArray)
                      }
                   }  // end of: if ( mv.type == PDATAOBJ )
 
-               if (mv.pVar != NULL)
+               if (mv.pVar != nullptr)
                   col++;
                }
             }
@@ -1077,54 +1068,56 @@ void DataManager::EndRun(bool discardDeltaArray)
    }
 
 
-
-
 bool DataManager::CreateMultiRunDataObjects()
    {
    int rows = m_pEnvModel->m_iterationsToRun;
-   int resultsCount = this->m_pEnvModel->GetResultsCount();
 
-   //--------------- landscape scores for each goal -------------
-   FDataObj* pData = new FDataObj(resultsCount + 1, rows, U_UNDEFINED);
-   pData->SetName("Multirun Landscape Evaluative Statistics");
-   pData->SetLabel(0, "Run");
-   for (int i = 0; i < resultsCount; i++)
+   if (this->m_collectMultiRunOutput)
       {
-      int modelIndex = this->m_pEnvModel->GetEvaluatorIndexFromResultsIndex(i);
-      pData->SetLabel(i + 1, this->m_pEnvModel->GetEvaluatorInfo(modelIndex)->m_name);
+      int resultsCount = this->m_pEnvModel->GetResultsCount();
+
+      //--------------- landscape scores for each goal -------------
+      FDataObj* pData = new FDataObj(resultsCount + 1, rows, U_UNDEFINED);
+      pData->SetName("Multirun Landscape Evaluative Statistics");
+      pData->SetLabel(0, "Run");
+      for (int i = 0; i < resultsCount; i++)
+         {
+         int modelIndex = this->m_pEnvModel->GetEvaluatorIndexFromResultsIndex(i);
+         pData->SetLabel(i + 1, this->m_pEnvModel->GetEvaluatorInfo(modelIndex)->m_name);
+         }
+
+      m_currentMultiRunDataObjs[DT_MULTI_EVAL_SCORES] = pData;
+      m_multiRunDataObjs[DT_MULTI_EVAL_SCORES].Add(pData);
+
+      //-------------- landscape raw scores for each goal -----------
+      pData = new FDataObj(resultsCount + 1, rows, U_UNDEFINED);
+      pData->SetName("Multirun Landscape Evaluative Statistics (Raw)");
+      pData->SetLabel(0, "Run");
+      for (int i = 0; i < resultsCount; i++)
+         {
+         int modelIndex = this->m_pEnvModel->GetEvaluatorIndexFromResultsIndex(i);
+         pData->SetLabel(i + 1, this->m_pEnvModel->GetEvaluatorInfo(modelIndex)->m_name);
+         }
+
+      m_currentMultiRunDataObjs[DT_MULTI_EVAL_RAWSCORES] = pData;
+      m_multiRunDataObjs[DT_MULTI_EVAL_RAWSCORES].Add(pData);
+
+
+      //------------- variable settings for the scenario --------
+      Scenario* pScenario = m_pEnvModel->GetScenario();
+      ASSERT(pScenario != nullptr);
+
+      int varCount = pScenario->GetScenarioVarCount(int(V_META | V_MODEL | V_AP), false);
+      pData = new FDataObj(varCount + 1, rows, U_UNDEFINED);
+      pData->SetName("Multirun Scenario Settings");
+      pData->SetLabel(0, "Run");
+      for (int i = 0; i < varCount; i++)
+         pData->SetLabel(i + 1, pScenario->GetScenarioVar(i).name);
+
+      m_currentMultiRunDataObjs[DT_MULTI_PARAMETERS] = pData;
+      m_multiRunDataObjs[DT_MULTI_PARAMETERS].Add(pData);
+
       }
-
-   m_currentMultiRunDataObjs[DT_MULTI_EVAL_SCORES] = pData;
-   m_multiRunDataObjs[DT_MULTI_EVAL_SCORES].Add(pData);
-
-   //-------------- landscape raw scores for each goal -----------
-   pData = new FDataObj(resultsCount + 1, rows, U_UNDEFINED);
-   pData->SetName("Multirun Landscape Evaluative Statistics (Raw)");
-   pData->SetLabel(0, "Run");
-   for (int i = 0; i < resultsCount; i++)
-      {
-      int modelIndex = this->m_pEnvModel->GetEvaluatorIndexFromResultsIndex(i);
-      pData->SetLabel(i + 1, this->m_pEnvModel->GetEvaluatorInfo(modelIndex)->m_name);
-      }
-
-   m_currentMultiRunDataObjs[DT_MULTI_EVAL_RAWSCORES] = pData;
-   m_multiRunDataObjs[DT_MULTI_EVAL_RAWSCORES].Add(pData);
-
-
-   //------------- variable settings for the scenario --------
-   Scenario* pScenario = m_pEnvModel->GetScenario();
-   ASSERT(pScenario != NULL);
-
-   int varCount = pScenario->GetScenarioVarCount(int(V_META | V_MODEL | V_AP), false);
-   pData = new FDataObj(varCount + 1, rows, U_UNDEFINED);
-   pData->SetName("Multirun Scenario Settings");
-   pData->SetLabel(0, "Run");
-   for (int i = 0; i < varCount; i++)
-      pData->SetLabel(i + 1, pScenario->GetScenarioVar(i).name);
-
-   m_currentMultiRunDataObjs[DT_MULTI_PARAMETERS] = pData;
-   m_multiRunDataObjs[DT_MULTI_PARAMETERS].Add(pData);
-
    int first = m_pEnvModel->m_currentRun;
    MULTIRUN_INFO mi(first, first + rows - 1, m_pEnvModel->GetScenario());
    m_multirunInfoArray.Add(mi);
@@ -1135,6 +1128,9 @@ bool DataManager::CreateMultiRunDataObjects()
 
 bool DataManager::CollectMultiRunData(int run)   // note: run - zero-based
    {
+   if (this->m_collectMultiRunOutput == false)
+      return false;
+
    int row = run;
    int resultsCount = this->m_pEnvModel->GetResultsCount();
 
@@ -1142,7 +1138,7 @@ bool DataManager::CollectMultiRunData(int run)   // note: run - zero-based
 
    //-------------- scores ------------------- 
    FDataObj* pData = (FDataObj*)m_currentMultiRunDataObjs[DT_MULTI_EVAL_SCORES];
-   if (pData != NULL)
+   if (pData != nullptr)
       {
       pData->Set(0, row, (float)run);
       for (int i = 0; i < resultsCount; i++)
@@ -1155,7 +1151,7 @@ bool DataManager::CollectMultiRunData(int run)   // note: run - zero-based
 
    //----------- raw scores -------------------
    pData = (FDataObj*)m_currentMultiRunDataObjs[DT_MULTI_EVAL_RAWSCORES];
-   if (pData != NULL)
+   if (pData != nullptr)
       {
       pData->Set(0, row, (float)run);
       for (int i = 0; i < resultsCount; i++)
@@ -1168,10 +1164,10 @@ bool DataManager::CollectMultiRunData(int run)   // note: run - zero-based
 
    //------------- variable settings for the scenario --------
    pData = (FDataObj*)m_currentMultiRunDataObjs[DT_MULTI_PARAMETERS];
-   if (pData != NULL)
+   if (pData != nullptr)
       {
       Scenario* pScenario = m_pEnvModel->GetScenario();
-      ASSERT(pScenario != NULL);
+      ASSERT(pScenario != nullptr);
       int varCount = pScenario->GetScenarioVarCount(int(V_META | V_MODEL | V_AP), false);
 
       pData->Set(0, row, (float)run);
@@ -1200,6 +1196,56 @@ bool DataManager::CollectMultiRunData(int run)   // note: run - zero-based
    return true;
    }
 
+bool DataManager::ClearRunData(int run)
+   {
+   if (this->m_collectMultiRunOutput == false)
+      {
+      // NOTE: DataObjs are removed by the DataObjArray destructor
+      for (int i = 0; i < m_deltaArrayArray.GetSize(); i++)
+         if (i != run && m_deltaArrayArray[i] != nullptr)  // keep the current one around to unroll in next InitRun()
+            {
+            delete m_deltaArrayArray[i];
+            m_deltaArrayArray[i] = nullptr;
+            }
+
+      //m_pDeltaArray = nullptr;
+
+      
+      //for (int i = 0; i < DT_LAST; i++)
+      //   {
+      //   m_currentDataObjs[i] = nullptr;
+      //   //m_dataObjs[i].RemoveAllData();
+      //   if (m_dataObjs[i][run] != nullptr)
+      //      {
+      //      delete m_dataObjs[i][run];
+      //      m_dataObjs[i][run] = nullptr;
+      //      }
+      //   }
+      //
+      //for (int i = 0; i < DT_MULTI_LAST; i++)
+      //   {
+      //   m_currentMultiRunDataObjs[i] = nullptr;
+      //   m_multiRunDataObjs[i].RemoveAllData();
+      //   }
+      //
+      //if (m_modelDataObjMatrices != nullptr)
+      //   {
+      //   for (int i = 0; i < this->m_pEnvModel->GetResultsCount(); i++)
+      //      if (m_modelDataObjMatrices[i] != nullptr)
+      //         {
+      //         delete m_modelDataObjMatrices[i];
+      //         m_modelDataObjMatrices[i] = nullptr;
+      //         }
+      //
+      //   //delete[] m_modelDataObjMatrices;
+      //   //m_modelDataObjMatrices = nullptr;
+      //   }
+      }
+   return true;
+   }
+
+
+
 // -- FDataObj *DataManager::CalculateLulcTrends(.) ----------------------------------------------------
 //
 // allocate data object.  The data object will have a column for year, and one column for each LULC class
@@ -1213,7 +1259,7 @@ bool DataManager::CollectMultiRunData(int run)   // note: run - zero-based
 FDataObj* DataManager::CalculateLulcTrends(int level, int run /*=-1*/)
    {
    DeltaArray* pDeltaArray = this->GetDeltaArray(run);
-   ASSERT(pDeltaArray != NULL);
+   ASSERT(pDeltaArray != nullptr);
 
    RUN_INFO& ri = this->GetRunInfo(run);
 
@@ -1270,9 +1316,9 @@ FDataObj* DataManager::CalculateLulcTrends(int level, int run /*=-1*/)
    lulcCol.SetCurrentYear(0);
 
    // roll back map to starting condition
-   // NULL = unapply internal (current) deltaArray
+   // nullptr = unapply internal (current) deltaArray
    // -1 = unapply the whole thing
-   UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, NULL);
+   UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, nullptr);
 
    // interate through cells to get starting value
    for (MapLayer::Iterator i = this->m_pEnvModel->m_pIDULayer->Begin(); i != this->m_pEnvModel->m_pIDULayer->End(); i++)
@@ -1354,492 +1400,17 @@ FDataObj* DataManager::CalculateLulcTrends(int level, int run /*=-1*/)
 
    pDeltaArray->SetFirstUnapplied(this->m_pEnvModel->m_pIDULayer, SFU_END);      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
    m_pEnvModel->UnApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, pDeltaArray);   // unapply all of this delta array
-   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
+   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, nullptr, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
 
    return pData;
    }
 
-/*
-void DataManager::CalculateLulcTrends( int level, FDataObj **ppData, int fromYearClosed, int toYearOpen, int run )
-   {
-   // This data is Endpoint Statistics
-   int colLulc;
-   switch( level )
-      {
-      case 1:  colLulc = this->m_pEnvModel->m_colLulcA;  break;
-      case 2:  colLulc = this->m_pEnvModel->m_colLulcB;  break;
-      case 3:  colLulc = this->m_pEnvModel->m_colLulcC;  break;
-      default:  ASSERT( 0 );
-      }
-
-   ASSERT( ppData );
-   FDataObj *pDataObj = *ppData;
-
-   // get the LULC nodes
-   //LulcNodeArray *pNodeArray = &(this->m_pEnvModel->m_lulcTree.GetRootNode()->m_childNodeArray);
-   int lulcCount = this->m_pEnvModel->m_lulcTree.GetNodeCount( level ); //(int) pNodeArray->GetCount();
-
-   // create trendArray
-   double *trendArray = new double[ lulcCount ];  // will be performing lots of additions. Is truncation error is an issue?
-   memset( trendArray, 0, lulcCount*sizeof( double ) );
-
-   // create lulcAMap
-   CMap< int, int, int, int > lulcMap;  // maps lulcA values into offsets into the trendArray
-   for ( int i=0; i < lulcCount; i++ )
-      {
-      LulcNode *pNode = this->m_pEnvModel->m_lulcTree.FindNodeFromIndex( level, i ); //pNodeArray->GetAt( i );
-      lulcMap.SetAt( pNode->m_id, i );
-      }
-
-   // variables
-   int lulcIndex = -1;
-
-   // static variables
-   static double totalArea  = 0.0f;
-
-   // create DataObj with initial row if required
-   if ( pDataObj == NULL )
-      {
-      ASSERT( fromYearClosed == 0 );
-
-      totalArea  = 0.0f;
-
-      pDataObj = *ppData = new FDataObj( lulcCount+1, toYearOpen - fromYearClosed + 1 );
-      switch( level )
-         {
-         case 1:  pDataObj->SetName( "LULC_A Trends (%)" ); break;
-         case 2:  pDataObj->SetName( "LULC_B Trends (%)" ); break;
-         case 3:  pDataObj->SetName( "LULC_C Trends (%)" ); break;
-         }
-
-      pDataObj->SetName( "Land Use Trends (%)" );
-      pDataObj->SetLabel( 0, "Time (years)" );
-
-      CString label;
-      for ( int i=0; i < lulcCount; i++ )
-         {
-         LulcNode *pNode = this->m_pEnvModel->m_lulcTree.FindNodeFromIndex( level, i ); //pNodeArray->GetAt( i );
-         label.Format("%s (%i)", pNode->m_name, pNode->m_id );
-         pDataObj->SetLabel( i+1, label );
-         }
-
-      // Calculate initial %Lulc
-      ColumnTrace lulcCol( this->m_pEnvModel->m_pIDULayer, colLulc, run);
-      int lulcIndex = -1;
-
-      lulcCol.SetCurrentYear( 0 );
-
-      for ( MapLayer::Iterator i = this->m_pEnvModel->m_pIDULayer->Begin(); i != this->m_pEnvModel->m_pIDULayer->End(); i++ )
-         {
-         int lulc;
-         lulcCol.Get( i, lulc );
-
-         if ( lulc > 0 )
-            {
-            bool ok = lulcMap.Lookup( lulc, lulcIndex );    // get the index for this lulc class in the trendArray
-            ASSERT( ok );
-
-            double area;
-            this->m_pEnvModel->m_pIDULayer->GetData( i, this->m_pEnvModel->m_colArea, area );
-            trendArray[ lulcIndex ] += area;
-            totalArea += area;
-            }
-         }
-
-      // record data for year 0
-      pDataObj->Set( 0, 0, 0.0f );
-      for ( int i=0; i < lulcCount; i++ )
-         pDataObj->Set( i+1, 0, float( 100.0*trendArray[ i ]/totalArea ) );
-      }
-   else // dataObj exists, populate trendArray with last row
-      {
-      ASSERT( totalArea > 0.0 );
-
-      for ( int i=0; i < lulcCount; i++ )
-         {
-         float percent;
-         pDataObj->Get( i+1, fromYearClosed, percent );
-         trendArray[ i ] = (percent*totalArea)/100.0;
-         }
-      }
-
-   // resize DataObj
-   if ( pDataObj->GetRowCount() < toYearOpen+1 )
-      pDataObj->SetSize( pDataObj->GetColCount(), toYearOpen+1 );
-
-   // Append Data to the End of the DataObj
-   if ( fromYearClosed >= toYearOpen )
-      {
-      ASSERT( fromYearClosed == 0 && toYearOpen == 0 );
-      return;
-      }
-
-   DeltaArray *pDeltaArray = GetDeltaArray( run );
-   ASSERT( pDeltaArray );
-
-   for ( int year = fromYearClosed; year<toYearOpen; year++ )
-      {
-      INT_PTR from = -1;
-      INT_PTR to   = -1;
-      pDeltaArray->GetIndexRangeFromYear( year, from, to );
-
-      // mine data from delta array
-      for ( INT_PTR i=from; i<to; i++ )
-         {
-         const DELTA &delta = pDeltaArray->GetAt(i);
-
-         // is it an lulcA change?
-         if ( delta.col == colLulc )
-            {
-            // get the area
-            float area;
-            int value;
-            this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, area );
-
-            // get starting lulcA value and subtract from appropriate slot in trendArray
-            delta.oldValue.GetAsInt( value );
-            bool ok = lulcMap.Lookup( value, lulcIndex );
-            ASSERT( ok );
-            trendArray[ lulcIndex ] -= area;
-
-            // get ending lulcA value and add to the appropriate slot in the trendArray
-            delta.newValue.GetAsInt( value );
-            ok = lulcMap.Lookup( value, lulcIndex );    // get the index for this lulc class in the trendArray
-            ASSERT( ok );
-            trendArray[ lulcIndex ] += area;
-            }
-         }
-
-      // record
-      pDataObj->Set( 0, year+1, year+1 ); // we are now at the end of year "year" which is the same as the beginning of year "year+1"
-      for ( int j=0; j < lulcCount; j++ )
-         {
-         pDataObj->Set( j+1, year+1, float( 100.0f*trendArray[ j ]/totalArea ) );
-         }
-      }
-
-   delete [] trendArray;
-   } */
-
-   /*
-   void DataManager::CalculateAppliedPolicyScores( FDataObj **ppData, int fromYearClosed, int toYearOpen, int run )
-      {
-      // This data is Interval Statistics
-      ASSERT( ppData );
-      FDataObj *pDataObj = *ppData;
-
-      // variables
-      //int valueCount = this->m_pEnvModel->GetActorValueCount();    //
-      int metagoalCount = this->m_pEnvModel->GetMetagoalCount();
-
-      // create DataObj with initial row if required
-      if ( pDataObj == NULL )
-         {
-         ASSERT( fromYearClosed == 0 );
-
-         pDataObj = *ppData = new FDataObj( metagoalCount+1, toYearOpen - fromYearClosed );
-         pDataObj->SetName( "Applied Policy Scores" );
-         pDataObj->SetLabel( 0, "Time" );
-         for ( int i=0; i < metagoalCount; i++ )
-            {
-            //int modelIndex = this->m_pEnvModel->GetModelIndexFromMetagoalIndex( i );
-            //pDataObj->SetLabel( i+1, this->m_pEnvModel->GetEvaluatorInfo( modelIndex )->m_name );
-            METAGOAL *pInfo = this->m_pEnvModel->GetMetagoalInfo( i );
-            pDataObj->SetLabel( i+1, pInfo->m_name );
-            }
-         }
-
-      // Append Data to the End of the DataObj
-      if ( fromYearClosed >= toYearOpen )
-         {
-         ASSERT( fromYearClosed == 0 && toYearOpen == 0 );
-         return;
-         }
-
-      // resize DataObj
-      if ( pDataObj->GetRowCount() < toYearOpen )
-         pDataObj->SetSize( pDataObj->GetColCount(), toYearOpen );
-
-      DeltaArray *pDeltaArray = GetDeltaArray( run );
-      ASSERT( pDeltaArray );
-
-      // more variables
-      float *row = new float[ metagoalCount ];
-
-      for ( int year = fromYearClosed; year<toYearOpen; year++ )
-         {
-         INT_PTR from = -1;
-         INT_PTR to   = -1;
-         pDeltaArray->GetIndexRangeFromYear( year, from, to );
-
-         for ( int i=0; i < metagoalCount; i++ )
-            row[ i ] = 0.0f;
-
-         // iterate through delta array, looking for applied policies.
-         int colPolicyID = this->m_pEnvModel->m_colPolicy;
-         int colArea     = this->m_pEnvModel->m_colArea;
-         int policyCount = 0;
-         float appliedArea = 0.0f;
-
-         for ( INT_PTR i=from; i < to; i++ )
-            {
-            DELTA &delta = pDeltaArray->GetAt( i );
-            if ( colPolicyID == delta.col )
-               {
-               policyCount++;
-
-               float area;  // m2
-               this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, colArea, area );
-               appliedArea += area;
-
-               // get the policy and evaluate it's effectiveness at this value
-               int polID = -1;
-               bool ok = delta.newValue.GetAsInt( polID );
-               EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( polID );
-               ASSERT( pPolicy != NULL );
-
-               for ( int j=0; j < metagoalCount; j++ )
-                  {
-                  //int modelIndex = this->m_pEnvModel->GetModelIndexMetagoalIndex( j );
-                  float polEff = pPolicy->GetGoalScore( j );
-
-                  // normalize to percent of landscape area and accumulate
-                  row[ j ] += polEff * area;
-                  }
-               }
-            }
-
-         // record
-         pDataObj->Set( 0, year, year+1 );
-         for ( int j=0; j < metagoalCount; j++ )
-            {
-            pDataObj->Set( j+1, year, row[ j ] / appliedArea );
-            }
-         }
-
-      delete [] row;
-      }  */
-
-      /*
-      void DataManager::CalculateAppliedPolicyCounts( FDataObj **ppData, int fromYearClosed, int toYearOpen, int run  )
-         {
-         // This data is interval statistics
-         ASSERT( ppData );
-         FDataObj *pDataObj = *ppData;
-
-         // variables
-         int metagoalCount = this->m_pEnvModel->GetMetagoalCount();
-
-         // create DataObj with initial row if required
-         if ( pDataObj == NULL )
-            {
-            ASSERT( fromYearClosed == 0 );
-
-            pDataObj = *ppData = new FDataObj( metagoalCount+1, toYearOpen - fromYearClosed );
-            pDataObj->SetName( "Applied Policy Counts" );
-            pDataObj->SetLabel( 0, "Time" );
-            for ( int i=0; i < metagoalCount; i++ )
-               {
-               //int modelIndex = this->m_pEnvModel->GetModelIndexFromMetagoalIndex( i );
-               //pDataObj->SetLabel( i+1, this->m_pEnvModel->GetEvaluatorInfo( modelIndex )->m_name );
-               METAGOAL *pInfo = this->m_pEnvModel->GetMetagoalInfo( i );
-               pDataObj->SetLabel( i+1, pInfo->m_name );
-               }
-            }
-
-         // Append Data to the End of the DataObj
-         if ( fromYearClosed >= toYearOpen )
-            {
-            ASSERT( fromYearClosed == 0 && toYearOpen == 0 );
-            return;
-            }
-
-         // resize DataObj
-         if ( pDataObj->GetRowCount() < toYearOpen )
-            pDataObj->SetSize( pDataObj->GetColCount(), toYearOpen );
-
-         DeltaArray *pDeltaArray = GetDeltaArray( run );
-         ASSERT( pDeltaArray );
-
-         // more variables
-         float *row = new float[ metagoalCount ];
-
-         for ( int year = fromYearClosed; year<toYearOpen; year++ )
-            {
-            INT_PTR from = -1;
-            INT_PTR to   = -1;
-            pDeltaArray->GetIndexRangeFromYear( year, from, to );
-
-            for ( int i=0; i < metagoalCount; i++ )
-               row[ i ] = 0.0f;
-
-            // iterate through delta array, looking for applied policies.
-            int colPolicyID = this->m_pEnvModel->m_colPolicy;
-
-            for ( INT_PTR i=from; i < to; i++ )
-               {
-               DELTA &delta = pDeltaArray->GetAt( i );
-               if ( colPolicyID == delta.col )
-                  {
-                  int policyID;
-                  bool ok = delta.newValue.GetAsInt( policyID );
-                  ASSERT( ok );
-
-                  // get the policy and evaluate it's effectiveness at this value
-                  EnvPolicy *pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicyFromID( policyID );
-                  ASSERT( pPolicy != NULL );
-
-                  for ( int j=0; j < metagoalCount; j++ )
-                     {
-                     //int modelIndex = this->m_pEnvModel->GetModelIndexFromActorValueIndex( j );
-                     float polEff = pPolicy->GetGoalScore( j );  // modelIndex );
-
-                     if ( polEff > 0 )
-                        row[ j ] += 1;
-                     }
-                  }
-               }
-
-            // record
-            pDataObj->Set( 0, year, year+1 );
-            for ( int j=0; j < metagoalCount; j++ )
-               {
-               pDataObj->Set( j+1, year, row[ j ] );
-               }
-            }
-
-         delete [] row;
-         }
-
-      */
-
-      /*
-      void DataManager::CalculateAreaQuery( IDataObj **ppData, int fromYearClosed, int toYearOpen, int col, VData &value, int run  )
-         {
-         // This data is endpoint statistics
-         ASSERT( ppData );
-         IDataObj *pDataObj = *ppData;
-
-         DeltaArray *pDeltaArray = GetDeltaArray( run );
-         ASSERT( pDeltaArray );
-
-         // variables
-         float totalArea  = this->m_pEnvModel->m_pIDULayer->GetTotalArea();
-
-         // create DataObj with initial row if required
-         if ( pDataObj == NULL )
-            {
-            ASSERT( fromYearClosed == 0 );
-
-            pDataObj = *ppData = new IDataObj( 2, toYearOpen - fromYearClosed + 1 );
-            CString name( this->m_pEnvModel->m_pIDULayer->GetFieldLabel( col ) );
-            name += " = ";
-            name += value.GetAsString();
-            pDataObj->SetName( name );
-            pDataObj->SetLabel( 0, "Time" );
-            pDataObj->SetLabel( 1, "Area (%)" );
-
-            // record data for year 0
-            pDataObj->Set( 0, 0, 0.0f );
-
-            float area = 0.0f;
-            float queryArea = 0.0f;
-
-            VData currentVal;
-
-            for( MapLayer::Iterator cell = this->m_pEnvModel->m_pIDULayer->Begin(); cell != this->m_pEnvModel->m_pIDULayer->End(); ++cell )
-               {
-               this->m_pEnvModel->m_pIDULayer->GetData( cell, this->m_pEnvModel->m_colArea, area );
-               this->m_pEnvModel->m_pIDULayer->GetData( cell, col, currentVal );
-
-               if ( currentVal == value )
-                  queryArea += area;
-               }
-
-            // unwind the delta array to take into account any changes that have been made so far.
-            for ( INT_PTR i=0; i < pDeltaArray->GetSize(); i++ )
-               {
-               DELTA &delta = pDeltaArray->GetAt( i );
-
-               if ( delta.col == col )
-                  {
-                  // get the area
-                  float area;
-                  this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, area );
-
-                  // get old value and subtract from cumulative if it is the value we're interested in
-                  if ( delta.oldValue == value )
-                     queryArea += area;
-
-                  // get new value and add to the cumulative if it is a value we're interested in
-                  if ( delta.newValue == value )
-                     queryArea -= area;
-                  }
-               }
-
-
-            pDataObj->Set( 0, 0, 1 );
-            pDataObj->Set( 1, 0, int( queryArea*100/totalArea ) );
-            }
-
-         // Append Data to the End of the DataObj
-         if ( fromYearClosed >= toYearOpen )
-            {
-            ASSERT( fromYearClosed == 0 && toYearOpen == 0 );
-            return;
-            }
-
-         // resize DataObj
-         if ( pDataObj->GetRowCount() < toYearOpen+1 )
-            pDataObj->SetSize( pDataObj->GetColCount(), toYearOpen+1 );
-
-         // start processing delta array
-
-         float oldArea;    // this is a decimal percent (0-1)
-         pDataObj->Get( 1, fromYearClosed, oldArea ); // fromYear is the last row populated
-
-         float areaChange = 0.0f;
-
-         for ( int year = fromYearClosed; year < toYearOpen; year++ )
-            {
-            INT_PTR from = -1;
-            INT_PTR to   = -1;
-            pDeltaArray->GetIndexRangeFromYear( year, from, to );
-
-            // mine data from delta array
-            for ( INT_PTR i=from; i < to; i++ )
-               {
-               const DELTA &delta = pDeltaArray->GetAt(i);
-
-               // is it an change where interested in?
-               if ( delta.col == col )
-                  {
-                  // get the area
-                  float area;
-                  this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, area );
-
-                  // get old value and subtract from cumulative if it is the value we're interested in
-                  if ( delta.oldValue == value )
-                     areaChange -= area;
-
-                  // get new value and add to the cumulative if it is a value we're interested in
-                  if ( delta.newValue == value )
-                     areaChange += area;
-                  }
-               }
-
-            // record
-            pDataObj->Set( 0, year+1, year+1 ); // we are now at the end of year "year" which is the same as the beginning of year "year+1"
-            pDataObj->Set( 1, year+1, oldArea + areaChange*100/totalArea );
-            }
-
-         return;
-         }
-      */
-
-      // compute a frequency distribution for evalative scores
+// compute a frequency distribution for evalative scores
 FDataObj* DataManager::CalculateEvalFreq(int multiRun /*= -1*/)
    {
+   if (this->m_collectMultiRunOutput == false)
+      return nullptr;
+
    int resultsCount = this->m_pEnvModel->GetResultsCount();
    const int binCount = 12;
 
@@ -1863,8 +1434,8 @@ FDataObj* DataManager::CalculateEvalFreq(int multiRun /*= -1*/)
       }
 
    FDataObj* pSource = (FDataObj*)GetMultiRunDataObj(DT_MULTI_EVAL_SCORES, multiRun);
-   ASSERT(pSource != NULL);
-   ASSERT(pData != NULL);
+   ASSERT(pSource != nullptr);
+   ASSERT(pData != nullptr);
 
    int rows = pSource->GetRowCount();
    float value;
@@ -1903,8 +1474,8 @@ IDataObj* DataManager::CalculatePolicyApps(int run /*= -1*/)
    {
    DeltaArray* pDeltaArray = this->GetDeltaArray(run);
 
-   if (pDeltaArray == NULL)
-      return NULL;
+   if (pDeltaArray == nullptr)
+      return nullptr;
 
    RUN_INFO& ri = this->GetRunInfo(run);
 
@@ -1971,7 +1542,7 @@ IDataObj* DataManager::CalculatePolicyApps(int run /*= -1*/)
    // map has this runs deltas applied, remove them and restore the original
    pDeltaArray->SetFirstUnapplied(this->m_pEnvModel->m_pIDULayer, SFU_END);      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
    m_pEnvModel->UnApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, pDeltaArray);
-   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
+   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, nullptr, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
 
    return pData;
    }
@@ -1988,8 +1559,8 @@ IDataObj* DataManager::CalculatePolicyApps(int run /*= -1*/)
 FDataObj* DataManager::CalculatePolicyEffectivenessTrendDynamic(int modelIndexX, int modelIndexY, int run /*= -1*/)
    {
    DeltaArray* pDeltaArray = this->GetDeltaArray(run);
-   if (pDeltaArray == NULL)
-      return NULL;
+   if (pDeltaArray == nullptr)
+      return nullptr;
 
    int metagoalIndexX = this->m_pEnvModel->GetMetagoalIndexFromEvaluatorIndex(modelIndexX);
    int metagoalIndexY = this->m_pEnvModel->GetMetagoalIndexFromEvaluatorIndex(modelIndexY);
@@ -2037,7 +1608,7 @@ FDataObj* DataManager::CalculatePolicyEffectivenessTrendDynamic(int modelIndexX,
             ASSERT(0 <= policyIndex && policyIndex < policyCount);
 
             EnvPolicy* pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy(policyIndex);
-            ASSERT(pPolicy != NULL);
+            ASSERT(pPolicy != nullptr);
 
             float effectivenessX = pPolicy->GetGoalScore(metagoalIndexX);
             float effectivenessY = pPolicy->GetGoalScore(metagoalIndexY);
@@ -2065,7 +1636,7 @@ FDataObj* DataManager::CalculatePolicyEffectivenessTrendDynamic(int modelIndexX,
    // map has this runs deltas applied, remove them and restore the original
    pDeltaArray->SetFirstUnapplied(this->m_pEnvModel->m_pIDULayer, SFU_END);      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
    m_pEnvModel->UnApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, pDeltaArray);
-   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
+   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, nullptr, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
 
    return pData;
    }
@@ -2083,8 +1654,8 @@ FDataObj* DataManager::CalculatePolicyEffectivenessTrendDynamic(int modelIndexX,
 FDataObj* DataManager::CalculatePolicyEffectivenessTrendStatic(int run /*= -1*/)
    {
    DeltaArray* pDeltaArray = this->GetDeltaArray(run);
-   if (pDeltaArray == NULL)
-      return NULL;
+   if (pDeltaArray == nullptr)
+      return nullptr;
 
    RUN_INFO& ri = this->GetRunInfo(run);
 
@@ -2146,7 +1717,7 @@ FDataObj* DataManager::CalculatePolicyEffectivenessTrendStatic(int run /*= -1*/)
             ASSERT(0 <= policyIndex && policyIndex < policyCount);
 
             EnvPolicy* pPolicy = m_pEnvModel->m_pPolicyManager->GetPolicy(policyIndex);
-            ASSERT(pPolicy != NULL);
+            ASSERT(pPolicy != nullptr);
 
             for (int i = 0; i < goalCount; i++)
                {
@@ -2178,7 +1749,7 @@ FDataObj* DataManager::CalculatePolicyEffectivenessTrendStatic(int run /*= -1*/)
    // map has this runs deltas applied, remove them and restore the original
    pDeltaArray->SetFirstUnapplied(this->m_pEnvModel->m_pIDULayer, SFU_END);      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
    m_pEnvModel->UnApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, pDeltaArray);
-   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
+   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, nullptr, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
 
    return pData;
    }
@@ -2205,8 +1776,8 @@ VDataObj* DataManager::CalculatePolicySummary(int run /*= -1*/)
    int colCount = 6 + resultsCount + valueCount + 1;
 
    DeltaArray* pDeltaArray = this->GetDeltaArray(run);
-   if (pDeltaArray == NULL)
-      return NULL;
+   if (pDeltaArray == nullptr)
+      return nullptr;
 
    RUN_INFO& ri = this->GetRunInfo(run);
 
@@ -2451,7 +2022,7 @@ VDataObj* DataManager::CalculatePolicySummary(int run /*= -1*/)
    // map has this runs deltas applied, remove them and restore the original
    pDeltaArray->SetFirstUnapplied(this->m_pEnvModel->m_pIDULayer, SFU_END);      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
    m_pEnvModel->UnApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, pDeltaArray);
-   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
+   m_pEnvModel->ApplyDeltaArray(this->m_pEnvModel->m_pIDULayer, nullptr, 0, firstUnapplied == 0 ? 0 : firstUnapplied - 1);      // return map to it's starting state
 
    return pData;
    }
@@ -2460,8 +2031,8 @@ VDataObj* DataManager::CalculatePolicySummary(int run /*= -1*/)
 VDataObj* DataManager::CalculatePolicyByActorArea(int run /* = -1 */)
    {
    DeltaArray* pDeltaArray = this->GetDeltaArray(run);
-   if (pDeltaArray == NULL)
-      return NULL;
+   if (pDeltaArray == nullptr)
+      return nullptr;
 
    if (run < 0)
       run = this->GetRunCount() - 1;
@@ -2530,12 +2101,11 @@ VDataObj* DataManager::CalculatePolicyByActorArea(int run /* = -1 */)
    return pData;
    }
 
-
 VDataObj* DataManager::CalculatePolicyByActorCount(int run /* = -1 */)
    {
    DeltaArray* pDeltaArray = this->GetDeltaArray(run);
-   if (pDeltaArray == NULL)
-      return NULL;
+   if (pDeltaArray == nullptr)
+      return nullptr;
 
    if (run < 0)
       run = this->GetRunCount() - 1;
@@ -2602,333 +2172,6 @@ VDataObj* DataManager::CalculatePolicyByActorCount(int run /* = -1 */)
    return pData;
    }
 
-
-//-------------------------------------------------------------------
-// DataManager::CalculateTrendsWeightedByLulcA()
-//
-// For the specified column, computes by year the amount of that column in each lulc A class, weighted by area.
-// The resulting data object has columns for each LULC A class, and rows for each year.
-// Note that the rows = years+1, because we include start and end years
-//-------------------------------------------------------------------
-
-//FDataObj *DataManager::CalculateTrendsWeightedByLulcA( int trendCol, double scaler /*= 1.0*/, AREA_FACTOR af /*=AF_IGNORE*/, int run /*= -1*/, bool includeTotal /*=true*/ )
-//   {
-//   ASSERT( 0 <= trendCol );
-//
-//   DeltaArray *pDeltaArray = this->GetDeltaArray( run );
-//   if ( pDeltaArray == NULL )
-//      return NULL;
-//
-//   int startYear = pDeltaArray->GetAt( 0 ).year;
-//   int endYear   = pDeltaArray->GetAt( pDeltaArray->GetSize()-1 ).year + 1;
-//   int years     = endYear - startYear;
-//
-//   // get the LULC_A nodes
-//   std::vector<LulcNode*> *pNodeArray = &(this->m_pEnvModel->m_lulcTree.GetRootNode()->m_childNodeArray);
-//   int lulcCount = (int) pNodeArray->size();
-//
-//   // allocate a data object
-//   int cols = lulcCount+1; // +1 for year, +1 for totals acroos LULC classes (if specified)
-//   if ( includeTotal )
-//      cols++;
-//
-//   FDataObj *pData = new FDataObj( cols, years+1, 0.0f, U_YEARS);
-//   CString name;
-//   name = this->m_pEnvModel->m_pIDULayer->GetFieldLabel( trendCol );
-//   name += " Trends by LULC A Class";
-//   pData->SetName( name );
-//   pData->SetLabel( 0, "Time (years)" );
-//   int i;
-//
-//   for ( i=0; i < lulcCount; i++ )
-//      {
-//      LulcNode *pNode = pNodeArray->at( i );
-//      CString label;
-//      label.Format("%s (%i)", (PCTSTR) pNode->m_name, pNode->m_id );
-//      pData->SetLabel( i+1, label );
-//      }
-//
-//   if ( includeTotal )
-//      pData->SetLabel( i+1, "Total" );
-//
-//   // create a map to map lulcA values into offsets into the pTrendArray
-//   CMap< int, int, int, int > lulcAMap;
-//   for ( int i=0; i < lulcCount; i++ )
-//      {
-//      LulcNode *pNode = pNodeArray->at( i );
-//      lulcAMap.SetAt( pNode->m_id, i );
-//      }
-//
-//   float *trendArray = new float[ lulcCount ]; // initialized at beginning of year loop
-//   for ( int i=0; i < lulcCount; i++ )
-//      trendArray[ i ] = 0.0f;
-//
-//   float  area;
-//   float  trendValue;
-//   int     lulcA;
-//   int     lulcAIndex;
-//   float   noDataValue = this->m_pEnvModel->m_pIDULayer->GetNoDataValue();
-//
-//   UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer );  //roll back to starting conditions
-//   float totalArea = 0;
-//
-//   // get initial conditions
-//   for ( MapLayer::Iterator cell = this->m_pEnvModel->m_pIDULayer->Begin(); cell != this->m_pEnvModel->m_pIDULayer->End(); cell++ )
-//      {
-//      this->m_pEnvModel->m_pIDULayer->GetData( cell, this->m_pEnvModel->m_colArea, area );
-//      totalArea += area;
-//
-//      this->m_pEnvModel->m_pIDULayer->GetData( cell, trendCol, trendValue );
-//
-//      if ( trendValue != this->m_pEnvModel->m_pIDULayer->GetNoDataValue() )
-//         {
-//         this->m_pEnvModel->m_pIDULayer->GetData( cell, this->m_pEnvModel->m_colLulcA, lulcA );
-//
-//         lulcAMap.Lookup( lulcA, lulcAIndex );
-//
-//         float areaFactor = 1.0f;
-//         if ( af == AF_MULTIPLY || af == AF_AREAWEIGHT )
-//           areaFactor = area;
-//
-//         trendArray[ lulcAIndex ] += areaFactor*trendValue;
-//         }
-//      }
-//
-//   // trendArray now contains initial values.  Add these to the data object
-//   pData->Set( 0, 0, 0.0f );
-//   for ( int j=0; j < lulcCount; j++ )
-//      {
-//      if ( af == AF_AREAWEIGHT )
-//      pData->Set( j+1, 0, float( trendArray[ j ]*scaler/totalArea ) );
-//      else
-//         pData->Set( j+1, 0, float( trendArray[ j ]*scaler) );
-//
-//      trendArray[ j ] = 0.0f;
-//      }
-//
-//   // initial values set, start computing changes
-//   for ( int year=startYear; year < endYear; year++ )
-//      {
-//      INT_PTR from = -1;
-//      INT_PTR to   = -1;
-//      pDeltaArray->GetIndexRangeFromYear( year, from, to );
-//
-//      // apply the delta array for this year.
-//      for ( INT_PTR j=from; j < to; j++ )
-//         {
-//         DELTA &delta = pDeltaArray->GetAt(j);
-//         m_pEnvModel->ApplyDelta( this->m_pEnvModel->m_pIDULayer, delta );
-//         }
-//
-//      // recompute the trend statistic
-//      for ( int cell = this->m_pEnvModel->m_pIDULayer->Begin(); cell != this->m_pEnvModel->m_pIDULayer->End(); cell++ )
-//         {
-//         this->m_pEnvModel->m_pIDULayer->GetData( cell, this->m_pEnvModel->m_colArea, area );
-//         this->m_pEnvModel->m_pIDULayer->GetData( cell, trendCol, trendValue );
-//
-//         if ( trendValue != this->m_pEnvModel->m_pIDULayer->GetNoDataValue() )
-//            {
-//            this->m_pEnvModel->m_pIDULayer->GetData( cell, this->m_pEnvModel->m_colLulcA, lulcA );
-//
-//            lulcAMap.Lookup( lulcA, lulcAIndex );
-//            
-//            float areaFactor = 1.0f;
-//            if ( af == AF_MULTIPLY || af == AF_AREAWEIGHT )
-//              areaFactor = area;
-//
-//            trendArray[ lulcAIndex ] += areaFactor*trendValue;
-//            }
-//         }
-//
-//      // Add these to the data object
-//      pData->Set( 0, year+1, year+1 );
-//      for ( int j=0; j < lulcCount; j++ )
-//         {
-//         if ( af == AF_AREAWEIGHT )
-//         pData->Set( j+1, year+1, float( trendArray[ j ]*scaler/totalArea ) );
-//         else
-//            pData->Set( j+1, year+1, float( trendArray[ j ]*scaler ) );
-//
-//         trendArray[ j ] = 0.0f;
-//         }
-//      }
-//
-//   // add totals across rows
-//   if( includeTotal )
-//      {
-//      int lastIndex = pData->GetColCount()-1;
-//
-//      for ( int i=0; i < pData->GetRowCount(); i++ )
-//         {
-//         float sum = 0.0f;
-//         for ( int j=1; j < lastIndex; j++ )
-//            sum += pData->GetAsFloat( j, i );
-//
-//         pData->Set( lastIndex, i, sum );
-//         }
-//      }
-//
-//   delete [] trendArray;
-//
-//   // map has this runs deltas applied, remove them and restore the original
-//   pDeltaArray->SetFirstUnapplied( this->m_pEnvModel->m_pIDULayer, SFU_END );      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
-//   m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray );
-//   m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied-1);      // return map to it's starting state
-//
-//   return pData;
-//   }
-
-
-
-//-------------------------------------------------------------------
-// DataManager::CalculateEvalScoresByLulcA()
-//
-// for each LULC_A category, collects the value of each evaluative model.
-// return a VDataObject where columns are LULC_A class and rows are values of
-// the eval models.  The first column contains eval model labels.  
-// So, the VDataObj has #cols = #LULC_A classes+1, and the 
-// #rows=#of eval models. DataObj labels are the LULC classes.
-   //-------------------------------------------------------------------
-
-//VDataObj *DataManager::CalculateEvalScoresByLulcA( int year, int run /*=-1*/ )
-//   {
-//   DeltaArray *pDeltaArray = this->GetDeltaArray( run );
-//   if ( pDeltaArray == NULL )
-//      return NULL;
-//
-//
-//   // get the LULC_A nodes
-//   std::vector<LulcNode*> *pNodeArray = &(this->m_pEnvModel->m_lulcTree.GetRootNode()->m_childNodeArray);
-//   int lulcCount = (int) pNodeArray->size();
-//
-//   // allocate a data object
-//   int cols = lulcCount+1; // +1 for Eval model labels
-//
-//   // figure out how many models are reporting scores
-//   int evalModelCount = 0;
-//   CArray<int, int> evalModelIndexArray;
-//   CArray<int, int> evalModelColArray;
-//   CMap<int,int,int,int> evalModelIndexToOffsetMap;
-//
-//   for ( int i=0; i < this->m_pEnvModel->GetEvaluatorCount(); i++ )
-//      {
-//      EnvEvaluator *pInfo = this->m_pEnvModel->GetEvaluatorInfo( i );
-//      // SHOUOLD ADD TEH BELOW BACK
-//      //if ( pInfo->col >= 0 && pInfo->m_showInResults > 0 )
-//      //   {
-//      //   evalModelIndexArray.Add( i );
-//      //   evalModelColArray.Add( pInfo->col );
-//      //   evalModelIndexToOffsetMap.SetAt( i, evalModelCount );
-//      //   evalModelCount++;
-//      //   }
-//      }
-//
-//   // set data object labels with LULC_A classes
-//   VDataObj *pData = new VDataObj( cols, evalModelCount, U_UNDEFINED ); 
-//   pData->SetName( _T("Evaluative Scores by LULC_A Class") );
-//   pData->SetLabel( 0, "Evaluative Model" );
-//   for ( int i=0; i < lulcCount; i++ )
-//      {
-//      LulcNode *pNode = pNodeArray->at( i );
-//      CString label;
-//      label.Format("%s (%i)", (PCTSTR) pNode->m_name, pNode->m_id );
-//      pData->SetLabel( i+1, label );
-//      }
-//
-//   // set first column as eval model labels
-//   int row = 0;
-//   for ( int i=0; i < this->m_pEnvModel->GetEvaluatorCount(); i++ )
-//      {
-//      EnvEvaluator *pInfo = this->m_pEnvModel->GetEvaluatorInfo( i );
-//      /////if ( pInfo->col >= 0 && pInfo->m_showInResults > 0 )
-//      /////   {
-//      /////   pData->Set( 0, row, pInfo->m_name );
-//      /////   row++;
-//      /////   }
-//      }
-//
-//   // next, we are going to populate the dataobject by iterating through the delta array for the 
-//   // specified year, looking for score results for each LULC_A class
-//   // create a map to map lulcA values into columns in the data obj
-//   CMap< int, int, int, int > lulcAMap;
-//   for ( int i=0; i < lulcCount; i++ )
-//      {
-//      LulcNode *pNode = pNodeArray->at( i );
-//      lulcAMap.SetAt( pNode->m_id, i+1 );
-//      }
-//
-//   // initial values set, start computing changes
-//   UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer );  // roll back current map to starting conditions
-//   float totalArea = 0;
-//
-//   INT_PTR from = -1;
-//   INT_PTR to   = -1;
-//   pDeltaArray->GetIndexRangeFromYear( year, from, to );
-//
-//   // apply the delta array for this year.
-//   for ( INT_PTR j=0; j < to; j++ )
-//      {
-//      DELTA &delta = pDeltaArray->GetAt(j);
-//      m_pEnvModel->ApplyDelta( this->m_pEnvModel->m_pIDULayer, delta );
-//      }
-//
-//   // get scores, areas
-//   float area;
-//   float score;
-//   int   lulcA;
-//   float noDataValue = this->m_pEnvModel->m_pIDULayer->GetNoDataValue();
-//
-//   float *evalModelScores = new float[ evalModelCount ];      // one for each eval model being considered
-//   //float *evalModelAreas  = new float[ evalModelCount ];
-//   for ( int i=0; i < evalModelCount; i++ )
-//      evalModelScores[ i ] = 0;
-//
-//   for ( int cell = this->m_pEnvModel->m_pIDULayer->Begin(); cell != this->m_pEnvModel->m_pIDULayer->End(); cell++ )
-//      {
-//      this->m_pEnvModel->m_pIDULayer->GetData( cell, this->m_pEnvModel->m_colArea, area );
-//      this->m_pEnvModel->m_pIDULayer->GetData( cell, this->m_pEnvModel->m_colLulcA, lulcA );
-//
-//      int dataObjCol = lulcAMap[ lulcA ];
-//      if( dataObjCol < 0 )
-//         continue;
-//
-//      for ( int i=0; i < evalModelCount; i++ )
-//         {
-//         int col = evalModelColArray[ i ];
-//         this->m_pEnvModel->m_pIDULayer->GetData( cell, col, score );
-//
-//         if ( score != noDataValue )
-//            {
-//            float normalizedScore = area * score;
-//            float prevScore = pData->GetAsFloat( dataObjCol, i );
-//            pData->Set( dataObjCol, i, prevScore + normalizedScore );
-//            }
-//         }
-//      }
-//
-//   // normalize scores held in data obj
-//   for ( int col=1; col < lulcCount; col++ )
-//      for( int row=0; row < evalModelCount; row++ )
-//         {
-//         if ( totalArea == 0.0f )
-//            pData->Set( col, row, 0.0f );
-//         else
-//            {
-//            float score = pData->GetAsFloat( col, row );
-//            pData->Set( col, row, score/totalArea );
-//            }
-//         }
-//
-//   // map has this runs deltas applied, remove them and restore the original
-//   pDeltaArray->SetFirstUnapplied( this->m_pEnvModel->m_pIDULayer, SFU_END );      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
-//   m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray );
-//   m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied-1);      // return map to it's starting state
-//
-//   return pData;
-//   }
-
-
-
 // -- FDataObj *DataManager::CalculateLulcTransTable(.) ----------------------------------------------------------
 //
 // The data object will have a column and row for each lucl class
@@ -2940,12 +2183,12 @@ FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 
    bool        errorInLulc = false;
    DeltaArray *pDeltaArray = GetDeltaArray( run );
 
-   if ( pDeltaArray == NULL )
-      return NULL;
+   if ( pDeltaArray == nullptr )
+      return nullptr;
 
    CMap< int, int, int, int > lulcMap;
 
-   ASSERT( pDeltaArray != NULL );
+   ASSERT( pDeltaArray != nullptr );
    ASSERT( lulcCount > 0 );
 
    FDataObj *pData = new FDataObj( lulcCount, lulcCount, U_UNDEFINED );
@@ -2972,7 +2215,7 @@ FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 
 
    LulcNode *pNode = m_pEnvModel->m_lulcTree.GetRootNode();
    int index = 0;
-   while ( pNode != NULL )
+   while ( pNode != nullptr )
       {
       if ( level == pNode->GetNodeLevel() )
          {
@@ -3073,7 +2316,7 @@ FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 
    if ( _firstUnapplied > 0 )
       m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray, _firstUnapplied-1 );
 
-   m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied-1 );      // return map to it's starting state
+   m_pEnvModel->ApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, nullptr, 0, firstUnapplied == 0 ? 0 : firstUnapplied-1 );      // return map to it's starting state
 
    return pData;
    }
@@ -3081,8 +2324,11 @@ FDataObj *DataManager::CalculateLulcTransTable( int run /*= -1*/, int level /*= 
 
 FDataObj* DataManager::CalculateScenarioParametersFreq(int multiRun /*= -1 */)
    {
+   if (this->m_collectMultiRunOutput == false)
+      return nullptr;
+
    FDataObj* pData = (FDataObj*)this->GetMultiRunDataObj(DT_MULTI_PARAMETERS, multiRun);
-   ASSERT(pData != NULL);
+   ASSERT(pData != nullptr);
 
    return CalculateFreqTable(pData, 20, true);   // 20 bins, ignore first col
    }
@@ -3151,395 +2397,9 @@ FDataObj* DataManager::CalculateFreqTable(FDataObj* pSourceData, int binCount, b
    return pData;
    }
 
-/*
-FDataObj *DataManager::CalculateScenarioVulnerability( int multiRun )
-   {
-   // NOTE: This method only works with the Willamette Valley LULC classes!!!!!
-   // This method creates a datobj that represents the transition matrix for the three types referenced above.
-   // The transition matrix map look like:
-   //  Column:
-   //       0                  1            2                3                4                  5            6
-   // riparian->built  riparian->other  other->built  other->riparian   built->riparian built->other  vulnerability
-   // rows in the data obj correspond to IDU indices FROM THE ORIGINAL POLYGONS.  This means that, when buffering occurs,
-   // we have to map the child (or grandchild) polygons back to their parents and allocate the transition in an
-   // area-weighted fashion.
-
-   // get number of runs in the multirun
-   ASSERT( multiRun < m_multirunInfoArray.GetSize() );
-
-   int colDistStr = this->m_pEnvModel->m_pIDULayer->GetFieldCol( "DIST_STR" );
-   //ASSERT( colDistStr >= 0 );
-   if ( colDistStr < 0 )
-      return NULL;
-
-   // roll the map back to the starting conditions to get the original polygons
-   UINT_PTR firstUnapplied = m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer );
-
-   // create a FDataObj containing a array element for each IDU
-   int cells = this->m_pEnvModel->m_pIDULayer->GetRowCount();
-   FDataObj *pDataObj = new FDataObj( 13, cells, 0.0f );
-   pDataObj->SetName( "Vulnerability" );
-   pDataObj->SetLabel( 0, "Near Riparian->Built" );
-   pDataObj->SetLabel( 1, "Near Riparian->Far Riparian" );
-   pDataObj->SetLabel( 2, "Near Riparian->Other" );
-   pDataObj->SetLabel( 3, "Other->Built" );
-   pDataObj->SetLabel( 4, "Other->Near Riparian" );
-   pDataObj->SetLabel( 5, "Other->Far Riparian" );
-   pDataObj->SetLabel( 6, "Built->Near Riparian" );
-   pDataObj->SetLabel( 7, "Built->Far Riparian" );
-   pDataObj->SetLabel( 8, "Built->Other" );
-   pDataObj->SetLabel( 9, "Far Riparian->Near Riparian" );
-   pDataObj->SetLabel( 10, "Far Riparian->Built" );
-   pDataObj->SetLabel( 11, "Far Riparian->Other" );
-
-   pDataObj->SetLabel( 12, "Vulnerability" );
-
-   // figure out how many runs there where in this multirun
-   MULTIRUN_INFO &m = m_multirunInfoArray[ multiRun ];
-   int startRun = m.runFirst;
-   int endRun   = m.runLast;     // inclusive
-   int runs = endRun - startRun + 1;
-
-   // iterate through the multiruns, getting information on change
-   for ( int run = startRun; run <= endRun; run++ )
-      {
-      DeltaArray *pDeltaArray = this->GetDeltaArray( run );
-      UINT_PTR deltas = pDeltaArray->GetSize();
-
-      for ( UINT_PTR i=0; i < deltas; i++ )
-         {
-         DELTA &delta = pDeltaArray->GetAt( i );
-         m_pEnvModel->ApplyDelta( this->m_pEnvModel->m_pIDULayer, delta );
-
-         // was this an LULC change (we only look for C, since that is where the mapping for ?
-         if ( delta.col == this->m_pEnvModel->m_colLulcC )
-            {
-            // it was an LULC change - was it from
-            //int oldStatus, newStatus;
-            //lulcMap.Lookup( delta.oldValue.GetInt(), oldStatus );
-            //lulcMap.Lookup( delta.newValue.GetInt(), newStatus );
-            LU_STATUS oldStatus = GetLulcStatus( delta.cell, delta.oldValue.GetInt(), colDistStr );
-            LU_STATUS newStatus = GetLulcStatus( delta.cell, delta.newValue.GetInt(), colDistStr );
-
-            // was there a change?
-            // note: status:====>  built = 0;  riparian (near) = 1;  riparian (far) = 2,  other = 3;
-            if ( int( oldStatus ) < 4 && int( newStatus ) < 4 && oldStatus != newStatus )
-               {
-               int col = -1;
-               switch( oldStatus )
-                  {
-                  case LUS_BUILT:
-                     {
-                     switch( newStatus )
-                        {
-                        case LUS_NEAR_RIPARIAN:    col = 6; break;
-                        case LUS_FAR_RIPARIAN:     col = 7; break;
-                        case LUS_OTHER:            col = 8; break;
-                        }
-                     }
-                     break;
-
-                  case LUS_OTHER:
-                     {
-                     switch( newStatus )
-                        {
-                        case LUS_NEAR_RIPARIAN:    col = 4; break;
-                        case LUS_FAR_RIPARIAN:     col = 5; break;
-                        case LUS_BUILT:            col = 3; break;
-                        }
-                     }
-                     break;
-
-                  case LUS_NEAR_RIPARIAN:
-                     {
-                     switch( newStatus )
-                        {
-                        case LUS_BUILT:            col = 0; break;
-                        case LUS_FAR_RIPARIAN:     col = 1; break;
-                        case LUS_OTHER:            col = 2; break;
-                        }
-                     }
-                     break;
-
-                  case LUS_FAR_RIPARIAN:
-                     {
-                     switch( newStatus )
-                        {
-                        case LUS_BUILT:            col = 10; break;
-                        case LUS_NEAR_RIPARIAN:    col = 9; break;
-                        case LUS_OTHER:            col = 11; break;
-                        }
-                     }
-                     break;
-
-                  default:
-                     ASSERT( 0 );
-                  }
-
-               // is this a child cell?
-               Poly *pPoly = this->m_pEnvModel->m_pIDULayer->GetPolygon( delta.cell );
-               ASSERT( pPoly != NULL );
-
-               if ( pPoly->GetParentCount() > 0 )
-                  {
-                  ASSERT( pPoly->GetParentCount() == 1 );
-
-                  // recurse to root parent
-                  while( pPoly->GetParentCount() > 0 )
-                     {
-                     int parentIndex = pPoly->GetParent( 0 );
-                     pPoly = this->m_pEnvModel->m_pIDULayer->GetPolygon( parentIndex );
-                     }
-
-                  // get areas
-                  float childArea, parentArea;
-                  this->m_pEnvModel->m_pIDULayer->GetData( delta.cell, this->m_pEnvModel->m_colArea, childArea );
-                  this->m_pEnvModel->m_pIDULayer->GetData( pPoly->m_id, this->m_pEnvModel->m_colArea, parentArea );      // pPoly now points to the root parent
-                  pDataObj->Add( col, pPoly->m_id, childArea/parentArea );
-                  }
-               else  // not a child
-                  {
-                  ASSERT( delta.cell == pPoly->m_id );
-                  pDataObj->Add( col, delta.cell, 1.0f );
-                  }
-               }  // end of:  if ( oldStatus < 3 && newStatus < 3 && oldStatus != newStatus )
-            }
-         }  // end of: for ( i < deltas )
-
-      pDeltaArray->SetFirstUnapplied( this->m_pEnvModel->m_pIDULayer, SFU_END );      // deltas have no concept of the delta array they belong to, so ApplyDelta does not set FirstUnapplied
-      m_pEnvModel->UnApplyDeltaArray( this->m_pEnvModel->m_pIDULayer, pDeltaArray );      // reset map to starting state
-      }  // end of: for ( run <= endRun )
-
-   // all done iterating through runs: normalize probabilities and compute vulnerabilities
-   // Note: vulnerability is defined here as transitions from natural or managed to built.   Each transition has
-   // an "impact" factor that scales the degree that the transition impacts the vulnerability associated with site.
-   // the vulnerability is computed as the sum of the transition impacts.  Impacts are coputed as the difference
-   // of the factors associated with a tranistion.  For example:
-
-   // the impact factor of natural -> managed = 0-1 = -1
-   // the impact factor of natural -> built   = 0-2 = -2
-   // the impact factor of built -> natural   = 2-0 = 2
-   // hence, a low (negative) score reflects a negative impact factor
-
-   // these scores are normalized and inverted to a range of 0-1 using the negative of the range.  Hence, a high vulnerability
-   // is 1, no change is 0.5, and a tranistion to more natural vegetation = 0;
-
-   //
-
-   const float near_riparian = 0.0f;
-   const float far_riparian = 1.0f;
-   const float other    = 1.0f;
-   const float built    = 2.0f;
-   const float range    = 4.0f;   // for normalize
-
-
-   for ( int i=0; i < cells; i++ )
-      {
-      float vulnerability = 0.0f;
-
-      for ( int j=0; j < 12; j++ )
-         {
-         pDataObj->Div( j, i, float( runs ) );
-
-         // compute vulnerability
-         float value = pDataObj->GetAsFloat( j, i );
-         float scalar = 0;
-
-         switch( j )
-            {
-            case 0:     // "Near Riparian->Built"
-               scalar = near_riparian - built;
-               break;
-
-            case 1:     // "Near Riparian->Other"
-               scalar = near_riparian - far_riparian;
-               break;
-
-            case 2:     // "Near Riparian->Other"
-               scalar = near_riparian - other;
-               break;
-
-            case 3:     // "Other->Built"
-               scalar = other - built;
-               break;
-
-            case 4:     // "Other->Far Riparian"
-               scalar = other - near_riparian;
-               break;
-
-            case 5:     // "Other->Far Riparian"
-               scalar = other - far_riparian;
-               break;
-
-            case 6:     // "Built->Near Riparian"
-               scalar = built - near_riparian;
-               break;
-
-            case 7:     // "Built->Far Riparian"
-               scalar = built - far_riparian;
-               break;
-
-            case 8:     // "Built->Other";
-               scalar = built - other;
-               break;
-
-            case 9:     // "Far Riparian->Near Riparian"
-               scalar = far_riparian - near_riparian;
-               break;
-
-            case 10:     // "Far Riparian->Built"
-               scalar = far_riparian - built;
-               break;
-
-            case 11:     // "Far Riparian->Other";
-               scalar = far_riparian - other;
-               break;
-            }
-
-         vulnerability += (1.0f-((scalar + range/2 )/range)) * value;
-         }
-
-      pDataObj->Set( 12, i, vulnerability );
-      }
-
-   //model.ApplyDeltaArray( NULL, 0, firstUnapplied == 0 ? 0 : firstUnapplied-1  );      // return map to it's starting state
-   m_pEnvModel->ApplyDeltaArray( NULL, m_pEnvModel->m_pDeltaArray, firstUnapplied == 0 ? 0 : firstUnapplied-1, m_pEnvModel->m_pDeltaArray->GetCount()-1);
-
-   return pDataObj;
-   }
-
-   */
-   /*
-   LU_STATUS GetLulcStatus( int cell, int lulcC, int colDistStr )
-      {
-      // computes the following transitions
-      //   1.  Built
-      //       1-4     Residential
-      //       6       Commercial
-      //       8       Industrial
-      //       10      Commercial-Industrial
-      //       11      Urban non-vegetated unknown
-      //       18-22   Railroads and roads
-      switch( lulcC )
-         {
-         case 1:
-         case 2:
-         case 3:
-         case 4:
-         case 6:
-         case 8:
-         case 10:
-         case 11:
-         case 18:
-         case 19:
-         case 20:
-         case 21:
-         case 22:
-            return LUS_BUILT;
-         //
-         //   2.  Riparian
-         //       49      Urban Tree Overstory as Riparian
-         //       51-66   Forests, including Hybrid Poplar
-         //       86      Natural grassland
-         //       87      Natural shrub
-         //       89      Flooded marsh
-         //       95      Conifer woodlot
-         //       98      Oak savanna
-         //       99      Non-tree wetlands
-         case 49:
-         case 51:
-         case 52:
-         case 53:
-         case 54:
-         case 55:
-         case 56:
-         case 57:
-         case 58:
-         case 59:
-         case 60:
-         case 61:
-         case 62:
-         case 63:
-         case 64:
-         case 65:
-         case 66:
-         case 86:
-         case 87:
-         case 89:
-         case 95:
-         case 98:
-         case 99:
-            {
-            float distStr;
-            this->m_pEnvModel->m_pIDULayer->GetData( cell, colDistStr, distStr );
-
-            if ( distStr < 120 )
-               return LUS_NEAR_RIPARIAN;
-            else
-               return LUS_FAR_RIPARIAN;
-            }
-
-         //
-         //   3.  Water   (ignored for now)
-         //       30      Stream orders 1-4
-         //       31      Stream orders 5-7
-         //       32      Water
-         //
-         //   4.  Other
-         //       5       Vacant
-         //       12      Civic and open space
-         //       16      Rural residential
-         //       24      Rural non-vegetated unknown
-         //       26      Rural civic and open space
-         //       29      Main channel non-vegetated
-         //       67-85   Agriculture
-         //       88      Bare-fallow
-         //       90      Irrigated perennial
-         //       91      Turfgrass
-         //       92      Orchard
-         //       93      Christmas trees
-         case 5:
-         case 12:
-         case 16:
-         case 24:
-         case 26:
-         case 28:
-         case 67:
-         case 68:
-         case 69:
-         case 70:
-         case 71:
-         case 72:
-         case 73:
-         case 74:
-         case 75:
-         case 77:
-         case 78:
-         case 79:
-         case 80:
-         case 81:
-         case 82:
-         case 83:
-         case 84:
-         case 85:
-         case 88:
-         case 90:
-         case 91:
-         case 92:
-         case 93:
-            return LUS_OTHER;
-
-         default:
-            break;
-         }
-      return LUS_IGNORED;
-      }
-      */
-
-
 bool DataManager::SaveRun(LPCTSTR fileName, int run /*= -1*/)
    {
-   if ((run != -1 && run < 0 && run >= GetDeltaArrayCount()) || fileName == NULL)
+   if ((run != -1 && run < 0 && run >= GetDeltaArrayCount()) || fileName == nullptr)
       {
       ASSERT(0);
       return false;
@@ -3549,7 +2409,7 @@ bool DataManager::SaveRun(LPCTSTR fileName, int run /*= -1*/)
 
    FILE* fp;
    fopen_s(&fp, fileName, "wb");
-   if (fp == NULL)
+   if (fp == nullptr)
       {
       CString msg = "Error opening the file ";
       msg += fileName;
@@ -3580,7 +2440,7 @@ bool DataManager::LoadRun(LPCTSTR fileName)
    {
    FILE* fp;
    fopen_s(&fp, fileName, "rb");
-   if (fp == NULL)
+   if (fp == nullptr)
       {
       CString msg = "Error opening the file ";
       msg += fileName;
@@ -3603,7 +2463,7 @@ bool DataManager::LoadRun(LPCTSTR fileName)
    // Load Data Objects   
    for (int i = 0; i < DT_LAST; i++)
       {
-      ASSERT(m_currentDataObjs[i] == NULL);
+      ASSERT(m_currentDataObjs[i] == nullptr);
       FDataObj* pData = new FDataObj(U_YEARS);
       LoadDataObj(fp, *pData);
       m_currentDataObjs[i] = pData;
@@ -3624,14 +2484,18 @@ bool DataManager::LoadRun(LPCTSTR fileName)
    return true;
    }
 
-bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int endYear, bool selectedOnly, bool includeDuplicates, LPCTSTR fieldList /*=NULL*/)
+bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int endYear, bool selectedOnly, bool includeDuplicates, LPCTSTR fieldList /*=nullptr*/)
    {
    //--------------------------------------------------
    // Get the appropriate DeltaArray to use; not necessarily the current one.
    ASSERT(run < m_deltaArrayArray.GetSize());
+
+   if (this->m_collectMultiRunOutput && run != -1)
+      return false;
+   
    DeltaArray* pDeltaArray = (run > -1) ? m_deltaArrayArray.GetAt(run) : m_pDeltaArray;
 
-   if (pDeltaArray == NULL)
+   if (pDeltaArray == nullptr)
       return false;
 
    if (run < 0)
@@ -3640,7 +2504,7 @@ bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int
    RUN_INFO& ri = this->m_runInfoArray[run];
 
    nsPath::CPath path;
-   if (_path == NULL)
+   if (_path == nullptr)
       {
       //path = gpDoc->m_iniFile;
       //path.RemoveFileSpec();
@@ -3661,11 +2525,11 @@ bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int
    file.Format("DeltaArray_%s_Run%i.csv", (LPCTSTR)scname, scrun);
    path.Append(file);
 
-   bool includeAllFields = (fieldList == NULL || fieldList[0] == NULL) ? true : false;
+   bool includeAllFields = (fieldList == nullptr || fieldList[0] ==NULL) ? true : false;
    bool selectedDates = (startYear >= 0 && endYear >= startYear) ? true : false;
    int fieldCount = this->m_pEnvModel->m_pIDULayer->GetFieldCount();
 
-   bool* includeField = NULL;
+   bool* includeField = nullptr;
 
    if (!includeAllFields)
       {
@@ -3673,19 +2537,19 @@ bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int
       memset(includeField, 0, fieldCount * sizeof(bool)); // by default, don't include
 
       // parse fieldList
-      LPTSTR next = NULL;
+      LPTSTR next = nullptr;
       TCHAR* buffer = new TCHAR[lstrlen(fieldList) + 1];
       lstrcpy(buffer, fieldList);
 
       TCHAR* token = _tcstok_s(buffer, _T(",;"), &next);
-      while (token != NULL)
+      while (token != nullptr)
          {
          int col = this->m_pEnvModel->m_pIDULayer->GetFieldCol(token);
 
          if (col >= 0)
             includeField[col] = true;
 
-         token = _tcstok_s(NULL, _T(",;"), &next);
+         token = _tcstok_s(nullptr, _T(",;"), &next);
          }
 
       delete[] buffer;
@@ -3698,7 +2562,7 @@ bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int
    FILE* fp;
    fopen_s(&fp, path, "wt");     // open for writing
 
-   if (fp == NULL)
+   if (fp == nullptr)
       {
 #ifndef NO_MFC
       char buffer[512];
@@ -3743,7 +2607,7 @@ bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int
       }
 
    // clean up
-   if (includeField != NULL)
+   if (includeField != nullptr)
       delete[] includeField;
 
    fclose(fp);
@@ -3753,10 +2617,11 @@ bool DataManager::ExportRunDeltaArray(LPCTSTR _path, int run, int startYear, int
    return true;
    }
 
-
-
 bool DataManager::ExportRunData(LPCTSTR _path, int run /*=-1*/)   /// Note: run is 0-based, doesn't include m_startRunNumber
    {
+   //if (this->m_collectMultiRunOutput && run != -1)
+   //   return false;
+
    if (run < 0)
       run = (int)this->m_runInfoArray.GetCount() - 1;
 
@@ -3768,7 +2633,7 @@ bool DataManager::ExportRunData(LPCTSTR _path, int run /*=-1*/)   /// Note: run 
    CleanFileName(scname);
 
    nsPath::CPath exportPath;
-   if (_path == NULL)
+   if (_path == nullptr)
       exportPath = PathManager::GetPath(PM_OUTPUT_DIR);
    else
       exportPath = _path;
@@ -3776,7 +2641,7 @@ bool DataManager::ExportRunData(LPCTSTR _path, int run /*=-1*/)   /// Note: run 
    CString filename;
 
    // write data objects
-   DataObj* pData = NULL;
+   DataObj* pData = nullptr;
 
    for (int j = 0; j < DT_LAST; j++)
       {
@@ -3785,7 +2650,7 @@ bool DataManager::ExportRunData(LPCTSTR _path, int run /*=-1*/)   /// Note: run 
       if (dataObjArray.GetSize() > 0)
          {
          pData = dataObjArray[run];
-         if (pData != NULL)
+         if (pData != nullptr)
             {
             CString dataObjName(pData->GetName());
             CleanFileName(dataObjName);  // replace illegal chars with '_'
@@ -3803,7 +2668,7 @@ bool DataManager::ExportRunData(LPCTSTR _path, int run /*=-1*/)   /// Note: run 
                if (v.GetType() == TYPE_PDATAOBJ)
                   {
                   DataObj* pSubData = v.val.vPtrDataObj;
-                  ASSERT(pSubData != NULL);
+                  ASSERT(pSubData != nullptr);
 
                   CString subDOName(pSubData->GetName());
                   if (subDOName.IsEmpty())
@@ -3975,11 +2840,11 @@ bool DataManager::ExportRunBmps(LPCTSTR path, int run /*=-1*/)    // assume path
          {
          TCHAR buffer[256];
          lstrcpy(buffer, m_pEnvModel->m_exportBmpFields);
-         TCHAR* nextToken = NULL;
+         TCHAR* nextToken = nullptr;
 
          TCHAR* field = _tcstok_s(buffer, _T(";,"), &nextToken);
 
-         while (field != NULL)
+         while (field != nullptr)
             {
             int col = m_pEnvModel->m_pIDULayer->GetFieldCol(field);
             if (col < 0)
@@ -3999,12 +2864,12 @@ bool DataManager::ExportRunBmps(LPCTSTR path, int run /*=-1*/)    // assume path
 
 #ifdef _WINDOWS            
                //               Raster raster( m_pEnvModel->m_pIDULayer, false ); // don't copy polys, 
-               //               raster.Rasterize( col, m_pEnvModel->m_exportBmpSize, RT_32BIT, 0, NULL, DV_COLOR );
+               //               raster.Rasterize( col, m_pEnvModel->m_exportBmpSize, RT_32BIT, 0, nullptr, DV_COLOR );
                //               raster.SaveDIB( filename );
 #endif
                }
 
-            field = _tcstok_s(NULL, ";,", &nextToken);
+            field = _tcstok_s(nullptr, ";,", &nextToken);
             }
          }
       else
@@ -4023,7 +2888,7 @@ bool DataManager::ExportRunBmps(LPCTSTR path, int run /*=-1*/)    // assume path
 
 #ifdef _WINDOWS
             //            Raster raster( m_pEnvModel->m_pIDULayer, false ); // don't copy polys, 
-            //            raster.Rasterize( activeCol, m_pEnvModel->m_exportBmpSize, RT_32BIT, 0, NULL, DV_COLOR );
+            //            raster.Rasterize( activeCol, m_pEnvModel->m_exportBmpSize, RT_32BIT, 0, nullptr, DV_COLOR );
             //            raster.SaveDIB( filename );
 #endif
             }
@@ -4097,7 +2962,7 @@ int DataManager::ImportMultiRunData(LPCTSTR path, int multirun /* =-1 */)
 
    // position should now point to the start of the scenario name
    Scenario* pScenario = m_pEnvModel->m_pScenarioManager->GetScenario(scenario + position);
-   ASSERT(pScenario != NULL);
+   ASSERT(pScenario != nullptr);
    pScenario->SetScenarioVars(SET_WITH_RANDOMIZATION);
 
    // find index of scenario used in multi run for UI setup and scenario configuration 
@@ -4327,7 +3192,7 @@ bool DataManager::FixSubdividePointers(DeltaArray* pDA)
       QueryEngine* queryEng = this->m_pEnvModel->m_pIDULayer->GetQueryEngine();
 
       Query* qry = queryEng->ParseQuery(qryString, 0, "FixSubdividePointers()");
-      if (qry == NULL)
+      if (qry == nullptr)
          {
          ASSERT(0);
          }
@@ -4338,7 +3203,7 @@ bool DataManager::FixSubdividePointers(DeltaArray* pDA)
       Poly* pPoly = this->m_pEnvModel->m_pIDULayer->GetPolygon(deltaCheck.cell);
       Vertex center = pPoly->GetCentroid();
 
-      int* neighbors = NULL;
+      int* neighbors = nullptr;
       int count = 0;
       int n = 0;
 
@@ -4348,7 +3213,7 @@ bool DataManager::FixSubdividePointers(DeltaArray* pDA)
             delete[] neighbors;
          n += 100;
          neighbors = new int[n];
-         count = this->m_pEnvModel->m_pIDULayer->GetNearbyPolysFromIndex(pPoly, neighbors, NULL, n, 0);
+         count = this->m_pEnvModel->m_pIDULayer->GetNearbyPolysFromIndex(pPoly, neighbors, nullptr, n, 0);
          } while (n <= count);
 
          if (count < 0)
@@ -4465,6 +3330,9 @@ bool DataManager::FixSubdividePointers(DeltaArray* pDA)
 
 bool DataManager::ExportMultiRunData(LPCTSTR _path, int multirun /*=-1*/)
    {
+   if ( this->m_collectMultiRunOutput == false)
+      return false;
+   
    WAIT_CURSOR;
 
    // test passed multi-run parameter, then get first and last run numbers from array
@@ -4485,7 +3353,7 @@ bool DataManager::ExportMultiRunData(LPCTSTR _path, int multirun /*=-1*/)
    CleanFileName(path);
 
 #ifndef NO_MFC
-   SHCreateDirectoryEx(NULL, path, NULL);
+   SHCreateDirectoryEx(nullptr, path, nullptr);
 #else
    mkdir(path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 #endif
@@ -4538,10 +3406,10 @@ bool DataManager::ExportMultiRunData(LPCTSTR _path, int multirun /*=-1*/)
    return true;
    }
 
-bool DataManager::ExportDataObject(DataObj* pData, LPCTSTR _path, LPCTSTR filename /*=NULL*/)
+bool DataManager::ExportDataObject(DataObj* pData, LPCTSTR _path, LPCTSTR filename /*=nullptr*/)
    {
    nsPath::CPath path;
-   if (_path != NULL)
+   if (_path != nullptr)
       {
       path = _path;
       path.AddBackslash();
@@ -4761,7 +3629,7 @@ int DataManager::CleanFileName ( CString &filename )
    {
    LPSTR ptr = filename.GetBuffer();
 
-   while ( *ptr != NULL )
+   while ( *ptr != nullptr )
       {
       switch( *ptr )
          {

@@ -74,18 +74,18 @@ class DataObjMatrix : public CArray< DataObjArray*, DataObjArray* >
  *   4) Policy Application Summary - rows=policy index, cols=policy application stats.  This is calculated at the end of a run
  *   5) Global Constraints values
  *
- * These are stored in m_dataObjs, which stores arrays of dataobjs for each type of data
+ * These are stored in m_dataObjs, which stores arrays of dataobj ptrs for each type of data
  *     (each array has a data object of the specified type for each run)
  *
  * Additionally, if models return FDataObjs, they are stored in the m_modelDataObjMatrices array - an array of DataObjMatrix's.
  *   Each matrix is a collection of FDataObjs - row=run, col=year.  An element in the m_modelDataObjartices array is allocated for each
- *   model that reports results, but that element may be NULL if the model doesn't return FDataObjs
+ *   model that reports results, but that element may be nullptr if the model doesn't return FDataObjs
  * The m_modelDataObjMatrices is an array of pointers to DataObjMatrix's.  It's length is the # of models that report results.
- * If a model reports back DataObjs, then its corresponding m_dataObjArray entry is a pntr to a DataObjMatrix, otherwise it's NULL.
+ * If a model reports back DataObjs, then its corresponding m_dataObjArray entry is a pntr to a DataObjMatrix, otherwise it's nullptr.
  *
  * m_modelDataObjMatrices looks like:
  *
- * |DataObjMatrix* for Model 0|DataObjMatrix* for Model 1|......|DataObjMatrix* for Model N| (entries may be NULL )
+ * |DataObjMatrix* for Model 0|DataObjMatrix* for Model 1|......|DataObjMatrix* for Model N| (entries may be nullptr )
  *
  * Each models DataObjectMatrix looks like this:
  *
@@ -96,7 +96,7 @@ class DataObjMatrix : public CArray< DataObjArray*, DataObjArray* >
  *
  * Additionally, if models return FDataObjs, they are stored in the m_modelDataObjs array - an array of DataObj Matrices.
  *   Each matrix is a collection of FDataObjs - row=run, col=year.  An element in the m_modelDataObj array is allocated for each
- *   model that reports results, but that element may be NULL if the model doesn't return FDataObjs
+ *   model that reports results, but that element may be nullptr if the model doesn't return FDataObjs
  *
  * The following methods return dataobjs of the indicated type
  *
@@ -174,7 +174,7 @@ struct RUN_INFO
    int startYear;    // calendar year
    int endYear;      // calendar year
 
-   RUN_INFO() : pScenario(NULL), scenarioRun(-1), startYear(0), endYear(0) { }
+   RUN_INFO() : pScenario(nullptr), scenarioRun(-1), startYear(0), endYear(0) { }
    RUN_INFO(Scenario* _pScenario, int scenarioRun, int _startYear, int _endYear) : pScenario(_pScenario), scenarioRun(scenarioRun), startYear(_startYear), endYear(_endYear) { }
    RUN_INFO& operator = (const RUN_INFO& m) { pScenario = m.pScenario; scenarioRun = m.scenarioRun; startYear = m.startYear; endYear = m.endYear; return *this; }
    RUN_INFO(const RUN_INFO& m) { *this = m; }
@@ -187,7 +187,7 @@ struct MULTIRUN_INFO
    int runLast;               // number of last run in this multirun
    Scenario* pScenario;
 
-   MULTIRUN_INFO() : runFirst(-1), runLast(-1), pScenario(NULL) { }
+   MULTIRUN_INFO() : runFirst(-1), runLast(-1), pScenario(nullptr) { }
    MULTIRUN_INFO(int first, int last, Scenario* _pScenario) : runFirst(first), runLast(last), pScenario(_pScenario) { }
    MULTIRUN_INFO& operator = (const MULTIRUN_INFO& m) { runFirst = m.runFirst; runLast = m.runLast; pScenario = m.pScenario; return *this; }
    MULTIRUN_INFO(const MULTIRUN_INFO& m) { *this = m; }
@@ -219,7 +219,7 @@ class ENVAPI DataManager
       DataObj* m_currentDataObjs[DT_LAST];
 
       // arrays of data objects (from multiple runs)
-      DataObjArray m_dataObjs[DT_LAST];    // note: this is an array of dataobj arrays
+      DataObjArray m_dataObjs[DT_LAST];    // note: this is an array of dataobj ptr arrays arrays.  Each DataObj is deleted when the array is deleted
 
       // Current Multirun DataObjs (for the current multirun)
       DataObj* m_currentMultiRunDataObjs[DT_MULTI_LAST];
@@ -232,7 +232,7 @@ class ENVAPI DataManager
 
       // FDataObj's returned from Eval models  
       DataObjMatrix** m_modelDataObjMatrices;        // array of length [# of models] - each element corresponds to a model
-      // if the array element is NULL, no DataObjs are returned from the model
+      // if the array element is nullptr, no DataObjs are returned from the model
 // current delta array;
       DeltaArray* m_pDeltaArray;
 
@@ -277,6 +277,7 @@ class ENVAPI DataManager
 
       bool SubsetData(DM_TYPE type, int run, int col, int start, int end, CArray<float, float>& data);
 
+      bool m_collectMultiRunOutput = false;
       bool m_collectActorData;
       bool m_collectLandscapeScoreData;
       //bool m_collectPolicyPriorityData;
@@ -292,6 +293,7 @@ class ENVAPI DataManager
       void EnableCollection(DM_TYPE, bool enable = true);
       void EndRun(bool discardDeltaArray);
       int GetDeltaArrayCount() { return (int)m_deltaArrayArray.GetSize(); }
+      bool ClearRunData(int run = -1);
 
       //int CleanFileName ( CString &filename );
 
@@ -299,10 +301,10 @@ class ENVAPI DataManager
       bool FixSubdividePointers(DeltaArray* pDA);
       bool ExportMultiRunData(LPCTSTR path, int multirun = -1);  // saves all data associated with a multirun.
       //bool ExportRunData( LPCTSTR path, int flags /*1=maps, 2=outputs*/, int run );
-      bool ExportDataObject(DataObj* pData, LPCTSTR path, LPCTSTR filename = NULL);
+      bool ExportDataObject(DataObj* pData, LPCTSTR path, LPCTSTR filename = nullptr);
 
       //bool ExportRunMaps( LPCTSTR path, int run=-1, int interval=10 );  // path should include terminal '\'
-      bool ExportRunDeltaArray(LPCTSTR path, int run = -1, int startYear = -1, int endYear = -1, bool selectedOnly = false, bool includeDuplicates = false, LPCTSTR fieldList = NULL);
+      bool ExportRunDeltaArray(LPCTSTR path, int run = -1, int startYear = -1, int endYear = -1, bool selectedOnly = false, bool includeDuplicates = false, LPCTSTR fieldList = nullptr);
       bool ExportRunData(LPCTSTR path, int run = -1);
       bool ExportRunMap(LPCTSTR path, int run = -1); // int year );   // note: run currently ignored
       bool ExportRunBmps(LPCTSTR path, int run = -1); // int year );  // note: run currently ignored
@@ -325,7 +327,7 @@ class ENVAPI DataManager
       //bool CreateDeltaArray( void );
       //int  ApplyDeltaArray( int currentYear );
       int  AddDeltaArray(DeltaArray* delta) { return (int)m_deltaArrayArray.Add(delta); }
-      void DiscardDeltaArray(int run) { if (m_deltaArrayArray[run] != NULL) { delete m_deltaArrayArray[run]; m_deltaArrayArray[run] = NULL; } }
+      void DiscardDeltaArray(int run) { if (m_deltaArrayArray[run] != nullptr) { delete m_deltaArrayArray[run]; m_deltaArrayArray[run] = nullptr; } }
       //void SetFirstUnevaluatedDelta() { m_pDeltaArray->SetFirstUnevaluated(); }
 
    protected:

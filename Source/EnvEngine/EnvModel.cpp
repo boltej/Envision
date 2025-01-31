@@ -1212,7 +1212,10 @@ int EnvModel::RunMultiple()
       Run(SET_WITH_RANDOMIZATION);   // 1=randomize scenario variables.  This increments m_currentRun
 
       if (m_pDataManager)
+         {
          m_pDataManager->CollectMultiRunData(i);
+         m_pDataManager->ClearRunData(i);
+         }
 
       Reset();
 
