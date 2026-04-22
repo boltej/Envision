@@ -464,6 +464,7 @@
       "packagesPath": "C:\\Users\\boltej\\.nuget\\packages\\",
       "outputPath": "D:\\Envision\\Source\\SetupMSIX\\obj\\",
       "projectStyle": "PackageReference",
+      "UsingMicrosoftNETSdk": false,
       "fallbackFolders": [
         "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages"
       ],
@@ -499,7 +500,13 @@
         "noWarn": [
           "NU1702"
         ]
-      }
+      },
+      "restoreAuditProperties": {
+        "enableAudit": "true",
+        "auditLevel": "low",
+        "auditMode": "direct"
+      },
+      "SdkAnalysisLevel": "9.0.200"
     },
     "frameworks": {
       "uap10.0.17763": {
@@ -520,12 +527,12 @@
           "net471",
           "net472",
           "net48",
-          "net7.0-windows10.0.19041",
+          "net481",
+          "net9.0-windows10.0.19041",
           "net461"
         ],
         "assetTargetFallback": true,
-        "warn": true,
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\7.0.101\\RuntimeIdentifierGraph.json"
+        "warn": true
       }
     },
     "runtimes": {

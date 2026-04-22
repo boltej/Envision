@@ -39,6 +39,8 @@ Copywrite 2012 - Oregon State University
 #include "Path.h"
 #include "PathManager.h"
 
+#include <algorithm>
+
 
 #define USE_SHAPELIB
 
@@ -1007,7 +1009,24 @@ int VDataObj::WriteAscii( LPCTSTR fileName, TCHAR delimiter, int colWidth )
          //   pDataObj->WriteAscii( _doFilename, delimiter, colWidth );
          //   }
 
-         fputs( (LPCTSTR) GetAsString( col, row ), fp );
+         if (this->GetType(col, row) == TYPE_PDATAOBJ)
+            {
+            DataObj* pDataObj = nullptr;
+            bool ok = this->Get(col, row, pDataObj);
+            if (ok && pDataObj != nullptr)
+               {
+               std::string s = pDataObj->GetName();
+               std::replace(s.begin(), s.end(), ',', '_'); // replace commas
+               
+               fputc('(', fp);
+               fputs(s.c_str(), fp);
+               fputc(')', fp);
+               }
+            else 
+               fputs("null", fp);
+            }
+         else
+            fputs( (LPCTSTR) GetAsString( col, row ), fp );
          
          if ( col < cols-1 )
             fputc( delimiter, fp ); 

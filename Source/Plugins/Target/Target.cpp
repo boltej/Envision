@@ -99,9 +99,9 @@ ALLOCATION *AllocationSet::AddAllocation( LPCTSTR name, Target *pTarget, LPCTSTR
    }
 
 
-PREFERENCE *AllocationSet::AddPreference( LPCTSTR name, Target *pTarget, LPCTSTR query, float value )
+PREFERENCE *AllocationSet::AddPreference( LPCTSTR name, Target *pTarget, LPCTSTR query, float value, bool estParam )
    {
-   PREFERENCE *pPref = m_preferences.Add( name, pTarget, query, value );
+   PREFERENCE *pPref = m_preferences.Add( name, pTarget, query, value, estParam );
 
    // process query
    if ( query != nullptr )
@@ -1444,7 +1444,7 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
       LPTSTR name = nullptr;  //
       LPTSTR descr = nullptr; //
       LPTSTR queryStr = nullptr; //
-      bool estParams = false;
+      int estParams = 0;
       LPTSTR method = nullptr;
       LPTSTR value  = nullptr;
       LPTSTR colTarget = nullptr;
@@ -1478,7 +1478,7 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
             { "prefsCol",     TYPE_STRING,   &colPrefs,                    false, 0 },
             { "query",        TYPE_STRING,   &queryStr,                    false, 0 },
             { "init_mask",    TYPE_STRING,   &initMask,                    false, 0 },
-            { "estimate_params", TYPE_BOOL,  &estParams,   false, 0 },
+            { "estimate_params", TYPE_INT,  &estParams,   false, 0 },
             { nullptr,        TYPE_NULL,     nullptr,                false, 0 } };
 
       MapLayer *pLayer = (MapLayer*)pEnvContext->pMapLayer;
@@ -1871,6 +1871,7 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
                LPCTSTR _query = pXmlPreference->Attribute(_T("query"));
                LPCTSTR _value = pXmlPreference->Attribute(_T("value"));
                LPCTSTR _target = pXmlPreference->Attribute(_T("target"));
+               LPCTSTR _estParam = pXmlPreference->Attribute(_T("estimate_param"));
 
                if (_name == nullptr || _value == nullptr || _query == nullptr)
                   {
@@ -1882,7 +1883,8 @@ bool TargetProcess::LoadXml(TiXmlElement* pXmlRoot, EnvContext* pEnvContext)
                   }
 
                float value = float(atof(_value));
-               PREFERENCE* pModifier = pAllocationSet->AddPreference(_name, pTarget, _query, value);
+               bool estParam = _estParam == nullptr ? false : true;
+               PREFERENCE* pModifier = pAllocationSet->AddPreference(_name, pTarget, _query, value, estParam);
                ASSERT(pModifier != nullptr);
                modifierCount++;
 

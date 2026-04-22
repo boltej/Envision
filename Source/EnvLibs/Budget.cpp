@@ -262,9 +262,9 @@ float BudgetItem::ApplyCostItem(CostItem* pCostItem, int idu, float area, bool u
          m_cumulativeCosts += cost;
          pCostItem->m_totalCosts += cost;
          pCostItem->m_totalCumulativeCosts += cost;
+         return cost;
          }
-      return true;
-
+      
       case BT_MAX_AREA:
          m_costs += area;
          m_cumulativeCosts += area;

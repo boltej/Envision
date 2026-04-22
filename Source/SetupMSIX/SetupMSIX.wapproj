@@ -65,7 +65,7 @@
     <AppxBundlePlatforms>x64</AppxBundlePlatforms>
     <AppInstallerUri>http://envision.bee.oregonstate.edu/Installer</AppInstallerUri>
     <HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
-    <AppxPackageDir>\\envweb\EnvisionInstaller\</AppxPackageDir>
+    <AppxPackageDir>D:\EnvisionInstaller\</AppxPackageDir>
     <AppxPackageSigningTimestampServerUrl>http://timestamp.sectigo.com</AppxPackageSigningTimestampServerUrl>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">

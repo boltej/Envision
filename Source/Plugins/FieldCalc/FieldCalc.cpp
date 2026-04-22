@@ -155,8 +155,13 @@ bool FieldCalculator::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       }
 
    CString outvar = this->m_name;
-
    AddOutputVar(outvar, m_pOutputData, "");
+
+   for (int i = 0; i < fieldCount; i++)
+      {
+      CString label = m_fields[i]->m_name + ".InUse";
+      this->AddInputVar((LPCTSTR)label, m_fields[i]->m_use, "");
+      }
 
    // initialize idu fields if called for
    _Run(pEnvContext, true);
@@ -176,10 +181,11 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
    {
    // anything to run?
    bool run = false;
-   for (int i = 0; i < (int)this->m_fields.GetSize(); i++)
+   int fieldCount = (int)m_fields.GetSize();
+   for (int i = 0; i < fieldCount; i++)
       {
       FieldDef* pFD = m_fields[i];
-      if (pFD->m_modelID == pEnvContext->id)
+      if (pFD->m_modelID == pEnvContext->id && pFD->m_use)
          {
          // if we are in initialization, only initialize field if called for in the input file
          if (init && pFD->m_initialize != 0)  // (1/-1 inits the field)
@@ -203,13 +209,29 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
       ::ShuffleArray< UINT >(m_iduArray.GetData(), iduCount, m_pRandUnif);
 
    // reset field def application counters
-   int fieldCount = (int)m_fields.GetSize();
    for (int i = 0; i < fieldCount; i++)
       {
       FieldDef* pFD = m_fields[i];
 
+      if (! pFD->m_use)
+         continue;
+
       if (pFD->m_modelID != pEnvContext->id)
          continue;
+
+      //bool passScn = false;
+      //if ( pFD->m_scenarios.size() == 0 )
+      //   passScn = true;
+      //else
+      //   for ( int j=0; j < pFD->m_scenarios.size(); j++)
+      //      if (pFD->m_scenarios[j] == (LPCTSTR)pEnvContext->pScenario->m_name)
+      //         {
+      //         passScn = true;
+      //         break;
+      //         }
+      //
+      //if (!passScn)
+      //   continue;
 
       pFD->m_count = 0;
       pFD->m_value = 0;  // global value (sum)
@@ -247,9 +269,12 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             {
             FieldDef* pFD = m_fields[i];
 
+            if (!pFD->m_use)
+               continue;
+            
             if (pFD->m_modelID != pEnvContext->id)
                continue;
-
+ 
             // if we are in initialization, only initialize field if called for in the input file
             if (init && pFD->m_initialize == 0)  // (1/-1 inits the field)
                continue;
@@ -339,6 +364,9 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
          {
          FieldDef* pFD = m_fields[i];
 
+         if (!pFD->m_use)
+            continue;
+
          if (pFD->m_modelID != pEnvContext->id)
             continue;
 
@@ -412,6 +440,9 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
             {
             FieldDef* pFD = m_fields[i];
 
+            if (!pFD->m_use)
+               continue;
+
             if (pFD->m_modelID != pEnvContext->id)
                continue;
 
@@ -437,6 +468,10 @@ bool FieldCalculator::_Run(EnvContext* pEnvContext, bool init)
       for (int i = 0; i < fieldCount; i++)
          {
          FieldDef* pFD = m_fields[i];
+
+         if (!pFD->m_use)
+            continue;
+
          if (pFD->m_modelID != pEnvContext->id)
             continue;
 
@@ -597,7 +632,7 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
       LPTSTR op = nullptr;
       LPTSTR type = nullptr;
       LPTSTR apply = nullptr;
-
+      LPTSTR scenarios = nullptr;
 
       XML_ATTR attrs[] = { // attr           type           address             isReq checkCol
                          { "name",           TYPE_CSTRING,  &pFD->m_name,           false, 0 },
@@ -607,12 +642,14 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                          { "max_limit",      TYPE_FLOAT,    &pFD->m_maxLimit,       false, 0 },
                          { "min_limit",      TYPE_FLOAT,    &pFD->m_minLimit,       false, 0 },
                          { "type",           TYPE_STRING,   &type,                  false, 0 },
+                         { "use",            TYPE_BOOL,     &pFD->m_use,            false, 0 },
                          { "use_delta",      TYPE_BOOL,     &pFD->m_useDelta,       false, 0 },
                          { "initialize",     TYPE_INT,      &pFD->m_initialize,     false, 0 },
                          { "groupby",        TYPE_CSTRING,  &pFD->m_groupBy,        false, 0 },
                          { "op",             TYPE_STRING,   &op,                    false, 0 },
-                         { "apply",          TYPE_STRING,   &apply,                 false, 0},
+                         { "apply",          TYPE_STRING,   &apply,                 false, 0 },
                          { "model_id",       TYPE_INT,      &pFD->m_modelID,        false, 0 },
+                         { "scenarios",      TYPE_CSTRING,  &scenarios,             false, 0 },
                          { nullptr,          TYPE_NULL,     nullptr,             false, 0 } };
 
       if (TiXmlGetAttributes(pXmlFieldDef, attrs, path, this->m_pMapLayer) == false)
@@ -654,6 +691,16 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                }
 
             pFD->m_applyEverywhere = ((apply != nullptr ) ? true : false);
+
+            // scenarios
+            //if (scenarios != nullptr)
+            //   {
+            //   CStringArray _scenarios;
+            //   int count = ::Tokenize(scenarios, _T(",;"), _scenarios);
+            //
+            //   for (int i = 0; i < count; i++)
+            //      pFD->m_scenarios.push_back(string(_scenarios[i]));
+            //   }
 
             pFD->Init();
             m_fields.Add(pFD);

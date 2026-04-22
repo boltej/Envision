@@ -389,6 +389,23 @@ bool UrbanDev::InitRun(EnvContext* pContext, bool useInitialSeed)
 
             this->UpdateIDU(pContext, idu, this->m_colUrbanPopAvail, urbanPopAvail);
             }
+
+         // flag eligible ADUs sites
+         if (m_pCurrentUgScenario->m_pADUQuery != nullptr)
+            {
+            bool result = false;
+            bool ok = m_pCurrentUgScenario->m_pADUQuery->Run(idu, result);
+            if (ok && result)
+               {
+               float rn = (float)randUnif.RandValue(0, 1);
+               if (rn < m_pCurrentUgScenario->m_aduFraction)
+                  this->UpdateIDU(pContext, idu, this->m_colADU, ADU_ELIGIBLE);
+               else
+                  this->UpdateIDU(pContext, idu, this->m_colADU, ADU_INELIGIBLE);
+               }
+            }
+         else
+            this->UpdateIDU(pContext, idu, this->m_colADU, ADU_INELIGIBLE);
          }
 
       // reset DUArea DU metrics
@@ -1534,7 +1551,7 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
    if (pXmlUGAExpansions != NULL)
       {
       LPTSTR method = LPTSTR("nearest"), ugaCol = LPTSTR("UGA"), upzoned = LPTSTR("UPZONED"), popCapCol = NULL, availCapCol = NULL, zoneCol = NULL, distCol = NULL,
-         urbanPopAvailCol = NULL, nearUgaCol = NULL, priorityCol = NULL, eventCol = NULL, imperviousCol = NULL, ugaPopCol = NULL;
+         urbanPopAvailCol = NULL, nearUgaCol = NULL, priorityCol = NULL, eventCol = NULL, imperviousCol = NULL, ugaPopCol = NULL, aduCol=NULL;
 
       XML_ATTR uxAttrs[] = {
          // attr             type         address         isReq  checkCol
@@ -1551,13 +1568,14 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
          { "impervious_col", TYPE_STRING, &imperviousCol, false,  CC_AUTOADD | TYPE_FLOAT },
          { "uga_pop_col",    TYPE_STRING, &ugaPopCol,     false,  CC_AUTOADD | TYPE_FLOAT },
          { "upzoned",        TYPE_STRING, &upzoned,       false,  CC_AUTOADD | TYPE_INT },
+         { "adu_col",        TYPE_STRING, &aduCol,        false,  CC_AUTOADD | TYPE_INT },
          { NULL,             TYPE_NULL,   NULL,           false,   0 } };
 
       ok = TiXmlGetAttributes(pXmlUGAExpansions, uxAttrs, filename, pLayer);
       if (!ok)
          {
          CString msg;
-         msg.Format(_T("Misformed root element reading <uga_expansions> tag in input file %s"), filename);
+         msg.Format(_T("Misformed root element reading <uga_expansions> tag in input file %s"), (LPCTSTR) filename);
          Report::ErrorMsg(msg);
          return false;
          }
@@ -1572,6 +1590,7 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
       this->m_colUgNearUga = pLayer->GetFieldCol(nearUgaCol);
       this->m_colUgNearDist = pLayer->GetFieldCol(distCol);
       this->m_colUpzoned = pLayer->GetFieldCol(upzoned);
+      this->m_colADU = pLayer->GetFieldCol(aduCol);
 
       pLayer->SetColData(this->m_colUpzoned, 0, true);
 
@@ -1612,13 +1631,15 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
             { "ppdu",                  TYPE_FLOAT,     &(pUgScn->m_ppdu),            false,   0 },
             { "max_expand_frac",       TYPE_FLOAT,     &(pUgScn->m_maxExpandFraction), false,   0 },
             { "new_impervious_factor", TYPE_FLOAT,     &(pUgScn->m_imperviousFactor),false,   0 },
+            { "adu_eligible",          TYPE_CSTRING,   &(pUgScn->m_aduQuery),        false,    0 },
+            { "adu_eligible_frac",     TYPE_FLOAT,     &(pUgScn->m_aduFraction),     false,   0 },
             { NULL,               TYPE_NULL,      NULL,                         false,   0 } };
 
          ok = TiXmlGetAttributes(pXmlUgScn, uxScnAttrs, filename);
          if (!ok)
             {
             CString msg;
-            msg.Format(_T("  Misformed element reading <scenario> attributes in input file %s"), filename);
+            msg.Format(_T("  Misformed element reading <scenario> attributes in input file %s"), (LPCTSTR) filename);
             Report::ErrorMsg(msg);
             delete pUgScn;
             return false;
@@ -1802,6 +1823,13 @@ bool UrbanDev::LoadXml(LPCTSTR _filename, EnvContext* pContext)
             pUgScn->m_pCommQuery = m_pQueryEngine->ParseQuery(pUgScn->m_commQuery, 0, pUgScn->m_name);
             }
 
+         // compile comm query
+         if (pUgScn->m_aduQuery.GetLength() > 0)
+            {
+            ASSERT(m_pQueryEngine != NULL);
+            pUgScn->m_pADUQuery = m_pQueryEngine->ParseQuery(pUgScn->m_aduQuery, 0, pUgScn->m_name);
+            }
+
          pXmlUgScn = pXmlUgScn->NextSiblingElement("scenario");
          }
 
@@ -1960,7 +1988,7 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
    UgUpdateUGAStats(pContext, false);   // false
 
    int ugaCount = (int)m_ugaArray.GetSize();
-
+   
    for (int i = 0; i < ugaCount; i++)
       {
       UGA* pUGA = this->m_ugaArray[i];
@@ -1977,6 +2005,8 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
       bool didExpand = false;
       CString expandCriteria;
       expandCriteria.Format("");
+
+      CString expandErrMsg;
 
       // iterate through each urban expansion criteria definition
       for (int j = 0; j < m_pCurrentUgScenario->m_uxExpandArray.GetSize(); j++)
@@ -2017,39 +2047,42 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
          else
             {
             int status = pUGA->m_expandCriteria[j];
-            CString msg;
-            msg.Format("%s: ", (LPCTSTR)pExpand->m_name);
+            expandErrMsg.Format("%s: ", (LPCTSTR)pExpand->m_name);
             if (status & EC_MAX_POP_NOT_MET)
-               msg += "Max Pop Not Met; ";
+               expandErrMsg += "Max Pop Not Met; ";
             if (status & EC_MIN_POP_NOT_MET)
-               msg += "Min Pop Not Met; ";
+               expandErrMsg += "Min Pop Not Met; ";
             if (status & EC_WRONG_TYPE)
-               msg += "Wrong Type; ";
+               expandErrMsg += "Wrong Type; ";
             if (status & EC_BELOW_TRIGGER)
-               msg += "Below Trigger; ";
+               expandErrMsg += "Below Trigger; ";
             if (status & EC_NOT_ENOUGH_EVENTS)
-               msg += "Not Enough Events; ";
+               expandErrMsg += "Not Enough Events; ";
             if (status & EC_TOO_MANY_EVENTS)
-               msg += "Too Many Events; ";
+               expandErrMsg += "Too Many Events; ";
             }
          }  // end of: for (each Expansion definition) - try next <expand_when> block
 
       if (didExpand == false)
          {
-         CString msg;
-         msg.Format("%s (%i): Expand Criteria Not met (details: %s)", (LPCTSTR)pUGA->m_name, pContext->currentYear, (LPCTSTR)expandCriteria);
-         //Report::Log(msg);
-         //TRACE((LPCTSTR)msg);
+         //CString msg;
+         //msg.Format("  - Expand Criteria not met in year %i (details: %s)", pContext->currentYear, (LPCTSTR) expandErrMsg);
+         //Report::LogInfo(msg);
+         //Report::LogInfo("- no expansion occurred")
          }
 
       // Upzones
       CString upzoneCriteria;
       upzoneCriteria.Format("  ");
+      CString upzoneErrMsg;
       bool didUpzone = false;
 
       for (int j = 0; j < m_pCurrentUgScenario->m_uxUpzoneArray.GetSize(); j++)
          {
          UgUpzoneWhen* pUpzone = m_pCurrentUgScenario->m_uxUpzoneArray[j];
+
+         if (pUpzone->m_type.Compare(pUGA->m_type) != 0)
+            continue;
 
          // are the criteria for this Upzone event met for this UGA?
          // Note:  Each conditional below is a DISQUALIFYING condition
@@ -2079,6 +2112,10 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
 
          if (pUGA->m_upzoneCriteria[j] == 0)
             {
+            CString msg;
+            msg.Format("%s:%s (%i)  - All Upzone Criteria met, attempting upzone", (LPCTSTR) pUGA->m_name, (LPCTSTR)pUpzone->m_name, pContext->currentYear);
+            Report::LogInfo(msg);
+
             UgUpzoneUGA(pUGA, pUpzone, pContext);
             didUpzone = true;
             break;
@@ -2086,30 +2123,26 @@ bool UrbanDev::UgExpandUGAs(EnvContext* pContext, MapLayer* pLayer)
          else
             {
             int status = pUGA->m_upzoneCriteria[j];
-            CString msg;
-            msg.Format("%s: ", (LPCTSTR)pUpzone->m_name);
+            upzoneErrMsg.Format("%s:%s: ", (LPCTSTR)pUGA->m_name, (LPCTSTR)pUpzone->m_name);
             if (status & EC_MAX_POP_NOT_MET)
-               msg += "Max Pop Not Met; ";
+               upzoneErrMsg += "Max Pop Not Met; ";
             if (status & EC_MIN_POP_NOT_MET)
-               msg += "Min Pop Not Met; ";
+               upzoneErrMsg += "Min Pop Not Met; ";
             if (status & EC_WRONG_TYPE)
-               msg += "Wrong Type; ";
+               upzoneErrMsg += "Wrong Type; ";
             if (status & EC_BELOW_TRIGGER)
-               msg += "Below Trigger; ";
+               upzoneErrMsg += "Below Trigger; ";
             if (status & EC_NOT_ENOUGH_EVENTS)
-               msg += "Not Enough Events; ";
+               upzoneErrMsg += "Not Enough Events; ";
             if (status & EC_TOO_MANY_EVENTS)
-               msg += "Too Many Events; ";
+               upzoneErrMsg += "Too Many Events; ";
+
+            //CString msg;
+            //msg.Format("  - Upzone Criteria not met in year %i (details: % s)", pContext->currentYear, (LPCTSTR)upzoneErrMsg);
+            //Report::LogInfo(msg);
             }
          }
 
-      if (didUpzone == false)
-         {
-         CString msg;
-         msg.Format("%s (%i): Upzone Criteria Not met (details: %s)", (LPCTSTR)pUGA->m_name, pContext->currentYear, (LPCTSTR)upzoneCriteria);
-         //Report::Log(msg);
-         //TRACE((LPCTSTR)msg);
-         }
       }
    return true;
    }
@@ -2324,7 +2357,7 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
                {
                float impFrac = GetImperviousFromZone(resZone.zone);
                impFrac *= m_pCurrentUgScenario->m_imperviousFactor;
-               UpdateIDU(pContext, expandArray[j], m_colImpervious, impFrac, ADD_DELTA);
+               //UpdateIDU(pContext, expandArray[j], m_colImpervious, impFrac, ADD_DELTA);
                }
 
             // have we annexed enough area? then stop
@@ -2453,7 +2486,7 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
 
       msg.Format("    Considered %i IDUs: %i Passed, %i had no assignable zone, %i didn't meet constraint",
          nConsideredCount, nPassingIDUs, nNoZoneFound, nRejectedConstraintNotMet);      
-      Report::LogWarning(msg);
+      Report::LogInfo(msg);
       }
    else
       {
@@ -2469,6 +2502,28 @@ bool UrbanDev::UgExpandUGA(UGA* pUGA, UgExpandWhen* pExpand, EnvContext* pContex
    return true;
    }
 
+
+int UrbanDev::UgGetNewZone(PtrArray<ZoneInfo>& zones, int startZone, int steps, float &popDelta)
+   {
+   int nZones = (int) zones.GetSize();
+   int index = 0;
+   for (index = 0; index < nZones; index++)
+      {
+      if (zones[index]->m_id == startZone)
+         break;
+      }
+
+   if (index >= nZones)
+      return -1;  // not found
+
+   int startIndex = index;
+   index += steps;
+   if (index >= nZones) // not enough steps left?
+      index = nZones - 1;
+
+   popDelta = zones[index]->m_density - zones[startIndex]->m_density;
+   return zones[index]->m_id;  // return last one
+   }
 
 
 bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContext)
@@ -2487,6 +2542,11 @@ bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContex
    // upzone inside UGA?
    // for IDU's in this urban area, try to upzone until demand met
    int iduCount = pUpzone->m_rural ? (int)pUGA->m_priorityListRes.GetSize() : (int)pUGA->m_iduArray.GetSize();
+   int nUpzones = 0;
+   int nUpzoneEvents = 0;
+   float upzoneAreaHa = 0;
+   float upzoneEligibleAreaHa = 0;
+   
 
    for (int i = 0; i < iduCount; i++)
       {
@@ -2503,142 +2563,162 @@ bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContex
       int zone = -1;
       pIDULayer->GetData(idu, this->m_colZone, zone);
 
-      // residential?
+      // is it currently in a res zone?
       bool upzone = true;
       if (!UgIsResidential(zone) && !UgIsRuralResidential(zone))
          upzone = false;
 
-      // hasn't been previously upzoned?
+      // has it been previously upzoned in this cycle?
       UINT uzCount = 0;
       pUGA->m_iduToUpzonedMap.Lookup(idu, uzCount);
       if (uzCount > 0)
          upzone = false;
 
-      // additional criteria?
+      // has it been previously upzoned?
+      int _uzCount = 0;
+      pIDULayer->GetData(idu, m_colUpzoned, _uzCount);
+      if (_uzCount >= pUpzone->m_stopAfter)
+         upzone = false;
+
+      // passes criteria, upzone it (kernal)?
       if (upzone)
          {
          // upzone the kernel.  To do this requires 1) finding the current zone in the 
          // res zone array, and then advancing as needed.
          int zIndex = -1;
-         if (pUpzone->m_rural)
-            {
-            for (int k = 0; k < this->m_ruralResZoneArray.GetSize(); k++)
-               {
-               if (this->m_ruralResZoneArray[k]->m_id == zone)
-                  {
-                  zIndex = k; break;
-                  }
-               }
-            }
-         else  // within UGA
-            {
-            for (int k = 0; k < this->m_resZoneArray.GetSize(); k++)
-               {
-               if (this->m_resZoneArray[k]->m_id == zone)
-                  {
-                  zIndex = k; break;
-                  }
-               }
-            }
-
-         if (zIndex < 0)
-            {
-            CString msg;
-            msg.Format("Unable to find %s zone %i", pUpzone->m_rural ? "Rural Res" : "Residential", zone);
-            Report::LogWarning(msg);
-            continue;
-            }
-
-         int steps = 0;
-         int upIndex = zIndex;
-         int newZone = 0;
-         float popDelta = 0;   // #/m2
-
-         if (pUpzone->m_rural)
-            {
-            while (steps < pUpzone->m_steps && upIndex < this->m_ruralResZoneArray.GetSize() - 1)
-               {
-               upIndex++;
-               if (this->m_ruralResZoneArray[upIndex]->m_density > this->m_ruralResZoneArray[zIndex]->m_density)
-                  steps++;
-               }
-            newZone = this->m_ruralResZoneArray[upIndex]->m_id;
-
-            popDelta = this->m_ruralResZoneArray[upIndex]->m_density - this->m_ruralResZoneArray[zIndex]->m_density;   // units are du/ac
-            popDelta *= m_pCurrentUgScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2
-            }
-         else
-            {
-            while (steps < pUpzone->m_steps && upIndex < this->m_resZoneArray.GetSize() - 1)
-               {
-               upIndex++;
-               if (this->m_resZoneArray[upIndex]->m_density > this->m_resZoneArray[zIndex]->m_density)
-                  steps++;
-               }
-            newZone = this->m_resZoneArray[upIndex]->m_id;
-
-            popDelta = this->m_resZoneArray[upIndex]->m_density - this->m_resZoneArray[zIndex]->m_density;   // units are du/ac
-            popDelta *= m_pCurrentUgScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2
-            }
-
-         // update the kernel IDU
-         UpdateIDU(pContext, idu, m_colUgEvent, pUGA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
-         UpdateIDU(pContext, idu, m_colZone, newZone, ADD_DELTA);
-
-         if (this->m_colUpzoned >= 0)
-            UpdateIDU(pContext, idu, m_colUpzoned, 1, ADD_DELTA);
+         int newZone = -1;
+         float popDelta = 0;  // du/ac 
 
          float area = 0;
          pIDULayer->GetData(idu, m_colArea, area);
-         addedPop += popDelta * area;
+         upzoneEligibleAreaHa += area * HA_PER_M2;
 
-         // flag this IDU as having been upzoned
-         pUGA->m_iduToUpzonedMap[idu] += 1;
+         if (pUpzone->m_rural)
+            newZone = UgGetNewZone(this->m_ruralResZoneArray, zone, pUpzone->m_steps, popDelta);  // pop delta is du/ac
+         else  // within UGA
+            newZone = UgGetNewZone(this->m_resZoneArray, zone, pUpzone->m_steps, popDelta);
+         
+         if (popDelta <= 0)
+            Report::LogError("negative popDelta found in UrbanDev::UgUpzoneUGA ");
 
-
-         //------------------------------------------------------------------------------------------------------------------------------------
-         // expand to nearby IDUs
-         // Inputs:
-         //   idu = index of the kernal (nucleus) polygon
-         //   pPatchQuery = the column storing the value to be compared to the value
-         //   colArea = column containing poly area.  if -1, areas are ignored, including maxExpandArea; only the expand array is populated
-         //   maxExpandArea = upper limit expansion size, if a positive value.  If negative, it is ignored and the max patch size is not limited
-         //
-         // returns: 
-         //   1) area of the expansion area (NOT including the nucleus polygon) and 
-         //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
-         //      were included in the patch, negative values indicate they were considered but where not included in the patch
-         //------------------------------------------------------------------------------------------------------------------------------------
-         // the max expansion area is ...
-         float maxExpandArea = 5000000.0f;  // 500ha   // std::fminf(1000.0f, expPop - addedPop);
-         // target area
-         CArray< int, int > expandArray;
-         VData _zone(zone);
-         float expandArea = pIDULayer->GetExpandPolysFromAttr(idu, m_colZone, _zone, OPERATOR::EQ, m_colArea, maxExpandArea, expandArray);
-         //float expandArea = pIDULayer->GetExpandPolysFromQuery(idu, pUGA->m_pResQuery, m_colArea, maxExpandArea, expandArray);
-
-         // upzone all expanded polygons
-         for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
+         if (newZone <= 0)
             {
-            if (expandArray[j] >= 0)
-               {
-               // update IDU zone info
-               int _idu = expandArray[j];
-               UpdateIDU(pContext, _idu, m_colUgEvent, pUGA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
-               UpdateIDU(pContext, _idu, m_colZone, newZone, ADD_DELTA);
-
-               // update addPop so far
-               float area;
-               pIDULayer->GetData(_idu, m_colArea, area);
-               addedPop += popDelta * area;
-
-               // flag this IDU as having been upzoned
-               pUGA->m_iduToUpzonedMap[_idu] += 1;
-
-               if (addedPop >= expPop)
-                  break;
-               }
+            CString msg;
+            msg.Format("unable to promote/upzone zone %i", zone);
+            Report::LogError(msg);
             }
+         else
+            {
+            popDelta *= m_pCurrentUgScenario->m_ppdu * ACRE_PER_M2;  // du/ac * #/du * ac/m2 convert to people/m2
+
+            // update the kernel IDU
+            UpdateIDU(pContext, idu, m_colUgEvent, pUGA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
+            UpdateIDU(pContext, idu, m_colZone, newZone, ADD_DELTA);
+
+            if (this->m_colUpzoned >= 0)
+               {
+               int upcount = 0;
+               pIDULayer->GetData(idu, m_colUpzoned, upcount);
+               UpdateIDU(pContext, idu, m_colUpzoned, upcount + 1, ADD_DELTA);
+               }
+
+            addedPop += popDelta * area;  // #/m2 * m2 = # people
+
+            // flag this IDU as having been upzoned
+            pUGA->m_iduToUpzonedMap[idu] += 1;
+
+            nUpzones += 1;
+            nUpzoneEvents += 1;
+            upzoneAreaHa += area * HA_PER_M2;
+
+            //------------------------------------------------------------------------------------------------------------------------------------
+            // expand to nearby IDUs
+            // Inputs:
+            //   idu = index of the kernal (nucleus) polygon
+            //   pPatchQuery = the column storing the value to be compared to the value
+            //   colArea = column containing poly area.  if -1, areas are ignored, including maxExpandArea; only the expand array is populated
+            //   maxExpandArea = upper limit expansion size, if a positive value.  If negative, it is ignored and the max patch size is not limited
+            //
+            // returns: 
+            //   1) area of the expansion area (NOT including the nucleus polygon) and 
+            //   2) an array of polygon indexes considered for the patch (DOES include the nucelus polygon).  Zero or Positive indexes indicate they
+            //      were included in the patch, negative values indicate they were considered but where not included in the patch
+            //------------------------------------------------------------------------------------------------------------------------------------
+            // the max expansion area is ...
+            float maxExpandArea = 10000000.0f;  // 100ha   // std::fminf(1000.0f, expPop - addedPop);
+            // target area
+            CArray< int, int > expandArray;
+            VData _zone(zone);
+            float expandArea = pIDULayer->GetExpandPolysFromAttr(idu, m_colZone, _zone, OPERATOR::EQ, m_colArea, maxExpandArea, expandArray);
+            //float expandArea = pIDULayer->GetExpandPolysFromQuery(idu, pUGA->m_pResQuery, m_colArea, maxExpandArea, expandArray);
+            Report::Log_i("   Expanding kernal to %i ha", int(expandArea * HA_PER_M2));
+
+            // upzone all expanded polygons
+            for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
+               {
+               if (expandArray[j] >= 0)
+                  {
+                  // update IDU zone info
+                  int _idu = expandArray[j];
+
+                  if (pUpzone->m_pQuery != NULL)
+                     {
+                     bool result = false;
+                     bool ok = pUpzone->m_pQuery->Run(_idu, result);
+                     if (!ok || !result)
+                        continue;
+                     }
+
+                  int zone = -1;
+                  pIDULayer->GetData(_idu, this->m_colZone, zone);
+
+                  // residential?
+                  bool upzone = true;
+                  if (!UgIsResidential(zone) && !UgIsRuralResidential(zone))
+                     upzone = false;
+
+                  // hasn't been previously upzoned?
+                  UINT uzCount = 0;
+                  pUGA->m_iduToUpzonedMap.Lookup(_idu, uzCount);
+                  if (uzCount > 0)
+                     upzone = false;
+
+                  int _uzCount = 0;
+                  pIDULayer->GetData(_idu, m_colUpzoned, _uzCount);
+                  if (_uzCount >= pUpzone->m_stopAfter)
+                     upzone = false;
+
+                  if (upzone)
+                     {
+                     float area;
+                     pIDULayer->GetData(_idu, m_colArea, area);
+                     upzoneEligibleAreaHa += area * HA_PER_M2;
+
+                     UpdateIDU(pContext, _idu, m_colUgEvent, pUGA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
+                     UpdateIDU(pContext, _idu, m_colZone, newZone, ADD_DELTA);
+
+                     if (this->m_colUpzoned >= 0)
+                        {
+                        int upcount = 0;
+                        pIDULayer->GetData(_idu, m_colUpzoned, upcount);
+                        UpdateIDU(pContext, _idu, m_colUpzoned, upcount + 1, ADD_DELTA);
+                        }
+
+                     // update addPop so far
+                     addedPop += popDelta * area;
+
+                     // flag this IDU as having been upzoned
+                     pUGA->m_iduToUpzonedMap[_idu] += 1;
+
+                     nUpzones += 1;
+                     upzoneAreaHa += area * HA_PER_M2;
+
+                     if (addedPop >= expPop)
+                        break;
+                     }
+                  }  // end of: (if expansionArray[j] > 0
+               }  // end of: for each expansion item
+            }  // if newZone > 0
 
          // have we achieved the target?
          if (addedPop >= expPop)
@@ -2646,25 +2726,39 @@ bool UrbanDev::UgUpzoneUGA(UGA* pUGA, UgUpzoneWhen* pUpzone, EnvContext* pContex
          }  // end of: if ( upzone )
 
       pUGA->m_iduToUpzonedMap[idu] = 0;   // reset map indicate IDU was upzoned this cycle
-      }  // end of: for each IDU in this UGA or prioryt expansion area
+      }  // end of: for each IDU in this UGA or priory expansion area
 
    CString msg;
    if (addedPop == 0)
       {
-      msg.Format("%s Upzone Event Failed (%i)! Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
-         (LPCTSTR)pUGA->m_name, pContext->currentYear, (LPCTSTR)pUpzone->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
+      msg.Format("%s: %s Upzone Event Failed (%i), Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+         (LPCTSTR)pUGA->m_name, (LPCTSTR)pUpzone->m_name, pContext->currentYear, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
       Report::LogWarning(msg);
+
+      msg.Format("  IDUs considered: %i, Upzoned IDUs: %i, Upzoned Area: %.2f ha, Eligible Area: %.2f ha, Upzoned Events: %i",
+         iduCount, nUpzones, upzoneAreaHa, upzoneEligibleAreaHa, nUpzoneEvents);
+      Report::Log(msg);
       }
    else
       {
       if (pUpzone->m_rural)
-         msg.Format("%s Upzone Event (rural, %i): Trigger: %s,  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+         {
+         msg.Format("  %s Upzone Event (rural, %i): Trigger: %s,  Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
             (LPCTSTR)pUGA->m_name, pContext->currentYear, (LPCTSTR)pUpzone->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
+         Report::Log(msg);
+  
+         msg.Format("   Upzoned IDUs: %i, Upzoned Area: %.2f ha, Eligible Area: %2 ha, Upzoned Events: %i", nUpzones, upzoneAreaHa, upzoneEligibleAreaHa,  nUpzoneEvents);
+         Report::Log(msg);
+         }
       else
-         msg.Format("%s Upzone Event (%i): Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
+         {
+         msg.Format(" %s Upzone Event (%i): Trigger: %s, Demand: %.0f people, Achieved %.0f people (%.0f percent), Event=%i",
             (LPCTSTR)pUGA->m_name, pContext->currentYear, (LPCTSTR)pUpzone->m_name, expPop, addedPop, (addedPop * 100 / expPop), pUGA->m_currentEvent + 1);
+         Report::Log(msg);
+         msg.Format("   Upzoned IDUs: %i, Upzoned Area: %.2f, Upzoned Events: %i", nUpzones, upzoneAreaHa, nUpzoneEvents);
+         Report::Log(msg);
+         }
 
-      Report::Log(msg);
       pUGA->m_currentEvent++;
       }
 
@@ -2855,23 +2949,6 @@ bool UrbanDev::UgPrioritizeUgAreas(EnvContext* pContext)
       return false;
 
    MapLayer* pLayer = (MapLayer*)pContext->pMapLayer;
-
-
-   /*
-   bool _result = false;
-   int urbReserve;
-   int colUrbReserve = pLayer->GetFieldCol("URB_RESERV");
-
-   pLayer->GetData(165904, colUrbReserve, urbReserve);
-   bool _ok = m_pCurrentUgScenario->m_pResQuery->Run(165904, _result);   // lapine, 8
-
-   pLayer->GetData(63554, colUrbReserve, urbReserve);
-   _ok = m_pCurrentUgScenario->m_pResQuery->Run(63554, _result);  // bend,1
-
-   pLayer->GetData(69207, colUrbReserve, urbReserve);
-   _ok = m_pCurrentUgScenario->m_pResQuery->Run(69207, _result);  //bend/8
-   */
-
 
    for (int i = 0; i < this->m_ugaArray.GetSize(); i++)
       {
@@ -3187,7 +3264,7 @@ void UrbanDev::UgUpdateImperiousFromZone(EnvContext* pContext)
       pLayer->GetData(idu, m_colZone, zone);
 
       float imperviousFraction = GetImperviousFromZone(zone);
-      UpdateIDU(pContext, idu, m_colImpervious, imperviousFraction, SET_DATA);
+      //UpdateIDU(pContext, idu, m_colImpervious, imperviousFraction, SET_DATA);
       }  // end of: for each IDU
    }
 

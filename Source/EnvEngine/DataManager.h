@@ -306,7 +306,7 @@ class ENVAPI DataManager
       //bool ExportRunMaps( LPCTSTR path, int run=-1, int interval=10 );  // path should include terminal '\'
       bool ExportRunDeltaArray(LPCTSTR path, int run = -1, int startYear = -1, int endYear = -1, bool selectedOnly = false, bool includeDuplicates = false, LPCTSTR fieldList = nullptr);
       bool ExportRunData(LPCTSTR path, int run = -1);
-      bool ExportRunMap(LPCTSTR path, int run = -1); // int year );   // note: run currently ignored
+      bool ExportRunMap(LPCTSTR path, int run = -1, int yearOffset=0); // int year );   // note: run currently ignored
       bool ExportRunBmps(LPCTSTR path, int run = -1); // int year );  // note: run currently ignored
 
 

@@ -173,24 +173,24 @@ struct PREFERENCE
    CString name;
    
    CString queryStr;
-   Query  *pQuery;
+   Query  *pQuery = nullptr;
 
-   Target *pTarget;
+   Target *pTarget = nullptr;
 
-   float   value;       // preference value (multiplier)
-
+   float   value = 1;       // preference value (multiplier)
+   bool    estimateParam = false;
 
    ///
    //MTParser parser;
    //UINT parserVarCount;
    //PARSER_VAR *parserVars;  // array of parser variable
 
-   PREFERENCE(LPCTSTR _name, Target* _pTarget, LPCTSTR query, float _value) : name(_name),
-      pTarget(_pTarget), queryStr(query), pQuery(nullptr), value(_value), currentValue(0), target(-1) {}
+   PREFERENCE(LPCTSTR _name, Target* _pTarget, LPCTSTR query, float _value, bool _estimateParam) : name(_name),
+      pTarget(_pTarget), queryStr(query), pQuery(nullptr), value(_value), currentValue(0), target(-1), estimateParam(_estimateParam) {}
 
    // the following are for estimating parameters (value)
-   float currentValue;  // this has units of #
-   float target;        // this has units of #
+   float currentValue=0;  // this has units of #
+   float target=0;        // this has units of #
    
    ~PREFERENCE( void );
    };
@@ -235,7 +235,7 @@ struct ALLOCATION
 class PreferenceArray : public PtrArray< PREFERENCE >
    {
    public:
-      PREFERENCE *Add( LPCTSTR name, Target *pTarget, LPCTSTR queryStr, float value ) { PREFERENCE *p= new PREFERENCE( name, pTarget, queryStr, value ); CArray::Add( p ); return p; }
+      PREFERENCE *Add( LPCTSTR name, Target *pTarget, LPCTSTR queryStr, float value, bool estParam ) { PREFERENCE *p= new PREFERENCE( name, pTarget, queryStr, value, estParam ); CArray::Add( p ); return p; }
    };
 
 
@@ -253,7 +253,7 @@ class AllocationSet : public PtrArray< ALLOCATION >
       PreferenceArray m_preferences;
 
       ALLOCATION *AddAllocation( LPCTSTR name, Target*, LPCTSTR queryStr, LPCTSTR expr, float multiplier );
-      PREFERENCE *AddPreference( LPCTSTR name, Target*, LPCTSTR queryStr, float value );
+      PREFERENCE *AddPreference( LPCTSTR name, Target*, LPCTSTR queryStr, float value, bool estParam );
    };
 
 

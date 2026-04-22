@@ -2146,10 +2146,14 @@ void SpatialAllocator::AllocScorePriority(EnvContext* pContext, bool useAddDelta
             //   TRACE( msg );
             //   }
 
-            //for ( int l=0; l < 20; l++ )
+            
+            //TRACE("\n");
+            //TRACE(pAlloc->m_name);
+            //TRACE("\n");
+            //for ( int l=0; l < 10; l++ )
             //   {
             //   CString msg;
-            //   msg.Format( "Score: %6.2f  IDU: %i\n", pAlloc->m_scoreArray[ l ].score, pAlloc->m_scoreArray[ l ].idu ); //  );
+            //   msg.Format( "Score: %6.2f  IDU: %i\n", pAlloc->m_scoreArray[ l ].score, pAlloc->m_scoreArray[ l ].record ); //  );
             //   TRACE( msg );
             //   }
 
@@ -2186,20 +2190,11 @@ void SpatialAllocator::AllocScorePriority(EnvContext* pContext, bool useAddDelta
             for (int j = 0; j < allocCount; j++)
                {
                Allocation* pAlloc = pAllocSet->m_allocationArray[j];
-            topOfLoop:
-               // if this Allocation has already been fully consumed, don't consider it
-               if (pAlloc->m_currentScoreIndex >= recordCount)
-                  {
-                  pAlloc->m_limit = LT_SUPPLY_EXHAUSTED;
-                  continue;
-                  }
 
-               // if this Allocation is aleady fully allocated, don't consider it further
-               if (pAlloc->m_targetSource != TS_USEALLOCATIONSET && pAlloc->m_allocationSoFar >= pAlloc->m_currentTarget)
-                  {
-                  pAlloc->m_limit = LT_TARGET_MET;
+               // if this Allocation has already been fully consumed, don't consider it
+               // let budget-limited allocations continue to see if they can allocate more
+               if (pAlloc->m_limit != LT_NONE && pAlloc->m_limit != LT_BUDGET_MET)
                   continue;
-                  }
 
                // is any budget for this item exhausted?
                if (pAlloc->m_pCostItem != nullptr)
@@ -2217,9 +2212,23 @@ void SpatialAllocator::AllocScorePriority(EnvContext* pContext, bool useAddDelta
                      {
                      pAlloc->m_limit = LT_BUDGET_MET;
                      pAlloc->m_currentScoreIndex++;  // move to the next IDU to consider
-                     goto topOfLoop;
                      continue;
                      }
+                  // if we get this far, there is budget for this allocation
+                  }  // end of: if ( pAlloc->m_pCostItem != nullptr )
+
+               if (pAlloc->m_currentScoreIndex >= recordCount)
+                  {
+                  pAlloc->m_limit = LT_SUPPLY_EXHAUSTED;
+                  continue;
+                  }
+
+               // if this Allocation is aleady fully allocated, don't consider it further
+               if (pAlloc->m_targetSource != TS_USEALLOCATIONSET && pAlloc->m_allocationSoFar >= pAlloc->m_currentTarget)
+                  {
+                  pAlloc->m_limit = LT_TARGET_MET;
+                  pAlloc->m_currentScoreIndex++;  // move to the next IDU to consider
+                  continue;
                   }
 
                // if the IDU that represents the current best score for this Allocation is 
@@ -2312,6 +2321,18 @@ void SpatialAllocator::AllocScorePriority(EnvContext* pContext, bool useAddDelta
                   pMapLayer->GetData(record, pAllocSet->m_col, oldAttrVal);
                   this->UpdateIDU(pContext, record, pAllocSet->m_col, oldAttrVal | newAttrCode, useAddDelta ? ADD_DELTA : SET_DATA);
                   }
+
+               float area=0, uplandArea =0, cost = 0;
+               pMapLayer->GetData(record, pBest->m_colDomainField, area);
+               int colUplandArea = pMapLayer->GetFieldCol("UplandArea");
+               pMapLayer->GetData(record, colUplandArea, uplandArea);
+               
+               pBest->m_pCostItem->GetInitialCost(record, area, cost);
+               CString msg;
+               msg.Format( "(%i)Allocating %s, IDU: %i, Score: %6.2f, Area %.0f ac, UplandArea: %.0f ac, Cost: %.2f M$, Remaining Budget: %.1f M$\n",
+                  pContext->currentYear, (LPCTSTR)pBest->m_name, record, currentBestScore, area / 4046.8, uplandArea/4046.8, cost / 1000000.0,
+                  pBest->m_pCostItem->m_pBudgetItem->GetAvailableBudget() / 1000000.0);
+               TRACE(msg);
                }
             else
                pMapLayer->SetData(record, pAllocSet->m_col, newAttrCode);
@@ -2336,6 +2357,12 @@ void SpatialAllocator::AllocScorePriority(EnvContext* pContext, bool useAddDelta
 
                BudgetItem* pBudgetItem = pBest->m_pCostItem->m_pBudgetItem;
                cost = pBudgetItem->ApplyCostItem(pBest->m_pCostItem, record, domainValue, true);
+               ASSERT(pBudgetItem->GetAvailableBudget() >= 0);
+
+               if (pBest->m_colCost >= 0)
+                  {
+                  this->UpdateIDU(pContext, record, pBest->m_colCost, cost, ADD_DELTA);
+                  }
                }
 
             // update internals with allocation basis value
@@ -2776,6 +2803,7 @@ bool SpatialAllocator::LoadXml(EnvContext* pContext, LPCTSTR filename, PtrArray<
 
          // cost item
          LPCTSTR budgetItem = nullptr;
+         LPCTSTR costCol = nullptr;
          LPCTSTR basis = nullptr;
          LPCTSTR initialCostExpr = nullptr;
          LPCTSTR valueStr = nullptr;
@@ -2811,7 +2839,8 @@ bool SpatialAllocator::LoadXml(EnvContext* pContext, LPCTSTR filename, PtrArray<
                             { "init_cost",        TYPE_STRING,   &initialCostExpr,     false, 0 },
                             { "maintenance_cost", TYPE_STRING,   &maintenanceCostExpr, false, 0 },
                             { "duration",         TYPE_STRING,   &durationExpr,        false, 0 },
-                            { nullptr,               TYPE_NULL,     nullptr,             false, 0 } };
+                            { "cost_col",         TYPE_STRING,   &costCol,             false, 0 },
+                            { nullptr,            TYPE_NULL,     nullptr,           false, 0 } };
 
          if (TiXmlGetAttributes(pXmlAlloc, attrs, path, pMapLayer) == false)
             return false;
@@ -2950,6 +2979,11 @@ bool SpatialAllocator::LoadXml(EnvContext* pContext, LPCTSTR filename, PtrArray<
                CostItem* pCostItem = new CostItem(pMapLayer);  // note - name matches allocation name)
                pCostItem->Init(m_pBudget, budgetItem, name, _basis, initialCostExpr, maintenanceCostExpr, durationExpr, lookup);
                pAlloc->m_pCostItem = pCostItem;
+
+               if (costCol != nullptr)
+                  {
+                  this->CheckCol(pMapLayer, pAlloc->m_colCost, costCol, TYPE_FLOAT, CC_AUTOADD | TYPE_FLOAT);
+                  }
                }  // end of: if ( budgetItem != nullptr )
 
             // all done, add allocation to set's array

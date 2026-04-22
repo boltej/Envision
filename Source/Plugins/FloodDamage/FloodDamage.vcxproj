@@ -251,6 +251,7 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="FloodDamage.vcxproj" />
     <None Include="res\FloodDamage.rc2" />
   </ItemGroup>
   <ItemGroup>

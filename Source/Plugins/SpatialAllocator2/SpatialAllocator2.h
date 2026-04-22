@@ -321,14 +321,15 @@ class Allocation : public TargetContainer
       int     m_expandType;         // 0=constant value (m_expandMaxArea), 1 = uniform, 2 = normal
       std::vector<int> m_expandMatches;
 
-      Rand* m_pRand;
+      Rand* m_pRand = nullptr;
       double  m_expandAreaParam0;   // distribution-dependant param 0 - holds max value for constants, shape param for dists
       double  m_expandAreaParam1;   // distribution-dependant param 0, scale param for dists
 
       CString m_expandQueryStr;  // expand into adjacent IDUs that satify this query 
-      Query* m_pExpandQuery;
+      Query* m_pExpandQuery = nullptr;
 
-      CostItem* m_pCostItem;
+      CostItem* m_pCostItem = nullptr;
+      int       m_colCost = -1;
 
       // area stats
       float   m_initPctArea;

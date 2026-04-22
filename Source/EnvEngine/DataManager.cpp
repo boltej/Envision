@@ -2765,7 +2765,7 @@ bool DataManager::ExportRunData(LPCTSTR _path, int run /*=-1*/)   /// Note: run 
    }
 
 
-bool DataManager::ExportRunMap(LPCTSTR path, int run /*=-1*/)    // assume path is terminated with a '\'
+bool DataManager::ExportRunMap(LPCTSTR path, int run /*=-1*/, int yearOffset /*=0*/)    // assume path is terminated with a '\'
    {
    if (run < 0)
       run = (int)this->m_runInfoArray.GetCount() - 1;
@@ -2799,7 +2799,7 @@ bool DataManager::ExportRunMap(LPCTSTR path, int run /*=-1*/)    // assume path 
          layerName.Replace(' ', '_');
 
          CString filename;
-         filename.Format(_T("%s%s_Year%i_%s_Run%i.shp"), path, (LPCTSTR)layerName, m_pEnvModel->m_currentYear, (LPCTSTR)scname, scrun + m_pEnvModel->m_startRunNumber);
+         filename.Format(_T("%s%s_Year%i_%s_Run%i.shp"), path, (LPCTSTR)layerName, m_pEnvModel->m_currentYear+yearOffset, (LPCTSTR)scname, scrun + m_pEnvModel->m_startRunNumber);
 
          CString msg("Exporting map: ");
          msg += filename;
@@ -3496,6 +3496,7 @@ bool DataManager::SaveDataObj(FILE* fp, DataObj& dataObj)
          for (int col = 0; col < colCount; col++)
             {
             dataObj.Get(col, row, value);
+            //if (lstrcmp(value.GetAsString(),)
             if (fwrite(&value, sizeof(value), 1, fp) != 1)
                return false;
             }

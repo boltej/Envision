@@ -58,6 +58,7 @@ Copywrite 2012 - Oregon State University
 //    
 
 enum { INIT_NDUS_FROM_NONE=0, INIT_NDUS_FROM_POPDENS=1,INIT_NDUS_FROM_DULAYER=2 };
+enum { ADU_INELIGIBLE = -1, ADU_ELIGIBLE = 0, ADU_EXISTS = 1 };
 
 #define _EXPORT __declspec( dllexport )
 
@@ -267,37 +268,33 @@ struct ZONE {
 class UgScenario
 {
 public:
-   UgScenario(void)
-      : m_id(-1)
-      , m_planHorizon(20)
-      , m_estGrowthRate(0.01f)
-      , m_newResDensity(0.01f)
-      , m_resCommRatio(8)
-      , m_ppdu(2.3f)
-      , m_pResQuery(NULL)
-      , m_pCommQuery(NULL)
-   {}
+   UgScenario(void) {}
 
-   int      m_id;
+   int      m_id = -1;
    CString  m_name;
 
-   int m_planHorizon;
-   float m_estGrowthRate;  // annual estimated growth rate, decimal percent (required)
-   float m_newResDensity;  // estimate density (du/ac) to new residential (required)
-   float m_resCommRatio;   // ratio of residential area to comm/ind area in urban expansion areas (required)
-   float m_ppdu;           // people per dwelling unit 
-   float m_imperviousFactor;  // factor scaling new impervious development
+   int m_planHorizon = 20;
+   float m_estGrowthRate = 0.01f;  // annual estimated growth rate, decimal percent (required)
+   float m_newResDensity = 0.01f;  // estimate density (du/ac) to new residential (required)
+   float m_resCommRatio = 5.0f;   // ratio of residential area to comm/ind area in urban expansion areas (required)
+   float m_ppdu = 2.3f;           // people per dwelling unit 
+   float m_imperviousFactor = 0.5f;  // factor scaling new impervious development
    float m_maxExpandFraction = 0.5f;
+   float m_aduFraction = 0.5f;
+
 
    CString m_resQuery;
    CString m_commQuery;
+   CString m_aduQuery;
 
    //int  m_zoneRes;
    std::vector<ZONE> m_resZones;
-   int  m_zoneComm;
+   int  m_zoneComm = -1;
 
-   Query* m_pResQuery;
-   Query* m_pCommQuery;
+   Query* m_pResQuery = nullptr;
+   Query* m_pCommQuery = nullptr;
+   Query* m_pADUQuery = nullptr;
+
 
    PtrArray< UgExpandWhen > m_uxExpandArray;
    PtrArray< UgUpzoneWhen > m_uxUpzoneArray;
@@ -440,6 +437,8 @@ protected:
    int m_colImpervious = -1;
    int m_colUgaPop = -1;
    int m_colUpzoned = -1;
+   int m_colADU = -1;
+
 
    // methods
    int UgAddExpandWhen( UgScenario *pScenario, UgExpandWhen *pExpandWhen);
@@ -459,6 +458,8 @@ protected:
    bool  UgIsResidential(int zone);
    bool  UgIsRuralResidential(int zone);
    bool  UgIsCommercial(int zone);
+
+   int UgGetNewZone(PtrArray<ZoneInfo>&, int startZone, int steps, float& popDelta);
 
    //-- general --------------------------------------
    void  ShufflePolyIDs( void ) { ShuffleArray< UINT >( m_polyIndexArray.GetData(), m_polyIndexArray.GetSize(), &randUnif ); }

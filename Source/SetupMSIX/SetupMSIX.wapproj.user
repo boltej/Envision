@@ -6,7 +6,7 @@
     <AuthenticationMode>Windows</AuthenticationMode>
     <RemoteDebugMachine>envweb</RemoteDebugMachine>
     <DebuggerType>NativeOnly</DebuggerType>
-    <LayoutDir>\\envweb\EnvisionInstaller</LayoutDir>
+    <LayoutDir>\\eng-envweb\EnvisionInstaller</LayoutDir>
   </PropertyGroup>
   <PropertyGroup>
     <Source>D:\Envision\Source\SetupMSIX\Images\EnvisionLogo.png</Source>

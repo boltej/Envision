@@ -41,30 +41,87 @@ int ComparePriorities(const void *elem0, const void *elem1 );
 
 RandUniform randUnif;
 
-int RuralUpzoneWhen::GetNewZone()
+/*
+int RuralUpzoneWhen::GetNewZone( int startZone, int steps)
    {
-   int zones = (int)m_newZones.size();
+   // first, find the index of the starting zone
+   int startIndex = 0;
+   for ( int i=0; i<(int)this->
 
-   ASSERT(zones > 0);
-   if (zones == 1)
-      return m_newZones[0].zone;
 
-   float rn = (float) randUnif.RandValue(0, 1);
-   float rnSoFar = 0;
+   pZone->m_index = (int)m_ruralResZoneArray.Add(pZone);
 
-   for (int i = 0; i < zones; i++)
+
+
+   int steps = 0;
+   int upIndex = zIndex;
+   int newZone = 0;
+   float popDelta = 0;   // #/m2
+
+   if (pUpzone->m_rural)
       {
-      rnSoFar += m_newZones[i].probability;
+      while (steps < pUpzone->m_steps && upIndex < this->m_ruralResZoneArray.GetSize() - 1)
+         {
+         upIndex++;
+         if (this->m_ruralResZoneArray[upIndex]->m_density > this->m_ruralResZoneArray[zIndex]->m_density)
+            steps++;
+         }
+      newZone = this->m_ruralResZoneArray[upIndex]->m_id;
 
-      if (rnSoFar >= rn)
-         return m_newZones[i].zone;
+      popDelta = this->m_ruralResZoneArray[upIndex]->m_density - this->m_ruralResZoneArray[zIndex]->m_density;   // units are du/ac
+      popDelta *= m_pCurrentUgScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2
+      }
+   else
+      {
+      while (steps < pUpzone->m_steps && upIndex < this->m_resZoneArray.GetSize() - 1)
+         {
+         upIndex++;
+         if (this->m_resZoneArray[upIndex]->m_density > this->m_resZoneArray[zIndex]->m_density)
+            steps++;
+         }
+      newZone = this->m_resZoneArray[upIndex]->m_id;
+
+      popDelta = this->m_resZoneArray[upIndex]->m_density - this->m_resZoneArray[zIndex]->m_density;   // units are du/ac
+      popDelta *= m_pCurrentUgScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2
       }
 
-   // shouldn't ever get here
-   ASSERT(true);
-   return -1;
+   // update the kernel IDU
+   UpdateIDU(pContext, idu, m_colUgEvent, pUGA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
+   UpdateIDU(pContext, idu, m_colZone, newZone, ADD_DELTA);
+
+   if (this->m_colUpzoned >= 0)
+      {
+      int upcount = 0;
+      pIDULayer->GetData(idu, m_colUpzoned, upcount);
+      UpdateIDU(pContext, idu, m_colUpzoned, upcount + 1, ADD_DELTA);
+      }
+
+   // basic idea - randomly pick out a new zone from the 
+   // // list of new zones
+   //
+   //int zones = (int)m_newZones.size();
+   //
+   //ASSERT(zones > 0);
+   //if (zones == 1)
+   //   return m_newZones[0].zone;
+   //
+   //float rn = (float) randUnif.RandValue(0, 1);
+   //float rnSoFar = 0;
+   //
+   //for (int i = 0; i < zones; i++)
+   //   {
+   //   rnSoFar += m_newZones[i].probability;
+   //
+   //   if (rnSoFar >= rn)
+   //      return m_newZones[i].zone;
+   //   }
+   //
+   //// shouldn't ever get here
+   //ASSERT(true);
+   //return -1;
    }
 
+*/
 
 
 RuralDev::RuralDev() 
@@ -90,6 +147,8 @@ bool RuralDev::Init( EnvContext *pContext, LPCTSTR initStr )
    if ( LoadXml( initStr, pContext ) == false )
       return false;
 
+   CheckCol(pLayer, m_colUpzone, "UPZONED", TYPE_INT, CC_AUTOADD);
+   pLayer->SetColData(m_colUpzone, VData(0), true);
 
    // global things first
    InitRAs(pContext);
@@ -138,6 +197,9 @@ bool RuralDev::InitRAs(EnvContext* pContext)
    // for each IDU, add to lookup tables
    for (MapLayer::Iterator idu = pLayer->Begin(); idu < pLayer->End(); idu++)
       {
+      float area = 0;
+      pLayer->GetData(idu, m_colArea, area);
+
       for (int i = 0; i < (int)m_raArray.GetSize(); i++)
          {
          RuralArea* pRA = m_raArray[i];
@@ -154,18 +216,25 @@ bool RuralDev::InitRAs(EnvContext* pContext)
                {
                pRA->m_iduArray.push_back(idu);
                pRA->m_iduToUpzonedMap[idu] = 0;
+
+               pRA->m_maxAnnualAreaHa += area * HA_PER_M2;   // m2
                }
             }
          }
+      }
+
+   for (int i = 0; i < (int)m_raArray.GetSize(); i++)
+      {
+      RuralArea* pRA = m_raArray[i];
+
+      if (pRA != NULL)
+         pRA->m_maxAnnualAreaHa *= pRA->m_maxAnnualFrac;
       }
 
    UpdateRAStats(pContext, false);
 
    return true;
    }
-
-
-
 
 bool RuralDev::InitRun( EnvContext *pContext, bool useInitialSeed )
    {
@@ -176,7 +245,6 @@ bool RuralDev::InitRun( EnvContext *pContext, bool useInitialSeed )
 
    if (m_colImpervious >= 0)
       UpdateImperiousFromZone(pContext);   // writes to impervious col in IDUs
-
 
    for ( int i=0; i < this->m_raArray.GetSize(); i++ )
       {
@@ -204,10 +272,26 @@ bool RuralDev::Run( EnvContext *pContext )
    MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
    int iduCount = pLayer->GetRecordCount();
 
+   CString msg;
+   for (int i = 0; i < (int)this->m_raArray.GetSize(); i++)
+      {
+      RuralArea* pRA = this->m_raArray[i];
+      msg.Format("Starting Population for %s: %i, Total Capacity: %i, Available Capacity: %i, Available Capacity Fraction: %.3f",
+         (LPCTSTR)pRA->m_name, (int)pRA->m_currentPopulation, (int)pRA->m_capacity, (int)pRA->m_availCapacity, pRA->m_pctAvailCap);
+      Report::Log( msg );
+      }
+
    UpzoneRAs(pContext, pLayer );
    UpdateRAStats(pContext, false);
       
    //UpdateUGAPops(pContext);
+   for (int i = 0; i < (int)this->m_raArray.GetSize(); i++)
+      {
+      RuralArea* pRA = this->m_raArray[i];
+      msg.Format("Ending Population for %s: %i, Total Capacity: %i, Available Capacity: %i, Available Capacity Fraction: %.3f",
+         (LPCTSTR)pRA->m_name, (int)pRA->m_currentPopulation, (int)pRA->m_capacity, (int)pRA->m_availCapacity, pRA->m_pctAvailCap);
+      Report::Log(msg);
+      }
 
    CollectOutput( pContext->currentYear );
 
@@ -417,7 +501,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
    this->m_colZone = pLayer->GetFieldCol(zoneCol);
 
    //------------------------------------------------------------
-   //-- UGAs ----------------------------------------------------
+   //-- Rural Areas ---------------------------------------------
    //------------------------------------------------------------
    TiXmlElement* pXmlRAs = pXmlRoot->FirstChildElement(_T("rural_areas"));
    TiXmlElement* pXmlRA = pXmlRAs->FirstChildElement(_T("rural_area"));
@@ -427,14 +511,16 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
       LPCTSTR name = NULL;
       int id = -1;
       float startPop = -1;
+      float maxAnnualFrac = 0.10f;
       LPCTSTR query = NULL;
 
       XML_ATTR ugaAttrs[] = {
-         // attr        type           address     isReq  checkCol
-         { "name",      TYPE_STRING,   &name,      true,    0 },
-         { "id",        TYPE_INT,      &id,        true,    0 },
-         { "query",     TYPE_STRING,   &query,     true,    0 },
-         { NULL,        TYPE_NULL,       NULL,   false,   0 } };
+         // attr              type           address     isReq  checkCol
+         { "name",            TYPE_STRING,   &name,      true,    0 },
+         { "id",              TYPE_INT,      &id,        true,    0 },
+         { "query",           TYPE_STRING,   &query,     true,    0 },
+         { "max_annual_frac", TYPE_FLOAT,    &maxAnnualFrac, false,0 },
+         { NULL,              TYPE_NULL,     NULL,   false,   0 } };
 
       ok = TiXmlGetAttributes(pXmlRA, ugaAttrs, filename);
       if (!ok)
@@ -449,7 +535,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
       pRA->m_id = id;
       pRA->m_name = name;
       pRA->m_queryStr = query;
-
+      pRA->m_maxAnnualFrac = maxAnnualFrac;
       AddRA(pRA);
 
       // compile res query
@@ -487,7 +573,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
          //{ "comm_zone",             TYPE_INT,       &(pUgScn->m_zoneComm),        false,   0 },
          { "ppdu",                  TYPE_FLOAT,     &(pScn->m_ppdu),            false,   0 },
          //{ "max_expand_frac",       TYPE_FLOAT,     &(pUgScn->m_maxExpandFraction), false,   0 },
-         { "new_impervious_factor", TYPE_FLOAT,     &(pScn->m_imperviousFactor),false,   0 },
+         //{ "new_impervious_factor", TYPE_FLOAT,     &(pScn->m_imperviousFactor),false,   0 },
          { NULL,               TYPE_NULL,      NULL,                         false,   0 } };
 
       ok = TiXmlGetAttributes( pXmlScn, scnAttrs, filename );
@@ -513,7 +599,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             { "use",              TYPE_BOOL,      &(pUpzone->m_use),             false,   0 },
             { "type",             TYPE_CSTRING,   &(pUpzone->m_type),            false,   0 },
             { "query",            TYPE_CSTRING,   &(pUpzone->m_queryStr),        false,   0 },
-            { "new_zone",         TYPE_STRING,    &newZone,                      false,   0 },
+            //{ "new_zone",         TYPE_STRING,    &newZone,                      false,   0 },
             { "min_pop",          TYPE_FLOAT,     &(pUpzone->m_minPop),          false,   0 },
             { "max_pop",          TYPE_FLOAT,     &(pUpzone->m_maxPop),          false,   0 },
             { "trigger",          TYPE_FLOAT,     &(pUpzone->m_trigger),         false,   0 },
@@ -549,6 +635,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
                pUpzone->m_pQuery = m_pQueryEngine->ParseQuery(pUpzone->m_queryStr, 0, pUpzone->m_name);
                }
 
+            /*
             CStringArray tokens;
             ::Tokenize(newZone, ",;", tokens);
 
@@ -564,7 +651,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
 
                pUpzone->m_newZones.push_back(NEW_ZONE(newZone, prob));
                }
-
+               */
             // process preferences
             TiXmlElement* pXmlPref = pXmlUpzone->FirstChildElement(_T("preference"));
             while (pXmlPref != NULL)
@@ -603,10 +690,6 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
             
                pXmlPref = pXmlPref->NextSiblingElement("preference");
                }  // end of: while ( pXmlPref != NULL )
-
-
-
-
 
             CString msg("Added RuralUpzoneWhen - ");
             msg += pUpzone->m_name;
@@ -666,13 +749,6 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
          pScn->m_pResQuery = m_pQueryEngine->ParseQuery(pScn->m_resQuery, 0, pScn->m_name);
          }
 
-      // compile comm query
-      //if (pScn->m_commQuery.GetLength() > 0)
-      //   {
-      //   ASSERT(m_pQueryEngine != NULL);
-      //   pUgScn->m_pCommQuery = m_pQueryEngine->ParseQuery(pUgScn->m_commQuery, 0, pUgScn->m_name);
-      //   }
-
       pXmlScn = pXmlScn->NextSiblingElement( "scenario");
       }
 
@@ -684,7 +760,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
   
   if ( pXmlZones )
      {
-     TiXmlElement* pXmlRuralRes = pXmlZones->FirstChildElement("rural_res");
+     TiXmlElement* pXmlRuralRes = pXmlZones->FirstChildElement("zone");
      while (pXmlRuralRes != NULL)
         {
         ZoneInfo* pZone = new ZoneInfo;
@@ -695,6 +771,7 @@ bool RuralDev::LoadXml( LPCTSTR _filename, EnvContext *pContext )
            { "density",          TYPE_FLOAT,     &(pZone->m_density),   true,    0 },
            { "impervious",       TYPE_FLOAT,     &(pZone->m_imperviousFraction),false,   0 },
            { "constraint",       TYPE_CSTRING,   &(pZone->m_query),     false,   0 },
+           { "type",             TYPE_INT,       &(pZone->m_type),      false,    0 },
            { NULL,               TYPE_NULL,      NULL,                  false,   0 } };
 
         ok = TiXmlGetAttributes(pXmlRuralRes, zoneAttrs, filename);
@@ -742,10 +819,6 @@ bool RuralDev::UpzoneRAs(EnvContext* pContext, MapLayer* pLayer)
       {
       RuralArea* pRA = this->m_raArray[i];
 
-      CString msg;
-      msg.Format("Rural Area %s (%i): Available Capacity=%.2f", (LPCTSTR)pRA->m_name, pContext->currentYear, pRA->m_pctAvailCap);
-      Report::LogInfo(msg);
-
       // reset arrays to n/a
       std::fill(pRA->m_upzoneCriteria.begin(), pRA->m_upzoneCriteria.end(), 0);
 
@@ -754,9 +827,15 @@ bool RuralDev::UpzoneRAs(EnvContext* pContext, MapLayer* pLayer)
       upzoneCriteria.Format("");
       bool didUpzone = false;
 
+      Report::Log_i("Considering %i RuralUpZoneWhen's", m_pCurrentScenario->m_upzoneArray.GetSize());
+
       for (int j = 0; j < m_pCurrentScenario->m_upzoneArray.GetSize(); j++)
          {
          RuralUpzoneWhen* pUpzone = m_pCurrentScenario->m_upzoneArray[j];
+
+         // only consider UpzoneWhens that match the rural area
+         if (pUpzone->m_type != pRA->m_name)
+            continue;
 
          // are the criteria for this Upzone event met for this UGA?
          // Note:  Each conditional below is a DISQUALIFYING condition
@@ -786,6 +865,11 @@ bool RuralDev::UpzoneRAs(EnvContext* pContext, MapLayer* pLayer)
 
          if (pRA->m_upzoneCriteria[j] == 0 )
             {
+            CString msg;
+            msg.Format("%s (%i): All criteria met for upzone '%s', attempting upzone", (LPCTSTR)pRA->m_name,
+               pContext->currentYear, (LPCTSTR) pUpzone->m_name);
+            Report::Log(msg);
+
             UpzoneRA(pRA, pUpzone, pContext);
             //didUpzone = true;
             //break;
@@ -802,20 +886,54 @@ bool RuralDev::UpzoneRAs(EnvContext* pContext, MapLayer* pLayer)
             //if (status & UC_WRONG_TYPE)
             //   msg += "Wrong Type; ";
             if (status & UC_BELOW_TRIGGER)
-               msg += "Below Trigger; ";
+               msg += "Above Available Capacity Trigger; ";
             if (status & UC_NOT_ENOUGH_EVENTS)
                msg += "Not Enough Events; ";
             if (status & UC_TOO_MANY_EVENTS)
                msg += "Too Many Events; ";
 
             CString msg2;
-            msg2.Format("%s (%i): Upzone Criteria Not met (details: %s)", (LPCTSTR)pRA->m_name, pContext->currentYear, (LPCTSTR)upzoneCriteria);
-            //Report::Log(msg2);
-            //TRACE((LPCTSTR)msg2);
+            msg2.Format("%s (%i): Upzone Criteria Not met for '%s': %s", (LPCTSTR)pRA->m_name, 
+               pContext->currentYear, (LPCTSTR) pUpzone->m_name, (LPCTSTR)msg);
+            Report::LogWarning(msg2);
             }
          }  // end of: for each upzone
       }  // end of: for each RA
       return true;
+   }
+
+int RuralDev::GetNewZone(int startZone, int steps, MapLayer *pIDULayer, int idu)
+   {
+   int nZones = (int)this->m_ruralResZoneArray.GetSize();
+   int index = 0;
+   int type = 0;
+   for ( index = 0; index <  nZones; index++)
+      {
+      if (this->m_ruralResZoneArray[index]->m_id == startZone)
+         {
+         type = this->m_ruralResZoneArray[index]->m_type;
+         break;
+         }
+      }
+
+   if (index >= nZones)
+      return -1;  // not found
+
+   int _steps = 0;
+   // move up "steps" zones of the same type
+   while ((_steps < steps) && (index < nZones - 1))
+      {
+      index++;
+      if (this->m_ruralResZoneArray[index]->m_type == type)
+         _steps++;
+      }
+
+
+   //index += steps;
+   if (index >= nZones) // not enough steps left?
+      index = nZones - 1;
+
+   return this->m_ruralResZoneArray[index]->m_id;  // return last one
    }
 
 
@@ -828,25 +946,47 @@ bool RuralDev::UpzoneRA(RuralArea* pRA, RuralUpzoneWhen* pUpzone, EnvContext* pC
    //  4) Repeat until area need satisfied  
    MapLayer* pIDULayer = (MapLayer*)pContext->pMapLayer;
 
+   //CString msg;
+   //msg.Format("  - Prioritizing Rural Area %s", (LPCTSTR)pRA->m_name);
+   //Report::Log(msg);
+
+
    PrioritizeRuralArea(pContext, pUpzone, pRA); // update the priority list for this RA based on UpzoneWhen preferences
 
    // how many people to plan for?
    float expPop = m_pCurrentScenario->m_planHorizon * m_pCurrentScenario->m_estGrowthRate * pRA->m_currentPopulation * pUpzone->m_demandFrac; // people
-   float addedPop = 0;
+   float addedPopCap = 0;
+
+   CString msg;
+   msg.Format("  - Prioritized %i IDUs for rural area %s; Planned population expansion is %i", (int)pRA->m_priorityListRes.GetSize(),
+      (LPCTSTR)pRA->m_name, (int) expPop);
+   Report::LogInfo(msg);
 
    // for IDU's in this rural area, try to upzone until demand met
+
    int priorityCount = (int)pRA->m_priorityListRes.GetSize();
+   int nUpzoned = 0;
+   int nUpzonedEvents = 0;
+   float upzonedAreaHa =0; // ha upzoned
+   float upzoneEligibleAreaHa = 0;
 
    for (int i = 0; i < priorityCount; i++)
       {
       int idu = pRA->m_priorityListRes[i]->idu;
+
+      //if (i % 100 == 0)
+      //   {
+      //   CString msg;
+      //   msg.Format("Examining priority IDU %i", i);
+      //   Report::StatusMsg(msg);
+      //   }
 
       if (pUpzone->m_pQuery != NULL)
          {
          bool result = false;
          bool ok = pUpzone->m_pQuery->Run(idu, result);
          if (!ok || !result)
-            continue;
+            continue;  // skip this one if it has a query bt doesn't pass
          }
 
       // get existing zone
@@ -861,16 +1001,30 @@ bool RuralDev::UpzoneRA(RuralArea* pRA, RuralUpzoneWhen* pUpzone, EnvContext* pC
       // hasn't been previously upzoned?
       UINT uzCount = 0;
       pRA->m_iduToUpzonedMap.Lookup(idu, uzCount);
-      if (uzCount > 0)
+      if (uzCount >= (UINT) pUpzone->m_stopAfter)
+         upzone = false;
+
+      int upzonesSoFar = 0;
+      pIDULayer->GetData(idu, m_colUpzone, upzonesSoFar);
+      if (upzonesSoFar >= pUpzone->m_stopAfter)
          upzone = false;
 
       // additional criteria?
       if (upzone)
          {
+         CString msg;
+         //msg.Format("Upzoning IDU %i", idu);
+         //Report::LogInfo(msg);
+
+         float area = 0;
+         pIDULayer->GetData(idu, m_colArea, area);
+         upzoneEligibleAreaHa += area * HA_PER_M2;
+
          int steps = 0;
-         //int upIndex = zIndex;
-         int newZone = pUpzone->GetNewZone(); // m_newZone;
-        
+         int newZone = GetNewZone(zone, pUpzone->m_steps, pIDULayer, idu); // m_newZone;
+         if (newZone < 0)
+            newZone = this->m_ruralResZoneArray[m_ruralResZoneArray.GetSize()-1]->m_id;
+
          int newIndex = -1;
          int oldIndex = -1;
          for (int k = 0; k < this->m_ruralResZoneArray.GetSize(); k++)
@@ -883,22 +1037,34 @@ bool RuralDev::UpzoneRA(RuralArea* pRA, RuralUpzoneWhen* pUpzone, EnvContext* pC
 
          ASSERT(newIndex != -1);
 
-         float popDelta = 0;   // #/m2
-         popDelta = this->m_ruralResZoneArray[newIndex]->m_density;
-         if ( oldIndex >= 0 )
-            popDelta -= this->m_ruralResZoneArray[oldIndex]->m_density;   // units are du/ac
+         // compute the new population density (du/ac) the upzone can acheive
+         float popDelta = this->m_ruralResZoneArray[newIndex]->m_density;  // du/ac
+         if (oldIndex >= 0)
+            {
+            ZoneInfo *pOldZone = this->m_ruralResZoneArray[oldIndex];
+            popDelta -= pOldZone->m_density;   // units are du/ac
+            }
 
-         popDelta *= m_pCurrentScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2
+         ASSERT(popDelta >= 0);
+
+         // du/ac * #/du * ac/m2 = #/m2
+         popDelta *= m_pCurrentScenario->m_ppdu * ACRE_PER_M2;  // convert to people/m2 increase in capac
                  
          // update the kernel IDU
-         //UpdateIDU(pContext, idu, m_colEvent, pRA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
          UpdateIDU(pContext, idu, m_colZone, newZone, ADD_DELTA);
-         float area = 0;
-         pIDULayer->GetData(idu, m_colArea, area);
-         addedPop += popDelta * area;
+
+         int upzones = 0;
+         pIDULayer->GetData(idu, m_colUpzone, upzones);
+         UpdateIDU(pContext, idu, m_colUpzone, upzones+1, ADD_DELTA);
+
+         addedPopCap += popDelta * area;   // # (people)
 
          // flag this IDU as having been upzoned
          pRA->m_iduToUpzonedMap[idu] += 1;
+
+         nUpzoned++;
+         nUpzonedEvents++;
+         upzonedAreaHa += area * HA_PER_M2; // ha upzoned
 
          //------------------------------------------------------------------------------------------------------------------------------------
          // expand to nearby IDUs
@@ -914,76 +1080,117 @@ bool RuralDev::UpzoneRA(RuralArea* pRA, RuralUpzoneWhen* pUpzone, EnvContext* pC
          //      were included in the patch, negative values indicate they were considered but where not included in the patch
          //------------------------------------------------------------------------------------------------------------------------------------
          // the max expansion area is ...
+         //float maxExpandArea = 1000000; // 100 ha
          // target area
+         
          CArray< int, int > expandArray;
          VData _zone(zone);
          float expandArea = pIDULayer->GetExpandPolysFromAttr(idu, m_colZone, _zone, OPERATOR::EQ, m_colArea, pUpzone->m_maxExpandArea, expandArray);
          //float expandArea = pIDULayer->GetExpandPolysFromQuery(idu, pUpzone->m_pQuery, m_colArea, maxExpandArea, expandArray);
-
+         
+         //msg.Format("Rural Upzone: kernal=%i, expanding ZoneID %i to %.1fha", idu, newZone, expandArea / 10000);
+         //Report::LogInfo(msg);
+         
          // upzone all expanded polygons
          for (INT_PTR j = 0; j < expandArray.GetSize(); j++)
             {
             if (expandArray[j] >= 0)
                {
-               float popCap = 0;
-               pIDULayer->GetData(expandArray[j], this->m_colPopCap, popCap);
+               int _idu = expandArray[j];
 
-               if (popCap <= 0.00000001f)
+               //float popCap = 0;
+               //pIDULayer->GetData(_idu, this->m_colPopCap, popCap);
+               //if (popCap <= 0.1f)
+               //   continue;
+
+               // get existing zone
+               int zone = -1;
+               pIDULayer->GetData(_idu, this->m_colZone, zone);
+
+               // residential?
+               bool upzone = true;
+               if (!IsRuralResidential(zone))
                   continue;
+
+               // hasn't been previously upzoned?
+               UINT uzCount = 0;
+               pRA->m_iduToUpzonedMap.Lookup(_idu, uzCount);
+               if (uzCount >= (UINT) pUpzone->m_stopAfter)
+                  continue;
+
+               int upzonesSoFar = 0;
+               pIDULayer->GetData(_idu, m_colUpzone, upzonesSoFar);
+               if (upzonesSoFar >= pUpzone->m_stopAfter)
+                  continue;
+
                // does this expand IDU pass the upzone query?
-               //if (pUpzone->m_pQuery != NULL)
-               //   {
-               //   bool result = false;
-               //   bool ok = pUpzone->m_pQuery->Run(expandArray[j], result);
-               //   if (!ok || !result)
-               //      continue;
-               //   }
+               if (pUpzone->m_pQuery != NULL)
+                  {
+                  bool result = false;
+                  bool ok = pUpzone->m_pQuery->Run(_idu, result);
+                  if (!ok || !result)
+                     continue;
+                  }
             
                // query passed, update IDU zone info
-               int _idu = expandArray[j];
                //UpdateIDU(pContext, _idu, m_colUgEvent, pRA->m_currentEvent + 1, ADD_DELTA);    // indicate expansion event
-               UpdateIDU(pContext, _idu, m_colZone, newZone, ADD_DELTA);
-
+               UpdateIDU(pContext, _idu, m_colZone, newZone, ADD_DELTA);               
+               UpdateIDU(pContext, _idu, m_colUpzone, upzonesSoFar + 1, ADD_DELTA);
+         
                // update addPop so far
-               float area;
-               pIDULayer->GetData(_idu, m_colArea, area);
-               addedPop += popDelta * area;
-
+               addedPopCap += popDelta * area;
+         
                // flag this IDU as having been upzoned
                pRA->m_iduToUpzonedMap[_idu] += 1;
 
-               if (addedPop >= expPop)
+               nUpzoned++;
+               upzonedAreaHa += area * HA_PER_M2; // ha upzoned
+
+               if (addedPopCap >= expPop)
+                  break;
+
+               if (upzonedAreaHa >= pRA->m_maxAnnualAreaHa)
                   break;
                }
-            }
+            }  // end of: for (j in expansionArray) 
 
          // have we achieved the target?
-         if (addedPop >= expPop)
+         if (addedPopCap >= expPop)
+            {
+            Report::Log_i("Upzone succeeded after examining %i kernal IDUs", i);
             break;
+            }
+         if (upzonedAreaHa >= pRA->m_maxAnnualAreaHa)
+            {
+            Report::Log_i("Upzone reached the maximum allowed area of %i ha", (int)pRA->m_maxAnnualAreaHa);
+            break;
+            }
          }  // end of: if ( upzone )
 
       pRA->m_iduToUpzonedMap[idu] = 0;   // reset map indicate IDU was upzoned this cycle
-      }  // end of: for each IDU in this UGA or prioryt expansion area
+      }  // end of: for each IDU in this Rural Area
 
-   CString msg;
-   if (addedPop == 0)
+   if (addedPopCap == 0)
       {
-      msg.Format("%s Upzone Event Failed (%i)! Trigger: %s, Demand: %.0f people (DF=%.2f), Achieved %.0f people (%.0f percent)",
-         (LPCTSTR)pRA->m_name, pContext->currentYear, (LPCTSTR)pUpzone->m_name, expPop, pUpzone->m_demandFrac, addedPop, (addedPop * 100 / expPop));
+      msg.Format("  %s Upzone Event Failed (%i)! Trigger: %s, Demand: %.0f people (DF=%.2f), Achieved %.0f people (%.0f percent)",
+         (LPCTSTR)pRA->m_name, pContext->currentYear, (LPCTSTR)pUpzone->m_name, expPop, pUpzone->m_demandFrac, addedPopCap, (addedPopCap * 100 / expPop));
       Report::LogWarning(msg);
       }
    else
       {
-      msg.Format("%s Upzone Event (rural, %i): Trigger: %s,  Demand: %.0f people (DF=%.2f), Achieved %.0f people (%.0f percent)",
-            (LPCTSTR)pRA->m_name, pContext->currentYear, (LPCTSTR) pUpzone->m_name, expPop, pUpzone->m_demandFrac, addedPop, (addedPop * 100 / expPop));
+      msg.Format("  %s Upzone Event (rural, %i): Trigger: %s,  Demand: %.0f people (DF=%.2f), Achieved %.0f people (%.0f percent)",
+            (LPCTSTR)pRA->m_name, pContext->currentYear, (LPCTSTR) pUpzone->m_name, expPop, pUpzone->m_demandFrac, addedPopCap, (addedPopCap * 100 / expPop));
+      Report::Log(msg);
 
+      msg.Format("   Upzoned %i IDUs (total area= %.2f ha), using a total of %i Upzone Events", nUpzoned, upzonedAreaHa, nUpzonedEvents);
       Report::Log(msg);
       //pRA->m_currentEvent++;
       }
-
+   
    return true;
    }
 
+// updates each RuralArea object area and pop/capacity stats  
 
 float RuralDev::UpdateRAStats( EnvContext *pContext, bool outputStartInfo )
    {
@@ -1000,7 +1207,6 @@ float RuralDev::UpdateRAStats( EnvContext *pContext, bool outputStartInfo )
    // pRA->m_avgAllowedDensity;       // du/ac
    // pRA->m_avgActualDensity;        // du/ac
    // pRA->m_impervious;               // area weighted fraction
-
 
    MapLayer *pLayer = (MapLayer*) pContext->pMapLayer;
    pContext->pEnvModel->ApplyDeltaArray(pLayer);
@@ -1033,7 +1239,6 @@ float RuralDev::UpdateRAStats( EnvContext *pContext, bool outputStartInfo )
       pRA->m_impervious = 0;               // area weighted fraction
       }
 
-   
    float initPop = 0;
 
    // iterate through the RuralAreaS layer, computing capacities for each active RuralArea
@@ -1116,14 +1321,6 @@ float RuralDev::UpdateRAStats( EnvContext *pContext, bool outputStartInfo )
       pRA->m_avgActualDensity = actualDens;        // du/ac
 
       pRA->m_impervious /= pRA->m_currentArea;
-
-      //if ( outputStartInfo && pContext->yearOfRun == 0 )
-         {
-         CString msg;
-         msg.Format("Population for %s: %i, Total Capacity: %i, Available Capacity: %i, Available Capacity Fraction: %.3f", 
-                  (LPCTSTR) pRA->m_name, (int) pRA->m_currentPopulation, (int) pRA->m_capacity, (int) pRA->m_availCapacity, pRA->m_pctAvailCap);
-         Report::Log( msg );
-         }
 
       if ( pContext->yearOfRun > 0 )
          pRA->m_popIncr = pRA->m_currentPopulation - curPopArray[ i ];  // calculate population added this step
@@ -1212,10 +1409,6 @@ bool RuralDev::PrioritizeRuralArea( EnvContext *pContext, RuralUpzoneWhen *pUpzo
       pLayer->SetData(pUD->idu, m_colPriority, k);
       }
 
-   CString msg;
-   msg.Format( "Finished Prioritizing Rural Areas %s", (LPCTSTR) pRA->m_name);
-   Report::Log( msg );
-
    return true;
    }
 
@@ -1265,16 +1458,16 @@ float RuralDev::GetAllowedDensity( MapLayer *pLayer, int idu, int zoneID )
       return 0;
 
    // pass constraints?
-   if ( pZone->m_pQuery != NULL )
-      {
-      bool passed = false;
-      bool ok = pZone->m_pQuery->Run( idu, passed );
-
-      if ( ok && passed )
-         return pZone->m_density;
-      else
-         return 0;      
-      }
+   //if ( pZone->m_pQuery != NULL )
+   //   {
+   //   bool passed = false;
+   //   bool ok = pZone->m_pQuery->Run( idu, passed );
+   //
+   //   if ( ok && passed )
+   //      return pZone->m_density;
+   //   else
+   //      return 0;      
+   //   }
 
    return pZone->m_density;
    }

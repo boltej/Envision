@@ -73,6 +73,13 @@ void MapElement::ApplyOutcome(EnvContext* pContext, int idu, int colTarget)
          VData oldValue;
          pContext->pMapLayer->GetData(idu, colTarget, oldValue);
 
+         CString msg;
+         int t, t1;
+         oldValue.GetAsInt(t);
+         pSyncOutcome->targetValue.GetAsInt(t1);
+         msg.Format("SyncProcess::ApplyOutcome: idu=%d, oldValue=%d, targetValue=%d\n", idu, t, t1);
+         TRACE(msg);
+
          // during init
          if (oldValue != pSyncOutcome->targetValue)
             {
@@ -137,7 +144,9 @@ MapElement* SyncMap::FindMapElement(VData& vData)
          }
       else  // it is not a range
          {
-         LONG key = vData.val.vUInt; //MAKELONG( vData.type, (short) vData.val.vUInt );
+         int key; //= vData.val.vUInt; //MAKELONG( vData.type, (short) vData.val.vUInt );
+         vData.GetAsInt(key);  // assume integer
+
          BOOL found = m_valueMap.Lookup(key, pMapElement);
 
          if (found)
@@ -412,7 +421,11 @@ bool SyncProcess::Run(EnvContext* pContext)
       ASSERT(pSyncMap != NULL);
 
       if (pSyncMap->m_inUse == false)
+         {
+         // if we get here, we have run the SyncMap
+         Report::Log_s(" Sync_map %s not in use", (LPCTSTR)pSyncMap->m_name);
          continue;
+         }
 
       SyncMap::METHOD method = pSyncMap->m_method;
       // called from init() only run if asked?
@@ -492,6 +505,18 @@ bool SyncProcess::Run(EnvContext* pContext)
 
                MapElement* pMapElement = pSyncMap->FindMapElement(srcValue);
 
+               //////////////
+               int src0, src1;
+               srcValue.GetAsInt(src0);
+               pMapElement->m_sourceValue.GetAsInt(src1);
+               if ( src0 == 2 || src0 == 3 || src0 == 4)
+                  {
+                  CString msg;
+                  msg.Format("SyncProcess::Run: idu=%d, srcValue=%d, mapSourceValue=%d\n", idu, src0, src1);
+                  TRACE(msg);
+                  }
+               ///////////
+
                if (pMapElement != NULL)   // not found?  
                   pMapElement->ApplyOutcome(pContext, idu, colTarget);
                }
@@ -502,6 +527,8 @@ bool SyncProcess::Run(EnvContext* pContext)
          }
 
       pSyncMap->m_method = method;
+      // if we get here, we have run the SyncMap
+      Report::Log_s(" Ran sync_map %s", (LPCTSTR)pSyncMap->m_name);
       }
 
    return true;

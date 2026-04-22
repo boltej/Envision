@@ -560,7 +560,7 @@ void TargetDlg::SaveTarget()
          CString query = pPrefGrid->QuickGetText( 1, j );
          CString value = pPrefGrid->QuickGetText( 2, j );
          float _value = (float) atof( value );
-         pSet->AddPreference( name, m_pTarget, query, _value );
+         pSet->AddPreference( name, m_pTarget, query, _value, true );
 
          //if ( _target != NULL )
          //   pModifier->target = (float) atof( _target );

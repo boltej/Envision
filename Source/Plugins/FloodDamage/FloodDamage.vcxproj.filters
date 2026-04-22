@@ -15,20 +15,21 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="AcuteHazards.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="dllmain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FloodDamage.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <None Include="res\AcuteHazards.rc2">
+    <None Include="res\FloodDamage.rc2">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="FloodDamage.vcxproj" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="stdafx.h">
@@ -40,12 +41,12 @@
     <ClInclude Include="Resource.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="AcuteHazards.h">
+    <ClInclude Include="FloodDamage.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ResourceCompile Include="AcuteHazards.rc">
+    <ResourceCompile Include="FloodDamage.rc">
       <Filter>Resource Files</Filter>
     </ResourceCompile>
   </ItemGroup>

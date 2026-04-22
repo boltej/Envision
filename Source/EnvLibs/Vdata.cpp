@@ -1104,7 +1104,7 @@ LPCTSTR VData::GetAsString() const
          GetAsBool( value );
          VData v( value );
          return v.GetAsString();
-         }
+         }  
 
       case TYPE_PCHAR:
          return (LPCTSTR) val.vPtr; 

@@ -78,6 +78,7 @@ class FieldDef
       CString   m_name;
       CString   m_field;
       CString   m_varianceField;
+      bool m_use = true;
 
    protected:
       FieldCalculator* m_pFieldCalculator = nullptr;
@@ -105,6 +106,9 @@ class FieldDef
       std::map<int,int> m_groupByIndexMap; // key=FN_ID, value=index in groupby arrays
       std::vector<float> m_groupByValues;
       std::vector<float> m_groupByAreas;
+
+      std::vector<std::string> m_scenarios;
+      std::vector<Scenario*> m_pScenarios;
 
       // miscellaneous trackers
       int m_count = 0;

@@ -57,6 +57,8 @@ struct RuralArea  // new
    CString m_name;
    CString m_queryStr;
    Query* m_pQuery = nullptr;
+   float m_maxAnnualFrac = 0.10f;
+   float m_maxAnnualAreaHa = 0;
 
    float m_startPopulation;         // people - set in init 
    float m_upzoneArea;              // m2
@@ -94,13 +96,9 @@ struct RuralArea  // new
    RuralArea(void)
       : m_id(-1)
       , m_startPopulation(0)   
-      //, m_resExpArea(0)        
-      //, m_commExpArea(0)       
-      //, m_totalExpArea(0)
       , m_upzoneArea(0)
       , m_currentArea(0)       
       , m_currentResArea(0)    
-      //, m_currentCommArea(0)   
       , m_currentPopulation(0) 
       , m_newPopulation(0)     
       , m_popIncr(0)           
@@ -118,7 +116,6 @@ struct RuralArea  // new
    void  ShuffleIDUs(RandUniform &rn) {
       ShuffleArray< UINT >(m_iduArray.data(), m_iduArray.size(), &rn);
       }
-
 
    };
 
@@ -158,7 +155,7 @@ class RuralUpzoneWhen : public RuralTrigger
       RuralUpzoneWhen(void) : RuralTrigger() { }
 
    public:
-      int GetNewZone();
+      int GetNewZone(int currentZone, int steps);
       int AddPreference(RuralPreference* pPref) { return (int)this->m_prefArray.Add(pPref); }
       
       // members
@@ -221,6 +218,7 @@ public:
 
    int     m_id;
    int     m_index;
+   int     m_type;       // 1=residential, 2=commercial, etc.
    float   m_density;    // du/ac
    float   m_imperviousFraction;  // decimal percent imperviosu associaetd with zoning
    CString m_query;
@@ -296,7 +294,7 @@ protected:
    int m_colPriority = -1;
    int m_colImpervious = -1;
    int m_colZone = -1;
-
+   int m_colUpzone = -1;
 
    // methods
    RuralScenario   *FindScenarioFromID( int id );
@@ -312,7 +310,7 @@ protected:
    //bool  IsResidential(int zone);
    bool  IsRuralResidential(int zone);
    //bool  IsCommercial(int zone);
-
+   int GetNewZone(int startZone, int step, MapLayer *, int);
    //-- general --------------------------------------
    //void  ShufflePolyIDs(void) { ShuffleArray< UINT >(m_polyIndexArray.data(), m_polyIndexArray.size(), &m_randShuffle); }
 
