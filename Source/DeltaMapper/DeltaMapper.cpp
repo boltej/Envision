@@ -87,7 +87,7 @@ int ProcessDeltas( int argc, TCHAR* argv[] )
 
    TCHAR *deltaFile   = argv[ 1 ];
    TCHAR *iduFile  = argv[ 2 ];
-   TCHAR *year  = argv[ 3 ];
+   TCHAR *_year  = argv[ 3 ];
    
    FILE *fpDelta = fopen( deltaFile, "rt" );
    if ( fpDelta == NULL )
@@ -147,7 +147,7 @@ int ProcessDeltas( int argc, TCHAR* argv[] )
       }
 
    // save final result at end of run
-   SaveResult( pIduLayer, year);
+   //SaveResult( pIduLayer, year);
    
    fclose( fpDelta );
 

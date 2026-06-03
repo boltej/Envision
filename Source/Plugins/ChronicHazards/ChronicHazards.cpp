@@ -1,4 +1,4 @@
-// ChronicHazards.cpp : Defines the initialization routines for the DLL.
+﻿// ChronicHazards.cpp : Defines the initialization routines for the DLL.
 //
 /*
 This file is part of Envision.
@@ -22,6 +22,12 @@ Copywrite 2012 - Oregon State University
 // for details on setting up Matlab:
 // https://www.mathworks.com/help/matlab/matlab_external/build-c-engine-programs.html
 
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+
+#include <limits>
+
 #include "stdafx.h"
 #pragma hdrstop
 
@@ -31,6 +37,7 @@ Copywrite 2012 - Oregon State University
 #include <PathManager.h>
 #include <EnvConstants.h>
 #include <cmath>
+#include <limits>
 #include "ChronicHazards.h"
 
 #include <tixml.h>
@@ -56,12 +63,18 @@ Copywrite 2012 - Oregon State University
 #include <typeinfo>
 #include <stdexcept>
 
-#include <MatlabDataArray.hpp>
+//#include <MatlabDataArray.hpp>
 //#include <MatlabEngine.hpp>
 
 #include <fstream>
 #include <filesystem>
+//#include "../AcuteHazards/AcuteHazards.h"
 
+#include <windows.h>
+#undef min
+#undef max
+
+#include <random>
 
 // new version
 
@@ -91,12 +104,37 @@ COSTS ChronicHazards::m_costs;
 //=====================================================================================================
 
 
-extern "C" _EXPORT EnvExtension * Factory(EnvContext*) { return (EnvExtension*) new ChronicHazards; }
+extern "C" _EXPORT EnvExtension* Factory(EnvContext*) { return (EnvExtension*) new ChronicHazards; }
 
+
+//ChronicHazards::ChronicHazards(void)
+//   : EnvModelProcess(0, 0)
+//   {
+//   }
 
 ChronicHazards::ChronicHazards(void)
-   : EnvModelProcess(0, 0)
-   { }
+    : EnvModelProcess(0, 0)
+    , m_eligibleDunePointsBPSBeginning(0)
+    , m_eligibleLengthBPSBeginning(0)
+    , m_eligibleDunePointsBPSEnd(0)
+    , m_eligibleLengthBPSEnd(0)
+    , m_eligibleDunePointsBPSChange(0)
+    , m_eligibleLengthBPSChange(0)
+    , m_cumulativeErodedBldgCount(0)
+    // initialize new dune-layer column indices to sentinel -1
+    , m_colDLMAINT_TYPE(-1)
+    , m_colDLMNTBCOSTBPS(-1)
+    , m_colDLMNTCCOSTBPS(-1)
+    , m_colDLMNTCOSTBPS(-1)
+    , m_colDLMAINB_CNT_BPS(-1)
+    , m_colDLMAINC_CNT_BPS(-1)
+    , m_colDLMAINC_DISABLE_BPS(-1)
+    , m_colDLLastBaseMaintYr(-1)
+    , m_colDLLastCrestMaintYr(-1)
+    , m_colIDURaisingHeight(-1)
+
+{
+}
 
 ChronicHazards::~ChronicHazards(void)
    {
@@ -123,14 +161,26 @@ ChronicHazards::~ChronicHazards(void)
 
 bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    {
+
    // read config files and set internal variables based on that
    Report::Log_s("Loading input file %s", initStr);
    LoadXml(initStr);
 
+   // after LoadXml(initStr);
+   if (!std::isfinite(m_costs.FracBPSBaseMaint) || m_costs.FracBPSBaseMaint <= 0.0f) {
+       m_costs.FracBPSBaseMaint = 0.02f; // default 2%
+       CString msg;
+       msg.Format(_T("ChronicHazards: BPSMaint not set or invalid in XML; defaulting to %.4f"), m_costs.FracBPSBaseMaint);
+       Report::LogInfo(msg);
+   }
+   else {
+       CString msg;
+       msg.Format(_T("ChronicHazards: BPSMaint = %.4f"), m_costs.FracBPSBaseMaint);
+       Report::LogInfo(msg);
+   }
+
    // get Map pointer
    m_pMap = pEnvContext->pMapLayer->GetMapPtr();
-
-
 
    ////////////////
    //this->m_pFloodedGrid = m_pMap->AddGridLayer("/Envision/StudyAreas/OrCoast/Tillamook/Outputs/Baseline-High/Run0/Flooding/Flooding_Year2021_Baseline-High_Run0.asc", DO_TYPE::DOT_FLOAT);
@@ -228,7 +278,7 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       }
 
    // define input (scenario) variables
-   Report::LogInfo("Adding input/outpu5 variables");
+   Report::LogInfo("Adding input/output variables");
 
    AddInputVar("Climate Scenario ID", m_climateScenarioID, "0=BaseSLR, 1=LowSLR, 2=MedSLR, 3=HighSLR, 4=WorstCaseSLR");
    //AddInputVar("Track Habitat", m_runEelgrassModel, "0=Off, 1=On");
@@ -248,12 +298,16 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    AddInputVar(_T("Run Policy Model"), m_runPolicy, "0=Off, 1=On");
    AddInputVar(_T("Run TWL Model"), m_runTWL, "0=Off, 1=On");
 
-
-   //AddInputVar(_T("Construct on Safest Site"), m_runConstructSafestPolicy, "0=Off, 1=On");
+   AddInputVar(_T("Construct on Safest Site"), m_runConstructSafestPolicy, "0=Off, 1=On");
    AddInputVar(_T("Remove Bldg From Hazard Zone"), m_runRemoveBldgFromHazardZonePolicy, "0=Off, 1=On");
    AddInputVar(_T("Remove Infra From Hazard Zone"), m_runRemoveInfraFromHazardZonePolicy, "0=Off, 1=On");
-   AddInputVar(_T("Raise or Relocate to Safest Site"), m_runRelocateSafestPolicy, "0=Off, 1=On");
+   AddInputVar(_T("Raise or Relocate to Safest Site"), m_runRelocateSafestPolicy, "0=Off, 1=Untargeted (random), 2=Targeted (weighted by EconClass)");
    AddInputVar(_T("Raise Infrastructure"), m_runRaiseInfrastructurePolicy, "0=Off, 1=On");
+
+   // diagnostic: show model name and input value that was set by scenario engine
+   CString dbg;
+   dbg.Format(_T("ChronicHazards::InitRun: m_runRelocateSafestPolicy=%d"), m_runRelocateSafestPolicy);
+   Report::LogInfo(dbg);
 
    // still need the following?
    //CString filename;
@@ -314,36 +368,77 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
 
    if (m_runBuildings) //Flags && CH_MODEL_BUILDINGS)
       {
+      // expose newly-eroded (annual) and cumulative eroded building counts
+      this->AddOutputVar("Newly Eroded Buildings (count)", m_erodedBldgCount, "");
+      this->AddOutputVar("Cumulative Eroded Buildings (count)", m_cumulativeErodedBldgCount, "");
       }
-
    if (m_runInfrastructure) // Flags && CH_MODEL_INFRASTRUCTURE)
-      {
-      this->AddOutputVar("Number of BPS Construction Projects", m_noConstructedBPS, "");
-      this->AddOutputVar("BPS Construction Cost ($)", m_constructCostBPS, "");
-      this->AddOutputVar("Total Length of Shoreline Hardened (m)", m_totalHardenedShoreline, "");
-      this->AddOutputVar("Total Length of Shoreline Hardened (miles)", m_totalHardenedShorelineMiles, "");
-      this->AddOutputVar("Added Length of Shoreline Hardened (m)", m_addedHardenedShoreline, "");
-      this->AddOutputVar("Added Length of Shoreline Hardened (miles)", m_addedHardenedShorelineMiles, "");
-      this->AddOutputVar("Percent of Shoreline Hardened (m)", m_percentHardenedShoreline, "");
-      this->AddOutputVar("Percent of Shoreline Hardened (miles)", m_percentHardenedShorelineMiles, "");
-      this->AddOutputVar("BPS Maintenance Cost ($)", m_maintCostBPS, "");
-      this->AddOutputVar("BPS Nourishment Cost ($)", m_nourishCostBPS, "");
-      this->AddOutputVar("BPS Nourishment Volume (m3)", m_nourishVolumeBPS, "");
+   {
+       this->AddOutputVar("Number of BPS Construction Projects", m_noConstructedBPS, "");
+       this->AddOutputVar("BPS Construction Cost ($)", m_constructCostBPS, "");
+       this->AddOutputVar("Total Length of Shoreline Hardened (m)", m_totalHardenedShoreline, "");
+       this->AddOutputVar("Total Length of Shoreline Hardened (miles)", m_totalHardenedShorelineMiles, "");
+       this->AddOutputVar("Added Length of Shoreline Hardened (m)", m_addedHardenedShoreline, "");
+       this->AddOutputVar("Added Length of Shoreline Hardened (miles)", m_addedHardenedShorelineMiles, "");
+       this->AddOutputVar("Percent of Shoreline Hardened (m)", m_percentHardenedShoreline, "");
+       this->AddOutputVar("Percent of Shoreline Hardened (miles)", m_percentHardenedShorelineMiles, "");
+       this->AddOutputVar("BPS Nourishment Cost ($)", m_nourishCostBPS, "");
+       this->AddOutputVar("BPS Nourishment Volume (m3)", m_nourishVolumeBPS, "");
 
-      this->AddOutputVar("Number of SPS Construction Projects", m_noConstructedDune, "");
-      this->AddOutputVar("SPS Construction Cost ($)", m_restoreCostSPS, "");
-      this->AddOutputVar("SPS Construction Volume of Sand (m3)", m_constructVolumeSPS, "");
-      this->AddOutputVar("SPS Maintenance Cost ($)", m_maintCostSPS, "");
-      this->AddOutputVar("SPS Maintenance Volume (m3)", m_maintVolumeSPS, "");
-      this->AddOutputVar("SPS Nourishment Cost ($)", m_nourishCostSPS, "");
-      this->AddOutputVar("SPS Nourishment Volume (m3)", m_nourishVolumeSPS, "");
-      this->AddOutputVar("Total Length of SPS Constructed (m)", m_totalRestoredShoreline, "");
-      this->AddOutputVar("Total Length of SPS Constructed (miles)", m_totalRestoredShorelineMiles, "");
-      this->AddOutputVar("Added Length of SPS Constructed (m)", m_addedRestoredShoreline, "");
-      this->AddOutputVar("Added Length of SPS Constructed (miles)", m_addedRestoredShorelineMiles, "");
-      this->AddOutputVar("Percent of SPS Constructed (m)", m_percentRestoredShoreline, "");
-      this->AddOutputVar("Percent of SPS Constructed (miles)", m_percentRestoredShorelineMiles, "");
-      }
+       this->AddOutputVar("Number of SPS Construction Projects", m_noConstructedDune, "");
+       this->AddOutputVar("SPS Construction Cost ($)", m_restoreCostSPS, "");
+       this->AddOutputVar("SPS Construction Volume of Sand (m3)", m_constructVolumeSPS, "");
+       this->AddOutputVar("SPS Maintenance Cost ($)", m_maintCostSPS, "");
+       this->AddOutputVar("SPS Maintenance Volume (m3)", m_maintVolumeSPS, "");
+       this->AddOutputVar("SPS Nourishment Cost ($)", m_nourishCostSPS, "");
+       this->AddOutputVar("SPS Nourishment Volume (m3)", m_nourishVolumeSPS, "");
+       this->AddOutputVar("Total Length of SPS Constructed (m)", m_totalRestoredShoreline, "");
+       this->AddOutputVar("Total Length of SPS Constructed (miles)", m_totalRestoredShorelineMiles, "");
+       this->AddOutputVar("Added Length of SPS Constructed (m)", m_addedRestoredShoreline, "");
+       this->AddOutputVar("Added Length of SPS Constructed (miles)", m_addedRestoredShorelineMiles, "");
+       this->AddOutputVar("Percent of SPS Constructed (m)", m_percentRestoredShoreline, "");
+       this->AddOutputVar("Percent of SPS Constructed (miles)", m_percentRestoredShorelineMiles, "");
+
+       // Add eligible dune point tracking outputs for BPS (New construction)
+       this->AddOutputVar("Eligible BPS Dune Points (Beginning)", m_eligibleDunePointsBPSBeginning, "");
+       this->AddOutputVar("Eligible BPS Dune Length Beginning (m)", m_eligibleLengthBPSBeginning, "");
+       this->AddOutputVar("Eligible BPS Dune Points (End)", m_eligibleDunePointsBPSEnd, "");
+       this->AddOutputVar("Eligible BPS Dune Length End (m)", m_eligibleLengthBPSEnd, "");
+       this->AddOutputVar("Change Eligible BPS Dune Points", m_eligibleDunePointsBPSChange, "");
+       this->AddOutputVar("Change Eligible BPS Dune Length (m)", m_eligibleLengthBPSChange, "");
+	   this->AddOutputVar("BPS Construction Unmet Demand ($)", m_COSTBPS_unmet, "");
+
+       // Add eligible dune point tracking outputs for BPS maintenance
+       this->AddOutputVar("Eligible base BPS Maintenance Dune Points (Beginning)", m_eligibleDunePointsBPSBMaintBeginning, "");
+       this->AddOutputVar("Eligible base BPS Maintenance Dune Length Beginning (m)", m_eligibleLengthBPSBMaintBeginning, "");
+       this->AddOutputVar("Eligible base BPS Maintenance Dune Points (End)", m_eligibleDunePointsBPSBMaintEnd, "");
+       this->AddOutputVar("Eligible base BPS Maintenance Dune Length End (m)", m_eligibleLengthBPSBMaintEnd, "");
+       this->AddOutputVar("Change Eligible base BPS Maintenance Dune Points", m_eligibleDunePointsBPSBMaintChange, "");
+       this->AddOutputVar("Change Eligible base BPS Maintenance Dune Length (m)", m_eligibleLengthBPSBMaintChange, "");
+
+       this->AddOutputVar("Eligible crest BPS Maintenance Dune Points (Beginning)", m_eligibleDunePointsBPSCMaintBeginning, "");
+       this->AddOutputVar("Eligible crest BPS Maintenance Dune Length Beginning (m)", m_eligibleLengthBPSCMaintBeginning, "");
+       this->AddOutputVar("Eligible crest BPS Maintenance Dune Points (End)", m_eligibleDunePointsBPSCMaintEnd, "");
+       this->AddOutputVar("Eligible crest BPS Maintenance Dune Length End (m)", m_eligibleLengthBPSCMaintEnd, "");
+       this->AddOutputVar("Change Eligible crest BPS Maintenance Dune Points", m_eligibleDunePointsBPSCMaintChange, "");
+       this->AddOutputVar("Change Eligible crest BPS Maintenance Dune Length (m)", m_eligibleLengthBPSCMaintChange, "");
+
+       this->AddOutputVar("BPS Base Maintenance Cost ($)", m_MNTBCOSTBPS, "");
+       this->AddOutputVar("BPS Crest Maintenance Cost ($)", m_MNTCCOSTBPS, "");
+       this->AddOutputVar("BPS Total Maintenance Cost ($)", m_MNTCOSTBPS, "");
+       this->AddOutputVar("BPS Base Maintenance Unmet Demand ($)", m_MNTBCOSTBPS_unmet, "");
+       this->AddOutputVar("BPS Crest Maintenance Unmet Demand ($)", m_MNTCCOSTBPS_unmet, "");
+       this->AddOutputVar("BPS Total Maintenance Unmet Demand ($)", m_MNTCOSTBPS_unmet, "");
+
+       this->AddOutputVar("Number of BPS Base Maintenance Projects (count)", m_noMaintainedBBPSProjects, "");
+       this->AddOutputVar("Number of BPS Base Maintenance Dune Points (count)", m_noMaintainedBBPSPoints, "");
+       this->AddOutputVar("DUNE Length of BPS Base Maintained (m)", m_maintainedBLengthBPS, "");
+
+       this->AddOutputVar("Number of BPS Crest Maintenance Projects (count)", m_noMaintainedCBPSProjects, "");
+       this->AddOutputVar("Number of BPS Crest Maintenance Dune Points (count)", m_noMaintainedCBPSPoints, "");
+       this->AddOutputVar("DUNE Length of BPS Crest Maintained (m)", m_maintainedCLengthBPS, "");
+
+   }
 
    if (m_runPolicy) //Flags && CH_MODEL_POLICY)
       {
@@ -355,6 +450,12 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
       this->AddOutputVar("Policy Cost Summary", &m_policyCostData, "");
 
       this->AddOutputVar("Number of Qualified Buildings in Hazard Zone", m_nQualifiedBldgsInHazardZone, "");
+
+      // ---- Raise/Relocate annual metrics (exposed to ModelOutput.csv) ----
+      this->AddOutputVar("Raise Buildings Cost ($)", m_raiseCostTotal, "");
+      this->AddOutputVar("Raise Buildings Unmet Demand ($)", m_raiseCost_unmet, "");
+      this->AddOutputVar("Buildings Eligible for Raise (Beginning)", m_raiseEligibleBeginning, "");
+      this->AddOutputVar("Buildings Eligible for Raise (End)", m_raiseEligibleEnd, "");
       }
 
 
@@ -407,7 +508,6 @@ bool ChronicHazards::Init(EnvContext* pEnvContext, LPCTSTR initStr)
    return TRUE;
    }
 
-
 bool ChronicHazards::InitTWLModel(EnvContext* pEnvContext)
    {
    if (m_runTWL == 0)  //Flags & CH_MODEL_TWL) == 0)
@@ -445,13 +545,13 @@ bool ChronicHazards::InitFloodingModel(EnvContext* pEnvContext)
    if (m_runFlooding == 0)
       return false;
 
-   using namespace matlab::engine;
-   // Start MATLAB engine synchronously
-   this->m_matlabPtr = startMATLAB();
+   //using namespace matlab::engine;
+   //// Start MATLAB engine synchronously
+   //this->m_matlabPtr = startMATLAB();
 
-   matlab::data::ArrayFactory factory;
-   auto sfincs_home = factory.createCharArray((LPCTSTR)m_sfincsHome); // TODO: Remove hardcoding of SFICS home
-   m_matlabPtr->feval(u"addpath", sfincs_home);  // moved to matlab side
+   //matlab::data::ArrayFactory factory;
+   //auto sfincs_home = factory.createCharArray((LPCTSTR)m_sfincsHome); // TODO: Remove hardcoding of SFICS home
+  // m_matlabPtr->feval(u"addpath", sfincs_home);  // moved to matlab side
 
    //// Elevation
    //m_pElevationGrid = m_pMap->GetLayer("Elevation");
@@ -481,12 +581,13 @@ bool ChronicHazards::InitFloodingModel(EnvContext* pEnvContext)
 
    // change to MUST_EXIST
    CheckCol(m_pIDULayer, m_colIDUBaseFloodElevation, "STATIC_BFE", TYPE_FLOAT, CC_MUST_EXIST);
-   /////CheckCol(m_pIDULayer, m_colIDUFloodZone, "FLD_ZONE", TYPE_STRING, CC_AUTOADD);
+   CheckCol(m_pIDULayer, m_colIDUFloodZone, "FLD_ZONE", TYPE_STRING, CC_AUTOADD);
    //CheckCol(m_pIDULayer, m_colIDUFloodZoneCode, "FLD_HZ", TYPE_INT, CC_MUST_EXIST);
    /////CheckCol(m_pIDULayer, m_colLandValue, "LANDVALUE", TYPE_LONG, CC_MUST_EXIST);
-   ////////CheckCol(m_pIDULayer, m_colIDUFlooded, "FLOODED", TYPE_INT, CC_AUTOADD);
+   CheckCol(m_pIDULayer, m_colIDUFloodDepth, "FLOODDEPTH", TYPE_FLOAT, CC_AUTOADD);
+   m_pIDULayer->SetColData(m_colIDUFloodDepth, VData(0.0f), true);
    CheckCol(m_pIDULayer, m_colIDUFracFlooded, "FRACFLOOD", TYPE_FLOAT, CC_AUTOADD);
-   m_pIDULayer->SetColData(m_colIDUFracFlooded, VData(0.0f), true);
+   m_pBldgLayer->SetColData(m_colBldgFlooded, VData(0), true);
 
    // Bay Trace columns
    ////////if (m_pBayTraceLayer)
@@ -563,6 +664,9 @@ bool ChronicHazards::InitErosionModel(EnvContext* pEnvContext)
    CheckCol(m_pDuneLayer, m_colDLXAvgKD, "X_AVGKD", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLXAvgKD, VData(0.0f), true);
 
+   // Ensure IDU layer has an "ERODED" flag so we can mark the IDU that contains an eroded building
+   CheckCol(m_pIDULayer, m_colIDUEroded, "ERODED", TYPE_INT, CC_AUTOADD);
+   m_pIDULayer->SetColData(m_colIDUEroded, VData(0), true);
 
    ////////// 1/0 field if IDU was annually flooded or eroded
    ////////CheckCol(m_pIDULayer, m_colIDUEroded, "ERODED", TYPE_INT, CC_AUTOADD);
@@ -674,7 +778,7 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
       m_pBldgLayer->SetColData(m_colBldgIDUIndex, VData(-1), true);
       CheckCol(m_pBldgLayer, m_colBldgNDU, "NDU", TYPE_INT, CC_AUTOADD);
       CheckCol(m_pBldgLayer, m_colBldgNEWDU, "NEWDU", TYPE_INT, CC_AUTOADD);
-      CheckCol(m_pBldgLayer, m_colBldgBFE, "BFE", TYPE_FLOAT, CC_AUTOADD);
+      CheckCol(m_pBldgLayer, m_colBldgBFE, "Static_BFE", TYPE_FLOAT, CC_AUTOADD);
       //CheckCol(m_pBldgLayer, m_colBldgFloodHZ, "FLDHZ", TYPE_INT, CC_AUTOADD);
       //m_pBldgLayer->SetColData(m_colBldgFloodHZ, VData(0), true);
 
@@ -702,7 +806,7 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
 
       //CheckCol(m_pBldgLayer, m_colBldgCityCode, "CITY_CODE", TYPE_INT, CC_AUTOADD);
       CheckCol(m_pBldgLayer, m_colBldgValue, "BLDGVALUE", TYPE_INT, CC_MUST_EXIST);
-      
+
       CheckCol(m_pBldgLayer, m_colBldgResAge, "ResAge", TYPE_STRING, CC_AUTOADD);
       m_pBldgLayer->SetColData(m_colBldgResAge, VData(""), true);
 
@@ -715,11 +819,24 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
       CheckCol(m_pBldgLayer, m_colBldgCensusType, "CensusType", TYPE_STRING, CC_AUTOADD);
       m_pBldgLayer->SetColData(m_colBldgCensusType, VData(""), true);
 
+      CheckCol(m_pBldgLayer, m_colBldgResOwner, "ResOwner", TYPE_STRING, CC_AUTOADD);
+      m_pBldgLayer->SetColData(m_colBldgResOwner, VData(""), true);
+
       CheckCol(m_pIDULayer, m_colIDUResAge, "ResAge", TYPE_STRING, CC_MUST_EXIST);
       CheckCol(m_pIDULayer, m_colIDUResIncome, "ResIncom", TYPE_STRING, CC_MUST_EXIST);
       CheckCol(m_pIDULayer, m_colIDUEconClass, "EconClass", TYPE_INT, CC_MUST_EXIST);
       CheckCol(m_pIDULayer, m_colIDUCensusType, "CensusType", TYPE_STRING, CC_MUST_EXIST);
+      CheckCol(m_pIDULayer, m_colIDUResOwner, "ResOwner", TYPE_STRING, CC_MUST_EXIST);
       CheckCol(m_pIDULayer, m_colIDURemovedPop, "RemovedPop", TYPE_FLOAT, CC_AUTOADD);
+
+      CheckCol(m_pIDULayer, m_colIDUBFEYr, "BFE_YR", TYPE_INT, CC_AUTOADD);
+      CheckCol(m_pIDULayer, m_colIDUSafeSiteYr, "SFESITE_YR", TYPE_INT, CC_AUTOADD);
+      CheckCol(m_pIDULayer, m_colIDUCostElev, "CostElev", TYPE_FLOAT, CC_AUTOADD);
+      CheckCol(m_pIDULayer, m_colIDUPFE, "PFE", TYPE_INT, CC_MUST_EXIST);
+
+      // NEW: initialize raising height column for IDUs (stored in meters)
+      CheckCol(m_pIDULayer, m_colIDURaisingHeight, "RAISING_HT", TYPE_FLOAT, CC_AUTOADD);
+      m_pIDULayer->SetColData(m_colIDURaisingHeight, VData(0.0f), true);
 
       // build polygrid lookup
       Report::StatusMsg("Building polypoint mapper IDUBuildings.ppm");
@@ -727,20 +844,27 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
       m_pIduBuildingLkUp = new PolyPointMapper(m_pIDULayer, m_pBldgLayer, iduBldgFile);  // creates map if file note found, otherwse, just loads it
       m_pIduBuildingLkUp->BuildIndex();
 
-
       ///////////////////////
       int numBldgs = 0;
-
+      //int numBldgs_total = 0;
       for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
          {
          CArray< int, int > bldgIndices;
-         numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
+         //numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
+         //numBldgs_total += numBldgs;
+         //ASSERT(numBldgs == bldgIndices.GetSize());
+
+         int found = m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
+         // accumulate the total number of buildings across all IDUs
+         numBldgs += found;
+         // sanity check: GetPointsFromPolyIndex should have filled bldgIndices with 'found' items
+         ASSERT(found == bldgIndices.GetSize());
          for (int i = 0; i < bldgIndices.GetSize(); i++)
             {
             CString resAge;
             m_pIDULayer->GetData(m, m_colIDUResAge, resAge);
             m_pBldgLayer->SetData(bldgIndices[i], m_colBldgResAge, resAge);
-         
+
             CString resIncome;
             m_pIDULayer->GetData(m, m_colIDUResIncome, resIncome);
             m_pBldgLayer->SetData(bldgIndices[i], m_colBldgResIncome, resIncome);
@@ -748,14 +872,19 @@ bool ChronicHazards::InitBldgModel(EnvContext* pEnvContext)
             int econClass;
             m_pIDULayer->GetData(m, m_colIDUEconClass, econClass);
             m_pBldgLayer->SetData(bldgIndices[i], m_colBldgEconClass, econClass);
-            
+
             CString censusType;
             m_pIDULayer->GetData(m, m_colIDUCensusType, censusType);
             m_pBldgLayer->SetData(bldgIndices[i], m_colBldgCensusType, censusType);
+
+            CString resOwner;
+            m_pIDULayer->GetData(m, m_colIDUResOwner, resOwner);
+            m_pBldgLayer->SetData(bldgIndices[i], m_colBldgResOwner, resOwner);
             }
          }
 
       Report::Log_i("Indexed %i buildings to the IDUs", numBldgs);
+      //Report::Log_i("Indexed %i total buildings to the IDUs", numBldgs_total);
       ///////////////////////
       }
 
@@ -956,7 +1085,7 @@ bool ChronicHazards::InitInfrastructureModel(EnvContext* pEnvContext)
    //FindClosestDunePtToBldg(pEnvContext);
    if (m_runFlooding || m_runErosion)
       {
-      //FindProtectedBldgs();  only need to run this once to populate file (must save)
+      //FindProtectedBldgs();  // only need to run this once to populate file (must save)
       }
 
    return true;
@@ -1108,10 +1237,10 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    m_pDuneLayer->SetColData(m_colDLAmtFlooded, VData(0.0), true);
 
    ////////// Frequency of K&D erosion event or flooded event
-  CheckCol(m_pDuneLayer, m_colDLDuneEroFreq, "ERO_FREQ", TYPE_FLOAT, CC_AUTOADD);
-  m_pDuneLayer->SetColData(m_colDLDuneEroFreq, VData(0.0f), true);
-  CheckCol(m_pDuneLayer, m_colDLDuneFloodFreq, "FLOOD_FREQ", TYPE_FLOAT, CC_AUTOADD);
-  m_pDuneLayer->SetColData(m_colDLDuneFloodFreq, VData(0.0f), true);
+   CheckCol(m_pDuneLayer, m_colDLDuneEroFreq, "ERO_FREQ", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLDuneEroFreq, VData(0.0f), true);
+   CheckCol(m_pDuneLayer, m_colDLDuneFloodFreq, "FLOOD_FREQ", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLDuneFloodFreq, VData(0.0f), true);
    ////////
    ////////
    // ***** Impact Days ***** //
@@ -1183,12 +1312,47 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////// ****** Hard Protection Structures ****** //
    CheckCol(m_pDuneLayer, m_colDLEastingToeBPS, "EASTINGBPS", TYPE_DOUBLE, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLEastingToeBPS, VData(0.0), true);
-   CheckCol(m_pDuneLayer, m_colDLAddYearBPS, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLAddYearBPS, VData(0), true);
+   CheckCol(m_pDuneLayer, m_colDLAddBPSYr, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLAddBPSYr, VData(0), true);
    CheckCol(m_pDuneLayer, m_colDLMaintYearBPS, "MAIN_YRBPS", TYPE_INT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLMaintYearBPS, VData(0), true);
+   CheckCol(m_pDuneLayer, m_colDLLastBaseMaintYr, "LAST_BASE_MAINT_YR", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLLastBaseMaintYr, VData(0), true);
+   CheckCol(m_pDuneLayer, m_colDLLastCrestMaintYr, "LAST_CREST_MAINT_YR", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLLastCrestMaintYr, VData(0), true);
    CheckCol(m_pDuneLayer, m_colDLRemoveYearBPS, "REM_YR_BPS", TYPE_INT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLRemoveYearBPS, VData(0), true);
+
+   // Maintenance Type:0=neither, 1 = base, 2 = crest, and 3=both
+   CheckCol(m_pDuneLayer, m_colDLMAINT_TYPE, "MAINT_TYPE", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMAINT_TYPE, VData(0), true);
+
+   // Costs of Protection Structures, B-base, C-crest, and total
+   CheckCol(m_pDuneLayer, m_colDLMNTBCOSTBPS, "MNTBCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMNTBCOSTBPS, VData(0.0f), true);
+
+   CheckCol(m_pDuneLayer, m_colDLMNTCCOSTBPS, "MNTCCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMNTCCOSTBPS, VData(0.0f), true);
+
+   CheckCol(m_pDuneLayer, m_colDLMNTCOSTBPS, "MNTCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMNTCOSTBPS, VData(0.0f), true);
+
+   // --- NEW: ensure COST_BPS exists and initialize it ---
+   // The label "COST_BPS" should match the DBF/field name you expect; adjust if the field uses a different name.
+   CheckCol(m_pDuneLayer, m_colDLCostBPS, "COST_BPS", TYPE_DOUBLE, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLCostBPS, VData(0.0), true);
+
+   // cumulative counters (persist across years) and initialize to 0, 
+   CheckCol(m_pDuneLayer, m_colDLMAINB_CNT_BPS, "MAINB_CNT_BPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMAINB_CNT_BPS, VData(0), true);
+
+   CheckCol(m_pDuneLayer, m_colDLMAINC_CNT_BPS, "MAINC_CNT_BPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMAINC_CNT_BPS, VData(0), true);
+
+   // crest-disable flag to permanently disable maintenance on a dune point when max-height constraint hit (permanent when capped)
+   CheckCol(m_pDuneLayer, m_colDLMAINC_DISABLE_BPS, "MAINC_DISABLE_BPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLMAINC_DISABLE_BPS, VData(0), true);
+
    ////////
    ////////
    ////////// Hard Protection Structure Nourishment attributes
@@ -1201,8 +1365,8 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////// ****** Soft Protection Structures ****** //
    ////////CheckCol(m_pDuneLayer, m_colDLEastingToeSPS, "EASTINGSPS", TYPE_DOUBLE, CC_AUTOADD);
    ////////m_pDuneLayer->SetColData(m_colDLEastingToeSPS, VData(0.0), true);
-   CheckCol(m_pDuneLayer, m_colDLAddYearSPS, "ADD_YR_SPS", TYPE_INT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLAddYearSPS, VData(0), true);
+   CheckCol(m_pDuneLayer, m_colDLAddSPSYr, "ADD_YR_SPS", TYPE_INT, CC_AUTOADD);
+   m_pDuneLayer->SetColData(m_colDLAddSPSYr, VData(0), true);
 
    ////////CheckCol(m_pDuneLayer, m_colDLMaintYearSPS, "MAIN_YRSPS", TYPE_INT, CC_AUTOADD);
    ////////m_pDuneLayer->SetColData(m_colDLMaintYearSPS, VData(0), true);
@@ -1229,39 +1393,50 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
    ////////m_pDuneLayer->SetColData(m_colDLNourishYearSPS, VData(0), true);
    ////////CheckCol(m_pDuneLayer, m_colDLNourishFreqSPS, "NOURFRQSPS", TYPE_INT, CC_AUTOADD);
    ////////
-   // Costs of Protection Structures
-   CheckCol(m_pDuneLayer, m_colDLCostBPS, "COST_BPS", TYPE_DOUBLE, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLCostBPS, VData(0.0), true);
-   
-   CheckCol(m_pDuneLayer, m_colDLCostMaintBPS, "MNTCOSTBPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLCostMaintBPS, VData(0.0), true);
-   
+
    CheckCol(m_pDuneLayer, m_colDLCostSPS, "COST_SPS", TYPE_DOUBLE, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLCostSPS, VData(0.0), true);
    //CheckCol(m_pDuneLayer, m_colNoursihCostSPS, "NOURCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
    //m_pDuneLayer->SetColData(m_colNourishCostSPS, VData(0.0), true);
    //CheckCol(m_pDuneLayer, m_colRebuildCostSPS, "RBLDCOSTBPS", TYPE_DOUBLE, CC_AUTOADD);
    //m_pDuneLayer->SetColData(m_colRebuildCostSPS, VData(0.0), true);
-   
-   // Height of Protection Structures
+
+
+    // Height of Protection Structures
    CheckCol(m_pDuneLayer, m_colDLHeightBPS, "HEIGHT_BPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLHeightBPS, VData(0.0), true);
+   m_pDuneLayer->SetColData(m_colDLHeightBPS, VData((float)std::numeric_limits<float>::quiet_NaN()), true);
    CheckCol(m_pDuneLayer, m_colDLHeightSPS, "HEIGHT_SPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLHeightSPS, VData(0.0), true);
-   
+   m_pDuneLayer->SetColData(m_colDLHeightSPS, VData((float)std::numeric_limits<float>::quiet_NaN()), true);
+
    // Length of Protection Structures
    CheckCol(m_pDuneLayer, m_colDLLengthBPS, "LENGTH_BPS", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLLengthBPS, VData(0.0), true);
+
+   // Initialize LENGTH_BPS: set to m_BPSLength for dune points that already have a BPS
+   // (beachType == BchT_SANDY_RIPRAP_BACKED), 0 for all other dune points.
+   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
+   {
+       int beachType = 0;
+       m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+
+       float lengthBPS = 0.0f;
+       if (beachType == BchT_SANDY_RIPRAP_BACKED)
+           lengthBPS = static_cast<float>(m_BPSLength);
+
+       m_pDuneLayer->SetData(point, m_colDLLengthBPS, lengthBPS);
+   }
+
    CheckCol(m_pDuneLayer, m_colDLLengthSPS, "LENGTH_SPS", TYPE_FLOAT, CC_AUTOADD);
    m_pDuneLayer->SetColData(m_colDLLengthSPS, VData(0.0), true);
-   
+
    // Width of Protection Structures
    CheckCol(m_pDuneLayer, m_colDLWidthBPS, "WIDTH_BPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLWidthBPS, VData(0.0), true);
+   m_pDuneLayer->SetColData(m_colDLWidthBPS, VData((float)std::numeric_limits<float>::quiet_NaN()), true);
    CheckCol(m_pDuneLayer, m_colDLWidthSPS, "WIDTH_SPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLWidthSPS, VData(0.0), true);
+   m_pDuneLayer->SetColData(m_colDLWidthSPS, VData((float)std::numeric_limits<float>::quiet_NaN()), true);
    CheckCol(m_pDuneLayer, m_colDLTopWidthSPS, "TOPWDTHSPS", TYPE_FLOAT, CC_AUTOADD);
-   m_pDuneLayer->SetColData(m_colDLTopWidthSPS, VData(0.0), true);
+   m_pDuneLayer->SetColData(m_colDLTopWidthSPS, VData((float)std::numeric_limits<float>::quiet_NaN()), true);
+
    ////////
    ////////
    ////////// 1/0 Indication that Beachtype changed 
@@ -1457,283 +1632,712 @@ bool ChronicHazards::InitDuneModel(EnvContext* pEnvContext)
     ////////m_pDuneLayer->AddNoDataBin(colIndex);
     ////////m_pDuneLayer->ClassifyData();
 
+   CString ppmDir = PathManager::GetPath(PM_IDU_DIR);
+   ppmDir += "PolyGridMaps\\";
+
+   // dunepoint polygrid lookup
+   Report::StatusMsg("Building polypoint mapper IDUDunes.ppm");
+   CString iduDuneFile = ppmDir + "IDUDunes.ppm";
+   m_pIduDuneLkUp = new PolyPointMapper(m_pIDULayer, m_pDuneLayer, iduDuneFile);  // creates map if file note found, otherwse, just loads it
+   m_pIduDuneLkUp->BuildIndex();
 
    return true;
    }
 
 bool ChronicHazards::InitPolicyInfo(EnvContext* pEnvContext)
-   {
+{
 
-   CheckCol(m_pIDULayer, m_colIDULength, "Length", TYPE_FLOAT, CC_MUST_EXIST);
-   CheckCol(m_pIDULayer, m_colIDUAddBPSYr, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
-   //CheckCol(m_pIDULayer, m_colIDUBeachfront, "BEACHFRONT", TYPE_INT, CC_AUTOADD);
-   //CheckCol(m_pIDULayer, m_colIDUCityCode, "CITY_CODE", TYPE_INT, CC_AUTOADD);
+    CheckCol(m_pIDULayer, m_colIDULength, "Length", TYPE_FLOAT, CC_MUST_EXIST);
+    CheckCol(m_pIDULayer, m_colIDUAddBPSYr, "ADD_YR_BPS", TYPE_INT, CC_AUTOADD);
+    //CheckCol(m_pIDULayer, m_colIDUBeachfront, "BEACHFRONT", TYPE_INT, CC_AUTOADD);
+    //CheckCol(m_pIDULayer, m_colIDUCityCode, "CITY_CODE", TYPE_INT, CC_AUTOADD);
 
-   // set up policy information for budgeting
-   m_policyInfoArray.SetSize(PI_COUNT);
+    // set up policy information for budgeting
+    m_policyInfoArray.SetSize(PI_COUNT);
 
-   m_policyInfoArray[PI_CONSTRUCT_BPS].Init(_T("Construct BPS"), (int)PI_CONSTRUCT_BPS, &m_runConstructBPSPolicy, true);
-   m_policyInfoArray[PI_MAINTAIN_BPS].Init(_T("Maintain BPS"), (int)PI_MAINTAIN_BPS, &m_runMaintainBPSPolicy, true);
-   m_policyInfoArray[PI_NOURISH_BPS].Init(_T("Nourish BPS"), (int)PI_NOURISH_BPS, &m_runNourishBPSPolicy, true);
+    m_policyInfoArray[PI_CONSTRUCT_BPS].Init(_T("Construct BPS"), (int)PI_CONSTRUCT_BPS, &m_runConstructBPSPolicy, true);
+    m_policyInfoArray[PI_MAINTAIN_BPS].Init(_T("Maintain BPS"), (int)PI_MAINTAIN_BPS, &m_runMaintainBPSPolicy, true);
+    m_policyInfoArray[PI_NOURISH_BPS].Init(_T("Nourish BPS"), (int)PI_NOURISH_BPS, &m_runNourishBPSPolicy, true);
 
-   m_policyInfoArray[PI_CONSTRUCT_SPS].Init(_T("Construct SPS"), (int)PI_CONSTRUCT_SPS, &m_runConstructSPSPolicy, true);
-   m_policyInfoArray[PI_MAINTAIN_SPS].Init(_T("Maintain SPS"), (int)PI_MAINTAIN_SPS, &m_runMaintainSPSPolicy, true);
-   m_policyInfoArray[PI_NOURISH_SPS].Init(_T("Nourish SPS"), (int)PI_NOURISH_SPS, &m_runNourishSPSPolicy, true);
+    m_policyInfoArray[PI_CONSTRUCT_SPS].Init(_T("Construct SPS"), (int)PI_CONSTRUCT_SPS, &m_runConstructSPSPolicy, true);
+    m_policyInfoArray[PI_MAINTAIN_SPS].Init(_T("Maintain SPS"), (int)PI_MAINTAIN_SPS, &m_runMaintainSPSPolicy, true);
+    m_policyInfoArray[PI_NOURISH_SPS].Init(_T("Nourish SPS"), (int)PI_NOURISH_SPS, &m_runNourishSPSPolicy, true);
 
-   //m_policyInfoArray[PI_CONSTRUCT_SAFEST_SITE].Init(_T("Construct on Safest Site"), (int)PI_CONSTRUCT_SAFEST_SITE, &m_runConstructSafestPolicy, false);
-   m_policyInfoArray[PI_REMOVE_BLDG_FROM_HAZARD_ZONE].Init(_T("Remove Bldg From Hazard Zone"), (int)PI_REMOVE_BLDG_FROM_HAZARD_ZONE, &m_runRemoveBldgFromHazardZonePolicy, true);
-   m_policyInfoArray[PI_REMOVE_INFRA_FROM_HAZARD_ZONE].Init(_T("Remove Infra From Hazard Zone"), (int)PI_REMOVE_INFRA_FROM_HAZARD_ZONE, &m_runRemoveInfraFromHazardZonePolicy, true);
-   m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE].Init(_T("Raise or Relocate to Safest Site"), (int)PI_RAISE_RELOCATE_TO_SAFEST_SITE, &m_runRelocateSafestPolicy, true);
-   m_policyInfoArray[PI_RAISE_INFRASTRUCTURE].Init(_T("Raise Infrastructure"), (int)PI_RAISE_INFRASTRUCTURE, &m_runRaiseInfrastructurePolicy, true);
+    m_policyInfoArray[PI_CONSTRUCT_SAFEST_SITE].Init(_T("Construct on Safest Site"), (int)PI_CONSTRUCT_SAFEST_SITE, &m_runConstructSafestPolicy, false);
+    m_policyInfoArray[PI_REMOVE_BLDG_FROM_HAZARD_ZONE].Init(_T("Remove Bldg From Hazard Zone"), (int)PI_REMOVE_BLDG_FROM_HAZARD_ZONE, &m_runRemoveBldgFromHazardZonePolicy, true);
+    m_policyInfoArray[PI_REMOVE_INFRA_FROM_HAZARD_ZONE].Init(_T("Remove Infra From Hazard Zone"), (int)PI_REMOVE_INFRA_FROM_HAZARD_ZONE, &m_runRemoveInfraFromHazardZonePolicy, true);
+    m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE].Init(_T("Raise or Relocate to Safest Site"), (int)PI_RAISE_RELOCATE_TO_SAFEST_SITE, &m_runRelocateSafestPolicy, true);
+    m_policyInfoArray[PI_RAISE_INFRASTRUCTURE].Init(_T("Raise Infrastructure"), (int)PI_RAISE_INFRASTRUCTURE, &m_runRaiseInfrastructurePolicy, true);
 
-   // make an output data object to store results
-   int cols = 1 + ((PI_COUNT + 1) * 7);
-   m_policyCostData.SetName("Policy Cost Metrics");
-   m_policyCostData.SetSize(cols, 0);
-   m_policyCostData.SetLabel(0, _T("Time"));
-   int col = 1;
-   for (int i = 0; i <= PI_COUNT; i++)
-      {
-      CString base;
-      if (i < PI_COUNT)
-         {
-         PolicyInfo &pi = m_policyInfoArray[i];
-         base = pi.m_label;
-         }
-      else
-         base = "Total";
-   
-      CString label;
-      label = base + ".Starting Budget";
-      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   
-      label = base + ".Year End Budget";
-      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   
-      label = base + ".Budget Spent";
-      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   
-      label = base + ".Unmet Demand";
-      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   
-      label = base + ".Mov Avg Unmet Demand";
-      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   
-      label = base + ".Mov Avg Budget Spent";
-      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-   
-      label = base + ".Alloc Frac";
-      m_policyCostData.SetLabel(col++, (LPCTSTR)label);
-      }
+    for (int i = 0; i < PI_COUNT; i++)
+    {
+        PolicyInfo& pi = m_policyInfoArray[i];
+        if (pi.IsActive())
+            Report::Log_s("Policy %s is active", pi.m_label);
+    }
 
-   return true;
-   }
+    // make an output data object to store results
+    int cols = 1 + ((PI_COUNT + 1) * 7);
+    m_policyCostData.SetName("Policy Cost Metrics");
+    m_policyCostData.SetSize(cols, 0);
+    m_policyCostData.SetLabel(0, _T("Time"));
+    int col = 1;
+    for (int i = 0; i <= PI_COUNT; i++)
+    {
+        CString base;
+        if (i < PI_COUNT)
+        {
+            PolicyInfo& pi = m_policyInfoArray[i];
+            base = pi.m_label;
+        }
+        else
+            base = "Total";
 
+        CString label;
+        label = base + ".Starting Budget";
+        m_policyCostData.SetLabel(col++, (LPCTSTR)label);
 
+        label = base + ".Year End Budget";
+        m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+
+        label = base + ".Budget Spent";
+        m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+
+        label = base + ".Unmet Demand";
+        m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+
+        label = base + ".Mov Avg Unmet Demand";
+        m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+
+        label = base + ".Mov Avg Budget Spent";
+        m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+
+        label = base + ".Alloc Frac";
+        m_policyCostData.SetLabel(col++, (LPCTSTR)label);
+    }
+
+    return true;
+}
+
+// original verion: simply read SLR trajectory, no stochastics in the given SLR scenario
+//bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
+//{
+//    // Determine which climate scenario is chosen
+//    switch (m_climateScenarioID)
+//    {
+//    case 0:
+//        m_climateScenarioStr = "Baseline";
+//        break;
+//    case 1:
+//        m_climateScenarioStr = "Low";
+//        break;
+//    case 2:
+//        m_climateScenarioStr = "Med";
+//        break;
+//    case 3:
+//        m_climateScenarioStr = "High";
+//        break;
+//    case 4:
+//        m_climateScenarioStr = "Extreme";
+//        break;
+//    default:
+//        m_climateScenarioStr = "Baseline";
+//        break;
+//    }
+//
+//    CString  outDir(PathManager::GetPath(PM_OUTPUT_DIR));
+//    Report::LogInfo("Creating additional outputs folders");
+//    std::filesystem::create_directory((LPCTSTR)(outDir + "Erosion"));
+//    std::filesystem::create_directory((LPCTSTR)(outDir + "Flooding"));
+//    std::filesystem::create_directory((LPCTSTR)(outDir + "Bldgs"));
+//    std::filesystem::create_directory((LPCTSTR)(outDir + "DuneLine"));
+//
+//    CString climateScenarioPath = "Climate_Scenarios\\" + m_climateScenarioStr + "\\";
+//    CString slrDataFile;
+//    slrDataFile.Format("%s%s_slr.csv", (LPCTSTR)climateScenarioPath, (LPCTSTR)m_climateScenarioStr);
+//
+//    CString fullPath;
+//    PathManager::FindPath(slrDataFile, fullPath);
+//    int sEPRows = m_slrData.ReadAscii(fullPath);   // 
+//    CString msg("Read in Sea Level Rise data: ");
+//    msg += slrDataFile;
+//    Report::LogInfo(msg);
+//
+//    // Change the simulation number from 1 to generated number to randomize 
+//
+//    // /*this->m_twlTime = 0;
+//    // this->m_floodingTime = 0;
+//    // this->m_erosionTime = 0;*/
+//
+//    // //srand(time(nullptr));
+//
+//    //srand(static_cast<unsigned int>(time(nullptr)));
+//    // Deterministic / reproducible seed option for debugging
+//    if (useInitialSeed)
+//    {
+//        // If user requests deterministic seeding for debugging runs, use a stable seed
+//        unsigned int seed = (m_simulationIndex >= 0) ? static_cast<unsigned int>(m_simulationIndex) : 42u;
+//        srand(seed);
+//        CString msg;
+//        msg.Format(_T("InitRun: Using deterministic RNG seed %u (useInitialSeed=true)"), seed);
+//        Report::Log_s("%s", msg);
+//    }
+//    else
+//    {
+//        unsigned int seed = static_cast<unsigned int>(time(nullptr));
+//        srand(seed);
+//        CString seedStr;
+//        seedStr.Format(_T("%u"), seed);
+//        Report::Log_s(_T("InitRun: Using time-based RNG seed %s"), seedStr);
+//    }
+//
+//    // Change the simulation number from 1 to generated number to randomize ****HERE****
+//    int simIndex = 0;
+//    if (m_simulationIndex < 0)
+//        simIndex = pEnvContext->runID;
+//    else
+//        simIndex = m_simulationIndex;
+//
+//
+//    CString simulationPath;
+//    simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, simIndex);
+//    //   simulationPath.Format("%sSimulation_%i", climateScenarioPath, m_randIndex);
+//
+//    // get the offhore buoy files for this this climate scenario
+//    CString buoyFile;
+//    buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
+//    PathManager::FindPath(buoyFile, fullPath);
+//
+//    //TODO: set m_inputinHourlydata through Envision
+//    //m_inputinHourlydata = DATA_HOURLY; // You should set it to DATA_DAILY if input is daily data
+//    m_inputinHourlydata = DATA_DAILY; // You should set it to DATA_DAILY if input is daily data
+//
+//    if (m_inputinHourlydata == DATA_HOURLY)
+//    {
+//        m_numDays = ConvertHourlyBuoyDataToDaily(fullPath);
+//
+//        nsPath::CPath dailyBuoyFile(fullPath);
+//        dailyBuoyFile.RemoveExtension();
+//        CString _path = dailyBuoyFile.GetStr() + "_daily.csv";
+//        m_buoyObsData.WriteAscii(_path);
+//    }
+//    else
+//    {
+//        // Read daily buoy observations/simulations for the entire Envision time period
+//        m_numDays = m_buoyObsData.ReadAscii(fullPath);
+//    }
+//    int cols = -1;
+//
+//    if (m_numDays <= 0)
+//    {
+//        CString msg;
+//        msg.Format("InitRun could not load buoy csv file \n");
+//        Report::LogInfo(msg);
+//        return false;
+//    }
+//    else
+//    {
+//        m_numYears = m_numDays / 365;
+//        CString msg;
+//        msg.Format("The buoy data %s contains %i years of daily data", (LPCTSTR)buoyFile, m_numYears);
+//        Report::LogInfo(msg);
+//        /*  Report::Log(buoyFile);
+//        cols = m_buoyObsData.GetColCount();*/
+//    }
+//
+//    // generate daily RBF output files for 100 streams.
+//    // Only need to run this once when new offshore (buoy) SLR streams become available
+//    if (this->m_writeDailyRBFData)
+//    {
+//        for (int i = 0; i < 100; i++)
+//        {
+//            simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, i);
+//
+//            // get the offhore buoy files for this this climate scenario
+//            CString buoyFile;
+//            buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
+//            PathManager::FindPath(buoyFile, fullPath);
+//
+//            // Read daily buoy observations/simulations for the entire Envision time period
+//
+//            VDataObj buoyObsData;
+//            m_numDays = buoyObsData.ReadAscii(fullPath);
+//            GenerateDailyRBFOutputs(simulationPath, buoyObsData);
+//        }
+//
+//        this->m_writeDailyRBFData = false;
+//    }
+//
+//    LoadDailyRBFOutputs(simulationPath);
+//    //WriteDailyData(fullPath);
+//
+//    //////CString bayTimeSeriesFolder;
+//    //////bayTimeSeriesFolder.Format("%s\\DailyBayData_%s", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
+//    //////PathManager::FindPath(bayTimeSeriesFolder, fullPath);
+//
+//    //////bool runSpatialBayTWL = (m_runSpatialBayTWL == 1) ? true : false;
+//    //////if (runSpatialBayTWL)
+//    //////   ReadDailyBayData(fullPath);
+//
+//    // initialize policyInfo for this run (Note - m_isActive is already set by the scenario variable)
+//    if (m_runPolicy)
+//    {
+//        for (int i = 0; i < PI_COUNT; i++)
+//        {
+//            PolicyInfo& pi = m_policyInfoArray[i];
+//            if (pi.IsActive())
+//                Report::Log_s("Policy %s is active", pi.m_label);
+//        }
+//
+//        int costCount = 0;
+//        for (int i = 0; i < PI_COUNT; i++)
+//        {
+//            if (m_policyInfoArray[i].HasBudget())
+//                costCount++;
+//        }
+//
+//        float initialBudget = m_totalBudget / float(costCount);
+//        PolicyInfo::m_budgetAllocFrac = 0.5f;
+//
+//        for (int i = 0; i < PI_COUNT; i++)
+//        {
+//            PolicyInfo& pi = m_policyInfoArray[i];
+//
+//            pi.m_unmetDemand = 0;
+//            pi.m_availableBudget = 0;
+//            pi.m_spentBudget = 0;
+//            pi.m_unmetDemand = 0;
+//            pi.m_movAvgBudgetSpent.Clear();
+//            pi.m_movAvgUnmetDemand.Clear();
+//            pi.m_allocFrac = 0.5;
+//
+//            if (pi.HasBudget())
+//                pi.m_startingBudget = pi.m_availableBudget = initialBudget;
+//            else
+//                pi.m_startingBudget = pi.m_availableBudget = 0;
+//        }
+//
+//        // reset policy cost data obj for output
+//        m_policyCostData.ClearRows();
+//
+//        // set up policy output file
+//        CString policySummaryPath(PathManager::GetPath(PM_OUTPUT_DIR));
+//        CString scname;
+//        Scenario* pScenario = ::EnvGetScenario(pEnvContext->pEnvModel, pEnvContext->scenarioIndex);
+//
+//        CString path;
+//        path.Format("%sPolicySummary_%s_Run%i.csv", (LPCTSTR)policySummaryPath, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
+//        fopen_s(&fpPolicySummary, path, "wt");
+//        if (fpPolicySummary != nullptr)
+//            fputs("Year,Policy,Locator,Unit Cost,Total Cost, Avail Budget,Param1,Param2,PassCostConstraint", fpPolicySummary);
+//    }
+//
+//    // reset the cumulative flood map
+//    // if (m_runFlooding)
+//    //   m_pCumFloodedGrid->SetAllData(0, false);
+//
+//    //// Read in the Bay coverage if running Bay Flooding Model
+//    /*bool runBayFloodModel = (m_runBayFloodModel == 1) ? true : false;
+//    if (runBayFloodModel)
+//    {
+//    PathManager::FindPath("BayPts.csv", fullPath);
+//    m_pInletLUT = new DDataObj;
+//    m_numBayPts = m_pInletLUT->ReadAscii(fullPath);
+//    }*/
+//
+//    return TRUE;
+//} // end InitRun(EnvContext *pEnvContext, bool useInitialSeed)
+
+// new version with option for stochastic SLR sampling within each scenario (in addition to deterministic SLR read as before)
 bool ChronicHazards::InitRun(EnvContext* pEnvContext, bool useInitialSeed)
-   {
-   // Determine which climate scenario is chosen
-   switch (m_climateScenarioID)
-      {
-      case 0:
-         m_climateScenarioStr = "Baseline";
-         break;
-      case 1:
-         m_climateScenarioStr = "Low";
-         break;
-      case 2:
-         m_climateScenarioStr = "Med";
-         break;
-      case 3:
-         m_climateScenarioStr = "High";
-         break;
-      case 4:
-         m_climateScenarioStr = "Extreme";
-         break;
-      default:
-         m_climateScenarioStr = "Baseline";
-         break;
-      }
+{
+    // Determine which climate scenario is chosen
+    switch (m_climateScenarioID)
+    {
+    case 0:
+        m_climateScenarioStr = "Baseline";
+        break;
+    case 1:
+        m_climateScenarioStr = "Low";
+        break;
+    case 2:
+        m_climateScenarioStr = "Med";
+        break;
+    case 3:
+        m_climateScenarioStr = "High";
+        break;
+    case 4:
+        m_climateScenarioStr = "Extreme";
+        break;
+    default:
+        m_climateScenarioStr = "Baseline";
+        break;
+    }
 
-   CString  outDir(PathManager::GetPath(PM_OUTPUT_DIR));
-   Report::LogInfo("Creating additional outputs folders");
-   std::filesystem::create_directory((LPCTSTR)(outDir + "Erosion"));
-   std::filesystem::create_directory((LPCTSTR)(outDir + "Flooding"));
-   std::filesystem::create_directory((LPCTSTR)(outDir + "Bldgs"));
-   std::filesystem::create_directory((LPCTSTR)(outDir + "DuneLine"));
+    CString  outDir(PathManager::GetPath(PM_OUTPUT_DIR));
+    Report::LogInfo("Creating additional outputs folders");
+    std::filesystem::create_directory((LPCTSTR)(outDir + "Erosion"));
+    std::filesystem::create_directory((LPCTSTR)(outDir + "Flooding"));
+    std::filesystem::create_directory((LPCTSTR)(outDir + "Bldgs"));
+    std::filesystem::create_directory((LPCTSTR)(outDir + "DuneLine"));
 
-   CString climateScenarioPath = "Climate_Scenarios\\" + m_climateScenarioStr + "\\";
-   CString slrDataFile;
-   slrDataFile.Format("%s%s_slr.csv", (LPCTSTR) climateScenarioPath, (LPCTSTR) m_climateScenarioStr);
+    CString climateScenarioPath = "Climate_Scenarios\\" + m_climateScenarioStr + "\\";
 
-   CString fullPath;
-   PathManager::FindPath(slrDataFile, fullPath);
-   int sEPRows = m_slrData.ReadAscii(fullPath);   // 
-   CString msg("Read in Sea Level Rise data: ");
-   msg += slrDataFile;
-   Report::LogInfo(msg);
+    // -----------------------------------------------------------------------
+    // RNG seeding (do this before stochastic sampling so samples are reproducible)
+    // -----------------------------------------------------------------------
+    unsigned int seed = 0;
+    if (useInitialSeed)
+    {
+        // If user requests deterministic seeding for debugging runs, use a stable seed
+        seed = (m_simulationIndex >= 0) ? static_cast<unsigned int>(m_simulationIndex) : 42u;
+        CString msg2;
+        msg2.Format(_T("InitRun: Using deterministic RNG seed %u (useInitialSeed=true)"), seed);
+        Report::Log_s("%s", msg2);
+    }
+    else
+    {
+        seed = static_cast<unsigned int>(time(nullptr));
+        CString seedStr;
+        seedStr.Format(_T("%u"), seed);
+        Report::Log_s(_T("InitRun: Using time-based RNG seed %s"), seedStr);
+    }
 
-   // Change the simulation number from 1 to generated number to randomize 
+    // seed both C and C++ RNGs so behaviour is reproducible under m_simulationIndex
+    srand(seed);
+    m_rng.seed(seed);
 
-   // /*this->m_twlTime = 0;
-   // this->m_floodingTime = 0;
-   // this->m_erosionTime = 0;*/
+    // -----------------------------------------------------------------------
+    // Sea level rise input: deterministic or stochastic
+    // If m_slrStochastic == 0 keep deterministic read of "<Scenario>_slr.csv"
+    // else read "<Scenario>_slr_stochastic.csv" with columns quantile17,quantile50,quantile83
+    // and draw one Gaussian sample per row; overwrite m_slrData and save generated SLR
+    // -----------------------------------------------------------------------
+    CString slrDataFile;
+    slrDataFile.Format("%s%s_slr.csv", (LPCTSTR)climateScenarioPath, (LPCTSTR)m_climateScenarioStr);
 
-   // //srand(time(nullptr));
+    if (m_slrStochastic == 0)
+    {
+        // Deterministic mean SLR (unchanged)
+        CString fullPath;
+        PathManager::FindPath(slrDataFile, fullPath);
+        int sEPRows = m_slrData.ReadAscii(fullPath);   // 
+        CString msg("Read in Sea Level Rise data: ");
+        msg += slrDataFile;
+        Report::LogInfo(msg);
+    }
+    else
+    {
+        // Stochastic SLR: read quantiles and draw Gaussian sample for each year
+        CString stochRel;
+        stochRel.Format("%s%s_slr_stochastic.csv", (LPCTSTR)climateScenarioPath, (LPCTSTR)m_climateScenarioStr);
 
-   srand(static_cast<unsigned int>(time(nullptr)));
+        CString stochFull;
+        bool found = PathManager::FindPath(stochRel, stochFull);
+        if (!found)
+        {
+            // try same folder as deterministic slr file (if available)
+            CString slrFullTmp;
+            if (PathManager::FindPath(slrDataFile, slrFullTmp))
+            {
+                int pos = slrFullTmp.ReverseFind('\\');
+                if (pos < 0) pos = slrFullTmp.ReverseFind('/');
+                CString folder = (pos >= 0) ? slrFullTmp.Left(pos + 1) : CString("");
+                stochFull = folder + m_climateScenarioStr + "_slr_stochastic.csv";
+            }
+            else
+            {
+                // fallback: use relative climateScenarioPath
+                stochFull = climateScenarioPath + m_climateScenarioStr + "_slr_stochastic.csv";
+            }
+        }
 
-   // Change the simulation number from 1 to generated number to randomize ****HERE****
-   int simIndex = 0;
-   if (m_simulationIndex < 0)
-      simIndex = pEnvContext->runID;
-   else
-      simIndex = m_simulationIndex;
+        FDataObj stochData;
+        int stochRows = stochData.ReadAscii(stochFull);
+        if (stochRows < 0)
+        {
+            CString warn;
+            warn.Format("ChronicHazards: stochastic SLR file not found (%s). Falling back to deterministic SLR (%s).", (LPCTSTR)stochFull, (LPCTSTR)slrDataFile);
+            Report::LogInfo(warn);
 
+            // fallback to deterministic read if stochastic file not found
+            CString fullPath;
+            PathManager::FindPath(slrDataFile, fullPath);
+            int sEPRows = m_slrData.ReadAscii(fullPath);   // 
+            CString msg("Read in Sea Level Rise data: ");
+            msg += slrDataFile;
+            Report::LogInfo(msg);
+        }
+        else
+        {
+            // Determine quantile column indices (allow for minor name variations)
+            int col_q17 = stochData.GetCol("quantile17");
+            if (col_q17 < 0) col_q17 = stochData.GetCol("quantile_17");
+            if (col_q17 < 0) col_q17 = stochData.GetCol("Quantile_17");
+            if (col_q17 < 0) col_q17 = 0;
 
-   CString simulationPath;
-   simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, simIndex);
-   //   simulationPath.Format("%sSimulation_%i", climateScenarioPath, m_randIndex);
+            int col_q50 = stochData.GetCol("quantile50");
+            if (col_q50 < 0) col_q50 = stochData.GetCol("quantile_50");
+            if (col_q50 < 0) col_q50 = stochData.GetCol("Quantile_50");
+            if (col_q50 < 0) col_q50 = 1;
 
-   // get the offhore buoy files for this this climate scenario
-   CString buoyFile;
-   buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
-   PathManager::FindPath(buoyFile, fullPath);
+            int col_q83 = stochData.GetCol("quantile83");
+            if (col_q83 < 0) col_q83 = stochData.GetCol("quantile_83");
+            if (col_q83 < 0) col_q83 = stochData.GetCol("Quantile_83");
+            if (col_q83 < 0) col_q83 = 2;
 
-   //TODO: set m_inputinHourlydata through Envision
-   //m_inputinHourlydata = DATA_HOURLY; // You should set it to DATA_DAILY if input is daily data
-   m_inputinHourlydata = DATA_DAILY; // You should set it to DATA_DAILY if input is daily data
+            // Prepare m_slrData to receive sampled series (1 column, stochRows rows)
+            m_slrData.SetSize(1, stochRows);
+            m_slrData.SetLabel(0, "SLR");
 
-   if (m_inputinHourlydata == DATA_HOURLY)
-      {
-      m_numDays = ConvertHourlyBuoyDataToDaily(fullPath);
+            const double quantile_denom = 1.908; // approximate conversion to Gaussian sigma
 
-      nsPath::CPath dailyBuoyFile(fullPath);
-      dailyBuoyFile.RemoveExtension();
-      CString _path = dailyBuoyFile.GetStr() + "_daily.csv";
-      m_buoyObsData.WriteAscii(_path);
-      }
-   else
-      {
-      // Read daily buoy observations/simulations for the entire Envision time period
-      m_numDays = m_buoyObsData.ReadAscii(fullPath);
-      }
-   int cols = -1;
+            for (int r = 0; r < stochRows; ++r)
+            {
+                double q17 = 0.0, q50 = 0.0, q83 = 0.0;
+                stochData.Get(col_q17, r, q17);
+                stochData.Get(col_q50, r, q50);
+                stochData.Get(col_q83, r, q83);
 
-   if (m_numDays <= 0)
-      {
-      CString msg;
-      msg.Format("InitRun could not load buoy csv file \n");
-      Report::LogInfo(msg);
-      return false;
-      }
-   else
-      {
-      m_numYears = m_numDays / 365;
-      CString msg;
-      msg.Format("The buoy data %s contains %i years of daily data", (LPCTSTR)buoyFile, m_numYears);
-      Report::LogInfo(msg);
-      /*  Report::Log(buoyFile);
-      cols = m_buoyObsData.GetColCount();*/
-      }
+                double sampled = q50; // default to median
+                if (std::isfinite(q17) && std::isfinite(q50) && std::isfinite(q83))
+                {
+                    double sigma = (q83 - q17) / quantile_denom;
+                    if (std::isfinite(sigma) && sigma > 0.0)
+                    {
+                        std::normal_distribution<double> dist(q50, sigma);
+                        sampled = dist(m_rng);
+                        if (!std::isfinite(sampled))
+                            sampled = q50;
+                    }
+                    else
+                    {
+                        // sigma invalid -> use median
+                        sampled = q50;
+                    }
+                }
+                else
+                {
+                    // invalid quantiles -> use median as fallback
+                    sampled = q50;
+                }
 
-   // generate daily RBF output files for 100 streams.
-   // Only need to run this once when new offshore (buoy) SLR streams become available
-   if (this->m_writeDailyRBFData)
-      {
-      for (int i = 0; i < 100; i++)
-         {
-         simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, i);
+                m_slrData.Set(0, r, (float)sampled);
+            }
 
-         // get the offhore buoy files for this this climate scenario
-         CString buoyFile;
-         buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
-         PathManager::FindPath(buoyFile, fullPath);
+            // --- Diagnostic logging: print seed and preview of first 10 generated SLR values ---
+            {
+                CString dbg;
+                dbg.Format("ChronicHazards: rng seed = %u, m_slrStochastic = %d, generated rows = %d", seed, m_slrStochastic, stochRows);
+                Report::LogInfo(dbg);
 
-         // Read daily buoy observations/simulations for the entire Envision time period
+                int preview = std::min(10, stochRows);
+                for (int rr = 0; rr < preview; ++rr)
+                {
+                    double val = 0.0;
+                    m_slrData.Get(0, rr, val);
+                    CString line;
+                    line.Format("ChronicHazards: generated SLR[0,%d] = %.6f", rr, val);
+                    Report::LogInfo(line);
+                }
+            }
 
-         VDataObj buoyObsData;
-         m_numDays = buoyObsData.ReadAscii(fullPath);
-         GenerateDailyRBFOutputs(simulationPath, buoyObsData);
-         }
+            // Write the generated SLR to a separate file for traceability (do NOT overwrite deterministic mean SLR)
+            {
+                // Prefer same directory as the stochastic or mean SLR file; fall back to climateScenarioPath
+                CString folder;
+                int pos = stochFull.ReverseFind('\\');
+                if (pos < 0) pos = stochFull.ReverseFind('/');
+                if (pos >= 0)
+                    folder = stochFull.Left(pos + 1);
+                else
+                {
+                    // try deterministic mean file location
+                    CString slrFullTmp;
+                    if (PathManager::FindPath(slrDataFile, slrFullTmp))
+                    {
+                        int p2 = slrFullTmp.ReverseFind('\\');
+                        if (p2 < 0) p2 = slrFullTmp.ReverseFind('/');
+                        folder = (p2 >= 0) ? slrFullTmp.Left(p2 + 1) : climateScenarioPath;
+                    }
+                    else
+                        folder = climateScenarioPath;
+                }
 
-      this->m_writeDailyRBFData = false;
-      }
-
-   LoadDailyRBFOutputs(simulationPath);
-   //WriteDailyData(fullPath);
-
-   //////CString bayTimeSeriesFolder;
-   //////bayTimeSeriesFolder.Format("%s\\DailyBayData_%s", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
-   //////PathManager::FindPath(bayTimeSeriesFolder, fullPath);
-
-   //////bool runSpatialBayTWL = (m_runSpatialBayTWL == 1) ? true : false;
-   //////if (runSpatialBayTWL)
-   //////   ReadDailyBayData(fullPath);
-
-   // initialize policyInfo for this run (Note - m_isActive is already set by the scenario variable)
-   if (m_runPolicy)
-      {
-      int costCount = 0;
-      for (int i = 0; i < PI_COUNT; i++)
-         {
-         if (m_policyInfoArray[i].HasBudget())
-            costCount++;
-         }
-
-      float initialBudget = m_totalBudget / float(costCount);
-      PolicyInfo::m_budgetAllocFrac = 0.5f;
-
-      for (int i = 0; i < PI_COUNT; i++)
-         {
-         PolicyInfo& pi = m_policyInfoArray[i];
-
-         pi.m_unmetDemand = 0;
-         pi.m_availableBudget = 0;
-         pi.m_spentBudget = 0;
-         pi.m_unmetDemand = 0;
-         pi.m_movAvgBudgetSpent.Clear();
-         pi.m_movAvgUnmetDemand.Clear();
-         pi.m_allocFrac = 0.5;
-
-         if (pi.HasBudget())
-            pi.m_startingBudget = pi.m_availableBudget = initialBudget;
-         else
-            pi.m_startingBudget = pi.m_availableBudget = 0;
-         }
-
-      // reset policy cost data obj for output
-      m_policyCostData.ClearRows();
-
-      // set up policy output file
-      CString policySummaryPath(PathManager::GetPath(PM_OUTPUT_DIR));
-      CString scname;
-      Scenario* pScenario = ::EnvGetScenario(pEnvContext->pEnvModel, pEnvContext->scenarioIndex);
-
-      CString path;
-      path.Format("%sPolicySummary_%s_Run%i.csv", (LPCTSTR)policySummaryPath, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
-      fopen_s(&fpPolicySummary, path, "wt");
-      if ( fpPolicySummary != nullptr)
-         fputs("Year,Policy,Locator,Unit Cost,Total Cost, Avail Budget,Param1,Param2,PassCostConstraint", fpPolicySummary);
-      }
-
-   // reset the cumulative flood map
-   // if (m_runFlooding)
-   //   m_pCumFloodedGrid->SetAllData(0, false);
-
-   //// Read in the Bay coverage if running Bay Flooding Model
-   /*bool runBayFloodModel = (m_runBayFloodModel == 1) ? true : false;
-   if (runBayFloodModel)
-   {
-   PathManager::FindPath("BayPts.csv", fullPath);
-   m_pInletLUT = new DDataObj;
-   m_numBayPts = m_pInletLUT->ReadAscii(fullPath);
-   }*/
-
-   return TRUE;
-   } // end InitRun(EnvContext *pEnvContext, bool useInitialSeed)
+                CString outStoch = folder + m_climateScenarioStr + "_slr_stochastic_drawn.csv";
+                if (!m_slrData.WriteAscii(outStoch))
+                {
+                    CString warn;
+                    warn.Format("ChronicHazards: Failed to write generated stochastic SLR to '%s'", (LPCTSTR)outStoch);
+                    Report::LogInfo(warn);
+                }
+                else
+                {
+                    CString info;
+                    info.Format("ChronicHazards: Wrote generated stochastic SLR to '%s'", (LPCTSTR)outStoch);
+                    Report::LogInfo(info);
+                }
+            }
+        } // end else stochRows >= 0
+    } // end else m_slrStochastic != 0
 
 
+ // Change the simulation number from 1 to generated number to randomize ****HERE****
+    int simIndex = 0;
+    if (m_simulationIndex < 0)
+        simIndex = pEnvContext->runID;
+    else
+        simIndex = m_simulationIndex;
+
+    CString simulationPath;
+    simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, simIndex);
+    //   simulationPath.Format("%sSimulation_%i", climateScenarioPath, m_randIndex);
+
+    // get the offhore buoy files for this this climate scenario
+    CString buoyFile;
+    buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
+    CString fullPath;
+    PathManager::FindPath(buoyFile, fullPath);
+
+    //TODO: set m_inputinHourlydata through Envision
+    //m_inputinHourlydata = DATA_HOURLY; // You should set it to DATA_DAILY if input is daily data
+    m_inputinHourlydata = DATA_DAILY; // You should set it to DATA_DAILY if input is daily data
+
+    if (m_inputinHourlydata == DATA_HOURLY)
+    {
+        m_numDays = ConvertHourlyBuoyDataToDaily(fullPath);
+
+        nsPath::CPath dailyBuoyFile(fullPath);
+        dailyBuoyFile.RemoveExtension();
+        CString _path = dailyBuoyFile.GetStr() + "_daily.csv";
+        m_buoyObsData.WriteAscii(_path);
+    }
+    else
+    {
+        // Read daily buoy observations/simulations for the entire Envision time period
+        m_numDays = m_buoyObsData.ReadAscii(fullPath);
+    }
+    int cols = -1;
+
+    if (m_numDays <= 0)
+    {
+        CString msg;
+        msg.Format("InitRun could not load buoy csv file \n");
+        Report::LogInfo(msg);
+        return false;
+    }
+    else
+    {
+        m_numYears = m_numDays / 365;
+        CString msg;
+        msg.Format("The buoy data %s contains %i years of daily data", (LPCTSTR)buoyFile, m_numYears);
+        Report::LogInfo(msg);
+        /*  Report::Log(buoyFile);
+        cols = m_buoyObsData.GetColCount();*/
+    }
+
+    // generate daily RBF output files for 100 streams.
+    // Only need to run this once when new offshore (buoy) SLR streams become available
+    if (this->m_writeDailyRBFData)
+    {
+        for (int i = 0; i < 100; i++)
+        {
+            simulationPath.Format("%sSimulation_%i", (LPCTSTR)climateScenarioPath, i);
+
+            // get the offhore buoy files for this this climate scenario
+            CString buoyFile;
+            buoyFile.Format("%s\\BuoyData_%s_Daily.csv", (LPCTSTR)simulationPath, (LPCTSTR)m_climateScenarioStr);
+            PathManager::FindPath(buoyFile, fullPath);
+
+            // Read daily buoy observations/simulations for the entire Envision time period
+
+            VDataObj buoyObsData;
+            m_numDays = buoyObsData.ReadAscii(fullPath);
+            GenerateDailyRBFOutputs(simulationPath, buoyObsData);
+        }
+
+        this->m_writeDailyRBFData = false;
+    }
+
+    LoadDailyRBFOutputs(simulationPath);
+    //WriteDailyData(fullPath);
+
+    //////CString bayTimeSeriesFolder;
+    //////bayTimeSeriesFolder.Format("%s\\DailyBayData_%s", (LPCTSTR) simulationPath, (LPCTSTR) m_climateScenarioStr);
+    //////PathManager::FindPath(bayTimeSeriesFolder, fullPath);
+
+    //////bool runSpatialBayTWL = (m_runSpatialBayTWL == 1) ? true : false;
+    //////if (runSpatialBayTWL)
+    //////   ReadDailyBayData(fullPath);
+
+    // initialize policyInfo for this run (Note - m_isActive is already set by the scenario variable)
+    if (m_runPolicy)
+    {
+        for (int i = 0; i < PI_COUNT; i++)
+        {
+            PolicyInfo& pi = m_policyInfoArray[i];
+            if (pi.IsActive())
+                Report::Log_s("Policy %s is active", pi.m_label);
+        }
+
+        int costCount = 0;
+        for (int i = 0; i < PI_COUNT; i++)
+        {
+            if (m_policyInfoArray[i].HasBudget())
+                costCount++;
+        }
+
+        float initialBudget = m_totalBudget / float(costCount);
+        PolicyInfo::m_budgetAllocFrac = 0.5f;
+
+        for (int i = 0; i < PI_COUNT; i++)
+        {
+            PolicyInfo& pi = m_policyInfoArray[i];
+
+            pi.m_unmetDemand = 0;
+            pi.m_availableBudget = 0;
+            pi.m_spentBudget = 0;
+            pi.m_unmetDemand = 0;
+            pi.m_movAvgBudgetSpent.Clear();
+            pi.m_movAvgUnmetDemand.Clear();
+            pi.m_allocFrac = 0.5;
+
+            if (pi.HasBudget())
+                pi.m_startingBudget = pi.m_availableBudget = initialBudget;
+            else
+                pi.m_startingBudget = pi.m_availableBudget = 0;
+        }
+
+        // reset policy cost data obj for output
+        m_policyCostData.ClearRows();
+
+        // set up policy output file
+        CString policySummaryPath(PathManager::GetPath(PM_OUTPUT_DIR));
+        CString scname;
+        Scenario* pScenario = ::EnvGetScenario(pEnvContext->pEnvModel, pEnvContext->scenarioIndex);
+
+        CString path;
+        path.Format("%sPolicySummary_%s_Run%i.csv", (LPCTSTR)policySummaryPath, (LPCTSTR)pScenario->m_name, pEnvContext->runID);
+        fopen_s(&fpPolicySummary, path, "wt");
+        if (fpPolicySummary != nullptr)
+            fputs("Year,Policy,Locator,Unit Cost,Total Cost, Avail Budget,Param1,Param2,PassCostConstraint", fpPolicySummary);
+    }
+
+    // reset the cumulative flood map
+    // if (m_runFlooding)
+    //   m_pCumFloodedGrid->SetAllData(0, false);
+
+    //// Read in the Bay coverage if running Bay Flooding Model
+    /*bool runBayFloodModel = (m_runBayFloodModel == 1) ? true : false;
+    if (runBayFloodModel)
+    {
+    PathManager::FindPath("BayPts.csv", fullPath);
+    m_pInletLUT = new DDataObj;
+    m_numBayPts = m_pInletLUT->ReadAscii(fullPath);
+    }*/
+
+    return TRUE;
+} // end InitRun(EnvContext *pEnvContext, bool useInitialSeed)
 
 bool ChronicHazards::Run(EnvContext* pEnvContext)
    {
@@ -1752,9 +2356,12 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
 
    // Reset annual duneline attributes
    ResetAnnualVariables();      // reset annual variables for the start of a new year
-   //ResetAnnualBudget();      // reset budget allocations for the year
+   ResetAnnualBudget();      // reset budget allocations for the year
 
-   if ( m_runTWL)
+   if (m_pIduDuneLkUp)
+	   m_pIduDuneLkUp->BuildIndex();
+
+   if (m_runTWL)
       RunTWLModel(pEnvContext);   // this populates yr max twl and associated cols, and computes impact days
 
    // start = clock();
@@ -1773,10 +2380,9 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    /******************** Run Scenario Policy to construct on safest site before tallying statistics  ********************/
 
    // Scenarios indicate policy for new buildings to be constructed on the safest site
-   /*bool runConstructSafestPolicy = (m_runConstructSafestPolicy == 1) ? true : false;
+   bool runConstructSafestPolicy = (m_runConstructSafestPolicy == 1) ? true : false;
    if (runConstructSafestPolicy)
-   ConstructOnSafestSite(pEnvContext, false);
-   */
+      ConstructOnSafestSite(pEnvContext, false);
 
    //if (m_runEelgrassModel > 0)
    //   RunEelgrassModel(pEnvContext);
@@ -1787,7 +2393,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    if (m_runBuildings)
       {
       Report::Log_i("Running building submodel for year% i", pEnvContext->currentYear);
-      ComputeBuildingStatistics();
+      ComputeBuildingStatistics(pEnvContext);
       }
 
    // Use generated Grid Maps to Calculate Statistics 
@@ -1803,7 +2409,7 @@ bool ChronicHazards::Run(EnvContext* pEnvContext)
    //m_avgOceanShoresAccess /= (m_numOceanShoresPts / 100.0f);
    //m_avgWestportAccess /= (m_numWestportPts / 100.0f);
    //m_avgJettyAccess /= (m_numJettyPts / 100.0f);
-   
+
    ComputeIDUStatistics(pEnvContext);
 
 
@@ -1874,9 +2480,9 @@ bool ChronicHazards::RunTWLModel(EnvContext* pEnvContext)
 bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
    {
    /*
-   Run erosion model.  For erodable beach types, 
+   Run erosion model.  For erodable beach types,
    1) calculate three sources of erosion - K&D (within year), bruun, historic
-   
+
    */
 
    ASSERT(m_pDuneLayer != nullptr);
@@ -1931,7 +2537,7 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
          //         Case 1d. dune to is below and seaward of MHW (overcut):
          //                   - move dune tow slightly to the landward side of the MHW on a slope=maxBeachSlope
 
-         ASSERT(dx >= 0);  // dx MUST be positive (or zero)
+         //ASSERT(dx >= 0);  // dx MUST be positive (or zero)
          if (dx > 0)   // did any erosion occur?  if so, update resulting dune geometry 
             {
             // a) shift the MHW easting by dx.
@@ -2065,6 +2671,14 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
             UpdateDuneErosionStats(point, (float)R_inf_KD);
             }  // end of: dx > 0
          }
+      else if (beachType == BchT_SANDY_RIPRAP_BACKED)
+      {
+          // Hardened/BPS points are skipped by erosion calculations above.
+          // Still need to update moving-window stats (TWL, IDPY, KD) so maintenance
+          // code that reads movingMaxTWL for BPS points sees correct values.
+          // We pass R_inf_KD = 0 because K&D erosion isn't computed for hardened points.
+          UpdateDuneErosionStats(point, 0.0f);
+   }
       } // end erosion calculation
 
    this->m_erodedAreaSqMiles = this->m_erodedArea * MI2_PER_M2;
@@ -2072,163 +2686,697 @@ bool ChronicHazards::RunErosionModel(EnvContext* pEnvContext)
    return true;
    } // end dune line points
 
+ //Original verion with .asc file (flooding) will be saved. 
+//bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
+//   {
+//       /************************   Generate Flooding Grid ************************/
+//
+//       Report::Log_i("Running flooding submodel for year% i", pEnvContext->currentYear);
+//
+//       int count = 0;
+//       clock_t start = clock();
+//
+//       CString outDir = PathManager::GetPath(PM_OUTPUT_DIR);
+//
+//       // generate the input file for the SFINCS function.  This involves looking through the
+//       // year's TWLs and associated data to identify the "highest" TWL event of the year, which is passed to the 
+//       // SFINCS function in the form of a CSV file
+//
+//       // first, create a data obj for the CSV table
+//       Report::StatusMsg("Setting up TWL Data");
+//       FDataObj twlData(8, 0);  // Cols:
+//       twlData.SetLabel(0, "Transect");
+//       twlData.SetLabel(1, "Northing");
+//       twlData.SetLabel(2, "Setup");
+//       twlData.SetLabel(3, "infragravity");
+//       twlData.SetLabel(4, "Incident band swash");
+//       twlData.SetLabel(5, "Runup");
+//       twlData.SetLabel(6, "WL");
+//       twlData.SetLabel(7, "TWL");
+//
+//       // next, populate it with necessary info
+//       // note - these values were previously calculated by the TWL model
+//       float data[8] = { 0,0,0,0,0,0,0,0 };
+//       for (MapLayer::Iterator shorePt = m_pDuneLayer->Begin(); shorePt < m_pDuneLayer->End(); shorePt++)
+//       {
+//           m_pDuneLayer->GetData(shorePt, m_colDLTransID, data[0]);
+//           m_pDuneLayer->GetData(shorePt, m_colDLNorthing, data[1]);
+//           m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSetup, data[2]);
+//           m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIGSwash, data[3]);
+//           m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIncSwash, data[4]);
+//           m_pDuneLayer->GetData(shorePt, m_colDLYrMaxRunup, data[5]);
+//           m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSWL, data[6]);
+//           m_pDuneLayer->GetData(shorePt, m_colDLYrFMaxTWL, data[7]);
+//
+//           if (data[7] <= 0.0f)   // if FTWL not calculated, use TWL
+//           {
+//               m_pDuneLayer->GetData(shorePt, m_colDLYrMaxTWL, data[7]);
+//               data[7] += 1.17f;
+//           }
+//
+//           twlData.AppendRow(data, 8);
+//       }
+//
+//       CString _twlFile(m_sfincsHome); // = PathManager::GetPath(PM_IDU_DIR);
+//       std::filesystem::create_directory((LPCTSTR)(_twlFile + "\\TWL"));
+//       CString twlFile;
+//       twlFile.Format("%s/TWL/TWL_%s_%i.csv", _twlFile, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+//       twlData.WriteAscii(twlFile, ',');
+//
+//       // persistent version
+//       Report::StatusMsg("Setting up TWL Data");
+//
+//       std::filesystem::create_directory((LPCTSTR)(outDir + "TWL"));
+//       twlFile.Format("%sTWL/TWL_%s_%i.csv", (LPCTSTR)outDir, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->yearOfRun);
+//
+//       Report::LogInfo(CString("Writing TWL Data to ") + twlFile);
+//       twlData.WriteAscii(twlFile, ',');
+//
+//       CString fdName;  // this is the filename for SFINCS output
+//       fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
+//
+//       CString outFile;  // this is the path to the flooding file in the Study Area "Outputs" folder for the current scenario
+//       outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+//       bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
+//
+//       if (this->m_usePriorGrids == 0)
+//           Report::Log_i("Flooding Model is running SFINCS for year %i", pEnvContext->currentYear);
+//       else if (priorGridExists)
+//           Report::Log_i("Flooding Model is using prior grid for year %i", pEnvContext->currentYear);
+//       else
+//           Report::Log_s("Flooding Model: Prior grid %s not found, running SFINCS instead", (LPCTSTR)outFile);
+//
+//       if (this->m_usePriorGrids == 0 || priorGridExists == false)
+//       {
+//           // Get ready to call SFINCS Model
+//           //// Create MATLAB data array factory
+//           //matlab::data::ArrayFactory factory;
+//           //// Pass vector containing 3 scalar args in vector    
+//           //std::vector<matlab::data::Array> args({
+//           //   factory.createCharArray((LPCTSTR)twlFile),// TWL_dir   
+//           //   factory.createScalar<int>(0), // Advection
+//           //   factory.createScalar<int>(m_cellSize), // Cellsize
+//           //   factory.createCharArray((LPCTSTR)m_sfincsHome),// sfincs home dir
+//           //   factory.createCharArray((LPCTSTR)fdName), // sfincs home dir
+//           //   factory.createCharArray((LPCTSTR)pEnvContext->pScenario->m_name), // scenario name
+//           //   factory.createScalar<int>(pEnvContext->runID) // Advection
+//           //   });
+//
+//           // Create string buffer for standard output
+//           typedef std::basic_stringbuf<char16_t> StringBuf;
+//           std::shared_ptr<StringBuf> output = std::make_shared<StringBuf>();
+//
+//           // Call MATLAB function and return result
+//           //CString msg;
+//           //msg.Format("Calling SFINCS_ENVISION(%s,0,100,%s,%s)", (LPCTSTR)twlFile, (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName);
+//           //Report::StatusMsg(msg);
+//
+//           //try {
+//           //   matlab::data::TypedArray<int> result = m_matlabPtr->feval(u"SFINCS_ENVISION", args, output);
+//           //   }
+//
+//           // change current working directory to the SFINCS home directory
+//           // this is where the SFINCS python script is located
+//           auto cwd = std::filesystem::current_path(); //getting path
+//           std::filesystem::current_path((LPCTSTR)m_sfincsHome); //setting path
+//
+//           try {
+//              CString path;
+//              // hydromt-sfincs in sfincs_envision.py need python>=3.11
+//              path.Format("C:/Users/wangzh3/Anaconda3/envs/sfincs_env/python.exe sfincs_envision.py %s 0 %i %s %s %s %i", (LPCTSTR)twlFile, m_cellSize,
+//                 (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName, pEnvContext->pScenario->m_name, pEnvContext->runID);
+//              //system(path);
+//              // replace the single system(path); line with the longer CreateProcess block.
+//              // This is necessary because system() always shows a command window, but CreateProcess with CREATE_NO_WINDOW will run your Python script silently (no window popup).
+//              path.Format("C:/Users/wangzh3/Anaconda3/envs/sfincs_env/python.exe sfincs_envision.py %s 0 %i %s %s %s %i",
+//                 (LPCTSTR)twlFile, m_cellSize,
+//                 (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName, pEnvContext->pScenario->m_name, pEnvContext->runID);
+//
+//              STARTUPINFO si = { sizeof(si) };
+//              PROCESS_INFORMATION pi;
+//              BOOL success = CreateProcess(
+//                 NULL,                // Application name
+//                 (LPSTR)(LPCTSTR)path, // Command line
+//                 NULL, NULL, FALSE,
+//                 CREATE_NO_WINDOW,    // <--- Suppress window
+//                 NULL, NULL, &si, &pi
+//              );
+//
+//              if (success) {
+//                 // Optionally wait for process to finish
+//                 WaitForSingleObject(pi.hProcess, INFINITE);
+//                 CloseHandle(pi.hProcess);
+//                 CloseHandle(pi.hThread);
+//                 }
+//              else {
+//                 // Handle error
+//                 MessageBox(NULL, "Failed to start Python process.", "Error", MB_ICONERROR);
+//                 }
+//              }
+//           catch (const std::exception& ex) {
+//              Report::LogError(ex.what());
+//
+//              //ex.stackTrace[0].fileName
+//              //ex.stackTrace[0].lineNumber
+//              // std::cout<<ex.what();
+//              }
+//           catch (const std::string& ex) {
+//              Report::LogError(ex.c_str()); //std::cout << ex;
+//              }
+//           catch (...) {
+//              //std::exception_ptr p = std::current_exception();
+//              Report::LogError("Unspecified exception when running flood model");
+//              }
+//
+//           // Display MATLAB output in C++
+//           //matlab::engine::String output_ = output.get()->str();
+//           //Report::Log(matlab::engine::convertUTF16StringToUTF8String(output_).c_str());
+//           std::filesystem::current_path(cwd); //setting path
+//       }
+//
+//       // load grid
+//       Map* pMap = m_pDuneLayer->GetMapPtr();
+//
+//       if (m_pFloodedGrid != nullptr)
+//           m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
+//
+//       if (this->m_usePriorGrids && priorGridExists)  // this is the version in the study area Outputs folder for the current scenario
+//           outFile.Format("%sFlooding\\Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+//       else
+//           outFile.Format("%s/Outputs/%s/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)pEnvContext->pScenario->m_name, (LPCTSTR)fdName);
+//
+//       Report::LogInfo(CString("Loading flooded depth grid ") + outFile);
+//
+//       this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
+//
+//       Report::LogInfo("Calculating Flood Impacts");
+//       CalculateFloodImpacts(pEnvContext);
+//
+//       // update timings
+//       clock_t finish = clock();
+//       float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+//
+//       CString msg;
+//       msg.Format("Flood Model ran in %i seconds", (int)duration);
+//       Report::Log(msg);
+//       return true;
+//   }
 
+ //deleting that SFINCS-generated .asc. Warning: empty .asc file will be saved and should not delete them if wanted to visualize, although deleting them won't impact calcualtion
 bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
-   {
-   /************************   Generate Flooding Grid ************************/
+{
+    /************************   Generate Flooding Grid ************************/
 
-   Report::Log_i("Running flooding submodel for year% i", pEnvContext->currentYear);
+    Report::Log_i("Running flooding submodel for year% i", pEnvContext->currentYear);
 
-   int count = 0;
-   clock_t start = clock();
+    int count = 0;
+    clock_t start = clock();
 
-   CString outDir = PathManager::GetPath(PM_OUTPUT_DIR);
+    CString outDir = PathManager::GetPath(PM_OUTPUT_DIR);
 
-   // generate the input file for the SFINCS function.  This involves looking through the
-   // year's TWLs and associated data to identify the "highest" TWL event of the year, which is passed to the 
-   // SFINCS function in the form of a CSV file
+    // generate the input file for the SFINCS function.  This involves looking through the
+    // year's TWLs and associated data to identify the "highest" TWL event of the year, which is passed to the 
+    // SFINCS function in the form of a CSV file
 
-   // first, create a data obj for the CSV table
-   Report::StatusMsg("Setting up TWL Data");
-   FDataObj twlData(8, 0);  // Cols:
-   twlData.SetLabel(0, "Transect");
-   twlData.SetLabel(1, "Northing");
-   twlData.SetLabel(2, "Setup");
-   twlData.SetLabel(3, "infragravity");
-   twlData.SetLabel(4, "Incident band swash");
-   twlData.SetLabel(5, "Runup");
-   twlData.SetLabel(6, "WL");
-   twlData.SetLabel(7, "TWL");
+    // first, create a data obj for the CSV table
+    Report::StatusMsg("Setting up TWL Data");
+    FDataObj twlData(8, 0);  // Cols:
+    twlData.SetLabel(0, "Transect");
+    twlData.SetLabel(1, "Northing");
+    twlData.SetLabel(2, "Setup");
+    twlData.SetLabel(3, "infragravity");
+    twlData.SetLabel(4, "Incident band swash");
+    twlData.SetLabel(5, "Runup");
+    twlData.SetLabel(6, "WL");
+    twlData.SetLabel(7, "TWL");
 
-   // next, populate it with necessary info
-   // note - these values were previously calculated by the TWL model
-   float data[8] = { 0,0,0,0,0,0,0,0 };
-   for (MapLayer::Iterator shorePt = m_pDuneLayer->Begin(); shorePt < m_pDuneLayer->End(); shorePt++)
-      {
-      m_pDuneLayer->GetData(shorePt, m_colDLTransID, data[0]);
-      m_pDuneLayer->GetData(shorePt, m_colDLNorthing, data[1]);
-      m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSetup, data[2]);
-      m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIGSwash, data[3]);
-      m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIncSwash, data[4]);
-      m_pDuneLayer->GetData(shorePt, m_colDLYrMaxRunup, data[5]);
-      m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSWL, data[6]);
-      m_pDuneLayer->GetData(shorePt, m_colDLYrFMaxTWL, data[7]);
+    // next, populate it with necessary info
+    // note - these values were previously calculated by the TWL model
+    float data[8] = { 0,0,0,0,0,0,0,0 };
+    for (MapLayer::Iterator shorePt = m_pDuneLayer->Begin(); shorePt < m_pDuneLayer->End(); shorePt++)
+    {
+        m_pDuneLayer->GetData(shorePt, m_colDLTransID, data[0]);
+        m_pDuneLayer->GetData(shorePt, m_colDLNorthing, data[1]);
+        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSetup, data[2]);
+        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIGSwash, data[3]);
+        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIncSwash, data[4]);
+        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxRunup, data[5]);
+        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSWL, data[6]);
+        m_pDuneLayer->GetData(shorePt, m_colDLYrFMaxTWL, data[7]);
 
-      if (data[7] <= 0.0f)   // if FTWL not calculated, use TWL
-         {
-         m_pDuneLayer->GetData(shorePt, m_colDLYrMaxTWL, data[7]);
-         data[7] += 1.17f;
-         }
+        if (data[7] <= 0.0f)   // if FTWL not calculated, use TWL
+        {
+            m_pDuneLayer->GetData(shorePt, m_colDLYrMaxTWL, data[7]);
+            data[7] += 1.17f;
+        }
 
-      twlData.AppendRow(data, 8);
-      }
+        twlData.AppendRow(data, 8);
+    }
 
-   CString _twlFile(m_sfincsHome); // = PathManager::GetPath(PM_IDU_DIR);
-   std::filesystem::create_directory((LPCTSTR)(_twlFile + "\\TWL"));
-   CString twlFile;
-   twlFile.Format("%s/TWL/TWL_%s_%i.csv", _twlFile, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
-   twlData.WriteAscii(twlFile, ',');
+    CString _twlFile(m_sfincsHome); // = PathManager::GetPath(PM_IDU_DIR);
+    std::filesystem::create_directory((LPCTSTR)(_twlFile + "\\TWL"));
+    CString twlFile;
+    twlFile.Format("%s/TWL/TWL_%s_%i.csv", _twlFile, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+    twlData.WriteAscii(twlFile, ',');
 
-   // persistent version
-   Report::StatusMsg("Setting up TWL Data");
+    // persistent version
+    Report::StatusMsg("Setting up TWL Data");
 
-   std::filesystem::create_directory((LPCTSTR)(outDir + "TWL"));
-   twlFile.Format("%sTWL/TWL_%s_%i.csv", (LPCTSTR) outDir, (LPCTSTR) pEnvContext->pScenario->m_name, pEnvContext->yearOfRun);
+    std::filesystem::create_directory((LPCTSTR)(outDir + "TWL"));
+    twlFile.Format("%sTWL/TWL_%s_%i.csv", (LPCTSTR)outDir, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->yearOfRun);
 
-   Report::LogInfo(CString("Writing TWL Data to ")+twlFile);
-   twlData.WriteAscii(twlFile, ',');
+    Report::LogInfo(CString("Writing TWL Data to ") + twlFile);
+    twlData.WriteAscii(twlFile, ',');
 
-   CString fdName;  // this is the filename for SFINCS output
-   fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
+    CString fdName;  // this is the filename for SFINCS output
+    fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
 
-   CString outFile;  // this is the path to the flooding file in the Study Area "Outputs" folder for the current scenario
-   outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
-   bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
+    // flag to indicate we actually launched SFINCS and produced the .asc in sfincs/Outputs
+    bool generatedAsc = false;
 
-   if (this->m_usePriorGrids == 0)
-      Report::Log_i("Flooding Model is running SFINCS for year %i", pEnvContext->currentYear);
-   else if (priorGridExists)
-      Report::Log_i("Flooding Model is using prior grid for year %i", pEnvContext->currentYear);
-   else
-      Report::Log_s("Flooding Model: Prior grid %s not found, running SFINCS instead", (LPCTSTR) outFile);
+    CString outFile;  // this is the path to the flooding file in the Study Area "Outputs" folder for the current scenario
+    outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+    bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
 
-   if (this->m_usePriorGrids == 0 || priorGridExists == false)
-      {
-      // Get ready to call SFINCS Model
-      // Create MATLAB data array factory
-      matlab::data::ArrayFactory factory;
-      // Pass vector containing 3 scalar args in vector    
-      std::vector<matlab::data::Array> args({
-         factory.createCharArray((LPCTSTR)twlFile),// TWL_dir   
-         factory.createScalar<int>(0), // Advection
-         factory.createScalar<int>(m_cellSize), // Cellsize
-         factory.createCharArray((LPCTSTR)m_sfincsHome),// sfincs home dir
-         factory.createCharArray((LPCTSTR)fdName), // sfincs home dir
-         factory.createCharArray((LPCTSTR)pEnvContext->pScenario->m_name), // scenario name
-         factory.createScalar<int>(pEnvContext->runID) // Advection
-         });
+    if (this->m_usePriorGrids == 0)
+        Report::Log_i("Flooding Model is running SFINCS for year %i", pEnvContext->currentYear);
+    else if (priorGridExists)
+        Report::Log_i("Flooding Model is using prior grid for year %i", pEnvContext->currentYear);
+    else
+        Report::Log_s("Flooding Model: Prior grid %s not found, running SFINCS instead", (LPCTSTR)outFile);
 
-      // Create string buffer for standard output
-      typedef std::basic_stringbuf<char16_t> StringBuf;
-      std::shared_ptr<StringBuf> output = std::make_shared<StringBuf>();
+    if (this->m_usePriorGrids == 0 || priorGridExists == false)
+    {
+        // change current working directory to the SFINCS home directory
+        auto cwd = std::filesystem::current_path(); //getting path
+        std::filesystem::current_path((LPCTSTR)m_sfincsHome); //setting path
 
-      // Call MATLAB function and return result
-      CString msg;
-      msg.Format("Calling SFINCS_ENVISION(%s,0,100,%s,%s)", (LPCTSTR)twlFile, (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName);
-      Report::StatusMsg(msg);
+        try {
+            CString path;
+            // hydromt-sfincs in sfincs_envision.py need python>=3.11
+            path.Format("%s/python.exe sfincs_envision.py %s 0 %i %s %s %s %i",
+                (LPCTSTR) m_pythonPath,
+                (LPCTSTR) twlFile, m_cellSize,
+                (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName, pEnvContext->pScenario->m_name, pEnvContext->runID);
 
-      try {
-         matlab::data::TypedArray<int> result = m_matlabPtr->feval(u"SFINCS_ENVISION", args, output);
-         }
-      catch (const std::exception& ex) {
-         Report::LogError(ex.what());
+            if (pEnvContext->yearOfRun == 0)
+               {
+               Report::LogInfo("Running SFINCS with the following commange line parameters:");
+               Report::Log_s("  Python Path: %s", (LPCTSTR)m_pythonPath);
+               Report::Log_s("  SFINCS Home: %s", (LPCTSTR)m_sfincsHome);
+               Report::Log_s("  TWL File: %s", (LPCTSTR)twlFile);
+               Report::Log_s("  FDName: %s", (LPCTSTR)fdName);
+               Report::Log_i("  Cell Size: %i", m_cellSize);
+               Report::Log_s("  Scenario Name: %s", (LPCTSTR)pEnvContext->pScenario->m_name);
+               Report::Log_i("  Run ID: %i", pEnvContext->runID);
+               }
 
-         //ex.stackTrace[0].fileName
-         //ex.stackTrace[0].lineNumber
-         // std::cout<<ex.what();
-         }
-      catch (const std::string& ex) {
-         Report::LogError(ex.c_str()); //std::cout << ex;
-         }
-      catch (...) {
-         //std::exception_ptr p = std::current_exception();
-         Report::LogError("Unspecified exception when running flood model");
-         }
+            STARTUPINFO si = { sizeof(si) };
+            PROCESS_INFORMATION pi;
+            BOOL success = CreateProcess(
+                NULL,                // Application name
+                (LPSTR)(LPCTSTR)path, // Command line
+                NULL, NULL, FALSE,
+                CREATE_NO_WINDOW,    // <--- Suppress window
+                NULL, NULL, &si, &pi
+            );
 
-      // Display MATLAB output in C++
-      matlab::engine::String output_ = output.get()->str();
-      Report::Log(matlab::engine::convertUTF16StringToUTF8String(output_).c_str());
-      }
+            if (success) {
+                DWORD wait = WaitForSingleObject(pi.hProcess, INFINITE);
+                CloseHandle(pi.hProcess);
+                CloseHandle(pi.hThread);
+                if (wait == WAIT_OBJECT_0)
+                {
+                    generatedAsc = true; // SFINCS ran to completion
+                }
+                else
+                {
+                    CString warn;
+                    warn.Format("SFINCS process did not complete normally (Wait=%u)", (unsigned)wait);
+                    Report::LogInfo(warn);
+                }
+            }
+            else {
+                CString err;
+                err.Format("Failed to start Python process for SFINCS (CreateProcess returned 0).");
+                Report::LogError(err);
+            }
+        }
+        catch (const std::exception& ex) {
+            Report::LogError(ex.what());
+        }
+        catch (const std::string& ex) {
+            Report::LogError(ex.c_str());
+        }
+        catch (...) {
+            Report::LogError("Unspecified exception when running flood model");
+        }
 
-   // load grid
-   Map* pMap = m_pDuneLayer->GetMapPtr();
+        // restore cwd
+        // Note: we intentionally leave generatedAsc true only if process completed
+        // successfully (above)
+        std::filesystem::current_path(cwd); //setting path
+    }
 
-   if (m_pFloodedGrid != nullptr)
-      m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
+    // load grid
+    Map* pMap = m_pDuneLayer->GetMapPtr();
 
-   if (this->m_usePriorGrids && priorGridExists)  // this is the version in the study area Outputs folder for the current scenario
-      outFile.Format("%sFlooding\\Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
-   else
-      outFile.Format("%s/Outputs/%s/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)pEnvContext->pScenario->m_name, (LPCTSTR)fdName);
+    if (m_pFloodedGrid != nullptr)
+        m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
 
-   Report::LogInfo(CString("Loading flooded depth grid ") + outFile);
+    if (this->m_usePriorGrids && priorGridExists)  // this is the version in the study area Outputs folder for the current scenario
+        outFile.Format("%sFlooding\\Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+    else
+        outFile.Format("%s/Outputs/%s/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)pEnvContext->pScenario->m_name, (LPCTSTR)fdName);
 
-   this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
+    Report::LogInfo(CString("Loading flooded depth grid ") + outFile);
 
-   Report::LogInfo("Calculating Flood Impacts");
-   CalculateFloodImpacts(pEnvContext);
+    this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
 
-   // update timings
-   clock_t finish = clock();
-   float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+    Report::LogInfo("Calculating Flood Impacts");
+    CalculateFloodImpacts(pEnvContext);
 
-   CString msg;
-   msg.Format("Flood Model ran in %i seconds", (int)duration);
-   Report::Log(msg);
-   return true;
-   }
+    // If we generated a temporary SFINCS output, remove it now that the grid is loaded into memory
+    if (generatedAsc)
+    {
+        std::filesystem::path outPath((LPCTSTR)outFile);
+        std::error_code ec;
+        if (std::filesystem::exists(outPath, ec) && !ec)
+        {
+            bool removed = std::filesystem::remove(outPath, ec);
+            if (!ec && removed)
+            {
+                CString msg;
+                msg.Format("Removed temporary flood file %s", (LPCTSTR)outFile);
+                Report::LogInfo(msg);
+            }
+            else
+            {
+                CString warn;
+                warn.Format("Could not remove temporary flood file %s : %s", (LPCTSTR)outFile, ec.message().c_str());
+                Report::LogInfo(warn);
+            }
+        }
+        else if (ec)
+        {
+            CString warn;
+            warn.Format("Could not check existence of %s : %s", (LPCTSTR)outFile, ec.message().c_str());
+            Report::LogInfo(warn);
+        }
+    }
 
+    // update timings
+    clock_t finish = clock();
+    float duration = (float)(finish - start) / CLOCKS_PER_SEC;
 
+    CString msg;
+    msg.Format("Flood Model ran in %i seconds", (int)duration);
+    Report::Log(msg);
+    return true;
+}
+
+//bool ChronicHazards::RunFloodingModel(EnvContext* pEnvContext)
+//{
+//    /************************   Generate Flooding Grid ************************/
+//
+//    Report::Log_i("Running flooding submodel for year% i", pEnvContext->currentYear);
+//
+//    int count = 0;
+//    clock_t start = clock();
+//
+//    CString outDir = PathManager::GetPath(PM_OUTPUT_DIR);
+//
+//    // generate the input file for the SFINCS function.  This involves looking through the
+//    // year's TWLs and associated data to identify the "highest" TWL event of the year, which is passed to the 
+//    // SFINCS function in the form of a CSV file
+//
+//    // first, create a data obj for the CSV table
+//    Report::StatusMsg("Setting up TWL Data");
+//    FDataObj twlData(8, 0);  // Cols:
+//    twlData.SetLabel(0, "Transect");
+//    twlData.SetLabel(1, "Northing");
+//    twlData.SetLabel(2, "Setup");
+//    twlData.SetLabel(3, "infragravity");
+//    twlData.SetLabel(4, "Incident band swash");
+//    twlData.SetLabel(5, "Runup");
+//    twlData.SetLabel(6, "WL");
+//    twlData.SetLabel(7, "TWL");
+//
+//    // next, populate it with necessary info
+//    // note - these values were previously calculated by the TWL model
+//    float data[8] = { 0,0,0,0,0,0,0,0 };
+//    for (MapLayer::Iterator shorePt = m_pDuneLayer->Begin(); shorePt < m_pDuneLayer->End(); shorePt++)
+//    {
+//        m_pDuneLayer->GetData(shorePt, m_colDLTransID, data[0]);
+//        m_pDuneLayer->GetData(shorePt, m_colDLNorthing, data[1]);
+//        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSetup, data[2]);
+//        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIGSwash, data[3]);
+//        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxIncSwash, data[4]);
+//        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxRunup, data[5]);
+//        m_pDuneLayer->GetData(shorePt, m_colDLYrMaxSWL, data[6]);
+//        m_pDuneLayer->GetData(shorePt, m_colDLYrFMaxTWL, data[7]);
+//
+//        if (data[7] <= 0.0f)   // if FTWL not calculated, use TWL
+//        {
+//            m_pDuneLayer->GetData(shorePt, m_colDLYrMaxTWL, data[7]);
+//            data[7] += 1.17f;
+//        }
+//
+//        twlData.AppendRow(data, 8);
+//    }
+//
+//    CString _twlFile(m_sfincsHome); // = PathManager::GetPath(PM_IDU_DIR);
+//    std::filesystem::create_directory((LPCTSTR)(_twlFile + "\\TWL"));
+//    CString twlFile;
+//    twlFile.Format("%s/TWL/TWL_%s_%i.csv", _twlFile, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+//    twlData.WriteAscii(twlFile, ',');
+//
+//    // persistent version
+//    Report::StatusMsg("Setting up TWL Data");
+//
+//    std::filesystem::create_directory((LPCTSTR)(outDir + "TWL"));
+//    twlFile.Format("%sTWL/TWL_%s_%i.csv", (LPCTSTR)outDir, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->yearOfRun);
+//
+//    Report::LogInfo(CString("Writing TWL Data to ") + twlFile);
+//    twlData.WriteAscii(twlFile, ',');
+//
+//    CString fdName;  // this is the filename for SFINCS output
+//    fdName.Format("MaxFloodDepth_%s_Year%i_%i", (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->currentYear, pEnvContext->runID);
+//
+//    // flag to indicate we actually launched SFINCS and produced the .asc in sfincs/Outputs
+//    bool generatedAsc = false;
+//
+//    CString outFile;  // this is the path to the flooding file in the Study Area "Outputs" folder for the current scenario
+//    outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+//    bool priorGridExists = std::filesystem::exists((LPCTSTR)outFile);
+//
+//    if (this->m_usePriorGrids == 0)
+//        Report::Log_i("Flooding Model is running SFINCS for year %i", pEnvContext->currentYear);
+//    else if (priorGridExists)
+//        Report::Log_i("Flooding Model is using prior grid for year %i", pEnvContext->currentYear);
+//    else
+//        Report::Log_s("Flooding Model: Prior grid %s not found, running SFINCS instead", (LPCTSTR)outFile);
+//
+//    if (this->m_usePriorGrids == 0 || priorGridExists == false)
+//    {
+//        // change current working directory to the SFINCS home directory
+//        auto cwd = std::filesystem::current_path(); // getting path
+//        std::filesystem::current_path((LPCTSTR)m_sfincsHome); // setting path
+//
+//        try {
+//            // Prefer pythonw (no console). Adjust path to pythonw if different on target system.
+//            CString path;
+//            path.Format(_T("C:/Users/wangzh3/Anaconda3/envs/sfincs_env/pythonw.exe sfincs_envision.py %s 0 %i %s %s %s %i"),
+//                (LPCTSTR)twlFile, m_cellSize,
+//                (LPCTSTR)m_sfincsHome, (LPCTSTR)fdName, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+//
+//            // Build wide command-line and split executable/args
+//#ifdef UNICODE
+//            std::wstring cmd = std::wstring((LPCTSTR)path);
+//#else
+//            // Convert ANSI project string to wide for CreateProcessW
+//            std::wstring cmd;
+//            {
+//                CStringA a = CT2A(path);
+//                cmd.assign(a.GetString(), static_cast<std::wstring::size_type>(a.GetLength()));
+//            }
+//#endif
+//            if (!cmd.empty())
+//            {
+//                // split exe and args
+//                std::wstring exe;
+//                std::wstring args;
+//                if (cmd.front() == L'"')
+//                {
+//                    size_t endq = cmd.find(L'"', 1);
+//                    if (endq == std::wstring::npos) endq = cmd.length() - 1;
+//                    exe = cmd.substr(0, endq + 1);
+//                    size_t pos = cmd.find_first_not_of(L' ', endq + 1);
+//                    args = (pos == std::wstring::npos) ? std::wstring() : cmd.substr(pos);
+//                }
+//                else
+//                {
+//                    size_t pos = cmd.find(L' ');
+//                    if (pos == std::wstring::npos)
+//                    {
+//                        exe = cmd;
+//                        args.clear();
+//                    }
+//                    else
+//                    {
+//                        exe = cmd.substr(0, pos);
+//                        args = cmd.substr(pos + 1);
+//                    }
+//                }
+//
+//                // Quote exe if contains spaces and isn't already quoted
+//                if (!exe.empty() && exe.front() != L'"' && exe.find(L' ') != std::wstring::npos)
+//                    exe = L"\"" + exe + L"\"";
+//
+//                // Build full command line (exe + args) as writable buffer
+//                std::wstring fullCmd = exe;
+//                if (!args.empty())
+//                    fullCmd += L" " + args;
+//
+//                std::vector<wchar_t> cmdline(fullCmd.begin(), fullCmd.end());
+//                cmdline.push_back(L'\0'); // writable null-terminated
+//
+//                // Provide lpApplicationName as unquoted exe path (recommended)
+//                std::wstring exeNoQuotes = exe;
+//                if (!exeNoQuotes.empty() && exeNoQuotes.front() == L'"' && exeNoQuotes.back() == L'"')
+//                    exeNoQuotes = exeNoQuotes.substr(1, exeNoQuotes.length() - 2);
+//
+//                STARTUPINFOW si;
+//                ZeroMemory(&si, sizeof(si));
+//                si.cb = sizeof(si);
+//                // ensure hidden window
+//                si.dwFlags = STARTF_USESHOWWINDOW;
+//                si.wShowWindow = SW_HIDE;
+//
+//                PROCESS_INFORMATION pi;
+//                ZeroMemory(&pi, sizeof(pi));
+//
+//                BOOL success = CreateProcessW(
+//                    exeNoQuotes.empty() ? NULL : exeNoQuotes.c_str(), // lpApplicationName
+//                    cmdline.data(),                                    // lpCommandLine (writable)
+//                    NULL, NULL, FALSE,
+//                    CREATE_NO_WINDOW,    // request no window
+//                    NULL,
+//                    (LPCWSTR)(LPCTSTR)m_sfincsHome, // lpCurrentDirectory
+//                    &si, &pi
+//                );
+//
+//                if (success)
+//                {
+//                    DWORD wait = WaitForSingleObject(pi.hProcess, INFINITE);
+//                    DWORD exitCode = 0;
+//                    GetExitCodeProcess(pi.hProcess, &exitCode);
+//                    CloseHandle(pi.hProcess);
+//                    CloseHandle(pi.hThread);
+//                    if (wait == WAIT_OBJECT_0)
+//                    {
+//                        generatedAsc = true; // SFINCS ran to completion
+//                    }
+//                    else
+//                    {
+//                        CString warn;
+//                        warn.Format(_T("SFINCS process did not complete normally (Wait=%u, Exit=%u)"), (unsigned)wait, (unsigned)exitCode);
+//                        Report::LogInfo(warn);
+//                    }
+//                }
+//                else
+//                {
+//                    DWORD err = GetLastError();
+//                    LPWSTR buf = nullptr;
+//                    FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+//                        NULL, err, MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT), (LPWSTR)&buf, 0, NULL);
+//                    CString errMsg;
+//                    if (buf)
+//                    {
+//                        errMsg.Format(_T("Failed to start SFINCS (CreateProcessW error %u): %s"), (unsigned)err, (LPCTSTR)buf);
+//                        LocalFree(buf);
+//                    }
+//                    else
+//                        errMsg.Format(_T("Failed to start SFINCS (CreateProcessW error %u)"), (unsigned)err);
+//
+//                    Report::LogError(errMsg);
+//                }
+//            }
+//            else
+//            {
+//                Report::LogError("RunFloodingModel: constructed empty SFINCS command line");
+//            }
+//        }
+//        catch (const std::exception& ex) {
+//            Report::LogError(ex.what());
+//        }
+//        catch (const std::string& ex) {
+//            Report::LogError(ex.c_str());
+//        }
+//        catch (...) {
+//            Report::LogError("Unspecified exception when running flood model");
+//        }
+//
+//        // restore cwd
+//        std::filesystem::current_path(cwd);
+//    }
+//
+//    // load grid
+//    Map* pMap = m_pDuneLayer->GetMapPtr();
+//
+//    if (m_pFloodedGrid != nullptr)
+//        m_pFloodedGrid->m_pMap->RemoveLayer(m_pFloodedGrid, true);
+//
+//    if (this->m_usePriorGrids && priorGridExists)  // this is the version in the study area Outputs folder for the current scenario
+//        outFile.Format("%sFlooding\\Flooding_Year%i_%s_Run%i.asc", (LPCTSTR)outDir, pEnvContext->currentYear, (LPCTSTR)pEnvContext->pScenario->m_name, pEnvContext->runID);
+//    else
+//        outFile.Format("%s/Outputs/%s/%s.asc", (LPCTSTR)m_sfincsHome, (LPCTSTR)pEnvContext->pScenario->m_name, (LPCTSTR)fdName);
+//
+//    Report::LogInfo(CString("Loading flooded depth grid ") + outFile);
+//
+//    this->m_pFloodedGrid = pMap->AddGridLayer(outFile, DO_TYPE::DOT_FLOAT);
+//
+//    Report::LogInfo("Calculating Flood Impacts");
+//    CalculateFloodImpacts(pEnvContext);
+//
+//    // If we generated a temporary SFINCS output, remove it now that the grid is loaded into memory
+//    if (generatedAsc)
+//    {
+//        std::filesystem::path outPath((LPCTSTR)outFile);
+//        std::error_code ec;
+//        if (std::filesystem::exists(outPath, ec) && !ec)
+//        {
+//            bool removed = std::filesystem::remove(outPath, ec);
+//            if (!ec && removed)
+//            {
+//                CString msg;
+//                msg.Format("Removed temporary flood file %s", (LPCTSTR)outFile);
+//                Report::LogInfo(msg);
+//            }
+//            else
+//            {
+//                CString warn;
+//                warn.Format("Could not remove temporary flood file %s : %s", (LPCTSTR)outFile, ec.message().c_str());
+//                Report::LogInfo(warn);
+//            }
+//        }
+//        else if (ec)
+//        {
+//            CString warn;
+//            warn.Format("Could not check existence of %s : %s", (LPCTSTR)outFile, ec.message().c_str());
+//            Report::LogInfo(warn);
+//        }
+//    }
+//
+//    // update timings
+//    clock_t finish = clock();
+//    float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+//
+//    CString msg;
+//    msg.Format("Flood Model ran in %i seconds", (int)duration);
+//    Report::Log(msg);
+//    return true;
+//}
 
 bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
    {
@@ -2292,15 +3440,6 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
    double floodedArea = 0.0f; // grid cells that are flooded multiplied by the number of grid cells
 
    // basic flooding stats first
-
-
-
-
-
-
-
-
-
 
 
    // flooded road stats first
@@ -2414,10 +3553,10 @@ bool ChronicHazards::CalculateFloodImpacts(EnvContext* pEnvContext)
 
          m_pInfraLayer->SetData(infra, m_colInfraFlooded, flooded);
          m_pInfraLayer->SetData(infra, m_colInfraFloodFreq, floodMovingWindow->GetFreqValue());
-      }
-   } // end of:  if (m_runInfra && m_pInfraLayer != nullptr)
+         }
+      } // end of:  if (m_runInfra && m_pInfraLayer != nullptr)
 
-   // infra metrics complete.  next, dunes
+      // infra metrics complete.  next, dunes
    if (m_pDuneLayer != nullptr)
       {
       int numRows = m_pFloodedGrid->GetRowCount();
@@ -2605,84 +3744,129 @@ bool ChronicHazards::RunEelgrassModel(EnvContext* pEnvContext)
 
 
 bool ChronicHazards::RunPolicyManagement(EnvContext* pEnvContext)
-   {
-   // Get new IDUBuildingsLkUp every year ! (Don't need to do this since we aren't adding/subtracting records)
-   //m_pIduBuildingLkUp->BuildIndex();
-   //////////////////////////////// TEMP
-   int numBldgs = 0;
-   for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
-      {
-      CArray< int, int > bldgIndices;
-      numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
-      }
-   Report::Log_i("RunPolicyManagement: Indexed %i buildings to the IDUs", numBldgs);
-   ///////////////////////
-   //   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
-//      {
-//      //Associate new buildings with communities
-//      // get Buildings in this IDU
-//      CArray< int, int > ptArray;
-//
-//      //int iduCityCode = 0;
-//      //m_pIDULayer->GetData(idu, m_colIDUCityCode, iduCityCode);
-//
-//      int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, ptArray);
-//
-//      for (int i = 0; i < numBldgs; i++)
-//         {
-//         int bldgIndex = ptArray[i];
-//
-//         /*int bldgCityCode = 0;
-//         m_pBldgLayer->GetData(ptArray[i], m_colBldgCityCode, bldgCityCode);*/
-//
-//         //m_pBldgLayer->SetData(bldgIndex, m_colBldgCityCode, iduCityCode);
-//         } // end each new building
-//      }
+{
+    // Get new IDUBuildingsLkUp every year ! (Don't need to do this since we aren't adding/subtracting records)
+    //m_pIduBuildingLkUp->BuildIndex();
+    //////////////////////////////// TEMP
+    int numBldgs = 0;
+    for (int m = 0; m < m_pIDULayer->GetRecordCount(); m++)
+    {
+        CArray< int, int > bldgIndices;
+        numBldgs += m_pIduBuildingLkUp->GetPointsFromPolyIndex(m, bldgIndices);
+    }
+    Report::Log_i("RunPolicyManagement: Indexed %i buildings to the IDUs", numBldgs);
+    ///////////////////////
+    //   for (MapLayer::Iterator idu = m_pIDULayer->Begin(); idu < m_pIDULayer->End(); idu++)
+ //      {
+ //      //Associate new buildings with communities
+ //      // get Buildings in this IDU
+ //      CArray< int, int > ptArray;
+ //
+ //      //int iduCityCode = 0;
+ //      //m_pIDULayer->GetData(idu, m_colIDUCityCode, iduCityCode);
+ //
+ //      int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, ptArray);
+ //
+ //      for (int i = 0; i < numBldgs; i++)
+ //         {
+ //         int bldgIndex = ptArray[i];
+ //
+ //         /*int bldgCityCode = 0;
+ //         m_pBldgLayer->GetData(ptArray[i], m_colBldgCityCode, bldgCityCode);*/
+ //
+ //         //m_pBldgLayer->SetData(bldgIndex, m_colBldgCityCode, iduCityCode);
+ //         } // end each new building
+ //      }
 
-   FindProtectedBldgs();   // working for buildings, not infrastructure
+    FindProtectedBldgs();   // working for buildings, not infrastructure updates dune point's building index if needed
 
-   // Construct BPS for protection if requested
-   if (m_runConstructBPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
-      ConstructBPS(pEnvContext->currentYear);
+    //// Construct BPS for protection if requested
+    //if (m_runConstructBPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
+    //    ConstructBPS(pEnvContext);
 
-   // Maintain BPS if desired policy
-   if (m_runMaintainBPSPolicy) // && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
-      MaintainBPS(pEnvContext->currentYear);
+    //// Maintain BPS if desired policy
+    //if (m_runMaintainBPSPolicy) // && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
+    //    MaintainBPS(pEnvContext);
 
-   // Nourish beaches with BPS if desired policy
-   if (m_runNourishBPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL))
-      NourishBPS(pEnvContext->currentYear, true);
+    // Prioritize maintenance over construction when both policies are enabled.
+    // Give maintenance the pooled available budget (maintenance + construct), run MaintainBPS,
+    // then set ConstructBPS budget = pooled - maintenanceSpent and run ConstructBPS with that remaining budget.
+    if (m_runMaintainBPSPolicy && m_runConstructBPSPolicy)
+    {
+        PolicyInfo& piMaint = m_policyInfoArray[PI_MAINTAIN_BPS];
+        PolicyInfo& piCons = m_policyInfoArray[PI_CONSTRUCT_BPS];
 
-   // Rebuild dunes on shoreline if desired policy
-   if (m_runConstructSPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
-      ConstructSPS(pEnvContext->currentYear);
+        // Pool budgets that were assigned to these two policies at InitRun
+        float pooled = piMaint.m_availableBudget + piCons.m_availableBudget;
+        CString dbg;
+        dbg.Format("PolicyPrioritize: pooling budgets maintain=%.2f construct=%.2f pooled=%.2f",
+            piMaint.m_availableBudget, piCons.m_availableBudget, pooled);
+        Report::LogInfo(dbg);
 
-   // Maintain SPS if desired policy
-   if (m_runMaintainSPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL))
-      MaintainSPS(pEnvContext->currentYear);
+        // Give pooled budget to maintenance, zero to construct while maintenance runs
+        piMaint.m_availableBudget = pooled;
+        piCons.m_availableBudget = 0.0f;
 
-   // Nourish beaches with constructed dunes if desired policy
-   if (m_runNourishSPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL))
-      NourishSPS(pEnvContext->currentYear);
+        // Run maintenance (base prioritized inside MaintainBPS)
+        MaintainBPS(pEnvContext);
 
-   // Raise/Relocate existing bldgs to safest site (highest elevation) REALIGN
-   if (m_runRelocateSafestPolicy) //  && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
-      RaiseOrRelocateBldgToSafestSite(pEnvContext);
+        // Compute remaining after actual maintenance spending and assign to construct
+        float remainingForConstruct = pooled - piMaint.m_spentBudget;
+        if (remainingForConstruct < 0.0f) remainingForConstruct = 0.0f;
+        piCons.m_availableBudget = remainingForConstruct;
 
-   //bool runRaiseInfrastructurePolicy = (m_runRaiseInfrastructurePolicy == 1) ? true : false;
-   //if (runRaiseInfrastructurePolicy) //  && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
-   //RaiseInfrastructure(pEnvContext);   // alway run this to account for infrastrucutre flooding
+        dbg.Format("PolicyPrioritize: maintenanceSpent=%.2f remainingForConstruct=%.2f",
+            piMaint.m_spentBudget, remainingForConstruct);
+        Report::LogInfo(dbg);
 
-   // Remove homes from hazard zone if desired policy REALIGN
-   if (m_runRemoveBldgFromHazardZonePolicy && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
-      CheckHazardTriggers(pEnvContext);
+        // Now run construction using whatever remains
+        if (m_runConstructBPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
+            ConstructBPS(pEnvContext);
+    }
+    else
+    {
+        // Default behavior when only one policy is active
+        if (m_runMaintainBPSPolicy)
+            MaintainBPS(pEnvContext);
 
-   // REALIGN
-   if (m_runRemoveInfraFromHazardZonePolicy && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
-      RemoveInfraFromHazardZone(pEnvContext);
+        if (m_runConstructBPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
+            ConstructBPS(pEnvContext);
+    }
 
-   return true;
-   } // end RunPolicies(EnvContext *pEnvContext)
+    // Nourish beaches with BPS if desired policy
+    if (m_runNourishBPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL))
+        NourishBPS(pEnvContext, true);
+
+    // Rebuild dunes on shoreline if desired policy
+    if (m_runConstructSPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL - 1))
+        ConstructSPS(pEnvContext);
+
+    // Maintain SPS if desired policy
+    if (m_runMaintainSPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL))
+        MaintainSPS(pEnvContext);
+
+    // Nourish beaches with constructed dunes if desired policy
+    if (m_runNourishSPSPolicy && (pEnvContext->yearOfRun >= m_windowLengthTWL))
+        NourishSPS(pEnvContext);
+
+    // Raise/Relocate existing bldgs to safest site (highest elevation) PROTECT
+    if (m_runRelocateSafestPolicy) //  && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
+        RaiseOrRelocateBldgToSafestSite(pEnvContext);
+
+    //bool runRaiseInfrastructurePolicy = (m_runRaiseInfrastructurePolicy == 1) ? true : false;
+    //if (runRaiseInfrastructurePolicy) //  && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
+    //RaiseInfrastructure(pEnvContext);   // alway run this to account for infrastrucutre flooding
+
+    // Remove homes from hazard zone if desired policy REALIGN
+    if (m_runRemoveBldgFromHazardZonePolicy && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
+        CheckHazardTriggers(pEnvContext);
+
+    // REALIGN
+    if (m_runRemoveInfraFromHazardZonePolicy && (pEnvContext->yearOfRun >= m_windowLengthFloodHzrd - 1))
+        RemoveInfraFromHazardZone(pEnvContext);
+
+    return true;
+} // end RunPolicies(EnvContext *pEnvContext)
 
 
 bool ChronicHazards::EndRun(EnvContext* pEnvContext)
@@ -3124,7 +4308,7 @@ int ChronicHazards::MaxYearlyTWL(EnvContext* pEnvContext)
    }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-bool ChronicHazards::GenerateDailyRBFOutputs(LPCTSTR simulationPath, VDataObj &buoyObsData)
+bool ChronicHazards::GenerateDailyRBFOutputs(LPCTSTR simulationPath, VDataObj& buoyObsData)
    {
    // This function generates a set of daily interpolated (from offshore buoy data) the nearshore wave environment.
    // It does so by either (depending on the m_writeDailyBuoyObs:
@@ -3162,7 +4346,7 @@ bool ChronicHazards::GenerateDailyRBFOutputs(LPCTSTR simulationPath, VDataObj &b
       // if we are writing this data, that means we have to generate it from the RBFs
       CString msg;
       msg.Format("Generating RBF Output %i of %i, file: %s", transectID - m_minTransect, m_maxTransect - m_minTransect,
-                  timeSeriesFile);
+         timeSeriesFile);
       Report::StatusMsg(msg);
 
       // create a data obj for buoy observations, rows=day of year
@@ -3245,7 +4429,7 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
    CString timeSeriesFolder, fullPath;
    PathManager::FindPath(simulationPath, fullPath);
    timeSeriesFolder.Format("%s\\RBFOutput_%s", (LPCTSTR)fullPath, (LPCTSTR)m_climateScenarioStr);
-   std::filesystem::create_directory((LPCTSTR) timeSeriesFolder);
+   std::filesystem::create_directory((LPCTSTR)timeSeriesFolder);
 
    //m_minTransect = 0;
    //m_maxTransect = m_numTransects - 1;
@@ -3276,7 +4460,7 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
 
       if (numRows < 0)
          success = false;
-      
+
       if (success)
          this->m_dailyRBFOutputArray.Add(pDailyRBFOutput);
       else
@@ -3294,986 +4478,1050 @@ bool ChronicHazards::LoadDailyRBFOutputs(LPCTSTR simulationPath)
 
 
 bool ChronicHazards::ResetAnnualVariables()
-   {
-   m_pDuneLayer->m_readOnly = false;
-   m_pDuneLayer->SetColData(m_colDLYrFMaxTWL, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrMaxTWL, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrAvgTWL, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrAvgSWL, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrAvgLowSWL, VData(0.0f), true);
+{
+m_pDuneLayer->m_readOnly = false;
+m_pDuneLayer->SetColData(m_colDLYrFMaxTWL, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrMaxTWL, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrAvgTWL, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrAvgSWL, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrAvgLowSWL, VData(0.0f), true);
 
-   m_pDuneLayer->SetColData(m_colDLFlooded, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLAmtFlooded, VData(0.0), true);
+m_pDuneLayer->SetColData(m_colDLFlooded, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLAmtFlooded, VData(0.0), true);
 
-   m_pDuneLayer->SetColData(m_colDLYrMaxDoy, VData(-1), true);
-   m_pDuneLayer->SetColData(m_colDLHdeep, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLWPeriod, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLWDirection, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLWHeight, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrMaxDoy, VData(-1), true);
+m_pDuneLayer->SetColData(m_colDLHdeep, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLWPeriod, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLWDirection, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLWHeight, VData(0.0f), true);
 
-   m_pDuneLayer->SetColData(m_colDLYrMaxSetup, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrMaxSWL, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrMaxIGSwash, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrMaxIncSwash, VData(0.0f), true);
-   m_pDuneLayer->SetColData(m_colDLYrMaxSwash, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrMaxSetup, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrMaxSWL, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrMaxIGSwash, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrMaxIncSwash, VData(0.0f), true);
+m_pDuneLayer->SetColData(m_colDLYrMaxSwash, VData(0.0f), true);
 
-   m_pDuneLayer->SetColData(m_colDLIDDToe, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDToeWinter, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDToeSpring, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDToeSummer, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDToeFall, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDToe, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDToeWinter, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDToeSpring, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDToeSummer, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDToeFall, VData(0), true);
 
-   m_pDuneLayer->SetColData(m_colDLIDDCrest, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDCrestWinter, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDCrestSpring, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDCrestSummer, VData(0), true);
-   m_pDuneLayer->SetColData(m_colDLIDDCrestFall, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDCrest, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDCrestWinter, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDCrestSpring, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDCrestSummer, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDCrestFall, VData(0), true);
 
-   // Reset annual attributes for Building, Infrastructure and Roads
-   if (m_pBldgLayer != nullptr)
-      m_pBldgLayer->SetColData(m_colBldgFlooded, VData(0), true);
+// Reset annual maintenance-specific per-point columns (do NOT reset cumulative counters MAINB_CNT_BPS / MAINC_CNT_BPS)
+if (m_colDLMAINT_TYPE >= 0)
+m_pDuneLayer->SetColData(m_colDLMAINT_TYPE, VData(0), true);
 
-   if (m_pInfraLayer != nullptr)
-      {
-      m_pInfraLayer->SetColData(m_colInfraFlooded, VData(0), true);
-      m_pInfraLayer->SetColData(m_colInfraEroded, VData(0), true);
-      }
-   ////////////////m_pRoadLayer->SetColData(m_colRoadFlooded, VData(0), true);
-   ////////////////
-   ////////////////// Initialize or Reset annual statistics for the whole coastline/study area
-   ////////////////
-   ////////////////// Reset annual County Wide variables to zero
-   ////////////////
-   m_meanAnnualTWL = 0.0f;
-   m_maxAnnualTWL = 0.0f;
-   m_floodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
-   m_floodedAreaSqMiles = 0.0;
+if (m_colDLMNTBCOSTBPS >= 0)
+m_pDuneLayer->SetColData(m_colDLMNTBCOSTBPS, VData(0.0f), true);
 
-   m_floodedRailroadMiles = 0.0;
-   m_floodedRoad = 0.0;
-   m_floodedRoadMiles = 0.0;
-   m_floodedBldgCount = 0;
+if (m_colDLMNTCCOSTBPS >= 0)
+m_pDuneLayer->SetColData(m_colDLMNTCCOSTBPS, VData(0.0f), true);
 
-   m_erodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
-   m_erodedAreaSqMiles = 0.0;
-   m_erodedRoad = 0.0;
-   m_erodedRoadMiles = 0.0;
-   m_erodedBldgCount = 0;
+if (m_colDLMNTCOSTBPS >= 0)
+m_pDuneLayer->SetColData(m_colDLMNTCOSTBPS, VData(0.0f), true);
 
-   ////////////////                              //m_maxTWL = 0.0f;
-   ////////////////
-   ////////////////                              // Hard Protection Metrics
-   ////////////////m_noConstructedBPS = 0;
-   ////////////////m_constructCostBPS = 0.0;
-   ////////////////m_maintCostBPS = 0.0;
-   ////////////////m_nourishCostBPS = 0.0;
-   ////////////////m_nourishVolumeBPS = 0.0;
-   ////////////////m_totalHardenedShoreline = 0.0;         // meters
-   ////////////////m_totalHardenedShorelineMiles = 0.0;   // miles
-   ////////////////m_addedHardenedShoreline = 0.0;         // meters
-   ////////////////m_addedHardenedShorelineMiles = 0.0;   // miles
-   ////////////////
-   ////////////////
-   ////////////////                                       // Soft Protection Metrics
-   ////////////////m_noConstructedDune = 0;
-   ////////////////m_restoreCostSPS = 0.0;
-   ////////////////m_maintCostSPS = 0.0;
-   ////////////////m_nourishCostSPS = 0.0;
-   ////////////////m_constructVolumeSPS = 0.0;
-   ////////////////m_maintVolumeSPS = 0.0;
-   ////////////////m_nourishVolumeSPS = 0.0;
-   ////////////////m_addedRestoredShoreline = 0.0;         // meters
-   ////////////////m_addedRestoredShorelineMiles = 0.0;   // miles
-   ////////////////m_totalRestoredShoreline = 0.0;         // meters
-   ////////////////m_totalRestoredShorelineMiles = 0.0;   // miles
-   ////////////////
-   ////////////////
-   ////////////////m_noBldgsRemovedFromHazardZone = 0;
-   //////////////////m_noBldgsEroded = 0;
-   ////////////////// Beach accesibility
-   //////////////////m_avgCountyAccess = 0.0f;
-   //////////////////m_avgOceanShoresAccess = 0.0f;
-   //////////////////m_avgWestportAccess = 0.0f;
-   //////////////////m_avgJettyAccess = 0.0f;
-   //////////////////
-   //////////////////m_eelgrassArea = 0.0;
-   //////////////////m_eelgrassAreaSqMiles = 0.0;
-   //////////////////
-   //////////////////m_intertidalArea = 0.0;
-   //////////////////m_intertidalAreaSqMiles = 0.0;
-   ////////////////
+m_pDuneLayer->SetColData(m_colDLIDDToe, VData(0), true);
+m_pDuneLayer->SetColData(m_colDLIDDToeWinter, VData(0), true);
 
-   return true;
-   }
+// Reset annual attributes for Building, Infrastructure and Roads
+if (m_pBldgLayer != nullptr)
+    {
+    m_pBldgLayer->SetColData(m_colBldgFlooded, VData(0), true);
+    m_pIDULayer->SetColData(m_colIDUFloodDepth, VData(0.0f), true);
+    }
 
+if (m_pInfraLayer != nullptr)
+    {
+    m_pInfraLayer->SetColData(m_colInfraFlooded, VData(0), true);
+    m_pInfraLayer->SetColData(m_colInfraEroded, VData(0), true);
+    }
+////////////////m_pRoadLayer->SetColData(m_colRoadFlooded, VData(0), true);
+////////////////
+////////////////// Initialize or Reset annual statistics for the whole coastline/study area
+////////////////
+////////////////// Reset annual County Wide variables to zero
+////////////////
+m_meanAnnualTWL = 0.0f;
+m_maxAnnualTWL = 0.0f;
+m_floodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
+m_floodedAreaSqMiles = 0.0;
 
-/*
+m_floodedRailroadMiles = 0.0;
+m_floodedRoad = 0.0;
+m_floodedRoadMiles = 0.0;
+m_floodedBldgCount = 0;
+
+m_erodedArea = 0.0f;         // square meters, m_floodedAreaSqMiles (sq Miles) is calculated from floodedArea
+m_erodedAreaSqMiles = 0.0;
+m_erodedRoad = 0.0;
+m_erodedRoadMiles = 0.0;
+m_erodedBldgCount = 0;
+
+// Reset eligible BPS dune tracking
+m_eligibleDunePointsBPSBeginning = 0;
+m_eligibleLengthBPSBeginning = 0;
+m_eligibleDunePointsBPSEnd = 0;
+m_eligibleLengthBPSEnd = 0;
+m_eligibleDunePointsBPSChange = 0;
+m_eligibleLengthBPSChange = 0;
+m_COSTBPS_unmet = 0.0f; // unmet demand for new BPS (annual)
+
+// Reset eligible BPS maintenance tracking (new)
+ // Base maintenance
+m_eligibleDunePointsBPSBMaintBeginning = 0;
+m_eligibleLengthBPSBMaintBeginning = 0.0f;
+m_eligibleDunePointsBPSBMaintEnd = 0;
+m_eligibleLengthBPSBMaintEnd = 0.0f;
+m_eligibleDunePointsBPSBMaintChange = 0;
+m_eligibleLengthBPSBMaintChange = 0.0f;
+
+// Crest maintenance
+m_eligibleDunePointsBPSCMaintBeginning = 0;
+m_eligibleLengthBPSCMaintBeginning = 0.0f;
+m_eligibleDunePointsBPSCMaintEnd = 0;
+m_eligibleLengthBPSCMaintEnd = 0.0f;
+m_eligibleDunePointsBPSCMaintChange = 0;
+m_eligibleLengthBPSCMaintChange = 0.0f;
+
+// reset BPS maintenance counters, cost
+ // Per-type maintained/project counters & lengths (annual)
+m_noMaintainedBBPSProjects = 0;
+m_noMaintainedBBPSPoints = 0;
+m_maintainedBLengthBPS = 0.0f;
+m_MNTBCOSTBPS = 0.0f;
+m_MNTBCOSTBPS_unmet = 0.0f; // unmet demand for base (annual)
+
+m_noMaintainedCBPSProjects = 0;
+m_noMaintainedCBPSPoints = 0;
+m_maintainedCLengthBPS = 0.0f;
+m_MNTCCOSTBPS = 0.0f;
+m_MNTCCOSTBPS_unmet = 0.0f; // unmet demand for crest (annual)
+
+// Combineddemand for crest (annual)
+m_MNTCOSTBPS_unmet = 0.0f; // unmet demand for base + crest (annual)
+m_MNTCOSTBPS = 0.0f; // total (base + crest) annual cost
+
+// --- Reset raise/relocate metrics ---
+m_raiseEligibleBeginning = 0;
+m_raiseEligibleEnd = 0;
+m_raiseCostTotal = 0.0f;
+m_raiseCost_unmet = 0.0f;
+
+////////////////                              //m_maxTWL = 0.0f;
+////////////////
+////////////////                              // Hard Protection Metrics
+////////////////m_noConstructedBPS = 0;
+m_constructCostBPS = 0.0; // annual cost
+////////////////m_maintCostBPS = 0.0;
+////////////////m_nourishCostBPS = 0.0;
+////////////////m_nourishVolumeBPS = 0.0;
+////////////////m_totalHardenedShoreline = 0.0;         // meters
+////////////////m_totalHardenedShorelineMiles = 0.0;   // miles
+////////////////m_addedHardenedShoreline = 0.0;         // meters
+////////////////m_addedHardenedShorelineMiles = 0.0;   // miles
+////////////////
+////////////////
+////////////////                                       // Soft Protection Metrics
+////////////////m_noConstructedDune = 0;
+////////////////m_restoreCostSPS = 0.0;
+////////////////m_maintCostSPS = 0.0;
+////////////////m_nourishCostSPS = 0.0;
+////////////////m_constructVolumeSPS = 0.0;
+////////////////m_maintVolumeSPS = 0.0;
+////////////////m_nourishVolumeSPS = 0.0;
+////////////////m_addedRestoredShoreline = 0.0;         // meters
+////////////////m_addedRestoredShorelineMiles = 0.0;   // miles
+////////////////m_totalRestoredShoreline = 0.0;         // meters
+////////////////m_totalRestoredShorelineMiles = 0.0;   // miles
+////////////////
+////////////////
+////////////////m_noBldgsRemovedFromHazardZone = 0;
+//////////////////m_noBldgsEroded = 0;
+////////////////// Beach accesibility
+//////////////////m_avgCountyAccess = 0.0f;
+//////////////////m_avgOceanShoresAccess = 0.0f;
+//////////////////m_avgWestportAccess = 0.0f;
+//////////////////m_avgJettyAccess = 0.0f;
+//////////////////
+//////////////////m_eelgrassArea = 0.0;
+//////////////////m_eelgrassAreaSqMiles = 0.0;
+//////////////////
+//////////////////m_intertidalArea = 0.0;
+//////////////////m_intertidalAreaSqMiles = 0.0;
+////////////////
+
+return true;
+}
 
 bool ChronicHazards::ResetAnnualBudget()
-   {
-   // allocate budgets for the year.  Basic idea:
-   // 1) There is no carry-over - budgets are reset every year.
-   // 2) Budgets are redistributed at the beginning of each year according to the cumulative unmet demand.
-   //    A portion is reserved as base funding, the rest is distributed proportional to unmet cumulative demand
+{
+    // allocate budgets for the year.  Basic idea:
+    // 1) There is no carry-over - budgets are reset every year.
+    // 2) Budgets are redistributed at the beginning of each year according to the cumulative unmet demand.
+    //    A portion is reserved as base funding, the rest is distributed proportional to unmet cumulative demand
 
-   // first, figure out what the total unmet demand from the last year was
-   float totalUnmetDemand = 0;
-   float totalSpentBudget = 0;
-   int costCount = 0;
+    // first, figure out what the total unmet demand from the last year was
+    float totalUnmetDemand = 0;
+    float totalSpentBudget = 0;
+    int costCount = 0;
 
-   for (int i = 0; i < PI_COUNT; i++)
-     {
-     PolicyInfo &pi = m_policyInfoArray[i];
-     if (pi.HasBudget())
-       {
-       totalUnmetDemand += pi.m_movAvgUnmetDemand.GetAvgValue();
-       totalSpentBudget += pi.m_movAvgBudgetSpent.GetAvgValue();
-       costCount++;
-       }
-     }
+    for (int i = 0; i < PI_COUNT; i++)
+    {
+        PolicyInfo& pi = m_policyInfoArray[i];
+        if (pi.HasBudget())
+        {
+            totalUnmetDemand += pi.m_movAvgUnmetDemand.GetAvgValue();
+            totalSpentBudget += pi.m_movAvgBudgetSpent.GetAvgValue();
+            costCount++;
+        }
+    }
 
-   if (costCount <= 0)
-     return true;
+    if (costCount <= 0)
+        return true;
 
-   // basic idea: next years budget is based on:
-   //   1) the proportion of this years budget going to this policy
-   //   2) the proportion of the unmetDemand attributed to this policy
+    // basic idea: next years budget is based on:
+    //   1) the proportion of this years budget going to this policy
+    //   2) the proportion of the unmetDemand attributed to this policy
 
-   PolicyInfo::m_budgetAllocFrac = 0.5f;
-   if (totalSpentBudget > 0 && totalUnmetDemand > 0)
-     PolicyInfo::m_budgetAllocFrac = totalSpentBudget / (totalSpentBudget + totalUnmetDemand);
+    PolicyInfo::m_budgetAllocFrac = 0.5f;
+    if (totalSpentBudget > 0 && totalUnmetDemand > 0)
+        PolicyInfo::m_budgetAllocFrac = totalSpentBudget / (totalSpentBudget + totalUnmetDemand);
 
-   float initialBudget = m_totalBudget / costCount;
-   float totalBudgetAllocated = 0;
-   float minBudgetAlloc = 100000;
-   int usingMinBudgetCount = 0;
+    float initialBudget = m_totalBudget / costCount;
+    float totalBudgetAllocated = 0;
+    float minBudgetAlloc = 100000;
+    int usingMinBudgetCount = 0;
 
-   for (int i = 0; i < PI_COUNT; i++)
-     {
-     PolicyInfo &pi = m_policyInfoArray[i];
+    for (int i = 0; i < PI_COUNT; i++)
+    {
+        PolicyInfo& pi = m_policyInfoArray[i];
 
-     if (pi.HasBudget())
-       {
-       // portion based on this years spending levels
-       float budget0 = -1;
-       if (totalSpentBudget > 0)
-         budget0 = m_totalBudget * (pi.m_movAvgBudgetSpent.GetAvgValue() / totalSpentBudget);
+        if (pi.HasBudget())
+        {
+            // portion based on this years spending levels
+            float budget0 = -1;
+            if (totalSpentBudget > 0)
+                budget0 = m_totalBudget * (pi.m_movAvgBudgetSpent.GetAvgValue() / totalSpentBudget);
 
-       // portion based on moving average of unmet demand
-       float budget1 = -1;
-       if (totalUnmetDemand > 0)
-         budget1 = m_totalBudget * (pi.m_movAvgUnmetDemand.GetAvgValue() / totalUnmetDemand);
+            // portion based on moving average of unmet demand
+            float budget1 = -1;
+            if (totalUnmetDemand > 0)
+                budget1 = m_totalBudget * (pi.m_movAvgUnmetDemand.GetAvgValue() / totalUnmetDemand);
 
-       // normalize budget 1, 2 to sum to m_totalBudget if below budget
-       // if ( (budget0 + budget1) < m_totalBudget )
-       //    {
-       //    budget0 = m_totalBudget * budget0 / (budget1 + budget0);
-       //    budget1 = m_totalBudget - budget0;
-       //    }
+            // normalize budget 1, 2 to sum to m_totalBudget if below budget
+            // if ( (budget0 + budget1) < m_totalBudget )
+            //    {
+            //    budget0 = m_totalBudget * budget0 / (budget1 + budget0);
+            //    budget1 = m_totalBudget - budget0;
+            //    }
 
-       // four cases to consider:
-       float budgetAlloc = 0;
-       if (totalSpentBudget <= 0 && totalUnmetDemand <= 0)
-         budgetAlloc = initialBudget;
+            // four cases to consider:
+            float budgetAlloc = 0;
+            if (totalSpentBudget <= 0 && totalUnmetDemand <= 0)
+                budgetAlloc = initialBudget;
 
-       else if (totalSpentBudget <= 0)  // only based on unmet demand
-         budgetAlloc = budget1;
+            else if (totalSpentBudget <= 0)  // only based on unmet demand
+                budgetAlloc = budget1;
 
-       else if (totalUnmetDemand <= 0)   // based only on this years spending
-         budgetAlloc = budget0;
+            else if (totalUnmetDemand <= 0)   // based only on this years spending
+                budgetAlloc = budget0;
 
-       else     // based on both
-         budgetAlloc = (PolicyInfo::m_budgetAllocFrac*budget0)
-         + ((1.0f - PolicyInfo::m_budgetAllocFrac)*budget1);
+            else     // based on both
+                budgetAlloc = (PolicyInfo::m_budgetAllocFrac * budget0)
+                + ((1.0f - PolicyInfo::m_budgetAllocFrac) * budget1);
 
-       // set allocation ration for this policy
-       if ((pi.m_spentBudget + pi.m_unmetDemand) > 0)
-         pi.m_allocFrac = pi.m_spentBudget / (pi.m_spentBudget + pi.m_unmetDemand);
-       else
-         pi.m_allocFrac = 0;
+            // set allocation ration for this policy
+            if ((pi.m_spentBudget + pi.m_unmetDemand) > 0)
+                pi.m_allocFrac = pi.m_spentBudget / (pi.m_spentBudget + pi.m_unmetDemand);
+            else
+                pi.m_allocFrac = 0;
 
-       if (budgetAlloc < minBudgetAlloc)
-         {
-         usingMinBudgetCount++;
-         budgetAlloc = minBudgetAlloc;
-         pi.m_usingMinBudget = true;
-         }
-       else
-         {
-         pi.m_usingMinBudget = false;
-         totalBudgetAllocated += budgetAlloc;   // don't count for min budgets
-         }
+            if (budgetAlloc < minBudgetAlloc)
+            {
+                usingMinBudgetCount++;
+                budgetAlloc = minBudgetAlloc;
+                pi.m_usingMinBudget = true;
+            }
+            else
+            {
+                pi.m_usingMinBudget = false;
+                totalBudgetAllocated += budgetAlloc;   // don't count for min budgets
+            }
 
-       pi.m_startingBudget = pi.m_availableBudget = budgetAlloc;
-       }
-     else
-       pi.m_startingBudget = pi.m_availableBudget = 0;
+            pi.m_startingBudget = pi.m_availableBudget = budgetAlloc;
+        }
+        else
+            pi.m_startingBudget = pi.m_availableBudget = 0;
 
-     pi.m_spentBudget = 0;
-     pi.m_unmetDemand = 0;
-     }
+        pi.m_spentBudget = 0;
+        pi.m_unmetDemand = 0;
+    }
 
-   // normalize allocated budget m_totalBudget if below budget.  Note that
-   // policies recieving the minimum were not included in the total budget
-   // allocated and we don't normalize them.
-   float totalBudgetAvail = m_totalBudget - (usingMinBudgetCount * minBudgetAlloc);
-   float ratio = totalBudgetAvail / totalBudgetAllocated;
+    // normalize allocated budget m_totalBudget if below budget.  Note that
+    // policies recieving the minimum were not included in the total budget
+    // allocated and we don't normalize them.
+    float totalBudgetAvail = m_totalBudget - (usingMinBudgetCount * minBudgetAlloc);
+    float ratio = totalBudgetAvail / totalBudgetAllocated;
 
-   for (int i = 0; i < PI_COUNT; i++)
-     {
-     PolicyInfo &pi = m_policyInfoArray[i];
+    for (int i = 0; i < PI_COUNT; i++)
+    {
+        PolicyInfo& pi = m_policyInfoArray[i];
 
-     if (pi.HasBudget() && pi.m_usingMinBudget == false)
-       {
-       float budgetAlloc = pi.m_startingBudget;
-       float adjAlloc = budgetAlloc * ratio;
-       pi.m_startingBudget = pi.m_availableBudget = adjAlloc;
-       }
-     }
+        if (pi.HasBudget() && pi.m_usingMinBudget == false)
+        {
+            float budgetAlloc = pi.m_startingBudget;
+            float adjAlloc = budgetAlloc * ratio;
+            pi.m_startingBudget = pi.m_availableBudget = adjAlloc;
+        }
+    }
 
-   return true;
-   }
+    return true;
+}
 
-   */
-
-   //bool ChronicHazards::LoadPolyGridLookup()
-   //{
-   //   if (m_pIduElevationGridLkUp f!= nullptr)
-   //      return true;
-   //   TRACE(_T("ChronicHazards: Starting LoadPolyGridLookup \n"));
-   //
-   //   float
-   //      cellWidth = 0.0f,
-   //      cellHeight = 0.0f;
-   //
-   //   float
-   //      xMin = -1.0F,
-   //      xMax = -1.0F,
-   //      yMin = -1.0F,
-   //      yMax = -1.0F;
-   //
-   //   long
-   //      n = -1,
-   //      maxEls = -1,
-   //      gridRslt = -1;
-   //
-   //   MapLayer *pGridMapLayer = nullptr;
-   //
-   //   if (m_pMap != nullptr)
-   //   {
-   //      pGridMapLayer = m_pMap->AddLayer(LT_GRID);
-   //      ASSERT(pGridMapLayer != nullptr);
-   //   }
-   //
-   //   else
-   //   {
-   //      // get Map pointer
-   //      m_pMap = m_pIDULayer->GetMapPtr();
-   //      ASSERT(m_pMap != nullptr);
-   //   }
-   //
-   //   //  DEM layer characteristics
-   //   m_pElevationGrid->GetExtents(xMin, xMax, yMin, yMax);
-   //   m_pElevationGrid->GetCellSize(cellWidth, cellHeight);
-   //
-   //   float noDataValue = m_pElevationGrid->GetNoDataValue();
-   //
-   //   m_numRows = m_pElevationGrid->GetRowCount();
-   //   m_numCols = m_pElevationGrid->GetColCount();
-   //
-   //   maxEls = (m_numRows * m_numCols);
-   //   n = m_pIDULayer->GetPolygonCount();
-   //
-   //   CString msg;
-   //   msg.Format("ChronicHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
-   //   Report::Log(msg);
-   //
-   //   clock_t start = clock();
-   //
-   //   // create grids, based on the extent of polygon layer, for important intermediate and output values
-   //   gridRslt = pGridMapLayer->CreateGrid(m_numRows, m_numCols, xMin, yMin, cellWidth, cellHeight, -9999, DOT_INT, FALSE, FALSE);
-   //
-   //   // if pgl file exists, use it, otherwise create and persist it
-   //   CPath pglFile(PathManager::GetPath(PM_IDU_DIR));
-   //
-   //   CString filename;
-   //   pglFile.Append("PolyGridLookups\\");
-   //   filename.Format("PolyFloodedLkUp.pgl");
-   //   pglFile.Append(filename);
-   //
-   //   // if .pgl file exists: read poly - grid - lookup table from file
-   //   // else (if .pgl file does NOT exists): create poly - grid - lookup table and write to .pgl file
-   //   if (pglFile.Exists())
-   //   {
-   //      msg = "Loading PolyGrid from File ";
-   //      msg += pglFile;
-   //      Report::Log(msg);
-   //
-   //      m_pIduErodedGridLkUp = new PolyGridMapper(pglFile);
-   //
-   //      // if existing file has wrong dimension, create NEW poly - grid - lookup table and write to .pgl file
-   //      if ((m_pIduElevationGridLkUp->GetNumGridCols() != m_numCols) || (m_pIduErodedGridLkUp->GetNumGridRows() != m_numRows))
-   //      {
-   //         msg = "Invalid dimensions: Recreating File ";
-   //         msg += pglFile;
-   //         Report::Log(msg);
-   //         pRoadErodedGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pElevationGrid, 1);
-   //         //      m_pIduElevationGridLkUp = new PolyGridLookups(pGridMapLayer, m_pIDULayer, 1, maxEls, 0, -9999);
-   //         m_pIduErodedGridLkUp->WriteToFile(pglFile);
-   //      }
-   //   }
-   //   else  // doesn't exist, create it
-   //   {
-   //      msg = "Generating PolyGrid ";
-   //      msg += pglFile;
-   //      Report::Log(msg);
-   //      m_pPolylineGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pElevationGrid, 1);
-   //      //    m_pIduElevationGridLkUp = new PolyGridLookups(pGridMapLayer, m_pIDULayer, 1, maxEls, 0, -9999);
-   //      m_pIduErodedGridLkUp->WriteToFile(pglFile);
-   //   }
-   //
-   //   clock_t finish = clock();
-   //   float duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   //
-   //   msg.Format("PolyGridLookup generated in %i seconds", (int)duration);
-   //   Report::Log(msg);
-   //
-   //   return true;
-   //} // BOOL ChronicHazards::LoadPolyGridLookup
+//bool ChronicHazards::LoadPolyGridLookup()
+//{
+//   if (m_pIduElevationGridLkUp f!= nullptr)
+//      return true;
+//   TRACE(_T("ChronicHazards: Starting LoadPolyGridLookup \n"));
+//
+//   float
+//      cellWidth = 0.0f,
+//      cellHeight = 0.0f;
+//
+//   float
+//      xMin = -1.0F,
+//      xMax = -1.0F,
+//      yMin = -1.0F,
+//      yMax = -1.0F;
+//
+//   long
+//      n = -1,
+//      maxEls = -1,
+//      gridRslt = -1;
+//
+//   MapLayer *pGridMapLayer = nullptr;
+//
+//   if (m_pMap != nullptr)
+//   {
+//      pGridMapLayer = m_pMap->AddLayer(LT_GRID);
+//      ASSERT(pGridMapLayer != nullptr);
+//   }
+//
+//   else
+//   {
+//      // get Map pointer
+//      m_pMap = m_pIDULayer->GetMapPtr();
+//      ASSERT(m_pMap != nullptr);
+//   }
+//
+//   //  DEM layer characteristics
+//   m_pElevationGrid->GetExtents(xMin, xMax, yMin, yMax);
+//   m_pElevationGrid->GetCellSize(cellWidth, cellHeight);
+//
+//   float noDataValue = m_pElevationGrid->GetNoDataValue();
+//
+//   m_numRows = m_pElevationGrid->GetRowCount();
+//   m_numCols = m_pElevationGrid->GetColCount();
+//
+//   maxEls = (m_numRows * m_numCols);
+//   n = m_pIDULayer->GetPolygonCount();
+//
+//   CString msg;
+//   msg.Format("ChronicHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
+//   Report::Log(msg);
+//
+//   clock_t start = clock();
+//
+//   // create grids, based on the extent of polygon layer, for important intermediate and output values
+//   gridRslt = pGridMapLayer->CreateGrid(m_numRows, m_numCols, xMin, yMin, cellWidth, cellHeight, -9999, DOT_INT, FALSE, FALSE);
+//
+//   // if pgl file exists, use it, otherwise create and persist it
+//   CPath pglFile(PathManager::GetPath(PM_IDU_DIR));
+//
+//   CString filename;
+//   pglFile.Append("PolyGridLookups\\");
+//   filename.Format("PolyFloodedLkUp.pgl");
+//   pglFile.Append(filename);
+//
+//   // if .pgl file exists: read poly - grid - lookup table from file
+//   // else (if .pgl file does NOT exists): create poly - grid - lookup table and write to .pgl file
+//   if (pglFile.Exists())
+//   {
+//      msg = "Loading PolyGrid from File ";
+//      msg += pglFile;
+//      Report::Log(msg);
+//
+//      m_pIduErodedGridLkUp = new PolyGridMapper(pglFile);
+//
+//      // if existing file has wrong dimension, create NEW poly - grid - lookup table and write to .pgl file
+//      if ((m_pIduElevationGridLkUp->GetNumGridCols() != m_numCols) || (m_pIduErodedGridLkUp->GetNumGridRows() != m_numRows))
+//      {
+//         msg = "Invalid dimensions: Recreating File ";
+//         msg += pglFile;
+//         Report::Log(msg);
+//         pRoadErodedGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pElevationGrid, 1);
+//         //      m_pIduElevationGridLkUp = new PolyGridLookups(pGridMapLayer, m_pIDULayer, 1, maxEls, 0, -9999);
+//         m_pIduErodedGridLkUp->WriteToFile(pglFile);
+//      }
+//   }
+//   else  // doesn't exist, create it
+//   {
+//      msg = "Generating PolyGrid ";
+//      msg += pglFile;
+//      Report::Log(msg);
+//      m_pPolylineGridLkUp = new PolyGridMapper(m_pRoadLayer, m_pElevationGrid, 1);
+//      //    m_pIduElevationGridLkUp = new PolyGridLookups(pGridMapLayer, m_pIDULayer, 1, maxEls, 0, -9999);
+//      m_pIduErodedGridLkUp->WriteToFile(pglFile);
+//   }
+//
+//   clock_t finish = clock();
+//   float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+//
+//   msg.Format("PolyGridLookup generated in %i seconds", (int)duration);
+//   Report::Log(msg);
+//
+//   return true;
+//} // BOOL ChronicHazards::LoadPolyGridLookup
 
 
-   //bool ChronicHazards::LoadPolyGridLookup(MapLayer *pGridLayer, MapLayer *pPolyLayer, CString fullFilename, PolyGridLookups *&pPolyGridLookup)
-   //{
-   //   if (pPolyGridLookup != nullptr)
-   //      return true;
-   //
-   //   if (pGridLayer == nullptr)
-   //      return false;
-   //
-   //   if (pPolyLayer == nullptr)
-   //      return false;
-   //
-   //   if (CString(fullFilename).IsEmpty())
-   //      return false;
-   //
-   //   TRACE(_T("ChronicHazards: Starting LoadPolyGridLookup \n"));
-   //
-   //   float
-   //      cellWidth = 0.0f,
-   //      cellHeight = 0.0f;
-   //
-   //   float
-   //      xMin = -1.0f,
-   //      xMax = -1.0f,
-   //      yMin = -1.0f,
-   //      yMax = -1.0f;
-   //
-   //   float noDataValue = -9999.f;
-   //
-   //   // grid layer for polyGridLookup
-   //   MapLayer *pGridMapLayer = nullptr;
-   //
-   //   if (pGridLayer->GetType() == LT_GRID)
-   //   {
-   //      // Grid layer characteristics
-   //      pGridLayer->GetExtents(xMin, xMax, yMin, yMax);
-   //      pGridLayer->GetCellSize(cellWidth, cellHeight);
-   //      noDataValue = pGridLayer->GetNoDataValue();
-   //
-   //      //added
-   //      m_numRows = pGridLayer->GetRowCount();
-   //      m_numCols = pGridLayer->GetColCount();
-   //      pGridMapLayer = pGridLayer;
-   //   }
-   //   // Polygon layer characteristics
-   //   else if (pGridLayer->GetType() == LT_POLYGON)
-   //   {
-   //      float xExtent = xMax - xMin;
-   //      float yExtent = yMax - yMin;
-   //      // input!!
-   //      cellHeight = cellWidth = 90;
-   //      m_numRows = (int)ceil(yExtent / cellHeight);
-   //      m_numCols = (int)ceil(xExtent / cellWidth);
-   //      noDataValue = pGridLayer->GetNoDataValue();
-   //
-   //      // get Map pointer
-   //      m_pMap = pPolyLayer->GetMapPtr();
-   //      ASSERT(m_pMap != nullptr);
-   //      pGridMapLayer = m_pMap->AddLayer(LT_GRID);
-   //      ASSERT(pGridMapLayer != nullptr);
-   //
-   //      // create grids, based on the extent of polygon layer, for important intermediate and output values
-   //      int gridRslt = pGridMapLayer->CreateGrid(m_numRows, m_numCols, xMin, yMin, cellWidth, cellHeight, noDataValue, DOT_INT, FALSE, FALSE);
-   //   }
-   //
-   //   int maxEls = (m_numRows * m_numCols);
-   //   int n = pPolyLayer->GetPolygonCount();
-   //
-   //   CString msg;
-   //   msg.Format("ChronicHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
-   //   Report::Log(msg);
-   //
-   //   clock_t start = clock();
-   //
-   //   CString pglPath = nullptr;
-   //
-   //   int status = PathManager::FindPath(fullFilename, pglPath);    // look along Envision paths
-   //
-   //   // if pgl file exists, use it, otherwise create poly grid lookup and persist it
-   //   // else (if .pgl file does NOT exists): create poly - grid - lookup table and write to .pgl file
-   //   if (status >= 0)
-   //   {
-   //      msg = "ChronicHazards: Loading PolyGrid from File ";
-   //      msg += pglPath;
-   //      Report::Log(msg);
-   //
-   //      pPolyGridLookup = new PolyGridLookups(pglPath);
-   //
-   //      //// if existing file has wrong dimension, create NEW poly - grid - lookup table and write to .pgl file
-   //      // if ((pPolyGridLookup->GetNumGridCols() != m_numCols) || (pPolyGridLookup->GetNumGridRows() != m_numRows))
-   //      //{
-   //      //msg = "ChronicHazards: Invalid dimensions: Recreating File ";
-   //      //msg += pglPath;
-   //      //Report::Log(msg);
-   //      //pPolyGridLookup = new PolyGridLookups(pGridMapLayer, pPolyLayer, 1, maxEls, 0, -9999);
-   //      //pPolyGridLookup->WriteToFile(pglPath);
-   //      //}
-   //   } else  // doesn't exist, create it
-   //   {
-   //      pglPath = fullFilename;
-   //      msg = "ChronicHazards: Generating PolyGrid ";
-   //      msg += pglPath;
-   //      Report::Log(msg);
-   //
-   //      pPolyGridLookup = new PolyGridLookups(pGridMapLayer, pPolyLayer, 1, maxEls, 0, (int)noDataValue);
-   //      pPolyGridLookup->WriteToFile(pglPath);
-   //   }
-   //
-   //   clock_t finish = clock();
-   //   float duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   //
-   //   msg.Format("ChronicHazards: PolyGridLookup generated in %i seconds", (int)duration);
-   //   Report::Log(msg);
-   //
-   //   return true;
-   //} // BOOL ChronicHazards::LoadPolyGridLookup
+//bool ChronicHazards::LoadPolyGridLookup(MapLayer *pGridLayer, MapLayer *pPolyLayer, CString fullFilename, PolyGridLookups *&pPolyGridLookup)
+//{
+//   if (pPolyGridLookup != nullptr)
+//      return true;
+//
+//   if (pGridLayer == nullptr)
+//      return false;
+//
+//   if (pPolyLayer == nullptr)
+//      return false;
+//
+//   if (CString(fullFilename).IsEmpty())
+//      return false;
+//
+//   TRACE(_T("ChronicHazards: Starting LoadPolyGridLookup \n"));
+//
+//   float
+//      cellWidth = 0.0f,
+//      cellHeight = 0.0f;
+//
+//   float
+//      xMin = -1.0f,
+//      xMax = -1.0f,
+//      yMin = -1.0f,
+//      yMax = -1.0f;
+//
+//   float noDataValue = -9999.f;
+//
+//   // grid layer for polyGridLookup
+//   MapLayer *pGridMapLayer = nullptr;
+//
+//   if (pGridLayer->GetType() == LT_GRID)
+//   {
+//      // Grid layer characteristics
+//      pGridLayer->GetExtents(xMin, xMax, yMin, yMax);
+//      pGridLayer->GetCellSize(cellWidth, cellHeight);
+//      noDataValue = pGridLayer->GetNoDataValue();
+//
+//      //added
+//      m_numRows = pGridLayer->GetRowCount();
+//      m_numCols = pGridLayer->GetColCount();
+//      pGridMapLayer = pGridLayer;
+//   }
+//   // Polygon layer characteristics
+//   else if (pGridLayer->GetType() == LT_POLYGON)
+//   {
+//      float xExtent = xMax - xMin;
+//      float yExtent = yMax - yMin;
+//      // input!!
+//      cellHeight = cellWidth = 90;
+//      m_numRows = (int)ceil(yExtent / cellHeight);
+//      m_numCols = (int)ceil(xExtent / cellWidth);
+//      noDataValue = pGridLayer->GetNoDataValue();
+//
+//      // get Map pointer
+//      m_pMap = pPolyLayer->GetMapPtr();
+//      ASSERT(m_pMap != nullptr);
+//      pGridMapLayer = m_pMap->AddLayer(LT_GRID);
+//      ASSERT(pGridMapLayer != nullptr);
+//
+//      // create grids, based on the extent of polygon layer, for important intermediate and output values
+//      int gridRslt = pGridMapLayer->CreateGrid(m_numRows, m_numCols, xMin, yMin, cellWidth, cellHeight, noDataValue, DOT_INT, FALSE, FALSE);
+//   }
+//
+//   int maxEls = (m_numRows * m_numCols);
+//   int n = pPolyLayer->GetPolygonCount();
+//
+//   CString msg;
+//   msg.Format("ChronicHazards: Polygrid - %i Rows, %i Cols, CellWidth: %f CellHeight: %f NumElements: %d", m_numRows, m_numCols, cellWidth, cellHeight, maxEls);
+//   Report::Log(msg);
+//
+//   clock_t start = clock();
+//
+//   CString pglPath = nullptr;
+//
+//   int status = PathManager::FindPath(fullFilename, pglPath);    // look along Envision paths
+//
+//   // if pgl file exists, use it, otherwise create poly grid lookup and persist it
+//   // else (if .pgl file does NOT exists): create poly - grid - lookup table and write to .pgl file
+//   if (status >= 0)
+//   {
+//      msg = "ChronicHazards: Loading PolyGrid from File ";
+//      msg += pglPath;
+//      Report::Log(msg);
+//
+//      pPolyGridLookup = new PolyGridLookups(pglPath);
+//
+//      //// if existing file has wrong dimension, create NEW poly - grid - lookup table and write to .pgl file
+//      // if ((pPolyGridLookup->GetNumGridCols() != m_numCols) || (pPolyGridLookup->GetNumGridRows() != m_numRows))
+//      //{
+//      //msg = "ChronicHazards: Invalid dimensions: Recreating File ";
+//      //msg += pglPath;
+//      //Report::Log(msg);
+//      //pPolyGridLookup = new PolyGridLookups(pGridMapLayer, pPolyLayer, 1, maxEls, 0, -9999);
+//      //pPolyGridLookup->WriteToFile(pglPath);
+//      //}
+//   } else  // doesn't exist, create it
+//   {
+//      pglPath = fullFilename;
+//      msg = "ChronicHazards: Generating PolyGrid ";
+//      msg += pglPath;
+//      Report::Log(msg);
+//
+//      pPolyGridLookup = new PolyGridLookups(pGridMapLayer, pPolyLayer, 1, maxEls, 0, (int)noDataValue);
+//      pPolyGridLookup->WriteToFile(pglPath);
+//   }
+//
+//   clock_t finish = clock();
+//   float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+//
+//   msg.Format("ChronicHazards: PolyGridLookup generated in %i seconds", (int)duration);
+//   Report::Log(msg);
+//
+//   return true;
+//} // BOOL ChronicHazards::LoadPolyGridLookup
 
-   // Runs the flooding model returning the number of grid cells flooded and the area flooded
-   ///////double ChronicHazards::GenerateBathtubFloodMap(int &floodedCount)
-   ///////   {
-   ///////   //return 0;
-   ///////
-   ///////   if (m_pFloodedGrid == nullptr)
-   ///////      {
-   ///////      m_pFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
-   ///////      m_pFloodedGrid->m_name = "Flooded Grid";
-   ///////
-   ///////      m_pCumFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
-   ///////      m_pCumFloodedGrid->m_name = "Cumulative Flooded Grid";
-   ///////      }
-   ///////   m_pFloodedGrid->SetAllData(0.0, false);
-   ///////   m_pCumFloodedGrid->SetAllData(0.0, false);
-   ///////
-   ///////   // Determine the area of the grid that got flooded
-   ///////
-   ///////   // Value: 0 if not flooded, TWL if flooded
-   ///////   float flooded = 0.0f;
-   ///////
-   ///////   // Counter of number of grid cells in flooded grid that are flooded 
-   ///////   // used to determine area flooded
-   ///////
-   ///////   // area = grid cells that are flooded multiplied by the number of grid cells 
-   ///////   double floodedArea = 0.0f;
-   ///////
-   ///////   //clock_t start = clock();
-   ///////
-   ///////   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
-   ///////      {
-   ///////      int beachType = 0;
-   ///////      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
-   ///////
-   ///////      int duneIndex = -1;
-   ///////      m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIndex);
-   ///////
-   ///////      REAL xCoord = 0.0;
-   ///////      REAL yCoord = 0.0;
-   ///////
-   ///////      int startRow = -1;
-   ///////      int startCol = -1;
-   ///////      float minElevation = 0.0f;
-   ///////      float yearlyMaxTWL = 0.0f;
-   ///////      float yearlyAvgTWL = 0.0f;
-   ///////      double duneCrest = 0.0;
-   ///////
-   ///////      if (beachType == BchT_BAY)
-   ///////         {
-   ///////         // get twl of inlet seed point
-   ///////         m_pDuneLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
-   ///////
-   ///////         //if (pEnvContext->yearOfRun < m_windowLengthTWL - 1)
-   ///////         //   m_pDuneLayer->GetData(point, m_colYrAvgTWL, yearlyMaxTWL);
-   ///////         //else
-   ///////         //   m_pDuneLayer->GetData(point, m_colMvMaxTWL, yearlyMaxTWL);
-   ///////
-   ///////            // traversing along bay shoreline, determine if twl is more than the elevation 
-   ///////
-   ///////            //for (int inletRow = 0; inletRow < m_numBayPts; inletRow++)
-   ///////            //{
-   ///////            //   // bay trace can be beachtype of bay or river
-   ///////            //   // do not calculate flooding for river type
-   ///////            //   /*beachType = m_pInletLUT->GetAsInt(3, inletRow);            
-   ///////            //   if (beachType == BchT_BAY)
-   ///////            //   {
-   ///////            //      xCoord = m_pInletLUT->GetAsDouble(1, inletRow);
-   ///////            //      yCoord = m_pInletLUT->GetAsDouble(2, inletRow);
-   ///////            //      int bayFloodedCount = 0;
-   ///////            //      bayFloodedCount = m_pInletLUT->GetAsInt(4, inletRow);
-   ///////
-   ///////         int colNorthing;
-   ///////         int colEasting;
-   ///////
-   ///////         CheckCol(m_pBayTraceLayer, colNorthing, "NORTHING", TYPE_DOUBLE, CC_MUST_EXIST);
-   ///////         CheckCol(m_pBayTraceLayer, colEasting, "EASTING", TYPE_DOUBLE, CC_MUST_EXIST);
-   ///////
-   ///////         // traversing along bay shoreline, determine is more than the elevation 
-   ///////         for (MapLayer::Iterator bayPt = m_pBayTraceLayer->Begin(); bayPt < m_pBayTraceLayer->End(); bayPt++)
-   ///////            {
-   ///////            m_pBayTraceLayer->GetData(bayPt, colEasting, xCoord);
-   ///////            m_pBayTraceLayer->GetData(bayPt, colNorthing, yCoord);
-   ///////
-   ///////            m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
-   ///////            
-   ///////            //      m_pInletLUT->Set(4, inletRow, startRow);
-   ///////            //      m_pInletLUT->Set(5, inletRow, startCol);
-   ///////            //
-   ///////            //      /*m_pElevationGrid->SetData(5255, 4373, 3.8f);
-   ///////            //      m_pElevationGrid->SetData(5256, 4372, 3.8f);
-   ///////            //      m_pElevationGrid->SetData(5260, 4369, 3.8f);
-   ///////
-   ///////
-   ///////                  // within grid ?
-   ///////            if ((startRow >= 0 && startRow < m_numRows) && (startCol >= 0 && startCol < m_numCols))
-   ///////               {
-   ///////               m_pElevationGrid->GetData(startRow, startCol, minElevation);
-   ///////               m_pFloodedGrid->GetData(startRow, startCol, flooded);
-   ///////
-   ///////               bool isFlooded = (flooded > 0.0f) ? true : false;
-   ///////
-   ///////               //   m_pInletLUT->Set(5, inletRow, yearlyMaxTWL);
-   ///////         //         m_pInletLUT->Set(6, inletRow, minElevation);
-   ///////
-   ///////                  // for the cell corresponding to bay point coordinate
-   ///////               if (!isFlooded && (yearlyMaxTWL > duneCrest) && (yearlyMaxTWL > minElevation) && (minElevation >= 0.0))
-   ///////                  {
-   ///////                  m_pFloodedGrid->SetData(startRow, startCol, yearlyMaxTWL);
-   ///////                  floodedCount++;
-   ///////                  floodedCount += VisitNeighbors(startRow, startCol, yearlyMaxTWL); //, minElevation);
-   ///////            //      m_pInletLUT->Set(4, inletRow, ++bayFloodedCount);                     
-   ///////                  int dummybreak = 10;
-   ///////                  }
-   ///////               //   }
-   ///////               } // end inner bay type 
-   ///////            } // end bay inlet pt
-   ///////         } // end bay inlet flooding 
-   ///////      else if (beachType != BchT_UNDEFINED && beachType != BchT_RIVER)
-   ///////         {
-   ///////         m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
-   ///////         //m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
-   ///////         //m_pDuneLayer->GetData(point, m_colNorthingCrest, yCoord);
-   ///////
-   ///////           // use Northing location of Dune Toe and Easting location of the Dune Crest
-   ///////         m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
-   ///////         m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
-   ///////
-   ///////         m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
-   ///////         m_pDuneLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
-   ///////         //yearlyMaxTWL -= 0.23f;
-   ///////
-   ///////         // Limit flooding to swl + setup for dune backed beaches (no swash)
-   ///////         float swl = 0.0;
-   ///////         m_pDuneLayer->GetData(point, m_colYrMaxSWL, swl);
-   ///////         float eta = 0.0;
-   ///////         m_pDuneLayer->GetData(point, m_colYrMaxSetup, eta);
-   ///////         float STK_IG = 0.0;
-   ///////
-   ///////         yearlyMaxTWL = swl + 1.1f*(eta + STK_IG / 2.0f);
-   ///////
-   ///////         //if (duneIndex == 3191)
-   ///////         //{
-   ///////         // within grid ?
-   ///////         if ((startRow >= 0 && startRow < m_numRows) && (startCol >= 0 && startCol < m_numCols))
-   ///////            {
-   ///////            m_pElevationGrid->GetData(startRow, startCol, minElevation);
-   ///////
-   ///////            m_pFloodedGrid->GetData(startRow, startCol, flooded);
-   ///////
-   ///////            bool isFlooded = (flooded > 0.0f) ? true : false;
-   ///////
-   ///////            //   if (duneIndex == 1950 || duneIndex == 1951 || duneIndex == 1952 || duneIndex == 1953)
-   ///////            //   {
-   ///////            //      yearlyMaxTWL -= 0.49f;
-   ///////            //   }
-   ///////
-   ///////               //if (duneIndex > 3020 && duneIndex < 3100)
-   ///////               //{
-   ///////               //   yearlyMaxTWL -= 0.49f;
-   ///////               //}
-   ///////               // for the cell corresponding to dune line coordinate
-   ///////            if (!isFlooded && (yearlyMaxTWL > duneCrest) && (yearlyMaxTWL > minElevation) && (minElevation >= 0))
-   ///////               {
-   ///////               m_pFloodedGrid->SetData(startRow, startCol, yearlyMaxTWL);
-   ///////               floodedCount++;
-   ///////               //   floodedCount += VisitNeighbors(startRow, startCol, yearlyMaxTWL, minElevation);
-   ///////               floodedCount += VisitNeighbors(startRow, startCol, yearlyMaxTWL);
-   ///////               }
-   ///////            }
-   ///////         //}
-   ///////         } // end shoreline pt
-   ///////      } // end all duneline pts
-   ///////
-   ///////   m_pFloodedGrid->ResetBins();
-   ///////   m_pFloodedGrid->AddBin(0, RGB(255, 255, 255), "Not Flooded", TYPE_FLOAT, -0.1f, 0.09f);
-   ///////   m_pFloodedGrid->AddBin(0, RGB(0, 0, 255), "Flooded", TYPE_FLOAT, 0.1f, 100.0f);
-   ///////   m_pFloodedGrid->ClassifyData();
-   ///////   //  m_pFloodedGrid->Show();
-   ///////   m_pFloodedGrid->Hide();
-   ///////
-   ///////   //clock_t start = clock();
-   ///////
-   ///////   // ***************    Lookup IDUs associated with FloodedGrid and set IDU attributes accordingly   ****************
-   ///////   ComputeFloodedIDUStatistics();
-   ///////
-   ///////   //for (MapLayer::Iterator point = m_pBldgLayer->Begin(); point < m_pBldgLayer->End(); point++)
-   ///////   //{
-   ///////   //   double xCoord = 0.0f;
-   ///////   //   double yCoord = 0.0f;
-   ///////
-   ///////   //   int flooded = 0;
-   ///////
-   ///////   //   int startRow = -1;
-   ///////   //   int startCol = -1;
-   ///////
-   ///////   //   m_pBldgLayer->GetPointCoords(point, xCoord, yCoord);
-   ///////   //   m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
-   ///////   // 
-   ///////   //   // within grid ?
-   ///////   //   if ((startRow >= 0 && startRow < m_numRows) && (startCol >= 0 && startCol < m_numCols))
-   ///////   //   {
-   ///////   //      m_pFloodedGrid->GetData(startRow, startCol, flooded);
-   ///////   //      bool isFlooded = (flooded == 1) ? true : false;
-   ///////
-   ///////   //      if (isFlooded)
-   ///////   //      {
-   ///////   //         m_floodedBldgCount++;
-   ///////   //         // m_pBldgLayer->SetData(point, m_colFlooded, flooded);
-   ///////   //      }
-   ///////   //   }
-   ///////   //}
-   ///////
-   ///////   //for (int row = 0; row < m_numRows; row++)
-   ///////   //{
-   ///////   //   for (int col = 0; col < m_numCols; col++)
-   ///////   //   {
-   ///////   //      int flooded = 0;
-   ///////   //      int noBuildings = 0;
-   ///////   //      int size = m_pIduElevationGridLkUp->GetPolyCntForGridPt(row, col);
-   ///////   //      m_pFloodedGrid->GetData(row, col, flooded);
-   ///////
-   ///////   //      //
-   ///////   //      bool isFlooded = (flooded == 1) ? true : false;
-   ///////
-   ///////   //      if (isFlooded)
-   ///////   //      {
-   ///////   //         // m_pBuildingGrid->GetData(row, col, buildings);
-   ///////   //         int tempbreak = 10;
-   ///////   //      }
-   ///////   //      int *polyIndexs = new int[size];
-   ///////   //      int polyCount = m_pIduErodedGridLkUp->GetPolyNdxsForGridPt(row, col, polyIndexs);
-   ///////   //      float *polyFractionalArea = new float[polyCount];
-   ///////
-   ///////   //      m_pIduElevationGridLkUp->GetPolyProportionsForGridPt(row, col, polyFractionalArea);
-   ///////
-   ///////   //      for (int idu = 0; idu < polyCount; idu++)
-   ///////   //      {
-   ///////   //         m_floodFreq.AddValue((float)isFlooded);
-   ///////   //         m_pIDULayer->SetData(polyIndexs[idu], m_colFlooded, (int)isFlooded);
-   ///////   //         //   if (pEnvContext->yearOfRun >= m_avgTime)
-   ///////   //         //{
-   ///////   //         //m_pDuneLayer->SetData(polyIndexs[idu], m_colFloodFreq, m_floodFreq.GetValue() * m_avgTime);
-   ///////   //         //}
-   ///////
-   ///////   //         //Number of buildings that are flooded
-   ///////   //         //         m_pIDULayer->SetData(polyIndexs[idu], m_colnumFbuildings, ++noBuildings);
-   ///////   //      }
-   ///////
-   ///////   //      delete[] polyIndexs;
-   ///////   //   } //end columns of grid
-   ///////   //} // end rows of grid
-   ///////
-   ///////
-   ///////   //clock_t finish = clock();
-   ///////   //float duration = (float)(finish - start) / CLOCKS_PER_SEC;
-   ///////   //
-   ///////   //msg.Format("ChronicHazards: Flooded grid generated in %i seconds", (int)duration);
-   ///////   //Report::Log(msg);
-   ///////   //
-   ///////   floodedArea = m_cellWidth * m_elevCellHeight * floodedCount;
-   ///////   return floodedArea;
-   ///////
-   ///////   }
-   ///////
-   ///////
-   ///////// Recursively called method that visits a grid cells, eight neighboring grid cells and determines whether they are flooded
-   ///////// returns the number of flooded grid cells
-   ///////int ChronicHazards::VisitNeighbors(int row, int col, float twl, float &minElevation)
-   ///////   {
-   ///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
-   ///////   float flooded = 0.0f;
-   ///////   int cellCount = 0;
-   ///////   //float minElevation = 0.0f;
-   ///////
-   ///////   // Bathtub Flooding Model
-   ///////   // walk in 8 directions from grid cell position, determine if TWL exceeds dune crest height and elevation 
-   ///////   for (int direction = 0; direction < 8; direction++)
-   ///////      {
-   ///////      //int trow = row;
-   ///////      //int tcol = col;
-   ///////
-   ///////      switch (direction)
-   ///////         {
-   ///////            case 0:  //NORTH
-   ///////               row--;      //Step to the north one grid cell 
-   ///////               break;
-   ///////
-   ///////            case 1:  //NORTHEAST
-   ///////               row--;      //Step to the north one grid cell
-   ///////               col++;      //Step to the east one grid cell
-   ///////               break;
-   ///////
-   ///////            case 2:  //EAST
-   ///////               col++;      //Step to the east one grid cell
-   ///////               break;
-   ///////
-   ///////            case 3:  //SOUTHEAST
-   ///////               row++;      //Step to the south one grid cell
-   ///////               col++;      //Step to the east one grid cell
-   ///////               break;
-   ///////
-   ///////            case 4:  //SOUTH
-   ///////               row++;      //Step to the south one grid cell
-   ///////               break;
-   ///////
-   ///////            case 5:  //SOUTHWEST
-   ///////               row++;      //Step to the south one grid cell
-   ///////               col--;      //Step to the west one grid cell
-   ///////               break;
-   ///////
-   ///////            case 6:  //WEST
-   ///////               col--;      //Step to the west one grid cell
-   ///////               break;
-   ///////
-   ///////            case 7:  //NORTHWEST
-   ///////               row--;      //Step to the north one grid cell
-   ///////               col--;      //Step to the west one grid cell
-   ///////               break;
-   ///////         } // end switch
-   ///////
-   ///////         // get elevation, if value is OK and within grid, determine flooded
-   ///////      if ((row >= 0 && row < m_numRows) && (col >= 0 && col < m_numCols))
-   ///////         {
-   ///////         //if ((row < 0 || row >= m_numRows) || (col < 0 || col >= m_numCols))
-   ///////         //   return cellCount;
-   ///////
-   ///////            //if (minElevation == noDataValue)
-   ///////            //   return cellCount;
-   ///////
-   ///////         m_pElevationGrid->GetData(row, col, minElevation);
-   ///////         if (minElevation != noDataValue && minElevation >= 0)
-   ///////            //if (minElevation >= 0)
-   ///////            {
-   ///////            m_pFloodedGrid->GetData(row, col, flooded);
-   ///////
-   ///////            bool isFlooded = (flooded > 0.0f) ? true : false;
-   ///////
-   ///////            if (!isFlooded && twl > minElevation)
-   ///////               {
-   ///////               cellCount++;
-   ///////               m_pFloodedGrid->SetData(row, col, twl);
-   ///////               cellCount += VisitNeighbors(row, col, twl, minElevation);
-   ///////               }
-   ///////            } // end good value
-   ///////         } // valid location with elevation in grid
-   ///////      } // end direction 
-   ///////
-   ///////   return cellCount;
-   ///////
-   ///////   }
-   //////////////
-   //////////////int ChronicHazards::VisitNeighbors(int row, int col, float twl)
-   ///////   {
-   ///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
-   ///////   float minElevation = 0.0f;
-   ///////   int cellCount = 0;
-   ///////   float flooded = 0.0f;
-   ///////
-   ///////   // Bathtub Flooding Model
-   ///////   // walk in 8 directions from grid cell position, determine if TWL exceeds dune crest height and elevation 
-   ///////   for (int direction = 0; direction < 8; direction++)
-   ///////      {
-   ///////      switch (direction)
-   ///////         {
-   ///////            case 0:  //NORTH
-   ///////               row--;      //Step to the north one grid cell 
-   ///////               break;
-   ///////
-   ///////               //case 1:  //NORTHEAST
-   ///////               //   row--;      //Step to the north one grid cell
-   ///////               //   col++;      //Step to the east one grid cell
-   ///////               //   break;
-   ///////
-   ///////            case 2:  //EAST
-   ///////               col++;      //Step to the east one grid cell
-   ///////               break;
-   ///////
-   ///////               //case 3:  //SOUTHEAST
-   ///////               //   row++;      //Step to the south one grid cell
-   ///////               //   col++;      //Step to the east one grid cell
-   ///////               //   break;
-   ///////
-   ///////            case 4:  //SOUTH
-   ///////               row++;      //Step to the south one grid cell
-   ///////               break;
-   ///////
-   ///////               //case 5:  //SOUTHWEST
-   ///////               //   row++;      //Step to the south one grid cell
-   ///////               //   col--;      //Step to the west one grid cell
-   ///////               //   break;
-   ///////
-   ///////            case 6:  //WEST
-   ///////               col--;      //Step to the west one grid cell
-   ///////               break;
-   ///////
-   ///////               //case 7:  //NORTHWEST
-   ///////               //   row--;      //Step to the north one grid cell
-   ///////               //   col--;      //Step to the west one grid cell
-   ///////               //   break;
-   ///////         } // end switch
-   ///////
-   ///////           // get elevation, if value is OK and within grid, determine flooded
-   ///////      if (row < 0 || row >= m_numRows || col < 0 || col >= m_numCols)
-   ///////         return cellCount;
-   ///////
-   ///////      m_pElevationGrid->GetData(row, col, minElevation);
-   ///////
-   ///////      //if (twl < minElevation)
-   ///////      //   return cellCount;
-   ///////
-   ///////      if (minElevation == noDataValue || minElevation <= 0)
-   ///////         return cellCount;
-   ///////
-   ///////      m_pFloodedGrid->GetData(row, col, flooded);
-   ///////      bool isFlooded = (flooded > 0.0f) ? true : false;
-   ///////
-   ///////      if (!isFlooded && twl > minElevation)
-   ///////         {
-   ///////         cellCount++;
-   ///////         m_pFloodedGrid->SetData(row, col, twl);
-   ///////         cellCount += VisitNeighbors(row, col, twl);
-   ///////
-   ///////         //cellCount += VisitNeighbors(row - 1, col, twl);         // NORTH            
-   ///////         //cellCount += VisitNeighbors(row, col + 1, twl);         // EAST               
-   ///////         //cellCount += VisitNeighbors(row + 1, col, twl);         // SOUTH            
-   ///////         //cellCount += VisitNeighbors(row, col - 1, twl);         // WEST
-   ///////
-   ///////         //cellCount += VisitNeighbors(row - 1, col + 1, twl);      // NORTHEAST
-   ///////         //cellCount += VisitNeighbors(row - 1, col - 1, twl);      // NORTHWEST
-   ///////         //cellCount += VisitNeighbors(row + 1, col + 1, twl);      // SOUTHEAST
-   ///////         //cellCount += VisitNeighbors(row + 1, col - 1, twl);      // SOUTHWEST
-   ///////         } // end good value
-   ///////      }
-   ///////   return cellCount;
-   ///////   }
-   //////////////
-   //////////////int ChronicHazards::VNeighbors(int row, int col, float twl)
-   ///////   {
-   ///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
-   ///////   float minElevation = 0.0f;
-   ///////   int cellCount = 0;
-   ///////   float flooded = 0.0f;
-   ///////
-   ///////   // Bathtub Flooding Model
-   ///////   // walk in 8 directions from grid cell position, determine if TWL exceeds dune crest height and elevation 
-   ///////   for (int direction = 0; direction < 8; direction++)
-   ///////      {
-   ///////      switch (direction)
-   ///////         {
-   ///////            case 0:  //NORTH
-   ///////               row--;      //Step to the north one grid cell 
-   ///////               break;
-   ///////
-   ///////            case 1:  //NORTHEAST
-   ///////               row--;      //Step to the north one grid cell
-   ///////               col++;      //Step to the east one grid cell
-   ///////               break;
-   ///////
-   ///////            case 2:  //EAST
-   ///////               col++;      //Step to the east one grid cell
-   ///////               break;
-   ///////
-   ///////            case 3:  //SOUTHEAST
-   ///////               row++;      //Step to the south one grid cell
-   ///////               col++;      //Step to the east one grid cell
-   ///////               break;
-   ///////
-   ///////            case 4:  //SOUTH
-   ///////               row++;      //Step to the south one grid cell
-   ///////               break;
-   ///////
-   ///////            case 5:  //SOUTHWEST
-   ///////               row++;      //Step to the south one grid cell
-   ///////               col--;      //Step to the west one grid cell
-   ///////               break;
-   ///////
-   ///////            case 6:  //WEST
-   ///////               col--;      //Step to the west one grid cell
-   ///////               break;
-   ///////
-   ///////            case 7:  //NORTHWEST
-   ///////               row--;      //Step to the north one grid cell
-   ///////               col--;      //Step to the west one grid cell
-   ///////               break;
-   ///////         } // end switch
-   ///////
-   ///////      if ((row >= 0 && row < m_numRows) && (col >= 0 && col < m_numCols))
-   ///////         {
-   ///////         //if ((row < 0 || row >= m_numRows) || (col < 0 || col >= m_numCols))
-   ///////         //return cellCount;
-   ///////         //
-   ///////         ///if (minElevation == noDataValue)
-   ///////         //return cellCount;
-   ///////
-   ///////         m_pElevationGrid->GetData(row, col, minElevation);
-   ///////
-   ///////         if (minElevation != noDataValue && minElevation >= 0)
-   ///////            //if (minElevation >= 0)
-   ///////            {
-   ///////            m_pFloodedGrid->GetData(row, col, flooded);
-   ///////
-   ///////            bool isFlooded = (flooded > 0.0f) ? true : false;
-   ///////
-   ///////            if (!isFlooded && twl > minElevation)
-   ///////               {
-   ///////               cellCount++;
-   ///////               m_pFloodedGrid->SetData(row, col, twl);
-   ///////               cellCount += VisitNeighbors(row, col, twl, minElevation);
-   ///////               }
-   ///////            } // end good value
-   ///////         } // valid location with elevation in grid
-   ///////      } // end direction 
-   ///////
-   ///////   return cellCount;
-   ///////   }
-   ///////
+// Runs the flooding model returning the number of grid cells flooded and the area flooded
+///////double ChronicHazards::GenerateBathtubFloodMap(int &floodedCount)
+///////   {
+///////   //return 0;
+///////
+///////   if (m_pFloodedGrid == nullptr)
+///////      {
+///////      m_pFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
+///////      m_pFloodedGrid->m_name = "Flooded Grid";
+///////
+///////      m_pCumFloodedGrid = m_pMap->CloneLayer(*m_pElevationGrid);
+///////      m_pCumFloodedGrid->m_name = "Cumulative Flooded Grid";
+///////      }
+///////   m_pFloodedGrid->SetAllData(0.0, false);
+///////   m_pCumFloodedGrid->SetAllData(0.0, false);
+///////
+///////   // Determine the area of the grid that got flooded
+///////
+///////   // Value: 0 if not flooded, TWL if flooded
+///////   float flooded = 0.0f;
+///////
+///////   // Counter of number of grid cells in flooded grid that are flooded 
+///////   // used to determine area flooded
+///////
+///////   // area = grid cells that are flooded multiplied by the number of grid cells 
+///////   double floodedArea = 0.0f;
+///////
+///////   //clock_t start = clock();
+///////
+///////   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
+///////      {
+///////      int beachType = 0;
+///////      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+///////
+///////      int duneIndex = -1;
+///////      m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIndex);
+///////
+///////      REAL xCoord = 0.0;
+///////      REAL yCoord = 0.0;
+///////
+///////      int startRow = -1;
+///////      int startCol = -1;
+///////      float minElevation = 0.0f;
+///////      float yearlyMaxTWL = 0.0f;
+///////      float yearlyAvgTWL = 0.0f;
+///////      double duneCrest = 0.0;
+///////
+///////      if (beachType == BchT_BAY)
+///////         {
+///////         // get twl of inlet seed point
+///////         m_pDuneLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
+///////
+///////         //if (pEnvContext->yearOfRun < m_windowLengthTWL - 1)
+///////         //   m_pDuneLayer->GetData(point, m_colYrAvgTWL, yearlyMaxTWL);
+///////         //else
+///////         //   m_pDuneLayer->GetData(point, m_colMvMaxTWL, yearlyMaxTWL);
+///////
+///////            // traversing along bay shoreline, determine if twl is more than the elevation 
+///////
+///////            //for (int inletRow = 0; inletRow < m_numBayPts; inletRow++)
+///////            //{
+///////            //   // bay trace can be beachtype of bay or river
+///////            //   // do not calculate flooding for river type
+///////            //   /*beachType = m_pInletLUT->GetAsInt(3, inletRow);            
+///////            //   if (beachType == BchT_BAY)
+///////            //   {
+///////            //      xCoord = m_pInletLUT->GetAsDouble(1, inletRow);
+///////            //      yCoord = m_pInletLUT->GetAsDouble(2, inletRow);
+///////            //      int bayFloodedCount = 0;
+///////            //      bayFloodedCount = m_pInletLUT->GetAsInt(4, inletRow);
+///////
+///////         int colNorthing;
+///////         int colEasting;
+///////
+///////         CheckCol(m_pBayTraceLayer, colNorthing, "NORTHING", TYPE_DOUBLE, CC_MUST_EXIST);
+///////         CheckCol(m_pBayTraceLayer, colEasting, "EASTING", TYPE_DOUBLE, CC_MUST_EXIST);
+///////
+///////         // traversing along bay shoreline, determine is more than the elevation 
+///////         for (MapLayer::Iterator bayPt = m_pBayTraceLayer->Begin(); bayPt < m_pBayTraceLayer->End(); bayPt++)
+///////            {
+///////            m_pBayTraceLayer->GetData(bayPt, colEasting, xCoord);
+///////            m_pBayTraceLayer->GetData(bayPt, colNorthing, yCoord);
+///////
+///////            m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
+///////            
+///////            //      m_pInletLUT->Set(4, inletRow, startRow);
+///////            //      m_pInletLUT->Set(5, inletRow, startCol);
+///////            //
+///////            //      /*m_pElevationGrid->SetData(5255, 4373, 3.8f);
+///////            //      m_pElevationGrid->SetData(5256, 4372, 3.8f);
+///////            //      m_pElevationGrid->SetData(5260, 4369, 3.8f);
+///////
+///////
+///////                  // within grid ?
+///////            if ((startRow >= 0 && startRow < m_numRows) && (startCol >= 0 && startCol < m_numCols))
+///////               {
+///////               m_pElevationGrid->GetData(startRow, startCol, minElevation);
+///////               m_pFloodedGrid->GetData(startRow, startCol, flooded);
+///////
+///////               bool isFlooded = (flooded > 0.0f) ? true : false;
+///////
+///////               //   m_pInletLUT->Set(5, inletRow, yearlyMaxTWL);
+///////         //         m_pInletLUT->Set(6, inletRow, minElevation);
+///////
+///////                  // for the cell corresponding to bay point coordinate
+///////               if (!isFlooded && (yearlyMaxTWL > duneCrest) && (yearlyMaxTWL > minElevation) && (minElevation >= 0.0))
+///////                  {
+///////                  m_pFloodedGrid->SetData(startRow, startCol, yearlyMaxTWL);
+///////                  floodedCount++;
+///////                  floodedCount += VisitNeighbors(startRow, startCol, yearlyMaxTWL); //, minElevation);
+///////            //      m_pInletLUT->Set(4, inletRow, ++bayFloodedCount);                     
+///////                  int dummybreak = 10;
+///////                  }
+///////               //   }
+///////               } // end inner bay type 
+///////            } // end bay inlet pt
+///////         } // end bay inlet flooding 
+///////      else if (beachType != BchT_UNDEFINED && beachType != BchT_RIVER)
+///////         {
+///////         m_pDuneLayer->GetData(point, m_colDLDuneCrest, duneCrest);
+///////         //m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
+///////         //m_pDuneLayer->GetData(point, m_colNorthingCrest, yCoord);
+///////
+///////           // use Northing location of Dune Toe and Easting location of the Dune Crest
+///////         m_pDuneLayer->GetPointCoords(point, xCoord, yCoord);
+///////         m_pDuneLayer->GetData(point, m_colDLEastingCrest, xCoord);
+///////
+///////         m_pElevationGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
+///////         m_pDuneLayer->GetData(point, m_colYrFMaxTWL, yearlyMaxTWL);
+///////         //yearlyMaxTWL -= 0.23f;
+///////
+///////         // Limit flooding to swl + setup for dune backed beaches (no swash)
+///////         float swl = 0.0;
+///////         m_pDuneLayer->GetData(point, m_colYrMaxSWL, swl);
+///////         float eta = 0.0;
+///////         m_pDuneLayer->GetData(point, m_colYrMaxSetup, eta);
+///////         float STK_IG = 0.0;
+///////
+///////         yearlyMaxTWL = swl + 1.1f*(eta + STK_IG / 2.0f);
+///////
+///////         //if (duneIndex == 3191)
+///////         //{
+///////         // within grid ?
+///////         if ((startRow >= 0 && startRow < m_numRows) && (startCol >= 0 && startCol < m_numCols))
+///////            {
+///////            m_pElevationGrid->GetData(startRow, startCol, minElevation);
+///////
+///////            m_pFloodedGrid->GetData(startRow, startCol, flooded);
+///////
+///////            bool isFlooded = (flooded > 0.0f) ? true : false;
+///////
+///////            //   if (duneIndex == 1950 || duneIndex == 1951 || duneIndex == 1952 || duneIndex == 1953)
+///////            //   {
+///////            //      yearlyMaxTWL -= 0.49f;
+///////            //   }
+///////
+///////               //if (duneIndex > 3020 && duneIndex < 3100)
+///////               //{
+///////               //   yearlyMaxTWL -= 0.49f;
+///////               //}
+///////               // for the cell corresponding to dune line coordinate
+///////            if (!isFlooded && (yearlyMaxTWL > duneCrest) && (yearlyMaxTWL > minElevation) && (minElevation >= 0))
+///////               {
+///////               m_pFloodedGrid->SetData(startRow, startCol, yearlyMaxTWL);
+///////               floodedCount++;
+///////               //   floodedCount += VisitNeighbors(startRow, startCol, yearlyMaxTWL, minElevation);
+///////               floodedCount += VisitNeighbors(startRow, startCol, yearlyMaxTWL);
+///////               }
+///////            }
+///////         //}
+///////         } // end shoreline pt
+///////      } // end all duneline pts
+///////
+///////   m_pFloodedGrid->ResetBins();
+///////   m_pFloodedGrid->AddBin(0, RGB(255, 255, 255), "Not Flooded", TYPE_FLOAT, -0.1f, 0.09f);
+///////   m_pFloodedGrid->AddBin(0, RGB(0, 0, 255), "Flooded", TYPE_FLOAT, 0.1f, 100.0f);
+///////   m_pFloodedGrid->ClassifyData();
+///////   //  m_pFloodedGrid->Show();
+///////   m_pFloodedGrid->Hide();
+///////
+///////   //clock_t start = clock();
+///////
+///////   // ***************    Lookup IDUs associated with FloodedGrid and set IDU attributes accordingly   ****************
+///////   ComputeFloodedIDUStatistics();
+///////
+///////   //for (MapLayer::Iterator point = m_pBldgLayer->Begin(); point < m_pBldgLayer->End(); point++)
+///////   //{
+///////   //   double xCoord = 0.0f;
+///////   //   double yCoord = 0.0f;
+///////
+///////   //   int flooded = 0;
+///////
+///////   //   int startRow = -1;
+///////   //   int startCol = -1;
+///////
+///////   //   m_pBldgLayer->GetPointCoords(point, xCoord, yCoord);
+///////   //   m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, startRow, startCol);
+///////   // 
+///////   //   // within grid ?
+///////   //   if ((startRow >= 0 && startRow < m_numRows) && (startCol >= 0 && startCol < m_numCols))
+///////   //   {
+///////   //      m_pFloodedGrid->GetData(startRow, startCol, flooded);
+///////   //      bool isFlooded = (flooded == 1) ? true : false;
+///////
+///////   //      if (isFlooded)
+///////   //      {
+///////   //         m_floodedBldgCount++;
+///////   //         // m_pBldgLayer->SetData(point, m_colFlooded, flooded);
+///////   //      }
+///////   //   }
+///////   //}
+///////
+///////   //for (int row = 0; row < m_numRows; row++)
+///////   //{
+///////   //   for (int col = 0; col < m_numCols; col++)
+///////   //   {
+///////   //      int flooded = 0;
+///////   //      int noBuildings = 0;
+///////   //      int size = m_pIduElevationGridLkUp->GetPolyCntForGridPt(row, col);
+///////   //      m_pFloodedGrid->GetData(row, col, flooded);
+///////
+///////   //      //
+///////   //      bool isFlooded = (flooded == 1) ? true : false;
+///////
+///////   //      if (isFlooded)
+///////   //      {
+///////   //         // m_pBuildingGrid->GetData(row, col, buildings);
+///////   //         int tempbreak = 10;
+///////   //      }
+///////   //      int *polyIndexs = new int[size];
+///////   //      int polyCount = m_pIduErodedGridLkUp->GetPolyNdxsForGridPt(row, col, polyIndexs);
+///////   //      float *polyFractionalArea = new float[polyCount];
+///////
+///////   //      m_pIduElevationGridLkUp->GetPolyProportionsForGridPt(row, col, polyFractionalArea);
+///////
+///////   //      for (int idu = 0; idu < polyCount; idu++)
+///////   //      {
+///////   //         m_floodFreq.AddValue((float)isFlooded);
+///////   //         m_pIDULayer->SetData(polyIndexs[idu], m_colFlooded, (int)isFlooded);
+///////   //         //   if (pEnvContext->yearOfRun >= m_avgTime)
+///////   //         //{
+///////   //         //m_pDuneLayer->SetData(polyIndexs[idu], m_colFloodFreq, m_floodFreq.GetValue() * m_avgTime);
+///////   //         //}
+///////
+///////   //         //Number of buildings that are flooded
+///////   //         //         m_pIDULayer->SetData(polyIndexs[idu], m_colnumFbuildings, ++noBuildings);
+///////   //      }
+///////
+///////   //      delete[] polyIndexs;
+///////   //   } //end columns of grid
+///////   //} // end rows of grid
+///////
+///////
+///////   //clock_t finish = clock();
+///////   //float duration = (float)(finish - start) / CLOCKS_PER_SEC;
+///////   //
+///////   //msg.Format("ChronicHazards: Flooded grid generated in %i seconds", (int)duration);
+///////   //Report::Log(msg);
+///////   //
+///////   floodedArea = m_cellWidth * m_elevCellHeight * floodedCount;
+///////   return floodedArea;
+///////
+///////   }
+///////
+///////
+///////// Recursively called method that visits a grid cells, eight neighboring grid cells and determines whether they are flooded
+///////// returns the number of flooded grid cells
+///////int ChronicHazards::VisitNeighbors(int row, int col, float twl, float &minElevation)
+///////   {
+///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
+///////   float flooded = 0.0f;
+///////   int cellCount = 0;
+///////   //float minElevation = 0.0f;
+///////
+///////   // Bathtub Flooding Model
+///////   // walk in 8 directions from grid cell position, determine if TWL exceeds dune crest height and elevation 
+///////   for (int direction = 0; direction < 8; direction++)
+///////      {
+///////      //int trow = row;
+///////      //int tcol = col;
+///////
+///////      switch (direction)
+///////         {
+///////            case 0:  //NORTH
+///////               row--;      //Step to the north one grid cell 
+///////               break;
+///////
+///////            case 1:  //NORTHEAST
+///////               row--;      //Step to the north one grid cell
+///////               col++;      //Step to the east one grid cell
+///////               break;
+///////
+///////            case 2:  //EAST
+///////               col++;      //Step to the east one grid cell
+///////               break;
+///////
+///////            case 3:  //SOUTHEAST
+///////               row++;      //Step to the south one grid cell
+///////               col++;      //Step to the east one grid cell
+///////               break;
+///////
+///////            case 4:  //SOUTH
+///////               row++;      //Step to the south one grid cell
+///////               break;
+///////
+///////            case 5:  //SOUTHWEST
+///////               row++;      //Step to the south one grid cell
+///////               col--;      //Step to the west one grid cell
+///////               break;
+///////
+///////            case 6:  //WEST
+///////               col--;      //Step to the west one grid cell
+///////               break;
+///////
+///////            case 7:  //NORTHWEST
+///////               row--;      //Step to the north one grid cell
+///////               col--;      //Step to the west one grid cell
+///////               break;
+///////         } // end switch
+///////
+///////         // get elevation, if value is OK and within grid, determine flooded
+///////      if ((row >= 0 && row < m_numRows) && (col >= 0 && col < m_numCols))
+///////         {
+///////         //if ((row < 0 || row >= m_numRows) || (col < 0 || col >= m_numCols))
+///////         //   return cellCount;
+///////
+///////            //if (minElevation == noDataValue)
+///////            //   return cellCount;
+///////
+///////         m_pElevationGrid->GetData(row, col, minElevation);
+///////         if (minElevation != noDataValue && minElevation >= 0)
+///////            //if (minElevation >= 0)
+///////            {
+///////            m_pFloodedGrid->GetData(row, col, flooded);
+///////
+///////            bool isFlooded = (flooded > 0.0f) ? true : false;
+///////
+///////            if (!isFlooded && twl > minElevation)
+///////               {
+///////               cellCount++;
+///////               m_pFloodedGrid->SetData(row, col, twl);
+///////               cellCount += VisitNeighbors(row, col, twl, minElevation);
+///////               }
+///////            } // end good value
+///////         } // valid location with elevation in grid
+///////      } // end direction 
+///////
+///////   return cellCount;
+///////
+///////   }
+//////////////
+//////////////int ChronicHazards::VisitNeighbors(int row, int col, float twl)
+///////   {
+///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
+///////   float minElevation = 0.0f;
+///////   int cellCount = 0;
+///////   float flooded = 0.0f;
+///////
+///////   // Bathtub Flooding Model
+///////   // walk in 8 directions from grid cell position, determine if TWL exceeds dune crest height and elevation 
+///////   for (int direction = 0; direction < 8; direction++)
+///////      {
+///////      switch (direction)
+///////         {
+///////            case 0:  //NORTH
+///////               row--;      //Step to the north one grid cell 
+///////               break;
+///////
+///////               //case 1:  //NORTHEAST
+///////               //   row--;      //Step to the north one grid cell
+///////               //   col++;      //Step to the east one grid cell
+///////               //   break;
+///////
+///////            case 2:  //EAST
+///////               col++;      //Step to the east one grid cell
+///////               break;
+///////
+///////               //case 3:  //SOUTHEAST
+///////               //   row++;      //Step to the south one grid cell
+///////               //   col++;      //Step to the east one grid cell
+///////               //   break;
+///////
+///////            case 4:  //SOUTH
+///////               row++;      //Step to the south one grid cell
+///////               break;
+///////
+///////               //case 5:  //SOUTHWEST
+///////               //   row++;      //Step to the south one grid cell
+///////               //   col--;      //Step to the west one grid cell
+///////               //   break;
+///////
+///////            case 6:  //WEST
+///////               col--;      //Step to the west one grid cell
+///////               break;
+///////
+///////               //case 7:  //NORTHWEST
+///////               //   row--;      //Step to the north one grid cell
+///////               //   col--;      //Step to the west one grid cell
+///////               //   break;
+///////         } // end switch
+///////
+///////           // get elevation, if value is OK and within grid, determine flooded
+///////      if (row < 0 || row >= m_numRows || col < 0 || col >= m_numCols)
+///////         return cellCount;
+///////
+///////      m_pElevationGrid->GetData(row, col, minElevation);
+///////
+///////      //if (twl < minElevation)
+///////      //   return cellCount;
+///////
+///////      if (minElevation == noDataValue || minElevation <= 0)
+///////         return cellCount;
+///////
+///////      m_pFloodedGrid->GetData(row, col, flooded);
+///////      bool isFlooded = (flooded > 0.0f) ? true : false;
+///////
+///////      if (!isFlooded && twl > minElevation)
+///////         {
+///////         cellCount++;
+///////         m_pFloodedGrid->SetData(row, col, twl);
+///////         cellCount += VisitNeighbors(row, col, twl);
+///////
+///////         //cellCount += VisitNeighbors(row - 1, col, twl);         // NORTH            
+///////         //cellCount += VisitNeighbors(row, col + 1, twl);         // EAST               
+///////         //cellCount += VisitNeighbors(row + 1, col, twl);         // SOUTH            
+///////         //cellCount += VisitNeighbors(row, col - 1, twl);         // WEST
+///////
+///////         //cellCount += VisitNeighbors(row - 1, col + 1, twl);      // NORTHEAST
+///////         //cellCount += VisitNeighbors(row - 1, col - 1, twl);      // NORTHWEST
+///////         //cellCount += VisitNeighbors(row + 1, col + 1, twl);      // SOUTHEAST
+///////         //cellCount += VisitNeighbors(row + 1, col - 1, twl);      // SOUTHWEST
+///////         } // end good value
+///////      }
+///////   return cellCount;
+///////   }
+//////////////
+//////////////int ChronicHazards::VNeighbors(int row, int col, float twl)
+///////   {
+///////   float noDataValue = m_pElevationGrid->GetNoDataValue();
+///////   float minElevation = 0.0f;
+///////   int cellCount = 0;
+///////   float flooded = 0.0f;
+///////
+///////   // Bathtub Flooding Model
+///////   // walk in 8 directions from grid cell position, determine if TWL exceeds dune crest height and elevation 
+///////   for (int direction = 0; direction < 8; direction++)
+///////      {
+///////      switch (direction)
+///////         {
+///////            case 0:  //NORTH
+///////               row--;      //Step to the north one grid cell 
+///////               break;
+///////
+///////            case 1:  //NORTHEAST
+///////               row--;      //Step to the north one grid cell
+///////               col++;      //Step to the east one grid cell
+///////               break;
+///////
+///////            case 2:  //EAST
+///////               col++;      //Step to the east one grid cell
+///////               break;
+///////
+///////            case 3:  //SOUTHEAST
+///////               row++;      //Step to the south one grid cell
+///////               col++;      //Step to the east one grid cell
+///////               break;
+///////
+///////            case 4:  //SOUTH
+///////               row++;      //Step to the south one grid cell
+///////               break;
+///////
+///////            case 5:  //SOUTHWEST
+///////               row++;      //Step to the south one grid cell
+///////               col--;      //Step to the west one grid cell
+///////               break;
+///////
+///////            case 6:  //WEST
+///////               col--;      //Step to the west one grid cell
+///////               break;
+///////
+///////            case 7:  //NORTHWEST
+///////               row--;      //Step to the north one grid cell
+///////               col--;      //Step to the west one grid cell
+///////               break;
+///////         } // end switch
+///////
+///////      if ((row >= 0 && row < m_numRows) && (col >= 0 && col < m_numCols))
+///////         {
+///////         //if ((row < 0 || row >= m_numRows) || (col < 0 || col >= m_numCols))
+///////         //return cellCount;
+///////         //
+///////         ///if (minElevation == noDataValue)
+///////         //return cellCount;
+///////
+///////         m_pElevationGrid->GetData(row, col, minElevation);
+///////
+///////         if (minElevation != noDataValue && minElevation >= 0)
+///////            //if (minElevation >= 0)
+///////            {
+///////            m_pFloodedGrid->GetData(row, col, flooded);
+///////
+///////            bool isFlooded = (flooded > 0.0f) ? true : false;
+///////
+///////            if (!isFlooded && twl > minElevation)
+///////               {
+///////               cellCount++;
+///////               m_pFloodedGrid->SetData(row, col, twl);
+///////               cellCount += VisitNeighbors(row, col, twl, minElevation);
+///////               }
+///////            } // end good value
+///////         } // valid location with elevation in grid
+///////      } // end direction 
+///////
+///////   return cellCount;
+///////   }
+///////
 
 
 // NOT CURRENTLY USED
@@ -4406,13 +5654,15 @@ void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
          m_pIDULayer->GetData(idu, m_colIDUPopDensity, popDens);
          m_pIDULayer->GetData(idu, m_colArea, area);
          float removedPop = popDens * area;
-         
+
          // NOTE:  Need to set data because the IDUs are examined later in this process
          //        when checking for qualifying IDUs 
          this->UpdateIDU(pEnvContext, idu, this->m_colIDURemoveBldgYr, pEnvContext->currentYear, ADD_DELTA | SET_DATA);
          this->UpdateIDU(pEnvContext, idu, this->m_colIDUPopDensity, 0, ADD_DELTA | SET_DATA);
          this->UpdateIDU(pEnvContext, idu, this->m_colIDURemovedPop, removedPop, ADD_DELTA | SET_DATA);
          this->UpdateIDU(pEnvContext, idu, this->m_colIDUSafeSite, 0, ADD_DELTA | SET_DATA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNDU, 0, ADD_DELTA | SET_DATA);
+         this->UpdateIDU(pEnvContext, idu, this->m_colIDUNEWDU, 0, ADD_DELTA | SET_DATA);
 
          //leave these to allow for reporting
          //this->UpdateIDU(pEnvContext, idu, this->m_colIDUNDU, 0, ADD_DELTA | SET_DATA);
@@ -4446,7 +5696,7 @@ void ChronicHazards::UpdatePolicyResponse(EnvContext* pEnvContext)
    }
 
 
-void ChronicHazards::ComputeBuildingStatistics()
+void ChronicHazards::ComputeBuildingStatistics(EnvContext* pEnvContext)
    {
    // this function does the following:
    // 1) creates a new MovingWindow for erosion and flooding for each NEW building 
@@ -4513,61 +5763,123 @@ void ChronicHazards::ComputeBuildingStatistics()
             float floodFreq = floodMovingWindow->GetFreqValue();
             m_pBldgLayer->SetData(bldgIndex, m_colBldgFloodFreq, floodFreq);
             m_pBldgLayer->SetData(bldgIndex, m_colBldgFlooded, isFlooded ? 1 : 0);
+
+            // update IDU with flood depth
+            if (flooded > 0)
+               {
+               int iduIndex = -1;
+               m_pBldgLayer->GetData(bldgIndex, m_colBldgIDUIndex, iduIndex);
+               if (iduIndex >= 0 && iduIndex < m_pIDULayer->GetRecordCount())
+                  {
+                  // set the IDU flooded value
+                  UpdateIDU(pEnvContext, iduIndex, m_colIDUFloodDepth, flooded, ADD_DELTA | SET_DATA);
+                  }
+               else
+                  {
+                  CString msg;
+                  msg.Format("Building %i has no IDU index", bldgIndex);
+                  Report::LogWarning(msg);
+                  }
+               }
             }
          }
       } // end FloodedGrid
 
    // building erosion statistics
    if (this->m_runErosion && m_pDuneLayer != nullptr)
-      {
-      Report::LogInfo("Computing IDU Erosion statistics");
-      this->m_erodedBldgCount = 0;
+   {
+       Report::LogInfo("Computing IDU Erosion statistics");
+       this->m_erodedBldgCount = 0;
 
-      int nDunePts = m_pDuneLayer->GetPolygonCount();
-      double startDuneLat = m_pDuneLayer->GetPolygon(0)->GetVertex(0).y;
-      double endDuneLat = m_pDuneLayer->GetPolygon(nDunePts - 1)->GetVertex(0).y;
-      double duneDelta = (endDuneLat - startDuneLat) / nDunePts;
+       int nDunePts = m_pDuneLayer->GetPolygonCount();
+       double startDuneLat = m_pDuneLayer->GetPolygon(0)->GetVertex(0).y;
+       double endDuneLat = m_pDuneLayer->GetPolygon(nDunePts - 1)->GetVertex(0).y;
+       double duneDelta = (endDuneLat - startDuneLat) / nDunePts;
 
-      // basic strategy - iterate through building points, find associate dune point, check positions
-      int nBldgs = m_pBldgLayer->GetRecordCount();
-      for (int bldg = 0; bldg < nBldgs; bldg++)
-         {
-         Poly* pBldg = m_pBldgLayer->GetPolygon(bldg);
-         int removeYr = 0;
-         m_pBldgLayer->GetData(bldg, m_colBldgRemoveYr, removeYr);
+       // basic strategy - iterate through building points, find associate dune point, check positions
+       int nBldgs = m_pBldgLayer->GetRecordCount();
+       for (int bldg = 0; bldg < nBldgs; bldg++)
+       {
+           Poly* pBldg = m_pBldgLayer->GetPolygon(bldg);
+           int removeYr = 0;
+           m_pBldgLayer->GetData(bldg, m_colBldgRemoveYr, removeYr);
 
-         if ( removeYr <= 0)  // hasn't been removed?
-            {
-            REAL lat = pBldg->GetVertex(0).y;
-            int dunePt = int(nDunePts * (startDuneLat - (lat + duneDelta / 2)) / (startDuneLat - endDuneLat));
-            if (dunePt >= 0 && dunePt < nDunePts)
+           if (removeYr <= 0)  // hasn't been removed?
+           {
+               REAL lat = pBldg->GetVertex(0).y;
+               int dunePt = int(nDunePts * (startDuneLat - (lat + duneDelta / 2)) / (startDuneLat - endDuneLat));
+               if (dunePt >= 0 && dunePt < nDunePts)
                {
-               Poly* pDune = m_pDuneLayer->GetPolygon(dunePt);
+                   Poly* pDune = m_pDuneLayer->GetPolygon(dunePt);
 
-               // has the dune eroded landward enought to intersect the building 
-               REAL duneLong = pDune->GetVertex(0).x;
-               REAL bldgLong = pBldg->GetVertex(0).x;
+                   // has the dune eroded landward enough to intersect the building 
+                   REAL duneLong = pDune->GetVertex(0).x;
+                   REAL bldgLong = pBldg->GetVertex(0).x;
 
-               MovingWindow* eroMovingWindow = m_eroBldgFreqArray[bldg];
+                   MovingWindow* eroMovingWindow = m_eroBldgFreqArray[bldg];
 
-               bool eroded = false;
-               if (bldgLong < duneLong)  // bldg eroded?
-                  {
-                  eroded = true;
-                  this->m_erodedBldgCount++;
-                  }
+                   // read previous eroded flag (persistent)
+                   int prevEroded = 0;
+                   m_pBldgLayer->GetData(bldg, m_colBldgEroded, prevEroded);
 
-               m_pBldgLayer->SetData(bldg, this->m_colBldgEroded, eroded ? 1 : 0);
-               eroMovingWindow->AddValue(eroded ? 1.0f : 0.0f);
-               float eroFreq = eroMovingWindow->GetFreqValue();
-               m_pBldgLayer->SetData(bldg, m_colBldgEroFreq, eroFreq);
-               }
-            }
-         }  // end of: if IDU is in the flooded grid
-      Report::Log_i("Eroded Building Count = %i", int(this->m_erodedBldgCount));
-      }  // end of: (m_runBuildings)
-   else
-      Report::LogInfo("Eroded Bldg stats not computed");
+                   // determine current(eroding) condition
+                   bool currentlyEroded = (bldgLong < duneLong);
+
+                   // if previously not eroded and now eroded => newly eroded this run
+                   if (prevEroded == 0 && currentlyEroded)
+                   {
+                       // mark permanent flag on building
+                       m_pBldgLayer->SetData(bldg, this->m_colBldgEroded, 1);
+
+                       // Also mark containing IDU as eroded (persistently) using delta tracking
+                       // Get IDU index of building
+                       CArray<int, int> iduIndices;
+                       int iduCount = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices);
+                       if (iduCount > 0)
+                       {
+                           int iduIndex = iduIndices[0];
+                           UpdateIDU(pEnvContext, iduIndex, m_colIDUEroded, 1, ADD_DELTA | SET_DATA);
+                       }
+
+                       // increment annual newly-eroded count and cumulative total
+                       this->m_erodedBldgCount++;
+                       this->m_cumulativeErodedBldgCount++;
+                       eroMovingWindow->AddValue(1.0f);
+                   }
+                   else
+                   {
+                       // if it was already eroded, keep it eroded (do not revert)
+                       if (prevEroded == 1)
+                       {
+                           // ensure flag stays set
+                           m_pBldgLayer->SetData(bldg, this->m_colBldgEroded, 1);
+                           eroMovingWindow->AddValue(1.0f);
+
+                           // ensure containing IDU is also set (tracked)
+                           int iduIndex = -1;
+                           m_pBldgLayer->GetData(bldg, m_colBldgIDUIndex, iduIndex);
+                           if (iduIndex >= 0 && iduIndex < m_pIDULayer->GetRecordCount())
+                           {
+                               UpdateIDU(pEnvContext, iduIndex, m_colIDUEroded, 1, ADD_DELTA | SET_DATA);
+                           }
+                       }
+                       else
+                       {
+                           // not currently eroded and never eroded before => not eroded this year
+                           eroMovingWindow->AddValue(0.0f);
+                       }
+                   }
+
+                   float eroFreq = eroMovingWindow->GetFreqValue();
+                   m_pBldgLayer->SetData(bldg, m_colBldgEroFreq, eroFreq);
+               } // end dunePt valid
+           } // end not removed
+       }  // end buildings loop
+
+    // For compatibility, log both newly-eroded (this year) and cumulative
+       Report::Log_i("Newly eroded building count (this run) = %i", int(this->m_erodedBldgCount));
+       Report::Log_i("Cumulative eroded building count = %i", int(this->m_cumulativeErodedBldgCount));
+   }  // end (m_runErosion)
    } // end ComputeBuildingStatistics
 
 
@@ -4667,7 +5979,7 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
       if (beachType == BchT_SANDY_RIPRAP_BACKED)
          {
          int yrAdded = 0;
-         m_pDuneLayer->GetData(point, m_colDLAddYearBPS, yrAdded);
+         m_pDuneLayer->GetData(point, m_colDLAddBPSYr, yrAdded);
          // count added this year
          if (yrAdded == currentYear)
             n++;
@@ -4679,7 +5991,7 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
       else if (beachType == BchT_SANDY_DUNE_BACKED)
          {
          int yrAdded = 0;
-         m_pDuneLayer->GetData(point, m_colDLAddYearSPS, yrAdded);
+         m_pDuneLayer->GetData(point, m_colDLAddSPSYr, yrAdded);
          // count added this year
          if (yrAdded == currentYear)
             m++;
@@ -4710,124 +6022,120 @@ void ChronicHazards::TallyDuneStatistics(int currentYear)
    }
 
 
-
-// updates: 
-// 1) Moving Windows for IDPY, avg/max twl, kd, 
-// 2) beachAccess (An,Sp,Su,Fa/Wi).
 bool ChronicHazards::UpdateDuneErosionStats(int point, float R_inf_KD)
-   {
-   // dune 
-   // Accumulated annually 
-   int IDDToeCount = 0;
-   int IDDToeCountWinter = 0;
-   int IDDToeCountSpring = 0;
-   int IDDToeCountSummer = 0;
-   int IDDToeCountFall = 0;
+{
+    // dune 
+    // Accumulated annually 
+    int IDDToeCount = 0;
+    int IDDToeCountWinter = 0;
+    int IDDToeCountSpring = 0;
+    int IDDToeCountSummer = 0;
+    int IDDToeCountFall = 0;
 
-   int IDDCrestCount = 0;
-   int IDDCrestCountWinter = 0;
-   int IDDCrestCountSpring = 0;
-   int IDDCrestCountSummer = 0;
-   int IDDCrestCountFall = 0;
+    int IDDCrestCount = 0;
+    int IDDCrestCountWinter = 0;
+    int IDDCrestCountSpring = 0;
+    int IDDCrestCountSummer = 0;
+    int IDDCrestCountFall = 0;
 
-   // get Impact days per year on dune toe (note that this is calcualted by the TWL Model)
-   m_pDuneLayer->GetData(point, m_colDLIDDToe, IDDToeCount);
-   m_pDuneLayer->GetData(point, m_colDLIDDToeWinter, IDDToeCountWinter);
-   m_pDuneLayer->GetData(point, m_colDLIDDToeSpring, IDDToeCountSpring);
-   m_pDuneLayer->GetData(point, m_colDLIDDToeSummer, IDDToeCountSummer);
-   m_pDuneLayer->GetData(point, m_colDLIDDToeFall, IDDToeCountFall);
+    // get Impact days per year on dune toe (note that this is calcualted by the TWL Model)
+    m_pDuneLayer->GetData(point, m_colDLIDDToe, IDDToeCount);
+    m_pDuneLayer->GetData(point, m_colDLIDDToeWinter, IDDToeCountWinter);
+    m_pDuneLayer->GetData(point, m_colDLIDDToeSpring, IDDToeCountSpring);
+    m_pDuneLayer->GetData(point, m_colDLIDDToeSummer, IDDToeCountSummer);
+    m_pDuneLayer->GetData(point, m_colDLIDDToeFall, IDDToeCountFall);
 
-   // Impact days per year on dune crest
-   m_pDuneLayer->GetData(point, m_colDLIDDCrest, IDDCrestCount);
-   m_pDuneLayer->GetData(point, m_colDLIDDCrestWinter, IDDCrestCountWinter);
-   m_pDuneLayer->GetData(point, m_colDLIDDCrestSpring, IDDCrestCountSpring);
-   m_pDuneLayer->GetData(point, m_colDLIDDCrestSummer, IDDCrestCountSummer);
-   m_pDuneLayer->GetData(point, m_colDLIDDCrestFall, IDDCrestCountFall);
+    // Impact days per year on dune crest
+    m_pDuneLayer->GetData(point, m_colDLIDDCrest, IDDCrestCount);
+    m_pDuneLayer->GetData(point, m_colDLIDDCrestWinter, IDDCrestCountWinter);
+    m_pDuneLayer->GetData(point, m_colDLIDDCrestSpring, IDDCrestCountSpring);
+    m_pDuneLayer->GetData(point, m_colDLIDDCrestSummer, IDDCrestCountSummer);
+    m_pDuneLayer->GetData(point, m_colDLIDDCrestFall, IDDCrestCountFall);
 
-   float duneToe = 0;
-   float yrMaxTWL = 0;
-   float beachwidth = 0;
+    float duneToe = 0;
+    float yrMaxTWL = 0;
+    float beachwidth = 0;
 
-   MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(point);
-   ipdyMovingWindow->AddValue((float)(IDDToeCount + IDDCrestCount));
+    MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(point);
+    ipdyMovingWindow->AddValue((float)(IDDToeCount + IDDCrestCount));
 
-   // for debugging
-   ///// if (m_debug)
-   /////    {
-   /////    int totalIDPY = 0;
-   /////    m_pDuneLayer->GetData(point, m_colNumIDPY, totalIDPY);
-   /////    totalIDPY += (IDDToeCount + IDDCrestCount);
-   /////    m_pDuneLayer->SetData(point, m_colNumIDPY, totalIDPY);
-   /////    }
-
-
-   // Retrieve the average imapact days per year within the designated window
-   float movingAvgIDPY = ipdyMovingWindow->GetAvgValue();
-   m_pDuneLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
+    // for debugging
+    ///// if (m_debug)
+    /////    {
+    /////    int totalIDPY = 0;
+    /////    m_pDuneLayer->GetData(point, m_colNumIDPY, totalIDPY);
+    /////    totalIDPY += (IDDToeCount + IDDCrestCount);
+    /////    m_pDuneLayer->SetData(point, m_colNumIDPY, totalIDPY);
+    /////    }
 
 
-   MovingWindow* twlMovingWindow = m_TWLArray.GetAt(point);
-   twlMovingWindow->AddValue(yrMaxTWL);
-   // Retrieve the maxmum TWL within the designated window
-   float movingMaxTWL = twlMovingWindow->GetMaxValue();
-   m_pDuneLayer->SetData(point, m_colDLMvMaxTWL, movingMaxTWL);
-
-   // Retrieve the average TWL within the designated window
-   float movingAvgTWL = twlMovingWindow->GetAvgValue();
-   m_pDuneLayer->SetData(point, m_colDLMvAvgTWL, movingAvgTWL);
-
-   MovingWindow* eroKDMovingWindow = m_eroKDArray.GetAt(point);
-   eroKDMovingWindow->AddValue((float)R_inf_KD);
-
-   //ptrArrayIndex++;
+    // Retrieve the average imapact days per year within the designated window
+    float movingAvgIDPY = ipdyMovingWindow->GetAvgValue();
+    m_pDuneLayer->SetData(point, m_colDLMvAvgIDPY, movingAvgIDPY);
 
 
-   // MOVE TO POLICY MANAGEMENT???
-   float avgIDPY_dtoe = IDDToeCount / 365.0f;
-   float avgIDPY_dcrest = IDDCrestCount / 365.0f;
+    // --- Ensure we read the year's TWL for this dune point before adding it to the moving window ---
+    m_pDuneLayer->GetData(point, m_colDLYrMaxTWL, yrMaxTWL);
 
-   float beachAccess = (1 - avgIDPY_dtoe - avgIDPY_dcrest) * 100;
-   float beachAccessWinter = (1 - (IDDToeCountWinter / 89.0f) - (IDDCrestCountWinter / 89.0f)) * 100;
-   float beachAccessSpring = (1 - (IDDToeCountSpring / 93.0f) - (IDDCrestCountSpring / 93.0f)) * 100;
-   float beachAccessSummer = (1 - (IDDToeCountSummer / 94.0f) - (IDDCrestCountSummer / 94.0f)) * 100;
-   float beachAccessFall = (1 - (IDDToeCountFall / 89.0f) - (IDDCrestCountFall / 89.0f)) * 100;
+    MovingWindow* twlMovingWindow = m_TWLArray.GetAt(point);
+    twlMovingWindow->AddValue(yrMaxTWL);
+    // Retrieve the maxmum TWL within the designated window
+    float movingMaxTWL = twlMovingWindow->GetMaxValue();
+    m_pDuneLayer->SetData(point, m_colDLMvMaxTWL, movingMaxTWL);
 
-   float reltwl = yrMaxTWL - duneToe;
-   //   float sumEro = Ero;
-   float sumduneT = avgIDPY_dtoe;
-   float sumduneC = avgIDPY_dcrest;
-   //     float sumTWL = twlav;
-   float sumrelTWL = reltwl;
+    // Retrieve the average TWL within the designated window
+    float movingAvgTWL = twlMovingWindow->GetAvgValue();
+    m_pDuneLayer->SetData(point, m_colDLMvAvgTWL, movingAvgTWL);
 
-   if (beachAccess > m_accessThresh)
-      m_avgAccess += 1;
+    MovingWindow* eroKDMovingWindow = m_eroKDArray.GetAt(point);
+    eroKDMovingWindow->AddValue((float)R_inf_KD);
 
-   //m_hardenedShoreline = (percentArmored / float(shorelineLength)) * 100;
-   m_pDuneLayer->m_readOnly = false;
-
-   //         m_pDuneLayer->SetData(point, m_colAvgDuneT, avgduneTArray[ duneIndex ]);
-   //         m_pDuneLayer->SetData(point, m_colAvgDuneC, avgduneCArray[ duneIndex ]);
-   //         m_pDuneLayer->SetData(point, m_colAvgEro, avgEroArray[ duneIndex ]);
-   //         m_pDuneLayer->SetData(point, m_colCPolicyL, 0);
-   m_pDuneLayer->SetData(point, m_colDLBchAccess, beachAccess);
-   m_pDuneLayer->SetData(point, m_colDLBchAccessWinter, beachAccessWinter);
-   m_pDuneLayer->SetData(point, m_colDLBchAccessSpring, beachAccessSpring);
-   m_pDuneLayer->SetData(point, m_colDLBchAccessSummer, beachAccessSummer);
-   m_pDuneLayer->SetData(point, m_colDLBchAccessFall, beachAccessFall);
-   /////// m_pDuneLayer->SetData(point, m_colDLWb, Wb);
-   /////// m_pDuneLayer->SetData(point, m_colDLTS, TS);
-   /////// m_pDuneLayer->SetData(point, m_colDLHb, Hb);
-   //m_pDuneLayer->SetData(point, m_colDLKD, R_inf_KD);
-   /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
-   //m_pDuneLayer->SetData(point, m_colDLShorelineChange, R_SCR_hist);
-   //m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
-   //m_pDuneLayer->m_readOnly = true;
-
-   return true;
-   } // end erosion calculation
+    //ptrArrayIndex++;
 
 
+    // MOVE TO POLICY MANAGEMENT???
+    float avgIDPY_dtoe = IDDToeCount / 365.0f;
+    float avgIDPY_dcrest = IDDCrestCount / 365.0f;
 
+    float beachAccess = (1 - avgIDPY_dtoe - avgIDPY_dcrest) * 100;
+    float beachAccessWinter = (1 - (IDDToeCountWinter / 89.0f) - (IDDCrestCountWinter / 89.0f)) * 100;
+    float beachAccessSpring = (1 - (IDDToeCountSpring / 93.0f) - (IDDCrestCountSpring / 93.0f)) * 100;
+    float beachAccessSummer = (1 - (IDDToeCountSummer / 94.0f) - (IDDCrestCountSummer / 94.0f)) * 100;
+    float beachAccessFall = (1 - (IDDToeCountFall / 89.0f) - (IDDCrestCountFall / 89.0f)) * 100;
+
+    float reltwl = yrMaxTWL - duneToe;
+    //   float sumEro = Ero;
+    float sumduneT = avgIDPY_dtoe;
+    float sumduneC = avgIDPY_dcrest;
+    //     float sumTWL = twlav;
+    float sumrelTWL = reltwl;
+
+    if (beachAccess > m_accessThresh)
+        m_avgAccess += 1;
+
+    //m_hardenedShoreline = (percentArmored / float(shorelineLength)) * 100;
+    m_pDuneLayer->m_readOnly = false;
+
+    //         m_pDuneLayer->SetData(point, m_colAvgDuneT, avgduneTArray[ duneIndex ]);
+    //         m_pDuneLayer->SetData(point, m_colAvgDuneC, avgduneCArray[ duneIndex ]);
+    //         m_pDuneLayer->SetData(point, m_colAvgEro, avgEroArray[ duneIndex ]);
+    //         m_pDuneLayer->SetData(point, m_colCPolicyL, 0);
+    m_pDuneLayer->SetData(point, m_colDLBchAccess, beachAccess);
+    m_pDuneLayer->SetData(point, m_colDLBchAccessWinter, beachAccessWinter);
+    m_pDuneLayer->SetData(point, m_colDLBchAccessSpring, beachAccessSpring);
+    m_pDuneLayer->SetData(point, m_colDLBchAccessSummer, beachAccessSummer);
+    m_pDuneLayer->SetData(point, m_colDLBchAccessFall, beachAccessFall);
+    /////// m_pDuneLayer->SetData(point, m_colDLWb, Wb);
+    /////// m_pDuneLayer->SetData(point, m_colDLTS, TS);
+    /////// m_pDuneLayer->SetData(point, m_colDLHb, Hb);
+    //m_pDuneLayer->SetData(point, m_colDLKD, R_inf_KD);
+    /////// m_pDuneLayer->SetData(point, m_colDLAlpha, alpha);
+    //m_pDuneLayer->SetData(point, m_colDLShorelineChange, R_SCR_hist);
+    //m_pDuneLayer->SetData(point, m_colDLBeachWidth, beachwidth);
+    //m_pDuneLayer->m_readOnly = true;
+
+    return true;
+} // end erosion calculation
 
 void ChronicHazards::ComputeIDUStatistics(EnvContext* pEnvContext)
    {
@@ -4888,10 +6196,11 @@ void ChronicHazards::ComputeIDUStatistics(EnvContext* pEnvContext)
             m_pIDULayer->GetData(idu, this->m_colArea, iduArea);
             this->m_floodedArea += iduArea;
             }
-         
+
          else // no flooded cells in this IDU
-            { }
-         
+            {
+            }
+
          }  // end of: if IDU is in the flooded grid
       this->m_floodedAreaSqMiles = this->m_floodedArea * MI2_PER_M2;
 
@@ -4912,7 +6221,7 @@ void ChronicHazards::ComputeInfraStatistics()
    //    experienced flooding this year.  if so, updates the bldg point to indicate
    //    it has experienced flooding and set the building's flood frequency value
    // 3) for erosions, 
-   
+
    // determine how many new buildings were added
    //int numNewBldgs = m_pInfraLayer->GetRowCount() - m_numBldgs;
    //m_numBldgs += numNewBldgs;
@@ -5015,7 +6324,7 @@ void ChronicHazards::ComputeInfraStatistics()
             bool isEEroded = (eroded == 1) ? true : false;
             bool isdoublelyEroded = (eroded == 2) ? true : false;
 
-            if (isEEroded) // && 
+            if (isEEroded) // &&
                {
                eroMovingWindow->AddValue(1.0f);
                m_pInfraLayer->SetData(infra, m_colInfraEroded, isInfraEroded);
@@ -5106,7 +6415,7 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
       fdName.Format("/Outputs/%s/MaxFloodDepth_%s_Year%i_%i.asc", (LPCTSTR)scenario, (LPCTSTR)scenario, outputYear, run);
       CString fldFile = m_sfincsHome + fdName;
       CString outFile;
-      outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", outDir, outputYear, (LPCTSTR) scenario, run );
+      outFile.Format("%sFlooding/Flooding_Year%i_%s_Run%i.asc", outDir, outputYear, (LPCTSTR)scenario, run);
 
       // copy the file to the standard output locations
       std::ifstream  src(fldFile, std::ios::binary);
@@ -5265,210 +6574,229 @@ void ChronicHazards::ExportMapLayers(EnvContext* pEnvContext, int outputYear)
    } // end ExportMapLayers(EnvContext *pEnvContext)
 
 
-// Determine if
 bool ChronicHazards::FindProtectedBldgs()
-   {
-   if (m_pBldgLayer == nullptr)
-      {
-      Report::LogError("No building coverage when finding protected buildings");
-      return false;
-      }
+{
+    if (m_pBldgLayer == nullptr)
+    {
+        Report::LogError("No building coverage when finding protected buildings");
+        return false;
+    }
 
-   // For each building get it's IDU
-   // Then find the set of dunePts within the Northing extents of that IDU
-   // Finally assign the closest building to those dunePts
-   Report::LogInfo("Locating protected buildings");
+    // For each building get it's IDU
+    // Then find the set of dunePts within the Northing extents of that IDU
+    // Finally assign the closest building to those dunePts
+    Report::LogInfo("Locating protected buildings");
 
-   // iterate through building coverage
-   for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
-      {
-      if (bldg % 100 == 0)
-         {
-         CString msg;
-         msg.Format("Finding protected building %i of %i", (int)bldg, m_pBldgLayer->GetRowCount());
-         Report::StatusMsg(msg);
-         }
+    int bldgsWithoutIDU = 0;
+    int assignedDunePts = 0;
 
-      // get building location
-      REAL xBldg = 0.0;
-      REAL yBldg = 0.0;
-      m_pBldgLayer->GetPointCoords(bldg, xBldg, yBldg);
+    // iterate through building coverage
+    for (MapLayer::Iterator bldg = m_pBldgLayer->Begin(); bldg < m_pBldgLayer->End(); bldg++)
+    {
+        if (bldg % 100 == 0)
+        {
+            CString msg;
+            msg.Format("Finding protected building %i of %i", (int)bldg, m_pBldgLayer->GetRowCount());
+            Report::StatusMsg(msg);
+        }
 
-      CArray<int, int> iduIndices;
-      int iduIndex = -1;
-      int tsunami_hz = -1;
+        // get building location
+        REAL xBldg = 0.0;
+        REAL yBldg = 0.0;
+        m_pBldgLayer->GetPointCoords(bldg, xBldg, yBldg);
 
-      // Get IDU index of building if an associated IDUs are in Tsunamic Hazard Zone
-      int iduCount = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices);
-      //for (int i= 0; i < sz; i+
-      if ( iduCount > 0 )
-         {
-         int _iduIndex = iduIndices[0];
-         m_pIDULayer->GetData(_iduIndex, m_colIDUTsunamiHazardZone, tsunami_hz);
-         bool isTsunamiHzrd = (tsunami_hz == 1) ? true : false;
-         if (isTsunamiHzrd)
-            iduIndex = _iduIndex;
-         }
+        CArray<int, int> iduIndices;
+        int iduIndex = -1;
+        int tsunami_hz = -1;
 
-      // only set idu index if building is in tsunami zone; otherwise, -1
-      m_pBldgLayer->SetData(bldg, m_colBldgIDUIndex, iduIndex);
+        // Get IDU index of building if an associated IDUs are in Tsunamic Hazard Zone
+        int iduCount = m_pIduBuildingLkUp->GetPolysFromPointIndex(bldg, iduIndices);
+        if (iduCount > 0)
+        {
+            int _iduIndex = iduIndices[0];
+            m_pIDULayer->GetData(_iduIndex, m_colIDUTsunamiHazardZone, tsunami_hz);
+            bool isTsunamiHzrd = (tsunami_hz == 1) ? true : false;
+            if (isTsunamiHzrd)
+                iduIndex = _iduIndex;
+        }
 
-      // next, we are going to look across the horizontal band defined by the top and bottom of the 
-      // associated IDU locate the dune that is horizontally aligned with idu
-
-      ///  WHY NOT JUST GET CLOSEST DUNE PT?
-
-      double northingTop = 0.0;
-      double northingBtm = 0.0;
-
-      if (iduIndex != -1)
-         {
-         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingTop, northingTop);
-         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingBottom, northingBtm);
-         }
-
-      // Determine what building Dune Pts are protecting 
-      for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
-         {
-         int beachType = -1;
-         m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
-
-         int tst = dunePt;
-
-         // only look at dune that can protect a dune
-         if (beachType != BchT_BAY && beachType != BchT_RIVER && beachType != BchT_UNDEFINED)
+        if (iduCount == 0)
+        {
+            bldgsWithoutIDU++;
+            if (bldg % 500 == 0) // occasional log, avoid excessive output
             {
-            double northing = 0.0;
-            m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
+                CString msg;
+                msg.Format(_T("FindProtectedBldgs: building %d not associated with any IDU"), (int)bldg);
+                Report::LogInfo(msg);
+            }
+        }
 
-            int duneIndex = -1;
-            m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
+        // only set idu index if building is in tsunami zone; otherwise, -1
+        m_pBldgLayer->SetData(bldg, m_colBldgIDUIndex, iduIndex);
 
-            REAL xDunePt = 0.0;
-            REAL yDunePt = 0.0;
-            m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+        // next, we are going to look across the horizontal band defined by the top and bottom of the 
+        // associated IDU locate the dune that is horizontally aligned with idu
 
-            // are we in the same horizontal band as the building?
-            if (northing < northingTop && northing > northingBtm)
-               {
-               // if the dune is close enough to protect the building,
-               // then set the Dune layer's dune to the protected building's 
-               float distance = (float)sqrt((xBldg - xDunePt) * (xBldg - xDunePt) + (yBldg - yDunePt) * (yBldg - yDunePt));
-               if (distance <= m_minDistToProtecteBldg)
-                  {
-                  int bldgIndex = -1;
-                  m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgIndex, bldgIndex);  // does this dune point have a protected building?
+        double northingTop = 0.0;
+        double northingBtm = 0.0;
 
-                  if (bldgIndex == -1)
-                     {
-                     m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
-                     m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
-                     }
-                  else
-                     {
-                     float distanceBtwn = 0.0f;
-                     m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgDist, distanceBtwn);
-                     if (distance < distanceBtwn)
+        if (iduIndex != -1)
+        {
+            m_pIDULayer->GetData(iduIndex, m_colIDUNorthingTop, northingTop);
+            m_pIDULayer->GetData(iduIndex, m_colIDUNorthingBottom, northingBtm);
+        }
+
+        // Determine what building Dune Pts are protecting 
+        for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
+        {
+            int beachType = -1;
+            m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
+
+            // only look at dune that can protect a dune
+            if (beachType != BchT_BAY && beachType != BchT_RIVER && beachType != BchT_UNDEFINED)
+            {
+                double northing = 0.0;
+                m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
+
+                REAL xDunePt = 0.0;
+                REAL yDunePt = 0.0;
+                m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+
+                // are we in the same horizontal band as the building?
+                if ((iduIndex == -1) || (northing < northingTop && northing > northingBtm))
+                {
+                    // if iduIndex == -1 then we allow the band check to be bypassed (helps mapping when IDUs absent)
+                    float distance = (float)sqrt((xBldg - xDunePt) * (xBldg - xDunePt) + (yBldg - yDunePt) * (yBldg - yDunePt));
+                    if (distance <= m_minDistToProtecteBldg)
+                    {
+                        int bldgIndex = -1;
+                        m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgIndex, bldgIndex);  // does this dune point have a protected building?
+
+                        if (bldgIndex == -1)
                         {
-                        m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
-                        m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
+                            m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
+                            m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
+                            assignedDunePts++;
                         }
-                     }
-                  }
-               }
+                        else
+                        {
+                            float distanceBtwn = 0.0f;
+                            m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgDist, distanceBtwn);
+                            if (distance < distanceBtwn)
+                            {
+                                m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgIndex, bldg);
+                                m_pDuneLayer->SetData(dunePt, m_colDLDuneBldgDist, distance);
+                            }
+                        }
+                    }
+                } // same band
             }
-         }
-      }
+        }
+    } // end buildings loop
 
-   // repeat for infrastructure?
-   
-   if ( m_pInfraLayer == nullptr)
-      {
-      Report::LogError("No infrastructure coverage when finding protected infrastructure");
-      return false;
-      }
+ // summary logs
+    int totalDunePts = m_pDuneLayer ? m_pDuneLayer->GetRowCount() : 0;
+    int dunePtsWithoutBldg = 0;
+    for (int i = 0; i < totalDunePts; ++i)
+    {
+        int bldgIndex = -1;
+        m_pDuneLayer->GetData(i, m_colDLDuneBldgIndex, bldgIndex);
+        if (bldgIndex == -1)
+            ++dunePtsWithoutBldg;
+    }
 
-   for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
-   {
-      double xinfra = 0.0;
-      double yinfra = 0.0;
-      m_pInfraLayer->GetPointCoords(infra, xinfra, yinfra);
+    CString msg;
+    msg.Format(_T("FindProtectedBldgs: buildings w/o IDU=%d, dunePts assigned=%d, dunePts without bldg=%d"), bldgsWithoutIDU, assignedDunePts, dunePtsWithoutBldg);
+    Report::LogInfo(msg);
 
-      CArray<int, int> iduIndices;
-      int iduIndex = -1;
-      int tsunami_hz = -1;
+    // repeat for infrastructure? (unchanged below)
+    if (m_pInfraLayer == nullptr)
+    {
+        Report::LogError("No infrastructure coverage when finding protected infrastructure");
+        return false;
+    }
 
-      // Get IDU of building if in Tsunamic Hazard Zone
-      int iduCount = m_pIduInfraLkUp->GetPolysFromPointIndex(infra, iduIndices);
-      //for (int i = 0; i < sz; i++)
-      if ( iduCount > 0 )
-         {
-         int _iduIndex = iduIndices[0];
-         m_pIDULayer->GetData(_iduIndex, m_colIDUTsunamiHazardZone, tsunami_hz);
-         bool isTsunamiHzrd = (tsunami_hz == 1) ? true : false;
-         if (isTsunamiHzrd)
-            iduIndex = _iduIndex;
-         }
+    for (MapLayer::Iterator infra = m_pInfraLayer->Begin(); infra < m_pInfraLayer->End(); infra++)
+    {
+        double xinfra = 0.0;
+        double yinfra = 0.0;
+        m_pInfraLayer->GetPointCoords(infra, xinfra, yinfra);
 
-      //m_pInfraLayer->SetData(infra, m_colInfraIDUIndex, iduIndex);
-      double northingTop = 0.0;
-      double northingBtm = 0.0;
+        CArray<int, int> iduIndices;
+        int iduIndex = -1;
+        int tsunami_hz = -1;
 
-      if (iduIndex != -1)
-         {
-         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingTop, northingTop);
-         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingBottom, northingBtm);
-         }
+        // Get IDU of building if in Tsunamic Hazard Zone
+        int iduCount = m_pIduInfraLkUp->GetPolysFromPointIndex(infra, iduIndices);
+        //for (int i = 0; i < sz; i++)
+        if (iduCount > 0)
+        {
+            int _iduIndex = iduIndices[0];
+            m_pIDULayer->GetData(_iduIndex, m_colIDUTsunamiHazardZone, tsunami_hz);
+            bool isTsunamiHzrd = (tsunami_hz == 1) ? true : false;
+            if (isTsunamiHzrd)
+                iduIndex = _iduIndex;
+        }
 
-      // Determine what building Dune Pts are protecting 
-      for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
-         {
-         int beachType = -1;
-         m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
+        //m_pInfraLayer->SetData(infra, m_colInfraIDUIndex, iduIndex);
+        double northingTop = 0.0;
+        double northingBtm = 0.0;
 
-         int tst = dunePt;
+        if (iduIndex != -1)
+        {
+            m_pIDULayer->GetData(iduIndex, m_colIDUNorthingTop, northingTop);
+            m_pIDULayer->GetData(iduIndex, m_colIDUNorthingBottom, northingBtm);
+        }
 
-         // only assign 
-         if (beachType != BchT_BAY && beachType != BchT_RIVER && beachType != BchT_UNDEFINED)
+        // Determine what building Dune Pts are protecting 
+        for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
+        {
+            int beachType = -1;
+            m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);
+
+            int tst = dunePt;
+
+            // only assign 
+            if (beachType != BchT_BAY && beachType != BchT_RIVER && beachType != BchT_UNDEFINED)
             {
-            double northing = 0.0;
-            m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
+                double northing = 0.0;
+                m_pDuneLayer->GetData(dunePt, m_colDLNorthing, northing);
 
-            int duneIndex = -1;
-            m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
+                int duneIndex = -1;
+                m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
 
-            double xDunePt = 0.0;
-            double yDunePt = 0.0;
-            m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
+                double xDunePt = 0.0;
+                double yDunePt = 0.0;
+                m_pDuneLayer->GetPointCoords(dunePt, xDunePt, yDunePt);
 
-            if (northing < northingTop && northing > northingBtm)
-               {
-               //float distance = sqrt((xinfra - xDunePt) * (xinfra - xDunePt) + (yinfra - yDunePt) * (yinfra - yDunePt));
-               //int infraIndex = -1;
-               //m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraIndex, infraIndex);
-               //
-               //if (infraIndex == -1)
-               //   {
-               //   m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
-               //   m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
-               //   }
-               //else
-               //   {
-               //   float distanceBtwn = 0.0f;
-               //   m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraDist, distanceBtwn);
-               //   if (distance < distanceBtwn)
-               //      {
-               //      m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
-               //      m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
-               //      }
-               //   }
-               }
+                if (northing < northingTop && northing > northingBtm)
+                {
+                    //float distance = sqrt((xinfra - xDunePt) * (xinfra - xDunePt) + (yinfra - yDunePt) * (yinfra - yDunePt));
+                    //int infraIndex = -1;
+                    //m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraIndex, infraIndex);
+                    //
+                    //if (infraIndex == -1)
+                    //   {
+                    //   m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
+                    //   m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
+                    //   }
+                    //else
+                    //   {
+                    //   float distanceBtwn = 0.0f;
+                    //   m_pDuneLayer->GetData(dunePt, m_colDLDuneInfraDist, distanceBtwn);
+                    //   if (distance < distanceBtwn)
+                    //      {
+                    //      m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraIndex, infra);
+                    //      m_pDuneLayer->SetData(dunePt, m_colDLDuneInfraDist, distance);
+                    //      }
+                    //   }
+                }
             }
-         }
-      }
+        }
+    }
 
-   return true;
-   }
+return true;
+}
 
 bool ChronicHazards::FindClosestDunePtToBldg(EnvContext* pEnvContext)
    {
@@ -5773,8 +7101,6 @@ bool ChronicHazards::CalculateExcessErosion(MapLayer::Iterator pt, float r, floa
    } // bool CalculateExcessErosion
 
 
-
-
 bool ChronicHazards::CalculateDuneImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& minToePoint, MapLayer::Iterator& minDistPoint, MapLayer::Iterator& maxTWLPoint)
    {
    int duneBldgIndex = -1;
@@ -5894,7 +7220,7 @@ bool ChronicHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, Ma
    bool rebuild = false;
 
    int builtYear = 0;
-   m_pDuneLayer->GetData(startPoint, m_colDLAddYearSPS, builtYear);
+   m_pDuneLayer->GetData(startPoint, m_colDLAddSPSYr, builtYear);
 
    int yr = builtYear;
 
@@ -5938,7 +7264,7 @@ bool ChronicHazards::CalculateRebuildSPSExtent(MapLayer::Iterator startPoint, Ma
       //}
 
       endPoint++;
-      m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, yr);
+      m_pDuneLayer->GetData(endPoint, m_colDLAddSPSYr, yr);
       }
 
    return rebuild;
@@ -5982,598 +7308,617 @@ int ChronicHazards::GetNextBldgIndex(MapLayer::Iterator pt)
    return nextBldgIndex;
    }
 
-// Currently structure is built landward
-// uncomment beachwidth narrowing and eastingToe translation to build seaward
-// question of how much beach narrows and toe translates based upon geometry:  if every toe moves different distances
-// dependent upon the beachslope use ConstructBPS
-///*
-//void ChronicHazards::ConstructBPS1(int currentYear)
-//   {
-//   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
-//      {
-//      int duneBldgIndex = -1;
-//      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);
-//
-//      if (duneBldgIndex != -1)
-//         {
-//         MapLayer::Iterator endPoint = point;
-//         MapLayer::Iterator maxPoint = point;
-//
-//         MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
-//         float eroFreq = eroMovingWindow->GetFreqValue();
-//         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
-//
-//         // find the extent of the BPS as well as location of maximum TWL within that extent
-//         // doublely needs maximum overtopping and minimum duneToe
-//         bool constructBPS = CalculateBPSExtent(point, endPoint, maxPoint);  // note: the points are all the same
-//
-//         if (constructBPS)
-//            {
-//            m_noConstructedBPS += 1;
-//
-//            // Retrieve the maxmum TWL within the designated window
-//            MovingWindow* twlMovingWindow = m_TWLArray.GetAt(maxPoint);
-//            float newCrest = twlMovingWindow->GetMaxValue();
-//
-//            float duneToe = 0.0f;
-//            float duneCrest = 0.0f;
-//            float beachWidth = 0.0f;
-//            REAL eastingToe = 0.0;
-//            float tanb = 0.0f;
-//
-//            // get dune locations/geometries
-//            m_pDuneLayer->GetData(maxPoint, m_colDLDuneToe, duneToe);
-//            m_pDuneLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
-//            m_pDuneLayer->GetData(maxPoint, m_colDLEastingToe, eastingToe);
-//            m_pDuneLayer->GetData(maxPoint, m_colDLBeachWidth, beachWidth);
-//            m_pDuneLayer->GetData(maxPoint, m_colDLTranSlope, tanb);
-//
-//            float height = newCrest - duneToe;
-//
-//            // This is an engineering limit and also prevents the BPS from blocking the viewscape
-//            if (height > m_maxBPSHeight)
-//               {
-//               height = m_maxBPSHeight;
-//               newCrest = duneToe + height;
-//               }
-//
-//            // There is a minimum height for construction
-//            if (height < m_minBPSHeight)
-//               {
-//               height = m_minBPSHeight;
-//               newCrest = duneToe + height;
-//               }
-//
-//            // dune height not reduced
-//            if (newCrest < duneCrest)
-//               newCrest = duneCrest;
-//
-//            float BPSHeight = newCrest - duneToe;
-//
-//            // for debugging 
-//            //////if (m_debugOn)
-//            //////   {
-//            //////   //  TODO:::Still using old version, uncomment beachwidth reduction and easting toe translation after decision
-//            //////   double newEastingToe = (BPSHeight + (tanb - m_slopeBPS) * eastingToe) / (tanb - m_slopeBPS);
-//            //////   double deltaX = eastingToe - newEastingToe;
-//            //////   double deltaX2 = BPSHeight / m_slopeBPS;
-//            //////   m_pDuneLayer->SetData(point, m_colNewEasting, newEastingToe);
-//            //////   m_pDuneLayer->SetData(point, m_colBWidth, deltaX2);
-//            //////   m_pDuneLayer->SetData(point, m_colDeltaX, deltaX);
-//            //////   /* eastingToe = newEastingToe;
-//            //////   beachWidth -= deltaX;*/
-//            //////   }
-//
-//            REAL eastingCrest = eastingToe + BPSHeight / m_slopeBPS;
-//
-//            // determine length of BPS structure, runs along IDU
-//            REAL yTop = 0.0;
-//            REAL yBtm = 0.0;
-//            REAL xCoord = 0.0;
-//            m_pDuneLayer->GetPointCoords(endPoint, xCoord, yTop);
-//            m_pDuneLayer->GetPointCoords(point, xCoord, yBtm);
-//
-//            float BPSLength = float(yTop - yBtm);
-//
-//            float BPSCost = BPSHeight * m_costs.BPS * BPSLength;
-//            m_constructCostBPS += BPSCost;
-//
-//            // construct BPS by changing beachtype to RIP RAP BACKED
-//            for (MapLayer::Iterator pt = point; pt < endPoint; pt++, point++)
-//               {
-//               // all dune points of a BPS have the same characteristics
-//               m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_SANDY_RIPRAP_BACKED);
-//               //m_pDuneLayer->SetData(pt, m_colDLTypeChange, 1);
-//               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-//               m_pDuneLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
-//               m_pDuneLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
-//               m_pDuneLayer->SetData(pt, m_colDLCostBPS, BPSCost);
-//               m_pDuneLayer->SetData(pt, m_colDLLengthBPS, BPSLength);
-//               float width = (float)(eastingCrest - eastingToe);
-//               m_pDuneLayer->SetData(pt, m_colDLWidthBPS, width);
-//
-//               m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-//               m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
-//               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-//               //      m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
-//
-//               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
-//               if (pPoly->GetVertexCount() > 0)
-//                  {
-//                  pPoly->m_vertexArray[0].x = eastingToe;
-//                  pPoly->InitLogicalPoints(m_pMap);
-//                  }
-//               }
-//            }
-//         }
-//      }
-//   } */
 
-void ChronicHazards::ConstructBPS(int currentYear)
+bool ChronicHazards::IsDuneEligibleForBPS(int dunePt)
    {
-   // basic idea: start at the bottom of the dune point coverage.
-   // Iterate thought the Dune points. looking for points that are protecting a building
-   // When one of these is found, check tests to see if we should build a bps.
+   int duneBldgIndex = -1;
+   m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgIndex, duneBldgIndex);  // check 1: is there a building protected by this dune?
 
-   // NOTE: NEED TO ADD GOAL18 constraint?
+   if (duneBldgIndex < 0)
+      return false;
 
-   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
-      {
-      //MapLayer::Iterator endPoint = point;
-      //MapLayer::Iterator maxPoint = point;
-      //MapLayer::Iterator minPoint = point;
-      //bool construct = CalculateDuneImpactExtent(point, endPoint, minPoint, maxPoint);
+   int beachType = -1;
+   m_pDuneLayer->GetData(dunePt, m_colDLBeachType, beachType);  // check 2: beach type (changes when BPS is built)
 
-      int duneBldgIndex = -1;
-      m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, duneBldgIndex);  // is ther a building protected by this dune?
+   // Keep this consistent with ConstructBPS counting: accept both sandy dune-backed and mixed-sediment dune-backed
+   if (beachType != BchT_SANDY_DUNE_BACKED && beachType != BchT_MIXED_SEDIMENT_DUNE_BACKED)
+      return false;
 
-      bool trigger = false;
-      MapLayer::Iterator endPoint = point;
-      MapLayer::Iterator maxPoint = point;
-      MapLayer::Iterator minToePoint = point;
-      MapLayer::Iterator minDistPoint = point;
+   MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(dunePt);
+   float movingAvgIDPY = 0.0f;
+   m_pDuneLayer->GetData(dunePt, m_colDLMvAvgIDPY, movingAvgIDPY);
 
-      CArray<int> dlTypeChangeIndexArray;   // dune points for which the trigger is true (m_pDuneLayer->SetData(endPoint, m_colDLTypeChange, 1)
-      CArray<int> iduAddBPSYrIndexArray;    // m_pIDULayer->SetData(northIndex, m_colIDUAddBPSYr, currentYear);
+   float xAvgKD = 0.0f;
+   m_pDuneLayer->GetData(dunePt, m_colDLAvgKD, xAvgKD);
 
-      // dune protecting building?
-      if (duneBldgIndex != -1)
-         {
-         // get the most frequent value from erosion moving averages
-         MovingWindow* eroMovingWindow = m_eroBldgFreqArray.GetAt(duneBldgIndex);
-         float eroFreq = eroMovingWindow->GetFreqValue();
-         m_pDuneLayer->SetData(point, m_colDLDuneEroFreq, eroFreq);
+   int duneIndex = -1;
+   m_pDuneLayer->GetData(dunePt, m_colDLDuneIndex, duneIndex);
 
-         int nextBldgIndex = duneBldgIndex;
-         float buildBPSThreshold = m_idpyFactor * 365.0f; // determine threshold for impact days/year to trigger
+   float avgKD = 0.0f;
+   m_pDuneLayer->GetData(dunePt, m_colDLAvgKD, avgKD);
+   float distToBldg = 0.0f;
+   m_pDuneLayer->GetData(dunePt, m_colDLDuneBldgDist, distToBldg);
 
-         float maxAmtTop = 0.0f;
-         float minToeElevation = 10000.0f;
-         float minDistToBldg = 100000.0f;
-         float maxTWL = 0.0f;
+   // get this years storm-induced event based erosion
+   bool isImpactedByEErosion = false;
+   isImpactedByEErosion = IsBldgImpactedByEErosion(duneBldgIndex, avgKD, distToBldg); // check 3a: if storm erosion threatens the building
 
-         // look along length of IDU determine if criteria for BPS construction is met
-         // We know we are in the same IDU if the next dunepoint (endPoint) is protecting the
-         // same buiding
-         while (endPoint < m_pDuneLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
-            {
-            int beachType = -1;
-            m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
+   // does the dune point cause trigger ?
+   float buildBPSThreshold = m_idpyFactor * 365.0f; // check 3b: determine threshold for impact days/year to trigger
 
-            if (beachType == BchT_SANDY_DUNE_BACKED)
-               {
-               MovingWindow* ipdyMovingWindow = m_IDPYArray.GetAt(endPoint);
+   if (movingAvgIDPY >= buildBPSThreshold || isImpactedByEErosion)
+      return true;
 
-               float movingAvgIDPY = 0.0f;
-               m_pDuneLayer->GetData(endPoint, m_colDLMvAvgIDPY, movingAvgIDPY);
-
-               float xAvgKD = 0.0f;
-               m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, xAvgKD);
-
-               int duneIndex = -1;
-               m_pDuneLayer->GetData(endPoint, m_colDLDuneIndex, duneIndex);
-
-               float avgKD = 0.0f;
-               m_pDuneLayer->GetData(endPoint, m_colDLAvgKD, avgKD);
-               float distToBldg = 0.0f;
-               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);
-
-               // get this years storm-induced event based erosion
-               bool isImpactedByEErosion = false;
-               isImpactedByEErosion = IsBldgImpactedByEErosion(nextBldgIndex, avgKD, distToBldg);
-
-               // do any dune points cause trigger ?
-               if (movingAvgIDPY >= buildBPSThreshold || isImpactedByEErosion)
-                  {
-                  trigger = true;
-                  //??? should this be moved to after cost constraint applied?
-                  //m_pDuneLayer->SetData(endPoint, m_colDLTypeChange, 1);
-                  dlTypeChangeIndexArray.Add(endPoint);
-                  }
-
-               // Retrieve the maximum TWL within the moving window
-               MovingWindow* twlMovingWindow = m_TWLArray.GetAt(endPoint);
-               float movingMaxTWL = twlMovingWindow->GetMaxValue();
-
-               float duneCrest = 0.0f;
-               m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, duneCrest);
-
-               // Find dune point with highest overtopping
-               if (maxAmtTop >= 0.0f && (movingMaxTWL - duneCrest) > maxAmtTop)
-                  {
-                  maxAmtTop = movingMaxTWL - duneCrest;
-                  maxTWL = movingMaxTWL;
-                  maxPoint = endPoint;
-                  }
-
-               // Find dune point with minimum elevation
-               float duneToe = 0.0f;
-               m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
-               if (minToeElevation <= duneToe)
-                  {
-                  minToeElevation = duneToe;
-                  minToePoint = endPoint;
-                  }
-
-               // Find dune point closest to the protected building
-               /*   float distToBldg = 0.0f;
-               m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgDist, distToBldg);*/
-               if (minDistToBldg <= distToBldg)
-                  {
-                  minDistToBldg = distToBldg;
-                  minDistPoint = endPoint;
-                  }
-               }
-            endPoint++;
-            }   // end of: while (endPoint < m_pDuneLayer->End() && GetNextBldgIndex(endPoint) == duneBldgIndex)
-
-         endPoint--;  // we should be just over the northern edge of the IDU, back up so we are just inside of it.
-         } // end protecting building
-
-      // make sure everything is okay, diddn't overrun bounds
-      if (endPoint >= m_pDuneLayer->End())
-         Report::ErrorMsg("Coastal Hazards: Invalid Endpoint encountered when Constructing BPS (0)");
-      if (endPoint < m_pDuneLayer->Begin())
-         Report::ErrorMsg("Coastal Hazards: Invalid Endpoint encountered when Constructing BPS (1)");
-
-      // determine length of construction 
-      float bpsLength = 0.0f;
-      float bpsAvgHeight = 0.0f;
-      int iduIndex = -1;
-      int northIndex = -1;
-      int southIndex = -1;
-
-      // conditions met for construcint BPS, 
-      if (trigger)
-         {
-         m_pIDULayer->m_readOnly = false;
-         CArray<int, int> iduIndices;
-         CArray<int, int> neighbors;
-         int sz = m_pIduBuildingLkUp->GetPolysFromPointIndex(duneBldgIndex, iduIndices);
-         iduIndex = iduIndices[0];
-
-         REAL northingTop = 0.0;
-         REAL northingBottom = 0.0;
-
-         float iduLength = 0.0f;
-         m_pIDULayer->GetData(iduIndex, m_colIDULength, iduLength);
-         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingTop, northingTop);
-         m_pIDULayer->GetData(iduIndex, m_colIDUNorthingBottom, northingBottom);
-         //      m_pIDULayer->SetData(iduIndex, m_colIDUAddBPSYr, currentYear);
-
-         // if the idu length (top to bottom) is less than 500m, consider north, then south neighbor,
-         // for expanding the BPS
-         if (iduLength <= 500.0f)
-            {
-            bpsLength = iduLength;
-
-            // find IDU to the north
-            Poly* pPoly = m_pIDULayer->GetPolygon(iduIndex);
-
-            Vertex v = pPoly->GetCentroid();
-            //Vertex v(pPoly->xMin, northingTop);
-
-            //      int count = m_pIDULayer->GetNearbyPolys(pPoly, neighbors, nullptr, 10, 1);
-            int count = m_pIDULayer->GetNextToPolys(iduIndex, neighbors);
-
-            // Get north poly
-            northIndex = m_pIDULayer->GetNearestPoly(v.x, northingTop + 1.0);
-            if (northIndex >= 0)
-               {
-               if (northIndex == iduIndex) // make sure we got a different IDU
-                  Report::LogWarning("Coastal Hazards: No northerly IDU found when extending BPS construction northward");
-               else
-                  {
-                  float northLength = 0.0f;
-                  bool ok = m_pIDULayer->GetData(northIndex, m_colIDULength, northLength);
-                  if (ok && bpsLength + northLength <= 500.0f && northIndex >= 0)
-                     {
-                     ////??? should this be moved to after cost constraint applied?
-                     //m_pIDULayer->SetData(northIndex, m_colIDUAddBPSYr, currentYear);
-                     iduAddBPSYrIndexArray.Add(northIndex);
-
-                     // check to make sure beachtype is Sandy Dune Backed
-                     bpsLength += northLength;
-                     int northPt = (int)(northLength / m_elevCellHeight) - 1;
-                     int i = 0;
-                     int beachType = -1;
-                     m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
-                     while (beachType == BchT_SANDY_DUNE_BACKED && endPoint < m_pDuneLayer->End() && i < northPt)
-                        {
-                        i++;
-                        m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
-                        endPoint++;
-                        }
-                     }
-                  }
-               }
-
-            float southLength = 0.0;
-            southIndex = m_pIDULayer->GetNearestPoly(v.x, northingBottom - 1.0);
-            ASSERT(southIndex >= 0);
-            bool ok = m_pIDULayer->GetData(southIndex, m_colIDULength, southLength);
-            if (ok && bpsLength + southLength <= 500.0f && southIndex >= 0)
-               {
-               ////??? should this be moved to after cost constraint applied?
-               //m_pIDULayer->SetData(southIndex, m_colIDUAddBPSYr, currentYear);
-               iduAddBPSYrIndexArray.Add(southIndex);
-
-               bpsLength += southLength;
-               float addedLength = float(v.y - northingBottom);
-               int southPt = (int)((southLength + addedLength) / m_elevCellHeight) - 1;
-
-               int i = 0;
-               int beachType = -1;
-               m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
-               while (beachType == BchT_SANDY_DUNE_BACKED && point > m_pDuneLayer->Begin() && i < southPt)
-                  {
-                  i++;
-                  m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
-                  point--;
-                  }
-               }
-
-            // determine cost of structure and whether there is money to construct it
-            // before construction 
-
-            }
-         }  // end trigger (calculate bpsLength)
-
-      ASSERT(endPoint < m_pDuneLayer->End());
-      ASSERT(point >= m_pDuneLayer->Begin());
-      if (endPoint >= m_pDuneLayer->End())
-         endPoint = m_pDuneLayer->End();
-      if (point < m_pDuneLayer->Begin())
-         point = m_pDuneLayer->Begin();
-
-      // determine cost of bps construction
-      if (trigger)
-         {
-         // Retrieve the maximum TWL within the designated window
-         // for the dune point with the maximum overtopping within the extent
-         MovingWindow* twlMovingWindow = m_TWLArray.GetAt(maxPoint);
-         float newCrest = twlMovingWindow->GetMaxValue() + m_safetyFactor;
-
-         // Retrieve dune crest elevation at maximum overtopping
-         float duneCrest = 0.0f;
-         m_pDuneLayer->GetData(maxPoint, m_colDLDuneCrest, duneCrest);
-
-         // Retreive the dune point with the minimum dune toe elevation within the extent
-         float minDuneToe = 0.0f;
-         m_pDuneLayer->GetData(minToePoint, m_colDLDuneToe, minDuneToe);
-
-         // determine maximum height of structure
-         float maxHeight = newCrest - minDuneToe;
-
-         // This is an engineering limit and also prevents the BPS from blocking the viewscape
-         if (maxHeight > m_maxBPSHeight)
-            {
-            maxHeight = m_maxBPSHeight;
-            newCrest = minDuneToe + maxHeight;
-            }
-
-         // There is a minimum height for construction
-         if (maxHeight < m_minBPSHeight)
-            {
-            maxHeight = m_minBPSHeight;
-            newCrest = minDuneToe + maxHeight;
-            }
-
-         // structure elevation is the same as dune crest elevation of most impacted dune
-         if (newCrest < duneCrest)
-            newCrest = duneCrest;
-
-         // determine where to build the BPS :  relative to the toe or bldg
-         bool constructFromToe = true;
-         float minDistToBldg = 0.0f;
-         m_pDuneLayer->GetData(minDistPoint, m_colDLDuneBldgDist, minDistToBldg);
-         float yToe = 0.0f;
-         m_pDuneLayer->GetData(minDistPoint, m_colDLDuneToe, yToe);
-
-         /*float maxWidth = (newCrest - yToe) / m_slopeBPS;
-         if (minDistToBldg < maxWidth)
-         constructFromToe = false;*/
-
-         /*   }
-
-         if (construct)
-         {*/
-
-         // Build BPS such that each section is a different height but is level at the top
-         // of the structure
-         int cnt = 0;
-         for (MapLayer::Iterator dpt = point; dpt < endPoint; dpt++)
-            {
-            float duneToe = 0.0f;
-            bool ok = m_pDuneLayer->GetData(dpt, m_colDLDuneToe, duneToe);
-            if (ok)
-               {
-               float bpsHeight = newCrest - duneToe;
-               bpsAvgHeight += bpsHeight;
-               cnt++;
-               }
-            }
-
-         bpsAvgHeight /= cnt;
-         if (bpsAvgHeight < 0)
-            bpsAvgHeight = 0;
-
-         if (bpsLength < 0)
-            bpsLength = 0;
-
-         // check cost against budget
-         float cost = m_costs.BPS * bpsLength;   // # * bpsAvgHeight;
-
-         bool passCostConstraint = true;
-
-         // get budget infor for Constructing BPS policy
-         PolicyInfo& pi = m_policyInfoArray[PI_CONSTRUCT_BPS];
-
-         // enough funds in original allocation ?
-         if (pi.HasBudget() && pi.m_availableBudget <= cost && cost > 0) //armorAllocationResidual >= cost)
-            passCostConstraint = false;
-
-         AddToPolicySummary(currentYear, PI_CONSTRUCT_BPS, int(point), m_costs.BPS, cost, pi.m_availableBudget, bpsAvgHeight, bpsLength, passCostConstraint);
-
-         if (passCostConstraint)
-            {
-            // Annual County wide cost for building BPS
-            m_constructCostBPS += cost;
-            pi.IncurCost(cost);
-
-            //m_pResidualArray->Add(armorCol, row, -cost);   // subtract cost from this year
-            //m_prevExpenditures[armorCol] = m_armorCost;
-
-            if (iduIndex != -1)
-               m_pIDULayer->SetData(iduIndex, m_colIDUAddBPSYr, currentYear);
-            if (northIndex != -1)
-               m_pIDULayer->SetData(northIndex, m_colIDUAddBPSYr, currentYear);
-            if (southIndex != -1)
-               m_pIDULayer->SetData(southIndex, m_colIDUAddBPSYr, currentYear);
-
-            m_pIDULayer->m_readOnly = true;
-
-            m_noConstructedBPS += 1;
-
-            // Calculate Excess Erosion
-            //float r = 0.10f * bpsLength;
-            //float s = 0.69f * bpsLength;
-
-            //CalculateExcessErosion(endPoint, r, s, true);   // Walk north
-            //CalculateExcessErosion(point, r, s, false);      // Walk south      
-
-            // construct BPS along length following contour of beach
-            for (MapLayer::Iterator pt = point; pt < endPoint; pt++, point++)
-               {
-               // Retrieve existing dune charactersitics
-               float duneToe = 0.0f;
-               m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
-
-               double eastingToe = 0.0;
-               m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
-
-               double beachWidth = 0.0;
-               m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
-
-               float tanb = 0.0f;
-               m_pDuneLayer->GetData(pt, m_colDLTranSlope, tanb);
-
-               // unsure if this should be done
-               //if (!constructFromToe)
-               // duneToe -= xToeShift * tanb;
-
-               float bpsHeight = newCrest - duneToe;
-
-               float bpsWidth = bpsHeight / m_slopeBPS;
-
-               double eastingCrest = 0.0;
-
-               // if BPS is constructed from the toe landward the beachwidth doesn't narrow
-               if (constructFromToe)
-                  {
-                  eastingCrest = eastingToe + bpsWidth;
-                  //  ??? does beach narrow
-                  //   beachWidth -= width;
-                  }
-               else // construct seaward as much as possible, narrowing beach appropriately
-                  {
-                  float xShift = (bpsWidth - minDistToBldg);
-                  beachWidth -= xShift;
-                  eastingToe -= xShift;
-
-                  eastingCrest -= xShift;
-                  }
-
-               // pinch point   y1 = m1 * x1 + b1 = y2 = m2 * x2 + b2
-               //  x = (b2 - b1) / (m1 - m2)
-               //  height = newCrest - duneToe
-               //double newEastingToe = (height + (tanb - m_slopeBPS) * eastingToe) / (tanb - m_slopeBPS);
-               //double deltaX = eastingToe - newEastingToe;
-
-               //double eastingCrest = eastingToe;
-
-               //float newDuneToe = tanb * (float)newEastingToe + (duneToe - tanb * (float)eastingToe);
-
-               //eastingToe = newEastingToe;
-               //beachWidth -= deltaX;
-               //duneToe = newDuneToe;
-
-               // determine cost of a section along the BPS
-               // Cost is per height per meter
-               //   float cost = bpsHeight * m_costs.BPS * (float)m_cellHeight;
-
-               // construct BPS by changing beachtype to RIP RAP BACKED
-               /*int beachType = -1;
-               m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
-               if (beachTYpe == BchT_SANDY_DUNE_BACKED)
-               { */
-               m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_SANDY_RIPRAP_BACKED);
-               m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-               m_pDuneLayer->SetData(pt, m_colDLAddYearBPS, currentYear);
-               m_pDuneLayer->SetData(pt, m_colDLGammaRough, m_minBPSRoughness);
-
-               //      m_pDuneLayer->SetData(pt, m_colDLCostBPS, cost);
-               m_pDuneLayer->SetData(pt, m_colDLHeightBPS, bpsHeight);
-               m_pDuneLayer->SetData(pt, m_colDLLengthBPS, m_elevCellHeight);
-               m_pDuneLayer->SetData(pt, m_colDLWidthBPS, bpsWidth);
-               m_pDuneLayer->SetData(pt, m_colDLDuneToe, duneToe);
-               m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-
-               m_pDuneLayer->SetData(pt, m_colDLEastingToeBPS, eastingToe);
-
-               m_pDuneLayer->SetData(pt, m_colDLEastingCrest, eastingCrest);
-               m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);
-
-
-               // take care of those coverage updates we deferred from above
-               for (int i = 0; i < (int)dlTypeChangeIndexArray.GetSize(); i++)
-                  m_pDuneLayer->SetData(dlTypeChangeIndexArray[i], m_colDLTypeChange, 1);
-
-               for (int i = 0; i < (int)iduAddBPSYrIndexArray.GetSize(); i++)
-                  m_pIDULayer->SetData(iduAddBPSYrIndexArray[i], m_colIDUAddBPSYr, currentYear);
-
-
-               // update new dune toe position
-               Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
-               if (pPoly->GetVertexCount() > 0)
-                  {
-                  pPoly->m_vertexArray[0].x = eastingToe;
-                  pPoly->InitLogicalPoints(m_pMap);
-                  }
-               }
-            } // end cost constrained construction
-         else
-            {   // don't construct
-            pi.m_unmetDemand += cost;
-
-            point = endPoint;
-            }
-         }
-      } // end Dune Points
+   return false;
    }
 
 
-void ChronicHazards::ConstructSPS(int currentYear)
+int ChronicHazards::GetEligibleBPSNeighbors(int dunePt, CUIntArray& _neighbors, int direction  /*1 = left, 2=right, 3=both*/)
+{
+    _neighbors.RemoveAll();
+
+    if (IsDuneEligibleForBPS(dunePt) == false)
+        return 0;
+
+    _neighbors.Add(dunePt); // include itself
+
+    int count = 1;
+    const int recordCount = m_pDuneLayer->GetRowCount();
+    const int maxNeighborhoodMeters = 2000;
+    const int spacingMeters = 10; // your assumed spacing
+
+    // left
+    if (direction & 1)
+    {
+        int leftPt = dunePt - 1;
+        while (leftPt >= 0 && (count * spacingMeters) <= maxNeighborhoodMeters)
+        {
+            if (IsDuneEligibleForBPS(leftPt))
+            {
+                _neighbors.Add(leftPt);
+                leftPt--;
+                count++;
+            }
+            else
+                break;
+        }
+    }
+
+    // right
+    if (direction & 2)
+    {
+        int rightPt = dunePt + 1;
+        while (rightPt < recordCount && (count * spacingMeters) <= maxNeighborhoodMeters)
+        {
+            if (IsDuneEligibleForBPS(rightPt))
+            {
+                _neighbors.Add(rightPt);
+                rightPt++;
+                count++;
+            }
+            else
+                break;
+        }
+    }
+
+    return count;
+}
+
+
+double ChronicHazards::RobustMedian(std::vector<double> vals)
+{
+    // remove non-finite values
+    vals.erase(std::remove_if(vals.begin(), vals.end(),
+        [](double v) { return !std::isfinite(v); }), vals.end());
+
+    if (vals.empty())
+        return 0.0;
+
+    std::sort(vals.begin(), vals.end());
+    size_t n = vals.size();
+    if (n % 2)
+        return vals[n / 2];
+    return 0.5 * (vals[n / 2 - 1] + vals[n / 2]);
+}
+
+void ChronicHazards::ClampBPSGeometry(double& width, double& height, double& duneCrest,
+    double minWidth, double minHeight, double maxHeight)
+{
+    const double EPS = 1e-6;
+
+    // ensure slope is sane; fallback to 1.0 to avoid divide-by-zero
+    double slope = (std::isfinite(this->m_slopeBPS) && this->m_slopeBPS > EPS) ? this->m_slopeBPS : 0.5;
+
+    // width must be positive & finite
+    if (!std::isfinite(width) || width <= EPS) {
+        // fallback assigned later from height/slope; no need to set width now
+    }
+
+    // height must be positive & finite
+    if (!std::isfinite(height) || height <= EPS) {
+        double fallbackH = (minHeight > EPS) ? minHeight : 0.5;
+        height = fallbackH;
+    }
+
+    // clamp height to configured max/min
+    if (maxHeight > 0.0 && height > maxHeight) {
+        height = maxHeight;
+    }
+    if (height < minHeight) {
+        height = minHeight;
+    }
+
+    // maintain consistency: width = height / slope
+    double recomputedWidth = height / slope;
+    if (!std::isfinite(recomputedWidth) || recomputedWidth <= EPS) {
+        recomputedWidth = (std::max)(minWidth, 0.1);
+    }
+
+    // honor an explicit minWidth if provided
+    if (minWidth > EPS && recomputedWidth < minWidth) {
+        recomputedWidth = minWidth;
+        height = recomputedWidth * slope;
+        if (maxHeight > 0.0 && height > maxHeight) {
+            height = maxHeight;
+            recomputedWidth = height / slope;
+        }
+    }
+
+    width = recomputedWidth;
+
+    // ensure dune crest is at least MHW + height
+    if (!std::isfinite(duneCrest) || duneCrest <= (MHW + EPS)) {
+        duneCrest = MHW + height;
+    }
+    else if (duneCrest < (MHW + height - EPS)) {
+        duneCrest = MHW + height;
+    }
+}
+
+
+void ChronicHazards::ConstructBPS(EnvContext* pEnvContext)
+{
+    // basic idea: randomly iterate throught the dune point coverage.
+    // 1) For each dune point,check to see if it is protecting a building.  If so,
+    // 2) check to see if it passess the triggers.  If so,
+    // 3) look "left" and "right" to see if similalrly qualifying contigous dune points exist.
+    //    If enough points (meets minimum threshold) exist, then constrct BPS on all these points.
+    //
+
+    CString msg;
+    msg.Format(_T("ConstructBPS: start year=%d run=%d"), pEnvContext->currentYear, pEnvContext->runID);
+    Report::LogInfo(msg);
+
+    // ---- calculate eligible counts at beginning of routine ----
+    m_eligibleDunePointsBPSBeginning = 0;
+    m_eligibleLengthBPSBeginning = 0.0f;
+
+    {
+        const float duneLength = 10.0f; // Each dune point represents 10m
+        int recordCount = m_pDuneLayer->GetRecordCount();
+
+        int eligibleCount = 0;
+        float eligibleLen = 0.0f;
+
+        for (int i = 0; i < recordCount; ++i)
+        {
+            // Check if already has BPS
+            int addBPSYr = 0;
+            m_pDuneLayer->GetData(i, m_colDLAddBPSYr, addBPSYr);
+            if (addBPSYr > 0)
+                continue;
+
+            // Check beach type
+            int beachType = 0;
+            m_pDuneLayer->GetData(i, m_colDLBeachType, beachType);
+            if (beachType != BchT_SANDY_DUNE_BACKED && beachType != BchT_MIXED_SEDIMENT_DUNE_BACKED)
+                continue;
+
+            // Check building proximity
+            int bldgIndex = -1;
+            m_pDuneLayer->GetData(i, m_colDLDuneBldgIndex, bldgIndex);
+            if (bldgIndex < 0)
+                continue;
+
+            // Check TWL/erosion triggers
+            float movingAvgIDPY = 0.0f;
+            m_pDuneLayer->GetData(i, m_colDLMvAvgIDPY, movingAvgIDPY);
+            float buildBPSThreshold = m_idpyFactor * 365.0f;
+
+            float avgKD = 0.0f;
+            m_pDuneLayer->GetData(i, m_colDLAvgKD, avgKD);
+
+            float distToBldg = 0.0f;
+            m_pDuneLayer->GetData(i, m_colDLDuneBldgDist, distToBldg);
+
+            bool isImpactedByEErosion = IsBldgImpactedByEErosion(bldgIndex, avgKD, distToBldg);
+
+            if (movingAvgIDPY >= buildBPSThreshold || isImpactedByEErosion)
+            {
+                ++eligibleCount;
+                eligibleLen += duneLength;
+            }
+        }
+
+        m_eligibleDunePointsBPSBeginning = eligibleCount;
+        m_eligibleLengthBPSBeginning = eligibleLen;
+    }
+    // ---- end beginning counts ----
+
+//Use #if 0 / #endif so the code is preserved in source control and easily re - enabled later by changing to #if 1 or removing the block.
+#if 0
+    // Small CSV dump to help debugging: one row per dune point with key fields
+    {
+        CString outDir = PathManager::GetPath(PM_OUTPUT_DIR);
+        CString csvPath;
+        csvPath.Format("%sDuneDump_Year%i_Run%i.csv", (LPCTSTR)outDir, pEnvContext->currentYear, pEnvContext->runID);
+        FILE* fp = nullptr;
+        if (fopen_s(&fp, (LPCTSTR)csvPath, "wt") == 0 && fp != nullptr)
+        {
+            fprintf(fp, "duneIndex,beachType,duneBldgIndex,mvAvgIDPY,avgKD,distToBldg,addBPSYr,eligible\n");
+            int rc = m_pDuneLayer->GetRowCount();
+            for (int i = 0; i < rc; ++i)
+            {
+                int beachType = -1, duneBldgIndex = -1, addBPSYr = 0;
+                float mvIDPY = 0.0f, avgKD = 0.0f, distToBldg = 0.0f;
+                m_pDuneLayer->GetData(i, m_colDLBeachType, beachType);
+                m_pDuneLayer->GetData(i, m_colDLDuneBldgIndex, duneBldgIndex);
+                m_pDuneLayer->GetData(i, m_colDLMvAvgIDPY, mvIDPY);
+                m_pDuneLayer->GetData(i, m_colDLAvgKD, avgKD);
+                m_pDuneLayer->GetData(i, m_colDLDuneBldgDist, distToBldg);
+                m_pDuneLayer->GetData(i, m_colDLAddBPSYr, addBPSYr);
+                bool eligible = IsDuneEligibleForBPS(i);
+                fprintf(fp, "%d,%d,%d,%.4f,%.4f,%.2f,%d,%d\n", i, beachType, duneBldgIndex, mvIDPY, avgKD, distToBldg, addBPSYr, eligible ? 1 : 0);
+            }
+            fclose(fp);
+            Report::Log_s("ConstructBPS: wrote dune dump CSV %s", (LPCTSTR)csvPath);
+        }
+        else
+        {
+            Report::Log_s("ConstructBPS: failed to open CSV path %s for writing", (LPCTSTR)csvPath);
+        }
+    }
+#endif
+
+    // ramdomly select dune points
+    int recordCount = m_pDuneLayer->GetRecordCount();
+    CUIntArray shuffleArray;
+    shuffleArray.SetSize(recordCount);
+
+    for (int i = 0; i < recordCount; i++)
+    {
+        shuffleArray[i] = i;
+    }
+
+    RandUniform rn(0, recordCount, 1);
+    ShuffleArray<UINT>(shuffleArray.GetData(), recordCount, &rn);
+
+    PolicyInfo& pi = m_policyInfoArray[PI_CONSTRUCT_BPS];
+
+    // debug counters
+    int skipped_for_length = 0;
+    int skipped_for_budget = 0;
+    int built_sections = 0;
+
+    for (int m = 0; m < recordCount; m++)
+    {
+        if (pi.HasBudget() && pi.m_availableBudget <= 0)
+            break; // no more budget 
+
+        CUIntArray neighbors;
+        int dunePt = shuffleArray[m];         // a random grab
+
+        // is it eligible for BPS construction?
+        if (IsDuneEligibleForBPS(dunePt))
+        {
+            GetEligibleBPSNeighbors(dunePt, neighbors, 3); // both directions, includes original dune pt
+
+            int neighborhoodMeters = (int) neighbors.GetSize() * 10;
+            if (neighborhoodMeters < m_minBPSLength) // *10 assumes 10 meter spacing
+            {
+                CString msg;
+                msg.Format(_T("ConstructBPS: skip dunePt %d - neighborhood %d m < minBPSLength %d"), dunePt, neighborhoodMeters, m_minBPSLength);
+                Report::LogInfo(msg);
+                skipped_for_length++;
+                continue; // not enough length
+            }
+
+            // compute representative geometry as before
+            float maxAmtTop = 0.0f;
+            float minToeElevation = 10000.0f;
+            float minDistToBldg = 100000.0f;
+            float maxTWL = 0.0f;
+            float minNewCrest = 9999.0f;
+
+            int maxPoint = -1;
+            int minToePoint = -1;
+            int minDistPoint = -1;
+            float bpsAvgHeight = 0.0f;
+
+            // pass one - get construction metrics assuming the whole neighborhood is built 
+            for (int n = 0; n < neighbors.GetSize(); n++)
+            {
+                int neighborDunePt = neighbors[n];
+
+                // Retrieve the maximum TWL within the moving window
+                MovingWindow* twlMovingWindow = m_TWLArray.GetAt(neighborDunePt);
+                float movingMaxTWL = twlMovingWindow->GetMaxValue();
+                float newCrest = movingMaxTWL + m_safetyFactor;
+
+                // Retrieve dune crest elevation at maximum overtopping
+                float duneCrest = 0.0f;
+                m_pDuneLayer->GetData(neighborDunePt, m_colDLDuneCrest, duneCrest);
+
+                // Find dune point with highest overtopping
+                if (maxAmtTop >= 0.0f && (movingMaxTWL - duneCrest) > maxAmtTop)
+                {
+                    maxAmtTop = movingMaxTWL - duneCrest;
+                    maxTWL = movingMaxTWL;
+                    maxPoint = neighborDunePt;
+                }
+
+                // Find dune point with minimum elevation
+                float duneToe = 0.0f;
+                m_pDuneLayer->GetData(neighborDunePt, m_colDLDuneToe, duneToe);
+                if (minToeElevation <= duneToe)
+                {
+                    minToeElevation = duneToe;
+                    minToePoint = neighborDunePt;
+                }
+
+                if (newCrest < minNewCrest)
+                    minNewCrest = newCrest;
+
+                float bpsHeight = newCrest - duneToe;
+                bpsAvgHeight += bpsHeight;
+            }
+
+            if (neighbors.GetSize() > 0)
+                bpsAvgHeight /= neighbors.GetSize();
+
+            // --- compute robust representative width/height for this neighborhood
+            std::vector<double> widthCandidates;
+            std::vector<double> heightCandidates;
+            for (int n = 0; n < neighbors.GetSize(); ++n)
+            {
+                int neighborDunePt = neighbors[n];
+                float duneToe = 0.0f;
+                m_pDuneLayer->GetData(neighborDunePt, m_colDLDuneToe, duneToe);
+
+                double localHeight = double(minNewCrest) - double(duneToe);
+                double localWidth = (m_slopeBPS > 1e-8) ? (localHeight / double(m_slopeBPS)) : localHeight;
+
+                if (std::isfinite(localHeight))
+                    heightCandidates.push_back(localHeight);
+                if (std::isfinite(localWidth))
+                    widthCandidates.push_back(localWidth);
+            }
+
+            double repWidth = RobustMedian(widthCandidates);
+            double repHeight = RobustMedian(heightCandidates);
+            double repCrest = minNewCrest;
+
+            // clamp to sane geometry ranges (ensures non-negative widths/heights, enforces min/max)
+            ClampBPSGeometry(repWidth, repHeight, repCrest, MIN_BACKSHORE_WIDTH, (double)m_minBPSHeight, (double)m_maxBPSHeight);
+
+            // get budget info for Constructing BPS policy
+            PolicyInfo& piLocal = m_policyInfoArray[PI_CONSTRUCT_BPS];
+
+            // start building
+            float builtBPSLength = 0;
+            float builtBPSCost = 0.0f;
+
+            // pass 2 - build BPS if budget allows
+            for (int n = 0; n < neighbors.GetSize(); n++)
+            {
+                int neighborDunePt = neighbors[n];
+
+                // check cost against budget
+                float cost = m_costs.BPS * 10;   // cost/meter * size (length) of dune pt
+                bool passCostConstraint = true;
+
+                if (piLocal.HasBudget() && piLocal.m_availableBudget < cost && cost > 0)
+                    passCostConstraint = false;
+
+                if (passCostConstraint)
+                {
+                    // Annual County wide cost for building BPS
+                    m_constructCostBPS += cost;
+                    piLocal.IncurCost(cost);
+                    builtBPSLength += 10; // meter spacing
+                    builtBPSCost += cost;
+
+                    // set the IDU column(s) for IDUs associated with this dune point
+                    {
+                        CArray<int, int> iduIndices;
+                        int iduCount = m_pIduDuneLkUp ? m_pIduDuneLkUp->GetPolysFromPointIndex(neighborDunePt, iduIndices) : 0;
+                        for (int ii = 0; ii < iduIndices.GetSize(); ++ii)
+                        {
+                            int idu = iduIndices[ii];
+                            if (idu >= 0 && idu < m_pIDULayer->GetRecordCount())
+                                /*m_pIDULayer->SetData(idu, m_colIDUAddBPSYr, pEnvContext->currentYear);*/
+								UpdateIDU(pEnvContext, idu, m_colIDUAddBPSYr, pEnvContext->currentYear);
+                        }
+                    }
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLAddBPSYr, pEnvContext->currentYear);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLTypeChange, 1); // mark for BPS construction
+
+                    // update dune position information and geometry writes (kept from prior code)
+                    float duneToe = 0.0f;
+                    m_pDuneLayer->GetData(neighborDunePt, m_colDLDuneToe, duneToe);
+
+                    double eastingToe = 0.0;
+                    m_pDuneLayer->GetData(neighborDunePt, m_colDLEastingToe, eastingToe);
+
+                    double beachWidth = 0.0;
+                    m_pDuneLayer->GetData(neighborDunePt, m_colDLBeachWidth, beachWidth);
+
+                    // Use neighborhood robust values (repHeight/repWidth)
+                    double bpsHeight = repHeight;
+                    double bpsWidth = repWidth;
+
+                    // Defensive fallback if invalid
+                    if (!std::isfinite(bpsHeight) || !std::isfinite(bpsWidth) || bpsHeight <= 0.0 || bpsWidth <= 0.0)
+                    {
+                        double localHeight = double(minNewCrest) - double(duneToe);
+                        double localWidth = (m_slopeBPS > 1e-8) ? (localHeight / double(m_slopeBPS)) : localHeight;
+                        double localCrest = minNewCrest;
+                        ClampBPSGeometry(localWidth, localHeight, localCrest, MIN_BACKSHORE_WIDTH, (double)m_minBPSHeight, (double)m_maxBPSHeight);
+                        bpsWidth = localWidth;
+                        bpsHeight = localHeight;
+                        repCrest = localCrest;
+                    }
+
+                    double eastingCrest = eastingToe + bpsWidth;
+
+                    // apply layer updates
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLBeachType, BchT_SANDY_RIPRAP_BACKED);
+
+                    double prevCrest = 0.0;
+                    m_pDuneLayer->GetData(neighborDunePt, m_colDLDuneCrest, prevCrest);
+
+                    double candidateCrest = repCrest;
+                    double finalCrest = (std::isfinite(prevCrest) && prevCrest > candidateCrest) ? prevCrest : candidateCrest;
+
+                    double localToe = 0.0;
+                    m_pDuneLayer->GetData(neighborDunePt, m_colDLDuneToe, localToe);
+
+                    double finalHeight = finalCrest - localToe;
+                    if (!std::isfinite(finalHeight) || finalHeight < (double)m_minBPSHeight)
+                        finalHeight = (double)m_minBPSHeight;
+
+                    double finalWidth = (m_slopeBPS > 1e-8) ? (finalHeight / m_slopeBPS) : repWidth;
+
+                    double tmpWidth = finalWidth;
+                    double tmpHeight = finalHeight;
+                    double tmpCrest = finalCrest;
+                    ClampBPSGeometry(tmpWidth, tmpHeight, tmpCrest, MIN_BACKSHORE_WIDTH, (double)m_minBPSHeight, (double)m_maxBPSHeight);
+
+                    // write final values
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLHeightBPS, (float)tmpHeight);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLWidthBPS, (float)tmpWidth);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLDuneCrest, (float)tmpCrest);
+
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLAddBPSYr, pEnvContext->currentYear);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLGammaRough, m_minBPSRoughness);
+
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLCostBPS, cost);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLLengthBPS, m_BPSLength);
+
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLDuneToe, duneToe);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLBeachWidth, (float)beachWidth);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLEastingToeBPS, eastingToe);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLEastingCrest, eastingCrest);
+                    m_pDuneLayer->SetData(neighborDunePt, m_colDLEastingToe, eastingToe);
+
+                    Poly* pPoly = m_pDuneLayer->GetPolygon(neighborDunePt);
+                    if (pPoly->GetVertexCount() > 0)
+                    {
+                        pPoly->m_vertexArray[0].x = eastingToe;
+                        pPoly->InitLogicalPoints(m_pMap);
+                    }
+
+                    built_sections++;
+                }
+                else
+                {
+                    CString msg;
+                    msg.Format("ConstructBPS: budget skip dunePt %d neighbor %d cost %.2f availBudget %.2f", dunePt, neighborDunePt, cost, piLocal.m_availableBudget);
+                    Report::LogInfo(msg);
+                    piLocal.m_unmetDemand += cost;
+                    skipped_for_budget++;
+                    break; // stop building this neighborhood on budget fail
+                }
+            }  // end neighbor loop
+
+            AddToPolicySummary(pEnvContext->currentYear, PI_CONSTRUCT_BPS, dunePt, m_costs.BPS, builtBPSCost, piLocal.m_availableBudget, bpsAvgHeight, builtBPSLength, builtBPSLength > 0);
+
+            if (builtBPSLength > 0)
+            {
+                m_noConstructedBPS += 1;
+            } // end cost constrained construction
+            else
+            {   // don't construct
+            }
+        } // end eligible dune point
+    } // end Dune Points
+
+    // ---- calculate eligible counts at end of routine ----
+    m_eligibleDunePointsBPSEnd = 0;
+    m_eligibleLengthBPSEnd = 0.0f;
+
+    {
+        const float duneLength = 10.0f;
+        int recordCountEnd = m_pDuneLayer->GetRecordCount();
+
+        int eligibleCount = 0;
+        float eligibleLen = 0.0f;
+
+        for (int i = 0; i < recordCountEnd; ++i)
+        {
+            int addBPSYr = 0;
+            m_pDuneLayer->GetData(i, m_colDLAddBPSYr, addBPSYr);
+            if (addBPSYr > 0)
+                continue;
+
+            int beachType = 0;
+            m_pDuneLayer->GetData(i, m_colDLBeachType, beachType);
+            if (beachType != BchT_SANDY_DUNE_BACKED && beachType != BchT_MIXED_SEDIMENT_DUNE_BACKED)
+                continue;
+
+            int bldgIndex = -1;
+            m_pDuneLayer->GetData(i, m_colDLDuneBldgIndex, bldgIndex);
+            if (bldgIndex < 0)
+                continue;
+
+            float movingAvgIDPY = 0.0f;
+            m_pDuneLayer->GetData(i, m_colDLMvAvgIDPY, movingAvgIDPY);
+            float buildBPSThreshold = m_idpyFactor * 365.0f;
+
+            float avgKD = 0.0f;
+            m_pDuneLayer->GetData(i, m_colDLAvgKD, avgKD);
+            float distToBldg = 0.0f;
+            m_pDuneLayer->GetData(i, m_colDLDuneBldgDist, distToBldg);
+
+            bool isImpactedByEErosion = IsBldgImpactedByEErosion(bldgIndex, avgKD, distToBldg);
+
+            if (movingAvgIDPY >= buildBPSThreshold || isImpactedByEErosion)
+            {
+                ++eligibleCount;
+                eligibleLen += duneLength;
+            }
+        }
+
+        m_eligibleDunePointsBPSEnd = eligibleCount;
+        m_eligibleLengthBPSEnd = eligibleLen;
+    }
+    // ---- end end counts ----
+
+    // Calculate changes
+    m_eligibleDunePointsBPSChange = m_eligibleDunePointsBPSEnd - m_eligibleDunePointsBPSBeginning;
+    m_eligibleLengthBPSChange = m_eligibleLengthBPSEnd - m_eligibleLengthBPSBeginning;
+
+    // compute unmet construction demand ($)
+    // totalDemand = eligible length at start (m) * cost per meter ($/m)
+    // spent = m_constructCostBPS (accumulated during builds)
+    {
+        float totalDemand = m_eligibleLengthBPSBeginning * m_costs.BPS;
+        m_COSTBPS_unmet = totalDemand - m_constructCostBPS;
+        if (m_COSTBPS_unmet < 0.0f) m_COSTBPS_unmet = 0.0f;
+
+        // Reconcile policy-level unmet (optional): overwrite so reporter shows consistent value.
+        PolicyInfo& piCons = m_policyInfoArray[PI_CONSTRUCT_BPS];
+        piCons.m_unmetDemand = m_COSTBPS_unmet;
+    }
+
+    // Summary
+    msg.Format(_T("Built sections: %d, Skipped for length: %d, Skipped for budget: %d, Eligible BPS Begin: %d, Eligible BPS End: %d"),
+        built_sections, skipped_for_length, skipped_for_budget, m_eligibleDunePointsBPSBeginning, m_eligibleDunePointsBPSEnd);
+    Report::LogInfo(msg);
+}
+
+
+void ChronicHazards::ConstructSPS(EnvContext* pEnvContext)
    {
    for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
@@ -6643,7 +7988,7 @@ void ChronicHazards::ConstructSPS(int currentYear)
                if (movingAvgIDPY >= buildBPSThreshold || isImpactedByEErosion)
                   {
                   int yrBuilt = 0;
-                  m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, yrBuilt);
+                  m_pDuneLayer->GetData(endPoint, m_colDLAddSPSYr, yrBuilt);
                   if (yrBuilt == 0)
                      {
                      //??? defer to later
@@ -6992,14 +8337,14 @@ void ChronicHazards::ConstructSPS(int currentYear)
             if (pi.HasBudget() && pi.m_availableBudget <= cost) //armorAllocationResidual >= cost)
                passCostConstraint = false;
 
-            AddToPolicySummary(currentYear, PI_CONSTRUCT_SPS, int(pt), m_costs.SPS, cost, pi.m_availableBudget, (float)constructVolume, (float)duneArea, passCostConstraint);
+            AddToPolicySummary(pEnvContext->currentYear, PI_CONSTRUCT_SPS, int(pt), m_costs.SPS, cost, pi.m_availableBudget, (float)constructVolume, (float)duneArea, passCostConstraint);
 
             if (passCostConstraint)
                {
                pi.IncurCost(cost);
 
                m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-               m_pDuneLayer->SetData(pt, m_colDLAddYearSPS, currentYear);
+               m_pDuneLayer->SetData(pt, m_colDLAddSPSYr, pEnvContext->currentYear);
 
                m_pDuneLayer->SetData(pt, m_colDLCostSPS, cost);
                m_pDuneLayer->SetData(pt, m_colDLHeightSPS, height);
@@ -7201,7 +8546,7 @@ void ChronicHazards::ConstructDune(int currentYear)
    //            // all dune points of a built dune have the same characteristics
    //      //      m_pDuneLayer->SetData(pt, m_colDLBeachType, BchT_RIPRAP_BACKED);
    //            m_pDuneLayer->SetData(pt, m_colDLDuneCrest, m_duneCrestSPS);
-   //            m_pDuneLayer->SetData(pt, m_colDLAddYearSPS, currentYear);
+   //            m_pDuneLayer->SetData(pt, m_colDLAddSPSYr, currentYear);
    //            m_pDuneLayer->SetData(pt, m_colDLCostSPS, SPSCost);
    //            m_pDuneLayer->SetData(pt, m_colDLLengthSPS, SPSLength);
    //         
@@ -7228,7 +8573,7 @@ void ChronicHazards::ConstructDune(int currentYear)
 
 // Maintains or rebuilds the constructed dune when the dune erodes past the angle of repose
 // Rebuilds the dune back to its original constructed characteristics
-void ChronicHazards::MaintainSPS(int currentYear)
+void ChronicHazards::MaintainSPS(EnvContext* pEnvContext)
    {
    for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
       {
@@ -7317,7 +8662,7 @@ void ChronicHazards::MaintainSPS(int currentYear)
             if (pi.HasBudget() && pi.m_availableBudget <= cost) //armorAllocationResidual >= cost)
                passCostConstraint = false;
 
-            AddToPolicySummary(currentYear, PI_MAINTAIN_SPS, int(pt), m_costs.SPS, cost, pi.m_availableBudget, (float)rebuildVolume, (float)totalVolume, passCostConstraint);
+            AddToPolicySummary(pEnvContext->currentYear, PI_MAINTAIN_SPS, int(pt), m_costs.SPS, cost, pi.m_availableBudget, (float)rebuildVolume, (float)totalVolume, passCostConstraint);
 
             if (passCostConstraint)
                {
@@ -7352,7 +8697,7 @@ void ChronicHazards::MaintainSPS(int currentYear)
                //   double volume = area * m_cellHeight;
 
                m_pDuneLayer->SetData(pt, m_colDLDuneCrest, duneCrest);
-               m_pDuneLayer->SetData(pt, m_colDLMaintYearSPS, currentYear);
+               m_pDuneLayer->SetData(pt, m_colDLMaintYearSPS, pEnvContext->currentYear);
 
                m_pDuneLayer->SetData(pt, m_colDLCostSPS, cost);
 
@@ -7389,8 +8734,8 @@ void ChronicHazards::MaintainSPS(int currentYear)
       } // end dune points
    }
 
-void ChronicHazards::ConstructBPS2(int currentYear)
-   {
+//void ChronicHazards::ConstructBPS2(int currentYear)
+//   {
    //float buildBPSThreshold = m_idpyFactor * 365.0f;
 
    //for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
@@ -7623,7 +8968,7 @@ void ChronicHazards::ConstructBPS2(int currentYear)
 
    // m_pDuneLayer->m_readOnly = true;
 
-   } // end ConstructBPS(int currentYear)
+  // } // end ConstructBPS(int currentYear)
 
 bool ChronicHazards::IsMissingRow(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint)
    {
@@ -7725,7 +9070,7 @@ int ChronicHazards::WalkSouth(MapLayer::Iterator dunePt, float newCrest, int cur
    // change beachtype
    m_pDuneLayer->SetData(dunePt, m_colDLBeachType, BchT_SANDY_RIPRAP_BACKED);
    m_pDuneLayer->SetData(dunePt, m_colDLDuneCrest, newCrest);
-   m_pDuneLayer->SetData(dunePt, m_colDLAddYearBPS, currentYear);
+   m_pDuneLayer->SetData(dunePt, m_colDLAddBPSYr, currentYear);
    m_pDuneLayer->SetData(dunePt, m_colDLGammaRough, m_minBPSRoughness);
    count = 1;
 
@@ -7854,215 +9199,901 @@ void ChronicHazards::RemoveBPS(EnvContext* pEnvContext)
 
    } // end RemoveBPS
 
+    // orginal version: base maintenance + crest increase use the same triggers
+    //BPS is maintained at front of structure, reducing beachwidth and moving structure toe seaward
+//void ChronicHazards::MaintainBPS(EnvContext* pEnvContext)
+//   {
+//   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
+//      {
+//      int beachType = -1;
+//      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+//
+//      MapLayer::Iterator endPoint = point;
+//      MapLayer::Iterator maxPoint = point;
+//
+//      // When did we last increase the height of the structure? 
+//      int lastMaintYear;
+//      m_pDuneLayer->GetData(endPoint, m_colDLMaintYearBPS, lastMaintYear);
+//
+//      int addedBPSYear;
+//      m_pDuneLayer->GetData(endPoint, m_colDLAddBPSYr, addedBPSYear);
+//
+//      if (addedBPSYear == 2020)
+//         lastMaintYear = 2020;
+//
+//      int yrsSinceMaintained = pEnvContext->currentYear - lastMaintYear;
+//
+//      if (beachType == BchT_SANDY_RIPRAP_BACKED && (yrsSinceMaintained > m_maintCFreqBPS))
+//         {
+//         //Do we need to increase the height of the BPS to keep up with increasing TWL?
+//         int bldgIndex = -1;
+//         int nextBldgIndex = -1;
+//
+//         float amtTopped = 0.0f;
+//         float newCrest = 0.0f;
+//         float oldCrest = 0.0f;
+//         double eastingToe = 0.0;
+//
+//         bool isBldgFlooded = false;
+//
+//         m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
+//         nextBldgIndex = bldgIndex;
+//
+//         if (bldgIndex != -1)
+//            {
+//            while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
+//               {
+//               m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, oldCrest);
+//               newCrest = oldCrest;
+//
+//               // Retrieve the maximum TWL within the designated window
+//               MovingWindow* twlMovingWindow = m_TWLArray.GetAt(endPoint);
+//               float movingMaxTWL = twlMovingWindow->GetMaxValue();
+//
+//               // Retrieve the Flooding Frequency of the Protected Building
+//               MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//               float floodFreq = floodMovingWindow->GetFreqValue();
+//
+//               float floodThreshold = (float(m_floodCountBPS) / m_windowLengthFloodHzrd);
+//
+//               if (floodFreq >= floodThreshold)
+//                  isBldgFlooded = true;
+//
+//               // Find dune point with highest overtopping
+//               if (amtTopped >= 0.0f && (movingMaxTWL - oldCrest) > amtTopped)
+//                  {
+//                  amtTopped = movingMaxTWL - oldCrest;
+//                  newCrest = movingMaxTWL;
+//                  maxPoint = endPoint;
+//                  }
+//
+//               endPoint++;
+//               if (endPoint < m_pDuneLayer->End())
+//                  m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+//               }
+//            }
+//
+//         if (isBldgFlooded)
+//            {
+//            MapLayer::Iterator endPoint = point;
+//            MapLayer::Iterator minPoint = point;
+//
+//            m_pDuneLayer->GetData(maxPoint, m_colDLDuneBldgIndex, bldgIndex);
+//            nextBldgIndex = bldgIndex;
+//
+//            float maxBPSHeight = -10000.0f;
+//
+//            float duneToe = 0.0f;
+//
+//            // find dune point of Maximum BPS Height 
+//            while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
+//               {
+//               m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
+//
+//               if ((newCrest - duneToe) > maxBPSHeight)
+//                  {
+//                  maxBPSHeight = newCrest - duneToe;
+//                  minPoint = endPoint;
+//                  }
+//               endPoint++;
+//               if (endPoint < m_pDuneLayer->End())
+//                  m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+//               }
+//
+//            // engineering limit
+//            if (maxBPSHeight > m_maxBPSHeight)
+//               {
+//               maxBPSHeight = m_maxBPSHeight;
+//               m_pDuneLayer->GetData(minPoint, m_colDLDuneToe, duneToe);
+//               newCrest = duneToe + m_maxBPSHeight;
+//               }
+//
+//            float BPSLength = 0.0f;
+//            m_pDuneLayer->GetData(point, m_colDLLengthBPS, BPSLength);
+//
+//            // new: use XML-driven fraction and compute crest-increase separately
+//            float baseFrac = (std::isfinite(m_costs.BPSMaint) && m_costs.BPSMaint > 0.0f) ? m_costs.BPSMaint : 0.02f;
+//            float cost = baseFrac * m_costs.BPS * BPSLength;
+//            float crestIncrease = (newCrest - oldCrest);
+//            if (crestIncrease > 0.0f)
+//                cost += crestIncrease * m_costs.BPS * BPSLength;
+//
+//            // get budget infor for Constructing BPS policy
+//            PolicyInfo& pi = m_policyInfoArray[PI_MAINTAIN_BPS];
+//
+//            // enough funds in original allocation ?
+//            bool passCostConstraint = true;
+//
+//            if (pi.HasBudget() && pi.m_availableBudget <= cost) //armorAllocationResidual >= cost)
+//               passCostConstraint = false;
+//
+//            AddToPolicySummary(pEnvContext->currentYear, PI_MAINTAIN_BPS, int(point), m_costs.BPS, cost, pi.m_availableBudget, BPSLength, (newCrest - oldCrest), passCostConstraint);
+//
+//            if (passCostConstraint)
+//               {
+//               pi.IncurCost(cost);      // charge to budget
+//
+//               float priorBPSCost;
+//               m_pDuneLayer->GetData(point, m_colDLCostBPS, priorBPSCost);
+//               float addedBPSCost = cost + priorBPSCost;
+//               m_pDuneLayer->SetData(point, m_colDLCostBPS, addedBPSCost);
+//               m_maintCostBPS += cost;
+//
+//               for (MapLayer::Iterator pt = point; pt < endPoint; pt++)
+//                  {
+//                  // Beachwidth changes based on a 1:2 slope 
+//                  float beachWidth = 0.0f;
+//                  m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+//
+//                  float duneCrest = 0.0f;
+//                  m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+//
+//                  float duneToe = 0.0f;
+//                  m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
+//
+//                  float tanb = 0.0f;
+//                  m_pDuneLayer->GetData(pt, m_colDLTranSlope, tanb);
+//
+//                  m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+//
+//                  double eastingCrest = 0.0f;
+//                  m_pDuneLayer->GetData(pt, m_colDLEastingCrest, eastingCrest);
+//
+//                  if ((newCrest - duneCrest) > 0.0f)
+//                     {
+//                     //beachWidth -= ((newCrest - duneCrest) / m_slopeBPS);
+//                     //   double newEastingToe = (newCrest + (tanb - m_slopeBPS) * eastingToe) / (tanb - m_slopeBPS);
+//                     double newEastingToe = (newCrest - m_slopeBPS * eastingCrest - duneToe + (tanb * eastingToe)) / (tanb - m_slopeBPS);
+//                     float deltaX = (float)(eastingToe - newEastingToe);
+//
+//                     beachWidth -= deltaX;
+//                     if ((duneToe / beachWidth) > 0.1f)
+//                        beachWidth = duneToe / 0.1f;
+//
+//                     //if (m_debugOn)
+//                     //   {
+//                     //   m_pDuneLayer->SetData(pt, m_colNewEasting, newEastingToe);
+//                     //   //      m_pDuneLayer->SetData(point, m_colBWidth, deltaX2);
+//                     //   m_pDuneLayer->SetData(pt, m_colDeltaX, deltaX);
+//                     //   }
+//
+//                     // DuneCrest height is set to structure height
+//                     m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
+//                     m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
+//                     m_pDuneLayer->SetData(pt, m_colDLMaintYearBPS, pEnvContext->currentYear);
+//                     m_pDuneLayer->SetData(pt, m_colDLCostMaintBPS, cost);
+//                     //
+//                     // change easting of DuneToe
+//
+//                     //eastingToe -= ((newCrest - duneCrest) / m_slopeBPS);
+//                     /*eastingToe = newEastingToe;
+//                     m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);*/
+//
+//                     m_pDuneLayer->SetData(pt, m_colDLEastingToe, newEastingToe);
+//
+//
+//                     Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
+//                     if (pPoly->GetVertexCount() > 0)
+//                        {
+//                        pPoly->m_vertexArray[0].x = newEastingToe;
+//                        pPoly->InitLogicalPoints(m_pMap);
+//                        }
+//                     }
+//                  }
+//               }   // end of: if (maintain)
+//            else
+//               {
+//               pi.m_unmetDemand += cost;
+//               }
+//            }  // end of: if (isBldgFlooded)
+//         }  // end of: if (beachType == BchT_RIPRAP_BACKED && (yrsSinceMaintained > m_maintCFreqBPS))
+//      }  // end of: (for each dune point)
+//   } // end MaintainBPS
 
-     // BPS is maintained at front of structure, reducing beachwidth and moving structure toe seaward
-void ChronicHazards::MaintainBPS(int currentYear)
-   {
-   for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
-      {
-      int beachType = -1;
-      m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
 
-      MapLayer::Iterator endPoint = point;
-      MapLayer::Iterator maxPoint = point;
+void ChronicHazards::MaintainBPS(EnvContext* pEnvContext)
+{
+    if (m_pDuneLayer == nullptr)
+        return;
 
-      // When did we last increase the height of the structure? 
-      int lastMaintYear;
-      m_pDuneLayer->GetData(endPoint, m_colDLMaintYearBPS, lastMaintYear);
+    const double EPS = 1e-8;
 
-      int addedBPSYear;
-      m_pDuneLayer->GetData(endPoint, m_colDLAddYearBPS, addedBPSYear);
+    // Policy info for maintain
+    PolicyInfo& pi = m_policyInfoArray[PI_MAINTAIN_BPS];
 
-      if (addedBPSYear == 2020)
-         lastMaintYear = 2020;
+    // Determine the initial available budget for maintenance-phase:
+    // If policy has explicit budget, use that; otherwise use m_costs.BPS as total policy budget.
+    float remainingBudget = pi.HasBudget() ? pi.m_availableBudget : m_costs.BPS;
 
-      int yrsSinceMaintained = currentYear - lastMaintYear;
+    // Base fraction fallback (used only to compute per-point base cost)
+    float baseFrac = (std::isfinite(m_costs.FracBPSBaseMaint) && m_costs.FracBPSBaseMaint > 0.0f) ? m_costs.FracBPSBaseMaint : 0.02f;
 
-      if (beachType == BchT_SANDY_RIPRAP_BACKED && (yrsSinceMaintained > m_maintFreqBPS))
-         {
-         //Do we need to increase the height of the BPS to keep up with increasing TWL?
-         int bldgIndex = -1;
-         int nextBldgIndex = -1;
+    // ----------------------------
+    // PHASE 1: PRECOMPUTE PER-POINT BASE COSTS
+    // ----------------------------
+    int recordCount = m_pDuneLayer->GetRowCount();
+    std::vector<float> perPtBase(recordCount, 0.0f);
+    std::vector<float> perPtLen(recordCount, 0.0f);
+    std::vector<int> hasBPS(recordCount, 0);
 
-         float amtTopped = 0.0f;
-         float newCrest = 0.0f;
-         float oldCrest = 0.0f;
-         double eastingToe = 0.0;
+    // Also build segments for base maintenance (contiguous dune points with BPS)
+    struct Segment { MapLayer::Iterator start; MapLayer::Iterator end; std::vector<int> indices; float segBaseCost; float segLength; int segCount; int lastBaseMaintYear; int lastCrestMaintYear; int addedYear; };
+    std::vector<Segment> baseSegments;
+    baseSegments.reserve(1024);
 
-         bool isBldgFlooded = false;
+    // First pass: compute per-point base and mark BPS presence
+    for (MapLayer::Iterator it = m_pDuneLayer->Begin(); it < m_pDuneLayer->End(); ++it)
+    {
+        int idx = int(it);
+        int beachType = -1;
+        m_pDuneLayer->GetData(it, m_colDLBeachType, beachType);
+        if (beachType != BchT_SANDY_RIPRAP_BACKED)
+            continue;
 
-         m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
-         nextBldgIndex = bldgIndex;
+        float ptLen = 0.0f;
+        if (m_colDLLengthBPS >= 0)
+            m_pDuneLayer->GetData(it, m_colDLLengthBPS, ptLen);
+        if (ptLen <= 0.0f) ptLen = float(m_BPSLength > 0 ? m_BPSLength : 10.0f);
 
-         if (bldgIndex != -1)
+        perPtLen[idx] = ptLen;
+        perPtBase[idx] = baseFrac * m_costs.BPS * ptLen;
+        hasBPS[idx] = 1;
+    }
+
+    // Build contiguous segments of points that have BPS (simple, no building grouping)
+    int i = 0;
+    while (i < recordCount)
+    {
+        if (!hasBPS[i]) { ++i; continue; }
+
+        // start a new segment
+        int start = i;
+        Segment seg{ m_pDuneLayer->Begin(), m_pDuneLayer->Begin(), std::vector<int>(), 0.0f, 0.0f, 0, 0, 0, 0 };
+        seg.start = m_pDuneLayer->Begin();
+        for (int k = 0; k < start; ++k) ++seg.start;
+        seg.indices.clear();
+        seg.segBaseCost = 0.0f;
+        seg.segLength = 0.0f;
+        seg.segCount = 0;
+        seg.lastBaseMaintYear = 0;
+        seg.lastCrestMaintYear = 0;
+        seg.addedYear = 0;
+
+        int j = start;
+        while (j < recordCount && hasBPS[j])
+        {
+            seg.indices.push_back(j);
+            seg.segBaseCost += perPtBase[j];
+            seg.segLength += perPtLen[j];
+            seg.segCount += 1;
+
+            // track last maintenance year and differentiate base vs crest using explicit persistent columns
+            int lastBase = 0;
+            int lastCrest = 0;
+            if (m_colDLLastBaseMaintYr >= 0) m_pDuneLayer->GetData(j, m_colDLLastBaseMaintYr, lastBase);
+            if (m_colDLLastCrestMaintYr >= 0) m_pDuneLayer->GetData(j, m_colDLLastCrestMaintYr, lastCrest);
+
+            if (lastBase > seg.lastBaseMaintYear) seg.lastBaseMaintYear = lastBase;
+            if (lastCrest > seg.lastCrestMaintYear) seg.lastCrestMaintYear = lastCrest;
+
+            int addedYear = 0;
+            m_pDuneLayer->GetData(j, m_colDLAddBPSYr, addedYear);
+            if (addedYear > seg.addedYear) seg.addedYear = addedYear;
+
+            ++j;
+        }
+
+        // set end iterator
+        seg.end = seg.start;
+        for (int adv = 0; adv < seg.segCount; ++adv) ++seg.end;
+
+        baseSegments.push_back(std::move(seg));
+        i = j;
+    }
+
+    // --- Deterministic shuffle + point-aware partitioning across m_maintBFreqBPS years ---
+    int totalBaseSegments = (int)baseSegments.size();
+    int freq = std::max(1, m_maintBFreqBPS);
+
+    // Compute cycle start and year-in-cycle
+    int cycleStartYear = pEnvContext->currentYear - (pEnvContext->currentYear % freq);
+    int yearsIntoCycle = pEnvContext->currentYear - cycleStartYear; // 0..freq-1
+    int remainingYears = freq - yearsIntoCycle;
+
+    // Create vector of all segment indices and perform a stable-per-run shuffle (do NOT include year in seed)
+    std::vector<int> segIndices(totalBaseSegments);
+    for (int s = 0; s < totalBaseSegments; ++s) segIndices[s] = s;
+
+    {
+        std::mt19937 g(static_cast<unsigned int>(pEnvContext->runID * 7919u)); // run-stable seed
+        std::shuffle(segIndices.begin(), segIndices.end(), g);
+    }
+
+    std::vector<std::vector<int>> buckets;
+    std::vector<int> bucketPointCounts;
+
+    if (yearsIntoCycle == 0)
+    {
+        buckets.assign(freq, std::vector<int>());
+        bucketPointCounts.assign(freq, 0);
+
+        std::vector<int> orderedSegs = segIndices;
+        std::stable_sort(orderedSegs.begin(), orderedSegs.end(),
+            [&](int a, int b) {
+                int ca = baseSegments[a].segCount;
+                int cb = baseSegments[b].segCount;
+                if (ca != cb) return ca > cb; // larger first
+                return a < b;                 // deterministic tie-break
+            });
+
+        for (int sid : orderedSegs)
+        {
+            int minBucket = 0;
+            int minVal = bucketPointCounts[0];
+            for (int b = 1; b < freq; ++b)
             {
-            while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
-               {
-               m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, oldCrest);
-               newCrest = oldCrest;
+                if (bucketPointCounts[b] < minVal)
+                {
+                    minVal = bucketPointCounts[b];
+                    minBucket = b;
+                }
+            }
+            buckets[minBucket].push_back(sid);
+            bucketPointCounts[minBucket] += baseSegments[sid].segCount;
+        }
+    }
+    else
+    {
+        std::vector<int> remainingSegs;
+        remainingSegs.reserve(totalBaseSegments);
+        for (int sid : segIndices)
+        {
+            int lb = baseSegments[sid].lastBaseMaintYear;
+            if (lb != 0 && lb >= cycleStartYear)
+                continue; // this segment already received BASE maintenance earlier in this maintenance cycle -> exclude
+            remainingSegs.push_back(sid);
+        }
 
-               // Retrieve the maximum TWL within the designated window
-               MovingWindow* twlMovingWindow = m_TWLArray.GetAt(endPoint);
-               float movingMaxTWL = twlMovingWindow->GetMaxValue();
+        if (remainingSegs.empty())
+        {
+            buckets.assign(1, std::vector<int>());
+            bucketPointCounts.assign(1, 0);
+        }
+        else
+        {
+            std::mt19937 g(static_cast<unsigned int>(pEnvContext->runID * 7919u + cycleStartYear));
+            std::shuffle(remainingSegs.begin(), remainingSegs.end(), g);
 
-               // Retrieve the Flooding Frequency of the Protected Building
-               MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
-               float floodFreq = floodMovingWindow->GetFreqValue();
+            std::stable_sort(remainingSegs.begin(), remainingSegs.end(),
+                [&](int a, int b) {
+                    int ca = baseSegments[a].segCount;
+                    int cb = baseSegments[b].segCount;
+                    if (ca != cb) return ca > cb;
+                    return a < b;
+                });
 
-               float floodThreshold = (float(m_floodCountBPS) / m_windowLengthFloodHzrd);
+            int r = std::max(1, remainingYears);
+            buckets.assign(r, std::vector<int>());
+            bucketPointCounts.assign(r, 0);
 
-               if (floodFreq >= floodThreshold)
-                  isBldgFlooded = true;
+            for (int sid : remainingSegs)
+            {
+                int minBucket = 0;
+                int minVal = bucketPointCounts[0];
+                for (int b = 1; b < r; ++b)
+                {
+                    if (bucketPointCounts[b] < minVal)
+                    {
+                        minVal = bucketPointCounts[b];
+                        minBucket = b;
+                    }
+                }
+                buckets[minBucket].push_back(sid);
+                bucketPointCounts[minBucket] += baseSegments[sid].segCount;
+            }
+        }
+    }
 
-               // Find dune point with highest overtopping
-               if (amtTopped >= 0.0f && (movingMaxTWL - oldCrest) > amtTopped)
-                  {
-                  amtTopped = movingMaxTWL - oldCrest;
-                  newCrest = movingMaxTWL;
-                  maxPoint = endPoint;
-                  }
+    // Determine which bucket to use this year:
+    std::vector<Segment> selectedBaseSegments;
+    if (yearsIntoCycle == 0)
+    {
+        int pick = std::min<int>(yearsIntoCycle, (int)buckets.size() - 1);
+        for (int segId : buckets[pick])
+            selectedBaseSegments.push_back(baseSegments[segId]);
+    }
+    else
+    {
+        if (!buckets.empty())
+        {
+            for (int segId : buckets[0])
+                selectedBaseSegments.push_back(baseSegments[segId]);
+        }
+    }
 
-               endPoint++;
-               if (endPoint < m_pDuneLayer->End())
-                  m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
-               }
+    // Totals for reporting (beginning eligible for base) — reflect selected sample (the ones we attempt this year)
+    int totalBasePoints = 0;
+    float totalBaseLength = 0.0f;
+    float totalBaseDemand = 0.0f;
+    for (auto& s : selectedBaseSegments)
+    {
+        totalBasePoints += s.segCount;
+        totalBaseLength += s.segLength;
+        totalBaseDemand += s.segBaseCost;
+    }
+
+    m_eligibleDunePointsBPSBMaintBeginning += totalBasePoints;
+    m_eligibleLengthBPSBMaintBeginning += totalBaseLength;
+
+    // Compute unmet demand for base BEFORE applying maintenance (for the selected sample)
+    if (totalBaseDemand > remainingBudget)
+    {
+        m_MNTBCOSTBPS_unmet = totalBaseDemand - remainingBudget;
+        pi.m_unmetDemand += m_MNTBCOSTBPS_unmet;
+    }
+
+    if (remainingBudget <= 0.0f)
+    {
+        m_eligibleDunePointsBPSBMaintEnd += totalBasePoints;
+        m_eligibleLengthBPSBMaintEnd += totalBaseLength;
+        m_MNTCOSTBPS_unmet = m_MNTBCOSTBPS_unmet + m_MNTCCOSTBPS_unmet;
+        m_eligibleDunePointsBPSBMaintChange = m_eligibleDunePointsBPSBMaintEnd - m_eligibleDunePointsBPSBMaintBeginning;
+        m_eligibleLengthBPSBMaintChange = m_eligibleLengthBPSBMaintEnd - m_eligibleLengthBPSBMaintBeginning;
+        return;
+    }
+
+    // ----------------------------
+    // PHASE 1: APPLY BASE MAINTENANCE — iterate selected segments until budget exhausted
+    // ----------------------------
+    for (Segment& seg : selectedBaseSegments)
+    {
+        if (seg.segBaseCost <= 0.0f)
+            continue;
+
+        if (seg.segBaseCost > remainingBudget)
+        {
+            m_MNTBCOSTBPS_unmet += seg.segBaseCost;
+            pi.m_unmetDemand += seg.segBaseCost;
+            continue;
+        }
+
+        remainingBudget -= seg.segBaseCost;
+        if (pi.HasBudget())
+            pi.IncurCost(seg.segBaseCost);
+
+        m_MNTBCOSTBPS += seg.segBaseCost;
+        m_MNTCOSTBPS += seg.segBaseCost;
+        m_noMaintainedBBPSProjects += 1;
+        m_noMaintainedBBPSPoints += seg.segCount;
+        m_maintainedBLengthBPS += seg.segLength;
+
+        // per-point updates
+        for (int ptIdx : seg.indices)
+        {
+            MapLayer::Iterator it = m_pDuneLayer->Begin();
+            for (int k = 0; k < ptIdx; ++k) ++it;
+            float priorBase = 0.0f;
+            m_pDuneLayer->GetData(it, m_colDLMNTBCOSTBPS, priorBase);
+            m_pDuneLayer->SetData(it, m_colDLMNTBCOSTBPS, priorBase + perPtBase[ptIdx]);
+
+            float priorTotal = 0.0f;
+            m_pDuneLayer->GetData(it, m_colDLMNTCOSTBPS, priorTotal);
+            m_pDuneLayer->SetData(it, m_colDLMNTCOSTBPS, priorTotal + perPtBase[ptIdx]);
+
+            int priorBCount = 0;
+            m_pDuneLayer->GetData(it, m_colDLMAINB_CNT_BPS, priorBCount);
+            m_pDuneLayer->SetData(it, m_colDLMAINB_CNT_BPS, priorBCount + 1);
+
+            int maintType = 0;
+            m_pDuneLayer->GetData(it, m_colDLMAINT_TYPE, maintType);
+            maintType |= 1;
+            m_pDuneLayer->SetData(it, m_colDLMAINT_TYPE, maintType);
+
+            // Set both annual marker and persistent last-base-maint year
+            m_pDuneLayer->SetData(it, m_colDLMaintYearBPS, pEnvContext->currentYear);
+            if (m_colDLLastBaseMaintYr >= 0) m_pDuneLayer->SetData(it, m_colDLLastBaseMaintYr, pEnvContext->currentYear);
+        }
+    }
+
+    int fundedBasePoints = m_noMaintainedBBPSPoints;
+    m_eligibleDunePointsBPSBMaintEnd += (totalBasePoints - fundedBasePoints);
+    m_eligibleLengthBPSBMaintEnd += (totalBaseLength - m_maintainedBLengthBPS);
+
+    if (remainingBudget <= 0.0f)
+    {
+        m_MNTCOSTBPS_unmet = m_MNTBCOSTBPS_unmet + m_MNTCCOSTBPS_unmet;
+        m_eligibleDunePointsBPSBMaintChange = m_eligibleDunePointsBPSBMaintEnd - m_eligibleDunePointsBPSBMaintBeginning;
+        m_eligibleLengthBPSBMaintChange = m_eligibleLengthBPSBMaintEnd - m_eligibleLengthBPSBMaintBeginning;
+        return;
+    }
+
+    // ----------------------------
+    // PHASE 2: CREST MAINTENANCE (only for dune points that actually have BPS)
+    // ----------------------------
+    {
+        std::vector<Segment> crestSegments;
+        crestSegments.reserve(256);
+
+        int totalCrestCandidatesPts = 0;
+        int totalCrestCandidatesSegs = 0;
+        int totalDisabledForCrestPts = 0;
+        int totalSkippedByFloodPts = 0;
+
+        for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
+        {
+            // ONLY consider crest maintenance on points that already have BPS
+            int beachType = 0;
+            m_pDuneLayer->GetData(point, m_colDLBeachType, beachType);
+            if (beachType != BchT_SANDY_RIPRAP_BACKED)
+                continue;
+
+            float ptLenCheck = 0.0f;
+            if (m_colDLLengthBPS >= 0) m_pDuneLayer->GetData(point, m_colDLLengthBPS, ptLenCheck);
+            if (ptLenCheck <= 0.0f)
+                continue;
+
+            int bldgIndex = -1;
+            m_pDuneLayer->GetData(point, m_colDLDuneBldgIndex, bldgIndex);
+            if (bldgIndex == -1)
+                continue;
+
+            // segment start detection (group by protected building)
+            int duneIdx = -1;
+            m_pDuneLayer->GetData(point, m_colDLDuneIndex, duneIdx);
+            if (duneIdx > 0)
+            {
+                int prevBldgIndex = -2;
+                if ((duneIdx - 1) >= 0)
+                    m_pDuneLayer->GetData(duneIdx - 1, m_colDLDuneBldgIndex, prevBldgIndex);
+                if (prevBldgIndex == bldgIndex) continue; // not a new crest segment start
             }
 
-         if (isBldgFlooded)
-            {
+            // gather contiguous points for this protected-building band
             MapLayer::Iterator endPoint = point;
-            MapLayer::Iterator minPoint = point;
+            int nextBldgIndex = bldgIndex;
+            std::vector<int> segIndices;
+            segIndices.clear();
+            float segLength = 0.0f;
+            int segLastMaintYear = 0;
+            int segAddedYear = 0;
+            bool anyDisabledForCrest = false;
+            bool isBldgFlooded = false;
+            float segBestNewCrest = -FLT_MAX;
 
-            m_pDuneLayer->GetData(maxPoint, m_colDLDuneBldgIndex, bldgIndex);
-            nextBldgIndex = bldgIndex;
+            while (nextBldgIndex == bldgIndex && endPoint < m_pDuneLayer->End())
+            {
+                int ptIdx = int(endPoint);
 
-            float maxBPSHeight = -10000.0f;
+                // disabled flag applies to crest-only eligibility
+                int disabledC = 0;
+                if (m_colDLMAINC_DISABLE_BPS >= 0)
+                    m_pDuneLayer->GetData(endPoint, m_colDLMAINC_DISABLE_BPS, disabledC);
+                if (disabledC != 0) anyDisabledForCrest = true;
 
-            float duneToe = 0.0f;
+                // track last crest maintenance year for the segment using persistent column
+                int ptLastCrest = 0;
+                if (m_colDLLastCrestMaintYr >= 0)
+                    m_pDuneLayer->GetData(endPoint, m_colDLLastCrestMaintYr, ptLastCrest);
+                segLastMaintYear = std::max(segLastMaintYear, ptLastCrest);
 
-            // find dune point of Maximum BPS Height 
-            while (bldgIndex == nextBldgIndex && endPoint < m_pDuneLayer->End())
-               {
-               m_pDuneLayer->GetData(endPoint, m_colDLDuneToe, duneToe);
+                int addedBPSYear = 0;
+                m_pDuneLayer->GetData(endPoint, m_colDLAddBPSYr, addedBPSYear);
+                if (addedBPSYear > segAddedYear) segAddedYear = addedBPSYear;
 
-               if ((newCrest - duneToe) > maxBPSHeight)
-                  {
-                  maxBPSHeight = newCrest - duneToe;
-                  minPoint = endPoint;
-                  }
-               endPoint++;
-               if (endPoint < m_pDuneLayer->End())
-                  m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
-               }
+                // TWL max (segment-level) - guard array bounds
+                float movingMaxTWL = 0.0f;
+                if (ptIdx >= 0 && ptIdx < m_TWLArray.GetSize())
+                {
+                    MovingWindow* twlMovingWindow = m_TWLArray.GetAt(ptIdx);
+                    movingMaxTWL = twlMovingWindow ? twlMovingWindow->GetMaxValue() : 0.0f;
+                }
+                if (movingMaxTWL > segBestNewCrest) segBestNewCrest = movingMaxTWL;
 
-            // engineering limit
-            if (maxBPSHeight > m_maxBPSHeight)
-               {
-               maxBPSHeight = m_maxBPSHeight;
-               m_pDuneLayer->GetData(minPoint, m_colDLDuneToe, duneToe);
-               newCrest = duneToe + m_maxBPSHeight;
-               }
+                // building flood frequency (band-level) - guard array bounds
+                float floodFreq = 0.0f;
+                if (bldgIndex >= 0 && bldgIndex < m_floodBldgFreqArray.GetSize())
+                {
+                    MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+                    floodFreq = floodMovingWindow ? floodMovingWindow->GetFreqValue() : 0.0f;
+                }
+                float floodThreshold = (m_windowLengthFloodHzrd > 0) ? (float(m_floodCountBPS) / m_windowLengthFloodHzrd) : 0.0f;
 
-            float BPSLength = 0.0f;
-            m_pDuneLayer->GetData(point, m_colDLLengthBPS, BPSLength);
+                if (floodFreq >= floodThreshold) isBldgFlooded = true;
 
-            float cost = 0.02f * m_costs.BPS * BPSLength;
-            if ((newCrest - oldCrest) > 0)
-               cost += (newCrest - oldCrest) * m_costs.BPS * BPSLength;
+                float ptLen = 0.0f;
+                if (m_colDLLengthBPS >= 0)
+                    m_pDuneLayer->GetData(endPoint, m_colDLLengthBPS, ptLen);
+                if (ptLen <= 0.0f) ptLen = float(m_BPSLength > 0 ? m_BPSLength : 10.0f);
 
-            // get budget infor for Constructing BPS policy
-            PolicyInfo& pi = m_policyInfoArray[PI_MAINTAIN_BPS];
+                segIndices.push_back(ptIdx);
+                segLength += ptLen;
 
-            // enough funds in original allocation ?
-            bool passCostConstraint = true;
+                // advance
+                endPoint++;
+                if (endPoint < m_pDuneLayer->End())
+                    m_pDuneLayer->GetData(endPoint, m_colDLDuneBldgIndex, nextBldgIndex);
+            }
 
-            if (pi.HasBudget() && pi.m_availableBudget <= cost) //armorAllocationResidual >= cost)
-               passCostConstraint = false;
+            if (segIndices.empty()) continue;
 
-            AddToPolicySummary(currentYear, PI_MAINTAIN_BPS, int(point), m_costs.BPS, cost, pi.m_availableBudget, BPSLength, (newCrest - oldCrest), passCostConstraint);
+            if (anyDisabledForCrest) totalDisabledForCrestPts += (int)segIndices.size();
+            if (!isBldgFlooded) totalSkippedByFloodPts += (int)segIndices.size();
 
-            if (passCostConstraint)
-               {
-               pi.IncurCost(cost);      // charge to budget
+            // Eligibility: must be flooded band and not disabled
+            if (!isBldgFlooded || anyDisabledForCrest)
+            {
+                // For legacy reporting, treat disabled segments as "beginning eligible" but unservable
+                if (anyDisabledForCrest)
+                {
+                    m_eligibleDunePointsBPSCMaintBeginning += static_cast<int>(segIndices.size());
+                    m_eligibleLengthBPSCMaintBeginning += segLength;
+                }
+                continue;
+            }
 
-               float priorBPSCost;
-               m_pDuneLayer->GetData(point, m_colDLCostBPS, priorBPSCost);
-               float addedBPSCost = cost + priorBPSCost;
-               m_pDuneLayer->SetData(point, m_colDLCostBPS, addedBPSCost);
-               m_maintCostBPS += cost;
+            // require years since crest maintenance >= freq
+            int yrsSinceMaintainedCrest = (segLastMaintYear == 0) ? INT_MAX : (pEnvContext->currentYear - segLastMaintYear);
+            if (yrsSinceMaintainedCrest < m_maintCFreqBPS) continue;
 
-               for (MapLayer::Iterator pt = point; pt < endPoint; pt++)
-                  {
-                  // Beachwidth changes based on a 1:2 slope 
-                  float beachWidth = 0.0f;
-                  m_pDuneLayer->GetData(pt, m_colDLBeachWidth, beachWidth);
+            // compute crest cost (volume), clamped to m_maxBPSHeight if configured
+            float clampedNewCrest = segBestNewCrest;
+            if (std::isfinite(m_maxBPSHeight) && clampedNewCrest > (float)m_maxBPSHeight)
+                clampedNewCrest = (float)m_maxBPSHeight;
 
-                  float duneCrest = 0.0f;
-                  m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
+            float costSum = 0.0f;
+            for (int ptIdx : segIndices)
+            {
+                float duneCrestPt = 0.0f;
+                m_pDuneLayer->GetData(ptIdx, m_colDLDuneCrest, duneCrestPt);
+                float crestIncPt = 0.0f;
+                if (clampedNewCrest > duneCrestPt) crestIncPt = clampedNewCrest - duneCrestPt;
 
-                  float duneToe = 0.0f;
-                  m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
+                float ptLen = 0.0f;
+                if (m_colDLLengthBPS >= 0)
+                    m_pDuneLayer->GetData(ptIdx, m_colDLLengthBPS, ptLen);
+                if (ptLen <= 0.0f) ptLen = float(m_BPSLength > 0 ? m_BPSLength : 10.0f);
 
-                  float tanb = 0.0f;
-                  m_pDuneLayer->GetData(pt, m_colDLTranSlope, tanb);
+                if (crestIncPt > 0.0f && fabs(m_slopeBPS) > 1e-8)
+                {
+                    double run = double(crestIncPt) / double(m_slopeBPS);
+                    double crossArea = 0.5 * double(crestIncPt) * run;
+                    double vol_m3 = crossArea * double(ptLen);
+                    costSum += float(vol_m3 * double(m_costs.BPSCrestPerM3));
+                }
+            }
 
-                  m_pDuneLayer->GetData(pt, m_colDLEastingToe, eastingToe);
+            if (costSum <= 0.0f)
+            {
+                // preserve existing behavior: skip segments with no cost
+                continue;
+            }
 
-                  double eastingCrest = 0.0f;
-                  m_pDuneLayer->GetData(pt, m_colDLEastingCrest, eastingCrest);
+            if (costSum > 0.0f)
+            {
+                totalCrestCandidatesPts += (int)segIndices.size();
+                totalCrestCandidatesSegs++;
 
-                  if ((newCrest - duneCrest) > 0.0f)
-                     {
-                     //beachWidth -= ((newCrest - duneCrest) / m_slopeBPS);
-                     //   double newEastingToe = (newCrest + (tanb - m_slopeBPS) * eastingToe) / (tanb - m_slopeBPS);
-                     double newEastingToe = (newCrest - m_slopeBPS * eastingCrest - duneToe + (tanb * eastingToe)) / (tanb - m_slopeBPS);
-                     float deltaX = (float)(eastingToe - newEastingToe);
+                Segment cseg{ m_pDuneLayer->Begin(), m_pDuneLayer->Begin(), std::vector<int>(), 0.0f, 0.0f, 0, 0, 0, 0 };
+                cseg.start = point;
+                cseg.end = endPoint;
+                cseg.indices = segIndices;
+                cseg.segBaseCost = costSum;      // reuse segBaseCost for crest cost
+                cseg.segLength = segLength;
+                cseg.segCount = static_cast<int>(segIndices.size());
+                cseg.lastBaseMaintYear = segLastMaintYear; // kept for potential diagnostics
+                cseg.addedYear = segAddedYear;
+                crestSegments.push_back(cseg);
 
-                     beachWidth -= deltaX;
-                     if ((duneToe / beachWidth) > 0.1f)
-                        beachWidth = duneToe / 0.1f;
+                m_eligibleDunePointsBPSCMaintBeginning += static_cast<int>(segIndices.size());
+                m_eligibleLengthBPSCMaintBeginning += segLength;
+            }
+        } // end scanning dune points
 
-                     //if (m_debugOn)
-                     //   {
-                     //   m_pDuneLayer->SetData(pt, m_colNewEasting, newEastingToe);
-                     //   //      m_pDuneLayer->SetData(point, m_colBWidth, deltaX2);
-                     //   m_pDuneLayer->SetData(pt, m_colDeltaX, deltaX);
-                     //   }
+        // deterministic shuffle per run/year for reproducibility
+        {
+            std::mt19937 g(static_cast<unsigned int>(pEnvContext->runID * 11939 + pEnvContext->yearOfRun));
+            std::shuffle(crestSegments.begin(), crestSegments.end(), g);
+        }
 
-                     // DuneCrest height is set to structure height
-                     m_pDuneLayer->SetData(pt, m_colDLDuneCrest, newCrest);
-                     m_pDuneLayer->SetData(pt, m_colDLBeachWidth, beachWidth);
-                     m_pDuneLayer->SetData(pt, m_colDLMaintYearBPS, currentYear);
-                     m_pDuneLayer->SetData(pt, m_colDLCostMaintBPS, cost);
-                     //
-                     // change easting of DuneToe
+        // Apply crest maintenance until remainingBudget exhausted
+        for (auto& cseg : crestSegments)
+        {
+            float segCost = cseg.segBaseCost;
+            if (segCost > remainingBudget)
+            {
+                m_MNTCCOSTBPS_unmet += segCost;
+                pi.m_unmetDemand += segCost;
+                m_eligibleDunePointsBPSCMaintEnd += cseg.segCount;
+                m_eligibleLengthBPSCMaintEnd += cseg.segLength;
+                break;
+            }
 
-                     //eastingToe -= ((newCrest - duneCrest) / m_slopeBPS);
-                     /*eastingToe = newEastingToe;
-                     m_pDuneLayer->SetData(pt, m_colDLEastingToe, eastingToe);*/
+            remainingBudget -= segCost;
+            if (pi.HasBudget()) pi.IncurCost(segCost);
 
-                     m_pDuneLayer->SetData(pt, m_colDLEastingToe, newEastingToe);
+            m_MNTCCOSTBPS += segCost;
+            m_MNTCOSTBPS += segCost;
+            m_noMaintainedCBPSProjects += 1;
+            m_noMaintainedCBPSPoints += cseg.segCount;
+            m_maintainedCLengthBPS += cseg.segLength;
 
+            // per-point updates
+            for (int ptIdx : cseg.indices)
+            {
+                MapLayer::Iterator it = m_pDuneLayer->Begin();
+                for (int i = 0; i < ptIdx; ++i) ++it;
 
-                     Poly* pPoly = m_pDuneLayer->GetPolygon(pt);
-                     if (pPoly->GetVertexCount() > 0)
-                        {
-                        pPoly->m_vertexArray[0].x = newEastingToe;
+                float priorCrest = 0.0f;
+                m_pDuneLayer->GetData(it, m_colDLMNTCCOSTBPS, priorCrest);
+
+                float ptLen = 0.0f;
+                if (m_colDLLengthBPS >= 0)
+                    m_pDuneLayer->GetData(it, m_colDLLengthBPS, ptLen);
+                if (ptLen <= 0.0f) ptLen = float(m_BPSLength > 0 ? m_BPSLength : 10.0f);
+
+                float perPtCost = (cseg.segLength > 0.0f) ? ((ptLen / cseg.segLength) * segCost) : (segCost / float(cseg.indices.size()));
+                m_pDuneLayer->SetData(it, m_colDLMNTCCOSTBPS, priorCrest + perPtCost);
+
+                float priorTotal = 0.0f;
+                m_pDuneLayer->GetData(it, m_colDLMNTCOSTBPS, priorTotal);
+                m_pDuneLayer->SetData(it, m_colDLMNTCOSTBPS, priorTotal + perPtCost);
+
+                int priorCCnt = 0;
+                m_pDuneLayer->GetData(it, m_colDLMAINC_CNT_BPS, priorCCnt);
+                m_pDuneLayer->SetData(it, m_colDLMAINC_CNT_BPS, priorCCnt + 1);
+
+                int maintType = 0;
+                m_pDuneLayer->GetData(it, m_colDLMAINT_TYPE, maintType);
+                maintType |= 2;
+                m_pDuneLayer->SetData(it, m_colDLMAINT_TYPE, maintType);
+
+                // Set both annual marker and persistent last-crest-maint year
+                m_pDuneLayer->SetData(it, m_colDLMaintYearBPS, pEnvContext->currentYear);
+                if (m_colDLLastCrestMaintYr >= 0) m_pDuneLayer->SetData(it, m_colDLLastCrestMaintYr, pEnvContext->currentYear);
+
+                // After crest raise, disable if crest at or above max
+                float duneCrestPt = 0.0f;
+                m_pDuneLayer->GetData(it, m_colDLDuneCrest, duneCrestPt);
+                if (std::isfinite(m_maxBPSHeight) && (duneCrestPt + 1e-6f) >= (float)m_maxBPSHeight)
+                {
+                    int disable = 1;
+                    m_pDuneLayer->SetData(it, m_colDLMAINC_DISABLE_BPS, disable);
+                }
+            }
+
+            // Apply segment-level geometry updates post-funding (existing logic)
+            float segDesiredCrest = -static_cast<float>(std::numeric_limits<float>::max());
+            for (int ptIdx : cseg.indices)
+            {
+                if (ptIdx >= 0 && ptIdx < m_TWLArray.GetSize())
+                {
+                    MovingWindow* twlMovingWindow = m_TWLArray.GetAt(ptIdx);
+                    float movingMaxTWL = twlMovingWindow ? twlMovingWindow->GetMaxValue() : 0.0f;
+                    if (movingMaxTWL > segDesiredCrest) segDesiredCrest = movingMaxTWL;
+                }
+            }
+            if (segDesiredCrest == -std::numeric_limits<float>::max()) segDesiredCrest = 0.0f;
+
+            float segClampedCrest = segDesiredCrest;
+            bool segWasClamped = false;
+            if (std::isfinite(m_maxBPSHeight) && (segClampedCrest > m_maxBPSHeight + 1e-8))
+            {
+                segClampedCrest = (float)m_maxBPSHeight;
+                segWasClamped = true;
+            }
+
+            for (int ptIdx : cseg.indices)
+            {
+                MapLayer::Iterator it = m_pDuneLayer->Begin();
+                for (int i = 0; i < ptIdx; ++i) ++it;
+
+                float duneCrest = 0.0f, duneToe = 0.0f, tanb = 0.0f, beachWidth = 0.0f;
+                double eastingToe = 0.0, eastingCrest = 0.0;
+
+                m_pDuneLayer->GetData(it, m_colDLDuneCrest, duneCrest);
+                m_pDuneLayer->GetData(it, m_colDLDuneToe, duneToe);
+                m_pDuneLayer->GetData(it, m_colDLTranSlope, tanb);
+                m_pDuneLayer->GetData(it, m_colDLEastingToe, eastingToe);
+                m_pDuneLayer->GetData(it, m_colDLEastingCrest, eastingCrest);
+                m_pDuneLayer->GetData(it, m_colDLBeachWidth, beachWidth);
+
+                if (segClampedCrest > duneCrest + 1e-6f)
+                {
+                    double newEastingToe = eastingToe;
+                    double denom = double(tanb) - double(m_slopeBPS);
+
+                    if (fabs(denom) > 1e-8)
+                        newEastingToe = (double(segClampedCrest) - double(m_slopeBPS) * eastingCrest - double(duneToe) + (double(tanb) * eastingToe)) / denom;
+                    else if (fabs(m_slopeBPS) > 1e-8)
+                        newEastingToe = eastingToe - ((double(segClampedCrest) - double(duneCrest)) / double(m_slopeBPS));
+
+                    float deltaX = float(eastingToe - newEastingToe);
+                    beachWidth -= deltaX;
+                    if (beachWidth <= 0.0f) beachWidth = 0.01f;
+                    if (duneToe > 0.0f && (duneToe / beachWidth) > 0.1f) beachWidth = duneToe / 0.1f;
+
+                    m_pDuneLayer->SetData(it, m_colDLDuneCrest, segClampedCrest);
+                    m_pDuneLayer->SetData(it, m_colDLBeachWidth, beachWidth);
+                    m_pDuneLayer->SetData(it, m_colDLMaintYearBPS, pEnvContext->currentYear);
+                    if (m_colDLLastCrestMaintYr >= 0) m_pDuneLayer->SetData(it, m_colDLLastCrestMaintYr, pEnvContext->currentYear);
+                    m_pDuneLayer->SetData(it, m_colDLEastingToe, newEastingToe);
+
+                    Poly* pPoly = m_pDuneLayer->GetPolygon(it);
+                    if (pPoly && pPoly->GetVertexCount() > 0)
+                    {
+                        pPoly->m_vertexArray[0].x = (float)newEastingToe;
                         pPoly->InitLogicalPoints(m_pMap);
-                        }
-                     }
-                  }
-               }   // end of: if (maintain)
-            else
-               {
-               pi.m_unmetDemand += cost;
-               }
-            }  // end of: if (isBldgFlooded)
-         }  // end of: if (beachType == BchT_RIPRAP_BACKED && (yrsSinceMaintained > m_maintFreqBPS))
-      }  // end of: (for each dune point)
-   } // end MaintainBPS
+                    }
 
+                    if (segWasClamped)
+                        m_pDuneLayer->SetData(it, m_colDLMAINC_DISABLE_BPS, 1);
+                }
+            }
+        } // end crest inner scope
+    }
 
+    // Ensure each dune point's MAINT_TYPE is set correctly (annual flag)
+    for (MapLayer::Iterator pt = m_pDuneLayer->Begin(); pt < m_pDuneLayer->End(); ++pt)
+    {
+        int beachType = 0;
+        m_pDuneLayer->GetData(pt, m_colDLBeachType, beachType);
+
+        if (beachType != BchT_SANDY_RIPRAP_BACKED)
+            continue;
+
+        float baseCost = 0.0f;
+        float crestCost = 0.0f;
+        if (m_colDLMNTBCOSTBPS >= 0) m_pDuneLayer->GetData(pt, m_colDLMNTBCOSTBPS, baseCost);
+        if (m_colDLMNTCCOSTBPS >= 0) m_pDuneLayer->GetData(pt, m_colDLMNTCCOSTBPS, crestCost);
+
+        int maintType = 0;
+        if (baseCost > 0.0f) maintType |= 1;
+        if (crestCost > 0.0f) maintType |= 2;
+
+        m_pDuneLayer->SetData(pt, m_colDLMAINT_TYPE, maintType);
+    }
+
+    // compute changes for Base and Crest eligible reporting
+    m_eligibleDunePointsBPSBMaintChange = m_eligibleDunePointsBPSBMaintEnd - m_eligibleDunePointsBPSBMaintBeginning;
+    m_eligibleLengthBPSBMaintChange = m_eligibleLengthBPSBMaintEnd - m_eligibleLengthBPSBMaintBeginning;
+
+    m_eligibleDunePointsBPSCMaintChange = m_eligibleDunePointsBPSCMaintEnd - m_eligibleDunePointsBPSCMaintBeginning;
+    m_eligibleLengthBPSCMaintChange = m_eligibleLengthBPSCMaintEnd - m_eligibleLengthBPSCMaintBeginning;
+
+    // compute combined unmet demand
+    m_MNTCOSTBPS_unmet = m_MNTBCOSTBPS_unmet + m_MNTCCOSTBPS_unmet;
+
+    // Minimal summary log
+    CString msg;
+    msg.Format("MaintainBPS: Year %d base projects=%d basePts=%d baseCost=$%.2f (unmet=$%.2f); crest projects=%d crestPts=%d crestCost=$%.2f (unmet=$%.2f); totalCost=$%.2f (totalUnmet=$%.2f)",
+        pEnvContext->currentYear,
+        m_noMaintainedBBPSProjects, m_noMaintainedBBPSPoints, m_MNTBCOSTBPS, m_MNTBCOSTBPS_unmet,
+        m_noMaintainedCBPSProjects, m_noMaintainedCBPSPoints, m_MNTCCOSTBPS, m_MNTCCOSTBPS_unmet,
+        m_MNTCOSTBPS, m_MNTCOSTBPS_unmet);
+    Report::LogInfo(msg);
+
+    return;
+}
 
      // flowing not currently used
 void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear) //, bool isBPS)
@@ -8084,16 +10115,16 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
       /*   if (isBPS)
       {*/
       m_pDuneLayer->GetData(endPoint, m_colDLMaintYearBPS, lastMaintYear);
-      m_pDuneLayer->GetData(endPoint, m_colDLAddYearBPS, builtYear);
-      maintFreq = m_maintFreqBPS;
+      m_pDuneLayer->GetData(endPoint, m_colDLAddBPSYr, builtYear);
+      maintFreq = m_maintCFreqBPS;
       //}
       //else // if SPS
       //{
       //   m_pDuneLayer->GetData(endPoint, m_colDLMaintYearSPS, lastMaintYear);
-      //   m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, builtYear);
+      //   m_pDuneLayer->GetData(endPoint, m_colDLAddSPSYr, builtYear);
       //}
 
-      /*if (beachType == BchT_RIPRAP_BACKED && (lastMaintYear + m_maintFreqBPS < currentYear))
+      /*if (beachType == BchT_RIPRAP_BACKED && (lastMaintYear + m_maintCFreqBPS < currentYear))
       {*/
 
 
@@ -8117,6 +10148,41 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
             {
             m_pDuneLayer->GetData(endPoint, m_colDLDuneCrest, oldCrest);
             newCrest = oldCrest;
+
+            // Diagnostic: log TWL moving-window pointer and values for this segment point
+// Insert immediately before:
+//   // Retrieve the maxmum TWL within the designated window
+//   MovingWindow* twlMovingWindow = m_TWLArray.GetAt(endPoint);
+
+            {
+                // use integer index to access m_TWLArray (avoid iterator->index mismatch)
+                int segPointIdx = int(endPoint);
+                int duneIdxDbg = -1;
+                m_pDuneLayer->GetData(endPoint, m_colDLDuneIndex, duneIdxDbg);
+
+                MovingWindow* twlWnd = m_TWLArray.GetAt(segPointIdx);
+                float twlMaxDbg = 0.0f;
+                float twlAvgDbg = 0.0f;
+                int twlNull = 1;
+                if (twlWnd)
+                {
+                    twlMaxDbg = twlWnd->GetMaxValue();
+                    twlAvgDbg = twlWnd->GetAvgValue();
+                    twlNull = 0;
+                }
+
+                CString dbg;
+                dbg.Format(_T("MaintainBPS: TWL-diag year=%d endPtIdx=%d duneIdx=%d segPts=%d twlWnd=%p null=%d twlMax=%.3f twlAvg=%.3f"),
+                    //pEnvContext->currentYear,
+                    segPointIdx,
+                    duneIdxDbg,
+                    //(int)segIndices.size(),
+                    (void*)twlWnd,
+                    twlNull,
+                    twlMaxDbg,
+                    twlAvgDbg);
+                Report::LogInfo(dbg);
+            }
 
             // Retrieve the maxmum TWL within the designated window
             MovingWindow* twlMovingWindow = m_TWLArray.GetAt(endPoint);
@@ -8265,8 +10331,8 @@ void ChronicHazards::MaintainStructure(MapLayer::Iterator point, int currentYear
    } // end MaintainStructure
 
 
-void ChronicHazards::MaintainBPS2(int currentYear)
-   {
+//void ChronicHazards::MaintainBPS2(int currentYear)
+//   {
    //for (MapLayer::Iterator point = m_pDuneLayer->Begin(); point < m_pDuneLayer->End(); point++)
    //{
    //   //Do we need to increase the height of the BPS to keep up with increasing TWL?
@@ -8296,7 +10362,7 @@ void ChronicHazards::MaintainBPS2(int currentYear)
    //   //if ( ( duneCrest < movingAvgTWL || duneCrest < movingMaxTWL ) && beachType == BchT_RIPRAP_BACKED ) // && duneCrest < backshoreElev )
    //   if (duneCrest < movingMaxTWL && beachType == BchT_RIPRAP_BACKED) // && duneCrest < backshoreElev )
    //   {
-   //      if ((lastMaintYear + m_maintFreqBPS) < currentYear)
+   //      if ((lastMaintYear + m_maintCFreqBPS) < currentYear)
    //      {
    //         float newCrest = 0.0f;
    //         float beachwidth = 0.0f;
@@ -8379,9 +10445,9 @@ void ChronicHazards::MaintainBPS2(int currentYear)
    //   }
    //}
 
-   } // end MaintainBPS
+   //} // end MaintainBPS
 
-void ChronicHazards::NourishSPS(int currentYear)
+void ChronicHazards::NourishSPS(EnvContext* pEnvContext)
    {
    // get height of cell which corresponds to length of shoreline
    //REAL cellHeight = m_pElevationGrid->GetGridCellHeight();
@@ -8416,7 +10482,7 @@ void ChronicHazards::NourishSPS(int currentYear)
                {
                m_pDuneLayer->SetData(pt, m_colDLNourishYearSPS, nourishYear);
 
-               if ((nourishYear + m_nourishFreq) < currentYear || nourishYear == 0)
+               if ((nourishYear + m_nourishFreq) < pEnvContext->currentYear || nourishYear == 0)
                   {
                   m_pDuneLayer->GetData(pt, m_colDLDuneToe, duneToe);
                   m_pDuneLayer->GetData(pt, m_colDLDuneCrest, duneCrest);
@@ -8441,9 +10507,9 @@ void ChronicHazards::NourishSPS(int currentYear)
                   // determine change in sea level rise from previous year
                   float prevslr = 0.0f;
                   float slr = 0.0f;
-                  int year = currentYear - 2020;
+                  int year = pEnvContext->currentYear - 2020;
                   m_slrData.Get(0, year, slr);
-                  if (currentYear > 2020)
+                  if (pEnvContext->currentYear > 2020)
                      m_slrData.Get(0, year - 1, prevslr);
 
                   // determine how much to widen beach 
@@ -8487,7 +10553,7 @@ void ChronicHazards::NourishSPS(int currentYear)
                   if (pi.HasBudget() && pi.m_availableBudget <= cost) //armorAllocationResidual >= cost)
                      passCostConstraint = false;
 
-                  AddToPolicySummary(currentYear, PI_NOURISH_SPS, int(pt), m_costs.nourishment, cost, pi.m_availableBudget, float(volume), float(eastingToe - eastingToeSPS), passCostConstraint);
+                  AddToPolicySummary(pEnvContext->currentYear, PI_NOURISH_SPS, int(pt), m_costs.nourishment, cost, pi.m_availableBudget, float(volume), float(eastingToe - eastingToeSPS), passCostConstraint);
 
                   if (passCostConstraint)
                      {
@@ -8505,7 +10571,7 @@ void ChronicHazards::NourishSPS(int currentYear)
                      //   float newBeachSlope = duneToe / newBeachWidth;
 
                      //   m_pDuneLayer->SetData(pt, m_colDLTranSlope, newBeachSlope);
-                     m_pDuneLayer->SetData(pt, m_colDLNourishYearSPS, currentYear);
+                     m_pDuneLayer->SetData(pt, m_colDLNourishYearSPS, pEnvContext->currentYear);
                      m_pDuneLayer->SetData(pt, m_colDLNourishVolSPS, volume);
 
                      // Calculate County wide metrics (volume, cost)
@@ -8524,7 +10590,7 @@ void ChronicHazards::NourishSPS(int currentYear)
 
    } // end Nourish
 
-void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
+void ChronicHazards::NourishBPS(EnvContext* pEnvContext, bool nourishByType)
    {
    // get height of cell which corresponds to length of shoreline
    //float cellHeight = m_pElevationGrid->GetGridCellHeight();
@@ -8551,12 +10617,12 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
       m_pDuneLayer->GetData(point, m_colDLNourishYearBPS, lastNourishYear);
 
       int addBPSYear = 0;
-      m_pDuneLayer->GetData(point, m_colDLAddYearBPS, addBPSYear);
+      m_pDuneLayer->GetData(point, m_colDLAddBPSYr, addBPSYear);
 
-      if (addBPSYear == 2020)
-         lastNourishYear = 2020;
+      if (addBPSYear == pEnvContext->startYear)
+         lastNourishYear = pEnvContext->startYear;
 
-      int yrsSinceNourished = currentYear - lastNourishYear;
+      int yrsSinceNourished = pEnvContext->currentYear - lastNourishYear;
 
       if (beachType == BchT_SANDY_RIPRAP_BACKED)
          {
@@ -8584,10 +10650,10 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                   // determine change in sea level rise from previous year
                   float prevslr = 0.0f;
                   float slr = 0.0f;
-                  int year = currentYear - 2020;
+                  int year = pEnvContext->currentYear - 2020;
 
                   m_slrData.Get(0, year, slr);
-                  if (currentYear > 2020)
+                  if (pEnvContext->currentYear > 2020)
                      m_slrData.Get(0, year - 1, prevslr);
 
                   // determine how much to widen beach 
@@ -8626,7 +10692,7 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                      if (pi.HasBudget() && pi.m_availableBudget <= cost) //armorAllocationResidual >= cost)
                         passCostConstraint = false;
 
-                     AddToPolicySummary(currentYear, PI_NOURISH_BPS, int(pt), m_costs.nourishment, cost, pi.m_availableBudget, float(volume), float(newBeachWidth), passCostConstraint);
+                     AddToPolicySummary(pEnvContext->currentYear, PI_NOURISH_BPS, int(pt), m_costs.nourishment, cost, pi.m_availableBudget, float(volume), float(newBeachWidth), passCostConstraint);
 
                      if (passCostConstraint)
                         {
@@ -8647,7 +10713,7 @@ void ChronicHazards::NourishBPS(int currentYear, bool nourishByType)
                         float newBeachSlope = duneToe / newBeachWidth;
 
                         m_pDuneLayer->SetData(pt, m_colDLTranSlope, newBeachSlope);
-                        m_pDuneLayer->SetData(pt, m_colDLNourishYearBPS, currentYear);
+                        m_pDuneLayer->SetData(pt, m_colDLNourishYearBPS, pEnvContext->currentYear);
                         m_pDuneLayer->SetData(pt, m_colDLNourishVolBPS, volume);
 
                         // Calculate County wide metrics (volume, cost)
@@ -8701,12 +10767,12 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
    if (isBPS)
       {
       buildThreshold = m_idpyFactor * 365.0f;
-      constructYrCol = m_colDLAddYearBPS;
+      constructYrCol = m_colDLAddBPSYr;
       }
    else // SPS
       {
       buildThreshold = m_idpyFactor * 365.0f;
-      constructYrCol = m_colDLAddYearSPS;
+      constructYrCol = m_colDLAddSPSYr;
       }
 
    int builtYear = 0;
@@ -8768,14 +10834,14 @@ bool ChronicHazards::FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::I
      //
      //      endPoint++;
      //      //   m_pDuneLayer->GetData(endPoint, m_colDLBeachType, beachType);
-     //      m_pDuneLayer->GetData(endPoint, m_colDLAddYearSPS, yr);
+     //      m_pDuneLayer->GetData(endPoint, m_colDLAddSPSYr, yr);
      //      }
      //
      //   return nourish;
      //
      //   } // FindNourishExtent
 
-void ChronicHazards::CompareBPSorNourishCosts(int currentYear)
+void ChronicHazards::CompareBPSorNourishCosts(EnvContext* pEnvContext)
    {
    //   float cellHeight = m_pDuneLayer->GetGridCellHeight();
 
@@ -8790,7 +10856,9 @@ void ChronicHazards::CompareBPSorNourishCosts(int currentYear)
 
       m_pDuneLayer->GetData(point, m_colDLDuneToe, duneToe);
       m_pDuneLayer->GetData(point, m_colDLBeachWidth, beachWidth);
-      m_pDuneLayer->GetData(point, m_colDLShorelineChange, shorelineChangeRate);
+      // TODO-If CompareBPSorNourishCosts runs before RunErosionModel in your sequence, you can either: call SCRmodel there for each point, 
+      // or pre-sample all dune points at the start of the year (iterate dune layer once, call SampleSCR per-point and write m_colDLSCR)
+      m_pDuneLayer->GetData(point, m_colDLShorelineChange, shorelineChangeRate); 
 
       // cost is determined over a 30 yr timeframe
       float newBeachWidth = beachWidth + (abs(shorelineChangeRate) * 30.0f);
@@ -8829,9 +10897,9 @@ void ChronicHazards::CompareBPSorNourishCosts(int currentYear)
 
       // ??? in this case perhaps should nourish even though not RIPRAP_BACKED
       if (BPScost > nourishmentCost)
-         NourishBPS(currentYear, false);
+         NourishBPS(pEnvContext, false);
       else
-         ConstructBPS(currentYear);
+         ConstructBPS(pEnvContext);
       }
    } // end CompareBPSorNourishCost
 
@@ -8913,7 +10981,7 @@ void ChronicHazards::ConstructOnSafestSite(EnvContext* pEnvContext, bool inFlood
 
                /*double xCoord = 0;
                double yCoord = 0;*/
-
+               RaiseOrRelocateBldgToSafestSite(pEnvContext);
                /*xCoord = pPoly->m_vertexArray[ i ].x;
                yCoord = pPoly->m_vertexArray[ i ].y;*/
 
@@ -8932,259 +11000,1955 @@ void ChronicHazards::ConstructOnSafestSite(EnvContext* pEnvContext, bool inFlood
 
    } // end ConstructOnSafestSite
 
+// Original verion
+//void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext* pEnvContext)
+//{
+//    //if (pEnvContext->currentYear >= (pEnvContext->startYear + m_windowLengthFloodHzrd - 1))
+//    {
+//        // Raise Infrastructure to BFE or Raise existing homes/buildings to BFE
+//        // OR Relocate existing homes/buildings to safest site   
+//
+//        MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+//        int recordCount = pIDULayer->GetRecordCount();
+//        ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
+//
+//        for (int m = 0; m < recordCount; m++)
+//        {
+//            int idu = m_shuffleArray[m];         // a random grab
+//
+//            float maxElevation = 0;
+//            int safestSiteRow = -1;
+//            int safestSiteCol = -1;
+//            float baseFloodElevation = 0;
+//            int floodZone = -9999;
+//
+//            CArray< int, int > bldgIndices;
+//            CArray< int, int > infraIndices;
+//
+//            /*float popDensity;
+//            float population;
+//            int safeLoc;
+//            int numStructures;*/
+//
+//            //   m_pIDULayer->GetData(idu, m_colMinElevation, minElevation);
+//            m_pIDULayer->GetData(idu, m_colIDUMaxElevation, maxElevation);
+//            m_pIDULayer->GetData(idu, m_colIDUSafestSiteRow, safestSiteRow);  // ARE THESE CORRECT????
+//            m_pIDULayer->GetData(idu, m_colIDUSafestSiteCol, safestSiteCol);
+//
+//            //// should I put these in the Building Layer ???
+//            //m_pBldgLayer->GetData(bldg, m_colBldgMaxElev, maxElevation);
+//            //m_pBldgLayer->GetData(bldg, m_colBldgBFE, baseFloodElevation);
+//            //m_pBldgLayer->GetData(bldg, m_colBldgSafeSiteYr, pEnvContext->currentYear);
+//
+//            REAL xSafeSite = 0.0;
+//            REAL ySafeSite = 0.0;
+//
+//            // get center of eroded grid withing this IDU (WRONG???)
+//            if (safestSiteRow >= 0 && safestSiteCol >= 0)
+//                m_pFloodedGrid->GetGridCellCenter(safestSiteRow, safestSiteCol, xSafeSite, ySafeSite);
+//
+//            m_pIDULayer->GetData(idu, m_colIDUBaseFloodElevation, baseFloodElevation);
+//
+//            // get Buildings in this IDU
+//            int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+//
+//            int numRows = m_pFloodedGrid->GetRowCount();
+//            int numCols = m_pFloodedGrid->GetColCount();
+//
+//            for (int i = 0; i < numBldgs; i++)
+//            {
+//                int bldgIndex = bldgIndices[i];
+//                ASSERT(bldgIndex < m_pBldgLayer->GetPolygonCount());
+//
+//                Poly* pPoly = m_pBldgLayer->GetPolygon(bldgIndex);
+//
+//                // Set BFE of building
+//                m_pBldgLayer->SetData(bldgIndex, m_colBldgBFE, baseFloodElevation);
+//
+//                int safeSiteYr = 0;
+//                m_pBldgLayer->GetData(bldgIndex, m_colBldgSafeSiteYr, safeSiteYr);  // Set() ????
+//
+//                int raiseToBFEYr = 0;
+//                m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr);
+//
+//                // get moving windows and check for flooding
+//                MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//                float floodFreq = floodMovingWindow->GetFreqValue();
+//
+//                REAL xCoord = 0.0;
+//                REAL yCoord = 0.0;
+//                m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+//
+//                // Do not relocate closer to coast
+//                if (xSafeSite < xCoord)
+//                {
+//                    m_pIDULayer->m_readOnly = false;
+//                    safestSiteCol = -1;
+//                    safestSiteRow = -1;
+//                    m_pIDULayer->SetData(idu, m_colIDUSafestSiteRow, safestSiteRow);
+//                    m_pIDULayer->SetData(idu, m_colIDUSafestSiteCol, safestSiteCol);
+//                    // uncomment to not allow new construction closer to coast
+//                    // m_pIDULayer->SetData(idu, m_colIDUSafeSite, 0);
+//                    m_pIDULayer->m_readOnly = true;
+//                }
+//
+//                // Raise the building to the BFE if the structure has NOT been 
+//                // raised and is not on the safest site
+//                if (raiseToBFEYr == 0 && safeSiteYr == 0)
+//                {
+//                    /*if (pEnvContext->currentYear >= (pEnvContext->startYear + m_windowLengthFloodHzrd - 1))
+//                    {*/
+//                    if (floodFreq >= (float(m_bfeCount) / m_windowLengthFloodHzrd))
+//                    {
+//                        /*REAL xCoord = 0.0;
+//                        REAL yCoord = 0.0;
+//                        m_pBldgLayer->GetPointCoords(ptrArrayIndex, xCoord, yCoord);*/
+//                        int row = -1;
+//                        int col = -1;
+//                        m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
+//                        float elev = 0.0f;
+//
+//                        if ((row >= 0 && row < numRows) && (col >= 0 && col < numCols))
+//                        {
+//                            m_pFloodedGrid->GetData(row, col, elev);
+//
+//                            // is the adj base flood elevation higher than the DEM elevation at this site?
+//                            // meaning, is this site too low to withstand flooding?
+//
+//                            // FUNKY ALERT!!!!
+//                            if ((baseFloodElevation + 0.0f) >= elev)   /// +1????
+//                            {
+//                                float value = 0;
+//                                m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//
+//                                float cost = value * m_raiseRelocateSafestSiteRatio;
+//
+//                                // get budget infor for raise/relocate policy
+//                                PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
+//                                bool passCostConstraint = true;
+//
+//                                // enough funds in original allocation ?
+//                                if (pi.HasBudget() && pi.m_availableBudget <= cost)
+//                                    passCostConstraint = false;
+//
+//                                AddToPolicySummary(pEnvContext->currentYear, PI_RAISE_RELOCATE_TO_SAFEST_SITE, bldgIndex, m_raiseRelocateSafestSiteRatio, cost, pi.m_availableBudget, value, 0, passCostConstraint);
+//
+//                                if (passCostConstraint)
+//                                {
+//                                    pi.IncurCost(cost);
+//
+//                                    // Building is below the BFE elevation so raise it to the BFE + 1.0, noting year
+//                                    m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
+//                                    m_pBldgLayer->SetData(bldgIndex, m_colBldgBFE, baseFloodElevation + 1.0f);
+//                                    floodMovingWindow->Clear();
+//                                }
+//                                else
+//                                { // don't nourish
+//                                    pi.m_unmetDemand += cost;
+//                                }
+//                            }
+//                            else   // site is above base flood elevation, move to safest site
+//                            {
+//                                // BFE is below current elevation so move to safest site, noting year
+//                                if (safestSiteRow >= 0 && safestSiteCol >= 0)
+//                                {
+//                                    float value = 0;
+//                                    m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//
+//                                    float cost = value * m_raiseRelocateSafestSiteRatio;
+//
+//                                    // get budget infor for Constructing BPS policy
+//                                    PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
+//                                    bool passCostConstraint = true;
+//
+//                                    // enough funds in original allocation ?
+//                                    if (pi.HasBudget() && pi.m_availableBudget <= cost)
+//                                        passCostConstraint = false;
+//
+//                                    AddToPolicySummary(pEnvContext->currentYear, PI_RAISE_RELOCATE_TO_SAFEST_SITE, bldgIndex, m_raiseRelocateSafestSiteRatio, cost, pi.m_availableBudget, value, 1, passCostConstraint);
+//
+//                                    if (passCostConstraint)
+//                                    {
+//                                        pi.IncurCost(cost);
+//                                        pPoly->m_vertexArray[0].x = xSafeSite;
+//                                        pPoly->m_vertexArray[0].y = ySafeSite;
+//                                        m_pBldgLayer->SetData(bldgIndex, m_colBldgSafeSiteYr, pEnvContext->currentYear);
+//                                        floodMovingWindow->Clear();
+//                                    }
+//                                    else
+//                                    { // don't nourish
+//                                        pi.m_unmetDemand += cost;
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                // Building has been raised but not yet at safest site
+//                else if (raiseToBFEYr > 0 && safeSiteYr == 0)
+//                {
+//                    //if (pEnvContext->currentYear >= (raiseToBFEYr + m_windowLengthFloodHzrd - 1))
+//                    {
+//                        if (floodFreq >= (float(m_ssiteCount) / m_windowLengthFloodHzrd))
+//                        {
+//                            // move building to safest site
+//                            if (safestSiteRow >= 0 && safestSiteCol >= 0)
+//                            {
+//                                float value = 0;
+//                                m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//
+//                                float cost = value * m_raiseRelocateSafestSiteRatio;
+//
+//                                // get budget infor for Constructing BPS policy
+//                                PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
+//                                bool passCostConstraint = true;
+//
+//                                // enough funds in original allocation ?
+//                                if (pi.HasBudget() && pi.m_availableBudget <= cost)
+//                                    passCostConstraint = false;
+//
+//                                AddToPolicySummary(pEnvContext->currentYear, PI_RAISE_RELOCATE_TO_SAFEST_SITE, bldgIndex, m_raiseRelocateSafestSiteRatio, cost, pi.m_availableBudget, value, 2, passCostConstraint);
+//
+//                                if (passCostConstraint)
+//                                {
+//                                    pi.IncurCost(cost);
+//
+//                                    pPoly->m_vertexArray[0].x = xSafeSite;
+//                                    pPoly->m_vertexArray[0].y = ySafeSite;
+//                                    m_pBldgLayer->SetData(bldgIndex, m_colBldgSafeSiteYr, pEnvContext->currentYear);
+//                                    floodMovingWindow->Clear();
+//                                }
+//                                else
+//                                { // didn't pass cost constraint, so add to unmet demand
+//                                    pi.m_unmetDemand += cost;
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
+//                else if (safeSiteYr > 0)
+//                {
+//                    //if (pEnvContext->currentYear >= (safeSiteYr + m_windowLengthFloodHzrd - 1))
+//                    {
+//                        if (floodFreq >= (float(m_ssiteCount) / m_windowLengthFloodHzrd))
+//                        {
+//                            // flag that no buildings allowed in this IDU
+//                            m_pIDULayer->m_readOnly = false;
+//                            m_pIDULayer->SetData(idu, m_colIDUPopDensity, 0);
+//                            m_pIDULayer->SetData(idu, m_colIDUSafeSite, 0);
+//
+//                            /*m_pIDULayer->SetData(idu, m_colPopCap, 0);
+//                            m_pIDULayer->SetData(idu, m_colPopulation, 0);
+//                            m_pIDULayer->SetData(idu, m_colLandValue, 0);
+//                            m_pIDULayer->SetData(idu, m_colImpValue, 0);*/
+//                        }
+//                    }
+//                }
+//
+//                //   delete floodMovingWindow;
+//                pPoly->InitLogicalPoints(m_pMap);
+//
+//            } // end each buildings
+//        } // end each IDU
+//    }
+//} // end RaiseOrRelocateToSafestSite
 
-void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext* pEnvContext)
-   {
-   //if (pEnvContext->currentYear >= (pEnvContext->startYear + m_windowLengthFloodHzrd - 1))
-         {
-         // Raise Infrastructure to BFE or Raise existing homes/buildings to BFE
-         // OR Relocate existing homes/buildings to safest site   
 
-         MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
-         int recordCount = pIDULayer->GetRecordCount();
-         ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
+//# working but raising_HT, all types of buildings
+//void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext* pEnvContext)
+//{
+//    // If policy not requested or mode set to 0 (off), do nothing
+//    if (m_runRelocateSafestPolicy == 0)
+//    {
+//        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: policy disabled (m_runRelocateSafestPolicy==0) -> skipping raises.");
+//        return;
+//    }
+//
+//    // Reset annual counters/totals for this policy run
+//    m_raiseEligibleBeginning = 0;
+//    m_raiseEligibleEnd = 0;
+//    m_raiseCostTotal = 0.0f;
+//    m_raiseCost_unmet = 0.0f;
+//
+//    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+//    const int recordCount = pIDULayer->GetRecordCount();
+//    if (m_pBldgLayer == nullptr || m_pIDULayer == nullptr)
+//    {
+//        Report::LogError("RaiseOrRelocateBldgToSafestSite: missing required layers");
+//        return;
+//    }
+//
+//    // ensure buildings layer writable while we operate
+//    bool prevBldgReadOnly = m_pBldgLayer->m_readOnly;
+//    m_pBldgLayer->m_readOnly = false;
+//
+//    // build a randomized IDU order (preserve previous behavior for untargeted mode)
+//    if (m_shuffleArray.GetSize() != recordCount)
+//        m_shuffleArray.SetSize(recordCount);
+//
+//    for (int i = 0; i < recordCount; ++i)
+//        m_shuffleArray.SetAt(i, (UINT)i);
+//
+//    ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
+//
+//    auto IsFemaHazardZone = [](const CString& zone) -> bool
+//        {
+//            CString z = zone;
+//            z.Trim();
+//            z.MakeUpper();
+//            if (z.IsEmpty()) return false;
+//            TCHAR c = z.GetAt(0);
+//            return (c == 'A' || c == 'V');
+//        };
+//
+//    PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
+//
+//    // precompute trigger freq
+//    float triggerFreq = 0.0f;
+//    if (m_windowLengthFloodHzrd > 0)
+//        triggerFreq = float(m_bfeCount) / float(m_windowLengthFloodHzrd);
+//
+//    // First pass: collect eligible buildings (snapshot)
+//    struct EligibleEntry { int bldgIndex; int iduIndex; float PFE; REAL xCoord; REAL yCoord; float value; };
+//    std::vector<EligibleEntry> eligibleList;
+//    eligibleList.reserve(1024);
+//
+//    // prepare fast lookup of PFE (meters) per building to reuse in untargeted path
+//    std::vector<float> pfeMetersByBldg(m_pBldgLayer->GetRowCount(), std::numeric_limits<float>::quiet_NaN());
+//
+//    for (int m = 0; m < recordCount; ++m)
+//    {
+//        int idu = (int)m_shuffleArray.GetAt(m);
+//        if (idu < 0 || idu >= recordCount) continue;
+//
+//        CString iduFloodZoneStr;
+//        pIDULayer->GetData(idu, m_colIDUFloodZone, iduFloodZoneStr);
+//        bool iduInFemaHazard = IsFemaHazardZone(iduFloodZoneStr);
+//
+//        float PFE_ft = 0.0f;
+//        pIDULayer->GetData(idu, m_colIDUPFE, PFE_ft);
+//
+//        // Convert PFE from feet to meters before storing/using
+//        float PFE_m = PFE_ft * 0.3048f;
+//        if (!std::isfinite(PFE_m) || PFE_m < 0.0f)
+//            PFE_m = 0.0f;
+//
+//        CArray<int, int> bldgIndices;
+//        int numBldgs = 0;
+//        if (m_pIduBuildingLkUp != nullptr)
+//        {
+//            numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+//            if (numBldgs < 0) numBldgs = 0;
+//        }
+//
+//        for (int i = 0; i < numBldgs; ++i)
+//        {
+//            int bldgIndex = bldgIndices[i];
+//            if (bldgIndex < 0 || bldgIndex >= m_pBldgLayer->GetRowCount()) continue;
+//
+//            // Read current BFE year at collection time - only consider not-yet-raised (==0)
+//            int raiseToBFEYr = 0;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr);
+//            if (raiseToBFEYr != 0) continue; // already raised -> skip
+//
+//            MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//            float floodFreq = floodMovingWindow ? floodMovingWindow->GetFreqValue() : 0.0f;
+//
+//            bool meetsFloodTrigger = (floodFreq >= triggerFreq);
+//
+//            bool eligible = (iduInFemaHazard && (raiseToBFEYr == 0) && meetsFloodTrigger);
+//            if (!eligible) continue;
+//
+//            REAL xCoord = 0.0, yCoord = 0.0;
+//            m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+//
+//            float value = 0.0f;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//
+//            EligibleEntry e;
+//            e.bldgIndex = bldgIndex;
+//            e.iduIndex = idu;
+//            e.PFE = PFE_m; // store PFE in meters
+//            e.xCoord = xCoord;
+//            e.yCoord = yCoord;
+//            e.value = value;
+//            eligibleList.push_back(e);
+//
+//            // store PFE (m) for fast lookup later in untargeted path
+//            if (bldgIndex >= 0 && bldgIndex < (int)pfeMetersByBldg.size())
+//                pfeMetersByBldg[bldgIndex] = PFE_m;
+//        }
+//    }
+//
+//    m_raiseEligibleBeginning = (int)eligibleList.size();
+//
+//    if (eligibleList.empty())
+//    {
+//        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
+//        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: no eligible buildings found.");
+//        return;
+//    }
+//
+//    // weight helper (from IDU econ class)
+//    auto weightFromIdu = [&](int iduIndex) -> double
+//        {
+//            if (iduIndex < 0 || iduIndex >= pIDULayer->GetRecordCount())
+//                return 0.1;
+//            int econClass = 0;
+//            pIDULayer->GetData(iduIndex, m_colIDUEconClass, econClass);
+//            switch (econClass)
+//            {
+//            case 1: return 0.9;
+//            case 2: return 0.5;
+//            case 3: return 0.1;
+//            default: return 0.1;
+//            }
+//        };
+//
+//    int raiseMode = m_runRelocateSafestPolicy; // 1 = untargeted, 2 = targeted
+//
+//    if (raiseMode == 2)
+//    {
+//        // Targeted: weighted sampling without replacement, but re-check BFE before acting,
+//        // and stop early if budget cannot cover the cheapest remaining eligible building.
+//        while (!eligibleList.empty())
+//        {
+//            // compute costs for all eligible entries to know cheapest (for budget early-exit)
+//            double cheapestCost = std::numeric_limits<double>::infinity();
+//            std::vector<double> weights; weights.reserve(eligibleList.size());
+//            double totalW = 0.0;
+//            for (auto& e : eligibleList)
+//            {
+//                // compute tentative cost using same formula (use e.PFE and e.value)
+//                float h_raise = m_h_raise * 0.3048f;
+//                if (!(std::isfinite(h_raise)) || h_raise <= 0.0f) h_raise = 1.0f;
+//                float raisingHeight = (e.PFE > 0.0f) ? (e.PFE + h_raise) : h_raise;
+//                float cost = (h_raise > 0.0f) ? (m_raiseRelocateSafestSiteRatio * e.value * (raisingHeight / h_raise)) : (m_raiseRelocateSafestSiteRatio * e.value);
+//                if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//                // Enforce cost constraint: cost should not exceed building value
+//                if (std::isfinite(e.value) && e.value >= 0.0f && cost > e.value)
+//                    cost = e.value;
+//
+//                if (cost < cheapestCost) cheapestCost = cost;
+//
+//                double w = weightFromIdu(e.iduIndex);
+//                if (!std::isfinite(w) || w < 0.0) w = 0.0;
+//                weights.push_back(w);
+//                totalW += w;
+//            }
+//
+//            // If budget exists and it can't cover the CHEAPEST remaining eligible building, stop now
+//            if (pi.HasBudget() && pi.m_availableBudget <= 0.0f)
+//            {
+//                Report::LogInfo("RaiseOrRelocate: budget exhausted for targeted raising, deferring remaining eligible to future years.");
+//                break;
+//            }
+//            if (pi.HasBudget() && std::isfinite(cheapestCost) && cheapestCost > pi.m_availableBudget)
+//            {
+//                CString dbg; dbg.Format("RaiseOrRelocate: cheapest remaining cost=%.2f > availBudget=%.2f -> stop targeted selection", cheapestCost, pi.m_availableBudget);
+//                Report::LogInfo(dbg);
+//                break;
+//            }
+//
+//            if (totalW <= 0.0)
+//            {
+//                Report::LogInfo("RaiseOrRelocate: total sampling weight <= 0.0, aborting targeted selection");
+//                break;
+//            }
+//
+//            std::discrete_distribution<size_t> dist(weights.begin(), weights.end());
+//            size_t sel = dist(m_rng);
+//            if (sel >= eligibleList.size()) sel = eligibleList.size() - 1;
+//
+//            // Before acting, re-check that this building is still eligible (wasn't raised by another code path)
+//            EligibleEntry entry = eligibleList[sel];
+//            int bldgIndex = entry.bldgIndex;
+//            int idu = entry.iduIndex;
+//
+//            int raiseToBFEYr_now = 0;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr_now);
+//            if (raiseToBFEYr_now != 0)
+//            {
+//                // Already raised elsewhere since collection; drop from list and continue
+//                eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+//                continue;
+//            }
+//
+//            // compute cost (same formula)
+//            float h_raise = m_h_raise * 0.3048f;
+//            if (!(std::isfinite(h_raise)) || h_raise <= 0.0f) h_raise = 1.0f;
+//            float raisingHeight = (entry.PFE > 0.0f) ? (entry.PFE + h_raise) : h_raise;
+//
+//            float value = entry.value;
+//            float cost = (h_raise > 0.0f) ? (m_raiseRelocateSafestSiteRatio * value * (raisingHeight / h_raise)) : (m_raiseRelocateSafestSiteRatio * value);
+//            if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//            // Enforce cost constraint: cost should not exceed building value
+//            if (std::isfinite(value) && value >= 0.0f && cost > value)
+//                cost = value;
+//
+//            bool passCostConstraint = true;
+//            if (pi.HasBudget() && cost > pi.m_availableBudget) passCostConstraint = false;
+//
+//            float remainingBefore = pi.HasBudget() ? pi.m_availableBudget : 0.0f;
+//
+//            AddToPolicySummary(pEnvContext->currentYear,
+//                PI_RAISE_RELOCATE_TO_SAFEST_SITE,
+//                bldgIndex,
+//                m_raiseRelocateSafestSiteRatio,
+//                cost,
+//                remainingBefore,
+//                value,
+//                raisingHeight,
+//                passCostConstraint);
+//
+//            if (passCostConstraint)
+//            {
+//                if (pi.HasBudget()) pi.IncurCost(cost);
+//                m_raiseCostTotal += cost;
+//
+//                // Mark building as raised (BFE year)
+//                m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
+//
+//                // Update IDU BFE year via UpdateIDU (consistent with other code)
+//                UpdateIDU(pEnvContext, idu, m_colIDUBFEYr, pEnvContext->currentYear, ADD_DELTA);
+//
+//                // store raisingHeight in IDU if configured
+//                if (m_colIDURaisingHeight >= 0 && m_pIDULayer != nullptr)
+//                {
+//                    bool prevRO = m_pIDULayer->m_readOnly;
+//                    m_pIDULayer->m_readOnly = false;
+//                    m_pIDULayer->SetData(idu, m_colIDURaisingHeight, raisingHeight);
+//                    m_pIDULayer->m_readOnly = prevRO;
+//                    UpdateIDU(pEnvContext, idu, m_colIDURaisingHeight, raisingHeight, ADD_DELTA);
+//                }
+//
+//                // clear moving window to avoid re-triggering same building
+//                MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//                if (floodMovingWindow != nullptr) floodMovingWindow->Clear();
+//
+//                // remove selected entry (processed)
+//                eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+//            }
+//            else
+//            {
+//                // If cost fails despite earlier cheapest-check, stop targeted selection to defer remaining to next year.
+//                CString dbg;
+//                dbg.Format("RaiseOrRelocate: skipping selected building %d due to budget < cost (%.2f). Deferring remaining %zu eligible.", bldgIndex, cost, eligibleList.size());
+//                Report::LogInfo(dbg);
+//                break;
+//            }
+//        } // end while
+//
+//        // remaining eligible buildings not processed this year
+//        m_raiseEligibleEnd = (int)eligibleList.size();
+//    }
+//    else // untargeted (original order by shuffled IDU)
+//    {
+//        // Build a fast lookup of eligiblity (we will re-check at process time)
+//        std::vector<char> isEligible(m_pBldgLayer->GetRowCount(), 0);
+//        for (auto& e : eligibleList)
+//            if (e.bldgIndex >= 0 && e.bldgIndex < (int)isEligible.size())
+//                isEligible[e.bldgIndex] = 1;
+//
+//        // iterate IDU-shuffled order as originally intended
+//        bool budgetExhausted = false;
+//        for (int m = 0; m < recordCount && !budgetExhausted; ++m)
+//        {
+//            int idu = (int)m_shuffleArray.GetAt(m);
+//            if (idu < 0 || idu >= recordCount) continue;
+//
+//            CArray<int, int> bldgIndices;
+//            int numBldgs = 0;
+//            if (m_pIduBuildingLkUp != nullptr)
+//            {
+//                numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+//                if (numBldgs < 0) numBldgs = 0;
+//            }
+//
+//            for (int i = 0; i < numBldgs; ++i)
+//            {
+//                int bldgIndex = bldgIndices[i];
+//                if (bldgIndex < 0 || bldgIndex >= m_pBldgLayer->GetRowCount()) continue;
+//                if (!isEligible[bldgIndex]) continue;
+//
+//                // Re-check the building is still eligible (hasn't been raised by another path)
+//                int raiseToBFEYr_now = 0;
+//                m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr_now);
+//                if (raiseToBFEYr_now != 0)
+//                {
+//                    isEligible[bldgIndex] = 0; // already raised -> drop from eligible set
+//                    continue;
+//                }
+//
+//                // Use PFE value sampled earlier if available; fallback to reading IDU if not
+//                float PFE = std::numeric_limits<float>::quiet_NaN();
+//                if (bldgIndex >= 0 && bldgIndex < (int)pfeMetersByBldg.size())
+//                    PFE = pfeMetersByBldg[bldgIndex];
+//
+//                if (!std::isfinite(PFE))
+//                {
+//                    // fallback: fetch PFE from IDU (ft) and convert to meters
+//                    float PFE_ft = 0.0f;
+//                    m_pIDULayer->GetData(idu, m_colIDUPFE, PFE_ft);
+//                    PFE = PFE_ft * 0.3048f;
+//                    if (!std::isfinite(PFE) || PFE < 0.0f) PFE = 0.0f;
+//                }
+//
+//                REAL xCoord = 0.0, yCoord = 0.0;
+//                m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+//
+//                float h_raise = m_h_raise * 0.3048f; if (!(std::isfinite(h_raise)) || h_raise <= 0.0f) h_raise = 1.0f;
+//                float raisingHeight = (PFE > 0.0f) ? (PFE + h_raise) : h_raise;
+//
+//                float value = 0.0f;
+//                m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//                float cost = (h_raise > 0.0f) ? (m_raiseRelocateSafestSiteRatio * value * (raisingHeight / h_raise)) : (m_raiseRelocateSafestSiteRatio * value);
+//                if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//                // Enforce cost constraint: cost should not exceed building value
+//                if (std::isfinite(value) && value >= 0.0f && cost > value)
+//                    cost = value;
+//
+//                // If there is a budget and it can't cover this building's cost
+//                if (pi.HasBudget() && cost > pi.m_availableBudget)
+//                {
+//                    // If budget is zero or too small to cover the cheapest possible building,
+//                    // stop now and defer remaining eligible buildings to next year.
+//                    // To be conservative, we stop processing further.
+//                    CString dbg;
+//                    dbg.Format("RaiseOrRelocate: untargeted - insufficient budget for building %d (cost=%.2f avail=%.2f); deferring remaining.", bldgIndex, cost, pi.m_availableBudget);
+//                    Report::LogInfo(dbg);
+//                    budgetExhausted = true;
+//                    break;
+//                }
+//
+//                float remainingBefore = pi.HasBudget() ? pi.m_availableBudget : 0.0f;
+//
+//                AddToPolicySummary(pEnvContext->currentYear,
+//                    PI_RAISE_RELOCATE_TO_SAFEST_SITE,
+//                    bldgIndex,
+//                    m_raiseRelocateSafestSiteRatio,
+//                    cost,
+//                    remainingBefore,
+//                    value,
+//                    raisingHeight,
+//                    true);
+//
+//                // commit raise
+//                if (pi.HasBudget()) pi.IncurCost(cost);
+//                m_raiseCostTotal += cost;
+//
+//                // Mark building as raised (persistent)
+//                m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
+//                UpdateIDU(pEnvContext, idu, m_colIDUBFEYr, pEnvContext->currentYear, ADD_DELTA);
+//
+//                // store raisingHeight in IDU
+//                if (m_colIDURaisingHeight >= 0 && m_pIDULayer != nullptr)
+//                {
+//                    bool prevRO = m_pIDULayer->m_readOnly;
+//                    m_pIDULayer->m_readOnly = false;
+//                    m_pIDULayer->SetData(idu, m_colIDURaisingHeight, raisingHeight);
+//                    m_pIDULayer->m_readOnly = prevRO;
+//                    UpdateIDU(pEnvContext, idu, m_colIDURaisingHeight, raisingHeight, ADD_DELTA);
+//                }
+//
+//                MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//                if (floodMovingWindow != nullptr) floodMovingWindow->Clear();
+//
+//                // Mark processed for this run
+//                isEligible[bldgIndex] = 0;
+//            } // end buildings loop
+//        } // end idu loop
+//
+//        // count remaining eligible (still have BFE_YR == 0)
+//        int remaining = 0;
+//        for (auto& e : eligibleList)
+//        {
+//            int curBFE = 0;
+//            m_pBldgLayer->GetData(e.bldgIndex, m_colBldgBFEYr, curBFE);
+//            if (curBFE == 0) ++remaining;
+//        }
+//        m_raiseEligibleEnd = remaining;
+//    } // end untargeted
+//
+//    // restore read-only state
+//    if (m_pBldgLayer != nullptr)
+//        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
+//
+//    CString msg;
+//    msg.Format("RaiseOrRelocate: EligibleBeginning=%d, EligibleEnd=%d, CostSpent=%.2f, UnmetDemand=%.2f",
+//        m_raiseEligibleBeginning, m_raiseEligibleEnd, m_raiseCostTotal, m_raiseCost_unmet);
+//    Report::LogInfo(msg);
+//}
 
-         for (int m = 0; m < recordCount; m++)
+////# working but raising_HT, only wood frame buildings
+//void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext* pEnvContext)
+//{
+//    // diagnostic: log selected mode at function entry
+//    Report::Log_i("RaiseOrRelocateBldgToSafestSite: m_runRelocateSafestPolicy=%d", m_runRelocateSafestPolicy);
+//
+//    // If policy not requested or mode set to 0 (off), do nothing
+//    if (m_runRelocateSafestPolicy == 0)
+//    {
+//        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: policy disabled (m_runRelocateSafestPolicy==0) -> skipping raises.");
+//        return;
+//    }
+//
+//    // Reset annual counters/totals for this policy run
+//    m_raiseEligibleBeginning = 0;
+//    m_raiseEligibleEnd = 0;
+//    m_raiseCostTotal = 0.0f;
+//    m_raiseCost_unmet = 0.0f;
+//
+//    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+//    const int recordCount = pIDULayer->GetRecordCount();
+//    if (m_pBldgLayer == nullptr || m_pIDULayer == nullptr)
+//    {
+//        Report::LogError("RaiseOrRelocateBldgToSafestSite: missing required layers");
+//        return;
+//    }
+//
+//    // get BLDGTYPE column index in IDU layer (if present). If missing, fall back to original behavior (allow all types)
+//    int colBLDGTYPE = pIDULayer->GetFieldCol(_T("BLDGTYPE"));
+//
+//    // ensure buildings layer writable while we operate
+//    bool prevBldgReadOnly = m_pBldgLayer->m_readOnly;
+//    m_pBldgLayer->m_readOnly = false;
+//
+//    // build a randomized IDU order (preserve previous behavior for untargeted mode)
+//    if (m_shuffleArray.GetSize() != recordCount)
+//        m_shuffleArray.SetSize(recordCount);
+//
+//    for (int i = 0; i < recordCount; ++i)
+//        m_shuffleArray.SetAt(i, (UINT)i);
+//
+//    ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
+//
+//    auto IsFemaHazardZone = [](const CString& zone) -> bool
+//        {
+//            CString z = zone;
+//            z.Trim();
+//            z.MakeUpper();
+//            if (z.IsEmpty()) return false;
+//            TCHAR c = z.GetAt(0);
+//            return (c == 'A' || c == 'V');
+//        };
+//
+//    PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
+//
+//    // precompute trigger freq
+//    float triggerFreq = 0.0f;
+//    if (m_windowLengthFloodHzrd > 0)
+//        triggerFreq = float(m_bfeCount) / float(m_windowLengthFloodHzrd);
+//
+//    // First pass: collect eligible buildings (snapshot)
+//    struct EligibleEntry { int bldgIndex; int iduIndex; float PFE; REAL xCoord; REAL yCoord; float value; };
+//    std::vector<EligibleEntry> eligibleList;
+//    eligibleList.reserve(1024);
+//
+//    // prepare fast lookup of PFE (meters) per building to reuse in untargeted path
+//    std::vector<float> pfeMetersByBldg(m_pBldgLayer->GetRowCount(), std::numeric_limits<float>::quiet_NaN());
+//
+//    for (int m = 0; m < recordCount; ++m)
+//    {
+//        int idu = (int)m_shuffleArray.GetAt(m);
+//        if (idu < 0 || idu >= recordCount) continue;
+//
+//        // If BLDGTYPE exists in IDU layer, only consider IDUs with BLDGTYPE == 1 or 2 (wood structures)
+//        if (colBLDGTYPE >= 0)
+//        {
+//            int iduBldgType = -1;
+//            pIDULayer->GetData(idu, colBLDGTYPE, iduBldgType);
+//            if (iduBldgType != 1 && iduBldgType != 2)
+//                continue; // skip this IDU - not wood structure
+//        }
+//
+//        CString iduFloodZoneStr;
+//        pIDULayer->GetData(idu, m_colIDUFloodZone, iduFloodZoneStr);
+//        bool iduInFemaHazard = IsFemaHazardZone(iduFloodZoneStr);
+//
+//        float PFE_ft = 0.0f;
+//        pIDULayer->GetData(idu, m_colIDUPFE, PFE_ft);
+//
+//        // Convert PFE from feet to meters before storing/using
+//        float PFE_m = PFE_ft * 0.3048f;
+//        if (!std::isfinite(PFE_m) || PFE_m < 0.0f)
+//            PFE_m = 0.0f;
+//
+//        CArray<int, int> bldgIndices;
+//        int numBldgs = 0;
+//        if (m_pIduBuildingLkUp != nullptr)
+//        {
+//            numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+//            if (numBldgs < 0) numBldgs = 0;
+//        }
+//
+//        for (int i = 0; i < numBldgs; ++i)
+//        {
+//            int bldgIndex = bldgIndices[i];
+//            if (bldgIndex < 0 || bldgIndex >= m_pBldgLayer->GetRowCount()) continue;
+//
+//            // Read current BFE year at collection time - only consider not-yet-raised (==0)
+//            int raiseToBFEYr = 0;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr);
+//            if (raiseToBFEYr != 0) continue; // already raised -> skip
+//
+//            MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//            float floodFreq = floodMovingWindow ? floodMovingWindow->GetFreqValue() : 0.0f;
+//
+//            bool meetsFloodTrigger = (floodFreq >= triggerFreq);
+//
+//            bool eligible = (iduInFemaHazard && (raiseToBFEYr == 0) && meetsFloodTrigger);
+//            if (!eligible) continue;
+//
+//            REAL xCoord = 0.0, yCoord = 0.0;
+//            m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+//
+//            float value = 0.0f;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//
+//            EligibleEntry e;
+//            e.bldgIndex = bldgIndex;
+//            e.iduIndex = idu;
+//            e.PFE = PFE_m; // store PFE in meters
+//            e.xCoord = xCoord;
+//            e.yCoord = yCoord;
+//            e.value = value;
+//            eligibleList.push_back(e);
+//
+//            // store PFE (m) for fast lookup later in untargeted path
+//            if (bldgIndex >= 0 && bldgIndex < (int)pfeMetersByBldg.size())
+//                pfeMetersByBldg[bldgIndex] = PFE_m;
+//        }
+//    }
+//
+//    m_raiseEligibleBeginning = (int)eligibleList.size();
+//
+//    if (eligibleList.empty())
+//    {
+//        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
+//        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: no eligible buildings found.");
+//        return;
+//    }
+//
+//    // weight helper (from IDU econ class)
+//    auto weightFromIdu = [&](int iduIndex) -> double
+//        {
+//            if (iduIndex < 0 || iduIndex >= pIDULayer->GetRecordCount())
+//                return 0.1;
+//            int econClass = 0;
+//            pIDULayer->GetData(iduIndex, m_colIDUEconClass, econClass);
+//            switch (econClass)
+//            {
+//            case 1: return 0.9;
+//            case 2: return 0.5;
+//            case 3: return 0.1;
+//            default: return 0.1;
+//            }
+//        };
+//
+//    int raiseMode = m_runRelocateSafestPolicy; // 1 = untargeted, 2 = targeted
+//
+//    if (raiseMode == 2)
+//    {
+//        // Targeted: weighted sampling without replacement, but re-check BFE before acting,
+//        // and stop early if budget cannot cover the cheapest remaining eligible building.
+//        while (!eligibleList.empty())
+//        {
+//            // compute costs for all eligible entries to know cheapest (for budget early-exit)
+//            double cheapestCost = std::numeric_limits<double>::infinity();
+//            std::vector<double> weights; weights.reserve(eligibleList.size());
+//            double totalW = 0.0;
+//            for (auto& e : eligibleList)
+//            {
+//                // compute tentative cost using same formula (use e.PFE and e.value)
+//                float h_raise = m_h_raise * 0.3048f;
+//                if (!(std::isfinite(h_raise)) || h_raise <= 0.0f) h_raise = 1.0f;
+//                float raisingHeight = (e.PFE > 0.0f) ? (e.PFE + h_raise) : h_raise;
+//                float cost = (h_raise > 0.0f) ? (m_raiseRelocateSafestSiteRatio * e.value * (raisingHeight / h_raise)) : (m_raiseRelocateSafestSiteRatio * e.value);
+//                if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//                // Enforce cost constraint: cost should not exceed building value
+//                if (std::isfinite(e.value) && e.value >= 0.0f && cost > e.value)
+//                    cost = e.value;
+//
+//                if (cost < cheapestCost) cheapestCost = cost;
+//
+//                double w = weightFromIdu(e.iduIndex);
+//                if (!std::isfinite(w) || w < 0.0) w = 0.0;
+//                weights.push_back(w);
+//                totalW += w;
+//            }
+//
+//            // If budget exists and it can't cover the CHEAPEST remaining eligible building, stop now
+//            if (pi.HasBudget() && pi.m_availableBudget <= 0.0f)
+//            {
+//                Report::LogInfo("RaiseOrRelocate: budget exhausted for targeted raising, deferring remaining eligible to future years.");
+//                break;
+//            }
+//            if (pi.HasBudget() && std::isfinite(cheapestCost) && cheapestCost > pi.m_availableBudget)
+//            {
+//                CString dbg; dbg.Format("RaiseOrRelocate: cheapest remaining cost=%.2f > availBudget=%.2f -> stop targeted selection", cheapestCost, pi.m_availableBudget);
+//                Report::LogInfo(dbg);
+//                break;
+//            }
+//
+//            if (totalW <= 0.0)
+//            {
+//                Report::LogInfo("RaiseOrRelocate: total sampling weight <= 0.0, aborting targeted selection");
+//                break;
+//            }
+//
+//            std::discrete_distribution<size_t> dist(weights.begin(), weights.end());
+//            size_t sel = dist(m_rng);
+//            if (sel >= eligibleList.size()) sel = eligibleList.size() - 1;
+//
+//            // Before acting, re-check that this building is still eligible (wasn't raised by another code path)
+//            EligibleEntry entry = eligibleList[sel];
+//            int bldgIndex = entry.bldgIndex;
+//            int idu = entry.iduIndex;
+//
+//            int raiseToBFEYr_now = 0;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr_now);
+//            if (raiseToBFEYr_now != 0)
+//            {
+//                // Already raised elsewhere since collection; drop from list and continue
+//                eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+//                continue;
+//            }
+//
+//            // compute cost (same formula)
+//            float h_raise = m_h_raise * 0.3048f;
+//            if (!(std::isfinite(h_raise)) || h_raise <= 0.0f) h_raise = 1.0f;
+//            float raisingHeight = (entry.PFE > 0.0f) ? (entry.PFE + h_raise) : h_raise;
+//
+//            float value = entry.value;
+//            float cost = (h_raise > 0.0f) ? (m_raiseRelocateSafestSiteRatio * value * (raisingHeight / h_raise)) : (m_raiseRelocateSafestSiteRatio * value);
+//            if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//            // Enforce cost constraint: cost should not exceed building value
+//            if (std::isfinite(value) && value >= 0.0f && cost > value)
+//                cost = value;
+//
+//            bool passCostConstraint = true;
+//            if (pi.HasBudget() && cost > pi.m_availableBudget) passCostConstraint = false;
+//
+//            float remainingBefore = pi.HasBudget() ? pi.m_availableBudget : 0.0f;
+//
+//            AddToPolicySummary(pEnvContext->currentYear,
+//                PI_RAISE_RELOCATE_TO_SAFEST_SITE,
+//                bldgIndex,
+//                m_raiseRelocateSafestSiteRatio,
+//                cost,
+//                remainingBefore,
+//                value,
+//                raisingHeight,
+//                passCostConstraint);
+//
+//            if (passCostConstraint)
+//            {
+//                if (pi.HasBudget()) pi.IncurCost(cost);
+//                m_raiseCostTotal += cost;
+//
+//                // Mark building as raised (BFE year)
+//                m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
+//
+//                // Update IDU BFE year via UpdateIDU (consistent with other code)
+//                UpdateIDU(pEnvContext, idu, m_colIDUBFEYr, pEnvContext->currentYear, ADD_DELTA);
+//
+//                // store raisingHeight in IDU if configured
+//                if (m_colIDURaisingHeight >= 0 && m_pIDULayer != nullptr)
+//                {
+//                    bool prevRO = m_pIDULayer->m_readOnly;
+//                    m_pIDULayer->m_readOnly = false;
+//                    m_pIDULayer->SetData(idu, m_colIDURaisingHeight, raisingHeight);
+//                    m_pIDULayer->m_readOnly = prevRO;
+//                    UpdateIDU(pEnvContext, idu, m_colIDURaisingHeight, raisingHeight, ADD_DELTA);
+//                }
+//
+//                // clear moving window to avoid re-triggering same building
+//                MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//                if (floodMovingWindow != nullptr) floodMovingWindow->Clear();
+//
+//                // remove selected entry (processed)
+//                eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+//            }
+//            else
+//            {
+//                // If cost fails despite earlier cheapest-check, stop targeted selection to defer remaining to next year.
+//                CString dbg;
+//                dbg.Format("RaiseOrRelocate: skipping selected building %d due to budget < cost (%.2f). Deferring remaining %zu eligible.", bldgIndex, cost, eligibleList.size());
+//                Report::LogInfo(dbg);
+//                break;
+//            }
+//        } // end while
+//
+//        // remaining eligible buildings not processed this year
+//        m_raiseEligibleEnd = (int)eligibleList.size();
+//    }
+//    else // untargeted (original order by shuffled IDU)
+//    {
+//        // Build a fast lookup of eligiblity (we will re-check at process time)
+//        std::vector<char> isEligible(m_pBldgLayer->GetRowCount(), 0);
+//        for (auto& e : eligibleList)
+//            if (e.bldgIndex >= 0 && e.bldgIndex < (int)isEligible.size())
+//                isEligible[e.bldgIndex] = 1;
+//
+//        // iterate IDU-shuffled order as originally intended
+//        bool budgetExhausted = false;
+//        for (int m = 0; m < recordCount && !budgetExhausted; ++m)
+//        {
+//            int idu = (int)m_shuffleArray.GetAt(m);
+//            if (idu < 0 || idu >= recordCount) continue;
+//
+//            CArray<int, int> bldgIndices;
+//            int numBldgs = 0;
+//            if (m_pIduBuildingLkUp != nullptr)
+//            {
+//                numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+//                if (numBldgs < 0) numBldgs = 0;
+//            }
+//
+//            for (int i = 0; i < numBldgs; ++i)
+//            {
+//                int bldgIndex = bldgIndices[i];
+//                if (bldgIndex < 0 || bldgIndex >= m_pBldgLayer->GetRowCount()) continue;
+//                if (!isEligible[bldgIndex]) continue;
+//
+//                // Re-check the building is still eligible (hasn't been raised by another path)
+//                int raiseToBFEYr_now = 0;
+//                m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr_now);
+//                if (raiseToBFEYr_now != 0)
+//                {
+//                    isEligible[bldgIndex] = 0; // already raised -> drop from eligible set
+//                    continue;
+//                }
+//
+//                // Use PFE value sampled earlier if available; fallback to reading IDU if not
+//                float PFE = std::numeric_limits<float>::quiet_NaN();
+//                if (bldgIndex >= 0 && bldgIndex < (int)pfeMetersByBldg.size())
+//                    PFE = pfeMetersByBldg[bldgIndex];
+//
+//                if (!std::isfinite(PFE))
+//                {
+//                    // fallback: fetch PFE from IDU (ft) and convert to meters
+//                    float PFE_ft = 0.0f;
+//                    m_pIDULayer->GetData(idu, m_colIDUPFE, PFE_ft);
+//                    PFE = PFE_ft * 0.3048f;
+//                    if (!std::isfinite(PFE) || PFE < 0.0f) PFE = 0.0f;
+//                }
+//
+//                REAL xCoord = 0.0, yCoord = 0.0;
+//                m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+//
+//                float h_raise = m_h_raise * 0.3048f; if (!(std::isfinite(h_raise)) || h_raise <= 0.0f) h_raise = 1.0f;
+//                float raisingHeight = (PFE > 0.0f) ? (PFE + h_raise) : h_raise;
+//
+//                float value = 0.0f;
+//                m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//                float cost = (h_raise > 0.0f) ? (m_raiseRelocateSafestSiteRatio * value * (raisingHeight / h_raise)) : (m_raiseRelocateSafestSiteRatio * value);
+//                if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//                // Enforce cost constraint: cost should not exceed building value
+//                if (std::isfinite(value) && value >= 0.0f && cost > value)
+//                    cost = value;
+//
+//                // If there is a budget and it can't cover this building's cost
+//                if (pi.HasBudget() && cost > pi.m_availableBudget)
+//                {
+//                    // If budget is zero or too small to cover the cheapest possible building,
+//                    // stop now and defer remaining eligible buildings to next year.
+//                    // To be conservative, we stop processing further.
+//                    CString dbg;
+//                    dbg.Format("RaiseOrRelocate: untargeted - insufficient budget for building %d (cost=%.2f avail=%.2f); deferring remaining.", bldgIndex, cost, pi.m_availableBudget);
+//                    Report::LogInfo(dbg);
+//                    budgetExhausted = true;
+//                    break;
+//                }
+//
+//                float remainingBefore = pi.HasBudget() ? pi.m_availableBudget : 0.0f;
+//
+//                AddToPolicySummary(pEnvContext->currentYear,
+//                    PI_RAISE_RELOCATE_TO_SAFEST_SITE,
+//                    bldgIndex,
+//                    m_raiseRelocateSafestSiteRatio,
+//                    cost,
+//                    remainingBefore,
+//                    value,
+//                    raisingHeight,
+//                    true);
+//
+//                // commit raise
+//                if (pi.HasBudget()) pi.IncurCost(cost);
+//                m_raiseCostTotal += cost;
+//
+//                // Mark building as raised (persistent)
+//                m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
+//                UpdateIDU(pEnvContext, idu, m_colIDUBFEYr, pEnvContext->currentYear, ADD_DELTA);
+//
+//                // store raisingHeight in IDU
+//                if (m_colIDURaisingHeight >= 0 && m_pIDULayer != nullptr)
+//                {
+//                    bool prevRO = m_pIDULayer->m_readOnly;
+//                    m_pIDULayer->m_readOnly = false;
+//                    m_pIDULayer->SetData(idu, m_colIDURaisingHeight, raisingHeight);
+//                    m_pIDULayer->m_readOnly = prevRO;
+//                    UpdateIDU(pEnvContext, idu, m_colIDURaisingHeight, raisingHeight, ADD_DELTA);
+//                }
+//
+//                MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//                if (floodMovingWindow != nullptr) floodMovingWindow->Clear();
+//
+//                // Mark processed for this run
+//                isEligible[bldgIndex] = 0;
+//            } // end buildings loop
+//        } // end idu loop
+//
+//        // count remaining eligible (still have BFE_YR == 0)
+//        int remaining = 0;
+//        for (auto& e : eligibleList)
+//        {
+//            int curBFE = 0;
+//            m_pBldgLayer->GetData(e.bldgIndex, m_colBldgBFEYr, curBFE);
+//            if (curBFE == 0) ++remaining;
+//        }
+//        m_raiseEligibleEnd = remaining;
+//    } // end untargeted
+//
+//    // restore read-only state
+//    if (m_pBldgLayer != nullptr)
+//        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
+//
+//    CString msg;
+//    msg.Format("RaiseOrRelocate: EligibleBeginning=%d, EligibleEnd=%d, CostSpent=%.2f, UnmetDemand=%.2f",
+//        m_raiseEligibleBeginning, m_raiseEligibleEnd, m_raiseCostTotal, m_raiseCost_unmet);
+//    Report::LogInfo(msg);
+//}
+
+//# working, only wood frame buildings from eligible lists, both targeted and untargeted-COPY
+//void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext * pEnvContext)
+//{
+//    // diagnostic: log selected mode at function entry
+//    Report::Log_i("RaiseOrRelocateBldgToSafestSite: m_runRelocateSafestPolicy=%d", m_runRelocateSafestPolicy);
+//
+//    // If policy not requested or mode set to 0 (off), do nothing
+//    if (m_runRelocateSafestPolicy == 0)
+//    {
+//        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: policy disabled (m_runRelocateSafestPolicy==0) -> skipping raises.");
+//        return;
+//    }
+//
+//    // Reset annual counters/totals for this policy run
+//    m_raiseEligibleBeginning = 0;
+//    m_raiseEligibleEnd = 0;
+//    m_raiseCostTotal = 0.0f;
+//    m_raiseCost_unmet = 0.0f;
+//
+//    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+//    const int recordCount = pIDULayer->GetRecordCount();
+//    if (m_pBldgLayer == nullptr || m_pIDULayer == nullptr)
+//    {
+//        Report::LogError("RaiseOrRelocateBldgToSafestSite: missing required layers");
+//        return;
+//    }
+//
+//    // convert configured h_raise (feet) to meters once and use throughout
+//    float h_raise_m = m_h_raise * 0.3048f;
+//    if (!(std::isfinite(h_raise_m)) || h_raise_m <= 0.0f)
+//    {
+//        // default to 1 ft in meters if config invalid
+//        h_raise_m = 0.3048f;
+//        Report::LogInfo("ChronicHazards: m_h_raise invalid or non-positive; defaulting to 1 ft (0.3048 m)");
+//    }
+//
+//    // Diagnostic: log h_raise and RAISING_HT col index
+//    {
+//        CString dbg;
+//        dbg.Format("RaiseOrRelocate: h_raise_m=%.6f m (m_h_raise=%.3f ft), m_colIDURaisingHeight=%d",
+//            h_raise_m, (double)m_h_raise, m_colIDURaisingHeight);
+//        Report::LogInfo(dbg);
+//    }
+//
+//    // get BLDGTYPE column index in IDU layer (if present). If missing, fall back to original behavior (allow all types)
+//    int colBLDGTYPE = pIDULayer->GetFieldCol(_T("BLDGTYPE"));
+//
+//    // ensure buildings layer writable while we operate
+//    bool prevBldgReadOnly = m_pBldgLayer->m_readOnly;
+//    m_pBldgLayer->m_readOnly = false;
+//
+//    // build a randomized IDU order (preserve previous behavior for untargeted mode)
+//    if (m_shuffleArray.GetSize() != recordCount)
+//        m_shuffleArray.SetSize(recordCount);
+//
+//    for (int i = 0; i < recordCount; ++i)
+//        m_shuffleArray.SetAt(i, (UINT)i);
+//
+//    ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
+//
+//    auto IsFemaHazardZone = [](const CString& zone) -> bool
+//        {
+//            CString z = zone;
+//            z.Trim();
+//            z.MakeUpper();
+//            if (z.IsEmpty()) return false;
+//            TCHAR c = z.GetAt(0);
+//            return (c == 'A' || c == 'V');
+//        };
+//
+//    PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
+//
+//    // precompute trigger freq
+//    float triggerFreq = 0.0f;
+//    if (m_windowLengthFloodHzrd > 0)
+//        triggerFreq = float(m_bfeCount) / float(m_windowLengthFloodHzrd);
+//
+//    // First pass: collect eligible buildings (snapshot)
+//    struct EligibleEntry { int bldgIndex; int iduIndex; float PFE; REAL xCoord; REAL yCoord; float value; };
+//    std::vector<EligibleEntry> eligibleList;
+//    eligibleList.reserve(1024);
+//
+//    // prepare fast lookup of PFE (meters) per building to reuse if needed
+//    std::vector<float> pfeMetersByBldg(m_pBldgLayer->GetRowCount(), std::numeric_limits<float>::quiet_NaN());
+//
+//    for (int m = 0; m < recordCount; ++m)
+//    {
+//        int idu = (int)m_shuffleArray.GetAt(m);
+//        if (idu < 0 || idu >= recordCount) continue;
+//
+//        // If BLDGTYPE exists in IDU layer, only consider IDUs with BLDGTYPE == 1 or 2 (wood structures)
+//        if (colBLDGTYPE >= 0)
+//        {
+//            int iduBldgType = -1;
+//            pIDULayer->GetData(idu, colBLDGTYPE, iduBldgType);
+//            if (iduBldgType != 1 && iduBldgType != 2)
+//                continue; // skip this IDU - not wood structure
+//        }
+//
+//        CString iduFloodZoneStr;
+//        pIDULayer->GetData(idu, m_colIDUFloodZone, iduFloodZoneStr);
+//        bool iduInFemaHazard = IsFemaHazardZone(iduFloodZoneStr);
+//
+//        float PFE_ft = 0.0f;
+//        pIDULayer->GetData(idu, m_colIDUPFE, PFE_ft);
+//
+//        // Convert PFE from feet to meters before storing/using
+//        float PFE_m = PFE_ft * 0.3048f;
+//        if (!std::isfinite(PFE_m) || PFE_m < 0.0f)
+//            PFE_m = 0.0f;
+//
+//        CArray<int, int> bldgIndices;
+//        int numBldgs = 0;
+//        if (m_pIduBuildingLkUp != nullptr)
+//        {
+//            numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+//            if (numBldgs < 0) numBldgs = 0;
+//        }
+//
+//        for (int i = 0; i < numBldgs; ++i)
+//        {
+//            int bldgIndex = bldgIndices[i];
+//            if (bldgIndex < 0 || bldgIndex >= m_pBldgLayer->GetRowCount()) continue;
+//
+//            // Read current BFE year at collection time - only consider not-yet-raised (==0)
+//            int raiseToBFEYr = 0;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr);
+//            if (raiseToBFEYr != 0) continue; // already raised -> skip
+//
+//            MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//            float floodFreq = floodMovingWindow ? floodMovingWindow->GetFreqValue() : 0.0f;
+//
+//            bool meetsFloodTrigger = (floodFreq >= triggerFreq);
+//
+//            bool eligible = (iduInFemaHazard && (raiseToBFEYr == 0) && meetsFloodTrigger);
+//            if (!eligible) continue;
+//
+//            REAL xCoord = 0.0, yCoord = 0.0;
+//            m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+//
+//            float value = 0.0f;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+//
+//            EligibleEntry e;
+//            e.bldgIndex = bldgIndex;
+//            e.iduIndex = idu;
+//            e.PFE = PFE_m; // store PFE in meters
+//            e.xCoord = xCoord;
+//            e.yCoord = yCoord;
+//            e.value = value;
+//            eligibleList.push_back(e);
+//
+//            // store PFE (m) for fast lookup later if needed
+//            if (bldgIndex >= 0 && bldgIndex < (int)pfeMetersByBldg.size())
+//                pfeMetersByBldg[bldgIndex] = PFE_m;
+//        }
+//    }
+//
+//    m_raiseEligibleBeginning = (int)eligibleList.size();
+//
+//    if (eligibleList.empty())
+//    {
+//        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
+//        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: no eligible buildings found.");
+//        return;
+//    }
+//
+//    // weight helper (from IDU econ class)
+//    auto weightFromIdu = [&](int iduIndex) -> double
+//        {
+//            if (iduIndex < 0 || iduIndex >= pIDULayer->GetRecordCount())
+//                return 0.1;
+//            int econClass = 0;
+//            pIDULayer->GetData(iduIndex, m_colIDUEconClass, econClass);
+//            switch (econClass)
+//            {
+//            case 1: return 0.9;
+//            case 2: return 0.5;
+//            case 3: return 0.1;
+//            default: return 0.1;
+//            }
+//        };
+//
+//    int raiseMode = m_runRelocateSafestPolicy; // 1 = untargeted, 2 = targeted
+//
+//    if (raiseMode == 2)
+//    {
+//        // Targeted: weighted sampling without replacement, but re-check BFE before acting,
+//        // and stop early if budget cannot cover the cheapest remaining eligible building.
+//        while (!eligibleList.empty())
+//        {
+//            // compute costs for all eligible entries to know cheapest (for budget early-exit)
+//            double cheapestCost = std::numeric_limits<double>::infinity();
+//            std::vector<double> weights; weights.reserve(eligibleList.size());
+//            double totalW = 0.0;
+//            for (auto& e : eligibleList)
+//            {
+//                // compute tentative cost using same formula (use e.PFE and e.value)
+//                // raisingHeight in meters
+//                float raisingHeight = (e.PFE > 0.0f) ? (e.PFE + h_raise_m) : h_raise_m;
+//                // original cost semantics: ratio * value * (raisingHeight / h_raise_m)
+//                float cost = (h_raise_m > 0.0f) ? (m_raiseRelocateSafestSiteRatio * e.value * (raisingHeight / h_raise_m)) : (m_raiseRelocateSafestSiteRatio * e.value);
+//                if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//                // Enforce cost constraint: cost should not exceed building value
+//                if (std::isfinite(e.value) && e.value >= 0.0f && cost > e.value)
+//                    cost = e.value;
+//
+//                if (cost < cheapestCost) cheapestCost = cost;
+//
+//                double w = weightFromIdu(e.iduIndex);
+//                if (!std::isfinite(w) || w < 0.0) w = 0.0;
+//                weights.push_back(w);
+//                totalW += w;
+//            }
+//
+//            // If budget exists and it can't cover the CHEAPEST remaining eligible building, stop now
+//            if (pi.HasBudget() && pi.m_availableBudget <= 0.0f)
+//            {
+//                Report::LogInfo("RaiseOrRelocate: budget exhausted for targeted raising, deferring remaining eligible to future years.");
+//                break;
+//            }
+//            if (pi.HasBudget() && std::isfinite(cheapestCost) && cheapestCost > pi.m_availableBudget)
+//            {
+//                CString dbg; dbg.Format("RaiseOrRelocate: cheapest remaining cost=%.2f > availBudget=%.2f -> stop targeted selection", cheapestCost, pi.m_availableBudget);
+//                Report::LogInfo(dbg);
+//                break;
+//            }
+//
+//            if (totalW <= 0.0)
+//            {
+//                Report::LogInfo("RaiseOrRelocate: total sampling weight <= 0.0, aborting targeted selection");
+//                break;
+//            }
+//
+//            std::discrete_distribution<size_t> dist(weights.begin(), weights.end());
+//            size_t sel = dist(m_rng);
+//            if (sel >= eligibleList.size()) sel = eligibleList.size() - 1;
+//
+//            // Before acting, re-check that this building is still eligible (wasn't raised by another code path)
+//            EligibleEntry entry = eligibleList[sel];
+//            int bldgIndex = entry.bldgIndex;
+//            int idu = entry.iduIndex;
+//
+//            int raiseToBFEYr_now = 0;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr_now);
+//            if (raiseToBFEYr_now != 0)
+//            {
+//                // Already raised elsewhere since collection; drop from list and continue
+//                eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+//                continue;
+//            }
+//
+//            // compute cost (same formula)
+//            float raisingHeight = (entry.PFE > 0.0f) ? (entry.PFE + h_raise_m) : h_raise_m;
+//
+//            float value = entry.value;
+//            float cost = (h_raise_m > 0.0f) ? (m_raiseRelocateSafestSiteRatio * value * (raisingHeight / h_raise_m)) : (m_raiseRelocateSafestSiteRatio * value);
+//            if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//            // Enforce cost constraint: cost should not exceed building value
+//            if (std::isfinite(value) && value >= 0.0f && cost > value)
+//                cost = value;
+//
+//            bool passCostConstraint = true;
+//            if (pi.HasBudget() && cost > pi.m_availableBudget) passCostConstraint = false;
+//
+//            float remainingBefore = pi.HasBudget() ? pi.m_availableBudget : 0.0f;
+//
+//            AddToPolicySummary(pEnvContext->currentYear,
+//                PI_RAISE_RELOCATE_TO_SAFEST_SITE,
+//                bldgIndex,
+//                m_raiseRelocateSafestSiteRatio,
+//                cost,
+//                remainingBefore,
+//                value,
+//                raisingHeight,
+//                passCostConstraint);
+//
+//            if (passCostConstraint)
+//            {
+//                if (pi.HasBudget()) pi.IncurCost(cost);
+//                m_raiseCostTotal += cost;
+//
+//                // Mark building as raised (BFE year)
+//                m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
+//
+//                // Update IDU BFE year via UpdateIDU (consistent with other code)
+//                UpdateIDU(pEnvContext, idu, m_colIDUBFEYr, pEnvContext->currentYear, ADD_DELTA);
+//
+//                // store raisingHeight in IDU if configured
+//                if (m_colIDURaisingHeight >= 0 && m_pIDULayer != nullptr)
+//                {
+//                    bool prevRO = m_pIDULayer->m_readOnly;
+//                    m_pIDULayer->m_readOnly = false;
+//                    // persist immediate value to IDU layer
+//                    m_pIDULayer->SetData(idu, m_colIDURaisingHeight, raisingHeight);
+//                    m_pIDULayer->m_readOnly = prevRO;
+//                    // record delta for persistence/tracking
+//                    UpdateIDU(pEnvContext, idu, m_colIDURaisingHeight, raisingHeight, ADD_DELTA);
+//
+//                    // Diagnostic: for h_raise > 1ft and PFE == 0, read back and log
+//                    if (h_raise_m > 0.3048f && entry.PFE == 0.0f)
+//                    {
+//                        float readback = -9999.0f;
+//                        m_pIDULayer->GetData(idu, m_colIDURaisingHeight, readback);
+//
+//                        CString dbg;
+//                        dbg.Format("RaiseOrRelocate [TARGETED] Year=%d Bldg=%d IDU=%d PFE=%.6f m raisingHeight=%.6f m cost=%.2f availBefore=%.2f availAfter=%.2f savedReadback=%.6f",
+//                            pEnvContext->currentYear, bldgIndex, idu, entry.PFE, raisingHeight, cost,
+//                            remainingBefore, pi.HasBudget() ? pi.m_availableBudget : 0.0f, readback);
+//                        Report::LogInfo(dbg);
+//                    }
+//
+//                    // Diagnostic log to validate saved values (existing)
+//                    CString dbg2;
+//                    dbg2.Format("RaiseOrRelocate: saved RAISING_HT=%.4f m for IDU %d (Bldg %d)", raisingHeight, idu, bldgIndex);
+//                    Report::LogInfo(dbg2);
+//                }
+//
+//                // clear moving window to avoid re-triggering same building
+//                MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//                if (floodMovingWindow != nullptr) floodMovingWindow->Clear();
+//
+//                // remove selected entry (processed)
+//                eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+//            }
+//            else
+//            {
+//                // If cost fails despite earlier cheapest-check, stop targeted selection to defer remaining to next year.
+//                CString dbg;
+//                dbg.Format("RaiseOrRelocate: skipping selected building %d due to budget < cost (%.2f). Deferring remaining %zu eligible.", bldgIndex, cost, eligibleList.size());
+//                Report::LogInfo(dbg);
+//                break;
+//            }
+//        } // end while
+//
+//        // remaining eligible buildings not processed this year
+//        m_raiseEligibleEnd = (int)eligibleList.size();
+//    }
+//    else // untargeted -> sample uniformly from the eligibleList (shuffle the eligibleList and do a single pass)
+//    {
+//        // Shuffle eligibleList to get uniform sampling without replacement
+//        std::shuffle(eligibleList.begin(), eligibleList.end(), m_rng);
+//
+//        // Single pass over shuffled eligibleList (approx even sampling). If a building is too expensive,
+//        // skip it (try others) rather than aborting early, to allow cheaper eligible buildings to be raised.
+//        for (auto& entry : eligibleList)
+//        {
+//            int bldgIndex = entry.bldgIndex;
+//            int idu = entry.iduIndex;
+//
+//            // Re-check the building is still eligible (hasn't been raised by another path)
+//            int raiseToBFEYr_now = 0;
+//            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr_now);
+//            if (raiseToBFEYr_now != 0)
+//                continue;
+//
+//            // compute raisingHeight using stored PFE
+//            float PFE = entry.PFE;
+//            float raisingHeight = (PFE > 0.0f) ? (PFE + h_raise_m) : h_raise_m;
+//
+//            float value = entry.value;
+//            float cost = (h_raise_m > 0.0f) ? (m_raiseRelocateSafestSiteRatio * value * (raisingHeight / h_raise_m)) : (m_raiseRelocateSafestSiteRatio * value);
+//            if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
+//
+//            // Enforce cost constraint: cost should not exceed building value
+//            if (std::isfinite(value) && value >= 0.0f && cost > value)
+//                cost = value;
+//
+//            // If there is a budget and it can't cover this building's cost, skip and continue to next
+//            if (pi.HasBudget() && cost > pi.m_availableBudget)
+//            {
+//                CString dbg;
+//                dbg.Format("RaiseOrRelocate: untargeted - skipping building %d due to cost=%.2f > avail=%.2f (trying others).", bldgIndex, cost, pi.m_availableBudget);
+//                Report::LogInfo(dbg);
+//                // track unmet demand (optional): accumulate the unmet cost (commented out to preserve prior behavior)
+//                // m_raiseCost_unmet += cost;
+//                continue;
+//            }
+//
+//            float remainingBefore = pi.HasBudget() ? pi.m_availableBudget : 0.0f;
+//
+//            AddToPolicySummary(pEnvContext->currentYear,
+//                PI_RAISE_RELOCATE_TO_SAFEST_SITE,
+//                bldgIndex,
+//                m_raiseRelocateSafestSiteRatio,
+//                cost,
+//                remainingBefore,
+//                value,
+//                raisingHeight,
+//                true);
+//
+//            // commit raise
+//            if (pi.HasBudget()) pi.IncurCost(cost);
+//            m_raiseCostTotal += cost;
+//
+//            // Mark building as raised (persistent)
+//            m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
+//            UpdateIDU(pEnvContext, idu, m_colIDUBFEYr, pEnvContext->currentYear, ADD_DELTA);
+//
+//            // store raisingHeight in IDU
+//            if (m_colIDURaisingHeight >= 0 && m_pIDULayer != nullptr)
+//            {
+//                bool prevRO = m_pIDULayer->m_readOnly;
+//                m_pIDULayer->m_readOnly = false;
+//                m_pIDULayer->SetData(idu, m_colIDURaisingHeight, raisingHeight);
+//                m_pIDULayer->m_readOnly = prevRO;
+//                UpdateIDU(pEnvContext, idu, m_colIDURaisingHeight, raisingHeight, ADD_DELTA);
+//
+//                // Diagnostic: for h_raise > 1ft and PFE == 0, read back and log
+//                if (h_raise_m > 0.3048f && entry.PFE == 0.0f)
+//                {
+//                    float readback = -9999.0f;
+//                    m_pIDULayer->GetData(idu, m_colIDURaisingHeight, readback);
+//
+//                    CString dbg;
+//                    dbg.Format("RaiseOrRelocate [UNTARGETED] Year=%d Bldg=%d IDU=%d PFE=%.6f m raisingHeight=%.6f m cost=%.2f availBefore=%.2f availAfter=%.2f savedReadback=%.6f",
+//                        pEnvContext->currentYear, bldgIndex, idu, entry.PFE, raisingHeight, cost,
+//                        remainingBefore, pi.HasBudget() ? pi.m_availableBudget : 0.0f, readback);
+//                    Report::LogInfo(dbg);
+//                }
+//
+//                CString dbg;
+//                dbg.Format("RaiseOrRelocate: saved RAISING_HT=%.4f m for IDU %d (Bldg %d)", raisingHeight, idu, bldgIndex);
+//                Report::LogInfo(dbg);
+//            }
+//
+//            MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+//            if (floodMovingWindow != nullptr) floodMovingWindow->Clear();
+//        }
+//
+//        // count remaining eligible (still have BFE_YR == 0)
+//        int remaining = 0;
+//        for (auto& e : eligibleList)
+//        {
+//            int curBFE = 0;
+//            m_pBldgLayer->GetData(e.bldgIndex, m_colBldgBFEYr, curBFE);
+//            if (curBFE == 0) ++remaining;
+//        }
+//        m_raiseEligibleEnd = remaining;
+//    } // end untargeted
+//
+//    // restore read-only state
+//    if (m_pBldgLayer != nullptr)
+//        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
+//
+//    CString msg;
+//    msg.Format("RaiseOrRelocate: EligibleBeginning=%d, EligibleEnd=%d, CostSpent=%.2f, UnmetDemand=%.2f",
+//        m_raiseEligibleBeginning, m_raiseEligibleEnd, m_raiseCostTotal, m_raiseCost_unmet);
+//    Report::LogInfo(msg);
+//}
+
+void ChronicHazards::RaiseOrRelocateBldgToSafestSite(EnvContext * pEnvContext)
+{
+    // diagnostic: log selected mode at function entry
+    Report::Log_i("RaiseOrRelocateBldgToSafestSite: m_runRelocateSafestPolicy=%d", m_runRelocateSafestPolicy);
+
+    // If policy not requested or mode set to 0 (off), do nothing
+    if (m_runRelocateSafestPolicy == 0)
+    {
+        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: policy disabled (m_runRelocateSafestPolicy==0) -> skipping raises.");
+        return;
+    }
+
+    // Reset annual counters/totals for this policy run
+    m_raiseEligibleBeginning = 0;
+    m_raiseEligibleEnd = 0;
+    m_raiseCostTotal = 0.0f;
+    m_raiseCost_unmet = 0.0f;
+
+    MapLayer* pIDULayer = (MapLayer*)pEnvContext->pMapLayer;
+    const int recordCount = pIDULayer->GetRecordCount();
+    if (m_pBldgLayer == nullptr || m_pIDULayer == nullptr)
+    {
+        Report::LogError("RaiseOrRelocateBldgToSafestSite: missing required layers");
+        return;
+    }
+
+    // convert configured h_raise (feet) to meters once and use throughout
+    float h_raise_m = m_h_raise * 0.3048f;
+    if (!(std::isfinite(h_raise_m)) || h_raise_m <= 0.0f)
+    {
+        // default to 1 ft in meters if config invalid
+        h_raise_m = 0.3048f;
+        Report::LogInfo("ChronicHazards: m_h_raise invalid or non-positive; defaulting to 1 ft (0.3048 m)");
+    }
+
+    // Diagnostic: log h_raise and RAISING_HT col index
+    {
+        CString dbg;
+        dbg.Format("RaiseOrRelocate: h_raise_m=%.6f m (m_h_raise=%.3f ft), m_colIDURaisingHeight=%d",
+            h_raise_m, (double)m_h_raise, m_colIDURaisingHeight);
+        Report::LogInfo(dbg);
+    }
+
+    // get BLDGTYPE column index in IDU layer (if present). If missing, fall back to original behavior (allow all types)
+    int colBLDGTYPE = pIDULayer->GetFieldCol(_T("BLDGTYPE"));
+
+    // ensure buildings layer writable while we operate
+    bool prevBldgReadOnly = m_pBldgLayer->m_readOnly;
+    m_pBldgLayer->m_readOnly = false;
+
+    // build a randomized IDU order (preserve previous behavior for untargeted mode)
+    if (m_shuffleArray.GetSize() != recordCount)
+        m_shuffleArray.SetSize(recordCount);
+
+    for (int i = 0; i < recordCount; ++i)
+        m_shuffleArray.SetAt(i, (UINT)i);
+
+    ShuffleArray< UINT >(m_shuffleArray.GetData(), recordCount, m_pRandUniform);
+
+    auto IsFemaHazardZone = [](const CString& zone) -> bool
+        {
+            CString z = zone;
+            z.Trim();
+            z.MakeUpper();
+            if (z.IsEmpty()) return false;
+            TCHAR c = z.GetAt(0);
+            return (c == 'A' || c == 'V');
+        };
+
+    PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
+
+    // precompute trigger freq
+    float triggerFreq = 0.0f;
+    if (m_windowLengthFloodHzrd > 0)
+        triggerFreq = float(m_bfeCount) / float(m_windowLengthFloodHzrd);
+
+    // First pass: collect eligible buildings (snapshot)
+    struct EligibleEntry { int bldgIndex; int iduIndex; float PFE; REAL xCoord; REAL yCoord; float value; };
+    std::vector<EligibleEntry> eligibleList;
+    eligibleList.reserve(1024);
+
+    // prepare fast lookup of PFE (meters) per building to reuse if needed
+    std::vector<float> pfeMetersByBldg(m_pBldgLayer->GetRowCount(), std::numeric_limits<float>::quiet_NaN());
+
+    for (int m = 0; m < recordCount; ++m)
+    {
+        int idu = (int)m_shuffleArray.GetAt(m);
+        if (idu < 0 || idu >= recordCount) continue;
+
+        // If BLDGTYPE exists in IDU layer, only consider IDUs with BLDGTYPE == 1 or 2 (wood structures)
+        if (colBLDGTYPE >= 0)
+        {
+            int iduBldgType = -1;
+            pIDULayer->GetData(idu, colBLDGTYPE, iduBldgType);
+            if (iduBldgType != 1 && iduBldgType != 2)
+                continue; // skip this IDU - not wood structure
+        }
+
+        CString iduFloodZoneStr;
+        pIDULayer->GetData(idu, m_colIDUFloodZone, iduFloodZoneStr);
+        bool iduInFemaHazard = IsFemaHazardZone(iduFloodZoneStr);
+
+        float PFE_ft = 0.0f;
+        pIDULayer->GetData(idu, m_colIDUPFE, PFE_ft);
+
+        // Convert PFE from feet to meters before storing/using
+        float PFE_m = PFE_ft * 0.3048f;
+        if (!std::isfinite(PFE_m) || PFE_m < 0.0f)
+            PFE_m = 0.0f;
+
+        CArray<int, int> bldgIndices;
+        int numBldgs = 0;
+        if (m_pIduBuildingLkUp != nullptr)
+        {
+            numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+            if (numBldgs < 0) numBldgs = 0;
+        }
+
+        for (int i = 0; i < numBldgs; ++i)
+        {
+            int bldgIndex = bldgIndices[i];
+            if (bldgIndex < 0 || bldgIndex >= m_pBldgLayer->GetRowCount()) continue;
+
+            // Read current BFE year at collection time - only consider not-yet-raised (==0)
+            int raiseToBFEYr = 0;
+            m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr);
+            if (raiseToBFEYr != 0) continue; // already raised -> skip
+
+            MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+            float floodFreq = floodMovingWindow ? floodMovingWindow->GetFreqValue() : 0.0f;
+
+            bool meetsFloodTrigger = (floodFreq >= triggerFreq);
+
+            bool eligible = (iduInFemaHazard && (raiseToBFEYr == 0) && meetsFloodTrigger);
+            if (!eligible) continue;
+
+            REAL xCoord = 0.0, yCoord = 0.0;
+            m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+
+            float value = 0.0f;
+            m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+
+            EligibleEntry e;
+            e.bldgIndex = bldgIndex;
+            e.iduIndex = idu;
+            e.PFE = PFE_m; // store PFE in meters
+            e.xCoord = xCoord;
+            e.yCoord = yCoord;
+            e.value = value;
+            eligibleList.push_back(e);
+
+            // store PFE (m) for fast lookup later if needed
+            if (bldgIndex >= 0 && bldgIndex < (int)pfeMetersByBldg.size())
+                pfeMetersByBldg[bldgIndex] = PFE_m;
+        }
+    }
+
+    m_raiseEligibleBeginning = (int)eligibleList.size();
+
+    if (eligibleList.empty())
+    {
+        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
+        Report::LogInfo("RaiseOrRelocateBldgToSafestSite: no eligible buildings found.");
+        return;
+    }
+
+    int raiseMode = m_runRelocateSafestPolicy; // 1 = untargeted, 2 = targeted
+
+    // unified weight helper (depends on raiseMode)
+    auto weightFromIdu = [&](int iduIndex) -> double
+        {
+            // Default equal share for unknown/invalid idu
+            if (iduIndex < 0 || iduIndex >= pIDULayer->GetRecordCount())
+                return 0.25;
+
+            int econClass = 0;
+            pIDULayer->GetData(iduIndex, m_colIDUEconClass, econClass);
+
+            // For both modes, EconClass==0 gets 0.25 share
+            if (econClass == 0)
+                return 0.25;
+
+            if (raiseMode == 2) // Targeted: re-split 0.75 as described (weights 0.9, 0.5, 0.1) => 0.25, 0.45, 0.25, 0.05 for 0,1,2,3
             {
-            int idu = m_shuffleArray[m];         // a random grab
+                switch (econClass)
+                {
+                case 1: return 0.45;
+                case 2: return 0.25;
+                case 3: return 0.05;
+                default: return 0.25;
+                }
+            }
+            else // Untargeted: even sampling among econ classes -> equal weights (0.25 each)
+            {
+                // econClass in {1,2,3} -> 0.25
+                return 0.25;
+            }
+        };
 
-            float maxElevation = 0;
-            int safestSiteRow = -1;
-            int safestSiteCol = -1;
-            float baseFloodElevation = 0;
-            int floodZone = -9999;
+    // Unified sampling loop: weighted sampling without replacement using weights derived above.
+    // Continue sampling until eligibleList empty or budget can't cover cheapest remaining eligible building.
+    while (!eligibleList.empty())
+    {
+        // compute costs for all eligible entries to know cheapest (for budget early-exit)
+        double cheapestCost = std::numeric_limits<double>::infinity();
+        std::vector<double> weights; weights.reserve(eligibleList.size());
+        double totalW = 0.0;
+        for (auto& e : eligibleList)
+        {
+            // compute tentative cost using same formula (use e.PFE and e.value)
+            // raisingHeight in meters
+            float raisingHeight = (e.PFE > 0.0f) ? (e.PFE + h_raise_m) : h_raise_m;
+            // original cost semantics: ratio * value * (raisingHeight / h_raise_m)
+            float cost = (h_raise_m > 0.0f) ? (m_raiseRelocateSafestSiteRatio * e.value * (raisingHeight / h_raise_m)) : (m_raiseRelocateSafestSiteRatio * e.value);
+            if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
 
-            CArray< int, int > bldgIndices;
-            CArray< int, int > infraIndices;
+            // Enforce cost constraint: cost should not exceed building value
+            if (std::isfinite(e.value) && e.value >= 0.0f && cost > e.value)
+                cost = e.value;
 
-            /*float popDensity;
-            float population;
-            int safeLoc;
-            int numStructures;*/
+            if (cost < cheapestCost) cheapestCost = cost;
 
-            //   m_pIDULayer->GetData(idu, m_colMinElevation, minElevation);
-            m_pIDULayer->GetData(idu, m_colIDUMaxElevation, maxElevation);
-            m_pIDULayer->GetData(idu, m_colIDUSafestSiteRow, safestSiteRow);  // ARE THESE CORRECT????
-            m_pIDULayer->GetData(idu, m_colIDUSafestSiteCol, safestSiteCol);
+            double w = weightFromIdu(e.iduIndex);
+            if (!std::isfinite(w) || w < 0.0) w = 0.0;
+            weights.push_back(w);
+            totalW += w;
+        }
 
-            //// should I put these in the Building Layer ???
-            //m_pBldgLayer->GetData(bldg, m_colBldgMaxElev, maxElevation);
-            //m_pBldgLayer->GetData(bldg, m_colBldgBFE, baseFloodElevation);
-            //m_pBldgLayer->GetData(bldg, m_colBldgSafeSiteYr, pEnvContext->currentYear);
+        // If budget exists and it can't cover the CHEAPEST remaining eligible building, stop now
+        if (pi.HasBudget() && pi.m_availableBudget <= 0.0f)
+        {
+            if (raiseMode == 2)
+                Report::LogInfo("RaiseOrRelocate: budget exhausted for targeted raising, deferring remaining eligible to future years.");
+            else
+                Report::LogInfo("RaiseOrRelocate: budget exhausted for untargeted raising, deferring remaining eligible to future years.");
+            break;
+        }
+        if (pi.HasBudget() && std::isfinite(cheapestCost) && cheapestCost > pi.m_availableBudget)
+        {
+            CString dbg; dbg.Format("RaiseOrRelocate: cheapest remaining cost=%.2f > availBudget=%.2f -> stop selection", cheapestCost, pi.m_availableBudget);
+            Report::LogInfo(dbg);
+            break;
+        }
 
-            REAL xSafeSite = 0.0;
-            REAL ySafeSite = 0.0;
+        if (totalW <= 0.0)
+        {
+            Report::LogInfo("RaiseOrRelocate: total sampling weight <= 0.0, aborting selection");
+            break;
+        }
 
-            // get center of eroded grid withing this IDU (WRONG???)
-            if (safestSiteRow >= 0 && safestSiteCol >= 0)
-               m_pFloodedGrid->GetGridCellCenter(safestSiteRow, safestSiteCol, xSafeSite, ySafeSite);
+        std::discrete_distribution<size_t> dist(weights.begin(), weights.end());
+        size_t sel = dist(m_rng);
+        if (sel >= eligibleList.size()) sel = eligibleList.size() - 1;
 
-            m_pIDULayer->GetData(idu, m_colIDUBaseFloodElevation, baseFloodElevation);
+        // Before acting, re-check that this building is still eligible (wasn't raised by another code path)
+        EligibleEntry entry = eligibleList[sel];
+        int bldgIndex = entry.bldgIndex;
+        int idu = entry.iduIndex;
 
-            // get Buildings in this IDU
-            int numBldgs = m_pIduBuildingLkUp->GetPointsFromPolyIndex(idu, bldgIndices);
+        int raiseToBFEYr_now = 0;
+        m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr_now);
+        if (raiseToBFEYr_now != 0)
+        {
+            // Already raised elsewhere since collection; drop from list and continue
+            eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+            continue;
+        }
 
-            int numRows = m_pFloodedGrid->GetRowCount();
-            int numCols = m_pFloodedGrid->GetColCount();
+        // compute cost (same formula)
+        float raisingHeight = (entry.PFE > 0.0f) ? (entry.PFE + h_raise_m) : h_raise_m;
 
-            for (int i = 0; i < numBldgs; i++)
-               {
-               int bldgIndex = bldgIndices[i];
-               ASSERT(bldgIndex < m_pBldgLayer->GetPolygonCount());
+        float value = entry.value;
+        float cost = (h_raise_m > 0.0f) ? (m_raiseRelocateSafestSiteRatio * value * (raisingHeight / h_raise_m)) : (m_raiseRelocateSafestSiteRatio * value);
+        if (!std::isfinite(cost) || cost < 0.0f) cost = fabs(cost);
 
-               Poly* pPoly = m_pBldgLayer->GetPolygon(bldgIndex);
+        // Enforce cost constraint: cost should not exceed building value
+        if (std::isfinite(value) && value >= 0.0f && cost > value)
+            cost = value;
 
-               // Set BFE of building
-               m_pBldgLayer->SetData(bldgIndex, m_colBldgBFE, baseFloodElevation);
+        bool passCostConstraint = true;
+        if (pi.HasBudget() && cost > pi.m_availableBudget) passCostConstraint = false;
 
-               int safeSiteYr = 0;
-               m_pBldgLayer->GetData(bldgIndex, m_colBldgSafeSiteYr, safeSiteYr);  // Set() ????
+        float remainingBefore = pi.HasBudget() ? pi.m_availableBudget : 0.0f;
 
-               int raiseToBFEYr = 0;
-               m_pBldgLayer->GetData(bldgIndex, m_colBldgBFEYr, raiseToBFEYr);
+        AddToPolicySummary(pEnvContext->currentYear,
+            PI_RAISE_RELOCATE_TO_SAFEST_SITE,
+            bldgIndex,
+            m_raiseRelocateSafestSiteRatio,
+            cost,
+            remainingBefore,
+            value,
+            raisingHeight,
+            passCostConstraint);
 
-               // get moving windows and check for flooding
-               MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
-               float floodFreq = floodMovingWindow->GetFreqValue();
+        if (passCostConstraint)
+        {
+            if (pi.HasBudget()) pi.IncurCost(cost);
+            m_raiseCostTotal += cost;
 
-               REAL xCoord = 0.0;
-               REAL yCoord = 0.0;
-               m_pBldgLayer->GetPointCoords(bldgIndex, xCoord, yCoord);
+            // Mark building as raised (BFE year)
+            m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
 
-               // Do not relocate closer to coast
-               if (xSafeSite < xCoord)
-                  {
-                  m_pIDULayer->m_readOnly = false;
-                  safestSiteCol = -1;
-                  safestSiteRow = -1;
-                  m_pIDULayer->SetData(idu, m_colIDUSafestSiteRow, safestSiteRow);
-                  m_pIDULayer->SetData(idu, m_colIDUSafestSiteCol, safestSiteCol);
-                  // uncomment to not allow new construction closer to coast
-                  // m_pIDULayer->SetData(idu, m_colIDUSafeSite, 0);
-                  m_pIDULayer->m_readOnly = true;
-                  }
+            // Update IDU BFE year via UpdateIDU (consistent with other code)
+            UpdateIDU(pEnvContext, idu, m_colIDUBFEYr, pEnvContext->currentYear, ADD_DELTA);
 
-               // Raise the building to the BFE if the structure has NOT been 
-               // raised and is not on the safest site
-               if (raiseToBFEYr == 0 && safeSiteYr == 0)
-                  {
-                  /*if (pEnvContext->currentYear >= (pEnvContext->startYear + m_windowLengthFloodHzrd - 1))
-                  {*/
-                  if (floodFreq >= (float(m_bfeCount) / m_windowLengthFloodHzrd))
-                     {
-                     /*REAL xCoord = 0.0;
-                     REAL yCoord = 0.0;
-                     m_pBldgLayer->GetPointCoords(ptrArrayIndex, xCoord, yCoord);*/
-                     int row = -1;
-                     int col = -1;
-                     m_pFloodedGrid->GetGridCellFromCoord(xCoord, yCoord, row, col);
-                     float elev = 0.0f;
+            // store raisingHeight in IDU if configured
+            if (m_colIDURaisingHeight >= 0 && m_pIDULayer != nullptr)
+            {
+                bool prevRO = m_pIDULayer->m_readOnly;
+                m_pIDULayer->m_readOnly = false;
+                // persist immediate value to IDU layer
+                m_pIDULayer->SetData(idu, m_colIDURaisingHeight, raisingHeight);
+                m_pIDULayer->m_readOnly = prevRO;
+                // record delta for persistence/tracking
+                UpdateIDU(pEnvContext, idu, m_colIDURaisingHeight, raisingHeight, ADD_DELTA);
 
-                     if ((row >= 0 && row < numRows) && (col >= 0 && col < numCols))
-                        {
-                        m_pFloodedGrid->GetData(row, col, elev);
+                // Diagnostic: for h_raise > 1ft and PFE == 0, read back and log
+                if (h_raise_m > 0.3048f && entry.PFE == 0.0f)
+                {
+                    float readback = -9999.0f;
+                    m_pIDULayer->GetData(idu, m_colIDURaisingHeight, readback);
 
-                        // is the adj base flood elevation higher than the DEM elevation at this site?
-                        // meaning, is this site too low to withstand flooding?
+                    CString dbg;
+                    if (raiseMode == 2)
+                        dbg.Format("RaiseOrRelocate [TARGETED] Year=%d Bldg=%d IDU=%d PFE=%.6f m raisingHeight=%.6f m cost=%.2f availBefore=%.2f availAfter=%.2f savedReadback=%.6f",
+                            pEnvContext->currentYear, bldgIndex, idu, entry.PFE, raisingHeight, cost,
+                            remainingBefore, pi.HasBudget() ? pi.m_availableBudget : 0.0f, readback);
+                    else
+                        dbg.Format("RaiseOrRelocate [UNTARGETED] Year=%d Bldg=%d IDU=%d PFE=%.6f m raisingHeight=%.6f m cost=%.2f availBefore=%.2f availAfter=%.2f savedReadback=%.6f",
+                            pEnvContext->currentYear, bldgIndex, idu, entry.PFE, raisingHeight, cost,
+                            remainingBefore, pi.HasBudget() ? pi.m_availableBudget : 0.0f, readback);
+                    Report::LogInfo(dbg);
+                }
 
-                        // FUNKY ALERT!!!!
-                        if ((baseFloodElevation + 0.0f) >= elev)   /// +1????
-                           {
-                           float value = 0;
-                           m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
+                // Diagnostic log to validate saved values (existing)
+                CString dbg2;
+                dbg2.Format("RaiseOrRelocate: saved RAISING_HT=%.4f m for IDU %d (Bldg %d)", raisingHeight, idu, bldgIndex);
+                Report::LogInfo(dbg2);
+            }
 
-                           float cost = value * m_raiseRelocateSafestSiteRatio;
+            // clear moving window to avoid re-triggering same building
+            MovingWindow* floodMovingWindow = m_floodBldgFreqArray.GetAt(bldgIndex);
+            if (floodMovingWindow != nullptr) floodMovingWindow->Clear();
 
-                           // get budget infor for raise/relocate policy
-                           PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
-                           bool passCostConstraint = true;
+            // remove selected entry (processed)
+            eligibleList.erase(eligibleList.begin() + static_cast<int>(sel));
+        }
+        else
+        {
+            // If cost fails despite earlier cheapest-check, stop selection to defer remaining to next year.
+            CString dbg;
+            dbg.Format("RaiseOrRelocate: skipping selected building %d due to budget < cost (%.2f). Deferring remaining %zu eligible.", bldgIndex, cost, eligibleList.size());
+            Report::LogInfo(dbg);
+            break;
+        }
+    } // end unified sampling loop
 
-                           // enough funds in original allocation ?
-                           if (pi.HasBudget() && pi.m_availableBudget <= cost)
-                              passCostConstraint = false;
+    // remaining eligible buildings not processed this year
+    m_raiseEligibleEnd = (int)eligibleList.size();
 
-                           AddToPolicySummary(pEnvContext->currentYear, PI_RAISE_RELOCATE_TO_SAFEST_SITE, bldgIndex, m_raiseRelocateSafestSiteRatio, cost, pi.m_availableBudget, value, 0, passCostConstraint);
+    // restore read-only state
+    if (m_pBldgLayer != nullptr)
+        m_pBldgLayer->m_readOnly = prevBldgReadOnly;
 
-                           if (passCostConstraint)
-                              {
-                              pi.IncurCost(cost);
-
-                              // Building is below the BFE elevation so raise it to the BFE + 1.0, noting year
-                              m_pBldgLayer->SetData(bldgIndex, m_colBldgBFEYr, pEnvContext->currentYear);
-                              m_pBldgLayer->SetData(bldgIndex, m_colBldgBFE, baseFloodElevation + 1.0f);
-                              floodMovingWindow->Clear();
-                              }
-                           else
-                              { // don't nourish
-                              pi.m_unmetDemand += cost;
-                              }
-                           }
-                        else   // site is above base flood elevation, move to safest site
-                           {
-                           // BFE is below current elevation so move to safest site, noting year
-                           if (safestSiteRow >= 0 && safestSiteCol >= 0)
-                              {
-                              float value = 0;
-                              m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
-
-                              float cost = value * m_raiseRelocateSafestSiteRatio;
-
-                              // get budget infor for Constructing BPS policy
-                              PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
-                              bool passCostConstraint = true;
-
-                              // enough funds in original allocation ?
-                              if (pi.HasBudget() && pi.m_availableBudget <= cost)
-                                 passCostConstraint = false;
-
-                              AddToPolicySummary(pEnvContext->currentYear, PI_RAISE_RELOCATE_TO_SAFEST_SITE, bldgIndex, m_raiseRelocateSafestSiteRatio, cost, pi.m_availableBudget, value, 1, passCostConstraint);
-
-                              if (passCostConstraint)
-                                 {
-                                 pi.IncurCost(cost);
-                                 pPoly->m_vertexArray[0].x = xSafeSite;
-                                 pPoly->m_vertexArray[0].y = ySafeSite;
-                                 m_pBldgLayer->SetData(bldgIndex, m_colBldgSafeSiteYr, pEnvContext->currentYear);
-                                 floodMovingWindow->Clear();
-                                 }
-                              else
-                                 { // don't nourish
-                                 pi.m_unmetDemand += cost;
-                                 }
-                              }
-                           }
-                        }
-                     }
-                  }
-               // Building has been raised but not yet at safest site
-               else if (raiseToBFEYr > 0 && safeSiteYr == 0)
-                  {
-                  //if (pEnvContext->currentYear >= (raiseToBFEYr + m_windowLengthFloodHzrd - 1))
-                        {
-                        if (floodFreq >= (float(m_ssiteCount) / m_windowLengthFloodHzrd))
-                           {
-                           // move building to safest site
-                           if (safestSiteRow >= 0 && safestSiteCol >= 0)
-                              {
-                              float value = 0;
-                              m_pBldgLayer->GetData(bldgIndex, m_colBldgValue, value);
-
-                              float cost = value * m_raiseRelocateSafestSiteRatio;
-
-                              // get budget infor for Constructing BPS policy
-                              PolicyInfo& pi = m_policyInfoArray[PI_RAISE_RELOCATE_TO_SAFEST_SITE];
-                              bool passCostConstraint = true;
-
-                              // enough funds in original allocation ?
-                              if (pi.HasBudget() && pi.m_availableBudget <= cost)
-                                 passCostConstraint = false;
-
-                              AddToPolicySummary(pEnvContext->currentYear, PI_RAISE_RELOCATE_TO_SAFEST_SITE, bldgIndex, m_raiseRelocateSafestSiteRatio, cost, pi.m_availableBudget, value, 2, passCostConstraint);
-
-                              if (passCostConstraint)
-                                 {
-                                 pi.IncurCost(cost);
-
-                                 pPoly->m_vertexArray[0].x = xSafeSite;
-                                 pPoly->m_vertexArray[0].y = ySafeSite;
-                                 m_pBldgLayer->SetData(bldgIndex, m_colBldgSafeSiteYr, pEnvContext->currentYear);
-                                 floodMovingWindow->Clear();
-                                 }
-                              else
-                                 { // didn't pass cost constraint, so add to unmet demand
-                                 pi.m_unmetDemand += cost;
-                                 }
-                              }
-                           }
-                        }
-                  }
-               else if (safeSiteYr > 0)
-                  {
-                  //if (pEnvContext->currentYear >= (safeSiteYr + m_windowLengthFloodHzrd - 1))
-                        {
-                        if (floodFreq >= (float(m_ssiteCount) / m_windowLengthFloodHzrd))
-                           {
-                           // flag that no buildings allowed in this IDU
-                           m_pIDULayer->m_readOnly = false;
-                           m_pIDULayer->SetData(idu, m_colIDUPopDensity, 0);
-                           m_pIDULayer->SetData(idu, m_colIDUSafeSite, 0);
-
-                           /*m_pIDULayer->SetData(idu, m_colPopCap, 0);
-                           m_pIDULayer->SetData(idu, m_colPopulation, 0);
-                           m_pIDULayer->SetData(idu, m_colLandValue, 0);
-                           m_pIDULayer->SetData(idu, m_colImpValue, 0);*/
-                           }
-                        }
-                  }
-
-               //   delete floodMovingWindow;
-               pPoly->InitLogicalPoints(m_pMap);
-
-               } // end each buildings
-            } // end each IDU
-         }
-   } // end RaiseOrRelocateToSafestSite
-
+    CString msg;
+    msg.Format("RaiseOrRelocate: EligibleBeginning=%d, EligibleEnd=%d, CostSpent=%.2f, UnmetDemand=%.2f",
+        m_raiseEligibleBeginning, m_raiseEligibleEnd, m_raiseCostTotal, m_raiseCost_unmet);
+    Report::LogInfo(msg);
+}
 
 void ChronicHazards::RaiseInfrastructure(EnvContext* pEnvContext)
    {
@@ -9290,8 +13054,6 @@ void ChronicHazards::RaiseInfrastructure(EnvContext* pEnvContext)
    } // end RaiseInfrastructure
 
 
-
-
 void ChronicHazards::CheckHazardTriggers(EnvContext* pEnvContext)
    {
    int numBldgsTotal = 0;
@@ -9358,11 +13120,11 @@ void ChronicHazards::CheckHazardTriggers(EnvContext* pEnvContext)
                }
             }  //end of : for each bldg in IDU
          }  //
-      }  
+      }
 
    CString msg;
    msg.Format("%i of %i buildings  qualify for removal from hazardous areas (%i were flooded)",
-      this->m_nQualifiedBldgsInHazardZone, numBldgsTotal, floodedBldgs );
+      this->m_nQualifiedBldgsInHazardZone, numBldgsTotal, floodedBldgs);
    Report::LogInfo(msg);
 
    msg.Format("%i qualifying buildings already removed", nQualifiersAlreadyMoved);
@@ -9374,7 +13136,6 @@ void ChronicHazards::CheckHazardTriggers(EnvContext* pEnvContext)
       msg.Format("Mean Flood Freq = %f, count = %i", meanFloodFreq / nMeanFloodFreq, nMeanFloodFreq);
    Report::LogInfo(msg);
    } // end RemoveFromHazardZone
-
 
 
 /*
@@ -9391,7 +13152,7 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
    ////////////////////////////////////
    int numBldgsTotal = 0;
    this->m_nQualifiedBldgsInHazardZone = 0;
-  
+
    int nIDUs = m_pIDULayer->GetRecordCount();
    ShuffleArray< UINT >(m_shuffleArray.GetData(), nIDUs, m_pRandUniform);
 
@@ -9442,14 +13203,14 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
          //m_pBldgLayer->GetData(bldgIndex, m_colBldgFlooded, floodFreq);
 
          // Remove (relocate to unknown location) building from the IDU hazard zone if it is impacted
-         
+
          if ((floodFreq >= (1.0f / m_windowLengthFloodHzrd))) // && is100YrFloodHazardZone)
             {
             m_pBldgLayer->GetData(bldgIndex, m_colBldgRemoveYr, yr);
 
             if (yr > 0)
                nQualifiersAlreadyMoved++;
-            
+
             else // if (yr == 0)      // hasn't be relocated yet
                {
                numBldgsQualifying++;
@@ -9522,7 +13283,7 @@ void ChronicHazards::RemoveBldgFromHazardZone(EnvContext* pEnvContext)
       } // end each IDU
 
       CString msg;
-      msg.Format("Of %i total buildings, removed % i of %i qualifying buildings from hazardous areas", 
+      msg.Format("Of %i total buildings, removed % i of %i qualifying buildings from hazardous areas",
          numBldgsTotal, this->m_nBldgsRemovedFromHazardZone, this->m_nQualifiedBldgsInHazardZone);
       Report::LogInfo(msg);
 
@@ -9652,15 +13413,16 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
    int twl = 0, flooding = 0, erosion = 0, buildings = 0, infra = 0, policy = 0;
    XML_ATTR attrs[] = {
       // attr                        type          address              isReq  
-      { "run_twl",                   TYPE_INT,   &m_runTWL,            true, 0 },
-      { "run_flooding",              TYPE_INT,   &m_runFlooding,       true, 0 },
-      { "run_erosion",               TYPE_INT,   &m_runErosion,        true, 0 },
-      { "run_buildings",             TYPE_INT,   &m_runBuildings,      true, 0 },
-      { "run_infrastructure",        TYPE_INT,   &m_runInfrastructure, true, 0 },
-      { "run_policy",                TYPE_INT,   &m_runPolicy,         true, 0 },
-      { "export_flood_map_interval", TYPE_INT,   &m_exportFloodMapInterval, true, 0 },
-      { "export_dune_map_interval",  TYPE_INT,   &m_exportDuneMapInterval, true, 0 },
-      { "export_bldg_map_interval",  TYPE_INT,   &m_exportBldgMapInterval, true, 0 },
+      { "run_twl",                   TYPE_INT,     &m_runTWL,            true, 0 },
+      { "run_flooding",              TYPE_INT,     &m_runFlooding,       true, 0 },
+      { "run_erosion",               TYPE_INT,     &m_runErosion,        true, 0 },
+      { "run_buildings",             TYPE_INT,     &m_runBuildings,      true, 0 },
+      { "run_infrastructure",        TYPE_INT,     &m_runInfrastructure, true, 0 },
+      { "run_policy",                TYPE_INT,     &m_runPolicy,         true, 0 },
+      { "export_flood_map_interval", TYPE_INT,     &m_exportFloodMapInterval, true, 0 },
+      { "export_dune_map_interval",  TYPE_INT,     &m_exportDuneMapInterval, true, 0 },
+      { "export_bldg_map_interval",  TYPE_INT,     &m_exportBldgMapInterval, true, 0 },
+      { "python_path",               TYPE_CSTRING, &m_pythonPath,  true, 0 },
       { nullptr,                 TYPE_NULL,  nullptr,              false,   0 } };
 
    if (TiXmlGetAttributes(pXmlRoot, attrs, filename) == false)
@@ -9711,6 +13473,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       { "safe_site_count",       TYPE_INT,     &m_ssiteCount,                   true,    0 },
       //{ "maxFloodArea",          TYPE_FLOAT,   &m_maxArea,                      true,    0 },
       { "shoreline_length",      TYPE_FLOAT,   &m_shorelineLength,              true,    0 },
+      { "slr_stochastic", TYPE_BOOL,     &m_slrStochastic, true, 0 },
       //{ "runSpatialBayTWL",      TYPE_INT,     &m_runSpatialBayTWL,             true,    0 },
       { nullptr,                    TYPE_NULL,    nullptr,                            false,   0 } };
 
@@ -9745,7 +13508,9 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
          { "erosion_hazard_window", TYPE_INT,     &m_windowLengthEroHzrd,          true,    0 },
          { "access_thresh",         TYPE_FLOAT,   &m_accessThresh,                 true,    0 },
          { "constTD",               TYPE_FLOAT,   &m_constTD,                      true,    0 },
-         { nullptr,                    TYPE_NULL,    nullptr,                            false,   0 } };
+         { "scr_std",               TYPE_FLOAT,   &m_scrStd,                       true,    0 },
+         { "scr_stochastic",        TYPE_INT,     &m_useStochasticSCR,             true,    0 },   // 0 = off, 1 = on
+         { nullptr,                    TYPE_NULL,    nullptr,                      false,   0 } };
 
       if (TiXmlGetAttributes(pXmlErosion, eroAttrs, filename) == false)
          {
@@ -9777,6 +13542,7 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
          { "use_prior_grids",     TYPE_INT,     &usePriorGrids, false,   0 },
          { "cell_size",           TYPE_INT,     &m_cellSize,  false,   0 },
          { "flood_hazard_period", TYPE_INT,     &m_windowLengthFloodHzrd, true, 0 },
+         { "h_raise", TYPE_FLOAT,     &m_h_raise, true, 0 },
          { nullptr,          TYPE_NULL,    nullptr,       false,   0 } };
 
       if (TiXmlGetAttributes(pXmlFlooding, floodAttrs, filename) == false)
@@ -9830,13 +13596,14 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       { "MaxBPSHeight",      TYPE_FLOAT,   &m_maxBPSHeight,                 true,    0 },
       { "MinBPSRoughness",   TYPE_FLOAT,   &m_minBPSRoughness,              true,    0 },
       { "SlopeBPS",          TYPE_FLOAT,   &m_slopeBPS,                     true,    0 },
-      { "MaintFreqBPS",      TYPE_INT,     &m_maintFreqBPS,                 true,    0 },
-      //{ "BPSFloodCount",      TYPE_INT,    &m_floodCountBPS,              true,   0 },
+      { "MaintBaseFreqBPS",      TYPE_INT,     &m_maintBFreqBPS,                 true,    0 },
+      { "MaintCrestFreqBPS",      TYPE_INT,     &m_maintCFreqBPS,                 true,    0 },
       { "SafetyFactor",      TYPE_FLOAT,   &m_safetyFactor,                 true,    0 },
       { "IdpyFactor",        TYPE_FLOAT,   &m_idpyFactor,                   true,    0 },
       { "RadiusOfErosion",   TYPE_FLOAT,   &m_radiusOfErosion,              true,    0 },
       { "FloodCount",         TYPE_INT,    &m_floodCountBPS,              true,   0 },
       { "DistToProtectBldg", TYPE_FLOAT,   &m_minDistToProtecteBldg,           true,    0 },
+      { "BPSLength",         TYPE_INT,     &m_BPSLength,                 true,    0 },
       //   { "ConstructQuery",    TYPE_STRING,  &m_constructQueryStr,           true,    0 ),
       //   { "MaintainQuery",     TYPE_STRING,  &m_maintainQueryStr,           true,    0 ),
       { nullptr,               TYPE_NULL,    nullptr,                            false,   0 } };
@@ -9885,7 +13652,8 @@ bool ChronicHazards::LoadXml(LPCTSTR filename)
       { "TotalBudget",     TYPE_FLOAT,    &m_totalBudget,                 true,    0 },
       { "nourishment",     TYPE_FLOAT,    &m_costs.nourishment,            true,    0 },
       { "BPS",             TYPE_FLOAT,    &m_costs.BPS,                    true,    0 },
-      { "BPSMaint",        TYPE_FLOAT,    &m_costs.BPSMaint,               true,    0 },
+      { "FracBPSBaseMaint",        TYPE_FLOAT,    &m_costs.FracBPSBaseMaint,               true,    0 },
+      { "BPSCrestPerM3",             TYPE_FLOAT,    &m_costs.BPSCrestPerM3,                    true,    0 },
       { "SPS",             TYPE_FLOAT,    &m_costs.SPS,                    true,    0 },
       { "annual",          TYPE_INT,      &m_costs.permits,                true,    0 },
       { "SafeSite",        TYPE_FLOAT,    &m_costs.safeSite,               true,    0 },
@@ -10928,464 +14696,460 @@ float ChronicHazards::CalculateCelerity(float waterLevel, float wavePeriod, floa
       */
 
 
-////void ChronicHazards::CalculateTWL(EnvContext* pEnvContext, float swl, float lowSLW, int beachType,
-////   float duneToe, float gammaRough, float tanb1, float duneCrest, float eastingToe, float shorelineAngle,
-////   float beachwidth, float bruunSlope, int transIndex)
-////   {
-////   // Get the Still Water Level for that day (in NAVD88 vertical datum) from the deep water time series
-////   // Get the low Still Water Level for that day ( in NVAVD88 vertical datum ) from the deep water time series
-////   // 
-////   // 
-////   // iterate through each day of the year
-////   CString msg;
-////   for (int doy = 0; doy < 365; doy++)
-////      {
-////      if (doy % 5 == 0)
-////         {
-////         msg.Format("Calculating TWLs for day %i", doy);
-////         Report::StatusMsg(msg);
-////         }
-////
-////      // tide range for that day based upon still water level
-////      float wlratio = (swl - (-1.5f)) / (4.5f + 1.5f);
-////
-////      float maxTWLforPeriod = 0;
-////      float maxErosionforPeriod = 0;
-////
-////      float meanPeakHeight = 0;
-////      float meanPeakPeriod = 0;
-////      float meanPeakDirection = 0;
-////      float meanPeakWaterLevel = 0;
-////
-////      float meanTWL = 0;
-////
-////      float S_comp = 0.0f;
-////      float EPR = 0.0f;
-////
-////      float dailyTWL = 0.0f;
-////      float dailyTWL_Flood = 0.0f;
-////      float L = 0.0f;
-////
-////      // get wave conditions at intermediate depth, 20m contour from the RBF interpolations
-////      float radPeakHeightL = 0.0, radPeakHeightH = 0.0f, radPeakPeriodL = 0.0f, radPeakPeriodH = 0.0f;
-////      float radPeakDirectionL = 0.0f, radPeakDirectionH = 0.0f, radPeakWaterDepthL = 0.0f, radPeakWaterDepthH = 0.0f;
-////
-////      int row = (pEnvContext->yearOfRun * 365) + doy;
-////
-////      FDataObj* pRBFOutputData = m_dailyRBFOutputArray.GetAt(transIndex);   // zero-based
-////      pRBFOutputData->Get(0, row, radPeakHeightL);
-////      pRBFOutputData->Get(1, row, radPeakHeightH);
-////      pRBFOutputData->Get(2, row, radPeakPeriodL);
-////      pRBFOutputData->Get(3, row, radPeakPeriodH);
-////      pRBFOutputData->Get(4, row, radPeakDirectionL);
-////      pRBFOutputData->Get(5, row, radPeakDirectionH);
-////      pRBFOutputData->Get(6, row, radPeakWaterDepthL);
-////      pRBFOutputData->Get(7, row, radPeakWaterDepthH);
-////
-////      float waveHeight = radPeakHeightL + wlratio * (radPeakHeightH - radPeakHeightL);
-////      float wavePeriod = radPeakPeriodL + wlratio * (radPeakPeriodH - radPeakPeriodL);
-////      float waveDirection = radPeakDirectionL + wlratio * (radPeakDirectionH - radPeakDirectionL);
-////      float waterDepth = radPeakWaterDepthL + wlratio * (radPeakWaterDepthH - radPeakWaterDepthL);
-////
-////      // Linearly back shoal transformed waves from 20m/30m contour to deep water
-////      float L0 = 0;     // Deepwater wave length (m)
-////      float setup = 0;  // wave setup height
-////      float infragravitySwash = 0;
-////      float incidentSwash = 0;
-////      float r2Runup = 0;    // wave induced runup
-////      float stockdonTWL = 0;
-////      ComputeStockdon(swl, waveHeight, wavePeriod, waveDirection, &L0, &setup, &incidentSwash, &infragravitySwash, &r2Runup, &stockdonTWL);
-////
-////      // account for linear shoaling process to get equivalent deepwater conditions
-////      // Deepwater celerity 
-////      float Co = L0 / wavePeriod;
-////      float n = 0.0f;
-////      float C = CalculateCelerity(waterDepth, wavePeriod, n);
-////
-////      double ks = (sqrt(1.0f / (2.0f * n) * Co / C));
-////      float Hdeep = waveHeight / (sqrt(1.0f / (2.0f * n) * Co / C));
-////
-////      // Determine the Dynamic Water Level 2%
-////      // note : dailyTWL - dunetoe1
-////      //float DWL2 = swl + 1.1f * (eta + STK_IG / 2.0f) - duneToe;
-////      float DWL2 = stockdonTWL - duneToe;   /// ???? Check with Peter
-////
-////      // significant wave height at structure toe calculated using a breaker index of 0.78
-////      if (DWL2 < 0)
-////         DWL2 = 0;
-////
-////      float Hmo = DWL2 * 0.78f;
-////
-////      // If the depth limited breaker height is larger than the offshore conditions, then the latter will be used.
-////      if (Hmo > Hdeep)
-////         Hmo = Hdeep;
-////
-////      // Irribarren number
-////      /*   float IbarrenNumber = localBarrierSlope / (sqrt(Hmo / L));
-////      if (IbarrenNumber < 0.3)
-////      R2 = 0.043 * sqrt(Hdeep*L0);
-////      else if (IbarrenNumber > 1.25)
-////      R2 = 0.73 * sqrt(Hdeep*L0);*/
-////
-////      // Check for overtopping/flooding  at physical dunecrest location
-////      //  if ((1.1f*eta + swl) >= duneCrest)
-////      /*  double eastingDC = 0.0f;
-////      double northingDC = 0.0f;
-////      int rowDC = -1;
-////      int colDC = -1;
-////      m_pDuneLayer->GetData(dunePt, m_colDLEastingCrest, eastingDC);
-////      m_pDuneLayer->GetData(dunePt, m_colNorthingCrest, northingDC);
-////      m_pElevationGrid->GetGridCellFromCoord(eastingDC, northingDC, rowDC, colDC);
-////      m_pElevationGrid->GetData(rowDC, colDC, duneCrest);*/
-////
-////      bool isOvertopped = false;
-////      if ((swl + 1.1f * setup) >= duneCrest)  // ignores swash, stillwater + setup only
-////         isOvertopped = true;
-////
-////      // if beach type is inlet,  twl = still water level + proportion of the deep water wave height (SWH)
-////      if (beachType == BchT_BAY)
-////         {
-////         dailyTWL = swl + (m_inletFactor * Hdeep);
-////         duneCrest = (float)MHW;
-////         }
-////      else if (beachType == BchT_SANDY_DUNE_BACKED ||
-////         beachType == BchT_SANDY_BLUFF_CLIFF_BACKED ||
-////         beachType == BchT_SANDY_BURIED_RIPRAP_BACKED) // || Hmo < 0)
-////         {
-////         // Limit flooding to swl + setup for dune backed beaches (no swash)
-////         dailyTWL_Flood = swl + 1.1f * (setup + infragravitySwash / 2.0f);   // TWL-incident band swash
-////         dailyTWL = stockdonTWL;
-////         }
-////
-////      // Use Local/TAW Combination to calculate TWL for all other defined beachtypes
-////      else if (beachType == BchT_SANDY_RIPRAP_BACKED ||
-////         beachType == BchT_MIXED_SEDIMENT_DUNE_BACKED ||
-////         beachType == BchT_MIXED_SEDIMENT_BLUFF_BACKED ||
-////         beachType == BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED ||
-////         beachType == BchT_SANDY_COBBLEGRAVEL_BERM_BACKED ||
-////         beachType == BchT_SANDY_WOODY_DEBRIS_BACKED ||
-////         beachType == BchT_JETTY ||
-////         beachType == BchT_ROCKY_CLIFF_HEADLAND)
-////         {
-////         // Use Local/TAW Combination to calculate TWL (insted of stockdon) for all other defined beachtypes 
-////         //    else if (beachType != BchT_UNDEFINED || beachType != BchT_RIVER )
-////         double xTop = 0.0;
-////         double xBottom = 0.0;
-////
-////         // local barrier slope / structure slope
-////         double slope_TAW_local = 0.0;
-////
-////         double slope_TAW_local_2 = 0.0;
-////
-////         // local runup on barriers
-////         double runup_TAW_local = 0.0;
-////
-////         //breaker parameter
-////         //float Ibarren_local = 0.0f;
-////
-////         // structure height
-////         float height = duneCrest - duneToe;
-////
-////         // Wave direction(Eqn D.4.5-38)
-////         // determine influence factor for oblique wave attack
-////         float beta = abs(waveDirection - shorelineAngle);
-////         float gammaBeta = 1.0f - 0.0033f * beta;
-////         if (beta >= 80.0f)
-////            gammaBeta = 1.0f - 0.0033f * 80.0f;
-////
-////         /* if (yBerm < 0.6f)
-////         yBerm = 0.6f;
-////         if (yBerm > 1.0f)
-////         yBerm = 1.0f;*/
-////
-////         //***** TAW Approach With Local Structure Slope (Swash slope) *****//
-////
-////         //***** Compute the slope of where the swash acts *****//
-////
-////         // The slope will be computed between where the twl level is computed using the Stockdon Runup (twl = swl + R2%) and the
-////         // level of the where twl = static setup + swl.
-////
-////         // If we have raised the height of the BPS, we can no longer use the cross-shore profiles. Check if we have maintained
-////         int firstMaintYear = 0;
-////         //    m_pDuneLayer->GetData(dunePt, m_colBPSMaintYear, maintYear);
-////         //    int maintFreqInterval = pEnvContext->currentYear - maintYear;
-////         firstMaintYear = pEnvContext->startYear + m_maintFreqBPS;
-////
-////         // structure (barrier/bluff) is not flooded
-////         if (!isOvertopped)
-////            {
-////            //    float y1temp = 0.0f;
-////
-////            // STK_TWL = swl + StockdonR2
-////            float y1temp = 0.0f;
-////            double yTop = stockdonTWL;
-////
-////            // If STK_TWL overtops the structue then use the top of the structure 
-////            // (minus 1cm for interpolation purposes, see curveintersect)
-////            if (yTop > duneCrest)
-////               yTop = duneCrest - 0.01;
-////
-////            // The bottom part of the slope is given by Static Setup (STK) + swl
-////            double yBottom = swl + 1.1f * setup;
-////
-////            // Also need new slope when dune erodes and backshore(foredusne) beach slope changes
-////            // Slope not changing for bluff backed beaches
-////            //         if ( (profileID != prevProfileIndex || duneCrest != prevDuneCrest || tanb1 != prevTanb1 ) && (beachType != BT_RIPRAP_BACKED || maintYear < 2011))// Slope not changing for bluff backed
-////            //        if ( ( tanb1 != prevTanb1 ) && (beachType != BchT_RIPRAP_BACKED )) // || maintYear < 2011))// Slope not changing for bluff backed
-////            //    {
-////
-////            // calculate slope of swash where bluff or barrier exists
-////            // this is needed to determine the wave runup on a barrier
-////            // do not use cross shore profile when the dune is dynamically changing (e.g. RIP RAP built or maintained)
-////
-////            // profileID != prevProfileIndex eq to statement TnumRef != prevTNummRef
-////
-////            if (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear) //(maintFreq >= m_maintFreqBPS))
-////               {
-////               DDataObj* pBATH = m_BathyDataArray.GetAt(profileIndex);   // zero-based
-////
-////               int length = (int)pBATH->GetRowCount();
-////
-////               double* yt;
-////               double* yb;
-////               double* xtemp;
-////               double* xotemp;
-////
-////               yt = new double[length];
-////               memset(yt, 0, length * sizeof(double));
-////               yb = new double[length];
-////               memset(yb, 0, length * sizeof(double));
-////               xtemp = new double[length];
-////               memset(xtemp, 0, length * sizeof(double));
-////               xotemp = new double[length];
-////               memset(xotemp, 0, length * sizeof(double));
-////
-////               for (int ii = 0; ii < length; ii++)
-////                  {
-////                  pBATH->Get(0, ii, y1temp);
-////                  pBATH->Get(1, ii, xtemp[ii]);
-////                  yt[ii] = y1temp - yTop;
-////                  yb[ii] = y1temp - yBottom;
-////                  }
-////
-////               // interpolate results
-////               Mminvinterp(xtemp, yt, xotemp, length);
-////
-////               // xTop (Location of stockdonTWL)
-////               xTop = Maximum(xotemp, length);
-////
-////               Mminvinterp(xtemp, yb, xotemp, length);
-////
-////               xBottom = Maximum(xotemp, length);
-////               delete[] xotemp;
-////               delete[] yb;
-////               delete[] yt;
-////               delete[] xtemp;
-////
-////               // Compute slope where the swash acts
-////               slope_TAW_local = (yTop - yBottom) / abs(xTop - xBottom);
-////               int tempbreak = 10;
-////               /////if (m_debugOn)
-////               /////   {
-////               /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 0);
-////               /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-////               /////   m_pDuneLayer->SetData(dunePt, m_colSTKTWL, STK_TWL);
-////               /////   }
-////               }
-////            // RIP RAP has been constructed with a standard 2:1 slope
-////            // cannot use cross shore profile for site
-////            else
-////               {
-////               // the water is swashing on the structure
-////               // assume TAW slope equal to BPS slope
-////               if (yBottom > duneToe)
-////                  {
-////                  slope_TAW_local = m_slopeBPS;
-////                  /////if (m_debugOn)
-////                  /////   {
-////                  /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 1);
-////                  /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-////                  /////   }
-////                  }
-////
-////               // the water is swashing on the beach
-////               // assume TAW slope equal to beach slope
-////               if (yTop < duneToe)
-////                  {
-////                  slope_TAW_local = tanb1;
-////                  /////if (m_debugOn)
-////                  /////   {
-////                  /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 2);
-////                  /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-////                  /////   }
-////                  }
-////
-////               // the water is swashing on both the structure and the beach
-////               // compute the composite slope using the known width of where the swash acts and the slopes 
-////
-////               // width weighted average of beach and structure slopes where swash acts
-////               //////  // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
-////               //////  //  where structureWidth = height / structureSlope 
-////               else
-////                  {
-////                  //// Compute slope where swash acts
-////                  double xTopWidth = yTop / m_slopeBPS;
-////                  double xBtmWidth = yBottom / tanb1;
-////                  //xTop = eastingToe + yTop / BPSslope;
-////                  //xBottom = eastingToe - yBottom / tanb1;
-////                  //  double slope_TAW_local_new = (tanb1 * xBtmWidth + BPSslope * xTopWidth) / (xTop - xBottom);
-////                  slope_TAW_local = (tanb1 * xBtmWidth + m_slopeBPS * xTopWidth) / (xTopWidth + xBtmWidth);
-////                  ////if (m_debugOn)
-////                  ////   {
-////                  ////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 3);
-////                  ////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-////                  ////   }
-////
-////                  /*xBottom = yBottom / tanb1;
-////                  xTop = yTop / m_slopeBPS;
-////                  slope_TAW_local_2 = ((beachwidth - xBottom)*tanb1 + xTop*m_slopeBPS) / (beachwidth + (height / m_slopeBPS));*/
-////                  int tempbreak = 10;
-////                  }
-////               }
-////            }  //end of:  if ( ! overtopped )
-////          // If setup + swl is greater than the structure crest then the
-////          // composite slope will be used. This corresponds to an overtopped case.
-////
-////          // BPS structure is flooded not maintained 
-////         else if (isOvertopped && (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear))
-////            //       else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq <= m_maintFreqBPS ) ) )
-////            {
-////            if (S_comp > 0)
-////               {
-////               slope_TAW_local = S_comp;
-////               //if (m_debugOn)
-////               //   {
-////               //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 4);
-////               //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-////               //   }
-////               }
-////            else
-////               {
-////               slope_TAW_local = tanb1;
-////               //if (m_debugOn)
-////               //   {
-////               //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 5);
-////               //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-////               //   }
-////               }
-////            }
-////         // compute the composite slope using the known width of the structure+beach and the slopes 
-////         //    else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq >= m_maintFreqBPS) ) )
-////         else if (isOvertopped && (beachType == BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear > firstMaintYear))
-////            {
-////            // width weighted average of beach and structure slopes
-////            // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
-////            //  where structureWidth = height / structureSlope 
-////            slope_TAW_local = (tanb1 * beachwidth + height) / ((height / m_slopeBPS) + beachwidth);
-////            //if (m_debugOn)
-////            //   {
-////            //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 6);
-////            //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
-////            //   }
-////            }
-////
-////         //check to make sure the slope does not exceed the structure slope
-////         if (isNan<double>(slope_TAW_local))
-////            slope_TAW_local = 0.3;
-////
-////         if (slope_TAW_local > 0.5)
-////            slope_TAW_local = 0.5;
-////
-////         //////////// RUNUP EQUATION - DETERMINISTIC APPROACH (includes +1STDEV factor of safety) ////////////
-////         // The following are calculations for dynamic coastline
-////
-////         // Mean Wave Period 
-////         double Tm = wavePeriod / 1.1;
-////
-////         // Deep water wave length for the DIM method to be applied in the presence of structures/barriers.
-////         double L = (G * (Tm * Tm)) / (2.0 * PI);
-////
-////         //breaker parameter
-////
-////         // Irribarren number based on 2ND slope estimate - Eqn D.4.5-8
-////         double Ibarren_local = 0;
-////         if (Hmo > 0)
-////            Ibarren_local = slope_TAW_local / (sqrt(Hmo / L));
-////
-////         ////Berm factor always equal to 1
-////         float gammaBerm = 1.0f;
-////
-////         double limit = gammaBerm * Ibarren_local;
-////
-////         // if the roughness reduction factor is unknown,
-////         // use an the average roughness reduction factor for shoreline backed by rip-rap 
-////         if (gammaRough > 99 || gammaRough < 0)
-////            {
-////            gammaRough = 0.55f;
-////            switch (beachType)
-////               {
-////               case BchT_MIXED_SEDIMENT_DUNE_BACKED:
-////               case BchT_MIXED_SEDIMENT_BLUFF_BACKED:
-////                  gammaRough = 0.8f; // (similar to Till110 and 111 on page 129 of report)
-////                  break;
-////
-////               case BchT_SANDY_RIPRAP_BACKED:
-////               case BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED:
-////               case BchT_SANDY_COBBLEGRAVEL_BERM_BACKED:
-////               case BchT_JETTY:
-////               case BchT_ROCKY_CLIFF_HEADLAND:    // we probably do not need to compute runup at all on these beach types
-////                  gammaRough = 0.55f;
-////                  break;
-////
-////               case BchT_SANDY_WOODY_DEBRIS_BACKED:
-////                  gammaRough = 0.75f;
-////                  break;
-////               }
-////            }
-////
-////         if (gammaRough < 0.1)
-////            gammaRough = this->m_minBPSRoughness;
-////
-////         if (limit > 0.0f && limit < 1.8f)
-////            runup_TAW_local = Hmo * 1.75f * gammaRough * gammaBeta * gammaBerm * Ibarren_local;
-////         else if (limit >= 1.8f)
-////            runup_TAW_local = Hmo * gammaRough * gammaBeta * (4.3f - (1.6f / sqrt(Ibarren_local)));
-////
-////         if (runup_TAW_local == 0)
-////            runup_TAW_local = stockdonTWL;
-////
-////         // COMBINE RUNUP VALUES TO CALCULATE COMBINED TWL //
-////
-////         // Wave Runup consists of setup and swash (barrier runup)
-////         double structureR2 = (runup_TAW_local + 1.1f * setup);
-////         //r2Runup = (float)structureR2;
-////
-////         dailyTWL = swl + (float)structureR2;
-////         }  // end of: else if (beachType == BchT_RIPRAP_BACKED ||
-////            //                  beachType == BchT_DUNE_BLUFF_BACKED ||
-////            //                  beachType == BchT_CLIFF_BACKED ||
-////            //                  beachType == BchT_WOODY_DEBRIS_BACKED ||
-////            //                  beachType == BchT_WOODY_BLUFF_BACKED ||
-////            //                  beachType == BchT_ROCKY_HEADLAND)
-////
-////        // check for dune hours
-////        // collision regime (dune erosion expected
-////
-////
-////      yearlyAvgTWL += dailyTWL / 364.0f;
-////      
-////      meanTWL += dailyTWL;
-////      
-////      // if this TWL is the highest yet so far this year for this location, remember it
-////      if (dailyTWL > yearlyMaxTWL)
-////         yearlyMaxTWL = dailyTWL;
-////      } // end of: for each doy
-////
-////   } // end CalculateYrMaxTWL
-
-
-
-
+      ////void ChronicHazards::CalculateTWL(EnvContext* pEnvContext, float swl, float lowSLW, int beachType,
+      ////   float duneToe, float gammaRough, float tanb1, float duneCrest, float eastingToe, float shorelineAngle,
+      ////   float beachwidth, float bruunSlope, int transIndex)
+      ////   {
+      ////   // Get the Still Water Level for that day (in NAVD88 vertical datum) from the deep water time series
+      ////   // Get the low Still Water Level for that day ( in NVAVD88 vertical datum ) from the deep water time series
+      ////   // 
+      ////   // 
+      ////   // iterate through each day of the year
+      ////   CString msg;
+      ////   for (int doy = 0; doy < 365; doy++)
+      ////      {
+      ////      if (doy % 5 == 0)
+      ////         {
+      ////         msg.Format("Calculating TWLs for day %i", doy);
+      ////         Report::StatusMsg(msg);
+      ////         }
+      ////
+      ////      // tide range for that day based upon still water level
+      ////      float wlratio = (swl - (-1.5f)) / (4.5f + 1.5f);
+      ////
+      ////      float maxTWLforPeriod = 0;
+      ////      float maxErosionforPeriod = 0;
+      ////
+      ////      float meanPeakHeight = 0;
+      ////      float meanPeakPeriod = 0;
+      ////      float meanPeakDirection = 0;
+      ////      float meanPeakWaterLevel = 0;
+      ////
+      ////      float meanTWL = 0;
+      ////
+      ////      float S_comp = 0.0f;
+      ////      float EPR = 0.0f;
+      ////
+      ////      float dailyTWL = 0.0f;
+      ////      float dailyTWL_Flood = 0.0f;
+      ////      float L = 0.0f;
+      ////
+      ////      // get wave conditions at intermediate depth, 20m contour from the RBF interpolations
+      ////      float radPeakHeightL = 0.0, radPeakHeightH = 0.0f, radPeakPeriodL = 0.0f, radPeakPeriodH = 0.0f;
+      ////      float radPeakDirectionL = 0.0f, radPeakDirectionH = 0.0f, radPeakWaterDepthL = 0.0f, radPeakWaterDepthH = 0.0f;
+      ////
+      ////      int row = (pEnvContext->yearOfRun * 365) + doy;
+      ////
+      ////      FDataObj* pRBFOutputData = m_dailyRBFOutputArray.GetAt(transIndex);   // zero-based
+      ////      pRBFOutputData->Get(0, row, radPeakHeightL);
+      ////      pRBFOutputData->Get(1, row, radPeakHeightH);
+      ////      pRBFOutputData->Get(2, row, radPeakPeriodL);
+      ////      pRBFOutputData->Get(3, row, radPeakPeriodH);
+      ////      pRBFOutputData->Get(4, row, radPeakDirectionL);
+      ////      pRBFOutputData->Get(5, row, radPeakDirectionH);
+      ////      pRBFOutputData->Get(6, row, radPeakWaterDepthL);
+      ////      pRBFOutputData->Get(7, row, radPeakWaterDepthH);
+      ////
+      ////      float waveHeight = radPeakHeightL + wlratio * (radPeakHeightH - radPeakHeightL);
+      ////      float wavePeriod = radPeakPeriodL + wlratio * (radPeakPeriodH - radPeakPeriodL);
+      ////      float waveDirection = radPeakDirectionL + wlratio * (radPeakDirectionH - radPeakDirectionL);
+      ////      float waterDepth = radPeakWaterDepthL + wlratio * (radPeakWaterDepthH - radPeakWaterDepthL);
+      ////
+      ////      // Linearly back shoal transformed waves from 20m/30m contour to deep water
+      ////      float L0 = 0;     // Deepwater wave length (m)
+      ////      float setup = 0;  // wave setup height
+      ////      float infragravitySwash = 0;
+      ////      float incidentSwash = 0;
+      ////      float r2Runup = 0;    // wave induced runup
+      ////      float stockdonTWL = 0;
+      ////      ComputeStockdon(swl, waveHeight, wavePeriod, waveDirection, &L0, &setup, &incidentSwash, &infragravitySwash, &r2Runup, &stockdonTWL);
+      ////
+      ////      // account for linear shoaling process to get equivalent deepwater conditions
+      ////      // Deepwater celerity 
+      ////      float Co = L0 / wavePeriod;
+      ////      float n = 0.0f;
+      ////      float C = CalculateCelerity(waterDepth, wavePeriod, n);
+      ////
+      ////      double ks = (sqrt(1.0f / (2.0f * n) * Co / C));
+      ////      float Hdeep = waveHeight / (sqrt(1.0f / (2.0f * n) * Co / C));
+      ////
+      ////      // Determine the Dynamic Water Level 2%
+      ////      // note : dailyTWL - dunetoe1
+      ////      //float DWL2 = swl + 1.1f * (eta + STK_IG / 2.0f) - duneToe;
+      ////      float DWL2 = stockdonTWL - duneToe;   /// ???? Check with Peter
+      ////
+      ////      // significant wave height at structure toe calculated using a breaker index of 0.78
+      ////      if (DWL2 < 0)
+      ////         DWL2 = 0;
+      ////
+      ////      float Hmo = DWL2 * 0.78f;
+      ////
+      ////      // If the depth limited breaker height is larger than the offshore conditions, then the latter will be used.
+      ////      if (Hmo > Hdeep)
+      ////         Hmo = Hdeep;
+      ////
+      ////      // Irribarren number
+      ////      /*   float IbarrenNumber = localBarrierSlope / (sqrt(Hmo / L));
+      ////      if (IbarrenNumber < 0.3)
+      ////      R2 = 0.043 * sqrt(Hdeep*L0);
+      ////      else if (IbarrenNumber > 1.25)
+      ////      R2 = 0.73 * sqrt(Hdeep*L0);*/
+      ////
+      ////      // Check for overtopping/flooding  at physical dunecrest location
+      ////      //  if ((1.1f*eta + swl) >= duneCrest)
+      ////      /*  double eastingDC = 0.0f;
+      ////      double northingDC = 0.0f;
+      ////      int rowDC = -1;
+      ////      int colDC = -1;
+      ////      m_pDuneLayer->GetData(dunePt, m_colDLEastingCrest, eastingDC);
+      ////      m_pDuneLayer->GetData(dunePt, m_colNorthingCrest, northingDC);
+      ////      m_pElevationGrid->GetGridCellFromCoord(eastingDC, northingDC, rowDC, colDC);
+      ////      m_pElevationGrid->GetData(rowDC, colDC, duneCrest);*/
+      ////
+      ////      bool isOvertopped = false;
+      ////      if ((swl + 1.1f * setup) >= duneCrest)  // ignores swash, stillwater + setup only
+      ////         isOvertopped = true;
+      ////
+      ////      // if beach type is inlet,  twl = still water level + proportion of the deep water wave height (SWH)
+      ////      if (beachType == BchT_BAY)
+      ////         {
+      ////         dailyTWL = swl + (m_inletFactor * Hdeep);
+      ////         duneCrest = (float)MHW;
+      ////         }
+      ////      else if (beachType == BchT_SANDY_DUNE_BACKED ||
+      ////         beachType == BchT_SANDY_BLUFF_CLIFF_BACKED ||
+      ////         beachType == BchT_SANDY_BURIED_RIPRAP_BACKED) // || Hmo < 0)
+      ////         {
+      ////         // Limit flooding to swl + setup for dune backed beaches (no swash)
+      ////         dailyTWL_Flood = swl + 1.1f * (setup + infragravitySwash / 2.0f);   // TWL-incident band swash
+      ////         dailyTWL = stockdonTWL;
+      ////         }
+      ////
+      ////      // Use Local/TAW Combination to calculate TWL for all other defined beachtypes
+      ////      else if (beachType == BchT_SANDY_RIPRAP_BACKED ||
+      ////         beachType == BchT_MIXED_SEDIMENT_DUNE_BACKED ||
+      ////         beachType == BchT_MIXED_SEDIMENT_BLUFF_BACKED ||
+      ////         beachType == BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED ||
+      ////         beachType == BchT_SANDY_COBBLEGRAVEL_BERM_BACKED ||
+      ////         beachType == BchT_SANDY_WOODY_DEBRIS_BACKED ||
+      ////         beachType == BchT_JETTY ||
+      ////         beachType == BchT_ROCKY_CLIFF_HEADLAND)
+      ////         {
+      ////         // Use Local/TAW Combination to calculate TWL (insted of stockdon) for all other defined beachtypes 
+      ////         //    else if (beachType != BchT_UNDEFINED || beachType != BchT_RIVER )
+      ////         double xTop = 0.0;
+      ////         double xBottom = 0.0;
+      ////
+      ////         // local barrier slope / structure slope
+      ////         double slope_TAW_local = 0.0;
+      ////
+      ////         double slope_TAW_local_2 = 0.0;
+      ////
+      ////         // local runup on barriers
+      ////         double runup_TAW_local = 0.0;
+      ////
+      ////         //breaker parameter
+      ////         //float Ibarren_local = 0.0f;
+      ////
+      ////         // structure height
+      ////         float height = duneCrest - duneToe;
+      ////
+      ////         // Wave direction(Eqn D.4.5-38)
+      ////         // determine influence factor for oblique wave attack
+      ////         float beta = abs(waveDirection - shorelineAngle);
+      ////         float gammaBeta = 1.0f - 0.0033f * beta;
+      ////         if (beta >= 80.0f)
+      ////            gammaBeta = 1.0f - 0.0033f * 80.0f;
+      ////
+      ////         /* if (yBerm < 0.6f)
+      ////         yBerm = 0.6f;
+      ////         if (yBerm > 1.0f)
+      ////         yBerm = 1.0f;*/
+      ////
+      ////         //***** TAW Approach With Local Structure Slope (Swash slope) *****//
+      ////
+      ////         //***** Compute the slope of where the swash acts *****//
+      ////
+      ////         // The slope will be computed between where the twl level is computed using the Stockdon Runup (twl = swl + R2%) and the
+      ////         // level of the where twl = static setup + swl.
+      ////
+      ////         // If we have raised the height of the BPS, we can no longer use the cross-shore profiles. Check if we have maintained
+      ////         int firstMaintYear = 0;
+      ////         //    m_pDuneLayer->GetData(dunePt, m_colBPSMaintYear, maintYear);
+      ////         //    int maintFreqInterval = pEnvContext->currentYear - maintYear;
+      ////         firstMaintYear = pEnvContext->startYear + m_maintCFreqBPS;
+      ////
+      ////         // structure (barrier/bluff) is not flooded
+      ////         if (!isOvertopped)
+      ////            {
+      ////            //    float y1temp = 0.0f;
+      ////
+      ////            // STK_TWL = swl + StockdonR2
+      ////            float y1temp = 0.0f;
+      ////            double yTop = stockdonTWL;
+      ////
+      ////            // If STK_TWL overtops the structue then use the top of the structure 
+      ////            // (minus 1cm for interpolation purposes, see curveintersect)
+      ////            if (yTop > duneCrest)
+      ////               yTop = duneCrest - 0.01;
+      ////
+      ////            // The bottom part of the slope is given by Static Setup (STK) + swl
+      ////            double yBottom = swl + 1.1f * setup;
+      ////
+      ////            // Also need new slope when dune erodes and backshore(foredusne) beach slope changes
+      ////            // Slope not changing for bluff backed beaches
+      ////            //         if ( (profileID != prevProfileIndex || duneCrest != prevDuneCrest || tanb1 != prevTanb1 ) && (beachType != BT_RIPRAP_BACKED || maintYear < 2011))// Slope not changing for bluff backed
+      ////            //        if ( ( tanb1 != prevTanb1 ) && (beachType != BchT_RIPRAP_BACKED )) // || maintYear < 2011))// Slope not changing for bluff backed
+      ////            //    {
+      ////
+      ////            // calculate slope of swash where bluff or barrier exists
+      ////            // this is needed to determine the wave runup on a barrier
+      ////            // do not use cross shore profile when the dune is dynamically changing (e.g. RIP RAP built or maintained)
+      ////
+      ////            // profileID != prevProfileIndex eq to statement TnumRef != prevTNummRef
+      ////
+      ////            if (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear) //(maintFreq >= m_maintCFreqBPS))
+      ////               {
+      ////               DDataObj* pBATH = m_BathyDataArray.GetAt(profileIndex);   // zero-based
+      ////
+      ////               int length = (int)pBATH->GetRowCount();
+      ////
+      ////               double* yt;
+      ////               double* yb;
+      ////               double* xtemp;
+      ////               double* xotemp;
+      ////
+      ////               yt = new double[length];
+      ////               memset(yt, 0, length * sizeof(double));
+      ////               yb = new double[length];
+      ////               memset(yb, 0, length * sizeof(double));
+      ////               xtemp = new double[length];
+      ////               memset(xtemp, 0, length * sizeof(double));
+      ////               xotemp = new double[length];
+      ////               memset(xotemp, 0, length * sizeof(double));
+      ////
+      ////               for (int ii = 0; ii < length; ii++)
+      ////                  {
+      ////                  pBATH->Get(0, ii, y1temp);
+      ////                  pBATH->Get(1, ii, xtemp[ii]);
+      ////                  yt[ii] = y1temp - yTop;
+      ////                  yb[ii] = y1temp - yBottom;
+      ////                  }
+      ////
+      ////               // interpolate results
+      ////               Mminvinterp(xtemp, yt, xotemp, length);
+      ////
+      ////               // xTop (Location of stockdonTWL)
+      ////               xTop = Maximum(xotemp, length);
+      ////
+      ////               Mminvinterp(xtemp, yb, xotemp, length);
+      ////
+      ////               xBottom = Maximum(xotemp, length);
+      ////               delete[] xotemp;
+      ////               delete[] yb;
+      ////               delete[] yt;
+      ////               delete[] xtemp;
+      ////
+      ////               // Compute slope where the swash acts
+      ////               slope_TAW_local = (yTop - yBottom) / abs(xTop - xBottom);
+      ////               int tempbreak = 10;
+      ////               /////if (m_debugOn)
+      ////               /////   {
+      ////               /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 0);
+      ////               /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+      ////               /////   m_pDuneLayer->SetData(dunePt, m_colSTKTWL, STK_TWL);
+      ////               /////   }
+      ////               }
+      ////            // RIP RAP has been constructed with a standard 2:1 slope
+      ////            // cannot use cross shore profile for site
+      ////            else
+      ////               {
+      ////               // the water is swashing on the structure
+      ////               // assume TAW slope equal to BPS slope
+      ////               if (yBottom > duneToe)
+      ////                  {
+      ////                  slope_TAW_local = m_slopeBPS;
+      ////                  /////if (m_debugOn)
+      ////                  /////   {
+      ////                  /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 1);
+      ////                  /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+      ////                  /////   }
+      ////                  }
+      ////
+      ////               // the water is swashing on the beach
+      ////               // assume TAW slope equal to beach slope
+      ////               if (yTop < duneToe)
+      ////                  {
+      ////                  slope_TAW_local = tanb1;
+      ////                  /////if (m_debugOn)
+      ////                  /////   {
+      ////                  /////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 2);
+      ////                  /////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+      ////                  /////   }
+      ////                  }
+      ////
+      ////               // the water is swashing on both the structure and the beach
+      ////               // compute the composite slope using the known width of where the swash acts and the slopes 
+      ////
+      ////               // width weighted average of beach and structure slopes where swash acts
+      ////               //////  // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
+      ////               //////  //  where structureWidth = height / structureSlope 
+      ////               else
+      ////                  {
+      ////                  //// Compute slope where swash acts
+      ////                  double xTopWidth = yTop / m_slopeBPS;
+      ////                  double xBtmWidth = yBottom / tanb1;
+      ////                  //xTop = eastingToe + yTop / BPSslope;
+      ////                  //xBottom = eastingToe - yBottom / tanb1;
+      ////                  //  double slope_TAW_local_new = (tanb1 * xBtmWidth + BPSslope * xTopWidth) / (xTop - xBottom);
+      ////                  slope_TAW_local = (tanb1 * xBtmWidth + m_slopeBPS * xTopWidth) / (xTopWidth + xBtmWidth);
+      ////                  ////if (m_debugOn)
+      ////                  ////   {
+      ////                  ////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 3);
+      ////                  ////   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+      ////                  ////   }
+      ////
+      ////                  /*xBottom = yBottom / tanb1;
+      ////                  xTop = yTop / m_slopeBPS;
+      ////                  slope_TAW_local_2 = ((beachwidth - xBottom)*tanb1 + xTop*m_slopeBPS) / (beachwidth + (height / m_slopeBPS));*/
+      ////                  int tempbreak = 10;
+      ////                  }
+      ////               }
+      ////            }  //end of:  if ( ! overtopped )
+      ////          // If setup + swl is greater than the structure crest then the
+      ////          // composite slope will be used. This corresponds to an overtopped case.
+      ////
+      ////          // BPS structure is flooded not maintained 
+      ////         else if (isOvertopped && (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear))
+      ////            //       else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq <= m_maintCFreqBPS ) ) )
+      ////            {
+      ////            if (S_comp > 0)
+      ////               {
+      ////               slope_TAW_local = S_comp;
+      ////               //if (m_debugOn)
+      ////               //   {
+      ////               //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 4);
+      ////               //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+      ////               //   }
+      ////               }
+      ////            else
+      ////               {
+      ////               slope_TAW_local = tanb1;
+      ////               //if (m_debugOn)
+      ////               //   {
+      ////               //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 5);
+      ////               //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+      ////               //   }
+      ////               }
+      ////            }
+      ////         // compute the composite slope using the known width of the structure+beach and the slopes 
+      ////         //    else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq >= m_maintCFreqBPS) ) )
+      ////         else if (isOvertopped && (beachType == BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear > firstMaintYear))
+      ////            {
+      ////            // width weighted average of beach and structure slopes
+      ////            // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
+      ////            //  where structureWidth = height / structureSlope 
+      ////            slope_TAW_local = (tanb1 * beachwidth + height) / ((height / m_slopeBPS) + beachwidth);
+      ////            //if (m_debugOn)
+      ////            //   {
+      ////            //   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 6);
+      ////            //   m_pDuneLayer->SetData(dunePt, m_colTAWSlope, slope_TAW_local);
+      ////            //   }
+      ////            }
+      ////
+      ////         //check to make sure the slope does not exceed the structure slope
+      ////         if (isNan<double>(slope_TAW_local))
+      ////            slope_TAW_local = 0.3;
+      ////
+      ////         if (slope_TAW_local > 0.5)
+      ////            slope_TAW_local = 0.5;
+      ////
+      ////         //////////// RUNUP EQUATION - DETERMINISTIC APPROACH (includes +1STDEV factor of safety) ////////////
+      ////         // The following are calculations for dynamic coastline
+      ////
+      ////         // Mean Wave Period 
+      ////         double Tm = wavePeriod / 1.1;
+      ////
+      ////         // Deep water wave length for the DIM method to be applied in the presence of structures/barriers.
+      ////         double L = (G * (Tm * Tm)) / (2.0 * PI);
+      ////
+      ////         //breaker parameter
+      ////
+      ////         // Irribarren number based on 2ND slope estimate - Eqn D.4.5-8
+      ////         double Ibarren_local = 0;
+      ////         if (Hmo > 0)
+      ////            Ibarren_local = slope_TAW_local / (sqrt(Hmo / L));
+      ////
+      ////         ////Berm factor always equal to 1
+      ////         float gammaBerm = 1.0f;
+      ////
+      ////         double limit = gammaBerm * Ibarren_local;
+      ////
+      ////         // if the roughness reduction factor is unknown,
+      ////         // use an the average roughness reduction factor for shoreline backed by rip-rap 
+      ////         if (gammaRough > 99 || gammaRough < 0)
+      ////            {
+      ////            gammaRough = 0.55f;
+      ////            switch (beachType)
+      ////               {
+      ////               case BchT_MIXED_SEDIMENT_DUNE_BACKED:
+      ////               case BchT_MIXED_SEDIMENT_BLUFF_BACKED:
+      ////                  gammaRough = 0.8f; // (similar to Till110 and 111 on page 129 of report)
+      ////                  break;
+      ////
+      ////               case BchT_SANDY_RIPRAP_BACKED:
+      ////               case BchT_SANDY_COBBLEGRAVEL_BLUFF_BACKED:
+      ////               case BchT_SANDY_COBBLEGRAVEL_BERM_BACKED:
+      ////               case BchT_JETTY:
+      ////               case BchT_ROCKY_CLIFF_HEADLAND:    // we probably do not need to compute runup at all on these beach types
+      ////                  gammaRough = 0.55f;
+      ////                  break;
+      ////
+      ////               case BchT_SANDY_WOODY_DEBRIS_BACKED:
+      ////                  gammaRough = 0.75f;
+      ////                  break;
+      ////               }
+      ////            }
+      ////
+      ////         if (gammaRough < 0.1)
+      ////            gammaRough = this->m_minBPSRoughness;
+      ////
+      ////         if (limit > 0.0f && limit < 1.8f)
+      ////            runup_TAW_local = Hmo * 1.75f * gammaRough * gammaBeta * gammaBerm * Ibarren_local;
+      ////         else if (limit >= 1.8f)
+      ////            runup_TAW_local = Hmo * gammaRough * gammaBeta * (4.3f - (1.6f / sqrt(Ibarren_local)));
+      ////
+      ////         if (runup_TAW_local == 0)
+      ////            runup_TAW_local = stockdonTWL;
+      ////
+      ////         // COMBINE RUNUP VALUES TO CALCULATE COMBINED TWL //
+      ////
+      ////         // Wave Runup consists of setup and swash (barrier runup)
+      ////         double structureR2 = (runup_TAW_local + 1.1f * setup);
+      ////         //r2Runup = (float)structureR2;
+      ////
+      ////         dailyTWL = swl + (float)structureR2;
+      ////         }  // end of: else if (beachType == BchT_RIPRAP_BACKED ||
+      ////            //                  beachType == BchT_DUNE_BLUFF_BACKED ||
+      ////            //                  beachType == BchT_CLIFF_BACKED ||
+      ////            //                  beachType == BchT_WOODY_DEBRIS_BACKED ||
+      ////            //                  beachType == BchT_WOODY_BLUFF_BACKED ||
+      ////            //                  beachType == BchT_ROCKY_HEADLAND)
+      ////
+      ////        // check for dune hours
+      ////        // collision regime (dune erosion expected
+      ////
+      ////
+      ////      yearlyAvgTWL += dailyTWL / 364.0f;
+      ////      
+      ////      meanTWL += dailyTWL;
+      ////      
+      ////      // if this TWL is the highest yet so far this year for this location, remember it
+      ////      if (dailyTWL > yearlyMaxTWL)
+      ////         yearlyMaxTWL = dailyTWL;
+      ////      } // end of: for each doy
+      ////
+      ////   } // end CalculateYrMaxTWL
 
 
 // Determines Yearly Maximum TWL based upon daily TWL calculations at each Dune point
@@ -11396,8 +15160,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
    m_pDuneLayer->m_readOnly = false;
 
-   // iterate through each day of the year, getting 
-   Report::Log_i("Calculating Impact Days for year %i", pEnvContext->currentYear);
+   //// iterate through each day of the year, getting 
+   //Report::Log_i("Calculating Impact Days for year %i", pEnvContext->currentYear);
 
    // iterate through each day of the year
    CString msg;
@@ -11433,7 +15197,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
       float meanPeakDirection = 0;
       float meanPeakWaterLevel = 0;
 
-      
+
       // for this day, iterate though Dune toe points, calculating TWL and associated variables as we go.
       //#pragma omp parallel for
       for (MapLayer::Iterator dunePt = m_pDuneLayer->Begin(); dunePt < m_pDuneLayer->End(); dunePt++)
@@ -11549,8 +15313,9 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
          // Determine the Dynamic Water Level 2%
          // note : dailyTWL - dunetoe1
-         //float DWL2 = swl + 1.1f * (eta + STK_IG / 2.0f) - duneToe;
-         float DWL2 = stockdonTWL - duneToe;   /// ???? Check with Peter
+         // with infragravity swash, 6.13 in Allan, Jonathan C., et al. Coastal Flood Hazard Study, Tillamook County, Oregon. 
+         //Oregon Department of Geology and Mineral Industries, 2015.
+         float DWL2 = swl + 1.1f * (setup + infragravitySwash / 2.0f) - duneToe;
 
          // significant wave height at structure toe calculated using a breaker index of 0.78
          if (DWL2 < 0)
@@ -11580,13 +15345,17 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          m_pElevationGrid->GetGridCellFromCoord(eastingDC, northingDC, rowDC, colDC);
          m_pElevationGrid->GetData(rowDC, colDC, duneCrest);*/
 
-         if ((swl + 1.1f * setup) >= duneCrest)  // ignores swash, stillwater + setup only
-            isOvertopped = true;
-         else
-            isOvertopped = false;
+         // Corrected (uses full Stockdon R₂)
+         float TWL = swl + r2Runup;  // You already computed r2Runup!
 
-         // if beach type is inlet,  twl = still water level + proportion of the deep water wave height (SWH)
-         if (beachType == BchT_BAY)
+         if (TWL >= duneCrest)
+             isOvertopped = true;   // ✓ Captures wave runup
+         else
+             isOvertopped = false;
+
+
+         // if beach type is inlet or river,  twl = still water level + proportion of the deep water wave height (SWH)
+         if (beachType == BchT_BAY || beachType == BchT_RIVER)
             {
             dailyTWL = swl + (m_inletFactor * Hdeep);
             duneCrest = (float)MHW;
@@ -11618,7 +15387,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             // local barrier slope / structure slope
             double slope_TAW_local = 0.0;
 
-            double slope_TAW_local_2 = 0.0;
+            double slope_TAW_local_2 = 0.0; // not used!
 
             // local runup on barriers
             double runup_TAW_local = 0.0;
@@ -11629,7 +15398,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             // structure height
             float height = duneCrest - duneToe;
 
-            // Wave direction(Eqn D.4.5-38)
+            // Wave direction(Eqn D.4.5-38); Eqn (9) on P15
             // determine influence factor for oblique wave attack
             float beta = abs(waveDirection - shorelineAngle);
             float gammaBeta = 1.0f - 0.0033f * beta;
@@ -11652,7 +15421,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             int firstMaintYear = 0;
             //    m_pDuneLayer->GetData(dunePt, m_colBPSMaintYear, maintYear);
             //    int maintFreqInterval = pEnvContext->currentYear - maintYear;
-            firstMaintYear = pEnvContext->startYear + m_maintFreqBPS;
+            firstMaintYear = pEnvContext->startYear + m_maintCFreqBPS;
 
             // structure (barrier/bluff) is not flooded
             if (!isOvertopped)
@@ -11683,7 +15452,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
                // profileID != prevProfileIndex eq to statement TnumRef != prevTNummRef
 
-               if (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear) //(maintFreq >= m_maintFreqBPS))
+               if (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear) //(maintFreq >= m_maintCFreqBPS))
                   {
                   DDataObj* pBATH = m_BathyDataArray.GetAt(profileIndex);   // zero-based
 
@@ -11741,7 +15510,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                   {
                   // the water is swashing on the structure
                   // assume TAW slope equal to BPS slope
-                  if (yBottom > duneToe)
+                  // CASE 1: Water is swashing only on the structure (setup line above toe)
+                  if (yBottom > duneToe)  // Setup line is above dune toe
                      {
                      slope_TAW_local = m_slopeBPS;
                      /////if (m_debugOn)
@@ -11753,7 +15523,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
                   // the water is swashing on the beach
                   // assume TAW slope equal to beach slope
-                  if (yTop < duneToe)
+                  // CASE 2: Water is swashing only on the beach (TWL below toe)
+                  if (yTop < duneToe)   // TWL is below dune toe
                      {
                      slope_TAW_local = tanb1;
                      /////if (m_debugOn)
@@ -11769,15 +15540,27 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                   // width weighted average of beach and structure slopes where swash acts
                   //////  // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
                   //////  //  where structureWidth = height / structureSlope 
+                  // CASE 3: Water is swashing on both beach and structure
                   else
                      {
-                     //// Compute slope where swash acts
-                     double xTopWidth = yTop / m_slopeBPS;
-                     double xBtmWidth = yBottom / tanb1;
+                      // Compute horizontal extents (always positive)
+                      double xTopWidth = fabs(yTop) / m_slopeBPS;       // Width of swash on structure
+                      double xBtmWidth = fabs(yBottom) / tanb1;         // Width of swash on beach
                      //xTop = eastingToe + yTop / BPSslope;
                      //xBottom = eastingToe - yBottom / tanb1;
                      //  double slope_TAW_local_new = (tanb1 * xBtmWidth + BPSslope * xTopWidth) / (xTop - xBottom);
                      slope_TAW_local = (tanb1 * xBtmWidth + m_slopeBPS * xTopWidth) / (xTopWidth + xBtmWidth);
+
+                     // Validate result
+                     if (slope_TAW_local <= 0 || slope_TAW_local > 1.0)
+                     {
+                         // Fallback to safer option
+                         #undef max
+                         #undef min
+                         #include <algorithm> // ensure std::max is available
+                         slope_TAW_local = std::max(tanb1, m_slopeBPS);
+
+                     }
                      ////if (m_debugOn)
                      ////   {
                      ////   m_pDuneLayer->SetData(dunePt, m_colRunupFlag, 3);
@@ -11796,7 +15579,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
 
              // BPS structure is flooded not maintained 
             else if (isOvertopped && (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear))
-               //       else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq <= m_maintFreqBPS ) ) )
+               //       else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq <= m_maintCFreqBPS ) ) )
                {
                if (S_comp > 0)
                   {
@@ -11818,8 +15601,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                   }
                }
             // compute the composite slope using the known width of the structure+beach and the slopes 
-            //    else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq >= m_maintFreqBPS) ) )
-            else if (isOvertopped && (beachType == BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear > firstMaintYear))
+            //    else if (isOvertopped && (beachType == BchT_RIPRAP_BACKED || (maintFreq >= m_maintCFreqBPS) ) )
+            else if (isOvertopped && (beachType == BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear >= firstMaintYear))
                {
                // width weighted average of beach and structure slopes
                // (beachSlope * beachWidth + structureSlope * structureWidth ) / (beachWidth + structureWidth)
@@ -11869,7 +15652,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
                   {
                   case BchT_MIXED_SEDIMENT_DUNE_BACKED:
                   case BchT_MIXED_SEDIMENT_BLUFF_BACKED:
-                     gammaRough = 0.8f; // (similar to Till110 and 111 on page 129 of report)
+                     gammaRough = 0.8f;  // (similar to Till110 and 111 on page 129 of report); p19
                      break;
 
                   case BchT_SANDY_RIPRAP_BACKED:
@@ -11894,13 +15677,41 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             else if (limit >= 1.8f)
                runup_TAW_local = Hmo * gammaRough * gammaBeta * (4.3f - (1.6f / sqrt(Ibarren_local)));
 
+            // Count how many times each case triggers
+            static int case1Count = 0, case2Count = 0, case3Count = 0, case4Count = 0;
+
             if (runup_TAW_local == 0)
-               runup_TAW_local = stockdonTWL;
+            {
+                case1Count++;
+                runup_TAW_local = r2Runup;
+            }
+            else if (isOvertopped && (beachType != BchT_SANDY_RIPRAP_BACKED || pEnvContext->currentYear < firstMaintYear))
+            {
+                case2Count++;
+                runup_TAW_local = r2Runup;
+            }
+            else if (runup_TAW_local < r2Runup)
+            {
+                case3Count++;
+                runup_TAW_local = r2Runup;
+            }
+            else
+                case4Count++;
+
+            //// Log summary at end of year
+            //if (doy == 364)
+            //{
+            //    CString msg;
+            //    msg.Format("Runup Cases - CASE1: %i, CASE2: %i, CASE3: %i, CASE4: %i",
+            //        case1Count, case2Count, case3Count, case4Count);
+            //    Report::LogInfo(msg);
+            //    case1Count = case2Count = case3Count = case4Count = 0;
+            //}
 
             // COMBINE RUNUP VALUES TO CALCULATE COMBINED TWL //
 
-            // Wave Runup consists of setup and swash (barrier runup)
-            double structureR2 = (runup_TAW_local + 1.1f * setup);
+            // ✓ CORRECTED: TAW runup already includes setup - use directly
+            double structureR2 = runup_TAW_local;  // ✓ No double-counting of setup
             r2Runup = (float)structureR2;
 
             // this attribute is for debugging
@@ -11990,7 +15801,7 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          //m_pDuneLayer->GetData(dunePt, m_colDLYrAvgTWL, yearlyAvgTWL);
          //yearlyAvgTWL += dailyTWL / 365;
          //m_pDuneLayer->SetData(dunePt, m_colDLYrAvgTWL, yearlyAvgTWL);
-         m_pDuneLayer->AddData(dunePt, m_colDLYrAvgTWL, dailyTWL/365);
+         m_pDuneLayer->AddData(dunePt, m_colDLYrAvgTWL, dailyTWL / 365);
          //m_maxTWLArray.Set(duneIndex, row, dailyTWL);
 
          // store the yearly average SWL
@@ -12040,8 +15851,8 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
          ///////////////////////////////////////
          if (dunePt == 1000)
             {
-            std::vector<float> data;            
-            data.push_back((float) doy);
+            std::vector<float> data;
+            data.push_back((float)doy);
             data.push_back(swl);
             data.push_back((float)duneIndex);
             data.push_back((float)transID);
@@ -12073,11 +15884,11 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
             data.push_back(isOvertopped);
             data.push_back(dailyTWL);
             data.push_back(dailyTWL_Flood);
-            m_pTWLDataTemp->AppendRow(data.data(), (int) data.size());
+            m_pTWLDataTemp->AppendRow(data.data(), (int)data.size());
             }
          //////////////////////////////////////
 
-         if ( dailyTWL > this->m_maxAnnualTWL)
+         if (dailyTWL > this->m_maxAnnualTWL)
             this->m_maxAnnualTWL = dailyTWL;
 
          this->m_meanAnnualTWL += dailyTWL;
@@ -12103,9 +15914,6 @@ void ChronicHazards::CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvCont
   //m_maxTWLArray.WriteAscii(_T("C:\\temp\\twl.csv"));
 
    } // end CalculateYrMaxTWL
-
-
-
 
 
 bool ChronicHazards::ComputeStockdon(float stillwaterLevel, float waveHeight, float wavePeriod, float waveDirection,
@@ -12251,7 +16059,7 @@ bool ChronicHazards::AddToPolicySummary(int year, int policyID, int locator, flo
       }
 
 
-   if ( fpPolicySummary != nullptr)
+   if (fpPolicySummary != nullptr)
       fprintf(::fpPolicySummary, "\n%i,%s,%i,%.2f,%i,%i,%f,%f,%i",
          year, (LPCTSTR)policyName, locator, unitCost, int(cost), int(availBudget), param1, param2, passCostConstraint ? 1 : 0);
 
@@ -12563,28 +16371,63 @@ double ChronicHazards::Bruunmodel(int point, int yearOfRun)
    }
 
 
-double ChronicHazards::SCRmodel(int point) 
-   {
-   double R_SCR_hist = 0.0f;
-   double shorelineChangeRate = 0.0f;
-   //float R_SCR_hist_Total = 0.0f;
-
-   m_pDuneLayer->GetData(point, m_colDLShorelineChange, shorelineChangeRate); //get historic shoreline chnage rate data from duneline file 
-
-   //neglect the progradation
-   if (shorelineChangeRate < 0.0f)
-      R_SCR_hist = (float)-shorelineChangeRate;
-   else
-      R_SCR_hist = 0.0f;
-
-   //R_SCR_hist_Total = yearOfRun * R_SCR_hist;
-
-   return R_SCR_hist;
-   }
-
-
+//double ChronicHazards::SCRmodel(int point)
+//   {
+//   double R_SCR_hist = 0.0f;
+//   double shorelineChangeRate = 0.0f;
+//   //float R_SCR_hist_Total = 0.0f;
+//
+//   m_pDuneLayer->GetData(point, m_colDLShorelineChange, shorelineChangeRate); //get historic shoreline chnage rate data from duneline file 
+//
+//   //neglect the progradation
+//   //if (shorelineChangeRate < 0.0f)
+//   R_SCR_hist = (float)-shorelineChangeRate;
+//   //else
+//   //   R_SCR_hist = 0.0f;
+//
+//   //R_SCR_hist_Total = yearOfRun * R_SCR_hist;
+//
+//   return R_SCR_hist;
+//   }
 
 
+// Add this helper implementation near other helper functions
+
+float ChronicHazards::SampleSCR(float mean)
+{
+    // If stochastic disabled or invalid std, return deterministic mean
+    if (m_useStochasticSCR == 0 || m_scrStd <= 0.0f || !std::isfinite(mean))
+        return mean;
+
+    try
+    {
+        std::normal_distribution<float> dist(mean, m_scrStd);
+        float sample = dist(m_rng);
+        // optional: clamp or post-process here if needed, e.g. don't allow huge outliers
+        return sample;
+    }
+    catch (...)
+    {
+        return mean;
+    }
+}
+
+// Replace or implement SCRmodel to sample per-call. Adapt signature if yours differs.
+double ChronicHazards::SCRmodel(int point)
+{
+    // read deterministic SCR from dune layer
+    float detSCR = 0.0f;
+    m_pDuneLayer->GetData(point, m_colDLShorelineChange, detSCR);
+
+    // draw a stochastic sample (per-call)
+    float sampledSCR = SampleSCR(detSCR);
+
+    // store sampled SCR into SCR_NEW column so other code can read it if needed
+    m_pDuneLayer->SetData(point, m_colDLSCR, sampledSCR);
+
+    // return sampled value for use by RunErosionModel
+    return static_cast<double>(sampledSCR);
+}
 
 
 

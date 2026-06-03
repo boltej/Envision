@@ -36,22 +36,6 @@
         "native": {}
       }
     },
-    "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj": {
-      "restore": {
-        "projectUniqueName": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj",
-        "projectName": "NetViewer",
-        "projectPath": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj",
-        "UsingMicrosoftNETSdk": false,
-        "frameworks": {
-          "native": {
-            "projectReferences": {}
-          }
-        }
-      },
-      "frameworks": {
-        "native": {}
-      }
-    },
     "D:\\Envision\\Source\\SetupMSIX\\SetupMSIX.wapproj": {
       "version": "1.0.0",
       "restore": {
@@ -86,9 +70,6 @@
               },
               "D:\\Envision\\Source\\Envision\\Envision.vcxproj": {
                 "projectPath": "D:\\Envision\\Source\\Envision\\Envision.vcxproj"
-              },
-              "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj": {
-                "projectPath": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj"
               }
             }
           }

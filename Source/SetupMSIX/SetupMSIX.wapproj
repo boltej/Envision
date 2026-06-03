@@ -110,7 +110,6 @@
   <ItemGroup>
     <ProjectReference Include="..\envcmd\envcmd.vcxproj" />
     <ProjectReference Include="..\Envision\Envision.vcxproj" />
-    <ProjectReference Include="..\NetViewer\NetViewer.vcxproj" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="Envision\AcuteHazards.dll" />

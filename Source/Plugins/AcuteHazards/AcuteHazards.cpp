@@ -425,8 +425,8 @@ bool AHEvent::Propagate(EnvContext* pEnvContext)
       int damageIndexTsu = m_tsunamiData.GetAsInt(tsuColInfos[HMI_DS]->col, idu);
 
       int damageIndex = max(damageIndexEq, damageIndexTsu);
-      //if (damageIndexEq == damageIndexTsu && damageIndex < 4)
-      //   damageIndex++;
+      if (damageIndexEq == damageIndexTsu && damageIndexEq > 0 && damageIndexEq < 4)
+         damageIndex++;
 
       // bldg damage 0(none)-4(max damage)
       m_pAHModel->UpdateIDU(pEnvContext, idu, m_pAHModel->m_colIduBldgDamageEq, damageIndexEq, ADD_DELTA);

@@ -19,8 +19,9 @@
 #include <PolyPtMapper.h>
 #include <AlgLib/AlgLib.h>
 #include <randgen/Randunif.hpp>
+#include <random>
 
-#include <MatlabEngine.hpp>
+//#include <MatlabEngine.hpp>
 
 const int HOURLY_DATA_IN_A_DAY = 24;
 const float TANB1_005 = 0.05f;
@@ -137,9 +138,10 @@ struct COSTS
    float nourishment;
    float BPS;
    int permits;
-   float BPSMaint;
+   float FracBPSBaseMaint;
    float SPS;
    float safeSite;
+   float BPSCrestPerM3;
    };
 
 class LookupTable
@@ -221,7 +223,7 @@ enum POLICY_ID
    PI_CONSTRUCT_SPS,
    PI_MAINTAIN_SPS,
    PI_NOURISH_SPS,
-   //PI_CONSTRUCT_SAFEST_SITE,
+   PI_CONSTRUCT_SAFEST_SITE,
    PI_REMOVE_BLDG_FROM_HAZARD_ZONE,
    PI_REMOVE_INFRA_FROM_HAZARD_ZONE,
    PI_RAISE_RELOCATE_TO_SAFEST_SITE,
@@ -242,8 +244,6 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool Run(EnvContext* pContext);
       bool EndRun(EnvContext* pEnvContext);
 
-
-
       // int ChronicHazards::ResizeAndCalculateBeta(long &rows, long &cols);
 
 
@@ -257,7 +257,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
    protected:
       bool LoadRBFs();
       bool ResetAnnualVariables();
-      //bool ResetAnnualBudget();
+      bool ResetAnnualBudget();
       //bool CalculateErosionExtents(EnvContext *pEnvContext);
       //bool RunEelgrassModel(EnvContext *pEnvContext);
       //bool GenerateFloodMap();
@@ -296,6 +296,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_runBuildings = 1;
       int m_runInfrastructure = 0;
       int m_runPolicy = 1;
+      CString m_pythonPath = "";
       Map* m_pMap;                                       // ptr to Map required to create grids
 
       CUIntArray m_shuffleArray;
@@ -331,6 +332,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //PolyGridMapper* m_pInfraFloodedGridLkUp = nullptr;      // provides mapping between bldg layer and flooded grid
       //PolyGridMapper* m_pIduErodedGridLkUp = nullptr;
       PolyPointMapper* m_pIduBuildingLkUp = nullptr;         // provides mapping between IDU layer, building (point) layer
+      PolyPointMapper* m_pIduDuneLkUp = nullptr;         // provides mapping between IDU layer, Dune (point) layer
       PolyPointMapper* m_pIduInfraLkUp = nullptr;   // provides mapping between IDU layer, infrastructure (point) layer
 
 
@@ -402,6 +404,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       CString m_cityDir;
       bool m_inputinHourlydata = true;
 
+      // Add this line to the ChronicHazards class definition (private or protected section)
+      bool m_debug = false;
 
       ////// int m_debug = 0;
       ////// int m_numBayBathyPts = 0;
@@ -418,8 +422,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_numDays = -1;
       int m_numYears = -1;
       int m_simulationIndex = 0;  // used to specify SLR index to use
-                                  // -1 = use runID
-      // flooding variables
+      // -1 = use runID
+// flooding variables
       int m_usePriorGrids = 0;
       float m_floodedArea = 0;
       float m_floodedAreaSqMiles = 0;
@@ -434,7 +438,13 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_runBatesFlood = 0;
       float m_batesFloodDuration = 6;
       ///// int m_runBayFloodModel = 0;            // Run Bay Flooding Model: 0=Off; 1=On
+      float m_h_raise;
 
+
+      int    m_raiseEligibleBeginning = 0; // # buildings eligible at beginning of year
+      int    m_raiseEligibleEnd = 0;       // # buildings eligible at end of year
+      float  m_raiseCostTotal = 0.0f;      // total annual cost actually spent raising buildings
+      float  m_raiseCost_unmet = 0.0f;     // annual unmet demand for raising buildings
 
       // erosion variables
       float m_erodedArea = 0;
@@ -445,6 +455,13 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_numProfiles = 0;
       float m_constTD = 10.0f;
 
+      float m_scrStd;           // standard deviation for SCR sampling (meters)
+      int   m_useStochasticSCR;    // 0 = off, 1 = on (parsed from XML)
+      std::mt19937 m_rng;              // RNG used for stochastic SCR sampling
+
+      // helper prototype
+      float SampleSCR(float mean);
+
       // Dune variables
       int m_maxTransect = -1;
       int m_minTransect = 99999;
@@ -452,30 +469,79 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_nourishFactor = 5;
       int m_nourishFreq = 5;
       int m_nourishPercentage = 20;
-      
+
       // Infrastructure variables
       int m_numBldgs = 0;
       int m_findSafeSiteCell = 0;
       int m_erodedBldgCount = 0;
+      int m_cumulativeErodedBldgCount; // cumulative count of buildings eroded across the whole simulation (never decreases)
       int m_floodedBldgCount = 0;
       int m_floodedInfraCount = 0;
 
       int m_floodCountBPS = 0;
       int m_floodCountSPS = 0;
 
+      int m_colIDURaisingHeight;
+
+      // NEW: Track eligible dune points for BPS construction
+      int m_eligibleDunePointsBPSBeginning;      // # of eligible dune points at start of year
+      float m_eligibleLengthBPSBeginning;        // Total length (m) of eligible dune points at start
+      int m_eligibleDunePointsBPSEnd;            // # of eligible dune points at end of year
+      float m_eligibleLengthBPSEnd;              // Total length (m) of eligible dune points at end
+      int m_eligibleDunePointsBPSChange;         // Change in # of eligible points
+      float m_eligibleLengthBPSChange;           // Change in eligible length (m)
+      float  m_COSTBPS_unmet = 0.0f; // unmet demand for new BPS (annual)
+
+	  double RobustMedian(std::vector<double> vals);  // Helper function to calculate robust median of a vector of doubles
+
+      // --- Per-type BPS maintenance & eligible counters (base / crest) ---
+      // Base maintenance eligible counters (annual)
+      int    m_eligibleDunePointsBPSBMaintBeginning = 0;
+      float  m_eligibleLengthBPSBMaintBeginning = 0.0f;
+      int    m_eligibleDunePointsBPSBMaintEnd = 0;
+      float  m_eligibleLengthBPSBMaintEnd = 0.0f;
+      int    m_eligibleDunePointsBPSBMaintChange = 0;
+      float  m_eligibleLengthBPSBMaintChange = 0.0f;
+
+      // Crest maintenance eligible counters (annual)
+      int    m_eligibleDunePointsBPSCMaintBeginning = 0;
+      float  m_eligibleLengthBPSCMaintBeginning = 0.0f;
+      int    m_eligibleDunePointsBPSCMaintEnd = 0;
+      float  m_eligibleLengthBPSCMaintEnd = 0.0f;
+      int    m_eligibleDunePointsBPSCMaintChange = 0;
+      float  m_eligibleLengthBPSCMaintChange = 0.0f;
+
+      /// Per - type maintained / project counters & lengths(annual)
+      // Base (B)
+      int    m_noMaintainedBBPSProjects = 0;
+      int    m_noMaintainedBBPSPoints = 0;
+      float  m_maintainedBLengthBPS = 0.0f;
+      float  m_MNTBCOSTBPS = 0.0f;
+      float  m_MNTBCOSTBPS_unmet = 0.0f; // unmet demand for base (annual)
+
+      // Crest (C)
+      int    m_noMaintainedCBPSProjects = 0;
+      int    m_noMaintainedCBPSPoints = 0;
+      float  m_maintainedCLengthBPS = 0.0f;
+      float  m_MNTCCOSTBPS = 0.0f;
+      float  m_MNTCCOSTBPS_unmet = 0.0f; // unmet demand for crest (annual)
+
+      // Combined
+      float  m_MNTCOSTBPS = 0.0f; // total (base + crest) annual cost
+      float m_MNTCOSTBPS_unmet = 0.0f; // total unmet (base + crest) annual
 
       ////// int m_numDunePts = 0;
 
       // Policy scenario xml variables 
       int m_runConstructBPSPolicy = 0;               // 0=Off = 0; 1=On
-      ////// int m_runConstructSafestPolicy = 0;               // 0=Off = 0; 1=On
+      int m_runConstructSafestPolicy = 0;               // 0=Off = 0; 1=On
       int m_runConstructSPSPolicy = 0;               // 0=Off = 0; 1=On
       int m_runMaintainBPSPolicy = 0;                  // 0=Off = 0; 1=On
       int m_runMaintainSPSPolicy = 0;                  // 0=Off = 0; 1=On
       int m_runNourishBPSPolicy = 0;                  // 0=Off = 0; 1=On
       int m_runNourishSPSPolicy = 0;                  // 0=Off = 0; 1=On
       int m_runRaiseInfrastructurePolicy = 0;            // 0=Off = 0; 1=On
-      int m_runRelocateSafestPolicy = 0;               // 0=Off = 0; 1=On   
+      int m_runRelocateSafestPolicy = 0;               // 0=Off = 0; 1=untargeted; 2=targeted  
       int m_runRemoveBldgFromHazardZonePolicy = 0;         // 0=Off = 0; 1=On
       int m_runRemoveInfraFromHazardZonePolicy;         // 0=Off = 0; 1=On
       float m_totalBudget = 0;
@@ -507,7 +573,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_constructCostBPS = 0;
       float m_constructVolumeSPS = 0;
 
-      int m_maintFreqBPS = 3;
+      int m_maintBFreqBPS = 5;
+      int m_maintCFreqBPS = 1;
       int m_useMaxTWL = 1;
       int m_bfeCount = 0;
       int m_ssiteCount = 0;
@@ -527,6 +594,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       ///// int m_runSpatialBayTWL = 0;             // Run Spatially varying TWLs in Bay: 0=Off; 1=On
       bool m_writeDailyBouyData = false;
       bool m_writeDailyRBFData = false;
+      bool m_slrStochastic = false; 
 
       int m_eroCount = 0;
 
@@ -542,6 +610,9 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_idpyFactor = 0.4f;
       float m_inletFactor = 0;
       ///// float m_maxArea = 7000000;
+      //int   m_minBPSLength = 500;   // m
+	  int   m_minBPSLength = 10;   // m, minimum length of BPS that can be constructed
+	  int   m_BPSLength = 10;   // m, length of existing BPS and new BPS to be constructed at each eligible dune point
       float m_maxBPSHeight = 8.5f;
       float m_minBPSHeight = 2.0f;
       float m_minBPSRoughness = 0.55f;
@@ -550,10 +621,10 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       float m_safetyFactor = 1.5f;
       float m_slopeBPS = 0.5;
       float m_slopeThresh = 0;
-      float m_shorelineLength = 10;
+      float m_shorelineLength = 82473.613f;
       float m_topWidthSPS = 0;
       float m_removeFromHazardZoneRatio = 0.5f;
-      float m_raiseRelocateSafestSiteRatio = 0.4f;
+      float m_raiseRelocateSafestSiteRatio = 0.1f;
 
       // Grid properties
       //int m_numRows = -1;                           // Number of rows in DEM, Flooded, Eroded grid
@@ -600,16 +671,20 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //int m_colIDUMinElevation = -1;
       //int m_colIDUSafeLoc = -1;
       int m_colIDUSafeSite = -1;
-      //int m_colIDUSafeSiteYear = -1;
+      int m_colIDUSafeSiteYr = -1;
       int m_colIDUSafestSiteCol = -1;
       int m_colIDUSafestSiteRow = -1;
       int m_colIDUResAge = -1;
       int m_colIDUResIncome = -1;
       int m_colIDUEconClass = -1;
       int m_colIDUCensusType = -1;
+      int m_colIDUResOwner = -1;
 
 
       int m_colIDUBaseFloodElevation = -1;
+      int m_colIDUBFEYr = -1;
+      int m_colIDUCostElev = -1;
+      int m_colIDUPFE = -1;
       //int m_colIDUBeachfront = -1;
       //int m_colIDUCPolicy = -1;
       //int m_colIDUEasementYear = -1;
@@ -620,8 +695,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colIDUAddBPSYr = -1;
       //int m_colIDUCityCode = -1;
       int m_colIDUEroded = -1;
-      //int m_colIDUFlooded = -1;
-      //int m_colIDUFloodZone = -1;
+      int m_colIDUFloodDepth = -1;
+      int m_colIDUFloodZone = -1;
       int m_colIDUFloodZoneCode = -1;
       //int m_colIDUImpValue = -1;
       //int m_colIDULandValue = -1;
@@ -665,6 +740,7 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int m_colBldgResIncome = -1;
       int m_colBldgEconClass = -1;
       int m_colBldgCensusType = -1;
+      int m_colBldgResOwner = -1;
 
       //-- dune model columns --//
       int  m_colDLBeachType = -1;
@@ -673,8 +749,8 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       // Dune Line coverage columns      
       //int  m_colDLA = -1;
-      int  m_colDLAddYearBPS = -1;
-      int  m_colDLAddYearSPS = -1;
+      int  m_colDLAddBPSYr = -1;
+      int  m_colDLAddSPSYr = -1;
       //int  m_colDLAlpha = -1;
       //int  m_colDLAlpha2 = -1;
       int  m_colDLAmtFlooded = -1;
@@ -693,13 +769,23 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       int  m_colDLLengthBPS = -1;
       int  m_colDLLengthSPS = -1;
       int  m_colDLRemoveYearBPS = -1;
+      int  m_colDLMaintDisabledBPS = -1;
       //int  m_colDLCalDate = -1;
       //int  m_colDLCalDCrest = -1;
       //int  m_colDLCalDToe = -1;
       //int  m_colDLCalEroExt = -1;
       int  m_colDLCostBPS = -1;
-      int  m_colDLCostMaintBPS = -1;
+      int m_colDLCostMaintBPS = -1; // in MaintainStructure, function not used 
+      int  m_colDLMAINT_TYPE = -1;         // 0=neither, 1=base, 2=crest, 3=both (annual flag)
+      int  m_colDLMNTBCOSTBPS = -1;        // annual base maintenance cost (per-point)
+      int  m_colDLMNTCCOSTBPS = -1;        // annual crest maintenance cost (per-point)
+      int  m_colDLMNTCOSTBPS = -1;         // annual total maint. cost (per-point) = B + C
+      int  m_colDLMAINB_CNT_BPS = -1;      // cumulative base maintenance count (persists across years)
+      int  m_colDLMAINC_CNT_BPS = -1;      // cumulative crest maintenance count (persists across years)
+      int  m_colDLMAINC_DISABLE_BPS = -1;  // crest-disable (permanent when capped) - replaces prior MAIN_DISABLE_BPS
       int  m_colDLCostSPS = -1;
+      int m_colDLLastBaseMaintYr;    // index for LAST_BASE_MAINT_YR
+      int m_colDLLastCrestMaintYr;   // index for LAST_CREST_MAINT_YR
       //int  m_colDLCPolicyL = -1;
       int  m_colDLDuneBldgDist = -1;
       int  m_colDLDuneBldgIndex = -1;
@@ -865,11 +951,11 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       //bool InitializeFloodGrids(EnvContext *pContext, FloodArea *pFloodArea);
       //bool RunFloodAreas(EnvContext *pContext);
 
-      std::unique_ptr<matlab::engine::MATLABEngine> m_matlabPtr = nullptr; // startMATLAB();
+      //std::unique_ptr<matlab::engine::MATLABEngine> m_matlabPtr = nullptr; // startMATLAB();
 
       CString m_sfincsHome;  // e.g.  "d:/Envision/Source/Plugins/ChronicHazards/FloodModel"
       CString m_floodDir;
-
+      CString m_pythonExe;
 
       //  ******  Methods ******
 
@@ -908,26 +994,25 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       void CalculateTWLandImpactDaysAtShorePoints(EnvContext* pEnvContext);
       int MaxYearlyTWL(EnvContext* pEnvContext);
 
-      void CalculateTWL(EnvContext* pEnvContext);
+      void ClampBPSGeometry(double& width, double& height, double& duneCrest,
+          double minWidth, double minHeight, double maxHeight);
 
-
+      //void CalculateTWL(EnvContext* pEnvContext);
       //void CalculateYrMaxTWLAtShoreline(EnvContext* pEnvContext);
 
-
-
-      double GenerateBathtubFloodMap(int& floodedCount);
-      double GenerateBatesFloodMap(int& floodedCount);
+      //double GenerateBathtubFloodMap(int& floodedCount);
+      //double GenerateBatesFloodMap(int& floodedCount);
       float GenerateErosionMap(int& erodedCount);
-      double GenerateEelgrassMap(int& eelgrassCount);
+      //double GenerateEelgrassMap(int& eelgrassCount);
 
 
-      bool InitializeWaterElevationGrid();
+      //bool InitializeWaterElevationGrid();
 
 
-      bool CalculateFourQs(int row, int col, double& discharge);
-      int VisitNeighbors(int row, int col, float twl, float& minElevation);
-      int VisitNeighbors(int row, int col, float twl);
-      int VNeighbors(int row, int col, float twl);
+      //bool CalculateFourQs(int row, int col, double& discharge);
+      //int VisitNeighbors(int row, int col, float twl, float& minElevation);
+      //int VisitNeighbors(int row, int col, float twl);
+      //int VNeighbors(int row, int col, float twl);
 
       //void generateFMap();
       //void floodFill(int x, int y, float newC);
@@ -955,17 +1040,13 @@ class _EXPORT ChronicHazards : public EnvModelProcess
 
       void UpdatePolicyResponse(EnvContext* pEnvContext);
 
-      void ComputeBuildingStatistics();
+      void ComputeBuildingStatistics(EnvContext*);
       void ComputeIDUStatistics(EnvContext*);
       void TallyCostStatistics(int currentYear);
       void TallyDuneStatistics(int currentYear);
-      void TallyRoadStatistics();  // obsolete
       void ComputeInfraStatistics();
 
       bool UpdateDuneErosionStats(int dunePt, float);
-
-
-
 
 
       // Helper Functions
@@ -980,13 +1061,18 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       void ExportMapLayers(EnvContext* pEnvContext, int outputYear);
 
       // Build BPS with identical characteristics
-      void ConstructBPS(int currentYear);
+      void ConstructBPS(EnvContext*);
+      bool IsDuneEligibleForBPS( int dunePt);
+      int GetEligibleBPSNeighbors(int dunePt, CUIntArray &neighbors, int direction=3);
+
+      // New helper: compute eligible BPS counts/lengths at start or end of MaintainBPS
+      void ComputeEligibleBPSCounts(bool isStart, EnvContext* pEnvContext);
 
       // Build BPS with contour of shoreline
-      void ConstructBPS1(int currentYear);
+      //void ConstructBPS1(int currentYear);
 
       // Build SPS with contour of shoreline
-      void ConstructSPS(int currentYear);
+      void ConstructSPS(EnvContext*);
 
       // Builds SPS to average GHC average characteristics -- not working
       void ConstructDune(int currentYear);
@@ -1019,20 +1105,20 @@ class _EXPORT ChronicHazards : public EnvModelProcess
       bool FindImpactExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, bool isBPS);
 
       bool CalculateBPSExtent(MapLayer::Iterator startPoint, MapLayer::Iterator& endPoint, MapLayer::Iterator& maxPoint);
-      void MaintainBPS(int currentYear);
-      void MaintainBPS2(int currentYear);
+      void MaintainBPS(EnvContext*);
+      //void MaintainBPS2(int currentYear);
       void RemoveBPS(EnvContext* pEnvContext);
 
       void MaintainStructure(MapLayer::Iterator pt, int currentYear); // , bool isBPS);
-      void MaintainSPS(int currentYear);
+      void MaintainSPS(EnvContext*);
 
       bool FindProtectedBldgs();
       bool IsBldgImpactedByEErosion(int bldg, float avgEro, float distToBldg); // , float distance); //, int& iduIndex);
       //int GetIDUIndexOfBldg(int bldg);
 
-      void NourishBPS(int currentYear, bool nourishBPS); //, int beachType);
-      void NourishSPS(int currentYear); //, int beachType);
-      void CompareBPSorNourishCosts(int currentYear);
+      void NourishBPS(EnvContext*, bool nourishBPS); //, int beachType);
+      void NourishSPS(EnvContext*); //, int beachType);
+      void CompareBPSorNourishCosts(EnvContext*);
 
       void ConstructOnSafestSite(EnvContext* pEnvContext, bool inFloodPlain);
       void RaiseOrRelocateBldgToSafestSite(EnvContext* pEnvContext);

@@ -26,15 +26,6 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
-        }
       }
     },
     "UAP,Version=v10.0.17763/win10-arm": {
@@ -61,15 +52,6 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
-        }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
         }
       }
     },
@@ -98,15 +80,6 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
-        }
       }
     },
     "UAP,Version=v10.0.17763/win10-arm64-aot": {
@@ -133,15 +106,6 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
-        }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
         }
       }
     },
@@ -170,15 +134,6 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
-        }
       }
     },
     "UAP,Version=v10.0.17763/win10-x64-aot": {
@@ -205,15 +160,6 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
-        }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
         }
       }
     },
@@ -242,15 +188,6 @@
         "runtime": {
           "bin/placeholder/Envision.dll": {}
         }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
-        }
       }
     },
     "UAP,Version=v10.0.17763/win10-x86-aot": {
@@ -277,15 +214,6 @@
         },
         "runtime": {
           "bin/placeholder/Envision.dll": {}
-        }
-      },
-      "NetViewer/1.0.0": {
-        "type": "project",
-        "compile": {
-          "bin/placeholder/NetViewer.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/NetViewer.dll": {}
         }
       }
     }
@@ -436,18 +364,12 @@
       "type": "project",
       "path": "../Envision/Envision.vcxproj",
       "msbuildProject": "../Envision/Envision.vcxproj"
-    },
-    "NetViewer/1.0.0": {
-      "type": "project",
-      "path": "../NetViewer/NetViewer.vcxproj",
-      "msbuildProject": "../NetViewer/NetViewer.vcxproj"
     }
   },
   "projectFileDependencyGroups": {
     "UAP,Version=v10.0.17763": [
       "Envision >= 1.0.0",
       "Microsoft.Windows.SDK.BuildTools >= 10.0.22000.194",
-      "NetViewer >= 1.0.0",
       "envcmd >= 1.0.0"
     ]
   },
@@ -489,9 +411,6 @@
             },
             "D:\\Envision\\Source\\Envision\\Envision.vcxproj": {
               "projectPath": "D:\\Envision\\Source\\Envision\\Envision.vcxproj"
-            },
-            "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj": {
-              "projectPath": "D:\\Envision\\Source\\NetViewer\\NetViewer.vcxproj"
             }
           }
         }

@@ -662,7 +662,9 @@ bool FieldCalculator::LoadXml(EnvContext *pEnvContext, LPCTSTR filename)
                {
                case 'i':
                case 'I':
-                  pFD->m_type = TYPE_INT;  break;
+               case 'l':
+               case 'L':
+                  pFD->m_type = TYPE_LONG;  break;
                }
             }
 
